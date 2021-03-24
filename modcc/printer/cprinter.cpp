@@ -40,65 +40,6 @@ static std::string scaled(double coeff) {
     return ss.str();
 }
 
-void emit_ppack_variables(std::ostream& out, const Module& mod) {
-    out << fmt::format("[[maybe_unused]] auto  {0}width             = pp->width;\n"
-                       "[[maybe_unused]] auto  {0}n_detectors       = pp->n_detectors;\n"
-                       "[[maybe_unused]] auto* {0}vec_ci            = pp->vec_ci;\n"
-                       "[[maybe_unused]] auto* {0}vec_di            = pp->vec_di;\n"
-                       "[[maybe_unused]] auto* {0}vec_t             = pp->vec_t;\n"
-                       "[[maybe_unused]] auto* {0}vec_dt            = pp->vec_dt;\n"
-                       "[[maybe_unused]] auto* {0}vec_v             = pp->vec_v;\n"
-                       "[[maybe_unused]] auto* {0}vec_i             = pp->vec_i;\n"
-                       "[[maybe_unused]] auto* {0}vec_g             = pp->vec_g;\n"
-                       "[[maybe_unused]] auto* {0}temperature_degC  = pp->temperature_degC;\n"
-                       "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\n"
-                       "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\n"
-                       "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\n"
-                       "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\n"
-                       "[[maybe_unused]] auto* {0}weight            = pp->weight;\n"
-                       "[[maybe_unused]] auto& {0}events            = pp->events;\n"
-                       "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\n"
-                       "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\n\n",
-                       pp_var_pfx);
-
-    auto vars = local_module_variables(mod);
-    out << "// Globals\n";
-    auto global = 0;
-    for (const auto& scalar: vars.scalars) {
-        out << fmt::format("[[maybe_unused]] auto {}{} = *pp->globals[{}];\n", pp_var_pfx, scalar->name(), global);
-        global++;
-    }
-    out << "\n// State variables\n";
-    auto param = 0, state = 0;
-    for (const auto& array: vars.arrays) {
-        if (array->is_state()) {
-            out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\n", pp_var_pfx, array->name(), state);
-            state++;
-        }
-    }
-    out << "\n// Parameters\n";
-    for (const auto& array: vars.arrays) {
-        if (!array->is_state()) {
-            out << fmt::format("[[maybe_unused]] auto* {}{} = pp->parameters[{}];\n", pp_var_pfx, array->name(), param);
-            param++;
-        }
-    }
-    out << "\n// Ions\n";
-    auto idx = 0;
-    for (const auto& ion: mod.ion_deps()) {
-        out << fmt::format("[[maybe_unused]] auto& {}{} = pp->ion_states[{}];\n",       pp_var_pfx, ion_field(ion), idx);
-        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->ion_states[{}].index;\n", pp_var_pfx, ion_index(ion), idx);
-        idx++;
-    }
-    out << '\n';
-}
-
-std::string ppack_variables(const Module& m) {
-    std::stringstream ss;
-    emit_ppack_variables(ss, m);
-    return ss.str();
-}
-
 struct index_prop {
     std::string source_var; // array holding the indices
     std::string index_name; // index into the array
@@ -320,6 +261,52 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     out << "namespace " << namespace_name << " {\n";
 
+    out << fmt::format("#define PPACK_IFACE_BLOCK \\\n"
+                       "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
+                       "[[maybe_unused]] auto  {0}n_detectors       = pp->n_detectors;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_ci            = pp->vec_ci;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_di            = pp->vec_di;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_t             = pp->vec_t;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_dt            = pp->vec_dt;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_v             = pp->vec_v;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_i             = pp->vec_i;\\\n"
+                       "[[maybe_unused]] auto* {0}vec_g             = pp->vec_g;\\\n"
+                       "[[maybe_unused]] auto* {0}temperature_degC  = pp->temperature_degC;\\\n"
+                       "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\\\n"
+                       "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\\\n"
+                       "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\\\n"
+                       "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\\\n"
+                       "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
+                       "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
+                       "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\\\n"
+                       "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n",
+                       pp_var_pfx);
+    auto global = 0;
+    for (const auto& scalar: vars.scalars) {
+        out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar->name(), global);
+        global++;
+    }
+    auto param = 0, state = 0;
+    for (const auto& array: vars.arrays) {
+        if (array->is_state()) {
+            out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array->name(), state);
+            state++;
+        }
+    }
+    for (const auto& array: vars.arrays) {
+        if (!array->is_state()) {
+            out << fmt::format("[[maybe_unused]] auto* {}{} = pp->parameters[{}];\\\n", pp_var_pfx, array->name(), param);
+            param++;
+        }
+    }
+    auto idx = 0;
+    for (const auto& ion: module_.ion_deps()) {
+        out << fmt::format("[[maybe_unused]] auto& {}{} = pp->ion_states[{}];\\\n",       pp_var_pfx, ion_field(ion), idx);
+        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
+        idx++;
+    }
+    out << "//End of IFACEBLOCK\n\n";
+
     out << "// procedure prototypes\n";
     for (auto proc: normal_procedures(module_)) {
         if (with_simd) {
@@ -332,9 +319,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             out << ";\n";
         }
     }
-    out << "\n";
-
-    out << "// interface methods\n";
+    out << "\n"
+        << "// interface methods\n";
     out << "void init(arb_mechanism_ppack* pp) {\n" << indent;
     emit_body(init_api);
     out << popindent << "}\n\n";
@@ -357,36 +343,36 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     if (net_receive) {
         out << fmt::format("void net_receive(arb_mechanism_ppack* pp, int i_, arb_value_type {0}) {{\n"
+                           "PPACK_IFACE_BLOCK;\n"
                            "{1}"
-                           "{2}"
                            "}}\n"
                            "\n"
                            "void apply_events(arb_mechanism_ppack* pp) {{\n"
-                           "{1}"
-                           "  auto ncell = {3}events.n_streams;\n"
+                           "PPACK_IFACE_BLOCK;\n"
+                           "  auto ncell = {2}events.n_streams;\n"
                            "  for (arb_size_type c = 0; c<ncell; ++c) {{\n"
-                           "    auto begin = {3}events.events + {3}events.begin[c];\n"
-                           "    auto end   = {3}events.events + {3}events.end[c];\n"
+                           "    auto begin = {2}events.events + {2}events.begin[c];\n"
+                           "    auto end   = {2}events.events + {2}events.end[c];\n"
                            "    for (auto p = begin; p<end; ++p) {{\n"
-                           "      if (p->mech_id=={3}mechanism_id) {4}::net_receive(pp, p->mech_index, p->weight);\n"
+                           "      if (p->mech_id=={2}mechanism_id) {3}::net_receive(pp, p->mech_index, p->weight);\n"
                            "    }}\n"
                            "  }}\n"
                            "}}\n\n",
                            net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name(),
-                           ppack_variables(module_),
                            do_cprint(net_receive->body(), 1),
                            pp_var_pfx,
                            namespace_name);
 
     } else {
-        out << "void* net_receive  = NULL;\n";
-        out << "void* apply_events = NULL;\n";
+        out << fmt::format("void net_receive({0}*) {{}}\n"
+                           "void apply_events({0}*) {{}}\n",
+                           ppack_name);
     }
 
     if(post_event) {
         const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
         out << fmt::format("void post_event({0}* pp) {{\n"
-                           "{4}"
+                           "PPACK_IFACE_BLOCK;\n"
                            "  for (int i_ = 0; i_ < {1}width; ++i_) {{\n"
                            "    auto node_index_i_ = {1}node_index[i_];\n"
                            "    auto cid_          = {1}vec_ci[node_index_i_];\n"
@@ -402,22 +388,22 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                            ppack_name,
                            pp_var_pfx,
                            time_arg,
-                           do_cprint(post_event->body(), 3),
-                           ppack_variables(module_));
+                           do_cprint(post_event->body(), 3));
     } else {
-        out << "void* post_event = NULL;\n";
+        out << fmt::format("void post_event({0}*) {{}}\n", ppack_name);
     }
 
-
-    out << "// Procedure definitions\n";
+    out << "\n// Procedure definitions\n";
     for (auto proc: normal_procedures(module_)) {
         if (with_simd) {
             emit_simd_procedure_proto(out, proc, ppack_name);
             auto simd_print = simdprint(proc->body(), vars.scalars);
             out << " {\n"
-                << indent;
-            emit_ppack_variables(out, module_);
-            out << simd_print << popindent <<  "}\n\n";
+                << indent
+                << "PPACK_IFACE_BLOCK;\n"
+                << simd_print
+                << popindent
+                << "}\n\n";
 
             emit_masked_simd_procedure_proto(out, proc, ppack_name);
             auto masked_print = simdprint(proc->body(), vars.scalars);
@@ -425,106 +411,141 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             out << " {\n" << indent << masked_print << popindent << "}\n\n";
         } else {
             emit_procedure_proto(out, proc, ppack_name);
-            out <<
-                " {\n" << indent;
-            emit_ppack_variables(out, module_);
-            out << cprint(proc->body())
-                << popindent << "}\n\n";
+            out << " {\n" << indent
+                << "PPACK_IFACE_BLOCK;\n"
+                << cprint(proc->body())
+                << popindent << "}\n";
         }
     }
 
-    out << popindent << "}\n\n"; // close kernel namespace
-    out << "\n// Tables\n";
+    out << popindent
+        << "#undef PPACK_IFACE_BLOCK\n"
+        << "} // namespace kernel_" << name
+        << "\n\n// Tables\n";
+    {
+        auto n = 0ul;
+        io::separator sep("", ", ");
+        out << "static const char* globals[]               = { ";
+        for (const auto& var: vars.scalars) {
+            out << sep << quote(var->name());
+            ++n;
+        }
+        out << " };\n"
+            << "static arb_size_type n_globals             = " << n << ";\n";
+    }
+
     {
         io::separator sep("", ", ");
-        out << "static const char* globals[]    = { ";
-        for (const auto& var: vars.scalars) out << sep << quote(var->name());
+        out << "static arb_value_type global_defaults[]    = { ";
+        for (const auto& var: vars.scalars) {
+            out << sep << (std::isnan(var->value()) ? "std::nan(\"\")" : std::to_string(var->value()));
+        }
         out << " };\n";
     }
 
-
     {
+        auto n = 0ul;
         io::separator sep("", ", ");
-        out << "static const char* state_vars[] = { ";
+        out << "static const char* state_vars[]            = { ";
         for (const auto& var: vars.arrays) {
-            if(var->is_state()) out << sep << quote(var->name());
+            if(var->is_state()) {
+                out << sep << quote(var->name());
+                ++n;
+            }
         }
-        out << " };\n";
+        out << " };\n"
+            << "static arb_size_type n_state_vars          = " << n << ";\n";
     }
 
     {
         io::separator sep("", ", ");
         out << "static arb_value_type state_var_defaults[] = { ";
         for (const auto& var: vars.arrays) {
-            if(var->is_state()) out << sep << "0.0";
+            if(var->is_state()) {
+                out << sep << (std::isnan(var->value()) ? "std::nan(\"\")" : std::to_string(var->value()));
+            }
         }
         out << " };\n";
     }
 
     {
+        auto n = 0ul;
         io::separator sep("", ", ");
-        out << "static const char* parameters[] = { ";
+        out << "static const char* parameters[]            = { ";
         for (const auto& var: vars.arrays) {
-            if(!var->is_state()) out << sep << quote(var->name());
+            if(!var->is_state()) {
+                out << sep << quote(var->name());
+                ++n;
+            }
         }
-        out << " };\n";
+        out << " };\n"
+            << "static arb_size_type n_parameters          = " << n << ";\n";
     }
 
     {
         io::separator sep("", ", ");
         out << "static arb_value_type parameter_defaults[] = { ";
         for (const auto& var: vars.arrays) {
-            if(!var->is_state()) out << sep << "0.0";
+            if(!var->is_state()) {
+                out << sep << (std::isnan(var->value()) ? "std::nan(\"\")" : std::to_string(var->value()));
+            }
         }
         out << " };\n";
     }
 
     {
         io::separator sep("", ", ");
-        out << "static const char* ions[]       = { ";
-        for (const auto& dep: ion_deps) out << sep << quote(dep.name);
-        out << " };\n";
+        out << "static const char* ions[]                  = { ";
+        auto n = 0ul;
+        for (const auto& dep: ion_deps) {
+            out << sep << quote(dep.name);
+            ++n;
+        }
+        out << " };\n"
+            << "static arb_size_type n_ions                = " << n << ";\n";
     }
-    out << "\n";
-    out << fmt::format(" static arb_mechanism_type {0} {{\n"
-                       "    // Metadata\n"
-                       "    .abi_version=ARB_MECH_ABI_VERSION,\n"
-                       "    .fingerprint=\"{1}\",\n"
-                       "    .name=\"{0}\",\n"
-                       "    .kind={2},\n"
-                       "    .backend={3},\n"
-                       "    // Tables\n"
-                       "    .globals=globals,\n"
-                       "    .n_globals=sizeof(globals),\n"
-                       "    .ions=ions,\n"
-                       "    .n_ions=sizeof(ions),\n"
-                       "    .state_vars=state_vars,\n"
-                       "    .state_var_defaults=state_var_defaults,\n"
-                       "    .n_state_vars=sizeof(state_vars),\n"
-                       "    .parameters=parameters,\n"
-                       "    .parameter_defaults=parameter_defaults,\n"
-                       "    .n_parameters=sizeof(parameters),\n"
-                       "    // Interface\n"
-                       "    .init_mechanism=(arb_mechanism_method){4}::init,\n"
-                       "    .compute_currents=(arb_mechanism_method){4}::compute_currents,\n"
-                       "    .apply_events=(arb_mechanism_method){4}::apply_events,\n"
-                       "    .advance_state=(arb_mechanism_method){4}::advance_state,\n"
-                       "    .write_ions=(arb_mechanism_method){4}::write_ions,\n"
-                       "    .post_event=(arb_mechanism_method){4}::post_event,\n"
-                       "  }};\n"
+
+    out << fmt::format("\n// Scalar CPU Interface\n"
+                       "static arb_mechanism_interface interface {{\n"
+                       "    .backend={0},\n"
+                       "    .init_mechanism=(arb_mechanism_method){1}::init,\n"
+                       "    .compute_currents=(arb_mechanism_method){1}::compute_currents,\n"
+                       "    .apply_events=(arb_mechanism_method){1}::apply_events,\n"
+                       "    .advance_state=(arb_mechanism_method){1}::advance_state,\n"
+                       "    .write_ions=(arb_mechanism_method){1}::write_ions,\n"
+                       "    .post_event=(arb_mechanism_method){1}::post_event\n"
+                       "}};\n\n",
+                       "arb_backend_kind::cpu",
+                       namespace_name)
+        << fmt::format("// Mechanism plugin\n"
+                       "static arb_mechanism_type {0} {{\n"
+                       "   .abi_version=ARB_MECH_ABI_VERSION,\n"
+                       "   .fingerprint=\"{1}\",\n"
+                       "   .name=\"{0}\",\n"
+                       "   .kind={2},\n"
+                       "   .globals=globals,\n"
+                       "   .global_defaults=global_defaults,\n"
+                       "   .n_globals=n_globals,\n"
+                       "   .ions=ions,\n"
+                       "   .n_ions=n_ions,\n"
+                       "   .state_vars=state_vars,\n"
+                       "   .state_var_defaults=state_var_defaults,\n"
+                       "   .n_state_vars=n_state_vars,\n"
+                       "   .parameters=parameters,\n"
+                       "   .parameter_defaults=parameter_defaults,\n"
+                       "   .n_parameters=n_parameters,\n"
+                       "   .interface=&interface\n"
+                       "}};\n"
                        "\n",
                        name,
                        fingerprint,
-                       module_kind_str(module_),
-                       "arb_backend_kind::cpu",
-                       namespace_name);
-    out << namespace_declaration_close(ns_components);
-
-    out << "\n\n" << fmt::format("arb_mechanism_type* make_{0}_multicore_{1}() {{ return &{2}::{1}; }}\n"
-                                 "arb_mechanism_type* make_{0}_gpu_{1}()       {{ return nullptr; }}\n\n",
-                                 std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
-                                 name,
-                                 opt.cpp_namespace);
+                       module_kind_str(module_))
+        << namespace_declaration_close(ns_components)
+        << "\n"
+        << fmt::format("arb_mechanism_type* make_{0}_{1}() {{ return &{2}::{1}; }}\n",
+                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
+                       name,
+                       opt.cpp_namespace);
     EXIT(out);
     return out.str();
 }
@@ -667,10 +688,9 @@ void emit_api_body(std::ostream& out, APIMethod* method, const Module& mod) {
     }
 
     if (!body->statements().empty()) {
-        emit_ppack_variables(out, mod);
-        out <<
-            fmt::format("for (int i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx) << indent;
-
+        out << "PPACK_IFACE_BLOCK;\n"
+            << fmt::format("for (int i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx)
+            << indent;
         for (auto index: indices) {
             out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "  ];\n";
         }

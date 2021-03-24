@@ -78,7 +78,6 @@ struct common_impl: concrete_mechanism<B> {
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& vs) override {}
 
     fvm_value_type* field_data(const std::string& var) override { return nullptr; }
-    std::size_t object_sizeof() const override { return sizeof(*this); }
 
     void initialize() override {}
     void update_state() override {}
@@ -89,9 +88,6 @@ struct common_impl: concrete_mechanism<B> {
     std::vector<std::string> mech_ions;
 
     std::unordered_map<std::string, std::string> ion_bindings_;
-
-protected:
-    mechanism_ppack* ppack_ptr() override { return nullptr; }
 };
 
 template <typename B>
@@ -100,7 +96,13 @@ std::string ion_binding(const std::unique_ptr<concrete_mechanism<B>>& mech, cons
     return impl.ion_bindings_.count(ion)? impl.ion_bindings_.at(ion): "";
 }
 
-struct foo_stream_state {};
+
+struct foo_stream_state {
+    void* ev_data;
+    int* begin_offset;
+    int* end_offset;
+    int n;
+};
 
 struct foo_stream {
     using state = foo_stream_state;
@@ -128,7 +130,12 @@ struct foo_backend {
 
 using foo_mechanism = common_impl<foo_backend>;
 
-struct bar_stream_state {};
+struct bar_stream_state {
+    void* ev_data;
+    int* begin_offset;
+    int* end_offset;
+    int n;
+};
 
 struct bar_stream {
     using state = bar_stream_state;

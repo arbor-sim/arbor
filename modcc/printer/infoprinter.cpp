@@ -147,8 +147,7 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         << namespace_declaration_close(ns_components);
 
     out << fmt::format(//"extern \"C\" {{\n"
-                       "  arb_mechanism_type* make_{0}_multicore_{1}();"
-                       "  arb_mechanism_type* make_{0}_gpu_{1}();",
+                       "  arb_mechanism_type* make_{0}_{1}();",
                        // "}}"
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name);

@@ -14,17 +14,16 @@
 #include "mech_private_field_access.hpp"
 
 using namespace arb;
-using field_table_type = std::vector<std::pair<const char*, fvm_value_type**>>;
 
 // Multicore mechanisms:
 
-ACCESS_BIND(field_table_type (concrete_mechanism<multicore::backend>::*)(), multicore_field_table_ptr, &concrete_mechanism<multicore::backend>::field_table)
+ACCESS_BIND(mechanism_field_table (concrete_mechanism<multicore::backend>::*)(), multicore_field_table_ptr, &concrete_mechanism<multicore::backend>::field_table)
 
 std::vector<fvm_value_type> mechanism_field(multicore::mechanism* m, const std::string& key) {
     auto opt_ptr = util::value_by_key((m->*multicore_field_table_ptr)(), key);
     if (!opt_ptr) throw std::logic_error("internal error: no such field in mechanism");
 
-    const fvm_value_type* field_data = *opt_ptr.value();
+    const fvm_value_type* field_data = opt_ptr.value().first;
     return std::vector<fvm_value_type>(field_data, field_data+m->size());
 }
 

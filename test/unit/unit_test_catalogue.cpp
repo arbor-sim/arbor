@@ -47,7 +47,7 @@
 #ifndef ARB_GPU_ENABLED
 #define ADD_MECH(c, x)\
 c.add(#x, testing::mechanism_##x##_info());\
-c.register_implementation(#x, make_testing_multicore_##x());
+c.register_implementation(#x, make_testing_##x());
 #else
 #define ADD_MECH(c, x)\
 c.add(#x, testing::mechanism_##x##_info());\

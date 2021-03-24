@@ -14,6 +14,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/mechanism.hpp>
 #include <arbor/string_literals.hpp>
 #include <arbor/util/any_ptr.hpp>
 
@@ -65,25 +66,20 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
 }
 
 // Access to mechanism-internal data:
-
-using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
-using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
-using mechanism_ion_index_table = std::vector<std::pair<const char*, arb::fvm_index_type**>>;
-
 ACCESS_BIND(\
-    mechanism_global_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
+    arb::mechanism_global_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
     private_global_table_ptr,\
     &arb::concrete_mechanism<arb::multicore::backend>::global_table)
 
 ACCESS_BIND(\
-    mechanism_field_table (arb::concrete_mechanism<arb::multicore::backend>::*)(),\
+    arb::mechanism_field_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
     private_field_table_ptr,\
     &arb::concrete_mechanism<arb::multicore::backend>::field_table)
 
 ACCESS_BIND(\
-    mechanism_ion_index_table (arb::concrete_mechanism<arb::multicore::backend>::*)(),\
-    private_ion_index_table_ptr,\
-    &arb::concrete_mechanism<arb::multicore::backend>::ion_index_table)
+    arb::mechanism_ion_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
+    private_ion_table_ptr,\
+    &arb::concrete_mechanism<arb::multicore::backend>::ion_table)
 
 using namespace arb;
 
@@ -535,7 +531,7 @@ TEST(fvm_lowered, derived_mechs) {
 
             auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"s);
             ASSERT_TRUE(opt_tau_ptr);
-            tau_values.push_back(*opt_tau_ptr.value());
+            tau_values.push_back(opt_tau_ptr.value());
         }
         util::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
@@ -611,7 +607,7 @@ TEST(fvm_lowered, read_valence) {
         auto opt_record_z_ptr = util::value_by_key((mech_ptr->*private_field_table_ptr)(), "record_z"s);
 
         ASSERT_TRUE(opt_record_z_ptr);
-        auto& record_z = *opt_record_z_ptr.value();
+        auto& record_z = opt_record_z_ptr.value().first;
         ASSERT_EQ(2.0, record_z[0]);
     }
 
@@ -636,7 +632,7 @@ TEST(fvm_lowered, read_valence) {
         auto cr_opt_record_z_ptr = util::value_by_key((cr_mech_ptr->*private_field_table_ptr)(), "record_z"s);
 
         ASSERT_TRUE(cr_opt_record_z_ptr);
-        auto& cr_record_z = *cr_opt_record_z_ptr.value();
+        auto& cr_record_z = cr_opt_record_z_ptr.value().first;
         ASSERT_EQ(7.0, cr_record_z[0]);
     }
 }
@@ -892,11 +888,11 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"s);
     ASSERT_TRUE(opt_cai_ptr);
-    auto& test_ca_cai = *opt_cai_ptr.value();
+    auto& test_ca_cai = opt_cai_ptr.value().first;
 
-    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_index_table_ptr)(), "ca"s);
+    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_table_ptr)(), "ca"s);
     ASSERT_TRUE(opt_ca_index_ptr);
-    auto& test_ca_ca_index = *opt_ca_index_ptr.value();
+    auto& test_ca_ca_index = opt_ca_index_ptr.value().second;
 
     double cai_contrib[3] = {200., 0., 300.};
     double test_ca_weight[3] = {0.25, 0., 1.};

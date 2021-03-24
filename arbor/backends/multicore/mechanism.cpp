@@ -49,30 +49,17 @@ using util::value_by_key;
 void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     util::padded_allocator<> pad(shared.alignment);
 
-    // Assign global scalar parameters
-    for (auto& [k, v]: overrides.globals) {
-        auto found = false;
-        for (auto idx = 0; idx < mech_->n_globals; ++idx) {
-            if (mech_->globals[idx] == k) {
-                *(ppack_.globals[idx]) = v;
-                found = true;
-                break;
-            }
-        }
-        if (!found) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism global '{}'", k));
-    }
-
     // Set internal variables
     mult_in_place_    = !pos_data.multiplicity.empty();
-    mechanism_id_     = id;
     width_            = pos_data.cv.size();
-    num_ions_         = mech_->n_ions;
+    num_ions_         = mech_.n_ions;
     vec_t_ptr_        = &shared.time;
     event_stream_ptr_ = &shared.deliverable_events;
     width_padded_     = math::round_up(width_, shared.alignment);     // Extend width to account for requisite SIMD padding.
 
     // Assign non-owning views onto shared state:
     ppack_.width            = width_;
+    ppack_.mechanism_id     = id;
     ppack_.vec_ci           = shared.cv_to_cell.data();
     ppack_.vec_di           = shared.cv_to_intdom.data();
     ppack_.vec_dt           = shared.dt_cv.data();
@@ -84,8 +71,13 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     ppack_.time_since_spike = shared.time_since_spike.data();
     ppack_.n_detectors      = shared.n_detector;
 
-    for (auto idx = 0; idx < mech_->n_ions; ++idx) {
-        auto ion = mech_->ions[idx];
+    // Allocate view pointers
+    state_var_ptrs_.resize(mech_.n_state_vars); ppack_.state_vars = state_var_ptrs_.data();
+    parameter_ptrs_.resize(mech_.n_parameters); ppack_.parameters = parameter_ptrs_.data();
+    ion_ptrs_.resize(mech_.n_ions); ppack_.ion_states = ion_ptrs_.data();
+
+    for (auto idx = 0; idx < mech_.n_ions; ++idx) {
+        auto ion = mech_.ions[idx];
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
@@ -95,50 +87,75 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width_==0) return;
 
-    auto append_chunk = [n=width_padded_](const auto& in, auto& out, const auto& pad, auto& ptr) {
-        copy_extend(in, util::range_n(ptr, n), pad);
-        out = ptr;
-        ptr += n;
-    };
-
-    auto append_const = [n=width_padded_](const auto& input, auto& output, auto& ptr) {
-        std::fill(output, output + n, input);
-        output = ptr;
-        ptr += n;
-    };
-
     // Allocate and initialize state and parameter vectors with default values.
     {
+        auto append_chunk = [n=width_padded_](const auto& in, arb_value_type*& out, arb_value_type pad, arb_value_type*& ptr) {
+            copy_extend(in, util::range_n(ptr, n), pad);
+            out = ptr;
+            ptr += n;
+        };
+
+        auto append_const = [n=width_padded_](arb_value_type in, arb_value_type*& out, arb_value_type*& ptr) {
+            std::fill(ptr, ptr + n, in);
+            out = ptr;
+            ptr += n;
+        };
+
         // Allocate bulk storage
-        auto count = mech_->n_state_vars + mech_->n_parameters + 1;
-        data_ = array(count*width_padded_, NAN, pad);
+        auto count = (mech_.n_state_vars + mech_.n_parameters + 1)*width_padded_ + mech_.n_globals;
+        data_ = array(count, NAN, pad);
         auto base_ptr = data_.data();
         // First sub-array of data_ is used for weight_
         append_chunk(pos_data.weight, ppack_.weight, 0, base_ptr);
         // Set fields
-        for (auto idx = 0; idx < mech_->n_parameters; ++idx) {
-            append_const(mech_->parameter_defaults[idx], ppack_.parameters[idx], base_ptr);
+        for (auto idx = 0; idx < mech_.n_parameters; ++idx) {
+            append_const(mech_.parameter_defaults[idx], ppack_.parameters[idx], base_ptr);
         }
-        for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
-            append_const(mech_->state_var_defaults[idx], ppack_.state_vars[idx], base_ptr);
+        for (auto idx = 0; idx < mech_.n_state_vars; ++idx) {
+            append_const(mech_.state_var_defaults[idx], ppack_.state_vars[idx], base_ptr);
+        }
+
+        // Assign global scalar parameters
+        ppack_.globals = base_ptr;
+        for (auto idx = 0; idx < mech_.n_globals; ++idx) {
+            ppack_.globals[idx] = mech_.global_defaults[idx];
+        }
+        for (auto& [k, v]: overrides.globals) {
+            auto found = false;
+            for (auto idx = 0; idx < mech_.n_globals; ++idx) {
+                if (mech_.globals[idx] == k) {
+                    std::cerr << util::pprintf("Global {} = {}\n", mech_.globals[idx], v);
+                    ppack_.globals[idx] = v;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism global '{}'", k));
         }
     }
 
     // Make index bulk storage
     {
+        auto append_chunk = [n=width_padded_](const auto& in, arb_index_type*& out, arb_index_type pad, arb_index_type*& ptr) {
+            copy_extend(in, util::range_n(ptr, n), pad);
+            out = ptr;
+            ptr += n;
+        };
+
         // Allocate bulk storage
-        auto count    = mech_->n_ions + 1 + (mult_in_place_ ? 1 : 0);
+        auto count    = mech_.n_ions + 1 + (mult_in_place_ ? 1 : 0);
         indices_      = iarray(count*width_padded_, 0, pad);
         auto base_ptr = indices_.data();
         // Setup node indices
         append_chunk(pos_data.cv, ppack_.node_index, pos_data.cv.back(), base_ptr);
         auto node_index = util::range_n(ppack_.node_index, width_padded_);
         // Make SIMD index constraints
+        // This writes garbage to random mmemory
         auto tmp = make_constraint_partition(node_index, width_, simd_width());        // TODO this should not be a memcpy ;)
-        std::memcpy(&(ppack_.index_constraints), &tmp, sizeof(tmp));
+        // std::memcpy(&(ppack_.index_constraints), &tmp, sizeof(tmp));
         // Create ion indices
-        for (auto idx = 0; idx < mech_->n_ions; ++idx) {
-            auto  ion = mech_->ions[idx];
+        for (auto idx = 0; idx < mech_.n_ions; ++idx) {
+            auto  ion = mech_.ions[idx];
             auto& index_ptr = ppack_.ion_states[idx].index;
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
@@ -164,12 +181,11 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
     copy_extend(values, field, values.back());
 }
 
-
 void mechanism::initialize() {
     ppack_.vec_t = vec_t_ptr_->data();
-    init();
+    mech_.interface->init_mechanism(&ppack_);
     if (!mult_in_place_) return;
-    for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
+    for (auto idx = 0; idx < mech_.n_state_vars; ++idx) {
         std::transform(ppack_.multiplicity, ppack_.multiplicity + width_,
                        ppack_.state_vars[idx],
                        ppack_.state_vars[idx],
@@ -178,11 +194,13 @@ void mechanism::initialize() {
 }
 
 fvm_value_type* mechanism::field_data(const std::string& var) {
-    for (auto idx = 0; idx < mech_->n_parameters; ++idx) {
-        if (var == mech_->parameters[idx]) return ppack_.parameters[idx];
+    for (auto idx = 0; idx < mech_.n_parameters; ++idx) {
+        if (var == mech_.parameters[idx]) {
+            return ppack_.parameters[idx];
+        }
     }
-    for (auto idx = 0; idx < mech_->n_state_vars; ++idx) {
-        if (var == mech_->state_vars[idx]) return ppack_.state_vars[idx];
+    for (auto idx = 0; idx < mech_.n_state_vars; ++idx) {
+        if (var == mech_.state_vars[idx]) return ppack_.state_vars[idx];
     }
     return nullptr;
 }

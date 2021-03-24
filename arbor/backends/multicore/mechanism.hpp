@@ -22,11 +22,17 @@ namespace multicore {
 // Base class for all generated mechanisms for multicore back-end.
 class mechanism: public arb::concrete_mechanism<arb::multicore::backend> {
 public:
-    mechanism(std::unique_ptr<arb_mechanism_type> m): mech_{std::move(m)} {}
-    mechanism()                 = default;
-    mechanism(const mechanism&) = delete;
+    using concrete_mechanism<arb::multicore::backend>::concrete_mechanism;
+    mechanism()                            = default;
+    mechanism(mechanism&&)                 = delete;
+    mechanism(const mechanism&)            = delete;
+    mechanism& operator=(mechanism&&)      = delete;
+    mechanism& operator=(const mechanism&) = delete;
 
-    const mechanism_fingerprint fingerprint() const override { return mech_->fingerprint; }
+    virtual ~mechanism() = default;
+
+    mechanism_ptr clone() const override { return std::make_unique<mechanism>(&mech_);}
+
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
@@ -36,21 +42,9 @@ protected:
     virtual unsigned simd_width() const { return 1; }
     fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
 
-    void advance_state()                               override { mech_->advance_state(&ppack_); }
-    void compute_currents()                            override { mech_->compute_currents(&ppack_); }
-    void apply_events(deliverable_event_stream::state) override { mech_->apply_events(&ppack_); }
-    void init()                                        override { mech_->init_mechanism(&ppack_); }
-    void write_ions()                                  override { mech_->write_ions(&ppack_); }
-
-   mechanism_field_table         field_table()          override { throw std::runtime_error(__FUNCTION__ + std::string{" not implemented"}); return {}; }
-   mechanism_field_default_table field_default_table()  override { throw std::runtime_error(__FUNCTION__ + std::string{" not implemented"}); return {}; }
-   mechanism_global_table        global_table()         override { throw std::runtime_error(__FUNCTION__ + std::string{" not implemented"}); return {}; }
-   mechanism_state_table         state_table()          override { throw std::runtime_error(__FUNCTION__ + std::string{" not implemented"}); return {}; }
-   mechanism_ion_state_table     ion_state_table()      override { throw std::runtime_error(__FUNCTION__ + std::string{" not implemented"}); return {}; }
-   mechanism_ion_index_table     ion_index_table()      override { throw std::runtime_error(__FUNCTION__ + std::string{" not implemented"}); return {}; }
-
-    arb_mechanism_ppack ppack_;
-    std::unique_ptr<arb_mechanism_type> mech_  = std::make_unique<arb_mechanism_type>();
+    std::vector<arb_value_type*> parameter_ptrs_;
+    std::vector<arb_value_type*> state_var_ptrs_;
+    std::vector<arb_ion_state>   ion_ptrs_;
 };
 
 } // namespace multicore

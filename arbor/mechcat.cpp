@@ -572,14 +572,16 @@ void mechanism_catalogue::remove(const std::string& name) {
 }
 
 void mechanism_catalogue::register_implementation(const std::string& name, arb_mechanism_type* m) {
-    arb_assert(m);
-    if (m->backend == arb_backend_kind::cpu) {
-        concrete_mech_ptr<multicore::backend> ptr = nullptr;
-        return register_implementation(name, std::move(ptr));
+    if (!m) {
+        std::cerr << "NULL " << name << "(" << m->name << ") for backend=" << m->interface->backend << '\n';
+        return;
     }
-    if (m->backend == arb_backend_kind::gpu) {
-        concrete_mech_ptr<gpu::backend> ptr = nullptr;
-        return register_implementation(name, std::move(ptr));
+    arb_assert(m);
+    if (m->interface->backend == arb_backend_kind::cpu) {
+        return register_implementation(name, (concrete_mech_ptr<multicore::backend>) std::make_unique<multicore::mechanism>(m));
+    }
+    if (m->interface->backend == arb_backend_kind::gpu) {
+        // return register_implementation(name, (concrete_mech_ptr<gpu::backend>) std::make_unique<gpu::mechanism>(m));
     }
     throw arbor_internal_error("unexpected mechanism kind");
 }
