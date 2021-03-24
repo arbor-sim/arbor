@@ -16,6 +16,7 @@
 #define FMT_HEADER_ONLY YES
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <fmt/compile.h>
 
 using io::indent;
 using io::popindent;
@@ -52,10 +53,8 @@ struct index_prop {
 void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
-
-void emit_api_body(std::ostream&, APIMethod*, const Module&);
+void emit_api_body(std::ostream&, APIMethod*, bool cv_loop = true);
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
-
 void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices, simd_expr_constraint constraint);
 
 void emit_simd_body_for_loop(std::ostream& out,
@@ -124,12 +123,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto ppack_name     = "arb_mechanism_ppack";
     auto ns_components  = namespace_components(opt.cpp_namespace);
 
-    NetReceiveExpression* net_receive = find_net_receive(module_);
-    PostEventExpression*  post_event = find_post_event(module_);
-    APIMethod* init_api       = find_api_method(module_, "init");
-    APIMethod* state_api      = find_api_method(module_, "advance_state");
-    APIMethod* current_api    = find_api_method(module_, "compute_currents");
-    APIMethod* write_ions_api = find_api_method(module_, "write_ions");
+    APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
+    APIMethod* post_event_api  = find_api_method(module_, "post_event_api");
+    APIMethod* init_api        = find_api_method(module_, "init");
+    APIMethod* state_api       = find_api_method(module_, "advance_state");
+    APIMethod* current_api     = find_api_method(module_, "compute_currents");
+    APIMethod* write_ions_api  = find_api_method(module_, "write_ions");
 
     bool with_simd = opt.simd.abi!=simd_spec::none;
 
@@ -255,31 +254,31 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         if (with_simd) {
             emit_simd_api_body(out, p, vars.scalars);
         } else {
-            emit_api_body(out, p, module_);
+            emit_api_body(out, p);
         }
     };
 
     out << "namespace " << namespace_name << " {\n";
 
-    out << fmt::format("#define PPACK_IFACE_BLOCK \\\n"
-                       "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
-                       "[[maybe_unused]] auto  {0}n_detectors       = pp->n_detectors;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_ci            = pp->vec_ci;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_di            = pp->vec_di;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_t             = pp->vec_t;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_dt            = pp->vec_dt;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_v             = pp->vec_v;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_i             = pp->vec_i;\\\n"
-                       "[[maybe_unused]] auto* {0}vec_g             = pp->vec_g;\\\n"
-                       "[[maybe_unused]] auto* {0}temperature_degC  = pp->temperature_degC;\\\n"
-                       "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\\\n"
-                       "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\\\n"
-                       "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\\\n"
-                       "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\\\n"
-                       "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
-                       "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
-                       "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\\\n"
-                       "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n",
+    out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
+                                   "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
+                                   "[[maybe_unused]] auto  {0}n_detectors       = pp->n_detectors;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_ci            = pp->vec_ci;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_di            = pp->vec_di;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_t             = pp->vec_t;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_dt            = pp->vec_dt;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_v             = pp->vec_v;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_i             = pp->vec_i;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_g             = pp->vec_g;\\\n"
+                                   "[[maybe_unused]] auto* {0}temperature_degC  = pp->temperature_degC;\\\n"
+                                   "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\\\n"
+                                   "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\\\n"
+                                   "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\\\n"
+                                   "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\\\n"
+                                   "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
+                                   "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
+                                   "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\\\n"
+                                   "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"),
                        pp_var_pfx);
     auto global = 0;
     for (const auto& scalar: vars.scalars) {
@@ -341,56 +340,51 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     emit_body(write_ions_api);
     out << popindent << "}\n\n";
 
-    if (net_receive) {
-        out << fmt::format("void net_receive(arb_mechanism_ppack* pp, int i_, arb_value_type {0}) {{\n"
-                           "PPACK_IFACE_BLOCK;\n"
-                           "{1}"
-                           "}}\n"
-                           "\n"
-                           "void apply_events(arb_mechanism_ppack* pp) {{\n"
-                           "PPACK_IFACE_BLOCK;\n"
-                           "  auto ncell = {2}events.n_streams;\n"
-                           "  for (arb_size_type c = 0; c<ncell; ++c) {{\n"
-                           "    auto begin = {2}events.events + {2}events.begin[c];\n"
-                           "    auto end   = {2}events.events + {2}events.end[c];\n"
-                           "    for (auto p = begin; p<end; ++p) {{\n"
-                           "      if (p->mech_id=={2}mechanism_id) {3}::net_receive(pp, p->mech_index, p->weight);\n"
-                           "    }}\n"
-                           "  }}\n"
-                           "}}\n\n",
-                           net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name(),
-                           do_cprint(net_receive->body(), 1),
+    if (net_receive_api) {
+        out << fmt::format("void net_receive(arb_mechanism_ppack* pp, int i_, arb_value_type {0}) {{\n",
+                           net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
+        emit_api_body(out, net_receive_api, false);
+        out << popindent << "}\n\n"
+            << fmt::format(FMT_COMPILE("void apply_events(arb_mechanism_ppack* pp) {{\n"
+                                       "PPACK_IFACE_BLOCK;\n"
+                                       "  auto ncell = {0}events.n_streams;\n"
+                                       "  for (arb_size_type c = 0; c<ncell; ++c) {{\n"
+                                       "    auto begin = {0}events.events + {0}events.begin[c];\n"
+                                       "    auto end   = {0}events.events + {0}events.end[c];\n"
+                                       "    for (auto p = begin; p<end; ++p) {{\n"
+                                       "      if (p->mech_id=={0}mechanism_id) {1}::net_receive(pp, p->mech_index, p->weight);\n"
+                                       "    }}\n"
+                                       "  }}\n"
+                                       "}}\n\n"),
                            pp_var_pfx,
                            namespace_name);
-
     } else {
-        out << fmt::format("void net_receive({0}*) {{}}\n"
-                           "void apply_events({0}*) {{}}\n",
-                           ppack_name);
+        out << "void net_receive(arb_mechanism_ppack*) {}\n"
+            << "void apply_events(arb_mechanism_ppack*) {}\n";
     }
 
-    if(post_event) {
-        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
-        out << fmt::format("void post_event({0}* pp) {{\n"
-                           "PPACK_IFACE_BLOCK;\n"
-                           "  for (int i_ = 0; i_ < {1}width; ++i_) {{\n"
-                           "    auto node_index_i_ = {1}node_index[i_];\n"
-                           "    auto cid_          = {1}vec_ci[node_index_i_];\n"
-                           "    auto offset_       = {1}n_detectors * cid_;\n"
-                           "    for (auto c = 0; c < {1}n_detectors; c++) {{\n"
-                           "      auto {2} = {1}time_since_spike[offset_ + c];\n"
-                           "      if ({2} >= 0) {{\n"
-                           "{3}"
-                           "      }}\n"
-                           "    }}\n"
-                           "  }}\n"
-                           "}}\n\n",
-                           ppack_name,
+    if(post_event_api) {
+        const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
+        out << fmt::format(FMT_COMPILE("void post_event(arb_mechanism_ppack* pp) {{\n"
+                                       "  PPACK_IFACE_BLOCK;\n"
+                                       "  for (int i_ = 0; i_ < {0}width; ++i_) {{\n"
+                                       "    auto node_index_i_ = {0}node_index[i_];\n"
+                                       "    auto cid_          = {0}vec_ci[node_index_i_];\n"
+                                       "    auto offset_       = {0}n_detectors * cid_;\n"
+                                       "    for (auto c = 0; c < {0}n_detectors; c++) {{\n"
+                                       "      auto {1} = {0}time_since_spike[offset_ + c];\n"
+                                       "      if ({1} >= 0) {{\n"),
                            pp_var_pfx,
-                           time_arg,
-                           do_cprint(post_event->body(), 3));
+                           time_arg);
+        out << indent << indent << indent;
+        emit_api_body(out, post_event_api, false);
+        out << popindent << popindent << popindent;
+        out << "      }\n"
+            "    }\n"
+            "  }\n"
+            "}\n\n";
     } else {
-        out << fmt::format("void post_event({0}*) {{}}\n", ppack_name);
+        out << "void post_event(arb_mechanism_ppack*) {}\n";
     }
 
     out << "\n// Procedure definitions\n";
@@ -506,7 +500,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     }
 
     out << fmt::format("\n// Scalar CPU Interface\n"
-                       "static arb_mechanism_interface interface {{\n"
+                       "static arb_mechanism_interface iface_{2}_cpu_scalar {{\n"
                        "    .backend={0},\n"
                        "    .init_mechanism=(arb_mechanism_method){1}::init,\n"
                        "    .compute_currents=(arb_mechanism_method){1}::compute_currents,\n"
@@ -516,7 +510,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                        "    .post_event=(arb_mechanism_method){1}::post_event\n"
                        "}};\n\n",
                        "arb_backend_kind::cpu",
-                       namespace_name)
+                       namespace_name,
+                       name)
         << fmt::format("// Mechanism plugin\n"
                        "static arb_mechanism_type {0} {{\n"
                        "   .abi_version=ARB_MECH_ABI_VERSION,\n"
@@ -534,7 +529,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                        "   .parameters=parameters,\n"
                        "   .parameter_defaults=parameter_defaults,\n"
                        "   .n_parameters=n_parameters,\n"
-                       "   .interface=&interface\n"
+                       "   .interface=&iface_{0}_cpu_scalar\n"
                        "}};\n"
                        "\n",
                        name,
@@ -632,6 +627,24 @@ namespace {
     };
 }
 
+std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& indexed_vars, const std::string& index) {
+    std::list<index_prop> indices;
+    for (auto& sym: indexed_vars) {
+        auto d = decode_indexed_variable(sym->external_variable());
+        if (!d.scalar()) {
+            index_prop node_idx = {d.node_index_var, index, true};
+            auto it = std::find(indices.begin(), indices.end(), node_idx);
+            if (it == indices.end()) indices.push_front(node_idx);
+            if (!d.cell_index_var.empty()) {
+                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), false};
+                auto it = std::find(indices.begin(), indices.end(), cell_idx);
+                if (it == indices.end()) indices.push_back(cell_idx);
+            }
+        }
+    }
+    return indices;
+};
+
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
     out << "arb_value_type " << cprint(local) << " = ";
@@ -667,32 +680,18 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     EXIT(out);
 }
 
-void emit_api_body(std::ostream& out, APIMethod* method, const Module& mod) {
+void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop) {
     ENTER(out);
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
-    std::list<index_prop> indices;
-    for (auto& sym: indexed_vars) {
-        auto d = decode_indexed_variable(sym->external_variable());
-        if (!d.scalar()) {
-            index_prop node_idx = {d.node_index_var, "i_", true};
-            auto it = std::find(indices.begin(), indices.end(), node_idx);
-            if (it == indices.end()) indices.push_front(node_idx);
-            if (!d.cell_index_var.empty()) {
-                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), false};
-                auto it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_back(cell_idx);
-            }
-        }
-    }
-
+    std::list<index_prop> indices = gather_indexed_vars(indexed_vars, "i_");
     if (!body->statements().empty()) {
-        out << "PPACK_IFACE_BLOCK;\n"
-            << fmt::format("for (int i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx)
-            << indent;
+        out << "PPACK_IFACE_BLOCK;\n";
+        cv_loop && out << fmt::format("for (int i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx)
+                       << indent;
         for (auto index: indices) {
-            out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "  ];\n";
+            out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "];\n";
         }
 
         for (auto& sym: indexed_vars) {
@@ -703,7 +702,7 @@ void emit_api_body(std::ostream& out, APIMethod* method, const Module& mod) {
         for (auto& sym: indexed_vars) {
             emit_state_update(out, sym, sym->external_variable());
         }
-        out << popindent << "}\n";
+        cv_loop && out << popindent << "}\n";
     }
     EXIT(out);
 }
@@ -1067,9 +1066,6 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     auto indexed_vars = indexed_locals(method->scope());
     bool requires_weight = false;
 
-    std::vector<LocalVariable*> scalar_indexed_vars;
-    std::list<index_prop> indices;
-
     ENTER(out);
 
     for (auto& s: body->is_block()->statements()) {
@@ -1085,21 +1081,10 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             }
         }
     }
-
+    std::list<index_prop> indices = gather_indexed_vars(indexed_vars, "index_");
+    std::vector<LocalVariable*> scalar_indexed_vars;
     for (auto& sym: indexed_vars) {
-        auto info = decode_indexed_variable(sym->external_variable());
-        if (!info.scalar()) {
-            index_prop node_idx = {info.node_index_var, "index_", true};
-            auto it = std::find(indices.begin(), indices.end(), node_idx);
-            if (it == indices.end()) indices.push_front(node_idx);
-
-            if (!info.cell_index_var.empty()) {
-                index_prop cell_idx = {info.cell_index_var, node_index_i_name(info), false};
-                it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_back(cell_idx);
-            }
-        }
-        else {
+        if (decode_indexed_variable(sym->external_variable()).scalar()) {
             scalar_indexed_vars.push_back(sym);
         }
     }

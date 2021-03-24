@@ -45,7 +45,6 @@ class Symbol;
 class ConductanceExpression;
 class PDiffExpression;
 class VariableExpression;
-class ProcedureExpression;
 class NetReceiveExpression;
 class PostEventExpression;
 class APIMethod;
@@ -439,7 +438,7 @@ public:
     const std::string& spelling() const {
         return token_.spelling;
     }
-
+    expression_ptr clone() const override;
     ~ArgumentExpression() {}
     void accept(Visitor *v) override;
 private:

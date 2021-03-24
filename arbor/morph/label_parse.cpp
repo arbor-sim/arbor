@@ -246,6 +246,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                             "'uniform' with 4 arguments: (reg:region, first:int, last:int, seed:int)")},
     {"on-branches",make_call<double>(arb::ls::on_branches,
                             "'on-branches' with 1 argument: (pos:double)")},
+    {"on-components",make_call<double, arb::region>(arb::ls::on_components,
+                            "'on-components' with 2 arguments: (pos:double, reg:region)")},
     {"locset",  make_call<std::string>(arb::ls::named,
                             "'locset' with 1 argument: (name:string)")},
     {"restrict",  make_call<arb::locset, arb::region>(arb::ls::restrict,

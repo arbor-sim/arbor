@@ -194,7 +194,7 @@ Event generator and schedules
         Construct a Poisson schedule.
 
         By default returns a schedule with events starting from :attr:`tstart` = 0 ms,
-        with an expected frequency :attr:`freq` = 10 Hz and :attr:`seed` = 0.
+        with an expected frequency :attr:`freq` = 10 kHz and :attr:`seed` = 0.
 
     .. attribute:: tstart
 
@@ -202,7 +202,7 @@ Event generator and schedules
 
     .. attribute:: freq
 
-        The expected frequency [Hz].
+        The expected frequency [kHz].
 
     .. attribute:: seed
 
@@ -225,7 +225,7 @@ An example of an event generator reads as follows:
         target = arbor.cell_member(0,0)
         seed   = target.gid
         tstart = 1
-        freq   = 5
+        freq   = 0.005
         sched  = arbor.poisson_schedule(tstart, freq, seed)
 
         # construct an event generator with this schedule on target cell and weight 0.1

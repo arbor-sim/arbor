@@ -55,6 +55,46 @@ TEST(embedding, segments_and_branch_length) {
         EXPECT_EQ(10., em.branch_length(0));
     }
 
+    // Zero-length branch?
+    // Four samples - point indices:
+    //
+    //      0
+    //     1 2
+    //        3
+    //
+    // Point 0, 2, and 3 colocated.
+    // Expect all but most distal segment on zero length branch
+    // to have cable (bid, 0, 0), and the most distal to have (bid, 0, 1).
+    {
+        pvec parents = {mnpos, 0, 0, 2};
+
+        svec points = {
+            {  0,  0,  3,  2},
+            { 10,  0,  3,  2},
+            {  0,  0,  3,  2},
+            {  0,  0,  3,  2},
+        };
+        morphology m(segments_from_points(points, parents));
+
+        ASSERT_EQ(2u, m.num_branches());
+
+        embedding em(m);
+        const auto& locs = em.segment_ends();
+        ASSERT_EQ(5u, locs.size());
+        EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
+        EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,1})));
+        EXPECT_TRUE(mlocation_eq(locs[2], (loc{1,0})));
+        EXPECT_TRUE(mlocation_eq(locs[3], (loc{1,0})));
+        EXPECT_TRUE(mlocation_eq(locs[4], (loc{1,1})));
+
+        EXPECT_TRUE(cable_eq(mcable{0, 0, 1}, em.segment(0)));
+        EXPECT_TRUE(cable_eq(mcable{1, 0, 0}, em.segment(1)));
+        EXPECT_TRUE(cable_eq(mcable{1, 0, 1}, em.segment(2)));
+
+        EXPECT_EQ(10, em.branch_length(0));
+        EXPECT_EQ(0, em.branch_length(1));
+    }
+
     // Eight samples - point indices:
     //
     //            0
@@ -62,49 +102,51 @@ TEST(embedding, segments_and_branch_length) {
     //          2   4
     //             5 6
     //                7
-    pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
+    {
+        pvec parents = {mnpos, 0, 1, 0, 3, 4, 4, 6};
 
-    svec points = {
-        {  0,  0,  0,  2},
-        { 10,  0,  0,  2},
-        {100,  0,  0,  2},
-        {  0, 10,  0,  2},
-        {  0,100,  0,  2},
-        {100,100,  0,  2},
-        {  0,130,  0,  2},
-        {  0,300,  0,  2},
-    };
-    morphology m(segments_from_points(points, parents));
+        svec points = {
+            {  0,  0,  0,  2},
+            { 10,  0,  0,  2},
+            {100,  0,  0,  2},
+            {  0, 10,  0,  2},
+            {  0,100,  0,  2},
+            {100,100,  0,  2},
+            {  0,130,  0,  2},
+            {  0,300,  0,  2},
+        };
+        morphology m(segments_from_points(points, parents));
 
-    ASSERT_EQ(4u, m.num_branches());
+        ASSERT_EQ(4u, m.num_branches());
 
-    embedding em(m);
+        embedding em(m);
 
-    const auto& locs = em.segment_ends();
-    EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
-    EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,0.1})));
-    EXPECT_TRUE(mlocation_eq(locs[2], (loc{0,1})));
-    EXPECT_TRUE(mlocation_eq(locs[3], (loc{1,0})));
-    EXPECT_TRUE(mlocation_eq(locs[4], (loc{1,0.1})));
-    EXPECT_TRUE(mlocation_eq(locs[5], (loc{1,1})));
-    EXPECT_TRUE(mlocation_eq(locs[6], (loc{2,0})));
-    EXPECT_TRUE(mlocation_eq(locs[7], (loc{2,1})));
-    EXPECT_TRUE(mlocation_eq(locs[8], (loc{3,0})));
-    EXPECT_TRUE(mlocation_eq(locs[9], (loc{3,0.15})));
-    EXPECT_TRUE(mlocation_eq(locs[10], (loc{3,1})));
+        const auto& locs = em.segment_ends();
+        EXPECT_TRUE(mlocation_eq(locs[0], (loc{0,0})));
+        EXPECT_TRUE(mlocation_eq(locs[1], (loc{0,0.1})));
+        EXPECT_TRUE(mlocation_eq(locs[2], (loc{0,1})));
+        EXPECT_TRUE(mlocation_eq(locs[3], (loc{1,0})));
+        EXPECT_TRUE(mlocation_eq(locs[4], (loc{1,0.1})));
+        EXPECT_TRUE(mlocation_eq(locs[5], (loc{1,1})));
+        EXPECT_TRUE(mlocation_eq(locs[6], (loc{2,0})));
+        EXPECT_TRUE(mlocation_eq(locs[7], (loc{2,1})));
+        EXPECT_TRUE(mlocation_eq(locs[8], (loc{3,0})));
+        EXPECT_TRUE(mlocation_eq(locs[9], (loc{3,0.15})));
+        EXPECT_TRUE(mlocation_eq(locs[10], (loc{3,1})));
 
-    EXPECT_TRUE(cable_eq(mcable{0, 0.  , 0.1 }, em.segment(0)));
-    EXPECT_TRUE(cable_eq(mcable{0, 0.1 , 1.  }, em.segment(1)));
-    EXPECT_TRUE(cable_eq(mcable{1, 0.  , 0.1 }, em.segment(2)));
-    EXPECT_TRUE(cable_eq(mcable{1, 0.1 , 1.  }, em.segment(3)));
-    EXPECT_TRUE(cable_eq(mcable{2, 0.  , 1.  }, em.segment(4)));
-    EXPECT_TRUE(cable_eq(mcable{3, 0.  , 0.15}, em.segment(5)));
-    EXPECT_TRUE(cable_eq(mcable{3, 0.15, 1.  }, em.segment(6)));
+        EXPECT_TRUE(cable_eq(mcable{0, 0.  , 0.1 }, em.segment(0)));
+        EXPECT_TRUE(cable_eq(mcable{0, 0.1 , 1.  }, em.segment(1)));
+        EXPECT_TRUE(cable_eq(mcable{1, 0.  , 0.1 }, em.segment(2)));
+        EXPECT_TRUE(cable_eq(mcable{1, 0.1 , 1.  }, em.segment(3)));
+        EXPECT_TRUE(cable_eq(mcable{2, 0.  , 1.  }, em.segment(4)));
+        EXPECT_TRUE(cable_eq(mcable{3, 0.  , 0.15}, em.segment(5)));
+        EXPECT_TRUE(cable_eq(mcable{3, 0.15, 1.  }, em.segment(6)));
 
-    EXPECT_EQ(100., em.branch_length(0));
-    EXPECT_EQ(100., em.branch_length(1));
-    EXPECT_EQ(100., em.branch_length(2));
-    EXPECT_EQ(200., em.branch_length(3));
+        EXPECT_EQ(100., em.branch_length(0));
+        EXPECT_EQ(100., em.branch_length(1));
+        EXPECT_EQ(100., em.branch_length(2));
+        EXPECT_EQ(200., em.branch_length(3));
+    }
 }
 
 // TODO: integrator tests

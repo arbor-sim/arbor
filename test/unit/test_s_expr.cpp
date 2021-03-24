@@ -136,6 +136,7 @@ TEST(regloc, round_tripping) {
         "(proximal (join (tag 1) (tag 2)))",
         "(uniform (tag 1) 0 100 52)",
         "(restrict (terminal) (tag 12))",
+        "(on-components 0.3 (segment 2))",
         "(join (terminal) (root))",
         "(sum (terminal) (root))",
     };

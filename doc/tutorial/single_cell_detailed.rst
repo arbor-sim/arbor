@@ -444,9 +444,9 @@ We can indicate the location we would like to probe using labels from the :class
 .. code-block:: python
 
    # Add voltage probes on the "custom_terminal" locset
-   # which sample the voltage at 50000 Hz
+   # which sample the voltage at 50 kHz
 
-   model.probe('voltage', where='"custom_terminal"',  frequency=50000)
+   model.probe('voltage', where='"custom_terminal"', frequency=50)
 
 The simulation
 ^^^^^^^^^^^^^^

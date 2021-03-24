@@ -229,10 +229,13 @@ bool Module::semantic() {
                   symbols_.find(name)->second->location());
             return std::make_pair(nullptr, source);
         }
-
+        std::vector<expression_ptr> args;
+        for (auto& a: source->args()) {
+            args.push_back(a->clone());
+        }
         symbols_[name] = make_symbol<APIMethod>(
                           loc, name,
-                          std::vector<expression_ptr>(), // no arguments
+                          std::move(args),
                           make_expression<BlockExpression>
                             (loc, expr_list_type(), false)
                          );
@@ -507,6 +510,7 @@ bool Module::semantic() {
 
     if (has_symbol("net_receive", symbolKind::procedure)) {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
+        net_rec_api.first->body(net_rec_api.second->body()->clone());
         if (net_rec_api.second) {
             for (auto &s: net_rec_api.second->body()->statements()) {
                 if (s->is_assignment()) {
@@ -536,6 +540,10 @@ bool Module::semantic() {
     linear_ = linear;
 
     post_events_ = has_symbol("post_event", symbolKind::procedure);
+    if (post_events_) {
+        auto post_events_api = make_empty_api_method("post_event_api", "post_event");
+        post_events_api.first->body(post_events_api.second->body()->clone());
+    }
 
     // Are we writing an ionic reversal potential? If so, change the moduleKind to
     // `revpot` and assert that the mechanism is 'pure': it has no state variables;

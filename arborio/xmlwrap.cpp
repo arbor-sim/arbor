@@ -15,6 +15,7 @@
 #include "xmlwrap.hpp"
 
 namespace arborio {
+namespace xmlwrap {
 
 namespace detail {
 
@@ -123,4 +124,5 @@ xml_error_scope::~xml_error_scope() {
     xmlStructuredErrorContext = structured_context_;
 }
 
+} // namespace xmlwrap
 } // namespace arborio

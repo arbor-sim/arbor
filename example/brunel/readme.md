@@ -31,5 +31,5 @@ The parameters that can be passed as command-line arguments are the following:
 For example, we could run the miniapp as follows:
 
 ```
-./brunel -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123 -f
+./brunel -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123 -f spikes.txt
 ```

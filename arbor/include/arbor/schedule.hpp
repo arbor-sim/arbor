@@ -23,7 +23,7 @@ inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
 }
 
 // A schedule describes a sequence of time values used for sampling. Schedules
-// are queried monotonically in time: if two method calls `events(t0, t1)` 
+// are queried monotonically in time: if two method calls `events(t0, t1)`
 // and `events(t2, t3)` are made without an intervening call to `reset()`,
 // then 0 ≤ _t0_ ≤ _t1_ ≤ _t2_ ≤ _t3_.
 
