@@ -13,7 +13,8 @@
 
 std::vector<std::string> namespace_components(const std::string& qualified_namespace);
 
-const static std::string pp_var_pfx = "___pp_";
+// Can use this in a namespace. No __ allowed anywhere, neither _[A-Z], and in _global namespace_ _ followed by anything is verboten.
+const static std::string pp_var_pfx = "_pp_var_";
 
 inline const char* arb_header_prefix() {
     static const char* prefix = "arbor/";
