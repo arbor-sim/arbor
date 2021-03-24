@@ -15,6 +15,8 @@ namespace arborio {
 
 using namespace arb;
 
+std::string acc_version() {return "0.1-dev";}
+
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
     arb::arbor_exception(msg+" at :"+
                          std::to_string(loc.line)+ ":"+
@@ -24,6 +26,10 @@ cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_
 cableio_morphology_error::cableio_morphology_error(const unsigned bid):
     arb::arbor_exception("Invalid morphology: branch `" +std::to_string(bid) +
                          "` only has one child branch, making it an invalid branch specification")
+{}
+
+cableio_version_error::cableio_version_error(const std::string& version):
+    arb::arbor_exception("Unsupported cable-cell format version `" + version + "`")
 {}
 
 struct nil_tag {};
@@ -135,24 +141,39 @@ s_expr mksexp(const morphology& morph) {
     return s_expr{"morphology"_symbol, slist_range(branches)};
 }
 s_expr mksexp(const meta_data& meta) {
-    return slist("meta-data"_symbol, slist("version"_symbol, meta.version));
+    return slist("meta-data"_symbol, slist("version"_symbol, s_expr(meta.version)));
 }
 
 // Implement public facing s-expr writers
 std::ostream& write_component(std::ostream& o, const decor& x, const meta_data& m) {
+    if (m.version != acc_version()) {
+        throw cableio_version_error(m.version);
+    }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
 std::ostream& write_component(std::ostream& o, const label_dict& x, const meta_data& m) {
+    if (m.version != acc_version()) {
+        throw cableio_version_error(m.version);
+    }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
 std::ostream& write_component(std::ostream& o, const morphology& x, const meta_data& m) {
+    if (m.version != acc_version()) {
+        throw cableio_version_error(m.version);
+    }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
 std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
+    if (m.version != acc_version()) {
+        throw cableio_version_error(m.version);
+    }
     auto cell = s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))};
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), cell)};
 }
 std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
+    if (x.meta.version != acc_version()) {
+        throw cableio_version_error(x.meta.version);
+    }
     std::visit([&](auto&& c){write_component(o, c, x.meta);}, x.component);
     return o;
 }
@@ -195,7 +216,7 @@ using envelope_tuple = std::tuple<double,double>;
 using pulse_tuple    = std::tuple<double,double,double>;
 using param_tuple    = std::tuple<std::string,double>;
 using branch_tuple   = std::tuple<int,int,std::vector<arb::msegment>>;
-using version_tuple  = std::tuple<int>;
+using version_tuple  = std::tuple<std::string>;
 
 // Define makers for defaultables, paintables, placeables
 #define ARBIO_DEFINE_SINGLE_ARG(name) arb::name make_##name(double val) { return arb::name{val}; }
@@ -327,7 +348,7 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
     }
     return cable_cell(morpho, dict, dec);
 }
-version_tuple make_version(int v) {
+version_tuple make_version(std::string v) {
     return version_tuple{v};
 }
 meta_data make_meta_data(version_tuple v) {
@@ -794,7 +815,7 @@ eval_map named_evals{
     {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable_cell,
                        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
 
-    {"version", make_call<int>(make_version, "'version' with one argment (val:int)")},
+    {"version", make_call<std::string>(make_version, "'version' with one argment (val:std::string)")},
     {"meta-data", make_call<version_tuple>(make_meta_data, "'meta-data' with one argument (v:version)")},
 
     { "arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decor)")},
@@ -827,9 +848,8 @@ parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
         return util::unexpected(cableio_parse_error("Expected arbor-component", location(sexp)));
     }
     auto comp = eval_cast<cable_cell_component>(try_parse.value());
-    if (comp.meta.version != CABLE_CELL_FORMAT_VERSION) {
-        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+
-                                                        std::to_string(comp.meta.version), location(sexp)));
+    if (comp.meta.version != acc_version()) {
+        return util::unexpected(cableio_parse_error("Unsupported cable-cell format version "+ comp.meta.version, location(sexp)));
     }
     return comp;
 };

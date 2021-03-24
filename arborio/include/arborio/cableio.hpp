@@ -3,9 +3,8 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/s_expr.hpp>
 
-#define CABLE_CELL_FORMAT_VERSION 1
-
 namespace arborio {
+std::string acc_version();
 
 struct cableio_parse_error: arb::arbor_exception {
     explicit cableio_parse_error(const std::string& msg, const arb::src_location& loc);
@@ -15,12 +14,16 @@ struct cableio_morphology_error: arb::arbor_exception {
     explicit cableio_morphology_error(const unsigned bid);
 };
 
+struct cableio_version_error: arb::arbor_exception {
+    explicit cableio_version_error(const std::string& version);
+};
+
 template <typename T>
 using parse_hopefully = arb::util::expected<T, cableio_parse_error>;
 using cable_cell_variant = std::variant<arb::morphology, arb::label_dict, arb::decor, arb::cable_cell>;
 
 struct meta_data {
-    int version = CABLE_CELL_FORMAT_VERSION;
+    std::string version = acc_version();
 };
 struct cable_cell_component {
     meta_data meta;

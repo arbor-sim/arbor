@@ -18,7 +18,7 @@ The arbor-components and meta-data
 
 .. cpp:type:: cable_cell_variant = std::variant<arb::morphology, arb::label_dict, arb::decor, arb::cable_cell>
 
-.. cpp:type:: template <typname T> parse_hopefully = arb::util::expected<T, cableio_parse_error>
+.. cpp:type:: template <typename T> parse_hopefully = arb::util::expected<T, cableio_parse_error>
 
    ``arborio::cableio_parse_error`` is derived from ``arb::arbor_exception`` which in turn is derived
    from ``std::runtime_error``. It contains information about the ``line`` and ``position`` of an encountered

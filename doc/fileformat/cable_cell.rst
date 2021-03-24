@@ -10,9 +10,9 @@ The cable cell *format* is constructed in the same way.
 
 .. Note::
 
-   Lines breaks and indentation in the s-expressions presented below have been added
-   for clarity. They are not a requirement of the format and will be ignored by the
-   parser.
+   Extra line breaks and indentations in the s-expressions presented below have been
+   added for clarity. They are not a requirement of the format and will be treated as
+   whitespace.
 
 Label dictionary
 ----------------
@@ -98,31 +98,31 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (membrane-potential val:real)
 
-   This describes an *initial membrane potential* object with value ``val`` (unit [mV]).
+   This describes an *initial membrane potential* object with value ``val`` (unit mV).
 
 .. label:: (axial-resistivity val:real)
 
-   This describes an *axial resistivity* object with value ``val`` (unit [Ω·cm]).
+   This describes an *axial resistivity* object with value ``val`` (unit Ω·cm).
 
 .. label:: (temperature-kelvin val:real)
 
-   This describes a *temperature* object with value ``val`` (unit [K]).
+   This describes a *temperature* object with value ``val`` (unit K).
 
 .. label:: (membrane-capacitance val:real)
 
-   This describes a *membrane capacitance* object with value ``val`` (unit [F/m²]).
+   This describes a *membrane capacitance* object with value ``val`` (unit F/m²).
 
 .. label:: (ion-internal-concentration ion:string val:real)
 
-   This describes an *initial internal concentration* object for ion ``ion`` with value ``val`` (unit [mM]]).
+   This describes an *initial internal concentration* object for ion ``ion`` with value ``val`` (unit mM).
 
 .. label:: (ion-external-concentration ion:string val:real)
 
-   This describes an *initial external concentration* object for ion ``ion`` with value ``val`` (unit [mM]]).
+   This describes an *initial external concentration* object for ion ``ion`` with value ``val`` (unit mM).
 
 .. label:: (ion-reversal-potential ion:string val:real)
 
-   This describes an *initial reversal potential* object for ion ``ion`` with value ``val`` (unit [mV]]).
+   This describes an *initial reversal potential* object for ion ``ion`` with value ``val`` (unit mV).
 
 .. label:: (mechanism name:string [...(param:string val:real)])
 
@@ -150,16 +150,16 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real)
 
-   This creates a *current clamp*. If the frequency ``freq`` (unit [Hz]) is zero, the current is a square
-   pulse with amplitude ``amplitude`` (unit [nA]) starting at ``delay`` (unit [ms]) and lasting for ``duration``
-   (unit [ms]). If ``freq`` is non-zero, the current is sinusoidal with amplitude ``amplitude`` and frequency
+   This creates a *current clamp*. If the frequency ``freq`` (unit Hz) is zero, the current is a square
+   pulse with amplitude ``amplitude`` (unit nA) starting at ``delay`` (unit ms) and lasting for ``duration``
+   (unit ms). If ``freq`` is non-zero, the current is sinusoidal with amplitude ``amplitude`` and frequency
    ``freq`` from time ``delay`` and lasting for ``duration``.
    (More information about current clamps can be found :ref:`here <cablecell-stimuli>`).
 
 .. label:: (current-clamp [...(envelope time:real amplitude:real)] freq:real)
 
-   This creates a *current clamp* with an amplitude governed by the given envelopes (``time`` unit [ms] and
-   ``amplitude`` unit [nA]). A frequency ``freq`` (unit [Hz]) of zero implies that the generated current simply
+   This creates a *current clamp* with an amplitude governed by the given envelopes (``time`` unit ms and
+   ``amplitude`` unit nA). A frequency ``freq`` (unit Hz) of zero implies that the generated current simply
    follows the envelope. A non-zero ``freq`` implies the current is sinusoidal with that frequency and amplitude
    that varies according to the envelope. (More information about current clamps can be found
    :ref:`here <cablecell-stimuli>`).
@@ -174,7 +174,7 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (threshold-detector val:real).
 
-   This describes a *threshold-detector* object with value ``val`` (unit [mV]]).
+   This describes a *threshold-detector* object with value ``val`` (unit mV).
 
 .. label:: (gap-junction-site)
 
@@ -246,7 +246,7 @@ The morphology of a cable cell can be described in terms of points, tagged segme
 
 .. label:: (point x:real y:real z:real radius:real)
 
-   This describes a 3D *point* in space with ``x``, ``y``, and ``z`` coordinates and a radius ``r`` (unit [µm]).
+   This describes a 3D *point* in space with ``x``, ``y``, and ``z`` coordinates and a radius ``r`` (unit µm).
 
 .. label:: (segment id:int prox:point dist:point tag:int)
 
@@ -360,9 +360,9 @@ Parsable arbor-components and meta-data
 The formats described above can be used to generate a :ref:`label dictionary <labels>`,
 :ref:`decoration <cablecell-decoration>`, :ref:`morphology <morph>`, or :ref:`cable cell <cablecell>`
 object. These are denoted as arbor-components. Arbor-components need to be accompanied by *meta-data*
-specifying the version of the format being used. The only version currently supported is 1.
+specifying the version of the format being used. The only version currently supported is ``0.1-dev``.
 
-.. label:: (version val:int)
+.. label:: (version val:string)
 
    Specifies that the version of the component description format is ``val``.
 
@@ -382,7 +382,7 @@ Label-dict
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version 1))
+     (meta-data (version "0.1-dev"))
      (label-dict
        (region-def "my_soma" (tag 1))
        (locset-def "root" (root))))
@@ -393,7 +393,7 @@ Decoration
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version 1))
+     (meta-data (version "0.1-dev"))
      (decor
        (default (membrane-potential -55.000000))
        (place (locset "root") (mechanism "expsyn"))
@@ -405,7 +405,7 @@ Morphology
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version 1))
+     (meta-data (version "0.1-dev"))
      (morphology
         (branch 0 -1
           (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
@@ -418,7 +418,7 @@ Cable-cell
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version 1))
+     (meta-data (version "0.1-dev"))
      (cable-cell
        (label-dict
          (region-def "my_soma" (tag 1))
