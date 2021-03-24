@@ -1,12 +1,18 @@
 .. _formatcablecell:
 
-Cable cell format
-=================
+Arbor Cable Cell format (ACC)
+=============================
 
 We define an s-expression format for describing :ref:`cable cells <cablecell>`.
 Cable cells are constructed from three components: a :ref:`label dictionary <labels>`,
 a :ref:`decoration object <cablecell-decoration>` and a :ref:`morphology <morph>`.
 The cable cell *format* is constructed in the same way.
+
+.. Note::
+
+   Lines breaks and indentation in the s-expressions presented below have been added
+   for clarity. They are not a requirement of the format and will be ignored by the
+   parser.
 
 Label dictionary
 ----------------
@@ -140,7 +146,7 @@ The various properties and dynamics of the decor are described as follows:
 
    .. code:: lisp
 
-      (ion-reversal-potential-method "ca" (mechanism "nersnt/ca"))
+      (ion-reversal-potential-method "ca" (mechanism "nernst/ca"))
 
 .. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real)
 
@@ -174,9 +180,8 @@ The various properties and dynamics of the decor are described as follows:
 
    This describes a *gap-junction-site*.
 
-*Paintable* and *placeable* properties and dynamics are placed on regions and locsets respectively.
-Arbor provides many useful :ref:`region expressions <labels-region-expr>` and
-:ref:`locset expressions <labels-locset-expr>` which are explained in detail at the provided links.
+*Paintable* and *placeable* properties and dynamics are placed on regions (generated from :ref:`region expressions
+<labels-region-expr>`) and locsets (generated from :ref:`locset expressions <labels-locset-expr>`) respectively.
 *Defaultable* properties and dynamics apply to an entire cell.
 
 .. label:: (paint reg:region prop:paintable)
@@ -427,3 +432,9 @@ Cable-cell
             (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
             (segment 1 (point 4 0 0 0.8) (point 8 0 0 0.8) 3)
             (segment 2 (point 8 0 0 0.8) (point 12 -0.5 0 0.8) 3)))))
+
+API
+---
+
+* :ref:`Python <pycablecellformat>`
+* :ref:`C++ <cppcablecellformat>`

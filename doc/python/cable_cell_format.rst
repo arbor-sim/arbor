@@ -30,8 +30,8 @@ The arbor-components and meta-data
 
       Stores one of :class:`decor`, :class:`label_dict`, :class:`morphology` or :class:`cable_cell`.
 
-Reading arbor-components
-------------------------
+Reading and writing arbor-components
+------------------------------------
 
 .. py:function:: load_component(filename)
 

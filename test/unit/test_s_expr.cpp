@@ -870,7 +870,7 @@ TEST(doc_expressions, parse) {
     for (auto expr: {"(region-def \"my_region\" (branch 1))",
                      "(locset-def \"my_locset\" (location 3 0.5))",
                      "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
-                     "(ion-reversal-potential-method \"ca\" (mechanism \"nersnt/ca\"))",
+                     "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
                      "(current-clamp (envelope (0 10) (50 10) (50 0)) 40)",
                      "(paint (tag 1) (membrane-capacitance 0.02))",
                      "(place (locset \"mylocset\") (threshold-detector 10))",

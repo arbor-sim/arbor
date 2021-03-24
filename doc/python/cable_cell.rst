@@ -11,7 +11,7 @@ Cable cells
    mechanisms
    decor
    probe_sample
-   format
+   cable_cell_format
 
 .. currentmodule:: arbor
 
