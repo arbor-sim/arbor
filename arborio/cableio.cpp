@@ -102,7 +102,7 @@ s_expr mksexp(const decor& d) {
         decorations.push_back(std::visit([&](auto& x)
             { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
-    return {"decorations"_symbol, slist_range(decorations)};
+    return {"decor"_symbol, slist_range(decorations)};
 }
 s_expr mksexp(const label_dict& dict) {
     auto round_trip = [](auto& x) {
@@ -784,8 +784,8 @@ eval_map named_evals{
     {"branch",  make_branch_call(
                     "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
-    {"decorations", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
-                        "'decorations' with 1 or more `paint`, `place` or `default` arguments")},
+    {"decor", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
+                  "'decor' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
                        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
     {"morphology", make_arg_vec_call<branch_tuple>(make_morphology,
@@ -797,9 +797,9 @@ eval_map named_evals{
     {"version", make_call<int>(make_version, "'version' with one argment (val:int)")},
     {"meta-data", make_call<version_tuple>(make_meta_data, "'meta-data' with one argument (v:version)")},
 
-    { "arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decoration)")},
-    { "arbor-component", make_call<meta_data, label_dict>(make_component<label_dict>, "'arbor-component' with 2 arguments (m:meta_data p:decoration)")},
-    { "arbor-component", make_call<meta_data, morphology>(make_component<morphology>, "'arbor-component' with 2 arguments (m:meta_data p:label_dict)")},
+    { "arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decor)")},
+    { "arbor-component", make_call<meta_data, label_dict>(make_component<label_dict>, "'arbor-component' with 2 arguments (m:meta_data p:label_dict)")},
+    { "arbor-component", make_call<meta_data, morphology>(make_component<morphology>, "'arbor-component' with 2 arguments (m:meta_data p:morphology)")},
     { "arbor-component", make_call<meta_data, cable_cell>(make_component<cable_cell>, "'arbor-component' with 2 arguments (m:meta_data p:cable_cell)")}
 };
 

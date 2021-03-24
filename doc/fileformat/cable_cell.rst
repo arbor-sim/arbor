@@ -218,14 +218,14 @@ Arbor provides many useful :ref:`region expressions <labels-region-expr>` and
 
 Any number of paint, place and default expressions can be used to create a decor as follows:
 
-.. label:: (decorations [...def:paint/place/default])
+.. label:: (decor [...def:paint/place/default])
 
    This describes a decor object with zero or more paint, place or default expressions in any order.
    For example:
 
    .. code:: lisp
 
-      (decorations
+      (decor
         (default (membrane-potential -55.000000))
         (paint (region "custom") (temperature-kelvin 270))
         (paint (region "soma") (membrane-potential -50.000000))
@@ -305,7 +305,7 @@ Cable cell
 The entire cable-cell can then be constructed given the 3 previously described component
 expressions.
 
-.. label:: (cable-cell morph:morphology dec:decorations dict:label-dict)
+.. label:: (cable-cell morph:morphology dec:decor dict:label-dict)
 
    The arguments of the cable-cell can be in any order, as long as all 3 components are listed.
    For example:
@@ -319,7 +319,7 @@ expressions.
           (region-def "all" (all))
           (region-def "my_region" (radius-ge (region "my_soma") 1.5))
           (locset-def "terminal" (terminal)))
-        (decorations
+        (decor
           (default (membrane-potential -55.000000))
           (paint (region "my_soma") (temperature-kelvin 270))
           (paint (region "my_region") (membrane-potential -50.000000))
@@ -347,7 +347,7 @@ expressions.
 
    This expression uses the *label-dictionary* in the *decoration* specification
    to get the descriptions of regions and locsets specified using labels.
-   The *decorations* are then applied on the provided *morphology*, creating a cable cell.
+   The *decor* is then applied on the provided *morphology*, creating a cable cell.
 
 Parsable arbor-components and meta-data
 ---------------------------------------
@@ -389,7 +389,7 @@ Decoration
 
    (arbor-component
      (meta-data (version 1))
-     (decorations
+     (decor
        (default (membrane-potential -55.000000))
        (place (locset "root") (mechanism "expsyn"))
        (paint (region "my_soma") (temperature-kelvin 270))))
@@ -418,7 +418,7 @@ Cable-cell
        (label-dict
          (region-def "my_soma" (tag 1))
          (locset-def "root" (root)))
-       (decorations
+       (decor
          (default (membrane-potential -55.000000))
          (place (locset "root") (mechanism "expsyn"))
          (paint (region "my_soma") (temperature-kelvin 270)))

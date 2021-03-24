@@ -581,7 +581,7 @@ TEST(decor, round_tripping) {
     auto component_str = "(arbor-component \n"
                          "  (meta-data \n"
                          "    (version 1))\n"
-                         "  (decorations \n"
+                         "  (decor \n"
                          "    (default \n"
                          "      (axial-resistivity 100.000000))\n"
                          "    (default \n"
@@ -797,7 +797,7 @@ TEST(cable_cell, round_tripping) {
                          "            (tag 3)\n"
                          "            (tag 4))\n"
                          "          (tag 42))))\n"
-                         "    (decorations \n"
+                         "    (decor \n"
                          "      (paint \n"
                          "        (region \"dend\")\n"
                          "        (mechanism \"pas\"))\n"
@@ -846,12 +846,12 @@ TEST(cable_cell_literals, errors) {
         // So it is sufficient to assert that it evaluates to false.
         EXPECT_FALSE(arborio::parse_expression(expr));
     }
-    for (auto expr: {"(arbor-component (meta-data (version 2)) (decorations))",  // invalid component
+    for (auto expr: {"(arbor-component (meta-data (version 2)) (decor))",  // invalid component
                      "(arbor-component (morphology))", // arbor-component missing meta-data
                      "(arbor-component (meta-data (version 1)))", // arbor-component missing component
                      "(arbor-component (meta-data (version 1)) (membrane-potential 56))",  // invalid component
                      "(arbor-component (meta-data (version 1)) (morphology (segment 1 (point 1 2 3 4) (point 2 3 4 5) 3)))", // morphology with segment instead of branch
-                     "(arbor-component (meta-data (version 1)) (decorations (region-def \"reg\" (tag 3))))", // decor with label definition
+                     "(arbor-component (meta-data (version 1)) (decor (region-def \"reg\" (tag 3))))", // decor with label definition
                      "(arbor-component (meta-data (version 1)) (cable-cell (paint (tag 3) (axial-resistivity 3.1))))", // cable-cell with paint
                      "(morphology (branch 0 -1 (segment 0 (point 0 1 2 3 ) (point 1 2 3 4) 3)))", // morphology without arbor-component
     })
@@ -886,7 +886,7 @@ TEST(doc_expressions, parse) {
                      "  (region-def \"all\" (all))\n"
                      "  (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
                      "  (locset-def \"terminal\" (terminal)))",
-                     "(decorations\n"
+                     "(decor\n"
                      "  (default (membrane-potential -55.000000))\n"
                      "  (paint (region \"custom\") (temperature-kelvin 270))\n"
                      "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
@@ -919,7 +919,7 @@ TEST(doc_expressions, parse) {
                      "    (region-def \"all\" (all))\n"
                      "    (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
                      "    (locset-def \"terminal\" (terminal)))\n"
-                     "  (decorations\n"
+                     "  (decor\n"
                      "    (default (membrane-potential -55.000000))\n"
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
                      "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
@@ -960,7 +960,7 @@ TEST(doc_expressions, parse) {
                      "    (locset-def \"root\" (root))))",
                      "(arbor-component\n"
                      "  (meta-data (version 1))\n"
-                     "  (decorations\n"
+                     "  (decor\n"
                      "    (default (membrane-potential -55.000000))\n"
                      "    (place (locset \"root\") (mechanism \"expsyn\"))\n"
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
@@ -977,7 +977,7 @@ TEST(doc_expressions, parse) {
                      "    (label-dict\n"
                      "      (region-def \"my_soma\" (tag 1))\n"
                      "      (locset-def \"root\" (root)))\n"
-                     "    (decorations\n"
+                     "    (decor\n"
                      "      (default (membrane-potential -55.000000))\n"
                      "      (place (locset \"root\") (mechanism \"expsyn\"))\n"
                      "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
