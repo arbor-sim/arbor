@@ -142,10 +142,29 @@ The various properties and dynamics of the decor are described as follows:
 
       (ion-reversal-potential-method "ca" (mechanism "nersnt/ca"))
 
-.. label:: (current-clamp delay:real duration:real amplitude:real)
+.. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real)
 
-   This creates a *current clamp* with amplitude ``amplitude`` (unit [nA]) starting at ``delay`` (unit [ms])
-   and lasting for ``duration`` (unit [ms]).
+   This creates a *current clamp*. If the frequency ``freq`` (unit [Hz]) is zero, the current is a square
+   pulse with amplitude ``amplitude`` (unit [nA]) starting at ``delay`` (unit [ms]) and lasting for ``duration``
+   (unit [ms]). If ``freq`` is non-zero, the current is sinusoidal with amplitude ``amplitude`` and frequency
+   ``freq`` from time ``delay`` and lasting for ``duration``.
+   (More information about current clamps can be found :ref:`here <cablecell-stimuli>`).
+
+.. label:: (current-clamp [...(envelope time:real amplitude:real)] freq:real)
+
+   This creates a *current clamp* with an amplitude governed by the given envelopes (``time`` unit [ms] and
+   ``amplitude`` unit [nA]). A frequency ``freq`` (unit [Hz]) of zero implies that the generated current simply
+   follows the envelope. A non-zero ``freq`` implies the current is sinusoidal with that frequency and amplitude
+   that varies according to the envelope. (More information about current clamps can be found
+   :ref:`here <cablecell-stimuli>`).
+   For example:
+
+   .. code::
+
+      (current-clamp (envelope (0 10) (50 10) (50 0)) 40)
+
+   This expression describes a sinusoidal current with amplitude 10nA and frequency 40Hz and that lasts
+   from t = 0ms to t = 50ms, finally leaving the current at 0nA (final amplitude in the envelope).
 
 .. label:: (threshold-detector val:real).
 
@@ -212,7 +231,7 @@ Any number of paint, place and default expressions can be used to create a decor
         (paint (region "soma") (membrane-potential -50.000000))
         (paint (all) (mechanism "pas"))
         (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
-        (place (locset "root") (current-clamp 10 1 2))
+        (place (locset "root") (mechanism "expsyn"))
         (place (terminal) (gap-junction-site)))
 
 Morphology
@@ -305,7 +324,7 @@ expressions.
           (paint (region "my_soma") (temperature-kelvin 270))
           (paint (region "my_region") (membrane-potential -50.000000))
           (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
-          (place (locset "root") (current-clamp 10 1 2))
+          (place (locset "root") (mechanism "expsyn"))
           (place (location 1 0.2) (gap-junction-site)))
         (morphology
           (branch 0 -1
@@ -372,7 +391,7 @@ Decoration
      (meta-data (version 1))
      (decorations
        (default (membrane-potential -55.000000))
-       (place (locset "root") (current-clamp 10 1 2))
+       (place (locset "root") (mechanism "expsyn"))
        (paint (region "my_soma") (temperature-kelvin 270))))
 
 Morphology
@@ -401,7 +420,7 @@ Cable-cell
          (locset-def "root" (root)))
        (decorations
          (default (membrane-potential -55.000000))
-         (place (locset "root") (current-clamp 10 1 2))
+         (place (locset "root") (mechanism "expsyn"))
          (paint (region "my_soma") (temperature-kelvin 270)))
        (morphology
           (branch 0 -1

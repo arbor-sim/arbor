@@ -870,6 +870,7 @@ TEST(doc_expressions, parse) {
                      "(locset-def \"my_locset\" (location 3 0.5))",
                      "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nersnt/ca\"))",
+                     "(current-clamp (envelope (0 10) (50 10) (50 0)) 40)",
                      "(paint (tag 1) (membrane-capacitance 0.02))",
                      "(place (locset \"mylocset\") (threshold-detector 10))",
                      "(default (membrane-potential -65))",
@@ -891,7 +892,7 @@ TEST(doc_expressions, parse) {
                      "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
                      "  (paint (all) (mechanism \"pas\"))\n"
                      "  (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "  (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
+                     "  (place (locset \"root\") (mechanism \"expsyn\"))\n"
                      "  (place (terminal) (gap-junction-site)))",
                      "(morphology\n"
                      "  (branch 0 -1\n"
@@ -923,7 +924,7 @@ TEST(doc_expressions, parse) {
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
                      "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
                      "    (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "    (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
+                     "    (place (locset \"root\") (mechanism \"expsyn\"))\n"
                      "    (place (location 1 0.2) (gap-junction-site)))\n"
                      "  (morphology\n"
                      "    (branch 0 -1\n"
@@ -961,7 +962,7 @@ TEST(doc_expressions, parse) {
                      "  (meta-data (version 1))\n"
                      "  (decorations\n"
                      "    (default (membrane-potential -55.000000))\n"
-                     "    (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
+                     "    (place (locset \"root\") (mechanism \"expsyn\"))\n"
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
                      "(arbor-component\n"
                      "  (meta-data (version 1))\n"
@@ -978,7 +979,7 @@ TEST(doc_expressions, parse) {
                      "      (locset-def \"root\" (root)))\n"
                      "    (decorations\n"
                      "      (default (membrane-potential -55.000000))\n"
-                     "      (place (locset \"root\") (current-clamp (envelope (10 2) (11 2) (11 0)) 0))\n"
+                     "      (place (locset \"root\") (mechanism \"expsyn\"))\n"
                      "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
                      "    (morphology\n"
                      "       (branch 0 -1\n"

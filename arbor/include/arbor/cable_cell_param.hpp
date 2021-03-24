@@ -41,8 +41,8 @@ struct cable_cell_ion_data {
 // * The time points must be monotonically increasing.
 // * Onset and initial amplitude is given by the first point.
 // * The amplitude for time after the last time point is that of the last
-//   amplitgude point; an explicit zero amplitude point must be provided if the
-//    envelope is intended to have finite support.
+//   amplitude point; an explicit zero amplitude point must be provided if the
+//   envelope is intended to have finite support.
 //
 // Periodic envelopes are not supported, but may well be a feature worth
 // considering in the future.
