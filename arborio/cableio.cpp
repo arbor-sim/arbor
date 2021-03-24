@@ -714,7 +714,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         }
         return util::unexpected(cableio_parse_error(msg, location(e)));
     }
-    return util::unexpected(cableio_parse_error("Expression is neither integer, real expression of the form (op <args>) or (\"param\", val)", location(e)));
+    return util::unexpected(cableio_parse_error("Expression is not integer, real expression of the form (op <args>) nor tuple of the form (e0 e1 ... en)", location(e)));
 }
 
 eval_map named_evals{

@@ -822,6 +822,7 @@ TEST(cable_cell_literals, errors) {
                      "(ion-initial-concentration ca 0.1)",   // unquoted ion
                      "(mechanism \"hh\" (gl 3.5))",          // unqouted parameter
                      "(mechanism \"pas\" ((\"g\" 0.5) (\"e\" 0.2)))",   // paranthesis around params
+                     "(mechanism \"pas\" (\"g\" 0.5 0.1) (\"e\" 0.2))", // too many values
                      "(gap-junction-site 0)",                // too many arguments
                      "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)))",  // too few arguments
                      "(paint (region) (mechanism \"hh\"))",  // invalid region
