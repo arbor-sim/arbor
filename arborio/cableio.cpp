@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <sstream>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
@@ -67,9 +66,8 @@ s_expr mksexp(const gap_junction_site& s) {
 s_expr mksexp(const mechanism_desc& d) {
     std::vector<s_expr> mech;
     mech.push_back(s_expr(d.name()));
-    for (const auto& p: d.values()) {
-        mech.push_back(slist(s_expr(p.first), p.second));
-    }
+    std::transform(d.values().begin(), d.values().end(), std::back_inserter(mech),
+        [](const auto& x){return slist(s_expr(x.first), x.second);});
     return s_expr{"mechanism"_symbol, slist_range(mech)};
 }
 s_expr mksexp(const ion_reversal_potential_method& e) {
@@ -125,9 +123,9 @@ s_expr mksexp(const morphology& morph) {
     // s-expression representation of branch i in the morphology
     auto make_branch = [&morph](int i) {
         std::vector<s_expr> segments;
-        for (const auto& s: morph.branch_segments(i)) {
-            segments.push_back(mksexp(s));
-        }
+        const auto& segs = morph.branch_segments(i);
+        std::transform(segs.begin(), segs.end(), std::back_inserter(segments),
+            [](const auto& x){return mksexp(x);});
         return s_expr{"branch"_symbol, {i, {(int)morph.branch_parent(i), slist_range(segments)}}};
     };
     std::vector<s_expr> branches;
@@ -192,6 +190,13 @@ std::optional<T> eval_cast_variant(const std::any& a) {
     return std::nullopt;
 }
 
+// Useful tuple aliases
+using envelope_tuple = std::tuple<double,double>;
+using pulse_tuple    = std::tuple<double,double,double>;
+using param_tuple    = std::tuple<std::string,double>;
+using branch_tuple   = std::tuple<int,int,std::vector<arb::msegment>>;
+using version_tuple  = std::tuple<int>;
+
 // Define makers for defaultables, paintables, placeables
 #define ARBIO_DEFINE_SINGLE_ARG(name) arb::name make_##name(double val) { return arb::name{val}; }
 #define ARBIO_DEFINE_DOUBLE_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
@@ -199,23 +204,23 @@ std::optional<T> eval_cast_variant(const std::any& a) {
 ARB_PP_FOREACH(ARBIO_DEFINE_SINGLE_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
 ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
 
-std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::variant<std::tuple<double,double>>>& vec) {
+std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::variant<envelope_tuple>>& vec) {
     std::vector<arb::i_clamp::envelope_point> envlp;
     std::transform(vec.begin(), vec.end(), std::back_inserter(envlp),
         [](const auto& x){
-            auto t = std::get<std::tuple<double,double>>(x);
+            auto t = std::get<envelope_tuple>(x);
             return arb::i_clamp::envelope_point{std::get<0>(t), std::get<1>(t)};
         });
     return envlp;
 }
-std::tuple<double, double, double> make_envelope_pulse(double delay, double duration, double amplitude) {
-    return std::make_tuple(delay, duration, amplitude);
-}
 arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp, double freq) {
     return arb::i_clamp(envlp, freq);
 }
-arb::i_clamp make_i_clamp_pulse(std::tuple<double, double, double> t, double freq) {
-    return arb::i_clamp(std::get<0>(t), std::get<1>(t), std::get<2>(t), freq);
+pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude) {
+    return pulse_tuple{delay, duration, amplitude};
+}
+arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq) {
+    return arb::i_clamp(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq);
 }
 arb::gap_junction_site make_gap_junction_site() {
     return arb::gap_junction_site{};
@@ -267,20 +272,19 @@ label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pa
     return d;
 }
 // Define makers for mpoints and msegments and morphologies
-using branch = std::tuple<int, int, std::vector<arb::msegment>>;
 arb::mpoint make_point(double x, double y, double z, double r) {
     return arb::mpoint{x, y, z, r};
 }
 arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int tag) {
     return arb::msegment{id, prox, dist, tag};
 }
-morphology make_morphology(const std::vector<std::variant<branch>>& args) {
+morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) {
     segment_tree tree;
     std::vector<unsigned> branch_final_seg(args.size());
     std::vector<unsigned> branch_children(args.size(), 0);
     std::vector<std::pair<msegment, int>> segs;
     for (const auto& br: args) {
-        auto b = std::get<branch>(br);
+        auto b = std::get<branch_tuple>(br);
         auto b_id = std::get<0>(b);
         auto b_pid = std::get<1>(b);
         auto b_segments = std::get<2>(b);
@@ -323,11 +327,10 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
     }
     return cable_cell(morpho, dict, dec);
 }
-using version = std::tuple<int>;
-version make_version(int v) {
-    return version{v};
+version_tuple make_version(int v) {
+    return version_tuple{v};
 }
-meta_data make_meta_data(version v) {
+meta_data make_meta_data(version_tuple v) {
     return meta_data{std::get<0>(v)};
 }
 template <typename T>
@@ -479,9 +482,9 @@ struct mech_match {
         if (args.size() < 1) return false;
         if (!match<std::string>(args.front().type())) return false;
 
-        // The rest of the arguments should be std::tuple<std::string, double>
+        // The rest of the arguments should be param_tuples
         for (auto it = args.begin()+1; it != args.end(); ++it) {
-            if (!match<std::tuple<std::string, double>>(it->type())) return false;
+            if (!match<param_tuple>(it->type())) return false;
         }
         return true;
     }
@@ -492,7 +495,7 @@ struct mech_eval {
         auto name = eval_cast<std::string>(args.front());
         arb::mechanism_desc mech(name);
         for (auto it = args.begin()+1; it != args.end(); ++it) {
-            auto p = eval_cast<std::tuple<std::string, double>>(*it);
+            auto p = eval_cast<param_tuple>(*it);
             mech.set(std::get<0>(p), std::get<1>(p));
         }
         return mech;
@@ -526,7 +529,7 @@ struct branch_match {
 };
 // Create a `branch` from a std::vector<std::any>.
 struct branch_eval {
-    branch operator()(const std::vector<std::any>& args) {
+    branch_tuple operator()(const std::vector<std::any>& args) {
         std::vector<msegment> segs;
         auto it = args.begin();
         auto id = eval_cast<int>(*it++);
@@ -534,7 +537,7 @@ struct branch_eval {
         for (; it != args.end(); ++it) {
             segs.push_back(eval_cast<msegment>(*it));
         }
-        return branch{id, parent, segs};
+        return branch_tuple{id, parent, segs};
     }
 };
 // Wrap branch_match and branch_eval in an evaluator
@@ -612,7 +615,7 @@ struct make_unordered_call {
 using eval_map = std::unordered_multimap<std::string, evaluator>;
 using eval_vec = std::vector<evaluator>;
 
-// Parse s-expression into std::any given a function evaluation map.
+// Parse s-expression into std::any given a function evaluation map and a tuple evaluation vector.
 parse_hopefully<std::any> eval(const arb::s_expr&, const eval_map&, const eval_vec&);
 
 parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map& map, const eval_vec& vec) {
@@ -729,14 +732,14 @@ eval_map named_evals{
                                        "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
     {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential,
                                    "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
-    {"envelope", make_arg_vec_call<std::tuple<double,double>>(make_envelope,
+    {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
                      "`envelope` with one or more pairs of start time and amplitude (start:real amplitude:real)")},
     {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,
                           "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
     {"current-clamp", make_call<std::vector<arb::i_clamp::envelope_point>, double>(make_i_clamp,
-                          "`current-clamp` withe 2 arguments (env:envelope freq:real)")},
-    {"current-clamp", make_call<std::tuple<double, double, double>, double>(make_i_clamp_pulse,
-                          "`current-clamp` withe 2 arguments (env:envelope_pulse freq:real)")},
+                          "`current-clamp` with 2 arguments (env:envelope freq:real)")},
+    {"current-clamp", make_call<pulse_tuple, double>(make_i_clamp_pulse,
+                          "`current-clamp` with 2 arguments (env:envelope_pulse freq:real)")},
     {"threshold-detector", make_call<double>(make_threshold_detector,
                                "'threshold-detector' with 1 argument (threshold:real)")},
     {"gap-junction-site", make_call<>(make_gap_junction_site,
@@ -785,14 +788,14 @@ eval_map named_evals{
                         "'decorations' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
                        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
-    {"morphology", make_arg_vec_call<branch>(make_morphology,
+    {"morphology", make_arg_vec_call<branch_tuple>(make_morphology,
                        "'morphology' 1 or more `branch` arguments")},
 
     {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable_cell,
                        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
 
     {"version", make_call<int>(make_version, "'version' with one argment (val:int)")},
-    {"meta-data", make_call<version>(make_meta_data, "'meta-data' with one argument (v:version)")},
+    {"meta-data", make_call<version_tuple>(make_meta_data, "'meta-data' with one argument (v:version)")},
 
     { "arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decoration)")},
     { "arbor-component", make_call<meta_data, label_dict>(make_component<label_dict>, "'arbor-component' with 2 arguments (m:meta_data p:decoration)")},
