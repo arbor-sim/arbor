@@ -62,12 +62,12 @@ TEST(asc, only_cell_body) {
         auto& segs1 = m.morphology.branch_segments(0);
         EXPECT_EQ(segs1.size(), 1u);
         EXPECT_EQ(segs1[0].prox, (arb::mpoint{0., 0., 1., 2.}));
-        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0., 0., -1., 2.}));
+        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0.,-2., 1., 2.}));
 
         auto& segs2 = m.morphology.branch_segments(1);
         EXPECT_EQ(segs2.size(), 1u);
         EXPECT_EQ(segs2[0].prox, (arb::mpoint{0., 0., 1., 2.}));
-        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 0., 3., 2.}));
+        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 2., 1., 2.}));
     }
 
 
@@ -81,12 +81,12 @@ TEST(asc, only_cell_body) {
         auto& segs1 = m.morphology.branch_segments(0);
         EXPECT_EQ(segs1.size(), 1u);
         EXPECT_EQ(segs1[0].prox, (arb::mpoint{0., 0., 1., 2.}));
-        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0., 0., -1., 2.}));
+        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0.,-2., 1., 2.}));
 
         auto& segs2 = m.morphology.branch_segments(1);
         EXPECT_EQ(segs2.size(), 1u);
         EXPECT_EQ(segs2[0].prox, (arb::mpoint{0., 0., 1., 2.}));
-        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 0., 3., 2.}));
+        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 2., 1., 2.}));
     }
 
     { // Cell with two CellBodys: unsupported feature ATM.
@@ -257,9 +257,9 @@ TEST(asc, soma_connection) {
         EXPECT_EQ(m.num_branches(), 5u);
         // Test soma
         EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
-        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0, 0,-2, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0,-2, 0, 2}));
         EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
-        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 0, 2, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 2, 0, 2}));
         // Test dendrite proximal ends
         EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{0, 2, 0, 1}));
         EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{0, 5, 0, 1}));
@@ -271,9 +271,9 @@ TEST(asc, soma_connection) {
         EXPECT_EQ(m.num_branches(), 7u);
         // Test soma
         EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
-        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0, 0,-2, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0,-2, 0, 2}));
         EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
-        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 0, 2, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 2, 0, 2}));
         // Test dendrite proximal ends
         EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{ 0, 2, 0, 1}));
         EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{ 0, 5, 0, 1}));
@@ -287,9 +287,9 @@ TEST(asc, soma_connection) {
         EXPECT_EQ(m.num_branches(), 8u);
         // Test soma
         EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
-        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0, 0,-2, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0,-2, 0, 2}));
         EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
-        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 0, 2, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 2, 0, 2}));
         // Test dendrite proximal ends
         EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{0, 2, 0, 1}));
         EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{0, 5, 0, 1}));
