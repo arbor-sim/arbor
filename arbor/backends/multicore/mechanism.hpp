@@ -38,7 +38,6 @@ public:
 
 protected:
     fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
-
     std::vector<arb_value_type*> parameter_ptrs_;
     std::vector<arb_value_type*> state_var_ptrs_;
     std::vector<arb_ion_state>   ion_ptrs_;
