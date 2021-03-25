@@ -45,6 +45,7 @@ protected:
     std::vector<arb_value_type*> parameter_ptrs_;
     std::vector<arb_value_type*> state_var_ptrs_;
     std::vector<arb_ion_state>   ion_ptrs_;
+    constraint_partition constraints_;
 };
 
 } // namespace multicore

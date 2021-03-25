@@ -402,7 +402,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             emit_masked_simd_procedure_proto(out, proc, ppack_name);
             auto masked_print = simdprint(proc->body(), vars.scalars);
             masked_print.set_masked();
-            out << " {\n" << indent << masked_print << popindent << "}\n\n";
+            out << " {\n"
+                << indent
+                << "PPACK_IFACE_BLOCK;\n"
+                << masked_print
+                << popindent
+                << "}\n\n";
         } else {
             emit_procedure_proto(out, proc, ppack_name);
             out << " {\n" << indent
@@ -432,7 +437,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         io::separator sep("", ", ");
         out << "static arb_value_type global_defaults[]    = { ";
         for (const auto& var: vars.scalars) {
-            out << sep << (std::isnan(var->value()) ? "std::nan(\"\")" : std::to_string(var->value()));
+            out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
         }
         out << " };\n";
     }
@@ -456,7 +461,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "static arb_value_type state_var_defaults[] = { ";
         for (const auto& var: vars.arrays) {
             if(var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "std::nan(\"\")" : std::to_string(var->value()));
+                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
             }
         }
         out << " };\n";
@@ -481,7 +486,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "static arb_value_type parameter_defaults[] = { ";
         for (const auto& var: vars.arrays) {
             if(!var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "std::nan(\"\")" : std::to_string(var->value()));
+                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
             }
         }
         out << " };\n";
@@ -725,10 +730,10 @@ void SimdPrinter::visit(VariableExpression *sym) {
     ENTERM(out_, "variable");
     if (sym->is_range()) {
         auto index = is_indirect_? "index_": "i_";
-        out_ << "simd_cast<simd_value>(indirect(" << sym->name() << "+" << index << ", simd_width_))";
+        out_ << "simd_cast<simd_value>(indirect(" << pp_var_pfx << sym->name() << "+" << index << ", simd_width_))";
     }
     else {
-        out_ << sym->name();
+        out_ << pp_var_pfx << sym->name();
     }
     EXITM(out_, "variable");
 }
@@ -772,7 +777,7 @@ void SimdPrinter::visit(AssignmentExpression* e) {
                 // We shouldn't call the rhs visitor in this case because it automatically casts indirect expressions
                 if (sym->is_variable() && sym->is_variable()->is_range()) {
                     auto index = is_indirect_ ? "index_" : "i_";
-                    out_ << "indirect(" << rhs->name() << "+" << index << ", simd_width_))";
+                    out_ << "indirect(" << pp_var_pfx << rhs->name() << "+" << index << ", simd_width_))";
                     return;
                 }
             }
@@ -825,7 +830,7 @@ void SimdPrinter::visit(BlockExpression* block) {
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, arb_index_type i_";
+    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(arb_mechanism_ppack* pp, arb_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -836,7 +841,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
     out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(" << ppack_name << "* pp, arb_index_type i_, simd_mask mask_input_";
+    << "(arb_mechanism_ppack* pp, arb_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -851,7 +856,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scalar()) {
-            out << " = simd_cast<simd_value>(" << d.data_var
+            out << " = simd_cast<simd_value>(" << pp_var_pfx << d.data_var
                 << "[0]);\n";
         }
         else {
@@ -1044,15 +1049,16 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const simd_expr_constraint& constraint,
                                   std::string underlying_constraint_name) {
     ENTER(out);
-    out << "constraint_category_ = index_constraint::"<< underlying_constraint_name << ";\n";
-    out << "for (unsigned i_ = 0; i_ < index_constraints." << underlying_constraint_name
-        << ".size(); i_++) {\n"
+    out << fmt::format("constraint_category_ = index_constraint::{1};\n"
+                       "for (unsigned i_ = 0; i_ < {0}index_constraints.n_{1}; i_++) {{\n"
+                       "    arb_index_type index_ = {0}index_constraints.{1}[i_];\n",
+                       pp_var_pfx,
+                       underlying_constraint_name)
         << indent;
-
-    out << "arb_index_type index_ = index_constraints." << underlying_constraint_name << "[i_];\n";
     if (requires_weight) {
-        out << "simd_value w_;\n"
-            << "assign(w_, indirect((weight+index_), simd_width_));\n";
+        out << fmt::format("simd_value w_;\n"
+                           "assign(w_, indirect(({}weight+index_), simd_width_));\n",
+                           pp_var_pfx);
     }
 
     emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint);
@@ -1067,7 +1073,6 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
     bool requires_weight = false;
 
     ENTER(out);
-
     for (auto& s: body->is_block()->statements()) {
         if (s->is_assignment()) {
             for (auto& v: indexed_vars) {
@@ -1089,6 +1094,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
         }
     }
     if (!body->statements().empty()) {
+        out << "PPACK_IFACE_BLOCK;\n";
         out << "assert(simd_width_ <= (unsigned)S::width(simd_cast<simd_value>(0)));\n";
         if (!indices.empty()) {
             out << "index_constraint constraint_category_;\n\n";
@@ -1124,9 +1130,12 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
                 emit_simd_state_read(out, sym, simd_expr_constraint::other);
             }
 
-            out <<
-                "for (unsigned i_ = 0; i_ < width; i_ += simd_width_) {\n" << indent <<
-                simdprint(body, scalars) << popindent <<
+            out << fmt::format("for (unsigned i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
+                               pp_var_pfx)
+                << indent
+                << simdprint(body, scalars)
+                << popindent
+                <<
                 "}\n";
         }
     }

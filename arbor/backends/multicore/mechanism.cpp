@@ -149,10 +149,16 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         // Setup node indices
         append_chunk(pos_data.cv, ppack_.node_index, pos_data.cv.back(), base_ptr);
         auto node_index = util::range_n(ppack_.node_index, width_padded_);
-        // Make SIMD index constraints
-        // This writes garbage to random mmemory
-        auto tmp = make_constraint_partition(node_index, width_, simd_width());        // TODO this should not be a memcpy ;)
-        // std::memcpy(&(ppack_.index_constraints), &tmp, sizeof(tmp));
+        // Make SIMD index constraints and set the view
+        constraints_ = make_constraint_partition(node_index, width_, simd_width());
+        ppack_.index_constraints.contiguous    = constraints_.contiguous.data();
+        ppack_.index_constraints.constant      = constraints_.constant.data();
+        ppack_.index_constraints.independent   = constraints_.independent.data();
+        ppack_.index_constraints.none          = constraints_.none.data();
+        ppack_.index_constraints.n_contiguous  = constraints_.contiguous.size();
+        ppack_.index_constraints.n_constant    = constraints_.constant.size();
+        ppack_.index_constraints.n_independent = constraints_.independent.size();
+        ppack_.index_constraints.n_none        = constraints_.none.size();
         // Create ion indices
         for (auto idx = 0; idx < mech_.n_ions; ++idx) {
             auto  ion = mech_.ions[idx];

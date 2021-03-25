@@ -6,10 +6,8 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/mechanism_ppack.hpp>
 #include <arbor/simd/simd.hpp>
 
-#include "util/range.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
 
@@ -21,29 +19,11 @@ const int simd_width_ = simd::width<simd_value_type>();
 
 const int input_size_ = 1024;
 
-iarray get_contiguous(const constraint_partition& output)  {
-    auto v = util::range_n(output.contiguous, output.n_contiguous);
-    return { v.begin(), v.end() };
-}
-
-iarray get_constant(const constraint_partition& output) {
-    auto v = util::range_n(output.constant, output.n_constant);
-    return { v.begin(), v.end() };
-}
-
-iarray get_independent(const constraint_partition& output) {
-    auto v = util::range_n(output.independent, output.n_independent);
-    return { v.begin(), v.end() };
-}
-
-iarray get_none(const constraint_partition& output) {
-    auto v = util::range_n(output.none, output.n_none);
-    return { v.begin(), v.end() };
-}
-
 TEST(partition_by_constraint, partition_contiguous) {
     iarray input_index(input_size_);
     iarray expected;
+    multicore::constraint_partition output;
+
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = i;
@@ -51,16 +31,18 @@ TEST(partition_by_constraint, partition_contiguous) {
             expected.push_back(i);
     }
 
-    auto output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
-    EXPECT_EQ(0u, output.n_independent);
-    EXPECT_EQ(0u, output.n_none);
-    EXPECT_EQ(0u, output.n_constant);
-    EXPECT_EQ(expected, get_contiguous(output));
+    output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
+
+    EXPECT_EQ(0u, output.independent.size());
+    EXPECT_EQ(0u, output.none.size());
+    EXPECT_EQ(0u, output.constant.size());
+    EXPECT_EQ(expected, output.contiguous);
 }
 
 TEST(partition_by_constraint, partition_constant) {
     iarray input_index(input_size_);
     iarray expected;
+    multicore::constraint_partition output;
 
     const int c = 5;
 
@@ -70,24 +52,24 @@ TEST(partition_by_constraint, partition_constant) {
             expected.push_back(i);
     }
 
-    auto output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
+    output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0u, output.n_independent);
-    EXPECT_EQ(0u, output.n_none);
+    EXPECT_EQ(0u, output.independent.size());
+    EXPECT_EQ(0u, output.none.size());
     if(simd_width_ != 1) {
-        EXPECT_EQ(0u, output.n_contiguous);
-        EXPECT_EQ(expected, get_constant(output));
+        EXPECT_EQ(0u, output.contiguous.size());
+        EXPECT_EQ(expected, output.constant);
     }
     else {
-        EXPECT_EQ(0u, output.n_constant);
-        EXPECT_EQ(expected, get_contiguous(output));
+        EXPECT_EQ(0u, output.constant.size());
+        EXPECT_EQ(expected, output.contiguous);
     }
 }
 
 TEST(partition_by_constraint, partition_independent) {
     iarray input_index(input_size_);
     iarray expected;
-    constraint_partition output;
+    multicore::constraint_partition output;
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = i * 2;
@@ -97,22 +79,22 @@ TEST(partition_by_constraint, partition_independent) {
 
     output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0u, output.n_constant);
-    EXPECT_EQ(0u, output.n_none);
+    EXPECT_EQ(0u, output.constant.size());
+    EXPECT_EQ(0u, output.none.size());
     if(simd_width_ != 1) {
-        EXPECT_EQ(0u, output.n_contiguous);
-        EXPECT_EQ(expected, get_independent(output));
+        EXPECT_EQ(0u, output.contiguous.size());
+        EXPECT_EQ(expected, output.independent);
     }
     else {
-        EXPECT_EQ(0u, output.n_independent);
-        EXPECT_EQ(expected, get_contiguous(output));
+        EXPECT_EQ(0u, output.independent.size());
+        EXPECT_EQ(expected, output.contiguous);
     }
 }
 
 TEST(partition_by_constraint, partition_none) {
     iarray input_index(input_size_);
     iarray expected;
-    constraint_partition output;
+    multicore::constraint_partition output;
 
     for (unsigned i = 0; i < input_size_; i++) {
         input_index[i] = i / ((simd_width_ + 1)/ 2);
@@ -122,15 +104,15 @@ TEST(partition_by_constraint, partition_none) {
 
     output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0u, output.n_independent);
-    EXPECT_EQ(0u, output.n_constant);
+    EXPECT_EQ(0u, output.independent.size());
+    EXPECT_EQ(0u, output.constant.size());
     if(simd_width_ > 2) {
-        EXPECT_EQ(0u, output.n_contiguous);
-        EXPECT_EQ(expected, get_none(output));
+        EXPECT_EQ(0u, output.contiguous.size());
+        EXPECT_EQ(expected, output.none);
     }
     else {
-        EXPECT_EQ(0u, output.n_none);
-        EXPECT_EQ(expected, get_contiguous(output));
+        EXPECT_EQ(0u, output.none.size());
+        EXPECT_EQ(expected, output.contiguous);
     }
 }
 
@@ -138,6 +120,8 @@ TEST(partition_by_constraint, partition_random) {
     iarray input_index(input_size_);
     iarray expected_contiguous, expected_constant,
             expected_independent, expected_none, expected_simd_1;
+    multicore::constraint_partition output;
+
 
     const int c = 5;
     for (unsigned i = 0; i < input_size_; i++) {
@@ -148,7 +132,8 @@ TEST(partition_by_constraint, partition_random) {
         if (i < input_size_ / 4 && i % simd_width_ == 0) {
             if (simd_width_ > 2) {
                 expected_none.push_back(i);
-            } else {
+            }
+            else {
                 expected_contiguous.push_back(i);
             }
         }
@@ -162,16 +147,16 @@ TEST(partition_by_constraint, partition_random) {
 
     }
 
-    auto output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
+    output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
     if (simd_width_ != 1) {
-        EXPECT_EQ(expected_contiguous, get_contiguous(output));
-        EXPECT_EQ(expected_constant, get_constant(output));
-        EXPECT_EQ(expected_independent, get_independent(output));
-        EXPECT_EQ(expected_none, get_none(output));
+        EXPECT_EQ(expected_contiguous, output.contiguous);
+        EXPECT_EQ(expected_constant, output.constant);
+        EXPECT_EQ(expected_independent, output.independent);
+        EXPECT_EQ(expected_none, output.none);
     }
     else {
-        EXPECT_EQ(expected_simd_1, get_contiguous(output));
+        EXPECT_EQ(expected_simd_1, output.contiguous);
     }
 
 }

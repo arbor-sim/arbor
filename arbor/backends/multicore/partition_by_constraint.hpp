@@ -3,13 +3,21 @@
 #include <vector>
 
 #include <arbor/simd/simd.hpp>
-#include <arbor/mechanism_ppack.hpp>
 
 namespace arb {
 namespace multicore {
 
 namespace S = ::arb::simd;
 using S::index_constraint;
+
+struct constraint_partition {
+    using iarray = arb::multicore::iarray;
+
+    iarray contiguous;
+    iarray constant;
+    iarray independent;
+    iarray none;
+};
 
 template <typename It>
 bool is_contiguous_n(It first, unsigned width) {
@@ -65,30 +73,24 @@ index_constraint idx_constraint(It it, unsigned simd_width) {
 
 template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
-    std::vector<fvm_index_type> contiguous, constant, independent, none;
 
+    constraint_partition part;
     for (unsigned i = 0; i < width; i+= simd_width) {
         auto ptr = &node_index[i];
         if (is_contiguous_n(ptr, simd_width)) {
-            contiguous.push_back(i);
+            part.contiguous.push_back(i);
         }
         else if (is_constant_n(ptr, simd_width)) {
-            constant.push_back(i);
+            part.constant.push_back(i);
         }
         else if (is_independent_n(ptr, simd_width)) {
-            independent.push_back(i);
+            part.independent.push_back(i);
         }
         else {
-            none.push_back(i);
+            part.none.push_back(i);
         }
     }
-    auto mv = [](const auto& in) {
-        auto ptr = new fvm_index_type[in.size()];
-        std::copy(in.begin(), in.end(), ptr);
-        return ptr;
-    };
-    return { contiguous.size(), constant.size(), independent.size(), none.size(),
-             mv(contiguous),    mv(constant),    mv(independent),    mv(none) };
+    return part;
 }
 
 bool constexpr is_constraint_stronger(index_constraint a, index_constraint b) {
@@ -108,14 +110,6 @@ bool compatible_index_constraints(const T& node_index, const U& ion_index, unsig
         }
     }
     return true;
-}
-
-// TODO temporary fix to delete constraints
-inline void clear_constraint_partition(constraint_partition& p) {
-    delete[] p.contiguous;  p.contiguous  = nullptr; p.n_contiguous  = 0;
-    delete[] p.constant;    p.constant    = nullptr; p.n_constant    = 0;
-    delete[] p.independent; p.independent = nullptr; p.n_independent = 0;
-    delete[] p.none;        p.none        = nullptr; p.n_none        = 0;
 }
 
 } // namespace util
