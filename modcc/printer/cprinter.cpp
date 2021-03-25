@@ -523,6 +523,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                        "   .fingerprint=\"{1}\",\n"
                        "   .name=\"{0}\",\n"
                        "   .kind={2},\n"
+                       "   .partition_width=simd_width_,\n"
                        "   .globals=globals,\n"
                        "   .global_defaults=global_defaults,\n"
                        "   .n_globals=n_globals,\n"

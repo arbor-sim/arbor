@@ -150,7 +150,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         append_chunk(pos_data.cv, ppack_.node_index, pos_data.cv.back(), base_ptr);
         auto node_index = util::range_n(ppack_.node_index, width_padded_);
         // Make SIMD index constraints and set the view
-        constraints_ = make_constraint_partition(node_index, width_, simd_width());
+        constraints_ = make_constraint_partition(node_index, width_, mech_.partition_width);
         ppack_.index_constraints.contiguous    = constraints_.contiguous.data();
         ppack_.index_constraints.constant      = constraints_.constant.data();
         ppack_.index_constraints.independent   = constraints_.independent.data();
@@ -172,7 +172,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             append_chunk(indices, index_ptr, util::back(indices), base_ptr);
             // Check SIMD constraints
             auto ion_index = util::range_n(index_ptr, width_padded_);
-            arb_assert(compatible_index_constraints(node_index, ion_index, simd_width()));
+            arb_assert(compatible_index_constraints(node_index, ion_index, mech_.partition_width));
         }
         if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_.multiplicity, 0, base_ptr);
     }

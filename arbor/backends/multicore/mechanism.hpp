@@ -28,18 +28,15 @@ public:
     mechanism(const mechanism&)            = delete;
     mechanism& operator=(mechanism&&)      = delete;
     mechanism& operator=(const mechanism&) = delete;
-
     virtual ~mechanism() = default;
 
-    mechanism_ptr clone() const override { return std::make_unique<mechanism>(&mech_);}
-
+    mechanism_ptr clone() const override { return std::make_unique<mechanism>(&mech_) ;}
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
     fvm_value_type* field_data(const std::string& state_var) override;
 
 protected:
-    virtual unsigned simd_width() const { return 1; }
     fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
 
     std::vector<arb_value_type*> parameter_ptrs_;
