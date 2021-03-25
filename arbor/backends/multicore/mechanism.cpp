@@ -19,14 +19,15 @@
 #include "util/rangeutil.hpp"
 
 #include "backends/multicore/mechanism.hpp"
-#include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/fvm.hpp"
+#include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
 
 namespace arb {
 namespace multicore {
 
 using util::make_range;
+using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
 
@@ -48,7 +49,6 @@ using util::value_by_key;
 
 void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     util::padded_allocator<> pad(shared.alignment);
-
     // Set internal variables
     mult_in_place_    = !pos_data.multiplicity.empty();
     width_            = pos_data.cv.size();
@@ -76,7 +76,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     parameter_ptrs_.resize(mech_.n_parameters); ppack_.parameters = parameter_ptrs_.data();
     ion_ptrs_.resize(mech_.n_ions); ppack_.ion_states = ion_ptrs_.data();
 
-    for (auto idx = 0; idx < mech_.n_ions; ++idx) {
+    // Set ion views
+    for (auto idx: make_span(mech_.n_ions)) {
         auto ion = mech_.ions[idx];
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
@@ -87,20 +88,21 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width_==0) return;
 
-    // Allocate and initialize state and parameter vectors with default values.
+    auto append_chunk = [n=width_padded_](const auto& in, auto& out, auto pad, auto& ptr) {
+        copy_extend(in, util::range_n(ptr, n), pad);
+        out = ptr;
+        ptr += n;
+    };
+
+    auto append_const = [n=width_padded_](auto in, auto& out, auto& ptr) {
+        std::fill(ptr, ptr + n, in);
+        out = ptr;
+        ptr += n;
+    };
+
+
+    // Initialize state and parameter vectors with default values.
     {
-        auto append_chunk = [n=width_padded_](const auto& in, arb_value_type*& out, arb_value_type pad, arb_value_type*& ptr) {
-            copy_extend(in, util::range_n(ptr, n), pad);
-            out = ptr;
-            ptr += n;
-        };
-
-        auto append_const = [n=width_padded_](arb_value_type in, arb_value_type*& out, arb_value_type*& ptr) {
-            std::fill(ptr, ptr + n, in);
-            out = ptr;
-            ptr += n;
-        };
-
         // Allocate bulk storage
         auto count = (mech_.n_state_vars + mech_.n_parameters + 1)*width_padded_ + mech_.n_globals;
         data_ = array(count, NAN, pad);
@@ -108,23 +110,22 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         // First sub-array of data_ is used for weight_
         append_chunk(pos_data.weight, ppack_.weight, 0, base_ptr);
         // Set fields
-        for (auto idx = 0; idx < mech_.n_parameters; ++idx) {
+        for (auto idx: make_span(mech_.n_parameters)) {
             append_const(mech_.parameter_defaults[idx], ppack_.parameters[idx], base_ptr);
         }
-        for (auto idx = 0; idx < mech_.n_state_vars; ++idx) {
+        for (auto idx: make_span(mech_.n_state_vars)) {
             append_const(mech_.state_var_defaults[idx], ppack_.state_vars[idx], base_ptr);
         }
 
         // Assign global scalar parameters
         ppack_.globals = base_ptr;
-        for (auto idx = 0; idx < mech_.n_globals; ++idx) {
+        for (auto idx: make_span(mech_.n_globals)) {
             ppack_.globals[idx] = mech_.global_defaults[idx];
         }
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
-            for (auto idx = 0; idx < mech_.n_globals; ++idx) {
+            for (auto idx: make_span(mech_.n_globals)) {
                 if (mech_.globals[idx] == k) {
-                    std::cerr << util::pprintf("Global {} = {}\n", mech_.globals[idx], v);
                     ppack_.globals[idx] = v;
                     found = true;
                     break;
@@ -136,14 +137,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // Make index bulk storage
     {
-        auto append_chunk = [n=width_padded_](const auto& in, arb_index_type*& out, arb_index_type pad, arb_index_type*& ptr) {
-            copy_extend(in, util::range_n(ptr, n), pad);
-            out = ptr;
-            ptr += n;
-        };
-
         // Allocate bulk storage
-        auto count    = mech_.n_ions + 1 + (mult_in_place_ ? 1 : 0);
+        auto count    = (mult_in_place_ ? 1 : 0) + mech_.n_ions + 1;
         indices_      = iarray(count*width_padded_, 0, pad);
         auto base_ptr = indices_.data();
         // Setup node indices
@@ -160,7 +155,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         ppack_.index_constraints.n_independent = constraints_.independent.size();
         ppack_.index_constraints.n_none        = constraints_.none.size();
         // Create ion indices
-        for (auto idx = 0; idx < mech_.n_ions; ++idx) {
+        for (auto idx: make_span(mech_.n_ions)) {
             auto  ion = mech_.ions[idx];
             auto& index_ptr = ppack_.ion_states[idx].index;
             // Index into shared_state respecting ion rebindings
@@ -182,34 +177,32 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
     if (values.size()!=width_) throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
     auto field_ptr = field_data(key);
     if (!field_ptr) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism parameter '{}'", key));
-    if (width_ == 0) return;
+    if (!width_) return;
     auto field = util::range_n(field_ptr, width_padded_);
     copy_extend(values, field, values.back());
 }
 
-void mechanism::initialize() {
-    ppack_.vec_t = vec_t_ptr_->data();
-    mech_.interface->init_mechanism(&ppack_);
-    if (!mult_in_place_) return;
-    for (auto idx = 0; idx < mech_.n_state_vars; ++idx) {
-        std::transform(ppack_.multiplicity, ppack_.multiplicity + width_,
-                       ppack_.state_vars[idx],
-                       ppack_.state_vars[idx],
-                       std::multiplies<fvm_value_type>{});
-    }
-}
-
 fvm_value_type* mechanism::field_data(const std::string& var) {
-    for (auto idx = 0; idx < mech_.n_parameters; ++idx) {
+    for (auto idx: make_span(mech_.n_parameters)) {
         if (var == mech_.parameters[idx]) {
             return ppack_.parameters[idx];
         }
     }
-    for (auto idx = 0; idx < mech_.n_state_vars; ++idx) {
+    for (auto idx: make_span(mech_.n_state_vars)) {
         if (var == mech_.state_vars[idx]) return ppack_.state_vars[idx];
     }
     return nullptr;
 }
 
+void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) { std::transform(p, p + n, s, s, std::multiplies<fvm_value_type>{}); }
+
+void mechanism::initialize() {
+    set_time_ptr();
+    mech_.interface->init_mechanism(&ppack_);
+    if (!mult_in_place_) return;
+    for (auto idx: make_span(mech_.n_state_vars)) {
+        multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
+    }
+}
 } // namespace multicore
 } // namespace arb

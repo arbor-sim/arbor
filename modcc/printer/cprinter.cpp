@@ -247,6 +247,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "    return S::div(ones, x);\n"
             "}\n"
             "\n";
+    } else {
+        out << "static constexpr unsigned simd_width_ = 0;";
     }
 
     // Make implementations

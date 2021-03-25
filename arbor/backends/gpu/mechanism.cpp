@@ -53,179 +53,151 @@ memory::const_device_view<T> device_view(const T* ptr, std::size_t n) {
 // pointers. This also involves setting the pointers in the parameter pack,
 // which is used to pass pointers to CUDA kernels.
 
-void mechanism::instantiate(unsigned id,
-                            backend::shared_state& shared,
-                            const mechanism_overrides& overrides,
-                            const mechanism_layout& pos_data)
-{
-    // Assign global scalar parameters:
-
-    for (auto &kv: overrides.globals) {
-        if (auto opt_ptr = value_by_key(global_table(), kv.first)) {
-            // Take reference to corresponding derived (generated) mechanism value member.
-            value_type& global = *opt_ptr.value();
-            global = kv.second;
-        }
-        else {
-            throw arbor_internal_error("multicore/mechanism: no such mechanism global");
-        }
-    }
-
-    mult_in_place_ = !pos_data.multiplicity.empty();
-    mechanism_id_ = id;
-    width_ = pos_data.cv.size();
+void mechanism::instantiate(unsigned id, backend::shared_state& shared, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+    // Set internal variables
+    mult_in_place_    = !pos_data.multiplicity.empty();
+    width_            = pos_data.cv.size();
+    num_ions_         = mech_.n_ions;
+    vec_t_ptr_        = &shared.time;
+    event_stream_ptr_ = &shared.deliverable_events;
 
     unsigned alignment = std::max(array::alignment(), iarray::alignment());
-    auto width_padded_ = math::round_up(width_, alignment);
+    width_padded_     = math::round_up(width_, alignment);
 
     // Assign non-owning views onto shared state:
+    ppack_.width            = width_;
+    ppack_.mechanism_id     = id;
+    ppack_.vec_ci           = shared.cv_to_cell.data();
+    ppack_.vec_di           = shared.cv_to_intdom.data();
+    ppack_.vec_dt           = shared.dt_cv.data();
+    ppack_.vec_v            = shared.voltage.data();
+    ppack_.vec_i            = shared.current_density.data();
+    ppack_.vec_g            = shared.conductivity.data();
+    ppack_.temperature_degC = shared.temperature_degC.data();
+    ppack_.diam_um          = shared.diam_um.data();
+    ppack_.time_since_spike = shared.time_since_spike.data();
+    ppack_.n_detectors      = shared.n_detector;
 
-    mechanism_ppack* pp = ppack_ptr(); // From derived class instance.
+    // Allocate view pointers
+    state_var_ptrs_.resize(mech_.n_state_vars); ppack_.state_vars = state_var_ptrs_.data();
+    parameter_ptrs_.resize(mech_.n_parameters); ppack_.parameters = parameter_ptrs_.data();
+    ion_ptrs_.resize(mech_.n_ions); ppack_.ion_states = ion_ptrs_.data();
 
-    pp->width_ = width_;
-    pp->n_detectors_ = shared.n_detector;
-
-    pp->vec_ci_   = shared.cv_to_cell.data();
-    pp->vec_di_   = shared.cv_to_intdom.data();
-    pp->vec_dt_   = shared.dt_cv.data();
-
-    pp->vec_v_    = shared.voltage.data();
-    pp->vec_i_    = shared.current_density.data();
-    pp->vec_g_    = shared.conductivity.data();
-
-    pp->temperature_degC_ = shared.temperature_degC.data();
-    pp->diam_um_ = shared.diam_um.data();
-    pp->time_since_spike_ = shared.time_since_spike.data();
-
-    auto ion_state_tbl = ion_state_table();
-    num_ions_ = ion_state_tbl.size();
-
-    for (auto i: ion_state_tbl) {
-        auto ion_binding = value_by_key(overrides.ion_rebind, i.first).value_or(i.first);
-
+    // Set ion views
+    for (auto idx: make_span(mech_.n_ions)) {
+        auto ion = mech_.ions[idx];
+        auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
-        if (!oion) {
-            throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        }
-
-        ion_state_view& ion_view = *i.second;
-        ion_view.current_density = oion->iX_.data();
-        ion_view.reversal_potential = oion->eX_.data();
-        ion_view.internal_concentration = oion->Xi_.data();
-        ion_view.external_concentration = oion->Xo_.data();
-        ion_view.ionic_charge = oion->charge.data();
+        if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
+        ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
     }
-
-    event_stream_ptr_ = &shared.deliverable_events;
-    vec_t_ptr_    = &shared.time;
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (width_==0) {
-        return;
-    }
+    if (width_==0) return;
+
+    auto append_chunk = [n=width_](const auto& in, auto& out, auto& ptr) {
+        memory::copy(make_const_view(in), device_view(ptr, n));
+        out = ptr;
+        ptr += n;
+    };
+
+    auto append_const = [n=width_](auto in, auto& out, auto& ptr) {
+        memory::fill(device_view(ptr, n), in);
+        out = ptr;
+        ptr += n;
+    };
 
     // Allocate and initialize state and parameter vectors with default values.
-    // (First sub-array of data_ is used for width_.)
+    {
+        // Allocate bulk storage
+        auto count = (mech_.n_state_vars + mech_.n_parameters + 1)*width_padded_ + mech_.n_globals;
+        data_ = array(count, NAN);
+        auto base_ptr = data_.data();
+        // First sub-array of data_ is used for weight_
+        append_chunk(pos_data.weight, ppack_.weight, base_ptr);
+        // Set fields
+        for (auto idx: make_span(mech_.n_parameters)) {
+            append_const(mech_.parameter_defaults[idx], ppack_.parameters[idx], base_ptr);
+        }
+        for (auto idx: make_span(mech_.n_state_vars)) {
+            append_const(mech_.state_var_defaults[idx], ppack_.state_vars[idx], base_ptr);
+        }
+        // Assign global scalar parameters
+        ppack_.globals = base_ptr;
+        for (auto idx: make_span(mech_.n_globals)) {
+            ppack_.globals[idx] = mech_.global_defaults[idx];
+        }
 
-    auto fields = field_table();
-    std::size_t num_fields = fields.size();
-
-    data_ = array((1+num_fields)*width_padded_, NAN);
-    memory::copy(make_const_view(pos_data.weight), device_view(data_.data(), width_));
-    pp->weight_ = data_.data();
-
-    for (auto i: make_span(0, num_fields)) {
-        // Take reference to corresponding derived (generated) mechanism value pointer member.
-        fvm_value_type*& field_ptr = *std::get<1>(fields[i]);
-        field_ptr = data_.data()+(i+1)*width_padded_;
-
-        if (auto opt_value = value_by_key(field_default_table(), fields[i].first)) {
-            memory::fill(device_view(field_ptr, width_), *opt_value);
+        // TODO this is wrong, no values are moved to the GPU
+        for (auto& [k, v]: overrides.globals) {
+            auto found = false;
+            for (auto idx: make_span(mech_.n_globals)) {
+                if (mech_.globals[idx] == k) {
+                    ppack_.globals[idx] = v;
+                    found = true;
+                    break;
+                }
+                if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
+            }
         }
     }
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
-    // (First sub-array of indices_ is used for node_index_, last sub-array used for multiplicity_ if it is not empty)
-
-    size_type num_elements = (mult_in_place_ ? 1 : 0) + 1 + num_ions_;
-    indices_ = iarray(num_elements*width_padded_);
-
-    auto base_ptr = indices_.data();
-
-    auto append_chunk = [&](const auto& input, auto& output) {
-        memory::copy(make_const_view(input), device_view(base_ptr, width_));
-        output = base_ptr;
-        base_ptr += width_padded_;
-    };
-
-    append_chunk(pos_data.cv, pp->node_index_);
-
-    auto ion_index_tbl = ion_index_table();
-    arb_assert(num_ions_==ion_index_tbl.size());
-
-    for (auto& [ion, ion_ptr]: ion_index_tbl) {
-        auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-
-        ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
-
-        if (!oion) {
-            throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
+    {
+        // Allocate bulk storage
+        auto count    = (mult_in_place_ ? 1 : 0) + mech_.n_ions + 1;
+        indices_      = iarray(count*width_padded_);
+        auto base_ptr = indices_.data();
+        // Setup node indices
+        append_chunk(pos_data.cv, ppack_.node_index, base_ptr);
+        // Create ion indices
+        for (auto idx: make_span(mech_.n_ions)) {
+            auto  ion = mech_.ions[idx];
+            auto& index_ptr = ppack_.ion_states[idx].index;
+            // Index into shared_state respecting ion rebindings
+            auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
+            ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
+            if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
+            // Obtain index and move data
+            auto ni = memory::on_host(oion->node_index_);
+            auto indices = util::index_into(pos_data.cv, ni);
+            std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
+            append_chunk(mech_ion_index, *index_ptr, base_ptr);
         }
 
-        auto ni = memory::on_host(oion->node_index_);
-        auto indices = util::index_into(pos_data.cv, ni);
-        std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
-
-        // Take reference to derived (generated) mechanism ion index pointer.
-        append_chunk(mech_ion_index, *ion_ptr);
-    }
-
-    if (mult_in_place_) {
-        append_chunk(pos_data.multiplicity, pp->multiplicity_);
+        if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_.multiplicity, base_ptr);
     }
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
-    if (auto opt_ptr = value_by_key(field_table(), key)) {
-        if (values.size()!=width_) {
-            throw arbor_internal_error("gpu/mechanism: mechanism parameter size mismatch");
-        }
-
-        if (width_>0) {
-            // Retrieve corresponding derived (generated) mechanism value pointer member.
-            value_type* field_ptr = *opt_ptr.value();
-            memory::copy(make_const_view(values), device_view(field_ptr, width_));
-        }
-    }
-    else {
-        throw arbor_internal_error("gpu/mechanism: no such mechanism parameter");
-    }
+    if (values.size()!=width_) throw arbor_internal_error("gpu/mechanism: mechanism parameter size mismatch");
+    auto field_ptr = field_data(key);
+    if (!field_ptr) throw arbor_internal_error("gpu/mechanism: no such mechanism parameter");
+    if (!width_) return;
+    memory::copy(make_const_view(values), device_view(field_ptr, width_));
 }
 
-fvm_value_type* mechanism::field_data(const std::string& field_var) {
-    if (auto opt_ptr = value_by_key(field_table(), field_var)) {
-        return *opt_ptr.value();
+fvm_value_type* mechanism::field_data(const std::string& var) {
+    for (auto idx: make_span(mech_.n_parameters)) {
+        if (var == mech_.parameters[idx]) {
+            return ppack_.parameters[idx];
+        }
     }
-
+    for (auto idx: make_span(mech_.n_state_vars)) {
+        if (var == mech_.state_vars[idx]) return ppack_.state_vars[idx];
+    }
     return nullptr;
 }
 
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {
-    mechanism_ppack* pp = ppack_ptr();
-    pp->vec_t_ = vec_t_ptr_->data();
-
-    init();
-    auto states = state_table();
-
-    if(mult_in_place_) {
-        for (auto& state: states) {
-            multiply_in_place(*state.second, pp->multiplicity_, pp->width_);
-        }
+    set_time_ptr();
+    mech_.interface->init_mechanism(&ppack_);
+    if (!mult_in_place_) return;
+    for (auto idx: make_span(mech_.n_state_vars)) {
+        multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
     }
 }
-
-
 } // namespace multicore
 } // namespace arb

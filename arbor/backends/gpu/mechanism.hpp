@@ -21,18 +21,20 @@ namespace gpu {
 // Base class for all generated mechanisms for gpu back-end.
 
 class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
-public:
-    mechanism()                 = default;
-    mechanism(const mechanism&) = delete;
     using concrete_mechanism<arb::gpu::backend>::concrete_mechanism;
-    virtual ~mechanism() = default;
+    mechanism() = default;
 
-   virtual mechanism_ptr clone() const override { return std::make_unique<mechanism>(&mech_); }
-
+    mechanism_ptr clone() const override { return std::make_unique<mechanism>(&mech_); }
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
     fvm_value_type* field_data(const std::string& state_var) override;
+
+protected:
+    fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
+    std::vector<arb_value_type*> parameter_ptrs_;
+    std::vector<arb_value_type*> state_var_ptrs_;
+    std::vector<arb_ion_state>   ion_ptrs_;
 };
 } // namespace gpu
 } // namespace arb
