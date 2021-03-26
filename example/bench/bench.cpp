@@ -134,7 +134,7 @@ public:
             arb::cell_gid_type src = dist(rng);
             if (src>=gid) ++src;
             // Note: target is {gid, 0}, i.e. the first (and only) target on the cell.
-            arb::cell_connection con({src, 0}, {gid, 0}, 1.f, params_.network.min_delay);
+            arb::cell_connection con({src, 0}, 0, 1.f, params_.network.min_delay);
             cons.push_back(con);
         }
 

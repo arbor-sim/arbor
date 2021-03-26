@@ -108,7 +108,7 @@ public:
         auto src = source_distribution(src_gen);
         if (src>=gid) ++src;
 
-        return {arb::cell_connection({src, 0}, {gid, 0}, event_weight_, min_delay_)};
+        return {arb::cell_connection({src, 0}, 0, event_weight_, min_delay_)};
     }
 
     // Return an event generator on every 20th gid. This function needs to generate events
@@ -117,7 +117,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (gid%20 == 0) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{{gid, 0}, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator(arb::pse_vector{{0, 1.0, event_weight_}}));
         }
         return gens;
     }

@@ -97,8 +97,9 @@ int main(int argc, char** argv) {
         // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms with
         // the given weight.
 
-        arb::spike_event spike = {{0, 0}, 1., opt.syn_weight};
-        sim.inject_events({spike});
+        arb::spike_event spike = {0, 1., opt.syn_weight};
+        arb::cell_spike_events cell_spikes = {0, {spike}};
+        sim.inject_events({cell_spikes});
 
         sim.run(opt.t_end, opt.dt);
 
