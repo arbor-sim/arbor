@@ -14,6 +14,7 @@
 
 #include "memory/memory.hpp"
 #include "util/index_into.hpp"
+#include "util/strprintf.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
@@ -162,7 +163,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             auto ni = memory::on_host(oion->node_index_);
             auto indices = util::index_into(pos_data.cv, ni);
             std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
-            append_chunk(mech_ion_index, *index_ptr, base_ptr);
+            append_chunk(mech_ion_index, index_ptr, base_ptr);
         }
 
         if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_.multiplicity, base_ptr);

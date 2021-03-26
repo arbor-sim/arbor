@@ -1046,7 +1046,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   std::string underlying_constraint_name) {
     ENTER(out);
     out << fmt::format("constraint_category_ = index_constraint::{1};\n"
-                       "for (unsigned i_ = 0; i_ < {0}index_constraints.n_{1}; i_++) {{\n"
+                       "for (auto i_ = 0; i_ < {0}index_constraints.n_{1}; i_++) {{\n"
                        "    arb_index_type index_ = {0}index_constraints.{1}[i_];\n",
                        pp_var_pfx,
                        underlying_constraint_name)

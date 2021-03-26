@@ -455,7 +455,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         out << "::arb::gpu::reduce_by_key(";
         if (coeff != 1) out << as_c_double(coeff) << '*';
 
-        out << "params_.weight_[tid_]*" << from->name() << ',';
+        out << "params_.weight[tid_]*" << from->name() << ',';
 
         auto index_var = d.cell_index_var.empty() ? d.node_index_var : d.cell_index_var;
         out << "params_." << d.data_var << ", " << index_i_name(index_var) << ", lane_mask_);\n";
@@ -464,7 +464,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         out << deref(d) << " = fma(";
         if (coeff != 1) out << as_c_double(coeff) << '*';
 
-        out << "params_.weight_[tid_], " << from->name() << ", " << deref(d) << ");\n";
+        out << "params_.weight[tid_], " << from->name() << ", " << deref(d) << ");\n";
     }
     else {
         out << deref(d) << " = ";
