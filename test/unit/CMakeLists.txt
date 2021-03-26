@@ -218,6 +218,9 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     STANDALONE ON
     VERBOSE OFF)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
+  if(ARB_WITH_NVCC)
+    target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)
+  endif()
   add_dependencies(unit dummy-catalogue)
 endif()
 

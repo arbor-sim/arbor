@@ -499,8 +499,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             << "static arb_size_type n_ions                = " << n << ";\n";
     }
 
-    out << fmt::format("\n// Scalar CPU Interface\n"
-                       "static arb_mechanism_interface iface_{2}_cpu_scalar {{\n"
+    out << fmt::format("\n// CPU Interface\n"
+                       "static arb_mechanism_interface iface_{2}_cpu {{\n"
                        "    .backend={0},\n"
                        "    .init_mechanism=(arb_mechanism_method){1}::init,\n"
                        "    .compute_currents=(arb_mechanism_method){1}::compute_currents,\n"
@@ -513,7 +513,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                        namespace_name,
                        name)
         << fmt::format("// Mechanism plugin\n"
-                       "static arb_mechanism_type {0} {{\n"
+                       "static arb_mechanism_type {0}_cpu {{\n"
                        "   .abi_version=ARB_MECH_ABI_VERSION,\n"
                        "   .fingerprint=\"{1}\",\n"
                        "   .name=\"{0}\",\n"
@@ -530,7 +530,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                        "   .parameters=parameters,\n"
                        "   .parameter_defaults=parameter_defaults,\n"
                        "   .n_parameters=n_parameters,\n"
-                       "   .interface=&iface_{0}_cpu_scalar\n"
+                       "   .interface=&iface_{0}_cpu\n"
                        "}};\n"
                        "\n",
                        name,
@@ -538,7 +538,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                        module_kind_str(module_))
         << namespace_declaration_close(ns_components)
         << "\n"
-        << fmt::format("arb_mechanism_type* make_{0}_{1}() {{ return &{2}::{1}; }}\n",
+        << fmt::format("arb_mechanism_type* make_{0}_{1}_cpu() {{ return &{2}::{1}_cpu; }}\n",
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
                        opt.cpp_namespace);
@@ -1126,7 +1126,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
                 emit_simd_state_read(out, sym, simd_expr_constraint::other);
             }
 
-            out << fmt::format("for (unsigned i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
+            out << fmt::format("for (auto i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
                                pp_var_pfx)
                 << indent
                 << simdprint(body, scalars)

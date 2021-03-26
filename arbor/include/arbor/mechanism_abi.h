@@ -2,6 +2,7 @@
 #define ARB_MECH_ABI
 
 #include <stddef.h>
+#include <stdint.h>
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
@@ -11,10 +12,10 @@
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000 * 10000) + (ARB_MECH_ABI_VERSION_MAJOR * 10000) + ARB_MECH_ABI_VERSION_PATCH)
 
 // FVM typedefs
-typedef double    arb_value_type;
-typedef float     arb_float_type;
-typedef int       arb_index_type;
-typedef u_int32_t arb_size_type;
+typedef double   arb_value_type;
+typedef float    arb_float_type;
+typedef int      arb_index_type;
+typedef uint32_t arb_size_type;
 
 // std::unit32_t: cell_gid_type, cell_size_type, cell_lid_type, and cell_local_size_type
 
