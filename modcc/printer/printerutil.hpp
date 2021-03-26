@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "io/ostream_wrappers.hpp"
 #include "blocks.hpp"
 #include "error.hpp"
 #include "expression.hpp"
@@ -134,3 +135,16 @@ struct indexed_variable_info {
 };
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
+
+template<typename C>
+size_t emit_array(std::ostream& out, const C& vars) {
+    auto n = 0ul;
+    io::separator sep("", ", ");
+    out << "{ ";
+    for (const auto& var: vars) {
+        out << sep << var;
+        ++n;
+    }
+    out << " }";
+    return n;
+}
