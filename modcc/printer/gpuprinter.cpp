@@ -65,12 +65,12 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                        "void {0}_write_ions_(arb_mechanism_ppack&);\n"
                        "void {0}_apply_events_(arb_mechanism_ppack&);\n"
                        "void {0}_post_event_(arb_mechanism_ppack&);\n\n"
-                       "void init(arb_mechanism_ppack* pp)             {{ {0}_init_(*pp); }}\n"
-                       "void advance_state(arb_mechanism_ppack* pp)    {{ {0}_advance_state_(*pp); }}\n"
-                       "void compute_currents(arb_mechanism_ppack* pp) {{ {0}_compute_currents_(*pp); }}\n"
-                       "void write_ions(arb_mechanism_ppack* pp)       {{ {0}_write_ions_(*pp); }}\n"
-                       "void apply_events(arb_mechanism_ppack* pp)     {{ {0}_apply_events_(*pp); }}\n"
-                       "void post_event(arb_mechanism_ppack* pp)       {{ {0}_post_event_(*pp);  }}\n",
+                       "static void init(arb_mechanism_ppack* pp)             {{ {0}_init_(*pp); }}\n"
+                       "static void advance_state(arb_mechanism_ppack* pp)    {{ {0}_advance_state_(*pp); }}\n"
+                       "static void compute_currents(arb_mechanism_ppack* pp) {{ {0}_compute_currents_(*pp); }}\n"
+                       "static void write_ions(arb_mechanism_ppack* pp)       {{ {0}_write_ions_(*pp); }}\n"
+                       "static void apply_events(arb_mechanism_ppack* pp)     {{ {0}_apply_events_(*pp); }}\n"
+                       "static void post_event(arb_mechanism_ppack* pp)       {{ {0}_post_event_(*pp);  }}\n",
                        class_name)
         << "} // " << namespace_name << "\n\n"
         << "// Tables\n";
