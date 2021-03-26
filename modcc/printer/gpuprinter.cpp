@@ -57,7 +57,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     out << "#include <arbor/mechanism_abi.h>\n"
         << "#include <cmath>\n\n"
         << namespace_declaration_open(ns_components)
-        << "\n"
+        << "namespace " << namespace_name << " {\n"
         << fmt::format("void {0}_init_(arb_mechanism_ppack&);\n"
                        "void {0}_advance_state_(arb_mechanism_ppack&);\n"
                        "void {0}_compute_currents_(arb_mechanism_ppack&);\n"
@@ -69,8 +69,9 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                        "void compute_currents(arb_mechanism_ppack* pp) {{ {0}_compute_currents_(*pp); }}\n"
                        "void write_ions(arb_mechanism_ppack* pp)       {{ {0}_write_ions_(*pp); }}\n"
                        "void apply_events(arb_mechanism_ppack* pp)     {{ {0}_apply_events_(*pp); }}\n"
-                       "void post_event(arb_mechanism_ppack* pp)       {{ {0}_post_event_(*pp);  }}\n\n",
+                       "void post_event(arb_mechanism_ppack* pp)       {{ {0}_post_event_(*pp);  }}\n",
                        class_name)
+        << "} // " << namespace_name << "\n\n"
         << "// Tables\n";
     {
         auto n = 0ul;
@@ -317,7 +318,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     // Write wrappers.
     auto emit_api_wrapper = [&] (APIMethod* e, const auto& width, std::string_view name="") {
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack& p) {{"), class_name, name.empty() ? e->name() : name);
+        auto api_name = name.empty() ? e->name() : name;
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack& p) {{"), class_name, api_name);
         if(!e->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "  auto n = p.{};\n"
@@ -325,7 +327,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                            "  unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
                                            "  {}<<<grid_dim, block_dim>>>(p);\n"),
                                width,
-                               e->name());
+                               api_name);
         }
         out << "}\n\n";
     };
@@ -335,7 +337,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     if (state_api)       emit_api_wrapper(state_api,       "width");
     if (write_ions_api)  emit_api_wrapper(write_ions_api,  "width");
     if (post_event_api)  emit_api_wrapper(post_event_api,  "width");
-    if (net_receive_api) emit_api_wrapper(net_receive_api, "events.n");
+    if (net_receive_api) emit_api_wrapper(net_receive_api, "events.n", "apply_events");
     out << namespace_declaration_close(ns_components);
     return out.str();
 }
