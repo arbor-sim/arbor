@@ -21,6 +21,7 @@ namespace gpu {
 // Base class for all generated mechanisms for gpu back-end.
 
 class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
+public:
     using concrete_mechanism<arb::gpu::backend>::concrete_mechanism;
     mechanism() = default;
 
