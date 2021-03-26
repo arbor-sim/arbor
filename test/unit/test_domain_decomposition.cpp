@@ -77,34 +77,40 @@ namespace {
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
-                case 0 :  return {gap_junction_connection({13, 0}, {0, 0}, 0.1)};
+                case 0 :  return {
+                    gap_junction_connection({13, 0}, 0, 0.1)
+                };
                 case 2 :  return {
-                    gap_junction_connection({7, 0}, {2, 0}, 0.1),
-                    gap_junction_connection({11, 0}, {2, 0}, 0.1)
+                    gap_junction_connection({7, 0}, 0, 0.1),
+                    gap_junction_connection({11, 0}, 0, 0.1)
                 };
                 case 3 :  return {
-                    gap_junction_connection({4, 0}, {3, 0}, 0.1),
-                    gap_junction_connection({8, 0}, {3, 0}, 0.1)
+                    gap_junction_connection({4, 0}, 0, 0.1),
+                    gap_junction_connection({8, 0}, 0, 0.1)
                 };
                 case 4 :  return {
-                    gap_junction_connection({3, 0}, {4, 0}, 0.1),
-                    gap_junction_connection({8, 0}, {4, 0}, 0.1),
-                    gap_junction_connection({9, 0}, {4, 0}, 0.1)
+                    gap_junction_connection({3, 0}, 0, 0.1),
+                    gap_junction_connection({8, 0}, 0, 0.1),
+                    gap_junction_connection({9, 0}, 0, 0.1)
                 };
                 case 7 :  return {
-                    gap_junction_connection({2, 0}, {7, 0}, 0.1),
-                    gap_junction_connection({11, 0}, {7, 0}, 0.1)
+                    gap_junction_connection({2, 0}, 0, 0.1),
+                    gap_junction_connection({11, 0}, 0, 0.1)
                 };;
                 case 8 :  return {
-                    gap_junction_connection({3, 0}, {8, 0}, 0.1),
-                    gap_junction_connection({4, 0}, {8, 0}, 0.1)
+                    gap_junction_connection({3, 0}, 0, 0.1),
+                    gap_junction_connection({4, 0}, 0, 0.1)
                 };;
-                case 9 :  return {gap_junction_connection({4, 0}, {9, 0}, 0.1)};
-                case 11 : return {
-                    gap_junction_connection({2, 0}, {11, 0}, 0.1),
-                    gap_junction_connection({7, 0}, {11, 0}, 0.1)
+                case 9 :  return {
+                    gap_junction_connection({4, 0}, 0, 0.1)
                 };
-                case 13 : return {gap_junction_connection({0, 0}, {13, 0}, 0.1)};
+                case 11 : return {
+                    gap_junction_connection({2, 0}, 0, 0.1),
+                    gap_junction_connection({7, 0}, 0, 0.1)
+                };
+                case 13 : return {
+                    gap_junction_connection({0, 0}, 0, 0.1)
+                };
                 default : return {};
             }
         }

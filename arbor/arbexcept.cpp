@@ -43,20 +43,10 @@ bad_connection_source_lid::bad_connection_source_lid(cell_gid_type gid, cell_lid
     gid(gid), src_lid(src_lid), num_sources(num_sources)
 {}
 
-bad_connection_target_gid::bad_connection_target_gid(cell_gid_type gid, cell_gid_type tgt_gid):
-    arbor_exception(pprintf("Model building error on cell {}: connection target gid {} has to match cell gid {}].", gid, tgt_gid, gid)),
-    gid(gid), tgt_gid(tgt_gid)
-{}
-
 bad_connection_target_lid::bad_connection_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets):
     arbor_exception(pprintf("Model building error on cell {}: connection target index {} is out of range. Cell {} has {} targets", gid, tgt_lid, gid, num_targets) +
                     (num_targets ? pprintf(", in the range [{}:{}].", 0, num_targets-1) : ".")),
     gid(gid), tgt_lid(tgt_lid), num_targets(num_targets)
-{}
-
-bad_event_generator_target_gid::bad_event_generator_target_gid(cell_gid_type gid, cell_gid_type tgt_gid):
-    arbor_exception(pprintf("Model building error on cell {}: event_generator target gid {} has to match cell gid {}].", gid, tgt_gid, gid)),
-    gid(gid), tgt_gid(tgt_gid)
 {}
 
 bad_event_generator_target_lid::bad_event_generator_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets):
@@ -79,13 +69,6 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
     arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
     gid_0(gid_0),
     gid_1(gid_1)
-{}
-
-bad_gj_connection_gid::bad_gj_connection_gid(cell_gid_type gid, cell_gid_type site_0, cell_gid_type site_1):
-    arbor_exception(pprintf("Model building error on cell {}: recipe::gap_junctions_on(gid={}) -> cell {} <-> cell{}: one of the sites must be on the cell with gid = {})", gid, gid, site_0, site_1, gid)),
-    gid(gid),
-    site_0(site_0),
-    site_1(site_1)
 {}
 
 bad_gj_connection_lid::bad_gj_connection_lid(cell_gid_type gid, cell_member_type site):

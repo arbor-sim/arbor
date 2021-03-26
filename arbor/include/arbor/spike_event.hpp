@@ -11,7 +11,7 @@ namespace arb {
 // Events delivered to targets on cells with a cell group.
 
 struct spike_event {
-    cell_member_type target;
+    cell_lid_type target;
     time_type time;
     float weight;
 
@@ -25,6 +25,13 @@ struct spike_event {
 };
 
 using pse_vector = std::vector<spike_event>;
+
+struct cell_spike_events {
+    cell_gid_type target;
+    pse_vector events;
+};
+
+using cse_vector = std::vector<cell_spike_events>;
 
 std::ostream& operator<<(std::ostream&, const spike_event&);
 

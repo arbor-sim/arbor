@@ -42,7 +42,7 @@ public:
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
         cell_member_type source{(gid - 1) % n_lif_cells_, 0};
-        cell_member_type target{gid, 0};
+        cell_lid_type target{0};
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
 
@@ -50,7 +50,7 @@ public:
         // the connection from the last LIF cell as well
         if (gid == 1) {
             cell_member_type source{n_lif_cells_, 0};
-            cell_member_type target{gid, 0};
+            cell_lid_type target{0};
             cell_connection conn(source, target, weight_, delay_);
             connections.push_back(conn);
         }
@@ -101,7 +101,7 @@ public:
         }
         std::vector<cell_connection> connections;
         cell_member_type source{gid - 1, 0};
-        cell_member_type target{gid, 0};
+        cell_lid_type target{0};
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
 
@@ -177,18 +177,18 @@ TEST(lif_cell_group, spikes) {
     auto decomp = partition_load_balance(recipe, context);
     simulation sim(recipe, decomp, context);
 
-    std::vector<spike_event> events;
+    cse_vector events;
 
     // First event to trigger the spike (first neuron).
-    events.push_back({{0, 0}, 1, 1000});
+    events.push_back({0, {{0, 1, 1000}}});
 
     // This event happens inside the refractory period of the previous
     // event, thus, should be ignored (first neuron)
-    events.push_back({{0, 0}, 1.1, 1000});
+    events.push_back({0, {{0, 1.1, 1000}}});
 
     // This event happens long after the refractory period of the previous
     // event, should thus trigger new spike (first neuron).
-    events.push_back({{0, 0}, 50, 1000});
+    events.push_back({0, {{0, 50, 1000}}});
 
     sim.inject_events(events);
 

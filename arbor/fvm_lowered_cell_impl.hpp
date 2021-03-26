@@ -644,20 +644,14 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
-            if (gid != g.local.gid && gid != g.peer.gid) {
-                throw arb::bad_gj_connection_gid(gid, g.local.gid, g.peer.gid);
-            }
-            if (g.local.index >= gid_to_cvs[g.local.gid].size()) {
-                throw arb::bad_gj_connection_lid(gid, g.local);
+            if (g.local >= gid_to_cvs[gid].size()) {
+                throw arb::bad_gj_connection_lid(gid, {gid, g.local});
             }
             if (g.peer.index >= gid_to_cvs[g.peer.gid].size()) {
                 throw arb::bad_gj_connection_lid(gid, g.peer);
             }
-            auto cv0 = gid_to_cvs[g.local.gid][g.local.index];
+            auto cv0 = gid_to_cvs[gid][g.local];
             auto cv1 = gid_to_cvs[g.peer.gid][g.peer.index];
-            if (gid != g.local.gid) {
-                std::swap(cv0, cv1);
-            }
             v.push_back(fvm_gap_junction(std::make_pair(cv0, cv1), g.ggap * 1e3 / D.cv_area[cv0]));
         }
     }
@@ -694,18 +688,13 @@ fvm_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
             cell_to_intdom[gid_to_loc[g]] = intdom_id;
 
             for (auto gj: rec.gap_junctions_on(g)) {
-                cell_gid_type peer =
-                        gj.local.gid==g? gj.peer.gid:
-                        gj.peer.gid==g?  gj.local.gid:
-                        throw bad_cell_description(cell_kind::cable, g);
-
-                if (!gid_to_loc.count(peer)) {
-                    throw gj_unsupported_domain_decomposition(g, peer);
+                if (!gid_to_loc.count(gj.peer.gid)) {
+                    throw gj_unsupported_domain_decomposition(g, gj.peer.gid);
                 }
 
-                if (!visited.count(peer)) {
-                    visited.insert(peer);
-                    intdomq.push(peer);
+                if (!visited.count(gj.peer.gid)) {
+                    visited.insert(gj.peer.gid);
+                    intdomq.push(gj.peer.gid);
                 }
             }
         }

@@ -171,35 +171,33 @@ TEST(recipe, gap_junctions)
     auto cell_1 = custom_cell(0, 0, 3);
 
     {
-        std::vector<arb::gap_junction_connection> gjs_0 = {{{0, 0}, {1, 1}, 0.1},
-                                                           {{0, 1}, {1, 2}, 0.1},
-                                                           {{0, 2}, {1, 0}, 0.1}};
+        std::vector<arb::gap_junction_connection> gjs_0 = {{{1, 1}, 0, 0.1},
+                                                           {{1, 2}, 1, 0.1},
+                                                           {{1, 0}, 2, 0.1}};
 
-        auto recipe_0 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_0, gjs_0}, {{}, {}});
+        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, 0}, 1, 0.1},
+                                                           {{0, 1}, 2, 0.1},
+                                                           {{0, 2}, 0, 0.1}};
+
+        auto recipe_0 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_0, gjs_1}, {{}, {}});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
         EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
     }
     {
-        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, 0}, {1, 1}, 0.1},
-                                                           {{0, 1}, {1, 2}, 0.1},
-                                                           {{0, 2}, {1, 5}, 0.1}};
+        std::vector<arb::gap_junction_connection> gjs_0 = {{{1, 1}, 0, 0.1},
+                                                           {{1, 2}, 1, 0.1},
+                                                           {{1, 5}, 2, 0.1}};
 
-        auto recipe_1 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_1, gjs_1}, {{}, {}});
+        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, 0}, 1, 0.1},
+                                                           {{0, 1}, 2, 0.1},
+                                                           {{0, 2}, 5, 0.1}};
+
+        auto recipe_1 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_0, gjs_1}, {{}, {}});
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
         EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_gj_connection_lid);
 
-    }
-    {
-        std::vector<arb::gap_junction_connection> gjs_2 = {{{0, 0}, {1, 1}, 0.1},
-                                                           {{0, 1}, {1, 2}, 0.1},
-                                                           {{0, 2}, {3, 0}, 0.1}};
-
-        auto recipe_2 = custom_recipe({cell_0, cell_1}, {0, 0}, {0, 0}, {{}, {}}, {gjs_2, gjs_2}, {{}, {}});
-        auto context = make_context(resources);
-
-        EXPECT_THROW(partition_load_balance(recipe_2, context), arb::bad_gj_connection_gid);
     }
 }
 
@@ -218,13 +216,13 @@ TEST(recipe, connections)
     auto cell_1 = custom_cell(2, 1, 0);
     std::vector<arb::cell_connection> conns_0, conns_1;
     {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{1, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 0}, {0, 1}, 0.2, 0.4}};
+        conns_0 = {{{1, 0}, 0, 0.1, 0.1},
+                   {{1, 1}, 0, 0.1, 0.1},
+                   {{1, 0}, 1, 0.2, 0.4}};
 
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {1, 0}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
+        conns_1 = {{{0, 0}, 0, 0.1, 0.2},
+                   {{0, 0}, 0, 0.3, 0.1},
+                   {{0, 0}, 0, 0.1, 0.8}};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_0 = partition_load_balance(recipe_0, context);
@@ -232,13 +230,13 @@ TEST(recipe, connections)
         EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
     }
     {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{2, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 0}, {0, 1}, 0.2, 0.4}};
+        conns_0 = {{{1, 0}, 0, 0.1, 0.1},
+                   {{2, 1}, 0, 0.1, 0.1},
+                   {{1, 0}, 1, 0.2, 0.4}};
 
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {1, 0}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
+        conns_1 = {{{0, 0}, 0, 0.1, 0.2},
+                   {{0, 0}, 0, 0.3, 0.1},
+                   {{0, 0}, 0, 0.1, 0.8}};
 
         auto recipe_1 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_1 = partition_load_balance(recipe_1, context);
@@ -246,13 +244,13 @@ TEST(recipe, connections)
         EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_connection_source_gid);
     }
     {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{1, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 3}, {0, 1}, 0.2, 0.4}};
+        conns_0 = {{{1, 0}, 0, 0.1, 0.1},
+                   {{1, 1}, 0, 0.1, 0.1},
+                   {{1, 3}, 1, 0.2, 0.4}};
 
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {1, 0}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
+        conns_1 = {{{0, 0}, 0, 0.1, 0.2},
+                   {{0, 0}, 0, 0.3, 0.1},
+                   {{0, 0}, 0, 0.1, 0.8}};
 
         auto recipe_2 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_2 = partition_load_balance(recipe_2, context);
@@ -260,41 +258,13 @@ TEST(recipe, connections)
         EXPECT_THROW(simulation(recipe_2, decomp_2, context), arb::bad_connection_source_lid);
     }
     {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{1, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 0}, {0, 1}, 0.2, 0.4}};
+        conns_0 = {{{1, 0}, 0, 0.1, 0.1},
+                   {{1, 1}, 0, 0.1, 0.1},
+                   {{1, 0}, 1, 0.2, 0.4}};
 
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {7, 0}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
-
-        auto recipe_3 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
-        auto decomp_3 = partition_load_balance(recipe_3, context);
-
-        EXPECT_THROW(simulation(recipe_3, decomp_3, context), arb::bad_connection_target_gid);
-    }
-    {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{1, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 0}, {0, 1}, 0.2, 0.4}};
-
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {0, 0}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
-
-        auto recipe_5 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
-        auto decomp_5 = partition_load_balance(recipe_5, context);
-
-        EXPECT_THROW(simulation(recipe_5, decomp_5, context), arb::bad_connection_target_gid);
-    }
-    {
-        conns_0 = {{{1, 0}, {0, 0}, 0.1, 0.1},
-                   {{1, 1}, {0, 0}, 0.1, 0.1},
-                   {{1, 0}, {0, 1}, 0.2, 0.4}};
-
-        conns_1 = {{{0, 0}, {1, 0}, 0.1, 0.2},
-                   {{0, 0}, {1, 9}, 0.3, 0.1},
-                   {{0, 0}, {1, 0}, 0.1, 0.8}};
+        conns_1 = {{{0, 0}, 0, 0.1, 0.2},
+                   {{0, 0}, 9, 0.3, 0.1},
+                   {{0, 0}, 0, 0.1, 0.8}};
 
         auto recipe_4 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_4 = partition_load_balance(recipe_4, context);
@@ -317,9 +287,9 @@ TEST(recipe, event_generators) {
     auto cell_1 = custom_cell(2, 1, 0);
     std::vector<arb::event_generator> gens_0, gens_1;
     {
-        gens_0 = {arb::explicit_generator(arb::pse_vector{{{0, 0}, 1.0, 0.1}, {{0, 1}, 2.0, 0.1}})};
+        gens_0 = {arb::explicit_generator(arb::pse_vector{{0, 1.0, 0.1}, {1, 2.0, 0.1}})};
 
-        gens_1 = {arb::explicit_generator(arb::pse_vector{{{1, 0}, 1.0, 0.1}})};
+        gens_1 = {arb::explicit_generator(arb::pse_vector{{0, 1.0, 0.1}})};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
@@ -327,16 +297,7 @@ TEST(recipe, event_generators) {
         EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
     }
     {
-        gens_0.clear();
-        gens_1 = {arb::explicit_generator(arb::pse_vector{{{0, 0}, 1.0, 0.1}})};
-
-        auto recipe_0 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
-        auto decomp_0 = partition_load_balance(recipe_0, context);
-
-        EXPECT_THROW(simulation(recipe_0, decomp_0, context), arb::bad_event_generator_target_gid);
-    }
-    {
-        gens_0 = {arb::explicit_generator(arb::pse_vector{{{0, 0}, 1.0, 0.1}, {{0, 3}, 2.0, 0.1}})};
+        gens_0 = {arb::explicit_generator(arb::pse_vector{{0, 1.0, 0.1}, {3, 2.0, 0.1}})};
         gens_1.clear();
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {1, 2}, {2, 1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
