@@ -59,12 +59,10 @@ class single_recipe(arbor.recipe):
         stimulus_times = numpy.linspace(50, 500, self.n_pairs)
 
         # strong enough stimulus
-        spike = arbor.event_generator(arbor.cell_member(
-            0, 0), 1., arbor.explicit_schedule(stimulus_times))
+        spike = arbor.event_generator(0, 1., arbor.explicit_schedule(stimulus_times))
 
         # zero weight -> just modify synaptic weight via stdp
-        stdp = arbor.event_generator(arbor.cell_member(
-            0, 1), 0., arbor.explicit_schedule(stimulus_times - self.dT))
+        stdp = arbor.event_generator(1, 0., arbor.explicit_schedule(stimulus_times - self.dT))
 
         return [spike, stdp]
 
