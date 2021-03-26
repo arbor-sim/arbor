@@ -74,8 +74,8 @@ Recipe
     .. cpp:function:: virtual std::vector<cell_connection> connections_on(cell_gid_type gid) const
 
         Returns a list of all the **incoming** connections for `gid` .
-        Each connection ``con`` should have post-synaptic target ``con.dest.gid`` that matches
-        the argument :cpp:any:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
+        Each connection ``con`` should have a valid synapse id ``con.dest`` on the pos-synaptic target `gid`,
+        and a valid source id ``con.source.index`` on the pre-synaptic source ``con.source.gid``.
         See :cpp:type:`cell_connection`.
 
         By default returns an empty list.
@@ -83,9 +83,8 @@ Recipe
     .. cpp:function:: virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const
 
         Returns a list of all the gap junctions connected to `gid`.
-        Each gap junction ``gj`` should have one of the two gap junction sites ``gj.local.gid`` or
-        ``gj.peer.gid`` matching the argument :cpp:any:`gid`, and the corresponding synapse id
-        ``gj.local.index`` or ``gj.peer.index`` should be valid on `gid`.
+        Each gap junction ``gj`` should have a valid gap junction site id ``gj.local`` on ``gid``,
+        and a valid gap junction site id ``gj.peer.index`` on ``gj.peer.gid``.
         See :cpp:type:`gap_junction_connection`.
 
         By default returns an empty list.

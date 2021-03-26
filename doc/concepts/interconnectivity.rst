@@ -53,8 +53,8 @@ A recipe lets you define which sites are connected to which.
 
       1. Create a **gap junction site** on two separate cells as part of their
          :ref:`cell descriptions <modelcelldesc>` in the :ref:`recipe <modelrecipe>`.
-      2. Declare the Gap Junction in the recipe: with two **gap junction sites** identified using :gen:`cell_member`
-         and a conductance in μS.
+      2. Declare the Gap Junction in the recipe: between a peer and local **gap junction site** identified
+         using :gen:`cell_member` and a conductance in μS.
 
    .. Note::
       Only cable cells support gap junctions as of now.

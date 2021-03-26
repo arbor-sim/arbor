@@ -10,6 +10,8 @@ Interconnectivity
     Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
     a connection weight and a delay time.
 
+    A :class:`connection` is associated with the destination cell of the connection and its gid.
+
     .. function:: connection(source, destination, weight, delay)
 
         Construct a connection between the :attr:`source` and the :attr:`dest` with a :attr:`weight` and :attr:`delay`.
@@ -20,7 +22,8 @@ Interconnectivity
 
     .. attribute:: dest
 
-        The destination end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
+        The destination end point of the connection (type: :class:`arbor.cell_member.index` representing the index of the destination on the cell).
+        The gid of the cell is implicitly known.
 
     .. attribute:: weight
 
@@ -40,29 +43,35 @@ Interconnectivity
 
             import arbor
 
-            # construct a connection between cells (0,0) and (1,0) with weight 0.01 and delay of 10 ms.
-            src  = arbor.cell_member(0,0)
-            dest = arbor.cell_member(1,0)
-            w    = 0.01
-            d    = 10
-            con  = arbor.connection(src, dest, w, d)
+            def connections_on(gid):
+               # construct a connection from the 0th source index of cell 2 (2,0)
+               # to the 1st target index of cell gid (gid,1) with weight 0.01 and delay of 10 ms.
+               src  = arbor.cell_member(2,0)
+               dest = 1 # gid of the destination is is determined by the argument to `connections_on`
+               w    = 0.01
+               d    = 10
+               return [arbor.connection(src, dest, w, d)]
 
 .. class:: gap_junction_connection
 
     Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :class:`arbor.cell_member`.
+    Gap junction sites are identified by :class:`arbor.cell_member`.
 
-    .. function::gap_junction_connection(local, peer, ggap)
+    A :class:`gap_junction_connection` is associated with the local cell of the connection and its gid.
 
-        Construct a gap junction connection between :attr:`local` and :attr:`peer` with conductance :attr:`ggap`.
+    .. function::gap_junction_connection(peer, local, ggap)
 
-    .. attribute:: local
-
-        The gap junction site: one half of the gap junction connection.
+        Construct a gap junction connection between :attr:`peer` and :attr:`local` with conductance :attr:`ggap`.
 
     .. attribute:: peer
 
-        The gap junction site: other half of the gap junction connection.
+        The gap junction site: the remote half of the gap junction connection (type: :class:`arbor.cell_member`,
+        which can be initialized with a (gid, index) tuple).
+
+    .. attribute:: local
+
+        The gap junction site: the local half of the gap junction connection (type: :class:`arbor.cell_member.index`, representing
+        the index of the local site on the cell). The gid of the cell is implicitly known.
 
     .. attribute:: ggap
 
