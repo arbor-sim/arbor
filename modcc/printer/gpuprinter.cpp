@@ -217,8 +217,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     APIMethod* current_api     = find_api_method(module_, "compute_currents");
     APIMethod* write_ions_api  = find_api_method(module_, "write_ions");
 
-    assert_has_scope(init_api, "init");
-    assert_has_scope(state_api, "advance_state");
+    assert_has_scope(init_api,    "init");
+    assert_has_scope(state_api,   "advance_state");
     assert_has_scope(current_api, "compute_currents");
 
     io::pfxstringstream out;
@@ -275,7 +275,6 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     // event delivery
     if (net_receive_api) {
-        const std::string weight_arg = net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name();
         out << fmt::format(FMT_COMPILE("__global__\n"
                                        "void apply_events(arb_mechanism_ppack params_) {{\n"
                                        "  auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
@@ -288,7 +287,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                        "      if (p->mech_id==params_.mechanism_id) {{\n"
                                        "        auto tid_ = p->mech_index;\n"
                                        "        auto {0} = p->weight;\n"),
-                           weight_arg);
+                           net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent << indent;
         emit_api_body_cu(out, net_receive_api, is_point_proc, false);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
@@ -317,8 +316,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     out << "} // namespace\n\n"; // close anonymous namespace
 
     // Write wrappers.
-    auto emit_api_wrapper = [&] (APIMethod* e, const auto& width) {
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack& p) {{"), class_name, e->name());
+    auto emit_api_wrapper = [&] (APIMethod* e, const auto& width, std::string_view name="") {
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack& p) {{"), class_name, name.empty() ? e->name() : name);
         if(!e->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "  auto n = p.{};\n"
