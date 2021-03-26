@@ -54,6 +54,25 @@ like this:
    :width: 400
    :align: center
 
+NEURON interpretation
+"""""""""""""""""""""
+The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function.
+
+.. note:
+
+   There were bugs in the Import 3D method for SWC files that were addressed with the
+   release of NEURON 8. Arbor uses the new interpretation used by NEURON 8.
+
+NEURON interprets the SWC file using the interpretation used by the
+`Neuromorpho site <http://neuromorpho.org/SomaFormat.html>`_, with the exception
+with how a single-sample soma is interpretted:
+* The soma is constructed from a cylinder extended along the x axis, not the y axis.
+* The soma is constructed from three points, the first at ``x=x0-r``, the second with
+  ``x=x0`` and the third at ``x=x0+r``, to form a single section, with all dendrites, axons
+  and apical dendrites attached to the center of the soma with "zero resistance wires".
+  * If the Neuromorpho interpretation was followed exactly the soma would be two
+    cylinders that have their proximal ends at the soma center, extended along the
+    y axis, to form two NEURON sections.
 
 Allen interpretation
 """"""""""""""""""""
@@ -61,35 +80,26 @@ In addition to the previously mentioned checks, the Allen interpretation expects
 sample of the file and to be interpreted as a spherical soma. Arbor represents the spherical soma as a cylinder with
 length and diameter equal to the diameter of the sample representing the sphere.
 
-This interpretation also expects that samples have the same tag as their parent samples, with the exception of samples
-that have the soma sample as a parent. In this case, when a sample's parent is the soma, no *segment* is created
+The Allen interpretation applies the rules above, and additional constraints imposed by the
+`SONATA specification <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_.
+
+The main difference to the standard SWC interpretation is the requirement that the soma must be represented with
+a single sample with tag 1, that defines the center and radius of a spherical soma.
+The SONATA specification does not explicitly state how the soma ought to be constructe from cylinders,
+however it is based on the assumption that the cell will be loaded by NEURON, which implies that the soma is
+treated as a cylinder:
+  * with length equal to its diameter;
+  * centered around the origin (0, 0, 0);
+  * composed of two segments aligned along the **x axis**: segment 0 ``prox=(-r 0 0) dist=(0, 0, 0)`` and segment 1 ``prox=(0 0 0 r) dist=(r 0 0 r)`` 
+
+This interpretation also expects that samples have the same tag as their parent, with the exception of those
+whose parent is the soma. When a sample's parent is the soma, no *segment* is created
 between the 2 samples; instead there is a gap in the morphology (represented electrically as a zero-resistance wire).
-Samples with the soma as a parent start new segments, that connect to the distal end of the soma if they are dendrites,
-or to the proximal end of the soma if they are axons or apical dendrites. Only axons, dendrites and apical dendrites
-(tags 2, 3 and 4 respectively) are allowed in this interpretation, in addition to the spherical soma.
+Samples with the soma as a parent start new segments, that are connected to the center of the soma, at the origin.
+Only axons, dendrites and apical dendrites (tags 2, 3 and 4 respectively) are allowed in this interpretation,
+in addition to the spherical soma.
 
-Finally the Allen institute interpretation of SWC files centres the morphology around the soma at the origin (0, 0, 0)
-and all samples are translated in space towards the origin.
-
-NEURON interpretation
-"""""""""""""""""""""
-The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
-following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
-interpreter:
-
-* SWC files must contain a soma sample and it must to be the first sample.
-* A soma is represented by a series of n≥1 unbranched, serially listed samples.
-* A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-  segments forming the soma.
-* A single-sample soma at is constructed as a cylinder with length=diameter.
-* If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-  as the parent.
-* Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
-* If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-  instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-  electrically as a zero-resistance wire)
-* To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-  tag.
+Finally, this interpretation translates all samples such that the soma is centered around the origin.
 
 API
 """
