@@ -103,7 +103,7 @@ static std::vector<arb::event_generator> convert_gen(std::vector<pybind11::objec
         auto& p = cast<const pyarb::event_generator_shim&>(g);
 
         // convert the event_generator to an arb::event_generator
-        gens.push_back(arb::schedule_generator({gid, p.target.index}, p.weight, std::move(p.time_sched)));
+        gens.push_back(arb::schedule_generator(p.target, p.weight, std::move(p.time_sched)));
     }
 
     return gens;
@@ -118,13 +118,13 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 }
 
 std::string con_to_string(const arb::cell_connection& c) {
-    return util::pprintf("<arbor.connection: source ({},{}), destination ({},{}), delay {}, weight {}>",
-         c.source.gid, c.source.index, c.dest.gid, c.dest.index, c.delay, c.weight);
+    return util::pprintf("<arbor.connection: source ({},{}), destination {}, delay {}, weight {}>",
+         c.source.gid, c.source.index, c.dest, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<arbor.gap_junction_connection: local ({},{}), peer ({},{}), ggap {}>",
-         gc.local.gid, gc.local.index, gc.peer.gid, gc.peer.index, gc.ggap);
+    return util::pprintf("<arbor.gap_junction_connection: peer ({},{}), local {}, ggap {}>",
+         gc.peer.gid, gc.peer.index, gc.local, gc.ggap);
 }
 
 void register_recipe(pybind11::module& m) {
@@ -135,7 +135,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
+        .def(pybind11::init<arb::cell_member_type, arb::cell_lid_type, float, float>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"
@@ -157,7 +157,7 @@ void register_recipe(pybind11::module& m) {
     pybind11::class_<arb::gap_junction_connection> gap_junction_connection(m, "gap_junction_connection",
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
-        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, double>(),
+        .def(pybind11::init<arb::cell_member_type, arb::cell_lid_type, double>(),
             "local"_a, "peer"_a, "ggap"_a,
             "Construct a gap junction connection with arguments:\n"
             "  local: One half of the gap junction connection.\n"
