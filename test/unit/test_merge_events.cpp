@@ -234,7 +234,7 @@ TEST(merge_events, tourney_poisson)
 
     std::vector<event_generator> generators;
     for (auto i=0u; i<ngen; ++i) {
-        cell_lid_type tgt =i;
+        cell_lid_type tgt = i;
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.

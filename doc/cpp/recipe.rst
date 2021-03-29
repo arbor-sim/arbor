@@ -74,7 +74,7 @@ Recipe
     .. cpp:function:: virtual std::vector<cell_connection> connections_on(cell_gid_type gid) const
 
         Returns a list of all the **incoming** connections for `gid` .
-        Each connection ``con`` should have a valid synapse id ``con.dest`` on the pos-synaptic target `gid`,
+        Each connection ``con`` should have a valid synapse id ``con.dest`` on the post-synaptic target `gid`,
         and a valid source id ``con.source.index`` on the pre-synaptic source ``con.source.gid``.
         See :cpp:type:`cell_connection`.
 

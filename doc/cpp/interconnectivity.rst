@@ -9,8 +9,9 @@ Interconnectivity
     post-synaptic destination. The source is typically a threshold detector on
     a cell or a spike source. The destination is a synapse on the post-synaptic cell.
 
-    A :class:`cell_connection` is associated with the destination cell of the connection
-    and its gid.
+    The :cpp:member:`dest` does not include the gid of a cell, this is because a
+    :cpp:class:`cell_connection` is bound to the destination cell which means that the gid
+    is implicitly known.
 
     .. cpp:member:: cell_member_type source
 
@@ -34,10 +35,17 @@ Interconnectivity
 
 .. cpp:class:: gap_junction_connection
 
-    Describes a gap junction between two gap junction sites.
+    Describes a gap junction between two gap junction sites. The :cpp:member:`local` site does not include
+    the gid of a cell, this is because a :cpp:class:`gap_junction_connection` is bound to the local
+    cell which means that the gid is implicitly known.
 
-    A :class:`gap_junction_connection` is associated with the local cell of the connection and
-    its gid.
+    .. note::
+
+       A bidirectional gap-junction between two cells ``c0`` and ``c1`` requires two
+       :cpp:class:`gap_junction_connection` objects to be constructed: one where ``c0`` is the
+       :cpp:member:`local` site, and ``c1`` is the :cpp:member:`peer` site; and another where ``c1`` is the
+       :cpp:member:`local` site, and ``c0`` is the :cpp:member:`peer` site. If :cpp:member:`ggap` is equal
+       in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
 
     .. cpp:member:: cell_member_type peer
 

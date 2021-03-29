@@ -10,7 +10,8 @@ Interconnectivity
     Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
     a connection weight and a delay time.
 
-    A :class:`connection` is associated with the destination cell of the connection and its gid.
+    The :attr:`dest` does not include the gid of a cell, this is because a :class:`arbor.connection` is bound to the destination cell which means that the gid
+    is implicitly known.
 
     .. function:: connection(source, destination, weight, delay)
 
@@ -54,10 +55,18 @@ Interconnectivity
 
 .. class:: gap_junction_connection
 
-    Describes a gap junction between two gap junction sites.
-    Gap junction sites are identified by :class:`arbor.cell_member`.
+    Describes a gap junction between two gap junction sites. Gap junction sites are identified by :class:`arbor.cell_member`.
 
-    A :class:`gap_junction_connection` is associated with the local cell of the connection and its gid.
+    The :attr:`local` site does not include the gid of a cell, this is because a :class:`arbor.gap_junction_connection` is bound to
+    the destination cell which means that the gid is implicitly known.
+
+    .. note::
+
+       A bidirectional gap-junction between two cells ``c0`` and ``c1`` requires two
+       :class:`gap_junction_connection` objects to be constructed: one where ``c0`` is the
+       :attr:`local` site, and ``c1`` is the :attr:`peer` site; and another where ``c1`` is the
+       :attr:`local` site, and ``c0`` is the :attr:`peer` site. If :attr:`ggap` is equal
+       in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
 
     .. function::gap_junction_connection(peer, local, ggap)
 
