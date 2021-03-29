@@ -103,11 +103,11 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            arb::poisson_generator(0,              // Target synapse index.
-                              w_e,                   // Weight of events to deliver
-                              t0,                    // Events start being delivered from this time
-                              lambda_e,              // Expected frequency (kHz)
-                              RNG(29562872)));       // Random number generator to use
+            arb::poisson_generator(0,              // Target synapse index on cell `gid`
+                                   w_e,                   // Weight of events to deliver
+                                   t0,                    // Events start being delivered from this time
+                                   lambda_e,              // Expected frequency (kHz)
+                                   RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
