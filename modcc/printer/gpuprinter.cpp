@@ -195,7 +195,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                        module_kind_str(module_))
         << namespace_declaration_close(ns_components)
         << "\n"
-        << fmt::format("arb_mechanism_type* make_{0}_{1}() {{ return &{2}::{1}; }}\n",
+        << fmt::format("arb_mechanism_type* make_{0}_{1}_gpu() {{ return &{2}::{1}; }}\n",
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
                        opt.cpp_namespace);
