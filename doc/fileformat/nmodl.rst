@@ -9,9 +9,9 @@ which provides the mod2c compiler parses dynamics described in NMODL to
 generate C code that is called from NEURON.
 
 Arbor has an NMODL compiler, *modcc*, that generates
-optimized code in C++ and CUDA, which is optimzed for
+optimized code in C++ and CUDA, which is optimized for
 the target architecture. NMODL does not have a formal specification,
-and its semantis are often
+and its semantics are often
 ambiguous. To manage this, Arbor uses its own dialect of NMODL that
 does not allow some constructions used in NEURON's NMODL.
 
@@ -22,14 +22,14 @@ does not allow some constructions used in NEURON's NMODL.
     that you have about getting your NMODL files to work in Arbor.
 
 This page is a collection of NMODL rules for Arbor. It assumes that the reader
-alreay has a working knowledge of NMODL.
+already has a working knowledge of NMODL.
 
 Ions
 -----
 
 * Arbor recognizes ``na``, ``ca`` and ``k`` ions by default. Any new ions
-  must be added explicitly in Arbor along with their default properties and
-  valence (this can be done in the recipe or on a single cell model).
+  used in NMODL need to be explicitly added into Arbor along with their default
+  properties and valence (this can be done in the recipe or on a single cell model).
   Simply specifying them in NMODL will not work.
 * The parameters and variables of each ion referenced in a ``USEION`` statement
   are available automatically to the mechanism. The exposed variables are:
@@ -51,22 +51,24 @@ Special variables
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
   These include ``v``, ``diam``, ``celsius`` and ``t`` in addition to the previously
   mentioned ion parameters.
-* The ``area`` is not currently exposed to NMODL.
-* Special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
+* These special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
   ``PARAMETER``. This is different from NEURON where a built-in variable is
   declared ``ASSIGNED`` to make it accessible.
-* ``diam`` and ``celsius`` can be set from the simulation side.
-* ``v`` is a reserved variable name and can be written in NMODL.
-* If Special variables are used in a ``PROCEDURE`` or ``FUNCTION``, they need
-  to be passed as arguments.
+* ``diam`` and ``celsius`` are set from the simulation side.
+* ``v`` is a reserved variable name and can be read but not written in NMODL.
 * ``dt`` is not exposed to NMODL mechanisms.
+* ``area`` is not exposed to NMODL mechanisms.
+* ``NONSPECIFIC_CURRENTS`` should not be ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
+  They just need to be declared in the NEURON block.
 
-Functions and blocks
----------------------
+Functions, procedures and blocks
+--------------------------------
 
 * ``SOLVE`` statements should be the first statement in the ``BREAKPOINT`` block.
 * The return variable of ``FUNCTION`` has to always be set. ``if`` without associated
   ``else`` can break that if users are not careful.
+* Any non-``LOCAL`` variables used in a ``PROCEDURE`` or ``FUNCTION`` need to be passed
+  as arguments.
 
 Unsupported features
 --------------------
@@ -80,6 +82,8 @@ Unsupported features
 * ``TABLE`` is not supported, calculations are exact.
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
 * ``VERBATIM`` blocks are not supported.
+* ``LOCAL`` variables outside blocks are not supported.
+* ``INDEPENDENT`` variables are not supported.
 
 Arbor-specific features
 -----------------------
