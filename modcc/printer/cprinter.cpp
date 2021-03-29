@@ -415,133 +415,30 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent
         << "#undef PPACK_IFACE_BLOCK\n"
         << "} // namespace kernel_" << name
-        << "\n\n// Tables\n";
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* globals[]               = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << quote(var->name());
-            ++n;
-        }
-        out << " };\n"
-            << "static arb_size_type n_globals             = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type global_defaults[]    = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-        }
-        out << " };\n";
-    }
-
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* state_vars[]            = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << quote(var->name());
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "static arb_size_type n_state_vars          = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type state_var_defaults[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-            }
-        }
-        out << " };\n";
-    }
-
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* parameters[]            = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << quote(var->name());
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "static arb_size_type n_parameters          = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type parameter_defaults[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-            }
-        }
-        out << " };\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static const char* ions[]                  = { ";
-        auto n = 0ul;
-        for (const auto& dep: ion_deps) {
-            out << sep << quote(dep.name);
-            ++n;
-        }
-        out << " };\n"
-            << "static arb_size_type n_ions                = " << n << ";\n";
-    }
-
-    out << fmt::format("\n// CPU Interface\n"
-                       "static arb_mechanism_interface iface_{2}_cpu {{\n"
-                       "    .backend={0},\n"
-                       "    .init_mechanism=(arb_mechanism_method){1}::init,\n"
-                       "    .compute_currents=(arb_mechanism_method){1}::compute_currents,\n"
-                       "    .apply_events=(arb_mechanism_method){1}::apply_events,\n"
-                       "    .advance_state=(arb_mechanism_method){1}::advance_state,\n"
-                       "    .write_ions=(arb_mechanism_method){1}::write_ions,\n"
-                       "    .post_event=(arb_mechanism_method){1}::post_event\n"
-                       "}};\n\n",
-                       "arb_backend_kind::cpu",
-                       namespace_name,
-                       name)
-        << fmt::format("// Mechanism plugin\n"
-                       "static arb_mechanism_type {0}_cpu {{\n"
-                       "   .abi_version=ARB_MECH_ABI_VERSION,\n"
-                       "   .fingerprint=\"{1}\",\n"
-                       "   .name=\"{0}\",\n"
-                       "   .kind={2},\n"
-                       "   .partition_width=simd_width_,\n"
-                       "   .globals=globals,\n"
-                       "   .global_defaults=global_defaults,\n"
-                       "   .n_globals=n_globals,\n"
-                       "   .ions=ions,\n"
-                       "   .n_ions=n_ions,\n"
-                       "   .state_vars=state_vars,\n"
-                       "   .state_var_defaults=state_var_defaults,\n"
-                       "   .n_state_vars=n_state_vars,\n"
-                       "   .parameters=parameters,\n"
-                       "   .parameter_defaults=parameter_defaults,\n"
-                       "   .n_parameters=n_parameters,\n"
-                       "   .interface=&iface_{0}_cpu\n"
-                       "}};\n"
-                       "\n",
-                       name,
-                       fingerprint,
-                       module_kind_str(module_))
-        << namespace_declaration_close(ns_components)
         << "\n"
-        << fmt::format("arb_mechanism_type* make_{0}_{1}_multicore() {{ return &{2}::{1}_cpu; }}\n",
+        << namespace_declaration_close(ns_components)
+        << "\n";
+
+    std::stringstream ss;
+    for (const auto& c: ns_components) ss << c << "::";
+    ss << namespace_name << "::";
+
+    out << fmt::format(FMT_COMPILE("arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
+                                   "  static arb_mechanism_interface result;\n"
+                                   "  result.backend={2},\n"
+                                   "  result.init_mechanism=(arb_mechanism_method){3}{0}_init,\n"
+                                   "  result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents,\n"
+                                   "  result.apply_events=(arb_mechanism_method){3}{0}_apply_events,\n"
+                                   "  result.advance_state=(arb_mechanism_method){3}{0}_advance_state,\n"
+                                   "  result.write_ions=(arb_mechanism_method){3}{0}_write_ions,\n"
+                                   "  result.post_event=(arb_mechanism_method){3}{0}_post_event\n"
+                                   "  return result;\n"
+                                   "}};\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
-                       opt.cpp_namespace);
+                       "arb_backend_kind::cpu",
+                       ss.str());
+
     EXIT(out);
     return out.str();
 }

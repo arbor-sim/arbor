@@ -188,10 +188,10 @@ protected:
     virtual mechanism_field_table field_table() {
         mechanism_field_table result;
         for (auto idx = 0ul; idx < mech_.n_parameters; ++idx) {
-            result.emplace_back(mech_.parameters[idx], std::make_pair(ppack_.parameters[idx], mech_.parameter_defaults[idx]));
+            result.emplace_back(mech_.parameters[idx], std::make_pair(ppack_.parameters[idx], mech_.parameters[idx].default_value));
         }
         for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-            result.emplace_back(mech_.state_vars[idx], std::make_pair(ppack_.state_vars[idx], mech_.state_var_defaults[idx]));
+            result.emplace_back(mech_.state_vars[idx], std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
         }
         return result;
     }
@@ -207,7 +207,7 @@ protected:
     virtual mechanism_state_table state_table() {
         mechanism_state_table result;
         for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-            result.emplace_back(mech_.state_vars[idx], std::make_pair(ppack_.state_vars[idx], mech_.state_var_defaults[idx]));
+            result.emplace_back(mech_.state_vars[idx], std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
         }
         return result;
     }

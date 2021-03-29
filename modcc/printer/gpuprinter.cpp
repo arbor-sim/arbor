@@ -48,7 +48,6 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
     auto ns_components     = namespace_components(opt.cpp_namespace);
-    std::string fingerprint = "<placeholder>";
     auto vars = local_module_variables(module_);
     auto ion_deps = module_.ion_deps();
 
@@ -64,133 +63,28 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                        "void {0}_apply_events_(arb_mechanism_ppack*);\n"
                        "void {0}_post_event_(arb_mechanism_ppack*);\n\n",
                        class_name)
-        << "// Tables\n";
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* globals[]               = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << quote(var->name());
-            ++n;
-        }
-        out << " };\n"
-            << "static arb_size_type n_globals             = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type global_defaults[]    = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-        }
-        out << " };\n";
-    }
-
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* state_vars[]            = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << quote(var->name());
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "static arb_size_type n_state_vars          = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type state_var_defaults[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-            }
-        }
-        out << " };\n";
-    }
-
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* parameters[]            = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << quote(var->name());
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "static arb_size_type n_parameters          = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type parameter_defaults[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-            }
-        }
-        out << " };\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static const char* ions[]                  = { ";
-        auto n = 0ul;
-        for (const auto& dep: ion_deps) {
-            out << sep << quote(dep.name);
-            ++n;
-        }
-        out << " };\n"
-            << "static arb_size_type n_ions                = " << n << ";\n";
-    }
-
-    out << fmt::format("\n// GPU Interface\n"
-                       "static arb_mechanism_interface iface_{2}_gpu {{\n"
-                       "    .backend={0},\n"
-                       "    .init_mechanism=(arb_mechanism_method){1}_init_,\n"
-                       "    .compute_currents=(arb_mechanism_method){1}_compute_currents_,\n"
-                       "    .apply_events=(arb_mechanism_method){1}_apply_events_,\n"
-                       "    .advance_state=(arb_mechanism_method){1}_advance_state_,\n"
-                       "    .write_ions=(arb_mechanism_method){1}_write_ions_,\n"
-                       "    .post_event=(arb_mechanism_method){1}_post_event_\n"
-                       "}};\n\n",
-                       "arb_backend_kind::cpu",
-                       class_name,
-                       name)
-        << fmt::format("// Mechanism plugin\n"
-                       "static arb_mechanism_type {0}_gpu {{\n"
-                       "   .abi_version=ARB_MECH_ABI_VERSION,\n"
-                       "   .fingerprint=\"{1}\",\n"
-                       "   .name=\"{0}\",\n"
-                       "   .kind={2},\n"
-                       "   .partition_width=0,\n"
-                       "   .globals=globals,\n"
-                       "   .global_defaults=global_defaults,\n"
-                       "   .n_globals=n_globals,\n"
-                       "   .ions=ions,\n"
-                       "   .n_ions=n_ions,\n"
-                       "   .state_vars=state_vars,\n"
-                       "   .state_var_defaults=state_var_defaults,\n"
-                       "   .n_state_vars=n_state_vars,\n"
-                       "   .parameters=parameters,\n"
-                       "   .parameter_defaults=parameter_defaults,\n"
-                       "   .n_parameters=n_parameters,\n"
-                       "   .interface=&iface_{0}_gpu\n"
-                       "}};\n"
-                       "\n",
-                       name,
-                       fingerprint,
-                       module_kind_str(module_))
         << namespace_declaration_close(ns_components)
-        << "\n"
-        << fmt::format("arb_mechanism_type* make_{0}_{1}_gpu() {{ return &{2}::{1}_gpu; }}\n",
-                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
+        << "\n";
+
+    std::stringstream ss;
+    for (const auto& c: ns_components) ss << c <<"::";
+
+    out << fmt::format(FMT_COMPILE("arb_mechanism_interface* make_{4}_{1}_interface_gpu() {{\n"
+                                   "  static arb_mechanism_interface result;\n"
+                                   "  result.backend={2},\n"
+                                   "  result.init_mechanism=(arb_mechanism_method){3}{0}_init_,\n"
+                                   "  result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents_,\n"
+                                   "  result.apply_events=(arb_mechanism_method){3}{0}_apply_events_,\n"
+                                   "  result.advance_state=(arb_mechanism_method){3}{0}_advance_state_,\n"
+                                   "  result.write_ions=(arb_mechanism_method){3}{0}_write_ions_,\n"
+                                   "  result.post_event=(arb_mechanism_method){3}{0}_post_event_\n"
+                                   "  return result;\n"
+                                   "}};\n\n"),
+                       class_name,
                        name,
-                       opt.cpp_namespace);
+                       "arb_backend_kind::gpu",
+                       ss.str(),
+                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"));
     EXIT(out);
     return out.str();
 }
