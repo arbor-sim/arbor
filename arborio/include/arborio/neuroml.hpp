@@ -90,7 +90,19 @@ struct nml_morphology_data {
 
 struct neuroml_impl;
 
+// TODO: C++20, replace with enum class and deploy using enum as appropriate.
+namespace neuroml_options {
+    enum values {
+        none = 0,
+        allow_spherical_root = 1
+    };
+}
+
 struct neuroml {
+    // Correct interpretation of zero-length segments is currently a bit unclear
+    // in NeuroML 2.0, hence these options. For further options, use flags in powers of two
+    // so that we can bitwise combine and test them.
+
     neuroml();
     explicit neuroml(std::string nml_document);
 
@@ -108,8 +120,8 @@ struct neuroml {
     // Parse and retrieve top-level morphology or morphology associated with a cell.
     // Return nullopt if not found.
 
-    std::optional<nml_morphology_data> morphology(const std::string& morph_id) const;
-    std::optional<nml_morphology_data> cell_morphology(const std::string& cell_id) const;
+    std::optional<nml_morphology_data> morphology(const std::string& morph_id, enum neuroml_options::values = neuroml_options::none) const;
+    std::optional<nml_morphology_data> cell_morphology(const std::string& cell_id, enum neuroml_options::values = neuroml_options::none) const;
 
     ~neuroml();
 

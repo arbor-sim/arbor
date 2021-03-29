@@ -161,6 +161,7 @@ struct neuroml_segment {
     arb::mpoint distal;
     optional<non_negative> parent_id;
     double along = 1;
+    bool spherical = false;
 
     // Data for error reporting:
     unsigned line = 0;
@@ -394,12 +395,30 @@ static arb::stitched_morphology construct_morphology(const neuroml_segment_tree&
 
     // Construct result from topologically sorted segments.
 
-    for (auto& s: segtree) {
+    for (const auto& s: segtree) {
         arb::mstitch stitch(nl_to_string(s.id), s.distal);
-        stitch.prox = s.proximal;
+        double along = s.along;
+
+        if (s.spherical) {
+            arb_assert(!s.parent_id); // root segment only!
+            arb_assert(s.proximal && s.proximal.value()==s.distal);
+
+            arb::mpoint centre = s.distal;
+            double radius = centre.radius;
+
+            stitch.prox = arb::mpoint{centre.x, centre.y-radius, centre.z, radius};
+            stitch.dist = arb::mpoint{centre.x, centre.y+radius, centre.z, radius};
+        }
+        else if (s.parent_id && segtree[s.parent_id.value()].spherical) {
+            // Check if _parent_ is spherical. If so, we must attach to its centre.
+            along = 0.5;
+        }
+        else {
+            stitch.prox = s.proximal;
+        }
 
         if (s.parent_id) {
-            builder.add(stitch, nl_to_string(s.parent_id.value()), s.along);
+            builder.add(stitch, nl_to_string(s.parent_id.value()), along);
         }
         else {
             builder.add(stitch);
@@ -409,7 +428,8 @@ static arb::stitched_morphology construct_morphology(const neuroml_segment_tree&
     return arb::stitched_morphology(std::move(builder));
 }
 
-nml_morphology_data nml_parse_morphology_element(xml_xpathctx ctx, xml_node morph) {
+nml_morphology_data nml_parse_morphology_element(xml_xpathctx ctx, xml_node morph, enum neuroml_options::values options) {
+    using namespace neuroml_options;
     nml_morphology_data M;
     M.id = propx<std::string>(morph, "id", ""s);
 
@@ -460,6 +480,10 @@ nml_morphology_data nml_parse_morphology_element(xml_xpathctx ctx, xml_node morp
                 if (diameter<0) throw nml_bad_segment(seg.id, n.line());
 
                 seg.distal = arb::mpoint{x, y, z, diameter/2};
+
+                // Set spherical flag if we have no parent, options has allow_spherical_root flag,
+                // and proximal == distal.
+                seg.spherical = (options & allow_spherical_root) && !seg.parent_id && seg.proximal && seg.proximal.value()==seg.distal;
             }
             else {
                 throw nml_bad_segment(seg.id, n.line());
