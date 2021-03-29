@@ -86,7 +86,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // Set ion views
     for (auto idx: make_span(mech_.n_ions)) {
-        auto ion = mech_.ions[idx];
+        auto ion = mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
@@ -118,22 +118,22 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         append_chunk(pos_data.weight, ppack_.weight, base_ptr);
         // Set fields
         for (auto idx: make_span(mech_.n_parameters)) {
-            append_const(mech_.parameter_defaults[idx], ppack_.parameters[idx], base_ptr);
+            append_const(mech_.parameters[idx].default_value, ppack_.parameters[idx], base_ptr);
         }
         for (auto idx: make_span(mech_.n_state_vars)) {
-            append_const(mech_.state_var_defaults[idx], ppack_.state_vars[idx], base_ptr);
+            append_const(mech_.state_vars[idx].default_value, ppack_.state_vars[idx], base_ptr);
         }
         // Assign global scalar parameters
         ppack_.globals = base_ptr;
         for (auto idx: make_span(mech_.n_globals)) {
-            ppack_.globals[idx] = mech_.global_defaults[idx];
+            ppack_.globals[idx] = mech_.globals[idx].default_value;
         }
 
         // TODO this is wrong, no values are moved to the GPU
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
             for (auto idx: make_span(mech_.n_globals)) {
-                if (mech_.globals[idx] == k) {
+                if (mech_.globals[idx].name == k) {
                     ppack_.globals[idx] = v;
                     found = true;
                     break;
@@ -153,7 +153,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         append_chunk(pos_data.cv, ppack_.node_index, base_ptr);
         // Create ion indices
         for (auto idx: make_span(mech_.n_ions)) {
-            auto  ion = mech_.ions[idx];
+            auto  ion = mech_.ions[idx].name;
             auto& index_ptr = ppack_.ion_states[idx].index;
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
@@ -180,12 +180,10 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
 fvm_value_type* mechanism::field_data(const std::string& var) {
     for (auto idx: make_span(mech_.n_parameters)) {
-        if (var == mech_.parameters[idx]) {
-            return ppack_.parameters[idx];
-        }
+        if (var == mech_.parameters[idx].name) return ppack_.parameters[idx];
     }
     for (auto idx: make_span(mech_.n_state_vars)) {
-        if (var == mech_.state_vars[idx]) return ppack_.state_vars[idx];
+        if (var == mech_.state_vars[idx].name) return ppack_.state_vars[idx];
     }
     return nullptr;
 }

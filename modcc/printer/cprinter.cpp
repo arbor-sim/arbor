@@ -186,9 +186,10 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "#include <cassert>\n";
     }
 
-    out <<
-        "\n" << namespace_declaration_open(ns_components) <<
-        "\n"
+    out <<"\n"
+        << namespace_declaration_open(ns_components)
+        << "namespace " << namespace_name << " {\n"
+        << "\n"
         "using ::arb::math::exprelr;\n"
         "using ::arb::math::safeinv;\n"
         "using ::std::abs;\n"
@@ -248,7 +249,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "}\n"
             "\n";
     } else {
-        out << "static constexpr unsigned simd_width_ = 0;";
+        out << "static constexpr unsigned simd_width_ = 0;\n\n";
     }
 
     // Make implementations
@@ -259,8 +260,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             emit_api_body(out, p);
         }
     };
-
-    out << "namespace " << namespace_name << " {\n";
 
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
@@ -425,14 +424,15 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
 
     out << fmt::format(FMT_COMPILE("arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
                                    "  static arb_mechanism_interface result;\n"
-                                   "  result.backend={2},\n"
-                                   "  result.init_mechanism=(arb_mechanism_method){3}{0}_init,\n"
-                                   "  result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents,\n"
-                                   "  result.apply_events=(arb_mechanism_method){3}{0}_apply_events,\n"
-                                   "  result.advance_state=(arb_mechanism_method){3}{0}_advance_state,\n"
-                                   "  result.write_ions=(arb_mechanism_method){3}{0}_write_ions,\n"
-                                   "  result.post_event=(arb_mechanism_method){3}{0}_post_event\n"
-                                   "  return result;\n"
+                                   "  result.partition_width = {3}simd_width_;\n"
+                                   "  result.backend={2};\n"
+                                   "  result.init_mechanism=(arb_mechanism_method){3}init;\n"
+                                   "  result.compute_currents=(arb_mechanism_method){3}compute_currents;\n"
+                                   "  result.apply_events=(arb_mechanism_method){3}apply_events;\n"
+                                   "  result.advance_state=(arb_mechanism_method){3}advance_state;\n"
+                                   "  result.write_ions=(arb_mechanism_method){3}write_ions;\n"
+                                   "  result.post_event=(arb_mechanism_method){3}post_event;\n"
+                                   "  return &result;\n"
                                    "}};\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,

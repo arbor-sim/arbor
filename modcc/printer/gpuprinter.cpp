@@ -78,7 +78,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                                    "  result.advance_state=(arb_mechanism_method){3}{0}_advance_state_,\n"
                                    "  result.write_ions=(arb_mechanism_method){3}{0}_write_ions_,\n"
                                    "  result.post_event=(arb_mechanism_method){3}{0}_post_event_\n"
-                                   "  return result;\n"
+                                   "  return &result;\n"
                                    "}};\n\n"),
                        class_name,
                        name,

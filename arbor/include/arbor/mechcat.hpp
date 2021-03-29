@@ -55,6 +55,7 @@ public:
     mechanism_catalogue& operator=(const mechanism_catalogue& other);
 
     void add(const std::string& name, mechanism_info info);
+    void add(const std::string& name, const arb_mechanism_type&);
 
     // Has `name` been added, derived, or can it be implicitly derived?
     bool has(const std::string& name) const;
@@ -106,7 +107,8 @@ public:
         register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
     }
 
-    void register_implementation(const std::string& name, arb_mechanism_type* m);
+   // TODO(TH) should not need both type and iface here
+   void register_implementation(const std::string& name, const arb_mechanism_type&, arb_mechanism_interface*);
 
    // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
    void import(const mechanism_catalogue& other, const std::string& prefix);

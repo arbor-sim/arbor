@@ -533,6 +533,56 @@ void mechanism_catalogue::add(const std::string& name, mechanism_info info) {
     state_->bind(name, std::move(info));
 }
 
+void mechanism_catalogue::add(const std::string& name, const arb_mechanism_type& t) {
+    // TODO(TH) Could be smoother by removing either type
+    mechanism_info info;
+    info.post_events = t.has_post_events;
+    info.linear      = t.is_linear;
+    info.fingerprint = t.fingerprint;
+    for (auto idx: util::make_span(t.n_globals)) {
+        const auto& v = t.globals[idx];
+        mechanism_field_spec f;
+        f.kind          = mechanism_field_spec::field_kind::global;
+        f.units         = v.unit;
+        f.default_value = v.default_value;
+        f.lower_bound = std::numeric_limits<double>::lowest();
+        f.upper_bound = std::numeric_limits<double>::max();
+        info.globals[v.name] = f;
+    }
+    for (auto idx: util::make_span(t.n_parameters)) {
+        const auto& v = t.parameters[idx];
+        mechanism_field_spec f;
+        f.kind          = mechanism_field_spec::field_kind::parameter;
+        f.units         = v.unit;
+        f.default_value = v.default_value;
+        f.lower_bound = std::numeric_limits<double>::lowest();
+        f.upper_bound = std::numeric_limits<double>::max();
+        info.parameters[v.name] = f;
+    }
+    for (auto idx: util::make_span(t.n_state_vars)) {
+        const auto& v = t.state_vars[idx];
+        mechanism_field_spec f;
+        f.kind          = mechanism_field_spec::field_kind::state;
+        f.units         = v.unit;
+        f.default_value = v.default_value;
+        f.lower_bound = std::numeric_limits<double>::lowest();
+        f.upper_bound = std::numeric_limits<double>::max();
+        info.state[v.name] = f;
+    }
+    for (auto idx: util::make_span(t.n_ions)) {
+        const auto& v = t.ions[idx];
+        ion_dependency f;
+        f.write_concentration_ext  = v.write_ext_concentration;
+        f.write_concentration_int  = v.write_int_concentration;
+        f.write_reversal_potential = v.write_rev_potential;
+        f.read_ion_charge          = v.use_valence;
+        f.expected_ion_charge      = v.expected_valence;
+        f.verify_ion_charge        = v.verify_valence;
+        info.ions[v.name] = f;
+    }
+    add(name, info);
+}
+
 bool mechanism_catalogue::has(const std::string& name) const {
     return state_->defined(name) || state_->derive(name);
 }
@@ -571,16 +621,15 @@ void mechanism_catalogue::remove(const std::string& name) {
     state_->remove(name);
 }
 
-void mechanism_catalogue::register_implementation(const std::string& name, arb_mechanism_type* m) {
-    if (!m) {
-        std::cerr << "NULL " << name << "(" << m->name << ") for backend=" << m->interface->backend << '\n';
+void mechanism_catalogue::register_implementation(const std::string& name, const arb_mechanism_type& m, arb_mechanism_interface* i) {
+    if (!i) {
+        std::cerr << "NULL " << name << "(" << m.name << ") for backend=" << i->backend << '\n';
         return;
     }
-    arb_assert(m);
-    if (m->interface->backend == arb_backend_kind::cpu) {
-        return register_implementation(name, (concrete_mech_ptr<multicore::backend>) std::make_unique<multicore::mechanism>(m));
+    if (i->backend == arb_backend_kind::cpu) {
+        return register_implementation(name, (concrete_mech_ptr<multicore::backend>) std::make_unique<multicore::mechanism>(m, i));
     }
-    if (m->interface->backend == arb_backend_kind::gpu) {
+    if (i->backend == arb_backend_kind::gpu) {
         // return register_implementation(name, (concrete_mech_ptr<gpu::backend>) std::make_unique<gpu::mechanism>(m));
     }
     throw arbor_internal_error("unexpected mechanism kind");

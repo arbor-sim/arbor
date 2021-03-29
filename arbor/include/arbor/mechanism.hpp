@@ -26,7 +26,7 @@ public:
     using index_type = fvm_index_type;
     using size_type  = fvm_size_type;
 
-    mechanism(const arb_mechanism_type* m): mech_{*m} {}
+    mechanism(const arb_mechanism_type m, const arb_mechanism_interface* i): mech_{m}, iface_{*i} {}
     mechanism() = default;
     mechanism(const mechanism&) = delete;
 
@@ -37,7 +37,7 @@ public:
     virtual std::string internal_name() const { return mech_.name; }
 
     // Density or point mechanism?
-    virtual mechanismKind kind() const { return (arb::mechanismKind)mech_.kind; }; // TODO
+    virtual mechanismKind kind() const { return (arb::mechanismKind)mech_.kind; }; // TODO(TH) This should not be bitcast
 
     // Does the implementation require padding and alignment of shared data structures?
     virtual unsigned data_alignment() const { return 1; }
@@ -74,6 +74,7 @@ public:
 
 protected:
     arb_mechanism_type  mech_;
+    arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
 };
 
@@ -150,31 +151,32 @@ public:
 
     // Delegate to derived class.
     void initialize() override {
-        mech_.interface->init_mechanism(&ppack_);
+        iface_.init_mechanism(&ppack_);
     }
 
     void deliver_events() override {
         auto marked = event_stream_ptr_->marked_events();
+        // TODO(TH) fix janky code
         ppack_.events.n_streams = marked.n;
         ppack_.events.begin     = marked.begin_offset;
         ppack_.events.end       = marked.end_offset;
         ppack_.events.events    = (arb_deliverable_event*) marked.ev_data;
-        mech_.interface->apply_events(&ppack_);
+        iface_.apply_events(&ppack_);
     }
 
     void update_current() override {
         set_time_ptr();
-        mech_.interface->compute_currents(&ppack_);
+        iface_.compute_currents(&ppack_);
     }
 
     void update_state()   override {
         set_time_ptr();
-        mech_.interface->advance_state(&ppack_);
+        iface_.advance_state(&ppack_);
     }
 
     void update_ions() override {
         set_time_ptr();
-        mech_.interface->write_ions(&ppack_);
+        iface_.write_ions(&ppack_);
     }
 
 protected:
@@ -188,10 +190,10 @@ protected:
     virtual mechanism_field_table field_table() {
         mechanism_field_table result;
         for (auto idx = 0ul; idx < mech_.n_parameters; ++idx) {
-            result.emplace_back(mech_.parameters[idx], std::make_pair(ppack_.parameters[idx], mech_.parameters[idx].default_value));
+            result.emplace_back(mech_.parameters[idx].name, std::make_pair(ppack_.parameters[idx], mech_.parameters[idx].default_value));
         }
         for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-            result.emplace_back(mech_.state_vars[idx], std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
+            result.emplace_back(mech_.state_vars[idx].name, std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
         }
         return result;
     }
@@ -199,7 +201,7 @@ protected:
    virtual mechanism_global_table global_table() {
         mechanism_global_table result;
         for (auto idx = 0ul; idx < mech_.n_globals; ++idx) {
-            result.emplace_back(mech_.globals[idx], ppack_.globals[idx]);
+            result.emplace_back(mech_.globals[idx].name, ppack_.globals[idx]);
         }
         return result;
     }
@@ -207,7 +209,7 @@ protected:
     virtual mechanism_state_table state_table() {
         mechanism_state_table result;
         for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-            result.emplace_back(mech_.state_vars[idx], std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
+            result.emplace_back(mech_.state_vars[idx].name, std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
         }
         return result;
     }
@@ -220,7 +222,7 @@ protected:
             v.external_concentration = ppack_.ion_states[idx].internal_concentration;
             v.internal_concentration = ppack_.ion_states[idx].external_concentration;
             v.ionic_charge           = ppack_.ion_states[idx].ionic_charge;
-            result.emplace_back(mech_.ions[idx], std::make_pair(v, ppack_.ion_states[idx].index));
+            result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ppack_.ion_states[idx].index));
         }
         return result;
     }

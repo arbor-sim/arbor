@@ -46,13 +46,13 @@
 
 #ifndef ARB_GPU_ENABLED
 #define ADD_MECH(c, x)\
-c.add(#x, testing::mechanism_##x##_info());\
-c.register_implementation(#x, make_testing_##x##_multicore());
+c.add(#x, make_testing_##x());\
+c.register_implementation(#x, make_testing_##x(), make_testing_##x##_interface_multicore());
 #else
 #define ADD_MECH(c, x)\
-c.add(#x, testing::mechanism_##x##_info());\
-c.register_implementation(#x, make_testing_##x##_multicore());\
-c.register_implementation(#x, make_testing_##x##_gpu());
+c.add(#x, make_testing_##x());\
+c.register_implementation(#x, make_testing_##x(), make_testing_##x##_interface_multicore()); \
+c.register_implementation(#x, make_testing_##x(), make_testing_##x##_interface_gpu());
 #endif
 
 using namespace arb;

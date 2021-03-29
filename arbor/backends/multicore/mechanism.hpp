@@ -25,7 +25,7 @@ public:
     using concrete_mechanism<arb::multicore::backend>::concrete_mechanism;
     mechanism() = default;
 
-    mechanism_ptr clone() const override { return std::make_unique<mechanism>(&mech_); }
+    mechanism_ptr clone() const override { return std::make_unique<mechanism>(mech_, &iface_); }
     void instantiate(fvm_size_type id, backend::shared_state& shared, const mechanism_overrides&, const mechanism_layout&) override;
     void initialize() override;
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;

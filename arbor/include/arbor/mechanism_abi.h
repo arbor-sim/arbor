@@ -184,8 +184,6 @@ typedef struct {
     arb_size_type            n_parameters;
     arb_ion_info*            ions;             // Ion properties
     arb_size_type            n_ions;
-    // Backend specific interface
-    arb_mechanism_interface* interface;
 } arb_mechanism_type;
 
 #endif
