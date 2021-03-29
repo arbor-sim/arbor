@@ -194,7 +194,7 @@ Let's go through the recipe point by point.
 Step **(1)** creates a ``single_recipe`` class that inherits from :class:`arbor.recipe`. The base recipe
 implements all the methods defined above with default values except :meth:`arbor.recipe.num_cells`,
 :meth:`arbor.recipe.cell_kind` and :meth:`arbor.recipe.cell_description` which always have to be implemented
-by the user. The :meth:`arbor.recipe.gloabl_properties` also needs to be implemented for
+by the user. The :meth:`arbor.recipe.global_properties` also needs to be implemented for
 :class:`arbor.cell_kind.cable` cells. The inherited recipe can implement any number of additional methods and
 have any number of instance or class variables.
 
@@ -218,7 +218,7 @@ what we did in the :ref:`previous example <tutorialsinglecellswc-gprop>`. One la
    The mechanism catalogue needs to live in the recipe as an instance variable. Its lifetime needs to extend
    to the entire duration of the simulation.
 
-Step **(3)** overrides the :meth:`arbor.recipe.num_cells` method. It takes 0 arguments. We simply return 1,
+Step **(3)** overrides the :meth:`arbor.recipe.num_cells` method. It takes no arguments. We simply return 1,
 as we are only simulating one cell in this example.
 
 Step **(4)** overrides the :meth:`arbor.recipe.num_sources` method. It takes one argument: ``gid``.
@@ -284,7 +284,7 @@ previous section:
 The execution context
 *********************
 
-An :ref:`execution context <modelcontext>`_ describes the hardware resources on which the simulation will run.
+An :ref:`execution context <modelcontext>` describes the hardware resources on which the simulation will run.
 It contains the thread pool used to parallelise work on the local CPU, and optionally describes GPU resources
 and the MPI communicator for distributed simulations. In the previous
 examples, the :class:`arbor.single_cell_model` object created the execution context :class:`arbor.context`
@@ -354,7 +354,7 @@ Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50 k
 The execution
 *************
 
-We can now run the simulation we just instantiated for a duration of 100ms with a time step of 0.025 ms.
+We can now run the simulation we just instantiated for a duration of 100 ms with a time step of 0.025 ms.
 
 .. code-block:: python
 

@@ -137,7 +137,7 @@ The label dictionary
 
 Next, we can define **region** and **location** expressions and give them labels.
 The regions and locations are defined using an Arbor-specific DSL, and the labels
-can be stored in a :class:`arbor.lable_dict`.
+can be stored in a :class:`arbor.label_dict`.
 
 .. Note::
 
@@ -157,7 +157,7 @@ defined as follows:
 
 .. code-block:: python
 
-    #Create a label dictionary
+    # Create a label dictionary
 
     labels = arbor.label_dict()
 
@@ -291,7 +291,7 @@ by the density mechanisms that we will be adding shortly.
 For both ions we set the default initial concentration and external concentration measures in mM;
 and we set the default initial reversal potential in mV. For the *na* ion, we additionally indicate
 the the progression on the reversal potential during the simulation will be dictated by the
-`nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
+`Nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
 
 It happens, however, that we want the temperature of the "custom" region defined in the label
 dictionary earlier to be colder, and the initial voltage of the "soma" region to be higher.
@@ -360,7 +360,7 @@ to be a single CV, and the rest of the morphology to be comprised of CVs with a 
 The model
 *********
 
-We begin by constructing a :class:`arbor.single_cell_model` of the cell we just created.
+We begin by constructing an :class:`arbor.single_cell_model` of the cell we just created.
 
 .. code-block:: python
 

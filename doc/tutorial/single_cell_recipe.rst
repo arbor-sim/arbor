@@ -114,8 +114,8 @@ and descriptions.
 
 Step **(4.5)** returns the cell description passed in on class initialisation. If we
 were modelling multiple cells of different kinds, we would need to make sure that the
-cell returned by :meth:arbor.recipe.cell_description has the same cell kind as
-returned by :meth:arbor.recipe.cell_kind for every :gen:gid.
+cell returned by :meth:`arbor.recipe.cell_description` has the same cell kind as
+returned by :meth:`arbor.recipe.cell_kind` for every :gen:`gid`.
 
 Step **(4.6)** returns the probes passed in at class initialisation.
 
@@ -131,10 +131,10 @@ The context and domain decomposition
 :class:`arbor.single_cell_model` does not only take care of the recipe, it also takes
 care of defining how the simulation will be run. When you create and use your own
 recipe, you'll need to do this manually, in the form of defining a execution context
-and a domain decomposition. Fortunately, the default constructors of :class:`arbor.
-context` and :class:`arbor.partition_load_balance` are sufficient for this model, and
-is what :class:`arbor.single_cell_model` does under the hood! We'll leave the details
-of this subject for another tutorial.
+and a domain decomposition. Fortunately, the default constructors of
+:class:`arbor.context` and :class:`arbor.partition_load_balance` are sufficient for
+this model, and is what :class:`arbor.single_cell_model` does under the hood! We'll
+leave the details of this subject for another tutorial.
 
 .. code-block:: python
 

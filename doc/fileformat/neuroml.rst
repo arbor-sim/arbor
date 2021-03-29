@@ -5,10 +5,10 @@ NeuroML2
 
 Arbor offers limited support for models described in `NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
 This is not built by default (see :ref:`NeuroML support <install-neuroml>` for instructions on how
-to build arbor with NeuroML).
+to build Arbor with NeuroML).
 
 Once support is enabled, Arbor is able to parse and check the validity of morphologies described in NeuroML files,
-and present the encoded data to the user.  This is more than a simple a `segment tree`.
+and present the encoded data to the user.  This is more than a simple `segment tree`.
 
 NeuroML can encode in the same file multiple top-level morphologies, as well as cells:
 
@@ -34,7 +34,7 @@ Example
    </cell>
    </neuroml>
 
-The above NeuroML description defines 2 top-level morphologies ``m1`` and ``m2`` (empty); a cell ``c1`` that uses
+The above NeuroML description defines two top-level morphologies ``m1`` and ``m2`` (empty); a cell ``c1`` that uses
 morphology ``m1``; and a cell ``c2`` that uses an internally defined (empty) morphology ``m3``.
 
 Arbor can query the cells and morphologies using their ids and return all the associated morphological data for each.
