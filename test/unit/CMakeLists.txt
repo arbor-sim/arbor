@@ -218,6 +218,18 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     STANDALONE ON
     VERBOSE OFF)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
+  if(ARB_WITH_NVCC)
+    target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)
+  endif()
+  if(ARB_WITH_CUDA_CLANG)
+    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+  endif()
+
+  if(ARB_WITH_HIP_CLANG)
+    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+  endif()
   add_dependencies(unit dummy-catalogue)
 endif()
 

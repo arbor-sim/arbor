@@ -322,28 +322,28 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     }
     out << "\n"
         << "// interface methods\n";
-    out << "void init(arb_mechanism_ppack* pp) {\n" << indent;
+    out << "static void init(arb_mechanism_ppack* pp) {\n" << indent;
     emit_body(init_api);
     out << popindent << "}\n\n";
 
-    out << "void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
+    out << "static void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
     out << profiler_enter("advance_integrate_state");
     emit_body(state_api);
     out << profiler_leave();
     out << popindent << "}\n\n";
 
-    out << "void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
+    out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
     out << profiler_enter("advance_integrate_current");
     emit_body(current_api);
     out << profiler_leave();
     out << popindent << "}\n\n";
 
-    out << "void write_ions(arb_mechanism_ppack* pp) {\n" << indent;
+    out << "static void write_ions(arb_mechanism_ppack* pp) {\n" << indent;
     emit_body(write_ions_api);
     out << popindent << "}\n\n";
 
     if (net_receive_api) {
-        out << fmt::format(FMT_COMPILE("void apply_events(arb_mechanism_ppack* pp) {{\n"
+        out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    auto ncell = {0}events.n_streams;\n"
                                        "    for (arb_size_type c = 0; c<ncell; ++c) {{\n"
@@ -359,12 +359,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         emit_api_body(out, net_receive_api, false, false);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     } else {
-        out << "void apply_events(arb_mechanism_ppack*) {}\n\n";
+        out << "static void apply_events(arb_mechanism_ppack*) {}\n\n";
     }
 
     if(post_event_api) {
         const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
-        out << fmt::format(FMT_COMPILE("void post_event(arb_mechanism_ppack* pp) {{\n"
+        out << fmt::format(FMT_COMPILE("static void post_event(arb_mechanism_ppack* pp) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    for (int i_ = 0; i_ < {0}width; ++i_) {{\n"
                                        "        auto node_index_i_ = {0}node_index[i_];\n"
@@ -379,7 +379,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         emit_api_body(out, post_event_api, false, false);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     } else {
-        out << "void post_event(arb_mechanism_ppack*) {}\n";
+        out << "static void post_event(arb_mechanism_ppack*) {}\n";
     }
 
     out << "\n// Procedure definitions\n";
@@ -415,133 +415,30 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent
         << "#undef PPACK_IFACE_BLOCK\n"
         << "} // namespace kernel_" << name
-        << "\n\n// Tables\n";
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* globals[]               = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << quote(var->name());
-            ++n;
-        }
-        out << " };\n"
-            << "static arb_size_type n_globals             = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type global_defaults[]    = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-        }
-        out << " };\n";
-    }
-
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* state_vars[]            = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << quote(var->name());
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "static arb_size_type n_state_vars          = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type state_var_defaults[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-            }
-        }
-        out << " };\n";
-    }
-
-    {
-        auto n = 0ul;
-        io::separator sep("", ", ");
-        out << "static const char* parameters[]            = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << quote(var->name());
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "static arb_size_type n_parameters          = " << n << ";\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static arb_value_type parameter_defaults[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << (std::isnan(var->value()) ? "NAN" : std::to_string(var->value()));
-            }
-        }
-        out << " };\n";
-    }
-
-    {
-        io::separator sep("", ", ");
-        out << "static const char* ions[]                  = { ";
-        auto n = 0ul;
-        for (const auto& dep: ion_deps) {
-            out << sep << quote(dep.name);
-            ++n;
-        }
-        out << " };\n"
-            << "static arb_size_type n_ions                = " << n << ";\n";
-    }
-
-    out << fmt::format("\n// Scalar CPU Interface\n"
-                       "static arb_mechanism_interface iface_{2}_cpu_scalar {{\n"
-                       "    .backend={0},\n"
-                       "    .init_mechanism=(arb_mechanism_method){1}::init,\n"
-                       "    .compute_currents=(arb_mechanism_method){1}::compute_currents,\n"
-                       "    .apply_events=(arb_mechanism_method){1}::apply_events,\n"
-                       "    .advance_state=(arb_mechanism_method){1}::advance_state,\n"
-                       "    .write_ions=(arb_mechanism_method){1}::write_ions,\n"
-                       "    .post_event=(arb_mechanism_method){1}::post_event\n"
-                       "}};\n\n",
-                       "arb_backend_kind::cpu",
-                       namespace_name,
-                       name)
-        << fmt::format("// Mechanism plugin\n"
-                       "static arb_mechanism_type {0} {{\n"
-                       "   .abi_version=ARB_MECH_ABI_VERSION,\n"
-                       "   .fingerprint=\"{1}\",\n"
-                       "   .name=\"{0}\",\n"
-                       "   .kind={2},\n"
-                       "   .partition_width=simd_width_,\n"
-                       "   .globals=globals,\n"
-                       "   .global_defaults=global_defaults,\n"
-                       "   .n_globals=n_globals,\n"
-                       "   .ions=ions,\n"
-                       "   .n_ions=n_ions,\n"
-                       "   .state_vars=state_vars,\n"
-                       "   .state_var_defaults=state_var_defaults,\n"
-                       "   .n_state_vars=n_state_vars,\n"
-                       "   .parameters=parameters,\n"
-                       "   .parameter_defaults=parameter_defaults,\n"
-                       "   .n_parameters=n_parameters,\n"
-                       "   .interface=&iface_{0}_cpu_scalar\n"
-                       "}};\n"
-                       "\n",
-                       name,
-                       fingerprint,
-                       module_kind_str(module_))
-        << namespace_declaration_close(ns_components)
         << "\n"
-        << fmt::format("arb_mechanism_type* make_{0}_{1}_multicore() {{ return &{2}::{1}; }}\n",
+        << namespace_declaration_close(ns_components)
+        << "\n";
+
+    std::stringstream ss;
+    for (const auto& c: ns_components) ss << c << "::";
+    ss << namespace_name << "::";
+
+    out << fmt::format(FMT_COMPILE("arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
+                                   "  static arb_mechanism_interface result;\n"
+                                   "  result.backend={2},\n"
+                                   "  result.init_mechanism=(arb_mechanism_method){3}{0}_init,\n"
+                                   "  result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents,\n"
+                                   "  result.apply_events=(arb_mechanism_method){3}{0}_apply_events,\n"
+                                   "  result.advance_state=(arb_mechanism_method){3}{0}_advance_state,\n"
+                                   "  result.write_ions=(arb_mechanism_method){3}{0}_write_ions,\n"
+                                   "  result.post_event=(arb_mechanism_method){3}{0}_post_event\n"
+                                   "  return result;\n"
+                                   "}};\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
-                       opt.cpp_namespace);
+                       "arb_backend_kind::cpu",
+                       ss.str());
+
     EXIT(out);
     return out.str();
 }
@@ -599,7 +496,7 @@ static std::string index_i_name(const std::string& index_var) {
 }
 
 void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, int i_";
+    out << "static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, int i_";
     for (auto& arg: e->args()) {
         out << ", arb_value_type " << arg->is_argument()->name();
     }
@@ -826,7 +723,7 @@ void SimdPrinter::visit(BlockExpression* block) {
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(arb_mechanism_ppack* pp, arb_index_type i_";
+    out << "static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(arb_mechanism_ppack* pp, arb_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -836,7 +733,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name()
+    out << "static void " << qualified << (qualified.empty()? "": "::") << e->name()
     << "(arb_mechanism_ppack* pp, arb_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
@@ -1126,7 +1023,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
                 emit_simd_state_read(out, sym, simd_expr_constraint::other);
             }
 
-            out << fmt::format("for (unsigned i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
+            out << fmt::format("for (auto i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
                                pp_var_pfx)
                 << indent
                 << simdprint(body, scalars)
