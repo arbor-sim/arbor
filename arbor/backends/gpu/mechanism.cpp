@@ -192,7 +192,7 @@ void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {
     set_time_ptr();
-    mech_.interface->init_mechanism(&ppack_);
+    iface_.init_mechanism(&ppack_);
     if (!mult_in_place_) return;
     for (auto idx: make_span(mech_.n_state_vars)) {
         multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
