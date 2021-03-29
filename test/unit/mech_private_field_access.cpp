@@ -30,13 +30,13 @@ std::vector<fvm_value_type> mechanism_field(multicore::mechanism* m, const std::
 // GPU mechanisms:
 
 #ifdef ARB_GPU_ENABLED
-ACCESS_BIND(field_table_type (concrete_mechanism<gpu::backend>::*)(), gpu_field_table_ptr, &concrete_mechanism<gpu::backend>::field_table)
+ACCESS_BIND(mechanism_field_table (concrete_mechanism<gpu::backend>::*)(), gpu_field_table_ptr, &concrete_mechanism<gpu::backend>::field_table)
 
 std::vector<fvm_value_type> mechanism_field(gpu::mechanism* m, const std::string& key) {
     auto opt_ptr = util::value_by_key((m->*gpu_field_table_ptr)(), key);
     if (!opt_ptr) throw std::logic_error("internal error: no such field in mechanism");
 
-    const fvm_value_type* field_data = *opt_ptr.value();
+    const fvm_value_type* field_data = opt_ptr.value().first;
     std::vector<fvm_value_type> values(m->size());
 
     memory::gpu_memcpy_d2h(values.data(), field_data, sizeof(fvm_value_type)*m->size());

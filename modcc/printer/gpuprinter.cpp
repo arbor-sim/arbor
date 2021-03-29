@@ -46,7 +46,6 @@ static std::string ion_index(const IonDep& ion) { return fmt::format("ion_{}_ind
 std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name       = module_.module_name();
     std::string class_name = make_class_name(name);
-    auto namespace_name = "kernel_" + name;
     std::string ppack_name = make_ppack_name(name);
     auto ns_components     = namespace_components(opt.cpp_namespace);
     std::string fingerprint = "<placeholder>";
@@ -58,21 +57,13 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     out << "#include <arbor/mechanism_abi.h>\n"
         << "#include <cmath>\n\n"
         << namespace_declaration_open(ns_components)
-        << "namespace " << namespace_name << " {\n"
-        << fmt::format("void {0}_init_(arb_mechanism_ppack&);\n"
-                       "void {0}_advance_state_(arb_mechanism_ppack&);\n"
-                       "void {0}_compute_currents_(arb_mechanism_ppack&);\n"
-                       "void {0}_write_ions_(arb_mechanism_ppack&);\n"
-                       "void {0}_apply_events_(arb_mechanism_ppack&);\n"
-                       "void {0}_post_event_(arb_mechanism_ppack&);\n\n"
-                       "static void init(arb_mechanism_ppack* pp)             {{ {0}_init_(*pp); }}\n"
-                       "static void advance_state(arb_mechanism_ppack* pp)    {{ {0}_advance_state_(*pp); }}\n"
-                       "static void compute_currents(arb_mechanism_ppack* pp) {{ {0}_compute_currents_(*pp); }}\n"
-                       "static void write_ions(arb_mechanism_ppack* pp)       {{ {0}_write_ions_(*pp); }}\n"
-                       "static void apply_events(arb_mechanism_ppack* pp)     {{ {0}_apply_events_(*pp); }}\n"
-                       "static void post_event(arb_mechanism_ppack* pp)       {{ {0}_post_event_(*pp);  }}\n",
+        << fmt::format("void {0}_init_(arb_mechanism_ppack*);\n"
+                       "void {0}_advance_state_(arb_mechanism_ppack*);\n"
+                       "void {0}_compute_currents_(arb_mechanism_ppack*);\n"
+                       "void {0}_write_ions_(arb_mechanism_ppack*);\n"
+                       "void {0}_apply_events_(arb_mechanism_ppack*);\n"
+                       "void {0}_post_event_(arb_mechanism_ppack*);\n\n",
                        class_name)
-        << "} // " << namespace_name << "\n\n"
         << "// Tables\n";
     {
         auto n = 0ul;
@@ -160,15 +151,15 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     out << fmt::format("\n// GPU Interface\n"
                        "static arb_mechanism_interface iface_{2}_gpu {{\n"
                        "    .backend={0},\n"
-                       "    .init_mechanism=(arb_mechanism_method){1}::init,\n"
-                       "    .compute_currents=(arb_mechanism_method){1}::compute_currents,\n"
-                       "    .apply_events=(arb_mechanism_method){1}::apply_events,\n"
-                       "    .advance_state=(arb_mechanism_method){1}::advance_state,\n"
-                       "    .write_ions=(arb_mechanism_method){1}::write_ions,\n"
-                       "    .post_event=(arb_mechanism_method){1}::post_event\n"
+                       "    .init_mechanism=(arb_mechanism_method){1}_init_,\n"
+                       "    .compute_currents=(arb_mechanism_method){1}_compute_currents_,\n"
+                       "    .apply_events=(arb_mechanism_method){1}_apply_events_,\n"
+                       "    .advance_state=(arb_mechanism_method){1}_advance_state_,\n"
+                       "    .write_ions=(arb_mechanism_method){1}_write_ions_,\n"
+                       "    .post_event=(arb_mechanism_method){1}_post_event_\n"
                        "}};\n\n",
                        "arb_backend_kind::cpu",
-                       namespace_name,
+                       class_name,
                        name)
         << fmt::format("// Mechanism plugin\n"
                        "static arb_mechanism_type {0}_gpu {{\n"
@@ -371,25 +362,38 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     // Write wrappers.
     auto emit_api_wrapper = [&] (APIMethod* e, const auto& width, std::string_view name="") {
         auto api_name = name.empty() ? e->name() : name;
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack& p) {{"), class_name, api_name);
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p) {{"), class_name, api_name);
         if(!e->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
-                                           "    auto n = p.{};\n"
+                                           "    auto n = p->{};\n"
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {}<<<grid_dim, block_dim>>>(p);\n"),
+                                           "    {}<<<grid_dim, block_dim>>>(*p);\n"),
                                width,
                                api_name);
         }
         out << "}\n\n";
     };
 
-    if (init_api)        emit_api_wrapper(init_api,        "width");
-    if (current_api)     emit_api_wrapper(current_api,     "width");
-    if (state_api)       emit_api_wrapper(state_api,       "width");
-    if (write_ions_api)  emit_api_wrapper(write_ions_api,  "width");
-    if (post_event_api)  emit_api_wrapper(post_event_api,  "width",            "post_event");
-    if (net_receive_api) emit_api_wrapper(net_receive_api, "events.n_streams", "apply_events");
+    auto emit_empty_wrapper = [&] (std::string_view name) {
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p) {{}}\n"), class_name, name);
+    };
+
+
+    emit_api_wrapper(init_api,        "width");
+    emit_api_wrapper(current_api,     "width");
+    emit_api_wrapper(state_api,       "width");
+    emit_api_wrapper(write_ions_api,  "width");
+    if (post_event_api) {
+        emit_api_wrapper(post_event_api, "width", "post_event");
+    } else {
+        emit_empty_wrapper("post_event");
+    }
+    if (net_receive_api) {
+        emit_api_wrapper(net_receive_api, "events.n_streams", "apply_events");
+    } else {
+        emit_empty_wrapper("apply_events");
+    }
     out << namespace_declaration_close(ns_components);
     return out.str();
 }

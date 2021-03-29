@@ -62,7 +62,7 @@ std::ostream& operator<<(std::ostream& out, const ion_dep_info& wrap) {
                << ion.expected_valence << "}}";
 }
 
-std::string build_info_header(const Module& m, const printer_options& opt) {
+std::string build_info_header(const Module& m, const printer_options& opt, bool cpu, bool gpu) {
     using io::indent;
     using io::popindent;
 
@@ -85,12 +85,10 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
                                   "#include <"
         << arb_header_prefix() << "mechinfo.hpp>\n"
                                   "\n"
-        << namespace_declaration_open(ns_components) << "\n"
-                                                        "template <typename Backend>\n"
-                                                        "::arb::concrete_mech_ptr<Backend> make_mechanism_"
-        << name << "();\n"
-                   "\n"
-                   "inline const ::arb::mechanism_info& mechanism_"
+        << namespace_declaration_open(ns_components)
+        << "\n"
+        << "\n"
+        << "inline const ::arb::mechanism_info& mechanism_"
         << name << "_info() {\n"
         << indent;
 
@@ -147,10 +145,27 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         << namespace_declaration_close(ns_components);
 
     out << fmt::format(//"extern \"C\" {{\n"
-                       "  arb_mechanism_type* make_{0}_{1}();",
+                       "  arb_mechanism_type* make_{0}_{1}_multicore()",
                        // "}}"
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name);
+    if (cpu) {
+        out << ";\n";
+    } else {
+        out << "{}\n";
+    }
+
+    out << fmt::format(//"extern \"C\" {{\n"
+                       "  arb_mechanism_type* make_{0}_{1}_gpu()",
+                       // "}}"
+                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
+                       name);
+    if (gpu) {
+        out << ";\n";
+    } else {
+        out << "{}\n";
+    }
+
 
     return out.str();
 }

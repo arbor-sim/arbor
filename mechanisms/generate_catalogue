@@ -149,8 +149,7 @@ extern "C" {
         add_modules = indent(4,
             ['cat.add("{0}", mechanism_{0}_info());'.format(m) for m in modules]),
         register_modules = indent(4,
-            ['cat.register_implementation("{mechanism}", make_arb_{cat}_catalogue_{mechanism}());'.format(mechanism=m, backend=b, cat=catalogue)
-             for m in modules for b in backends])
+            [f'cat.register_implementation("{mod}", make_arb_{catalogue}_catalogue_{mod}_{be}());' for mod in modules for be in backends])
         ))
 
 
