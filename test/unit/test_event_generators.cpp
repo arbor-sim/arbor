@@ -18,8 +18,8 @@ namespace{
 }
 
 TEST(event_generators, assign_and_copy) {
-    event_generator gen = regular_generator({1, 2}, 5., 0.5, 0.75);
-    spike_event expected{{1, 2}, 0.75, 5.};
+    event_generator gen = regular_generator(2, 5., 0.5, 0.75);
+    spike_event expected{2, 0.75, 5.};
 
     auto first = [](const event_seq& seq) {
         if (seq.first==seq.second) throw std::runtime_error("no events");
@@ -54,7 +54,7 @@ TEST(event_generators, regular) {
     // events regularly spaced 0.5 ms apart.
     time_type t0 = 2.0;
     time_type dt = 0.5;
-    cell_member_type target = {42, 3};
+    cell_lid_type target = 3;
     float weight = 3.14;
 
     event_generator gen = regular_generator(target, weight, t0, dt);
@@ -81,13 +81,13 @@ TEST(event_generators, regular) {
 
 TEST(event_generators, seq) {
     pse_vector in = {
-        {{0, 0}, 0.1, 1.0},
-        {{0, 0}, 1.0, 2.0},
-        {{0, 0}, 1.0, 3.0},
-        {{0, 0}, 1.5, 4.0},
-        {{0, 0}, 2.3, 5.0},
-        {{0, 0}, 3.0, 6.0},
-        {{0, 0}, 3.5, 7.0},
+        {0, 0.1, 1.0},
+        {0, 1.0, 2.0},
+        {0, 1.0, 3.0},
+        {0, 1.5, 4.0},
+        {0, 2.3, 5.0},
+        {0, 3.0, 6.0},
+        {0, 3.5, 7.0},
     };
 
     auto events = [&in] (int b, int e) {
@@ -102,10 +102,10 @@ TEST(event_generators, seq) {
 
     // Check reported sub-intervals against a smaller set of events.
     in = {
-        {{0, 0}, 1.5, 4.0},
-        {{0, 0}, 2.3, 5.0},
-        {{0, 0}, 3.0, 6.0},
-        {{0, 0}, 3.5, 7.0},
+        {0, 1.5, 4.0},
+        {0, 2.3, 5.0},
+        {0, 3.0, 6.0},
+        {0, 3.5, 7.0},
     };
     gen = explicit_generator(in);
 
@@ -143,7 +143,7 @@ TEST(event_generators, poisson) {
     time_type t0 = 0;
     time_type t1 = 10;
     time_type lambda = 10; // expect 10 events per ms
-    cell_member_type target{4, 2};
+    cell_lid_type target = 2;
     float weight = 42;
 
     event_generator gen = poisson_generator(target, weight, t0, lambda, G);

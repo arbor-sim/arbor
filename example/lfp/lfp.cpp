@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
     auto context = arb::make_context();
 
     // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
-    auto events = arb::poisson_generator({0, 0}, .005, 0., 0.1, std::minstd_rand{});
+    auto events = arb::poisson_generator(0, .005, 0., 0.1, std::minstd_rand{});
     lfp_demo_recipe R(events);
 
     const double t_stop = 100;    // [ms]

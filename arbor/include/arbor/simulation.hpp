@@ -59,7 +59,7 @@ public:
     // Add events directly to targets.
     // Must be called before calling simulation::run, and must contain events that
     // are to be delivered at or after the current simulation time.
-    void inject_events(const pse_vector& events);
+    void inject_events(const cse_vector& events);
 
     ~simulation();
 

@@ -400,7 +400,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             for (auto e: lane) {
                 if (e.time>=ep.t1) break;
                 e.time = binners_[lid].bin(e.time, tstart);
-                auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+                auto h = target_handles_[target_handle_divisions_[lid]+e.target];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
                 count_staged++;

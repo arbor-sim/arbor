@@ -87,11 +87,8 @@ communicator::communicator(const recipe& rec,
             if (c.source.index >= num_sources) {
                 throw arb::bad_connection_source_lid(cell.gid, c.source.index, num_sources);
             }
-            if (c.dest.gid != cell.gid) {
-                throw arb::bad_connection_target_gid(cell.gid, c.dest.gid);
-            }
-            if (c.dest.index >= num_targets) {
-                throw arb::bad_connection_target_lid(cell.gid, c.dest.index, num_targets);
+            if (c.dest >= num_targets) {
+                throw arb::bad_connection_target_lid(cell.gid, c.dest, num_targets);
             }
             const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);

@@ -102,7 +102,9 @@ to :py:class:`arbor.connection` are the **source** and **target** of the connect
 cell index ``gid`` and the source or target index. (:term:`Remember <connection>` that sources and targets are
 separately indexed.)
 
-The two endpoints are of type :class:`arbor.cell_member`, and can be initialized with a ``(gid,index)`` tuple.
+The source endpoint has type :class:`arbor.cell_member`, and can be initialized with a ``(gid,index)`` tuple.
+The gid of the target end-point is implicitly known from the argument of :py:func:`arbor.recipe.connections_on`,
+Therefore, we only need to identify the index of the target on the cell using the :class:`arbor.cell_member.index` type.
 The cells have one synapse (step **3**), so the target endpoint has the 0th index. The cell has one
 spike generator (step **4**), so its source index is also 0.
 
