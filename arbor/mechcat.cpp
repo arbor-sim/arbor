@@ -580,7 +580,7 @@ void mechanism_catalogue::register_implementation(const std::string& name, const
     if (iface->backend == arb_backend_kind::cpu) {
         return register_implementation(name, concrete_mech_ptr<multicore::backend>(new multicore::mechanism(mech, *iface)));
     }
-    #ifdef ARB_GPU
+    #ifdef ARB_GPU_ENABLED
     if (iface->backend == arb_backend_kind::gpu) {
         return register_implementation(name, concrete_mech_ptr<gpu::backend>(new gpu::mechanism(mech, *iface)));
     }
