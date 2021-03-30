@@ -129,7 +129,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             ppack_.globals[idx] = mech_.globals[idx].default_value;
         }
 
-        // TODO this is wrong, no values are moved to the GPU
+        // TODO(TH) this is wrong, no values are moved to the GPU
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
             for (auto idx: make_span(mech_.n_globals)) {
@@ -141,6 +141,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
                 if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
             }
         }
+        // TODO copy them here
     }
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
@@ -178,7 +179,7 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
     memory::copy(make_const_view(values), device_view(field_ptr, width_));
 }
 
-fvm_value_type* mechanism::field_data(const std::string& var) {
+fvm_value_type* ::arb::gpu::mechanism::field_data(const std::string& var) {
     for (auto idx: make_span(mech_.n_parameters)) {
         if (var == mech_.parameters[idx].name) return ppack_.parameters[idx];
     }
@@ -192,11 +193,11 @@ void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 
 void mechanism::initialize() {
     set_time_ptr();
-    mech_.interface->init_mechanism(&ppack_);
+    iface_.init_mechanism(&ppack_);
     if (!mult_in_place_) return;
     for (auto idx: make_span(mech_.n_state_vars)) {
         multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
     }
 }
-} // namespace multicore
+} // namespace gpu
 } // namespace arb

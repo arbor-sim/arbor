@@ -11,8 +11,6 @@
 
 namespace arb {
 
-enum class mechanismKind { point, density, revpot };
-
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
@@ -26,7 +24,7 @@ public:
     using index_type = fvm_index_type;
     using size_type  = fvm_size_type;
 
-    mechanism(const arb_mechanism_type m, const arb_mechanism_interface* i): mech_{m}, iface_{*i} {}
+    mechanism(const arb_mechanism_type m, const arb_mechanism_interface& i): mech_{m}, iface_{i} {}
     mechanism() = default;
     mechanism(const mechanism&) = delete;
 
@@ -37,7 +35,7 @@ public:
     virtual std::string internal_name() const { return mech_.name; }
 
     // Density or point mechanism?
-    virtual mechanismKind kind() const { return (arb::mechanismKind)mech_.kind; }; // TODO(TH) This should not be bitcast
+    virtual arb_mechanism_kind kind() const { return mech_.kind; };
 
     // Does the implementation require padding and alignment of shared data structures?
     virtual unsigned data_alignment() const { return 1; }

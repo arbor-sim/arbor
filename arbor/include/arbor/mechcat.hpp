@@ -55,7 +55,6 @@ public:
     mechanism_catalogue& operator=(const mechanism_catalogue& other);
 
     void add(const std::string& name, mechanism_info info);
-    void add(const std::string& name, const arb_mechanism_type&);
 
     // Has `name` been added, derived, or can it be implicitly derived?
     bool has(const std::string& name) const;
@@ -107,16 +106,15 @@ public:
         register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
     }
 
-   // TODO(TH) should not need both type and iface here
-   void register_implementation(const std::string& name, const arb_mechanism_type&, arb_mechanism_interface*);
+    void register_implementation(const std::string& name, const arb_mechanism_type& mech, const arb_mechanism_interface* iface);
 
-   // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
-   void import(const mechanism_catalogue& other, const std::string& prefix);
+    // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
+    void import(const mechanism_catalogue& other, const std::string& prefix);
 
-   ~mechanism_catalogue();
+    ~mechanism_catalogue();
 
-   // Grab a collection of all mechanism names in the catalogue.
-   std::vector<std::string> mechanism_names() const;
+    // Grab a collection of all mechanism names in the catalogue.
+    std::vector<std::string> mechanism_names() const;
 
 private:
     std::unique_ptr<catalogue_state> state_;
@@ -136,4 +134,5 @@ const mechanism_catalogue& global_bbp_catalogue();
 
 const mechanism_catalogue& load_catalogue(const std::filesystem::path&);
 
+mechanism_info get_mech_info(const arb_mechanism_type& mech_);
 } // namespace arb

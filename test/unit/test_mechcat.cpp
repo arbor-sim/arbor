@@ -175,7 +175,7 @@ struct fleeb_foo: foo_mechanism {
     }
 
     std::string internal_name() const override { return "fleeb"; }
-    mechanismKind kind() const override { return mechanismKind::density; }
+    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new fleeb_foo()); }
 };
 
@@ -190,7 +190,7 @@ struct special_fleeb_foo: foo_mechanism {
     }
 
     std::string internal_name() const override { return "special fleeb"; }
-    mechanismKind kind() const override { return mechanismKind::density; }
+    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new special_fleeb_foo()); }
 };
 
@@ -205,7 +205,7 @@ struct fleeb_bar: bar_mechanism {
     }
 
     std::string internal_name() const override { return "fleeb"; }
-    mechanismKind kind() const override { return mechanismKind::density; }
+    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new fleeb_bar()); }
 };
 
@@ -218,7 +218,7 @@ struct burble_bar: bar_mechanism {
     }
 
     std::string internal_name() const override { return "burble"; }
-    mechanismKind kind() const override { return mechanismKind::density; }
+    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new burble_bar()); }
 };
 
