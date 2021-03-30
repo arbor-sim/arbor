@@ -10,9 +10,9 @@ class Arbor(CMakePackage, CudaPackage):
     """Arbor is a high-performance library for computational neuroscience
     simulations."""
 
-    homepage = 'https://github.com/arbor-sim/arbor/'
+    homepage = 'https://arbor-sim.github.io/'
     git      = 'https://github.com/arbor-sim/arbor.git'
-    url      = 'https://arbor.readthedocs.io/en/latest/'
+    url      = 'https://github.com/arbor-sim/arbor/releases/download/v0.5/arbor-v0.5-full.tar.gz'
     maintainers = ['bcumming', 'halfflat']
 
     version('master', branch='master', submodules=True)
@@ -27,7 +27,7 @@ class Arbor(CMakePackage, CudaPackage):
 
     # https://arbor.readthedocs.io/en/latest/install/build_install.html?highlight=requirements#compilers
     conflicts('%gcc@:8.3')
-    conflicts('%clang@:8.0')
+    conflicts('%clang@:7.0')
     # Cray compiler v9.2 and later is Clang-based.
     conflicts('%cce@:9.1')
     conflicts('%intel')
