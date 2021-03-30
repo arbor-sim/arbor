@@ -7,6 +7,7 @@
 
 #include <dlfcn.h>
 
+#include <arbor/version.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/mechanism_abi.h>
