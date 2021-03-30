@@ -72,9 +72,9 @@ print(cell.locations('"axon_end"'))
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', where='"root"',  frequency=50000)
-m.probe('voltage', where='"stim_site"',  frequency=50000)
-m.probe('voltage', where='"axon_end"', frequency=50000)
+m.probe('voltage', where='"root"',  frequency=50)
+m.probe('voltage', where='"stim_site"',  frequency=50)
+m.probe('voltage', where='"axon_end"', frequency=50)
 
 # Simulate the cell for 15 ms.
 tfinal=15

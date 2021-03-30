@@ -194,7 +194,7 @@ public:
 
             traces_.push_back({"voltage", p.site, {}, {}});
 
-            auto sched = arb::regular_schedule(p.frequency);
+            auto sched = arb::regular_schedule(1.0/p.frequency);
 
             // Now attach the sampler at probe site, with sampling schedule sched, writing to voltage
             sim_->add_sampler(arb::one_probe({0,i}), sched, trace_callback(traces_[i]));
