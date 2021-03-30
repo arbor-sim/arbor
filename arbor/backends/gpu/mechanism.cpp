@@ -127,7 +127,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         ppack_.globals = base_ptr;
         auto tmp = std::vector<arb_value_type>(mech_.n_globals);
         for (auto idx: make_span(mech_.n_globals)) {
-            ppack_.globals[idx] = mech_.globals[idx].default_value;
+            tmp[idx] = mech_.globals[idx].default_value;
         }
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
