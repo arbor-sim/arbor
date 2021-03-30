@@ -194,6 +194,46 @@ fvm_value_type* mechanism::field_data(const std::string& var) {
 
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) { std::transform(p, p + n, s, s, std::multiplies<fvm_value_type>{}); }
 
+mechanism_field_table mechanism::field_table() {
+    mechanism_field_table result;
+    for (auto idx = 0ul; idx < mech_.n_parameters; ++idx) {
+        result.emplace_back(mech_.parameters[idx].name, std::make_pair(ppack_.parameters[idx], mech_.parameters[idx].default_value));
+    }
+    for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
+        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
+    }
+    return result;
+}
+
+mechanism_global_table mechanism::global_table() {
+    mechanism_global_table result;
+    for (auto idx = 0ul; idx < mech_.n_globals; ++idx) {
+        result.emplace_back(mech_.globals[idx].name, ppack_.globals[idx]);
+    }
+    return result;
+}
+
+mechanism_state_table mechanism::state_table() {
+    mechanism_state_table result;
+    for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
+        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
+    }
+    return result;
+}
+
+mechanism_ion_table mechanism::ion_table() {
+    mechanism_ion_table result;
+    for (auto idx = 0ul; idx < mech_.n_ions; ++idx) {
+        ion_state_view v;
+        v.current_density        = ppack_.ion_states[idx].current_density;
+        v.external_concentration = ppack_.ion_states[idx].internal_concentration;
+        v.internal_concentration = ppack_.ion_states[idx].external_concentration;
+        v.ionic_charge           = ppack_.ion_states[idx].ionic_charge;
+        result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ppack_.ion_states[idx].index));
+    }
+    return result;
+}
+
 void mechanism::initialize() {
     set_time_ptr();
     iface_.init_mechanism(&ppack_);

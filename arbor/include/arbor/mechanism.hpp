@@ -184,46 +184,10 @@ protected:
 
      void set_time_ptr() { ppack_.vec_t = vec_t_ptr_->data(); }
 
-    // Member tables: introspection into derived mechanism fields, views etc.
-    virtual mechanism_field_table field_table() {
-        mechanism_field_table result;
-        for (auto idx = 0ul; idx < mech_.n_parameters; ++idx) {
-            result.emplace_back(mech_.parameters[idx].name, std::make_pair(ppack_.parameters[idx], mech_.parameters[idx].default_value));
-        }
-        for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-            result.emplace_back(mech_.state_vars[idx].name, std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
-        }
-        return result;
-    }
-
-   virtual mechanism_global_table global_table() {
-        mechanism_global_table result;
-        for (auto idx = 0ul; idx < mech_.n_globals; ++idx) {
-            result.emplace_back(mech_.globals[idx].name, ppack_.globals[idx]);
-        }
-        return result;
-    }
-
-    virtual mechanism_state_table state_table() {
-        mechanism_state_table result;
-        for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-            result.emplace_back(mech_.state_vars[idx].name, std::make_pair(ppack_.state_vars[idx], mech_.state_vars[idx].default_value));
-        }
-        return result;
-    }
-
-    virtual mechanism_ion_table ion_table() {
-        mechanism_ion_table result;
-        for (auto idx = 0ul; idx < mech_.n_ions; ++idx) {
-            ion_state_view v;
-            v.current_density        = ppack_.ion_states[idx].current_density;
-            v.external_concentration = ppack_.ion_states[idx].internal_concentration;
-            v.internal_concentration = ppack_.ion_states[idx].external_concentration;
-            v.ionic_charge           = ppack_.ion_states[idx].ionic_charge;
-            result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ppack_.ion_states[idx].index));
-        }
-        return result;
-    }
+    virtual mechanism_field_table field_table() { return {}; }
+    virtual mechanism_global_table global_table() { return {}; }
+    virtual mechanism_state_table state_table() { return {}; }
+    virtual mechanism_ion_table ion_table() { return {}; }
 
     const array* vec_t_ptr_;                         // indirection for accessing time in mechanisms
     deliverable_event_stream* event_stream_ptr_;     // events to be processed

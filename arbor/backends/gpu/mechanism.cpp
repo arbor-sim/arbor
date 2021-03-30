@@ -142,14 +142,13 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     }
 
     // For the double indirections, we need to set up the pointers here
-    parameter_ptrs_= memory::device_vector<arb_value_type*>(parameter_ptrs.size());
-    memory::copy(make_const_view(parameter_ptrs), parameter_ptrs_);
-    state_var_ptrs_= memory::device_vector<arb_value_type*>(state_var_ptrs.size());
-    memory::copy(make_const_view(state_var_ptrs), state_var_ptrs_);
-    ion_ptrs_= memory::device_vector<arb_ion_state*>(ion_ptrs.size());
-    memory::copy(make_const_view(ion_ptrs), ion_ptrs_);
+    parameter_ptrs_= memory::device_vector<arb_value_type*>(parameters_.size());
+    memory::copy(make_const_view(parameter_ptrs), parameters_);
+    state_var_ptrs_= memory::device_vector<arb_value_type*>(state_vars_.size());
+    memory::copy(make_const_view(state_var_ptrs), state_vars_);
+    ion_ptrs_= memory::device_vector<arb_ion_state>(ion_states_.size());
+    memory::copy(make_const_view(ion_states_), ion_ptrs_);
 
-    
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
@@ -193,6 +192,46 @@ fvm_value_type* ::arb::gpu::mechanism::field_data(const std::string& var) {
         if (var == mech_.state_vars[idx].name) return ppack_.state_vars[idx];
     }
     return nullptr;
+}
+
+mechanism_field_table mechanism::field_table() {
+    mechanism_field_table result;
+    for (auto idx = 0ul; idx < mech_.n_parameters; ++idx) {
+        result.emplace_back(mech_.parameters[idx].name, std::make_pair(parameters_[idx], mech_.parameters[idx].default_value));
+    }
+    for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
+        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(state_vars_[idx], mech_.state_vars[idx].default_value));
+    }
+    return result;
+}
+
+mechanism_global_table mechanism::global_table() {
+    mechanism_global_table result;
+    for (auto idx = 0ul; idx < mech_.n_globals; ++idx) {
+        result.emplace_back(mech_.globals[idx].name, globals_[idx]);
+    }
+    return result;
+}
+
+mechanism_state_table mechanism::state_table() {
+    mechanism_state_table result;
+    for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
+        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(state_vars_[idx], mech_.state_vars[idx].default_value));
+    }
+    return result;
+}
+
+mechanism_ion_table mechanism::ion_table() {
+    mechanism_ion_table result;
+    for (auto idx = 0ul; idx < mech_.n_ions; ++idx) {
+        ion_state_view v;
+        v.current_density        = ion_states_[idx].current_density;
+        v.external_concentration = ion_states_[idx].internal_concentration;
+        v.internal_concentration = ion_states_[idx].external_concentration;
+        v.ionic_charge           = ion_states_[idx].ionic_charge;
+        result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ppack_.ion_states[idx].index));
+    }
+    return result;
 }
 
 void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
