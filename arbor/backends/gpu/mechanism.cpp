@@ -143,11 +143,11 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
     // For the double indirections, we need to set up the pointers here
     parameter_ptrs_= memory::device_vector<arb_value_type*>(parameters_.size());
-    memory::copy(make_const_view(parameter_ptrs), parameters_);
+    memory::copy(parameters_, parameter_ptrs);
     state_var_ptrs_= memory::device_vector<arb_value_type*>(state_vars_.size());
-    memory::copy(make_const_view(state_var_ptrs), state_vars_);
+    memory::copy(state_vars_, state_var_ptrs_);
     ion_ptrs_= memory::device_vector<arb_ion_state>(ion_states_.size());
-    memory::copy(make_const_view(ion_states_), ion_ptrs_);
+    memory::copy(ion_states_, ion_ptrs_);
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
