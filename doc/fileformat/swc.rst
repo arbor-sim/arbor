@@ -14,7 +14,7 @@ an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses thes
 then generates a morphology according to one of three possible interpretations.
 
 The SWC file format specifications are not very detailed, which has lead different simulators to interpret
-SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that
+SWC files in different ways, especially when it comes to the soma. Arbor has its own interpretation that
 is powerful and simple to understand at the same time. However, we have also developed functions that will
 interpret SWC files similarly to how the NEURON simulator would, and how the Allen Institute would.
 
@@ -32,7 +32,7 @@ is interpreted as a fork point in the morphology, and acts as the proximal point
 
 Arbor interpretation
 """"""""""""""""""""
-In addition to the previously listed checks, the arbor interpretation explicitly disallows SWC files where the soma is
+In addition to the previously listed checks, the Arbor interpretation explicitly disallows SWC files where the soma is
 described by a single sample. It constructs the soma from 2 or more samples, forming 1 or more segments. A *segment* is
 always constructed between a sample and its parent. This means that there are no gaps in the resulting morphology.
 
@@ -74,7 +74,7 @@ and all samples are translated in space towards the origin.
 NEURON interpretation
 """""""""""""""""""""
 The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
-following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
+following set of rules that govern NEURON's SWC behavior and enforce them in Arbor's NEURON-complaint SWC
 interpreter:
 
 * SWC files must contain a soma sample and it must to be the first sample.

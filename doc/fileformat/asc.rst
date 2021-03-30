@@ -46,7 +46,7 @@ Arbor supports description methods 1 and 2 following the `neuromporpho policies 
 Currently multiple contours in method 3 are not supported, and if you need support make
 the request with an `issue <https://github.com/arbor-sim/arbor/issues>`_.
 
-In each case, the soma is modeled as a cylinder with diameter equal to it's length, centred
+In each case, the soma is modeled as a cylinder with diameter equal to its length, centred
 at the centre of the soma, and oriented along the y axis.
 
 For a **spherical** soma, the centre and diameter are that of the sphere. For
