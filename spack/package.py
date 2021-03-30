@@ -13,7 +13,7 @@ class Arbor(CMakePackage, CudaPackage):
     homepage = 'https://arbor-sim.github.io/'
     git      = 'https://github.com/arbor-sim/arbor.git'
     url      = 'https://github.com/arbor-sim/arbor/releases/download/v0.5/arbor-v0.5-full.tar.gz'
-    maintainers = ['bcumming', 'halfflat']
+    maintainers = ['bcumming', 'brenthuisman', 'haampie', 'halfflat']
 
     version('master', branch='master', submodules=True)
     version('0.5', 'd0c8a4c7f97565d7c30493c66249be794d1dc424de266fc79cecbbf0e313df59', url='https://github.com/arbor-sim/arbor/releases/download/v0.5/arbor-v0.5-full.tar.gz')
@@ -27,7 +27,7 @@ class Arbor(CMakePackage, CudaPackage):
 
     # https://arbor.readthedocs.io/en/latest/install/build_install.html?highlight=requirements#compilers
     conflicts('%gcc@:8.3')
-    conflicts('%clang@:7.0')
+    conflicts('%clang@:7')
     # Cray compiler v9.2 and later is Clang-based.
     conflicts('%cce@:9.1')
     conflicts('%intel')
