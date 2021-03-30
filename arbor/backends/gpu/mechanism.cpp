@@ -125,23 +125,22 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         }
         // Assign global scalar parameters
         ppack_.globals = base_ptr;
+        auto tmp = std::vector<arb_value_type>(mech_.n_globals);
         for (auto idx: make_span(mech_.n_globals)) {
             ppack_.globals[idx] = mech_.globals[idx].default_value;
         }
-
-        // TODO(TH) this is wrong, no values are moved to the GPU
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
             for (auto idx: make_span(mech_.n_globals)) {
                 if (mech_.globals[idx].name == k) {
-                    ppack_.globals[idx] = v;
+                    tmp[idx] = v;
                     found = true;
                     break;
                 }
                 if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
             }
         }
-        // TODO copy them here
+        memory::copy(make_const_view(tmp), device_view(base_ptr, mech_.n_globals));
     }
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
