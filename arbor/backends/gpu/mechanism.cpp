@@ -146,14 +146,14 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     {
         // Allocate bulk storage
         auto count    = (mult_in_place_ ? 1 : 0) + mech_.n_ions + 1;
-        indices_      = iarray(count*width_padded_);
+        indices_ = iarray(count*width_padded_);
         auto base_ptr = indices_.data();
         // Setup node indices
         append_chunk(pos_data.cv, ppack_.node_index, base_ptr);
         // Create ion indices
         for (auto idx: make_span(mech_.n_ions)) {
             auto  ion = mech_.ions[idx].name;
-            auto& index_ptr = ppack_.ion_states[idx].index;
+            auto& index_ptr = ion_states_h_[idx].index;
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
             ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
@@ -161,7 +161,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             // Obtain index and move data
             auto ni = memory::on_host(oion->node_index_);
             auto indices = util::index_into(pos_data.cv, ni);
-            std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
+            std::vector<arb_index_type> mech_ion_index(indices.begin(), indices.end());
             append_chunk(mech_ion_index, index_ptr, base_ptr);
         }
 
@@ -170,13 +170,13 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
 
     // Shift data to GPU, set up pointers
-    parameters_d_= memory::device_vector<arb_value_type*>(parameters_h_.size());
+    parameters_d_ = memory::device_vector<arb_value_type*>(parameters_h_.size());
     memory::copy(parameters_h_, parameters_d_);
     ppack_.parameters = parameters_d_.data();
-    state_vars_d_= memory::device_vector<arb_value_type*>(state_vars_h_.size());
+    state_vars_d_ = memory::device_vector<arb_value_type*>(state_vars_h_.size());
     memory::copy(state_vars_h_, state_vars_d_);
     ppack_.state_vars = state_vars_d_.data();
-    ion_states_d_= memory::device_vector<arb_ion_state>(ion_states_h_.size());
+    ion_states_d_ = memory::device_vector<arb_ion_state>(ion_states_h_.size());
     memory::copy(ion_states_h_, ion_states_d_);
     ppack_.ion_states = ion_states_d_.data();
 
