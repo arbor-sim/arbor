@@ -251,7 +251,7 @@ mechanism_ion_table mechanism::ion_table() {
         v.external_concentration = ion_states_h_[idx].internal_concentration;
         v.internal_concentration = ion_states_h_[idx].external_concentration;
         v.ionic_charge           = ion_states_h_[idx].ionic_charge;
-        result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ppack_.ion_states[idx].index));
+        result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ion_states_h_[idx].index));
     }
     return result;
 }
@@ -263,7 +263,7 @@ void mechanism::initialize() {
     iface_.init_mechanism(&ppack_);
     if (!mult_in_place_) return;
     for (auto idx: make_span(mech_.n_state_vars)) {
-        multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
+        multiply_in_place(state_vars_h_[idx], ppack_.multiplicity, ppack_.width);
     }
 }
 } // namespace gpu
