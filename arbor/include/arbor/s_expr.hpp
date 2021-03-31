@@ -48,6 +48,15 @@ struct token {
 
 std::ostream& operator<<(std::ostream&, const token&);
 
+struct symbol {
+    std::string str;
+    operator std::string() const { return str; }
+};
+
+inline symbol operator"" _symbol(const char* chars, size_t size) {
+    return {chars};
+}
+
 struct s_expr {
     template <typename U>
     struct s_pair {
@@ -112,7 +121,9 @@ struct s_expr {
         s_expr_iterator_impl(reference e):
             inner_(&e)
         {
-            if (inner_->is_atom()) {
+            // We can't iterate over an atom, unless the atom is
+            // nil, which is both an atom and an empty list.
+            if (inner_->is_atom() && inner_->atom().kind!=tok::nil) {
                 throw std::runtime_error("Attempt to create s_expr_iterator on an atom.");
             }
             if (finished()) inner_ = nullptr;
@@ -193,7 +204,7 @@ struct s_expr {
     // with a std::unique_ptr via value_wrapper.
 
     using pair_type = s_pair<value_wrapper<s_expr>>;
-    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "nil"};
+    std::variant<token, pair_type> state = token{{0,0}, tok::nil, "()"};
 
     s_expr(const s_expr& s): state(s.state) {}
     s_expr() = default;
@@ -201,6 +212,17 @@ struct s_expr {
     s_expr(s_expr l, s_expr r):
         state(pair_type(std::move(l), std::move(r)))
     {}
+
+    explicit s_expr(std::string s):
+        s_expr(token{{0,0}, tok::string, std::move(s)}) {}
+    explicit s_expr(const char* s):
+        s_expr(token{{0,0}, tok::string, s}) {}
+    s_expr(double x):
+        s_expr(token{{0,0}, tok::real, std::to_string(x)}) {}
+    s_expr(int x):
+        s_expr(token{{0,0}, tok::integer, std::to_string(x)}) {}
+    s_expr(symbol s):
+        s_expr(token{{0,0}, tok::symbol, s}) {}
 
     bool is_atom() const;
 
@@ -223,10 +245,13 @@ struct s_expr {
     friend std::ostream& operator<<(std::ostream& o, const s_expr& x);
 };
 
-std::size_t length(const s_expr& l);
-src_location location(const s_expr& l);
-
+// Build s-expr from string
 s_expr parse_s_expr(const std::string& line);
 
+// Length of the s-expr
+std::size_t length(const s_expr& l);
+
+// Location of the head of the s-expr
+src_location location(const s_expr& l);
 } // namespace arb
 

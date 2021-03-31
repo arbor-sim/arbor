@@ -109,6 +109,7 @@ Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
    fileformat/neuroml
    fileformat/asc
    fileformat/nmodl
+   fileformat/cable_cell
 
 .. toctree::
    :caption: API reference:

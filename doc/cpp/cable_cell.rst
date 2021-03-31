@@ -8,6 +8,7 @@ Cable cells
 
    morphology
    probe_sample
+   cable_cell_format
 
 .. Warning::
    The interface for building and modifying cable cell objects

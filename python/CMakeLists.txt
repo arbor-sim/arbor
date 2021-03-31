@@ -20,6 +20,7 @@ else()
 endif()
 
 set(pyarb_source
+    cable_cell_io.cpp
     cable_probes.cpp
     cells.cpp
     config.cpp

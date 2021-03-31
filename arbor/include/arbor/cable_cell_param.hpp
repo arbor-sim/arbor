@@ -41,8 +41,8 @@ struct cable_cell_ion_data {
 // * The time points must be monotonically increasing.
 // * Onset and initial amplitude is given by the first point.
 // * The amplitude for time after the last time point is that of the last
-//   amplitgude point; an explicit zero amplitude point must be provided if the
-//    envelope is intended to have finite support.
+//   amplitude point; an explicit zero amplitude point must be provided if the
+//   envelope is intended to have finite support.
 //
 // Periodic envelopes are not supported, but may well be a feature worth
 // considering in the future.
@@ -195,14 +195,14 @@ struct ion_reversal_potential_method {
 };
 
 using paintable =
-    std::variant<mechanism_desc,
-                 init_membrane_potential,
+    std::variant<init_membrane_potential,
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
                  init_int_concentration,
                  init_ext_concentration,
-                 init_reversal_potential>;
+                 init_reversal_potential,
+                 mechanism_desc>;
 
 using placeable =
     std::variant<mechanism_desc,

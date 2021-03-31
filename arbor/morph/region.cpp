@@ -10,8 +10,8 @@
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/s_expr.hpp>
 
-#include "s_expr.hpp"
 #include "util/mergeview.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"

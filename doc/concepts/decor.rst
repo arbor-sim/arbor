@@ -287,7 +287,7 @@ See :ref:`modelgapjunctions`.
 4. Stimuli
 ~~~~~~~~~~
 
-A current stimulus is a DC or sinusoidal current of fixed frequemcy with a time-varying amplitude
+A current stimulus is a DC or sinusoidal current of fixed frequency with a time-varying amplitude
 governed by a piecewise-linear envelope.
 
 The stimulus is described by two parameters: a frequency in Hertz, where a value of zero denotes DC;
