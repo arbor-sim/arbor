@@ -80,9 +80,10 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     ppack_.n_detectors      = shared.n_detector;
 
     // Allocate view pointers
-    std::vector<fvm_value_type*> state_var_ptrs(mech_.n_state_vars);
-    std::vector<fvm_value_type*> parameter_ptrs(mech_.n_parameters);
-    std::vector<arb_ion_state>   ion_ptrs(mech_.n_ions);
+    state_vars_h_ = memory::host_vector<arb_value_type*>(mech_.n_state_vars);
+    parameters_h_ = memory::host_vector<arb_value_type*>(mech_.n_parameters);
+    ion_states_h_ = memory::host_vector<arb_ion_state>(mech_.n_ions);
+    globals_h_    = memory::host_vector<arb_value_type>(mech_.n_ions);
 
     // Set ion views
     for (auto idx: make_span(mech_.n_ions)) {
@@ -90,7 +91,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        ion_ptrs[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+        ion_states_h_[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -118,26 +119,25 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         append_chunk(pos_data.weight, ppack_.weight, base_ptr);
         // Set fields
         for (auto idx: make_span(mech_.n_parameters)) {
-            append_const(mech_.parameters[idx].default_value, parameter_ptrs[idx], base_ptr);
+            append_const(mech_.parameters[idx].default_value, parameters_h_[idx], base_ptr);
         }
         for (auto idx: make_span(mech_.n_state_vars)) {
-            append_const(mech_.state_vars[idx].default_value, state_var_ptrs[idx], base_ptr);
+            append_const(mech_.state_vars[idx].default_value, state_vars_h_[idx], base_ptr);
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width_padded alignment
-        auto globals = std::vector<arb_value_type>(mech_.n_globals);
-        for (auto idx: make_span(mech_.n_globals)) globals[idx] = mech_.globals[idx].default_value;
+        for (auto idx: make_span(mech_.n_globals)) globals_h_[idx] = mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
             for (auto idx: make_span(mech_.n_globals)) {
                 if (mech_.globals[idx].name == k) {
-                    globals[idx] = v;
+                    globals_h_[idx] = v;
                     found = true;
                     break;
                 }
                 if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
             }
         }
-        memory::copy(make_const_view(globals), device_view(base_ptr, mech_.n_globals));
+        memory::copy(make_const_view(globals_h_), device_view(base_ptr, mech_.n_globals));
         ppack_.globals = base_ptr;
         base_ptr += mech_.n_globals;
     }
@@ -170,26 +170,26 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
 
     // Shift data to GPU, set up pointers
-    parameter_ptrs_= memory::device_vector<arb_value_type*>(parameters_.size());
-    memory::copy(parameters_, parameter_ptrs);
-    ppack_.parameters = parameter_ptrs_.data();
-    state_var_ptrs_= memory::device_vector<arb_value_type*>(state_vars_.size());
-    memory::copy(state_vars_, state_var_ptrs_);
-    ppack_.state_vars = state_var_ptrs_.data();
-    ion_ptrs_= memory::device_vector<arb_ion_state>(ion_states_.size());
-    memory::copy(ion_states_, ion_ptrs_);
-    ppack_.ion_states = ion_ptrs_.data();
+    parameters_d_= memory::device_vector<arb_value_type*>(parameters_h_.size());
+    memory::copy(parameters_h_, parameters_d_);
+    ppack_.parameters = parameters_d_.data();
+    state_vars_d_= memory::device_vector<arb_value_type*>(state_vars_h_.size());
+    memory::copy(state_vars_h_, state_vars_d_);
+    ppack_.state_vars = state_vars_d_.data();
+    ion_states_d_= memory::device_vector<arb_ion_state>(ion_states_h_.size());
+    memory::copy(ion_states_h_, ion_states_d_);
+    ppack_.ion_states = ion_states_d_.data();
 
     std::cerr << util::pprintf("raw_h ions={} ({}) state={} ({}) params={} ({}) globals={} ({})\n",
-                               ion_states_.data(),       ion_states_.size(),
-                               state_vars_.data(), state_vars_.size(),
-                               parameters_.data(), parameters__.size(),
-                               globals_.data(),        globals_.size());
+                               ion_states_h_.data(), ion_states_h_.size(),
+                               state_vars_h_.data(), state_vars_h_.size(),
+                               parameters_h_.data(), parameters_h_.size(),
+                               globals_h_.data(),    globals_h_.size());
 
     std::cerr << util::pprintf("raw_d ions={} ({}) state={} ({}) params={} ({})\n",
-                               ion_ptrs_.data(),       ion_ptrs_.size(),
-                               state_var_ptrs_.data(), state_var_ptrs_.size(),
-                               parameter_ptrs_.data(), parameter_ptrs_.size());
+                               ion_states_d_.data(),       ion_states_d_.size(),
+                               state_vars_d_.data(), state_vars_d_.size(),
+                               parameters_d_.data(), parameters_d_.size());
 
     std::cerr << util::pprintf("ppack ions={} ({}) state={} ({}) params={} ({}) globals={} ({})\n",
                                ppack_.ion_states, mech_.n_ions,

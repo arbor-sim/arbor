@@ -38,15 +38,15 @@ public:
 protected:
     fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
 
-    memory::device_vector<arb_value_type*> parameter_ptrs_;
-    memory::device_vector<arb_value_type*> state_var_ptrs_;
-    memory::device_vector<arb_ion_state>   ion_ptrs_;
+    memory::device_vector<arb_value_type*> parameters_d_;
+    memory::device_vector<arb_value_type*> state_vars_d_;
+    memory::device_vector<arb_ion_state>   ion_states_d_;
 
     // Mirrors for _XYZ_tables
-    memory::host_vector<arb_value_type*> parameters_;
-    memory::host_vector<arb_value_type*> state_vars_;
-    memory::host_vector<arb_value_type>  globals_;
-    memory::host_vector<arb_ion_state>   ion_states_;
+    memory::host_vector<arb_value_type>  globals_h_;
+    memory::host_vector<arb_value_type*> parameters_h_;
+    memory::host_vector<arb_value_type*> state_vars_h_;
+    memory::host_vector<arb_ion_state>   ion_states_h_;
 };
 } // namespace gpu
 } // namespace arb
