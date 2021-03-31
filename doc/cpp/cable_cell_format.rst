@@ -28,7 +28,7 @@ The arbor-components and meta-data
 
 .. cpp:class:: meta_data
 
-   .. cpp:member:: int version
+   .. cpp:member:: std::string version
 
       Stores the version of the format being used.
 

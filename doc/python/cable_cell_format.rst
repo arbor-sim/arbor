@@ -16,7 +16,7 @@ The arbor-components and meta-data
 
 .. py:class:: meta_data
 
-   .. py:attribute:: int version
+   .. py:attribute:: string version
 
       Stores the version of the format being used.
 
