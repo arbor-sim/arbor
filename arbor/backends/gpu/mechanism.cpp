@@ -153,6 +153,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     memory::copy(ion_states_, ion_ptrs_);
     ppack_.ion_states = ion_ptrs_.data();
 
+    std::cerr << util::pprintf("ppack ions={} state={} params={}\n", ppack_.ion_states, ppack_.state_vars, ppack_.parameters);
+
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
