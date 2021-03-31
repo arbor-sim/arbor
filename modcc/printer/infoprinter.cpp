@@ -35,10 +35,30 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
     auto vars = local_module_variables(m);
     auto ion_deps = m.ion_deps();
 
-    auto fmt_var = [](const auto& v) { return fmt::format("{{ \"{}\", \"{}\", {} }}",
-                                                          v->name(),
-                                                          "",
-                                                          std::isnan(v->value()) ? "NAN" : std::to_string(v->value())); };
+
+    std::unordered_map<std::string, Id> name2id;
+    for (const auto& id: m.parameter_block().parameters) name2id[id.name()] = id;
+    for (const auto& id: m.state_block().state_variables) name2id[id.name()] = id;
+
+    auto fmt_var = [&](const auto& v) {
+        auto kv = name2id.find(v->name());
+        auto lo = std::numeric_limits<double>::lowest();
+        auto hi = std::numeric_limits<double>::max();
+        std::string unit = "";
+        if (kv != name2id.end()) {
+            auto id = kv->second;
+            unit = id.unit_string();
+            if (id.has_range()) {
+                auto lo = id.range.first;
+                auto hi = id.range.second;
+            }
+        }
+        return fmt::format("{{ \"{}\", \"{}\", {}, {}, {} }}",
+                           v->name(),
+                           unit,
+                           std::isnan(v->value()) ? "NAN" : std::to_string(v->value()),
+                           lo, hi);
+    };
 
     auto fmt_ion = [](const auto& i) { return fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {}}}"),
                                                           i.name,

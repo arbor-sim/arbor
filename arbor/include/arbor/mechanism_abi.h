@@ -153,6 +153,8 @@ typedef struct {
     const char* name;
     const char* unit;
     arb_value_type default_value;
+    arb_value_type range_low;
+    arb_value_type range_high;
 } arb_field_info;
 
 // Ion dependency
@@ -162,7 +164,7 @@ typedef struct {
     bool write_ext_concentration;
     bool write_rev_potential;
     bool read_rev_potential;
-    bool use_valence;
+    bool read_valence;
     bool verify_valence;
     int  expected_valence;
 } arb_ion_info;

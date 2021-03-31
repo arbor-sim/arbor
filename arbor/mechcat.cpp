@@ -633,44 +633,25 @@ mechanism_info get_mech_info(const arb_mechanism_type& mech_) {
     info.fingerprint = mech_.fingerprint;
     for (auto idx: util::make_span(mech_.n_globals)) {
         const auto& v = mech_.globals[idx];
-        mechanism_field_spec f;
-        f.kind          = mechanism_field_spec::field_kind::global;
-        f.units         = v.unit;
-        f.default_value = v.default_value;
-        f.lower_bound = std::numeric_limits<double>::lowest();
-        f.upper_bound = std::numeric_limits<double>::max();
-        info.globals[v.name] = f;
+        info.globals[v.name] = { mechanism_field_spec::field_kind::global, v.unit, v.default_value, v.range_low, v.range_high };
     }
     for (auto idx: util::make_span(mech_.n_parameters)) {
         const auto& v = mech_.parameters[idx];
-        mechanism_field_spec f;
-        f.kind          = mechanism_field_spec::field_kind::parameter;
-        f.units         = v.unit;
-        f.default_value = v.default_value;
-        f.lower_bound = std::numeric_limits<double>::lowest();
-        f.upper_bound = std::numeric_limits<double>::max();
-        info.parameters[v.name] = f;
+        info.parameters[v.name] = { mechanism_field_spec::field_kind::parameter, v.unit, v.default_value, v.range_low, v.range_high };
     }
     for (auto idx: util::make_span(mech_.n_state_vars)) {
         const auto& v = mech_.state_vars[idx];
-        mechanism_field_spec f;
-        f.kind          = mechanism_field_spec::field_kind::state;
-        f.units         = v.unit;
-        f.default_value = v.default_value;
-        f.lower_bound = std::numeric_limits<double>::lowest();
-        f.upper_bound = std::numeric_limits<double>::max();
-        info.state[v.name] = f;
+        info.state[v.name] = { mechanism_field_spec::field_kind::state, v.unit, v.default_value, v.range_low, v.range_high };
     }
     for (auto idx: util::make_span(mech_.n_ions)) {
         const auto& v = mech_.ions[idx];
-        ion_dependency f;
-        f.write_concentration_ext  = v.write_ext_concentration;
-        f.write_concentration_int  = v.write_int_concentration;
-        f.write_reversal_potential = v.write_rev_potential;
-        f.read_ion_charge          = v.use_valence;
-        f.expected_ion_charge      = v.expected_valence;
-        f.verify_ion_charge        = v.verify_valence;
-        info.ions[v.name] = f;
+        info.ions[v.name] = { v.write_int_concentration,
+                              v.write_ext_concentration,
+                              v.read_rev_potential,
+                              v.write_rev_potential,
+                              v.read_valence,
+                              v.verify_valence,
+                              v.expected_valence };
     }
     return info;
 }
