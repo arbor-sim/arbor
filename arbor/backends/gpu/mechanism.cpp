@@ -142,19 +142,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         base_ptr += mech_.n_globals;
     }
 
-    // Shift data to GPU, set up pointers
-    parameter_ptrs_= memory::device_vector<arb_value_type*>(parameters_.size());
-    memory::copy(parameters_, parameter_ptrs);
-    ppack_.parameters = parameter_ptrs_.data();
-    state_var_ptrs_= memory::device_vector<arb_value_type*>(state_vars_.size());
-    memory::copy(state_vars_, state_var_ptrs_);
-    ppack_.state_vars = state_var_ptrs_.data();
-    ion_ptrs_= memory::device_vector<arb_ion_state>(ion_states_.size());
-    memory::copy(ion_states_, ion_ptrs_);
-    ppack_.ion_states = ion_ptrs_.data();
-
-    std::cerr << util::pprintf("ppack ions={} state={} params={}\n", ppack_.ion_states, ppack_.state_vars, ppack_.parameters);
-
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
@@ -180,6 +167,24 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 
         if (mult_in_place_) append_chunk(pos_data.multiplicity, ppack_.multiplicity, base_ptr);
     }
+
+
+    // Shift data to GPU, set up pointers
+    parameter_ptrs_= memory::device_vector<arb_value_type*>(parameters_.size());
+    memory::copy(parameters_, parameter_ptrs);
+    ppack_.parameters = parameter_ptrs_.data();
+    state_var_ptrs_= memory::device_vector<arb_value_type*>(state_vars_.size());
+    memory::copy(state_vars_, state_var_ptrs_);
+    ppack_.state_vars = state_var_ptrs_.data();
+    ion_ptrs_= memory::device_vector<arb_ion_state>(ion_states_.size());
+    memory::copy(ion_states_, ion_ptrs_);
+    ppack_.ion_states = ion_ptrs_.data();
+
+    std::cerr << util::pprintf("ppack ions={} ({}) state={} ({}) params={} globals={} ({})\n",
+                               ppack_.ion_states, mech_.n_ions,
+                               ppack_.state_vars, mech_.n_state_vars,
+                               ppack_.parameters, mech_.n_parameters,
+                               ppack_.globals,    mech_.n_globals);
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
