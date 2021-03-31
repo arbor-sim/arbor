@@ -18,8 +18,8 @@ typedef int      arb_index_type;
 typedef uint32_t arb_size_type;
 
 // Selectors
-enum arb_mechanism_kind { point, density, reversal_potential, n_mechansim_kinds };
-enum arb_backend_kind { cpu, gpu, n_backend_kinds };
+enum arb_mechanism_kind { point, density, reversal_potential };
+enum arb_backend_kind { cpu, gpu };
 
 // Ion state variables; view into shared_state
 typedef struct {
