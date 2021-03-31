@@ -219,10 +219,10 @@ fvm_value_type* ::arb::gpu::mechanism::field_data(const std::string& var) {
 mechanism_field_table mechanism::field_table() {
     mechanism_field_table result;
     for (auto idx = 0ul; idx < mech_.n_parameters; ++idx) {
-        result.emplace_back(mech_.parameters[idx].name, std::make_pair(parameters_[idx], mech_.parameters[idx].default_value));
+        result.emplace_back(mech_.parameters[idx].name, std::make_pair(parameters_h_[idx], mech_.parameters[idx].default_value));
     }
     for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(state_vars_[idx], mech_.state_vars[idx].default_value));
+        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(state_vars_h_[idx], mech_.state_vars[idx].default_value));
     }
     return result;
 }
@@ -230,7 +230,7 @@ mechanism_field_table mechanism::field_table() {
 mechanism_global_table mechanism::global_table() {
     mechanism_global_table result;
     for (auto idx = 0ul; idx < mech_.n_globals; ++idx) {
-        result.emplace_back(mech_.globals[idx].name, globals_[idx]);
+        result.emplace_back(mech_.globals[idx].name, globals_h_[idx]);
     }
     return result;
 }
@@ -238,7 +238,7 @@ mechanism_global_table mechanism::global_table() {
 mechanism_state_table mechanism::state_table() {
     mechanism_state_table result;
     for (auto idx = 0ul; idx < mech_.n_state_vars; ++idx) {
-        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(state_vars_[idx], mech_.state_vars[idx].default_value));
+        result.emplace_back(mech_.state_vars[idx].name, std::make_pair(state_vars_h_[idx], mech_.state_vars[idx].default_value));
     }
     return result;
 }
@@ -247,10 +247,10 @@ mechanism_ion_table mechanism::ion_table() {
     mechanism_ion_table result;
     for (auto idx = 0ul; idx < mech_.n_ions; ++idx) {
         ion_state_view v;
-        v.current_density        = ion_states_[idx].current_density;
-        v.external_concentration = ion_states_[idx].internal_concentration;
-        v.internal_concentration = ion_states_[idx].external_concentration;
-        v.ionic_charge           = ion_states_[idx].ionic_charge;
+        v.current_density        = ion_states_h_[idx].current_density;
+        v.external_concentration = ion_states_h_[idx].internal_concentration;
+        v.internal_concentration = ion_states_h_[idx].external_concentration;
+        v.ionic_charge           = ion_states_h_[idx].ionic_charge;
         result.emplace_back(mech_.ions[idx].name, std::make_pair(v, ppack_.ion_states[idx].index));
     }
     return result;
