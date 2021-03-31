@@ -180,7 +180,18 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     memory::copy(ion_states_, ion_ptrs_);
     ppack_.ion_states = ion_ptrs_.data();
 
-    std::cerr << util::pprintf("ppack ions={} ({}) state={} ({}) params={} globals={} ({})\n",
+    std::cerr << util::pprintf("raw_h ions={} ({}) state={} ({}) params={} ({}) globals={} ({})\n",
+                               ion_states_.data(),       ion_states_.size(),
+                               state_vars_.data(), state_vars_.size(),
+                               parameters_.data(), parameters__.size(),
+                               globals_.data(),        globals_.size());
+
+    std::cerr << util::pprintf("raw_d ions={} ({}) state={} ({}) params={} ({})\n",
+                               ion_ptrs_.data(),       ion_ptrs_.size(),
+                               state_var_ptrs_.data(), state_var_ptrs_.size(),
+                               parameter_ptrs_.data(), parameter_ptrs_.size());
+
+    std::cerr << util::pprintf("ppack ions={} ({}) state={} ({}) params={} ({}) globals={} ({})\n",
                                ppack_.ion_states, mech_.n_ions,
                                ppack_.state_vars, mech_.n_state_vars,
                                ppack_.parameters, mech_.n_parameters,
