@@ -123,7 +123,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         for (auto idx: make_span(mech_.n_state_vars)) {
             append_const(mech_.state_vars[idx].default_value, state_var_ptrs[idx], base_ptr);
         }
-        // Assign global scalar parameters
+        // Assign global scalar parameters. NB: Last chunk, since it breaks the width_padded alignment
         auto globals = std::vector<arb_value_type>(mech_.n_globals);
         for (auto idx: make_span(mech_.n_globals)) globals[idx] = mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
@@ -138,16 +138,20 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
             }
         }
         memory::copy(make_const_view(globals), device_view(base_ptr, mech_.n_globals));
+        ppack_.globals = base_ptr;
         base_ptr += mech_.n_globals;
     }
 
-    // For the double indirections, we need to set up the pointers here
+    // Shift data to GPU, set up pointers
     parameter_ptrs_= memory::device_vector<arb_value_type*>(parameters_.size());
     memory::copy(parameters_, parameter_ptrs);
+    ppack_.parameters = parameter_ptrs_.data();
     state_var_ptrs_= memory::device_vector<arb_value_type*>(state_vars_.size());
     memory::copy(state_vars_, state_var_ptrs_);
+    ppack_.state_vars = state_var_ptrs_.data();
     ion_ptrs_= memory::device_vector<arb_ion_state>(ion_states_.size());
     memory::copy(ion_states_, ion_ptrs_);
+    ppack_.ion_states = ion_ptrs_.data();
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
