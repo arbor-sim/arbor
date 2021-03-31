@@ -7,7 +7,6 @@
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/mechanism.hpp>
-#include <arbor/mechanism_ppack.hpp>
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"

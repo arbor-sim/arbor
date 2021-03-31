@@ -3,10 +3,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
-#include <arbor/fvm_types.hpp>
 #include <arbor/mechinfo.hpp>
-#include <arbor/mechanism_ppack.hpp>
+#include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 
 namespace arb {

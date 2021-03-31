@@ -17,6 +17,8 @@ typedef float    arb_float_type;
 typedef int      arb_index_type;
 typedef uint32_t arb_size_type;
 
+typedef const char* arb_mechanism_fingerprint;
+
 // Selectors
 enum arb_mechanism_kind { point, density, reversal_potential };
 enum arb_backend_kind { cpu, gpu };
@@ -169,23 +171,24 @@ typedef struct {
     int  expected_valence;
 } arb_ion_info;
 
+// Backend independent data
 typedef struct {
     // Metadata
-    unsigned long            abi_version;      // plugin ABI version used to build this mechanism
-    const char*              fingerprint;      // provide a unique ID
-    const char*              name;             // provide unique name
-    arb_mechanism_kind       kind;             // Point, Density, ReversalPotential, ...
-    bool                     is_linear;        // linear, homogeneous mechanism
-    bool                     has_post_events;
+    unsigned long             abi_version;      // plugin ABI version used to build this mechanism
+    arb_mechanism_fingerprint fingerprint;      // provide a unique ID
+    const char*               name;             // provide unique name
+    arb_mechanism_kind        kind;             // Point, Density, ReversalPotential, ...
+    bool                      is_linear;        // linear, homogeneous mechanism
+    bool                      has_post_events;
     // Tables
-    arb_field_info*          globals;          // Global constants
-    arb_size_type            n_globals;
-    arb_field_info*          state_vars;       // Integrable state
-    arb_size_type            n_state_vars;
-    arb_field_info*          parameters;       // Mechanism parameters
-    arb_size_type            n_parameters;
-    arb_ion_info*            ions;             // Ion properties
-    arb_size_type            n_ions;
+    arb_field_info*           globals;          // Global constants
+    arb_size_type             n_globals;
+    arb_field_info*           state_vars;       // Integrable state
+    arb_size_type             n_state_vars;
+    arb_field_info*           parameters;       // Mechanism parameters
+    arb_size_type             n_parameters;
+    arb_ion_info*             ions;             // Ion properties
+    arb_size_type             n_ions;
 } arb_mechanism_type;
 
 #endif
