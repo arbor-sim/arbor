@@ -83,7 +83,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     state_vars_h_ = memory::host_vector<arb_value_type*>(mech_.n_state_vars);
     parameters_h_ = memory::host_vector<arb_value_type*>(mech_.n_parameters);
     ion_states_h_ = memory::host_vector<arb_ion_state>(mech_.n_ions);
-    globals_h_    = memory::host_vector<arb_value_type>(mech_.n_ions);
+    globals_h_    = memory::host_vector<arb_value_type>(mech_.n_globals);
 
     // Set ion views
     for (auto idx: make_span(mech_.n_ions)) {
@@ -208,10 +208,10 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
 fvm_value_type* ::arb::gpu::mechanism::field_data(const std::string& var) {
     for (auto idx: make_span(mech_.n_parameters)) {
-        if (var == mech_.parameters[idx].name) return ppack_.parameters[idx];
+        if (var == mech_.parameters[idx].name) return parameters_h_[idx];
     }
     for (auto idx: make_span(mech_.n_state_vars)) {
-        if (var == mech_.state_vars[idx].name) return ppack_.state_vars[idx];
+        if (var == mech_.state_vars[idx].name) return state_vars_h_[idx];
     }
     return nullptr;
 }
