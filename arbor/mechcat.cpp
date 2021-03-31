@@ -330,7 +330,7 @@ struct catalogue_state {
         new_info->ions = std::move(new_ions);
 
         deriv.derived_info = std::move(new_info);
-        return std::move(deriv);
+        return deriv;
     }
 
     // Implicit derivation.

@@ -125,7 +125,7 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                                    "    result.parameters=parameters;\n"
                                    "    result.n_parameters=n_parameters;\n"
                                    "    return result;\n"
-                                   "  }};\n"
+                                   "  }}\n"
                                    "\n"),
                        name,
                        fingerprint,

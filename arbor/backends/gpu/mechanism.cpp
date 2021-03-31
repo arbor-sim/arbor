@@ -91,7 +91,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(shared.ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        ion_states_h_[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+        ion_states_h_[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data(), nullptr };
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -134,8 +134,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
                     found = true;
                     break;
                 }
-                if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
             }
+            if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
         }
         memory::copy(make_const_view(globals_h_), device_view(base_ptr, mech_.n_globals));
         ppack_.globals = base_ptr;
@@ -179,23 +179,6 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     ion_states_d_ = memory::device_vector<arb_ion_state>(ion_states_h_.size());
     memory::copy(ion_states_h_, ion_states_d_);
     ppack_.ion_states = ion_states_d_.data();
-
-    std::cerr << util::pprintf("raw_h ions={} ({}) state={} ({}) params={} ({}) globals={} ({})\n",
-                               ion_states_h_.data(), ion_states_h_.size(),
-                               state_vars_h_.data(), state_vars_h_.size(),
-                               parameters_h_.data(), parameters_h_.size(),
-                               globals_h_.data(),    globals_h_.size());
-
-    std::cerr << util::pprintf("raw_d ions={} ({}) state={} ({}) params={} ({})\n",
-                               ion_states_d_.data(),       ion_states_d_.size(),
-                               state_vars_d_.data(), state_vars_d_.size(),
-                               parameters_d_.data(), parameters_d_.size());
-
-    std::cerr << util::pprintf("ppack ions={} ({}) state={} ({}) params={} ({}) globals={} ({})\n",
-                               ppack_.ion_states, mech_.n_ions,
-                               ppack_.state_vars, mech_.n_state_vars,
-                               ppack_.parameters, mech_.n_parameters,
-                               ppack_.globals,    mech_.n_globals);
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {

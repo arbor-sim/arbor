@@ -433,7 +433,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "  result.write_ions=(arb_mechanism_method){3}write_ions;\n"
                                    "  result.post_event=(arb_mechanism_method){3}post_event;\n"
                                    "  return &result;\n"
-                                   "}};\n\n"),
+                                   "}}\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
                        "arb_backend_kind::cpu",
@@ -541,7 +541,7 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
         }
     }
     return indices;
-};
+}
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
