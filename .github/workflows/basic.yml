@@ -93,6 +93,7 @@ jobs:
         OMPI_MCA_btl: "self,tcp"
     steps:
       - name: Get clang/gcc 8
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
           sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
