@@ -17,7 +17,7 @@ namespace kernel {
 
 __global__
 void istim_add_current_impl(int n, istim_pp pp) {
-    constexpr double freq_scale = 2*pi*0.001;
+    constexpr double two_pi = 2*pi;
 
     auto i = threadIdx.x + blockDim.x*blockIdx.x;
     if (i>=n) return;
@@ -43,7 +43,7 @@ void istim_add_current_impl(int n, istim_pp pp) {
     }
 
     if (double f = pp.frequency[i]) {
-        J *= std::sin(freq_scale*f*t);
+         J *= std::sin(two_pi*f*t + pp.phase[i]);
     }
 
     gpu_atomic_add(&pp.accu_stim[ai], J);

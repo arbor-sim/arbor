@@ -345,9 +345,9 @@ TEST(fvm_lowered, stimulus) {
     auto desc = make_cell_ball_and_stick(false);
 
     // At end of stick
-    desc.decorations.place(mlocation{0,1},   i_clamp{5., 80., 0.3});
+    desc.decorations.place(mlocation{0,1},   i_clamp::box(5., 80., 0.3));
     // On the soma CV, which is over the approximate interval: (cable 0 0 0.1)
-    desc.decorations.place(mlocation{0,0.05}, i_clamp{1., 2.,  0.1});
+    desc.decorations.place(mlocation{0,0.05}, i_clamp::box(1., 2.,  0.1));
 
     std::vector<cable_cell> cells{desc};
 
@@ -416,12 +416,13 @@ TEST(fvm_lowered, ac_stimulus) {
     segment_tree tree;
     tree.append(mnpos, {0., 0., 0., 1.}, {100., 0., 0., 1.}, 1);
 
-    const double freq = 20; // (Hz)
+    const double freq = 0.02; // (kHz)
+    const double phase = 0.1; // (radian)
     const double max_amplitude = 30; // (nA)
     const double max_time = 8; // (ms)
 
     // Envelope is linear ramp from 0 to max_time.
-    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq));
+    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase));
     std::vector<cable_cell> cells = {cable_cell(tree, {}, dec)};
 
     cable_cell_global_properties gprop;
@@ -455,7 +456,7 @@ TEST(fvm_lowered, ac_stimulus) {
         memory::fill(T, t);
         state.add_stimulus_current();
 
-        double expected_I = t<=max_time? max_amplitude*t/max_time*std::sin(2*math::pi<double>*t*0.001*freq): 0;
+        double expected_I = t<=max_time? max_amplitude*t/max_time*std::sin(2*math::pi<double>*t*freq+phase): 0;
         EXPECT_TRUE(near_relative(-expected_I, J[0]*A[0]*unit_factor, reltol));
     }
 }

@@ -753,6 +753,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     append(left.stimuli.cv, right.stimuli.cv);
     append(left.stimuli.cv_unique, right.stimuli.cv_unique);
     append(left.stimuli.frequency, right.stimuli.frequency);
+    append(left.stimuli.phase, right.stimuli.phase);
     append(left.stimuli.envelope_time, right.stimuli.envelope_time);
     append(left.stimuli.envelope_amplitude, right.stimuli.envelope_amplitude);
 
@@ -1096,6 +1097,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         config.cv.reserve(n);
         config.cv_unique.reserve(n);
         config.frequency.reserve(n);
+        config.phase.reserve(n);
         config.envelope_time.reserve(n);
         config.envelope_amplitude.reserve(n);
 
@@ -1106,6 +1108,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
             config.cv.push_back(cv);
             config.frequency.push_back(stim.frequency);
+            config.phase.push_back(stim.phase);
 
             std::size_t envl_n = stim.envelope.size();
             std::vector<double> envl_t, envl_a;

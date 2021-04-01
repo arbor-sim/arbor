@@ -101,6 +101,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     std::vector<fvm_index_type> edivs;
 
     frequency_ = make_const_view(stim.frequency);
+    phase_ = make_const_view(stim.phase);
 
     arb_assert(n==frequency_.size());
     arb_assert(n==stim.envelope_time.size());
@@ -132,6 +133,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     ppack_.accu_index = accu_index_.data();
     ppack_.accu_to_cv = accu_to_cv_.data();
     ppack_.frequency = frequency_.data();
+    ppack_.phase = phase_.data();
     ppack_.envl_amplitudes = envl_amplitudes_.data();
     ppack_.envl_times = envl_times_.data();
     ppack_.envl_divs = envl_divs_.data();
