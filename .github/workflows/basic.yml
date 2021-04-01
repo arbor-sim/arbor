@@ -92,6 +92,10 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
     steps:
+      - name: Get clang/gcc 8
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.7
         with:
@@ -157,27 +161,27 @@ jobs:
       - if:   ${{ matrix.config.mpi == 'OFF' }}
         name: Run examples
         run: |
-            build/bin/bench 
+            build/bin/bench
             build/bin/brunel
             build/bin/dryrun
             build/bin/gap_junctions
             build/bin/generators
             build/bin/lfp
             build/bin/probe-demo v
-            build/bin/ring 
+            build/bin/ring
             build/bin/single-cell
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run examples with MPI
         run: |
-            mpirun -n 4 -oversubscribe build/bin/bench 
+            mpirun -n 4 -oversubscribe build/bin/bench
             mpirun -n 4 -oversubscribe build/bin/brunel
             mpirun -n 4 -oversubscribe build/bin/dryrun
             mpirun -n 4 -oversubscribe build/bin/gap_junctions
             mpirun -n 4 -oversubscribe build/bin/generators
             mpirun -n 4 -oversubscribe build/bin/lfp
             mpirun -n 4 -oversubscribe build/bin/probe-demo v
-            mpirun -n 4 -oversubscribe build/bin/ring 
-            mpirun -n 4 -oversubscribe build/bin/single-cell     
+            mpirun -n 4 -oversubscribe build/bin/ring
+            mpirun -n 4 -oversubscribe build/bin/single-cell
       - name: Run python tests
         run: python python/test/unit/runner.py
       - if:   ${{ matrix.config.mpi == 'ON' }}
