@@ -482,7 +482,6 @@ Unhandleable exceptions from ``libxml2`` are forwarded via an exception
 
 NeuroML2 morphology support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 NeuroML documents are represented by the ``arborio::neuroml`` class,
 which in turn provides methods for the identification and translation
 of morphology data. ``neuroml`` objects are moveable and move-assignable,
@@ -495,6 +494,9 @@ those which can be represented by an ``unsigned long long`` value.
 the underlying libxml2 library reports a problem that cannot be handled by the ``arborio``
 library. Otherwise, exceptions derived from ``aborio::neuroml_exception`` can be thrown
 when encountering problems interpreting the NeuroML document (see :ref:`cppneuromlexceptions` below).
+
+Special parsing behaviour can be invoked through the use of an enum value in the `neuroml_options`
+namespace.
 
 .. cpp:class:: neuroml
 
@@ -510,15 +512,29 @@ when encountering problems interpreting the NeuroML document (see :ref:`cppneuro
 
    Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
 
-   .. cpp:function:: std::optional<nml_morphology_data> morphology(const std::string&) const
+   .. cpp:function:: std::optional<nml_morphology_data> morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
 
    Return a representation of the top-level morphology with the supplied identifier, or
    ``std::nullopt`` if no such morphology could be found.
 
-   .. cpp:function:: std::optional<nml_morphology_data> cell_morphology(const std::string&) const
+   .. cpp:function:: std::optional<nml_morphology_data> cell_morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
 
    Return a representation of the morphology associated with the cell with the supplied identifier,
    or ``std::nullopt`` if the cell or its morphology could not be found.
+
+.. cpp:enum:: neuroml_options::value
+
+   .. cpp:enumerator:: none
+
+   Perform no special parsing.
+
+   .. cpp:enumerator:: allow_spherical_root
+
+   Replace a zero-length root segment of constant radius with a Y-axis aligned
+   cylindrical segment of the same radius and with length twice the radius. This
+   cylinder will have the equivalent surface area to a sphere of the given radius.
+
+   All child segments will connect to the centre of this cylinder, no matter the value of any ``fractionAlong`` attribute.
 
 The morphology representation contains the corresponding Arbor ``arb::morphology`` object,
 label dictionaries for regions corresponding to its segments and segment groups by name

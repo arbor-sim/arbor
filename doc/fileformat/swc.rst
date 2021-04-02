@@ -30,6 +30,8 @@ its parent and inherits the tag of the sample; and if more than 1 sample have th
 is interpreted as a fork point in the morphology, and acts as the proximal point to a new branch for each of its
 "child" samples. There a couple of exceptions to these rules which are listed below.
 
+.. _formatswc-arbor:
+
 Arbor interpretation
 """"""""""""""""""""
 In addition to the previously listed checks, the arbor interpretation explicitly disallows SWC files where the soma is
@@ -54,52 +56,60 @@ like this:
    :width: 400
    :align: center
 
+.. _formatswc-neuron:
+
 NEURON interpretation
 """""""""""""""""""""
-The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function.
-
-.. note:
-
-   There were bugs in the Import 3D method for SWC files that were addressed with the
-   release of NEURON 8. Arbor uses the new interpretation used by NEURON 8.
+The NEURON interpretation was based on observing the output of NEURON's ``Import3d_SWC_read`` function. Arbor provides
+support for this interpretation, to ease porting of cell models developed in NEURON to Arbor.
 
 NEURON interprets the SWC file using the interpretation used by the
-`Neuromorpho site <http://neuromorpho.org/SomaFormat.html>`_, with the exception
-with how a single-sample soma is interpretted:
-* The soma is constructed from a cylinder extended along the x axis, not the y axis.
+`Neuromorpho site <http://neuromorpho.org/SomaFormat.html>`_, however there are deviations,
+and undocumented interpretations of the soma and how dendrites, axons and apical dendrites are
+attached to it that are not described explicitly by Neuromorpho.
+
+.. Warning::
+
+   The interpretation of SWC files by the import 3D method for SWC files changed NEURON
+   8 to address some issues in earlier versions. Arbor's SWC "NEURON style" reader is
+   based on this newer interpretation.
+
+.. Note::
+
+    The interpretation of the whole morphology is treated as a special case when an SWC
+    description has one or more soma samples. The rules below are applied to the
+    morphology representation only when a soma sample is present, otherwise
+    the standard :ref:`Arbor interpretation <formatswc-arbor>` is applied.
+
+**The first sample is tagged as soma**:
+This requirement is due to NEURON's special-case handling of soma branches connected
+to the soma.
+
+**Every sample must have the same SWC identifier (tag) as its parent, except for
+samples whose parent is tagged as soma**:
+This enforces that axons, dendrites and apical dendrites can only attach to the soma.
+Conversely, it isn't possible to attach an axon to a dendrite, for example.
+
+**Single-sample somas are permitted**:
+The `Neuromorpho guidelines <http://neuromorpho.org/SomaFormat.html>`_ regarding how to
+construct a spherical soma described with a single soma sample are followed, except for
+the following differences:
+
+* The soma is constructed from a cylinder extended along the x-axis, not the y-axis.
 * The soma is constructed from three points, the first at ``x=x0-r``, the second with
   ``x=x0`` and the third at ``x=x0+r``, to form a single section, with all dendrites, axons
   and apical dendrites attached to the center of the soma with "zero resistance wires".
-  * If the Neuromorpho interpretation was followed exactly the soma would be two
-    cylinders that have their proximal ends at the soma center, extended along the
-    y axis, to form two NEURON sections.
 
-Allen interpretation
-""""""""""""""""""""
-In addition to the previously mentioned checks, the Allen interpretation expects a single-sample soma to be the first
-sample of the file and to be interpreted as a spherical soma. Arbor represents the spherical soma as a cylinder with
-length and diameter equal to the diameter of the sample representing the sphere.
+  * The Neuromorpho interpretation uses two cylinders that have their proximal ends at the soma
+    center, extended along the y axis, to form two NEURON sections.
 
-The Allen interpretation applies the rules above, and additional constraints imposed by the
-`SONATA specification <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_.
+**The axon, dendrite and apical sub-trees follow special rules for attachment to the soma**:
+By default, the sub-tree starts at the first sample with the dendrite, axon or apical tag, and not
+at the parent location on the soma, and the sub-tree is connected to its parent with a "zero resistance wire".
+**Except** when the sub tree is defined by a single child sample. In which case the sub-tree is
+composed of a single a segment from the parent location on the soma to the child sample,
+with constant radius of the child.
 
-The main difference to the standard SWC interpretation is the requirement that the soma must be represented with
-a single sample with tag 1, that defines the center and radius of a spherical soma.
-The SONATA specification does not explicitly state how the soma ought to be constructe from cylinders,
-however it is based on the assumption that the cell will be loaded by NEURON, which implies that the soma is
-treated as a cylinder:
-  * with length equal to its diameter;
-  * centered around the origin (0, 0, 0);
-  * composed of two segments aligned along the **x axis**: segment 0 ``prox=(-r 0 0) dist=(0, 0, 0)`` and segment 1 ``prox=(0 0 0 r) dist=(r 0 0 r)`` 
-
-This interpretation also expects that samples have the same tag as their parent, with the exception of those
-whose parent is the soma. When a sample's parent is the soma, no *segment* is created
-between the 2 samples; instead there is a gap in the morphology (represented electrically as a zero-resistance wire).
-Samples with the soma as a parent start new segments, that are connected to the center of the soma, at the origin.
-Only axons, dendrites and apical dendrites (tags 2, 3 and 4 respectively) are allowed in this interpretation,
-in addition to the spherical soma.
-
-Finally, this interpretation translates all samples such that the soma is centered around the origin.
 
 API
 """

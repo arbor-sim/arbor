@@ -88,7 +88,7 @@ class ring_recipe (arbor.recipe):
         src = (gid-1)%self.ncells
         w = 0.01
         d = 5
-        return [arbor.connection((src,0), (gid,0), w, d)]
+        return [arbor.connection((src,0), 0, w, d)]
 
     def num_targets(self, gid):
         return 1
@@ -100,7 +100,7 @@ class ring_recipe (arbor.recipe):
     def event_generators(self, gid):
         if gid==0:
             sched = arbor.explicit_schedule([1])
-            return [arbor.event_generator((0,0), 0.1, sched)]
+            return [arbor.event_generator(0, 0.1, sched)]
         return []
 
     # (10) Place a probe at the root of each cell.

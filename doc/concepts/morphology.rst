@@ -53,7 +53,7 @@ proper definition for a morphology.
    **Field**,      **Type**,                           **Description**
    ``prox``,       :term:`mpoint`,   the centre and radius of the proximal end.
    ``dist``,       :term:`mpoint`,   the centre and radius of the distal end.
-   ``tag``,        integer,              ":term:`tag` meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups"
+   ``tag``,        integer,              ":term:`tag` meta-data, can be used to classify segments of the same kind (ex: soma, dendrite, but also arbitrary use-defined groups)"
 
 .. figure:: ../gen-images/term_segments.svg
   :width: 300
@@ -131,7 +131,7 @@ Segment trees
     and tools that iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
 
 Segment trees comprise a sequence of segments starting from
-at lease one :term:`root` segment, together with a parent-child adjacency relationship
+at least one :term:`root` segment, together with a parent-child adjacency relationship
 where a child segment is distal to its parent. Branches in the tree occur where a segment
 has more than one child. Furthermore, a segment can not have more than one parent.
 In this manner, neuron morphologies are modelled as a tree, where cables that
@@ -515,7 +515,7 @@ The simplest branching morphology is a cable that bifurcates into two branches,
 which we will call a *y-shaped cell*.
 In the example below, the first branch of the tree is a cable of length 10 μm with a
 a radius that tapers from 1 μm to 0.5 μm.
-The two child branches are attached to the end of the first branch, and taper from from 0.5 μ m
+The two child branches are attached to the end of the first branch, and taper from from 0.5 μm
 to 0.2 μm.
 
 Note that only the distal point is required to describe the child segments,
@@ -537,7 +537,7 @@ radius as the distal end of the parent.
 Example 4: Soma with branches
 """"""""""""""""""""""""""""""
 
-Now let's look at cell with a simple dendritic tree attached to a spherical soma.
+Now let's look at a cell with a simple dendritic tree attached to a spherical soma.
 The spherical soma of radius 3 μm is modelled with a cylinder with length and
 diameter equal to 6 μm, which has the same surface area as the sphere.
 
@@ -568,7 +568,7 @@ in the dendritic tree because the segments have parent child ordering and no for
     and no special treatment is given to the soma.
     There is no need to treat segments with different tags (e.g. tags that we might associate
     with soma, axon, basal dendrite and apical dendrite) when defining geometric primitives like
-    segments and branches, because they can later be referenced later using
+    segments and branches, because they can later be referenced using
     :ref:`region expressions <labels-expressions>`.
 
 Now we can attach another dendrite and an axon to the soma, to make a total of three cables
@@ -576,7 +576,7 @@ attached to the soma (two dendrites and an axon).
 The dendrites are attached to the distal end of the soma (segment 0), so they have the
 0 as their parent.
 The axon is attached to the proximal end of the soma, which is at the root of the tree,
-so it has :data:`mnpos` as its parent.
+so it has :py:data:`mnpos <arbor.mnpos>` as its parent.
 There are 7 branches generated from 10 segments, and soma segment is its own branch,
 because it has two children: the dendrites attached to its distal end.
 

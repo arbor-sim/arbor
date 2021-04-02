@@ -277,6 +277,165 @@ R"~(
     }
 }
 
+TEST(neuroml, spherical_segments) {
+    using namespace arb;
+    using namespace arborio::neuroml_options;
+
+    // Spherical root segments can be translated as equivalent-area
+    // cylinders oriented along the y-axis in the generated morphology.
+
+    // Points used in morphology definitions below.
+
+    mpoint p0{1, -2, 3.5, 4};
+    mpoint p1{1, -2, 3.5, 3};
+    mpoint p2{3, -3, 4.5, 5};
+
+    std::string doc =
+R"~(
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2">
+<morphology id="m1">
+    <!-- Single zero-length segment at p0 -->
+    <segment id="0">
+        <proximal x="1" y="-2" z="3.5" diameter="8"/>
+        <distal x="1" y="-2" z="3.5" diameter="8"/>
+    </segment>
+</morphology>
+<morphology id="m2">
+    <!-- Single zero-length segment defined between colocated p0 and p1;
+         diameters differ, so should not be treated as spherical. -->
+    <segment id="0">
+        <proximal x="1" y="-2" z="3.5" diameter="8"/>
+        <distal x="1" y="-2" z="3.5" diameter="6"/>
+    </segment>
+</morphology>
+<morphology id="m3">
+    <!-- Two segments: first is zero-length with ends colocated at p0;
+         second has distal point p2, and attaches at fractionAlong=0.2, but should inherit proximal point p0. -->
+    <segment id="0">
+        <proximal x="1" y="-2" z="3.5" diameter="8"/>
+        <distal x="1" y="-2" z="3.5" diameter="8"/>
+    </segment>
+    <segment id="1">
+        <parent segment="0" fractionAlong="0.2"/>
+        <distal x="3" y="-3" z="4.5" diameter="10"/>
+    </segment>
+</morphology>
+<morphology id="m4">
+    <!-- Two segments: first is between p1 and p2; second is from p2 to p2, but is not the root segment
+         and should not be interpreted as a sphere. -->
+    <segment id="0">
+        <proximal x="1" y="-2" z="3.5" diameter="6"/>
+        <distal x="3" y="-3" z="4.5" diameter="10"/>
+    </segment>
+    <segment id="1">
+        <parent segment="0"/>
+        <proximal x="3" y="-3" z="4.5" diameter="10"/>
+        <distal x="3" y="-3" z="4.5" diameter="10"/>
+    </segment>
+</morphology>
+</neuroml>
+)~";
+
+    arborio::neuroml N(doc);
+
+    {
+        arborio::nml_morphology_data m1 = N.morphology("m1", allow_spherical_root).value();
+        label_dict labels;
+        labels.import(m1.segments, "seg:");
+        mprovider P(m1.morphology, labels);
+
+        EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
+        EXPECT_TRUE(region_eq(P, reg::named("seg:0"), reg::all()));
+
+        place_pwlin G(P.morphology());
+        EXPECT_EQ(p0.radius, G.at(mlocation{0, 0}).radius);
+        EXPECT_EQ(p0.radius, G.at(mlocation{0, 1}).radius);
+
+        mpoint centre = G.at(mlocation{0, 0.5});
+        EXPECT_EQ(p0, centre);
+
+        // Only y-axis points should differ from centre.
+        mpoint l0 = G.at(mlocation{0, 0});
+        mpoint l1 = G.at(mlocation{0, 1});
+        EXPECT_EQ(p0.x, l0.x);
+        EXPECT_NE(p0.y, l0.y);
+        EXPECT_EQ(p0.z, l0.z);
+        EXPECT_EQ(p0.x, l1.x);
+        EXPECT_NE(p0.y, l1.y);
+        EXPECT_EQ(p0.z, l1.z);
+
+        EXPECT_DOUBLE_EQ(2*p0.radius, P.embedding().branch_length(0));
+    }
+    {
+        // With spherical root _not_ provided, treat it just as a simple zero-length segment.
+        arborio::nml_morphology_data m1 = N.morphology("m1", none).value();
+        label_dict labels;
+        labels.import(m1.segments, "seg:");
+        mprovider P(m1.morphology, labels);
+
+        EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
+        EXPECT_TRUE(region_eq(P, reg::named("seg:0"), reg::all()));
+
+        place_pwlin G(P.morphology());
+        EXPECT_EQ(p0, G.at(mlocation{0, 0}));
+        EXPECT_EQ(p0, G.at(mlocation{0, 1}));
+    }
+    {
+        arborio::nml_morphology_data m2 = N.morphology("m2", allow_spherical_root).value();
+        label_dict labels;
+        labels.import(m2.segments, "seg:");
+        mprovider P(m2.morphology, labels);
+
+        EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
+        EXPECT_TRUE(region_eq(P, reg::named("seg:0"), reg::all()));
+
+        // This one shouldn't be interpreted as a sphere.
+        place_pwlin G(P.morphology());
+        auto points = G.all_at(mlocation{0, 0});
+        ASSERT_EQ(2u, points.size());
+        EXPECT_TRUE((p0==points[0] && p1==points[1]) ||
+                    (p0==points[1] && p1==points[0]));
+    }
+    {
+        arborio::nml_morphology_data m3 = N.morphology("m3", allow_spherical_root).value();
+        label_dict labels;
+        labels.import(m3.segments, "seg:");
+        mprovider P(m3.morphology, labels);
+        place_pwlin G(P.morphology());
+
+        // With segment 1 attached to spherical segment 0, we should have three branches.
+        EXPECT_EQ(3u, P.morphology().num_branches());
+
+        mlocation s0centre = thingify(ls::on_components(0.5, reg::named("seg:0")), P).at(0);
+        EXPECT_EQ(p0, G.at(s0centre));
+
+        // Compute locations of ends of segment 1.
+        mlocation s1ploc = thingify(ls::most_proximal(reg::named("seg:1")), P).at(0);
+        mlocation s1dloc = thingify(ls::most_distal(reg::named("seg:1")), P).at(0);
+        mpoint s1p = G.at(s1ploc);
+        mpoint s1d = G.at(s1dloc);
+
+        EXPECT_TRUE(testing::point_almost_eq(p0, s1p));
+        EXPECT_EQ(p2, s1d);
+    }
+    {
+        arborio::nml_morphology_data m4 = N.morphology("m4", allow_spherical_root).value();
+        label_dict labels;
+        labels.import(m4.segments, "seg:");
+        mprovider P(m4.morphology, labels);
+        place_pwlin G(P.morphology());
+
+        // Segment 1 should have colocated, equal radius endpoints, as it is not the root segment.
+        mlocation s1ploc = thingify(ls::most_proximal(reg::named("seg:1")), P).at(0);
+        mlocation s1dloc = thingify(ls::most_distal(reg::named("seg:1")), P).at(0);
+        mpoint s1p = G.at(s1ploc);
+        mpoint s1d = G.at(s1dloc);
+
+        EXPECT_EQ(p2, s1p);
+        EXPECT_EQ(p2, s1d);
+    }
+}
+
 TEST(neuroml, segment_errors) {
     using namespace arb;
 

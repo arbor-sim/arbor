@@ -17,7 +17,7 @@ void register_event_generators(pybind11::module& m) {
 
     event_generator
         .def(pybind11::init<>(
-            [](arb::cell_member_type target, double weight, const schedule_shim_base& sched) {
+            [](arb::cell_lid_type target, double weight, const schedule_shim_base& sched) {
                 return event_generator_shim(target, weight, sched.schedule()); }),
             "target"_a, "weight"_a, "sched"_a,
             "Construct an event generator with arguments:\n"

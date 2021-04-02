@@ -92,7 +92,7 @@ model.catalogue.extend(arbor.allen_catalogue(), "")
 
 # (7) Add probes.
 
-model.probe('voltage', where='"custom_terminal"',  frequency=50000)
+model.probe('voltage', where='"custom_terminal"',  frequency=50)
 
 # (8) Run the simulation.
 

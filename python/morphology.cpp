@@ -413,10 +413,10 @@ void register_morphology(py::module& m) {
             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.segments);},
             "Label dictionary containing one region expression for each segment id.")
         .def("named_segments",
-             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.named_segments);},
+            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.named_segments);},
             "Label dictionary containing one region expression for each name applied to one or more segments.")
         .def("groups",
-             [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.groups);},
+            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.groups);},
             "Label dictionary containing one region expression for each segmentGroup id.")
         .def_readonly("group_segments",
             &arborio::nml_morphology_data::group_segments,
@@ -427,59 +427,64 @@ void register_morphology(py::module& m) {
     neuroml
         // constructors
         .def(py::init(
-            [](std::string fname){
-              std::ifstream fid{fname};
-              if (!fid.good()) {
-                  throw pyarb_error(util::pprintf("can't open file '{}'", fname));
-              }
-              try {
-                  std::string string_data((std::istreambuf_iterator<char>(fid)),
-                                           std::istreambuf_iterator<char>());
-                  return arborio::neuroml(string_data);
-              }
-              catch (arborio::neuroml_exception& e) {
-                  // Try to produce helpful error messages for NeuroML parsing errors.
-                  throw pyarb_error(
-                      util::pprintf("NeuroML error processing file {}: ", fname, e.what()));
-              }
+            [](std::string fname) {
+                std::ifstream fid{fname};
+                if (!fid.good()) {
+                    throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                }
+                try {
+                    std::string string_data((std::istreambuf_iterator<char>(fid)),
+                                             std::istreambuf_iterator<char>());
+                    return arborio::neuroml(string_data);
+                }
+                catch (arborio::neuroml_exception& e) {
+                    // Try to produce helpful error messages for NeuroML parsing errors.
+                    throw pyarb_error(util::pprintf("NeuroML error processing file {}: {}", fname, e.what()));
+                }
             }))
         .def("cell_ids",
-             [](const arborio::neuroml& nml) {
+            [](const arborio::neuroml& nml) {
                 try {
                     return nml.cell_ids();
                 }
                 catch (arborio::neuroml_exception& e) {
                     throw util::pprintf("NeuroML error: {}", e.what());
                 }
-             },"Query top-level cells.")
+            },
+            "Query top-level cells.")
         .def("morphology_ids",
-             [](const arborio::neuroml& nml) {
+            [](const arborio::neuroml& nml) {
                 try {
                     return nml.morphology_ids();
                 }
                 catch (arborio::neuroml_exception& e) {
                     throw util::pprintf("NeuroML error: {}", e.what());
                 }
-             },"Query top-level standalone morphologies.")
+            },
+            "Query top-level standalone morphologies.")
         .def("morphology",
-             [](const arborio::neuroml& nml, const std::string& morph_id) {
+            [](const arborio::neuroml& nml, const std::string& morph_id, bool spherical) {
                 try {
-                    return nml.morphology(morph_id);
+                    using namespace arborio::neuroml_options;
+                    return nml.morphology(morph_id, spherical? allow_spherical_root: none);
                 }
                 catch (arborio::neuroml_exception& e) {
                     throw util::pprintf("NeuroML error: {}", e.what());
                 }
-             },"morph_id"_a,"Retrieve top-level nml_morph_data associated with morph_id.")
+            }, "morph_id"_a, "allow_spherical_root"_a=false,
+            "Retrieve top-level nml_morph_data associated with morph_id.")
         .def("cell_morphology",
-             [](const arborio::neuroml& nml, const std::string& cell_id) {
-               try {
-                   return nml.cell_morphology(cell_id);
-               }
-               catch (arborio::neuroml_exception& e) {
-                   throw util::pprintf("NeuroML error: {}", e.what());
-               }
-             },"morph_id"_a,"Retrieve nml_morph_data associated with cell_id.");
-#endif
+            [](const arborio::neuroml& nml, const std::string& cell_id, bool spherical) {
+                try {
+                    using namespace arborio::neuroml_options;
+                    return nml.cell_morphology(cell_id, spherical? allow_spherical_root: none);
+                }
+                catch (arborio::neuroml_exception& e) {
+                    throw util::pprintf("NeuroML error: {}", e.what());
+                }
+            }, "cell_id"_a, "allow_spherical_root"_a=false,
+            "Retrieve nml_morph_data associated with cell_id.");
+#endif // def ARB_NEUROML_ENABLED
 }
 
 } // namespace pyarb

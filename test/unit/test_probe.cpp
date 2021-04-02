@@ -1249,9 +1249,9 @@ void run_exact_sampling_probe_test(const context& ctx) {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
             case 1:
-                return {gap_junction_connection({gid, 0}, {3, 0}, 1.)};
+                return {gap_junction_connection({3, 0}, 0, 1.)};
             case 3:
-                return {gap_junction_connection({gid, 0}, {1, 0}, 1.)};
+                return {gap_junction_connection({1, 0}, 0, 1.)};
             default:
                 return {};
             }
@@ -1259,7 +1259,7 @@ void run_exact_sampling_probe_test(const context& ctx) {
 
         std::vector<event_generator> event_generators(cell_gid_type gid) const override {
             // Send a single event to cell i at 0.1*i milliseconds.
-            pse_vector spikes = {spike_event{{gid, 0}, 0.1*gid, 1.f}};
+            pse_vector spikes = {spike_event{0, 0.1*gid, 1.f}};
             return {explicit_generator(spikes)};
         }
 

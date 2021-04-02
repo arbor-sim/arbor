@@ -33,11 +33,11 @@ Recipe
 
     .. function:: cell_kind(gid)
 
-        The cell kind of the cell with global identifier :attr:`arbor.cell_member.gid` (return type: :class:`arbor.cell_kind`).
+        The cell kind of the cell with global identifier ``gid`` (return type: :class:`arbor.cell_kind`).
 
     .. function:: cell_description(gid)
 
-        A high level description of the cell with global identifier :attr:`arbor.cell_member.gid`,
+        A high level description of the cell with global identifier ``gid``,
         for example the morphology, synapses and ion channels required to build a multi-compartment neuron.
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are separate
@@ -48,45 +48,43 @@ Recipe
 
     .. function:: connections_on(gid)
 
-        Returns a list of all the **incoming** connections to :attr:`arbor.cell_member.gid`.
-        Each connection should have post-synaptic target ``connection.dest.gid``
-        that matches the argument :attr:`arbor.cell_member.gid`,
-        and a valid synapse id ``connection.dest.index`` on :attr:`arbor.cell_member.gid`.
+        Returns a list of all the **incoming** connections to ``gid``.
+        Each connection should have a valid synapse id ``connection.dest`` on the post-synaptic target ``gid``,
+        and a valid source id ``connection.source.index`` on the pre-synaptic source ``connection.source.gid``.
         See :class:`connection`.
 
         By default returns an empty list.
 
     .. function:: gap_junctions_on(gid)
 
-        Returns a list of all the gap junctions connected to :attr:`arbor.cell_member.gid`.
-        Each gap junction ``gj`` should have one of the two gap junction sites ``gj.local.gid``
-        or ``gj.peer.gid`` matching the argument :attr:`arbor.cell_member.gid`,
-        and the corresponding synapse id ``gj.local.index`` or ``gj.peer.index`` should be valid on :attr:`arbor.cell_member.gid`.
+        Returns a list of all the gap junctions connected to ``gid``.
+        Each gap junction ``gj`` should have a valid gap junction site id ``gj.local`` on ``gid``,
+        and a valid gap junction site id ``gj.peer.index`` on ``gj.peer.gid``.
         See :class:`gap_junction_connection`.
 
         By default returns an empty list.
 
     .. function:: event_generators(gid)
 
-        A list of all the :class:`event_generator` s that are attached to :attr:`arbor.cell_member.gid`.
+        A list of all the :class:`event_generator` s that are attached to ``gid``.
 
         By default returns an empty list.
 
     .. function:: num_sources(gid)
 
-        The number of spike sources on :attr:`arbor.cell_member.gid`.
+        The number of spike sources on ``gid``.
 
         By default returns 0.
 
     .. function:: num_targets(gid)
 
-        The number of post-synaptic sites on :attr:`arbor.cell_member.gid`, which corresponds to the number of synapses.
+        The number of post-synaptic sites on ``gid``, which corresponds to the number of synapses.
 
         By default returns 0.
 
     .. function:: num_gap_junction_sites(gid)
 
-        Returns the number of gap junction sites on :attr:`arbor.cell_member.gid`.
+        Returns the number of gap junction sites on ``gid``.
 
         By default returns 0.
 
@@ -132,7 +130,7 @@ Event generator and schedules
 
     .. attribute:: target
 
-        The target synapse of type :class:`arbor.cell_member`.
+        The target synapse of type :class:`arbor.cell_member.index`.
 
     .. attribute:: weight
 
@@ -222,15 +220,16 @@ An example of an event generator reads as follows:
 
         # define a Poisson schedule with start time 1 ms, expected frequency of 5 Hz,
         # and the target cell's gid as seed
-        target = arbor.cell_member(0,0)
-        seed   = target.gid
-        tstart = 1
-        freq   = 0.005
-        sched  = arbor.poisson_schedule(tstart, freq, seed)
+        def event_generators(gid):
+            target = 0   # index of the synapse on target cell gid
+            seed   = gid
+            tstart = 1
+            freq   = 0.005
+            sched  = arbor.poisson_schedule(tstart, freq, seed)
 
-        # construct an event generator with this schedule on target cell and weight 0.1
-        w      = 0.1
-        gen    = arbor.event_generator(target, w, sched)
+            # construct an event generator with this schedule on target cell and weight 0.1
+            w = 0.1
+            return [arbor.event_generator(target, w, sched)]
 
 Example
 -------
@@ -280,13 +279,13 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
                 src = (gid-1)%self.ncells
                 w = 0.01
                 d = 10
-                return [arbor.connection(arbor.cell_member(src,0), arbor.cell_member(gid,0), w, d)]
+                return [arbor.connection(arbor.cell_member(src,0), 0, w, d)]
 
             # Attach a generator to the first cell in the ring.
             def event_generators(self, gid):
                 if gid==0:
                     sched = arbor.explicit_schedule([1])
-                    return [arbor.event_generator(arbor.cell_member(0,0), 0.1, sched)]
+                    return [arbor.event_generator(0, 0.1, sched)]
                 return []
 
             def get_probes(self, id):

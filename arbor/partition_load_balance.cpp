@@ -92,14 +92,9 @@ domain_decomposition partition_load_balance(
                     // Adjacency list
                     auto conns = rec.gap_junctions_on(element);
                     for (auto c: conns) {
-                        if (element != c.local.gid && element != c.peer.gid) {
-                            throw bad_gj_connection_gid(element, c.local.gid, c.peer.gid);
-                        }
-                        cell_member_type other = c.local.gid == element ? c.peer : c.local;
-
-                        if (!visited.count(other.gid)) {
-                            visited.insert(other.gid);
-                            q.push(other.gid);
+                        if (!visited.count(c.peer.gid)) {
+                            visited.insert(c.peer.gid);
+                            q.push(c.peer.gid);
                         }
                     }
                 }

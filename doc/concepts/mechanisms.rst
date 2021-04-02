@@ -11,7 +11,7 @@ specific language that is similarly used in `NEURON <https://neuron.yale.edu/neu
 
 Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
 compiler. ``modcc`` supports many of NMODL's features but there are a few
-additional `guidelines <https://github.com/arbor-sim/arbor/wiki/Arbor's-NMODL-guidlines>`_
+additional :ref:`guidelines <formatnmodl>`.
 for users who wish to compile their own mechanisms for Arbor. Unfortunately, out-of-tree
 mechanism building is not yet supported in Arbor. However, we have many built-in mechanisms
 that can be used, which are oragnized in *mechanism catalogues*.
@@ -47,7 +47,7 @@ Catalogues provide an interface for querying mechanism metadata, which includes 
 
 Arbor provides a default catalogue of mechanisms as well as two other catalogues containing the sets of common mechanisms
 used by the `Allen Institute <https://alleninstitute.org/>`_ and the `Blue Brain Project <https://portal.bluebrain.epfl.ch/>`_.
-(Find the NMODL decsriptions of the `default mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/default>`_,
+(Find the NMODL descriptions of the `default mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/default>`_,
 the `Allen institute mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/allen>`_ and
 the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/bbp>`_ at the provided links.)
 

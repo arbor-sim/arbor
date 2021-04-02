@@ -26,10 +26,10 @@ The choice of region or locset is reflected in the two broad classes of dynamics
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
 
-Decorations are described by a **decor** object in Arbor.
-Provides facility for
-* setting properties defined over the whole cell
-* descriptions of dynamics applied to regions and locsets
+Decorations are described by a **decor** object in Arbor. It provides facilities for
+
+  * setting properties defined over the whole cell;
+  * descriptions of dynamics applied to regions and locsets.
 
 .. _cablecell-paint:
 
@@ -177,9 +177,9 @@ can't be overridden at cell or region level.
    :widths: 15, 10, 10
 
    **Ion**,     **name**, **Valence**
-   *Calcium*,   ca,       1
+   *Calcium*,   ca,       2
    *Potassium*,  k,       1
-   *Sodium*,    na,       2
+   *Sodium*,    na,       1
 
 Each ion species has the following properties:
 
@@ -198,7 +198,7 @@ If no reversal potential mechanism is specified for an ion species, the initial
 reversal potential values are maintained for the course of a simulation.
 Otherwise, the mechanism does the work.
 
-but it is subject to some strict restrictions.
+Reversal potential mechanisms are density mechanisms subject to some strict restrictions.
 Specifically, a reversal potential mechanism described in NMODL:
 
 * May not maintain any STATE variables.
@@ -215,7 +215,7 @@ and ionic state.
     mechanism only, that calculates reversal potentials according to concentrations
     that the other mechanisms use and modify.
 
-If a reversal potential mechanism that writes to multiple ions,
+If a reversal potential mechanism writes to multiple ions,
 it must be given for either no ions, or all of the ions it writes.
 
 Arbor's default catalogue includes a *nernst* reversal potential, which is
