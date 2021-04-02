@@ -60,48 +60,48 @@ like this:
 
 NEURON interpretation
 """""""""""""""""""""
-The NEURON interpretation was based on observing the output of NEURON's ``Import3d_SWC_read`` function. Arbor provides
-support for this interpretation, to ease porting of cell models developed in NEURON to Arbor.
+Arbor provides support for interpreting SWC inputs in the same way as NEURON,
+to ease porting of cell models developed in NEURON to Arbor.
 
-NEURON interprets the SWC file using the interpretation used by the
-`Neuromorpho site <http://neuromorpho.org/SomaFormat.html>`_, however there are deviations,
-and undocumented interpretations of the soma and how dendrites, axons and apical dendrites are
-attached to it that are not described explicitly by Neuromorpho.
+The NEURON interpretations is based on the observed output of NEURON's ``Import3d_SWC_read``
+function, which is based on the `Neuromorpho approach <http://neuromorpho.org/SomaFormat.html>`_.
+However, there are differences and undocumented interpretations of the soma and how dendrites,
+axons and apical dendrites are attached to it that are not described explicitly by Neuromorpho.
 
 .. Warning::
 
    The interpretation of SWC files by the import 3D method for SWC files changed NEURON
-   8 to address some issues in earlier versions. Arbor's SWC "NEURON style" reader is
-   based on this newer interpretation.
+   8 to address bugs in earlier versions. Arbor's follows the NEURON 8 approach,
+   and can't guarantee compatibility with reconstructed SWC morphologies from NEURON 7.
 
 .. Note::
 
-    The interpretation of the whole morphology is treated as a special case when an SWC
-    description has one or more soma samples. The rules below are applied to the
-    morphology representation only when a soma sample is present, otherwise
-    the standard :ref:`Arbor interpretation <formatswc-arbor>` is applied.
-
-**The first sample is tagged as soma**:
-This requirement is due to NEURON's special-case handling of soma branches connected
-to the soma.
+    The rules below are applied to the morphology representation only when a soma
+    sample ispresent, otherwise the standard
+    :ref:`Arbor interpretation <formatswc-arbor>` is applied.
 
 **Every sample must have the same SWC identifier (tag) as its parent, except for
 samples whose parent is tagged as soma**:
 This enforces that axons, dendrites and apical dendrites can only attach to the soma.
 Conversely, it isn't possible to attach an axon to a dendrite, for example.
 
-**Single-sample somas are permitted**:
-The `Neuromorpho guidelines <http://neuromorpho.org/SomaFormat.html>`_ regarding how to
-construct a spherical soma described with a single soma sample are followed, except for
-the following differences:
+**The first sample is tagged as soma**:
+This requirement is a corollary of the previous rule.
 
-* The soma is constructed from a cylinder extended along the x-axis, not the y-axis.
+**Single-sample somas are permitted**:
+The `Neuromorpho guidelines <http://neuromorpho.org/SomaFormat.html>`_ regarding
+interpretation of a spherical soma described with a single soma sample can be summarised:
+
+* The soma is composed of two cylinders that have their proximal ends at the soma
+  center, extended first along the negative y-axis and then positive y-axis.
+
+Following the Neuromorpho specification, NEURON constructs the soma from two cylinders,
+joined at the soma center. It differs in two ways:
+
+* The soma is extended along the x-axis, not the y-axis.
 * The soma is constructed from three points, the first at ``x=x0-r``, the second with
   ``x=x0`` and the third at ``x=x0+r``, to form a single section, with all dendrites, axons
   and apical dendrites attached to the center of the soma with "zero resistance wires".
-
-  * The Neuromorpho interpretation uses two cylinders that have their proximal ends at the soma
-    center, extended along the y axis, to form two NEURON sections.
 
 **The axon, dendrite and apical sub-trees follow special rules for attachment to the soma**:
 By default, the sub-tree starts at the first sample with the dendrite, axon or apical tag, and not
