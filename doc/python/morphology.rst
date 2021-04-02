@@ -332,16 +332,16 @@ Cable cell morphology
 
     .. note::
         This method does not interpret the first sample, typically associated with the soma,
-        as a sphere. SWCs with single point somas are, unfortunately, reasonably common, for example
+        as a sphere. SWC files with single point somas are common, for example
         `SONATA <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_
         model descriptions.
 
-        Such representations are unfortunate because simulation tools like Arbor and NEURON require
-        the use of cylinders or fustrums to describe morphologies, and it is not possible to
-        infer how branches attached to the soma should be connected.
+        Such representations are challenging to consistently interpret in different
+        simulation tools because they require heuristics and, often undocumented, rules
+        for how to interpret the connectin of axons and dendrites to the soma.
 
-        The :func:`load_swc_allen` and :func:`load_swc_neuron` functions provide support for interpreting
-        such SWC files.
+        The :func:`load_swc_neuron` function provide support for interpreting
+        such SWC files according to the interpretation used by NEURON.
 
 
     :param str filename: the name of the SWC file.
@@ -349,50 +349,11 @@ Cable cell morphology
 
 .. py:function:: load_swc_neuron(filename)
 
-    Loads the :class:`morphology` from an SWC file according to NEURON's SWC specifications.
-    Specifically:
-
-        * The first sample must be a soma sample.
-        * The soma is represented by a series of n≥1 unbranched, serially listed samples.
-        * The soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-          segments forming the soma.
-        * A single-sample soma at is constructed as a cylinder with length=diameter.
-        * If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-          as the parent.
-        * Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
-        * If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-          instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-          electrically as a zero-resistance wire)
-        * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-          tag.
+    Loads the :class:`morphology` from an SWC file according to to how NEURON's ``Import3D``
+    interface's interpretation of the SWC specification.
+    See :ref:`the SWC file documention <formatswc-neuron>` for more details.
 
     :param str filename: the name of the SWC file.
-    :rtype: morphology
-
-
-.. py:function:: load_swc_allen(filename, no_gaps=False)
-
-    Loads the :class:`morphology` from an SWC file according to the AllenDB and Sonata's SWC specifications.
-    Specifically:
-
-        * The first sample (the root) is treated as the centre of the soma.
-        * The morphology is translated such that the soma is centred at (0,0,0).
-        * The first sample has tag 1 (soma).
-        * All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)
-
-    SONATA prescribes that there should be no gaps, however some models in AllenDB
-    have gaps between the start of sections and the soma. The ``no_gaps`` flag can be
-    used to enforce this requirement.
-
-    Arbor does not support modelling the soma as a sphere, so a cylinder with length
-    equal to the soma diameter is used. The cylinder is centred on the origin, and
-    aligned along the z axis.
-    Axons and apical dendrites are attached to the proximal end of the cylinder, and
-    dendrites to the distal end, with a gap between the start of each branch and the
-    end of the soma cylinder to which it is attached.
-
-    :param str filename: the name of the SWC file.
-    :param bool no_gaps: enforce that distance between soma centre and branches attached to soma is the soma radius.
     :rtype: morphology
 
 .. py:class:: place_pwlin

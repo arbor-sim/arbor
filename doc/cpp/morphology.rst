@@ -12,7 +12,7 @@ Morphology API
 
 .. todo::
 
-   TODO: Describe morphology methods.
+   Describe morphology methods.
 
 .. _cppcablecell-morphology-construction:
 
@@ -21,7 +21,7 @@ Constructing cell morphologies
 
 .. todo::
 
-   TODO: Description of segment trees.
+   Description of segment trees.
 
 
 The stitch-builder interface
@@ -354,7 +354,6 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 :ref:`page <morph-formats>` for more details).
 
   * :cpp:func:`load_swc_arbor`
-  * :cpp:func:`load_swc_allen`
   * :cpp:func:`load_swc_neuron`
 
 .. cpp:class:: swc_record
@@ -403,18 +402,13 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
 .. cpp:function:: morphology load_swc_arbor(const swc_data& data)
 
-   Returns a :cpp:type:`morphology` constructed according to Arbor's SWC specifications.
-
-.. cpp:function:: morphology load_swc_allen(const swc_data& data, bool no_gaps=false)
-
-   Returns a :cpp:type:`morphology` constructed according to the Allen Institute's SWC
-   specifications. By default, gaps in the morphology are allowed, this can be toggled
-   using the ``no_gaps`` argument.
+   Returns a :cpp:type:`morphology` constructed according to Arbor's
+   :ref:`SWC specifications <formatswc-arbor>`.
 
 .. cpp:function:: morphology load_swc_neuron(const swc_data& data)
 
-   Returns a :cpp:type:`morphology` constructed according to NEURON's SWC specifications.
-
+   Returns a :cpp:type:`morphology` constructed according to NEURON's
+   :ref:`SWC specifications <formatswc-neuron>`.
 
 .. _cppasc:
 
@@ -424,8 +418,8 @@ Neurolucida ASCII
 Arbor supports reading morphologies described using the
 :ref:`Neurolucida ASCII file format <formatasc>`.
 
-The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`asc_morphology` object,
-which a simple struct with two members representing the morphology and a label dictionary with labeled
+The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`asc_morphology` object:
+a simple struct with two members representing the morphology and a label dictionary with labeled
 regions and locations.
 
 .. cpp:class:: asc_morphology

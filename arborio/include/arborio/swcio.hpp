@@ -38,41 +38,6 @@ struct swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
 };
 
-// Smells like a non-spherical soma.
-struct swc_non_spherical_soma: swc_error {
-    explicit swc_non_spherical_soma(int record_id);
-};
-
-// Missing soma.
-struct swc_no_soma: swc_error {
-    explicit swc_no_soma(int record_id);
-};
-
-// Non-consecutive soma samples.
-struct swc_non_consecutive_soma: swc_error {
-    explicit swc_non_consecutive_soma(int record_id);
-};
-
-// Non-serial soma samples.
-struct swc_non_serial_soma: swc_error {
-    explicit swc_non_serial_soma(int record_id);
-};
-
-// Sample connecting to the middle of a soma causing an unsupported branch.
-struct swc_branchy_soma: swc_error {
-    explicit swc_branchy_soma(int record_id);
-};
-
-// Sample connecting to the middle of a soma causing an unsupported branch.
-struct swc_collocated_soma: swc_error {
-    explicit swc_collocated_soma(int record_id);
-};
-
-// Sample is not part of a segment
-struct swc_single_sample_segment: swc_error {
-    explicit swc_single_sample_segment(int record_id);
-};
-
 // Segment cannot have samples with different tags
 struct swc_mismatched_tags: swc_error {
     explicit swc_mismatched_tags(int record_id);
@@ -81,16 +46,6 @@ struct swc_mismatched_tags: swc_error {
 // Only tags 1, 2, 3, 4 supported
 struct swc_unsupported_tag: swc_error {
     explicit swc_unsupported_tag(int record_id);
-};
-
-// No gaps allowed
-struct swc_unsupported_gaps: swc_error {
-    explicit swc_unsupported_gaps(int record_id);
-};
-
-// Can't form a segment from a single sample
-struct swc_bad_description: swc_error {
-    explicit swc_bad_description(int record_id);
 };
 
 struct swc_record {
@@ -177,10 +132,8 @@ arb::morphology load_swc_arbor(const swc_data& data);
 //
 // Note that 'one-point soma' SWC files are supported here
 //
-// These functions comply with inferred SWC rules from the Allen institute and Neuron.
-// These rules are explicitly listed in the docs.
+// Complies inferred SWC rules from NEURON, explicitly listed in the docs.
 
 arb::morphology load_swc_neuron(const swc_data& data);
-arb::morphology load_swc_allen(const swc_data& data, bool no_gaps=false);
 
 } // namespace arborio
