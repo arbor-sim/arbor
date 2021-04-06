@@ -31,7 +31,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         # Get a description of the partition of the model over the cores.
         decomp = arbor.partition_load_balance(recipe, context)
 
-        # Instatitate the simulation.
+        # Instantiate the simulation.
         sim = arbor.simulation(recipe, decomp, context)
 
         # Run the simulation for 2000 ms with time stepping of 0.025 ms
@@ -185,7 +185,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
 .. class:: sampling_policy
 
-    Enumeration for deteriming sampling policy.
+    Enumeration for determining sampling policy.
 
     .. attribute:: lax
 
@@ -216,7 +216,7 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
 
         import arbor
 
-        # Instatitate the simulation.
+        # Instantiate the simulation.
         sim = arbor.simulation(recipe, decomp, context)
 
         # Direct the simulation to record all spikes.
