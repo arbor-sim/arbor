@@ -1,5 +1,5 @@
 #include <cstring>
-#include <iostream>
+#include <ostream>
 #include <fstream>
 #include <numeric>
 
@@ -162,6 +162,7 @@ struct asc_color {
     uint8_t b;
 };
 
+[[maybe_unused]]
 std::ostream& operator<<(std::ostream& o, const asc_color& c) {
     return o << "(asc-color " << (int)c.r << " " << (int)c.g << " " << (int)c.b << ")";
 }
@@ -251,6 +252,7 @@ struct zsmear {
     double beta;
 };
 
+[[maybe_unused]]
 std::ostream& operator<<(std::ostream& o, const zsmear& z) {
     return o << "(zsmear " << z.alpha << " " << z.beta << ")";
 }

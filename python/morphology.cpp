@@ -260,48 +260,11 @@ void register_morphology(py::module& m) {
         "filename"_a,
         "Generate a morphology from an SWC file following the rules prescribed by Arbor.\n"
         "Specifically:\n"
-        "* Single-segment somas are disallowed. These are usually interpreted as spherical somas\n"
-        "  and are a special case. This behavior is not allowed using this SWC loader.\n"
+        "* Single-segment somas are disallowed.\n"
         "* There are no special rules related to somata. They can be one or multiple branches\n"
         "  and other segments can connect anywhere along them.\n"
         "* A segment is always created between a sample and its parent, meaning there\n"
         "  are no gaps in the resulting morphology.");
-
-    m.def("load_swc_allen",
-        [](std::string fname, bool no_gaps=false) {
-            std::ifstream fid{fname};
-            if (!fid.good()) {
-                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
-            }
-            try {
-                auto data = arborio::parse_swc(fid);
-                check_trailing(fid, fname);
-                return arborio::load_swc_allen(data, no_gaps);
-
-            }
-            catch (arborio::swc_error& e) {
-                // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(
-                        util::pprintf("Allen SWC: error parsing {}: {}", fname, e.what()));
-            }
-        },
-        "filename"_a, "no_gaps"_a=false,
-        "Generate a morphology from an SWC file following the rules prescribed by AllenDB\n"
-        " and Sonata. Specifically:\n"
-        "* The first sample (the root) is treated as the centre of the soma.\n"
-        "* The first morphology is translated such that the soma is centred at (0,0,0).\n"
-        "* The first sample has tag 1 (soma).\n"
-        "* All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)\n"
-        "SONATA prescribes that there should be no gaps, however the models in AllenDB\n"
-        "have gaps between the start of sections and the soma. The flag no_gaps can be\n"
-        "used to enforce this requirement.\n"
-        "\n"
-        "Arbor does not support modelling the soma as a sphere, so a cylinder with length\n"
-        "equal to the soma diameter is used. The cylinder is centred on the origin, and\n"
-        "aligned along the z axis.\n"
-        "Axons and apical dendrites are attached to the proximal end of the cylinder, and\n"
-        "dendrites to the distal end, with a gap between the start of each branch and the\n"
-        "end of the soma cylinder to which it is attached.");
 
     m.def("load_swc_neuron",
         [](std::string fname) {
@@ -322,23 +285,8 @@ void register_morphology(py::module& m) {
         },
         "filename"_a,
         "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
-        " Specifically:\n"
-        "* The first sample must be a soma sample.\n"
-        "* The soma is represented by a series of n≥1 unbranched, serially listed samples.\n"
-        "* The soma is constructed as a single cylinder with diameter equal to the piecewise\n"
-        "  average diameter of all the segments forming the soma.\n"
-        "* A single-sample soma at is constructed as a cylinder with length=diameter.\n"
-        "* If a non-soma sample is to have a soma sample as its parent, it must have the\n"
-        "  most distal sample of the soma as the parent.\n"
-        "* Every non-soma sample that has a soma sample as its parent, attaches to the\n"
-        "  created soma cylinder at its midpoint.\n"
-        "* If a non-soma sample has a soma sample as its parent, no segment is created\n"
-        "  between the sample and its parent, instead that sample is the proximal point of\n"
-        "  a new segment, and there is a gap in the morphology (represented electrically as a\n"
-        "  zero-resistance wire)\n"
-        "* To create a segment with a certain tag, that is to be attached to the soma,\n"
-        "  we need at least 2 samples with that tag."
-        );
+        "See the documentation https://arbor.readthedocs.io/en/latest/fileformat/swc.html\n"
+        "for a detailed description of the interpretation.");
 
     // arb::morphology
 
