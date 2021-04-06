@@ -226,6 +226,10 @@ arb::morphology load_swc_neuron(const swc_data& data) {
         }
 
         // No soma: fall back to Arbor interpretation.
+        // Check for tags unsupported by NEURON beforehand.
+        if (auto it=std::find_if(R.begin(), R.end(), [](const auto& r) {return r.tag<1 || r.tag>4;}); it!=R.end()) {
+            throw swc_unsupported_tag(R[std::distance(R.begin(), it)].id);
+        }
         return load_swc_arbor(data);
     }
 
@@ -239,7 +243,10 @@ arb::morphology load_swc_neuron(const swc_data& data) {
         record_index[r.id] = i;
         old_record_index[i] = r.id;
         r.id = i;
-        r.parent_id = record_index.at(r.parent_id);
+        if (!record_index.count(r.parent_id)) {
+            throw swc_no_such_parent(r.parent_id);
+        }
+        r.parent_id = record_index[r.parent_id];
     }
 
     // Calculate meta-data

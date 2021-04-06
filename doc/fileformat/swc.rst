@@ -13,10 +13,11 @@ The description of the morphology is encoded as a list of samples with an id,
 an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
 then generates a morphology according to one of three possible interpretations.
 
-The SWC file format specifications are not very detailed, which has lead different simulators to interpret
-SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that
+The SWC file format specifications does not describe how the file should be interpretted to reconstruct
+a morphology from SWC samples. This has lead different simulators to interpret SWC files in different
+ways, specifically the reconstruction of the soma. Arbor has its own an interpretation that
 is powerful and simple to understand at the same time. However, we have also developed functions that will
-interpret SWC files similarly to how the NEURON simulator would, and how the Allen Institute would.
+interpret SWC files similarly to how the NEURON simulator would.
 
 Despite the differences between the interpretations, there is a common set of checks that are always performed
 to validate an SWC file:
@@ -70,14 +71,14 @@ axons and apical dendrites are attached to it that are not described explicitly 
 
 .. Warning::
 
-   The interpretation of SWC files by the import 3D method for SWC files changed NEURON
-   8 to address bugs in earlier versions. Arbor's follows the NEURON 8 approach,
+   The interpretation of SWC files by NEURON's import 3D method changed in NEURON
+   8 to address bugs in earlier versions. Arbor follows the NEURON 8 approach,
    and can't guarantee compatibility with reconstructed SWC morphologies from NEURON 7.
 
 .. Note::
 
     The rules below are applied to the morphology representation only when a soma
-    sample ispresent, otherwise the standard
+    sample is present, otherwise the default
     :ref:`Arbor interpretation <formatswc-arbor>` is applied.
 
 **Every sample must have the same SWC identifier (tag) as its parent, except for

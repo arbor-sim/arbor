@@ -340,8 +340,8 @@ Cable cell morphology
         simulation tools because they require heuristics and, often undocumented, rules
         for how to interpret the connectin of axons and dendrites to the soma.
 
-        The :func:`load_swc_neuron` function provide support for interpreting
-        such SWC files according to the interpretation used by NEURON.
+        The :func:`load_swc_neuron` function provides support for loading
+        SWC files according to the interpretation used by NEURON.
 
 
     :param str filename: the name of the SWC file.
@@ -349,8 +349,8 @@ Cable cell morphology
 
 .. py:function:: load_swc_neuron(filename)
 
-    Loads the :class:`morphology` from an SWC file according to to how NEURON's ``Import3D``
-    interface's interpretation of the SWC specification.
+    Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
+    interpretation of the SWC specification.
     See :ref:`the SWC file documention <formatswc-neuron>` for more details.
 
     :param str filename: the name of the SWC file.
