@@ -290,7 +290,7 @@ See :ref:`modelgapjunctions`.
 A current stimulus is a DC or sinusoidal current of fixed frequency with a time-varying amplitude
 governed by a piecewise-linear envelope.
 
-The stimulus is described by theww parameters:
+The stimulus is described by three parameters:
 a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ) describing the envelope, where the times
 *t*\ :sub:`i` are in milliseconds and the amplitudes *a*\ :sub:`i` are in nanoamperes;
 a frequency in kilohertz, where a value of zero denotes DC; and the phase in radians at time zero.

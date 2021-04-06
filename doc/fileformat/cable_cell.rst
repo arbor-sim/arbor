@@ -148,29 +148,29 @@ The various properties and dynamics of the decor are described as follows:
 
       (ion-reversal-potential-method "ca" (mechanism "nernst/ca"))
 
-.. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real)
+.. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real phase:real)
 
-   This creates a *current clamp*. If the frequency ``freq`` (unit Hz) is zero, the current is a square
+   This creates a *current clamp*. If the frequency ``freq`` (unit kHz) is zero, the current is a square
    pulse with amplitude ``amplitude`` (unit nA) starting at ``delay`` (unit ms) and lasting for ``duration``
    (unit ms). If ``freq`` is non-zero, the current is sinusoidal with amplitude ``amplitude`` and frequency
-   ``freq`` from time ``delay`` and lasting for ``duration``.
+   ``freq`` from time ``delay`` and lasting for ``duration``, with phase ``phase`` (unit rad) at time zero.
    (More information about current clamps can be found :ref:`here <cablecell-stimuli>`).
 
-.. label:: (current-clamp [...(envelope time:real amplitude:real)] freq:real)
+.. label:: (current-clamp [...(envelope time:real amplitude:real)] freq:real phase:real)
 
    This creates a *current clamp* with an amplitude governed by the given envelopes (``time`` unit ms and
-   ``amplitude`` unit nA). A frequency ``freq`` (unit Hz) of zero implies that the generated current simply
+   ``amplitude`` unit nA). A frequency ``freq`` (unit kHz) of zero implies that the generated current simply
    follows the envelope. A non-zero ``freq`` implies the current is sinusoidal with that frequency and amplitude
-   that varies according to the envelope. (More information about current clamps can be found
-   :ref:`here <cablecell-stimuli>`).
+   that varies according to the envelope. The ``phase`` (unit rad) is the phase of the sinusoidal current
+   clamp at time zero. (More information about current clamps can be found :ref:`here <cablecell-stimuli>`).
    For example:
 
    .. code::
 
-      (current-clamp (envelope (0 10) (50 10) (50 0)) 40)
+      (current-clamp (envelope (0 10) (50 10) (50 0)) 0.04 0.15)
 
-   This expression describes a sinusoidal current with amplitude 10nA and frequency 40Hz and that lasts
-   from t = 0ms to t = 50ms, finally leaving the current at 0nA (final amplitude in the envelope).
+   This expression describes a sinusoidal current with amplitude 10 nA and frequency 40 Hz and that lasts
+   from t = 0 ms to t = 50 ms, finally leaving the current at 0 nA (final amplitude in the envelope).
 
 .. label:: (threshold-detector val:real).
 
@@ -205,7 +205,7 @@ The various properties and dynamics of the decor are described as follows:
 
       (place (locset "mylocset") (threshold-detector 10))
 
-   This expression places a 10 mV threshold detector on the locset labeled ``mylocset``.
+   This expression places a 10 mV threshold detector on the locset labeled ``mylocset``.
    (The definition of ``mylocset`` should be provided in a label dictionary associated
    with the decor).
 
@@ -219,7 +219,7 @@ The various properties and dynamics of the decor are described as follows:
 
       (default (membrane-potential -65))
 
-   This expression sets the default membrane potential of the cell to -65 mV.
+   This expression sets the default membrane potential of the cell to -65 mV.
 
 Any number of paint, place and default expressions can be used to create a decor as follows:
 
