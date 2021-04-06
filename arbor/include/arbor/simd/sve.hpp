@@ -800,10 +800,12 @@ void compound_indexed_add(
     }
 }
 
+[[maybe_unused]]
 static int width(const svfloat64_t& v) {
     return svlen_f64(v);
 };
 
+[[maybe_unused]]
 static int width(const svint64_t& v) {
     return svlen_s64(v);
 };
@@ -890,13 +892,13 @@ struct simd_cast_impl {
         return r;
     }
 };
+}  // namespace detail
 
 template <typename T, typename Other>
 void assign(T& a, const Other& b) {
     a = detail::simd_cast_impl<T>::cast(b);
 }
 
-}  // namespace detail
 }  // namespace simd
 }  // namespace arb
 
