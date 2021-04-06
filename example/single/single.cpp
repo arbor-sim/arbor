@@ -119,19 +119,19 @@ options parse_options(int argc, char** argv) {
 
     char** arg = argv+1;
     while (*arg) {
-        if (auto dt = parse<double>(arg, 'd', "dt")) {
+        if (auto dt = parse<double>(arg, "-d", "--dt")) {
             opt.dt = dt.value();
         }
-        else if (auto t_end = parse<double>(arg, 't', "t-end")) {
+        else if (auto t_end = parse<double>(arg, "-t", "--t-end")) {
             opt.t_end = t_end.value();
         }
-        else if (auto weight = parse<float>(arg, 'w', "weight")) {
+        else if (auto weight = parse<float>(arg, "-w", "--weight")) {
             opt.syn_weight = weight.value();
         }
-        else if (auto swc = parse<std::string>(arg, 'm', "morphology")) {
+        else if (auto swc = parse<std::string>(arg, "-m", "--morphology")) {
             opt.swc_file = swc.value();
         }
-        else if (auto nseg = parse<unsigned>(arg, 'n', "cv-per-branch")) {
+        else if (auto nseg = parse<unsigned>(arg, "-n", "--cv-per-branch")) {
             opt.policy = arb::cv_policy_fixed_per_branch(nseg.value());
         }
         else {
