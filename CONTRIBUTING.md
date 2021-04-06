@@ -8,8 +8,8 @@ There are many ways to contribute: writing tutorials or blog posts, improving th
 documentation, submitting bug reports and feature requests or writing code which can be
 incorporated into Arbor itself.
 
-The Arbor documentation has a [Contributing section](https://arbor.readthedocs.io/en/latest/contrib) where we have laid out how you
-can go about making your contribution.
+The Arbor documentation has a [Contributing section](https://arbor.readthedocs.io/en/latest/contrib)
+where we have laid out how you can go about making your contribution.
 
 ## Get in touch
 
