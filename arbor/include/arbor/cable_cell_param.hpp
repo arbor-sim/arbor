@@ -54,27 +54,32 @@ struct i_clamp {
     };
 
     std::vector<envelope_point> envelope;
-    double frequency = 0; // [Hz] 0 => constant
+    double frequency = 0; // [kHz] 0 => constant
+    double phase = 0;     // [rad]
 
     // A default constructed i_clamp, with empty envelope, describes
     // a trivial stimulus, providing no current at all.
     i_clamp() = default;
 
     // The simple constructor describes a constant amplitude stimulus starting from t=0.
-    explicit i_clamp(double amplitude, double frequency = 0):
+    explicit i_clamp(double amplitude, double frequency = 0, double phase = 0):
         envelope({{0., amplitude}}),
-        frequency(frequency)
+        frequency(frequency),
+        phase(phase)
     {}
 
     // Describe a stimulus by envelope and frequency.
-    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0):
+    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0, double phase = 0):
         envelope(std::move(envelope)),
-        frequency(frequency)
+        frequency(frequency),
+        phase(phase)
     {}
 
     // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
-    i_clamp(double onset, double duration, double amplitude, double frequency = 0):
-        i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency) {}
+    static i_clamp box(double onset, double duration, double amplitude, double frequency = 0, double phase = 0) {
+        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency, phase);
+    }
+
 };
 
 // Threshold detector description.

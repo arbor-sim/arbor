@@ -288,24 +288,25 @@ void register_cells(pybind11::module& m) {
         "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
     i_clamp
         .def(pybind11::init(
-                [](double ts, double dur, double cur, double frequency) {
-                    return arb::i_clamp{ts, dur, cur, frequency};
-                }), "tstart"_a, "duration"_a, "current"_a, "frequency"_a=0,
+                [](double ts, double dur, double cur, double frequency, double phase) {
+                    return arb::i_clamp::box(ts, dur, cur, frequency, phase);
+                }), "tstart"_a, "duration"_a, "current"_a, pybind11::kw_only(), "frequency"_a=0, "phase"_a=0,
                 "Construct finite duration current clamp, constant amplitude")
         .def(pybind11::init(
-                [](double cur, double frequency) {
-                    return arb::i_clamp{cur, frequency};
-                }), "current"_a, "frequency"_a=0,
+                [](double cur, double frequency, double phase) {
+                    return arb::i_clamp{cur, frequency, phase};
+                }), "current"_a, pybind11::kw_only(), "frequency"_a=0, "phase"_a=0,
                 "Construct constant amplitude current clamp")
         .def(pybind11::init(
-                [](std::vector<std::pair<double, double>> envl, double frequency) {
+                [](std::vector<std::pair<double, double>> envl, double frequency, double phase) {
                     arb::i_clamp clamp;
                     for (const auto& p: envl) {
                         clamp.envelope.push_back({p.first, p.second});
                     }
                     clamp.frequency = frequency;
+                    clamp.phase = phase;
                     return clamp;
-                }), "envelope"_a, "frequency"_a=0,
+                }), "envelope"_a, pybind11::kw_only(), "frequency"_a=0, "phase"_a=0,
                 "Construct current clamp according to (time, amplitude) linear envelope")
         .def_property_readonly("envelope",
                 [](const arb::i_clamp& obj) {
@@ -316,7 +317,8 @@ void register_cells(pybind11::module& m) {
                     return envl;
                 },
                 "List of (time [ms], amplitude [nA]) points comprising the piecewise linear envelope")
-        .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency [Hz], zero implies DC stimulus.")
+        .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
+        .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
         .def("__repr__", [](const arb::i_clamp& c) {
             return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);})
         .def("__str__", [](const arb::i_clamp& c) {

@@ -317,7 +317,7 @@ std::ostream& operator<<(std::ostream& o, const i_clamp& c) {
     for (const auto& p: c.envelope) {
         o << " (" << p.t << " " << p.amplitude << ')';
     }
-    return o << ") " << c.frequency << ')';
+    return o << ") " << c.frequency << ' ' << c.phase << ')';
 }
 std::ostream& operator<<(std::ostream& o, const threshold_detector& p) {
     return o << "(threshold-detector " << p.threshold << ')';
@@ -463,7 +463,7 @@ TEST(decor_literals, round_tripping) {
     auto default_literals = {
         "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))"};
     auto place_literals = {
-        "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0)",
+        "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 10 0.25)",
         "(threshold-detector -10)",
         "(gap-junction-site)",
         "(mechanism \"expsyn\")"};
@@ -480,8 +480,8 @@ TEST(decor_literals, round_tripping) {
     for (auto l: place_literals) {
         EXPECT_EQ(l, round_trip_variant<placeable>(l));
     }
-    auto clamp_literal = "(current-clamp (envelope-pulse 10 5 0.1) 50)";
-    EXPECT_EQ("(current-clamp (envelope (10 0.1) (15 0.1) (15 0)) 50)", round_trip_variant<placeable>(clamp_literal));
+    auto clamp_literal = "(current-clamp (envelope-pulse 10 5 0.1) 50 0.5)";
+    EXPECT_EQ("(current-clamp (envelope (10 0.1) (15 0.1) (15 0)) 50 0.5)", round_trip_variant<placeable>(clamp_literal));
 
     std::string mech_str = "(mechanism \"kamt\" (\"gbar\" 50) (\"zetam\" 0.1) (\"q10\" 5))";
     auto maybe_mech = arborio::parse_expression(mech_str);
@@ -524,7 +524,7 @@ TEST(decor_expressions, round_tripping) {
         "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))"
     };
     auto decorate_place_literals = {
-        "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0))",
+        "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0.5 0.25))",
         "(place (terminal) (threshold-detector -10))",
         "(place (root) (gap-junction-site))",
         "(place (locset \"my!ls\") (mechanism \"expsyn\"))"};
@@ -825,6 +825,7 @@ TEST(cable_cell_literals, errors) {
                      "(mechanism \"pas\" (\"g\" 0.5 0.1) (\"e\" 0.2))", // too many values
                      "(gap-junction-site 0)",                // too many arguments
                      "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)))",  // too few arguments
+                     "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 10)",  // too few arguments
                      "(paint (region) (mechanism \"hh\"))",  // invalid region
                      "(paint (tag 1) (mechanims hh))",       // invalid painting
                      "(paint (terminal) (membrance-capacitance 0.2))", // can't paint a locset
@@ -872,7 +873,7 @@ TEST(doc_expressions, parse) {
                      "(locset-def \"my_locset\" (location 3 0.5))",
                      "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
-                     "(current-clamp (envelope (0 10) (50 10) (50 0)) 40)",
+                     "(current-clamp (envelope (0 10) (50 10) (50 0)) 40 0.25)",
                      "(paint (tag 1) (membrane-capacitance 0.02))",
                      "(place (locset \"mylocset\") (threshold-detector 10))",
                      "(default (membrane-potential -65))",

@@ -122,7 +122,7 @@ struct cable_recipe: public arb::recipe {
 
         arb::decor decor;
         decor.paint(arb::reg::all(), "hh"); // HH mechanism over whole cell.
-        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{0., INFINITY, 1.}); // Inject a 1 nA current indefinitely.
+        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}); // Inject a 1 nA current indefinitely.
 
         return arb::cable_cell(tree, {}, decor);
     }

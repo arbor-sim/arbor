@@ -110,7 +110,7 @@ void run_v_i_probe_test(const context& ctx) {
 
     bs.decorations.set_default(cv_policy_fixed_per_branch(1));
 
-    i_clamp stim(0, 100, 0.3);
+    auto stim = i_clamp::box(0, 100, 0.3);
     bs.decorations.place(mlocation{1, 1}, stim);
 
     cable1d_recipe rec((cable_cell(bs)));
@@ -792,7 +792,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
     d.set_default(policy);
 
-    d.place(mlocation{0, 0}, i_clamp(0, INFINITY, 0.3));
+    d.place(mlocation{0, 0}, i_clamp(0.3));
 
     // The time constant will be membrane capacitance / membrane conductance.
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
@@ -989,8 +989,8 @@ void run_v_sampled_probe_test(const context& ctx) {
     // samples at the same point on each cell will give the same value at
     // 0.3 ms, but different at 0.6 ms.
 
-    d0.place(mlocation{1, 1}, i_clamp(0, 0.5, 1.));
-    d1.place(mlocation{1, 1}, i_clamp(0, 1.0, 1.));
+    d0.place(mlocation{1, 1}, i_clamp::box(0, 0.5, 1.));
+    d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.));
     mlocation probe_loc{1, 0.2};
 
     std::vector<cable_cell> cells = {{bs.morph, bs.labels, d0}, {bs.morph, bs.labels, d1}};
@@ -1040,7 +1040,7 @@ void run_total_current_probe_test(const context& ctx) {
     // to 0.01 F/m².
 
     const double tau = 0.1;     // [ms]
-    d0.place(mlocation{0, 0}, i_clamp(0, INFINITY, 0.3));
+    d0.place(mlocation{0, 0}, i_clamp(0.3));
 
     d0.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
     d0.set_default(membrane_capacitance{0.01}); // [F/m²]
@@ -1161,13 +1161,13 @@ void run_stimulus_probe_test(const context& ctx) {
 
     decor d0, d1;
     d0.set_default(policy);
-    d0.place(mlocation{0, 0.5}, i_clamp(0., stim_until, 10.));
-    d0.place(mlocation{0, 0.5}, i_clamp(0., stim_until, 20.));
+    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 10.));
+    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 20.));
     double expected_stim0 = 30;
 
     d1.set_default(policy);
-    d1.place(mlocation{0, 1}, i_clamp(0., stim_until, 30.));
-    d1.place(mlocation{0, 1}, i_clamp(0., stim_until, -10.));
+    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, 30.));
+    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.));
     double expected_stim1 = 20;
 
     std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};

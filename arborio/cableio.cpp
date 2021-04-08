@@ -61,7 +61,7 @@ s_expr mksexp(const i_clamp& c) {
     std::transform(c.envelope.begin(), c.envelope.end(), std::back_inserter(evlps),
         [](const auto& x){return slist(x.t, x.amplitude);});
     auto envelope = slist("envelope"_symbol, slist_range(evlps));
-    return slist("current-clamp"_symbol, envelope, c.frequency);
+    return slist("current-clamp"_symbol, envelope, c.frequency, c.phase);
 }
 s_expr mksexp(const threshold_detector& d) {
     return slist("threshold-detector"_symbol, d.threshold);
@@ -234,14 +234,14 @@ std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::v
         });
     return envlp;
 }
-arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp, double freq) {
-    return arb::i_clamp(envlp, freq);
+arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp, double freq, double phase) {
+    return arb::i_clamp(envlp, freq, phase);
 }
 pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude) {
     return pulse_tuple{delay, duration, amplitude};
 }
-arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq) {
-    return arb::i_clamp(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq);
+arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq, double phase) {
+    return arb::i_clamp::box(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq, phase);
 }
 arb::gap_junction_site make_gap_junction_site() {
     return arb::gap_junction_site{};
@@ -757,10 +757,10 @@ eval_map named_evals{
                      "`envelope` with one or more pairs of start time and amplitude (start:real amplitude:real)")},
     {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,
                           "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
-    {"current-clamp", make_call<std::vector<arb::i_clamp::envelope_point>, double>(make_i_clamp,
-                          "`current-clamp` with 2 arguments (env:envelope freq:real)")},
-    {"current-clamp", make_call<pulse_tuple, double>(make_i_clamp_pulse,
-                          "`current-clamp` with 2 arguments (env:envelope_pulse freq:real)")},
+    {"current-clamp", make_call<std::vector<arb::i_clamp::envelope_point>, double, double>(make_i_clamp,
+                          "`current-clamp` with 3 arguments (env:envelope freq:real phase:real)")},
+    {"current-clamp", make_call<pulse_tuple, double, double>(make_i_clamp_pulse,
+                          "`current-clamp` with 3 arguments (env:envelope_pulse freq:real phase:real)")},
     {"threshold-detector", make_call<double>(make_threshold_detector,
                                "'threshold-detector' with 1 argument (threshold:real)")},
     {"gap-junction-site", make_call<>(make_gap_junction_site,

@@ -12,6 +12,7 @@ struct istim_pp {
     const fvm_index_type* accu_index;
     const fvm_index_type* accu_to_cv;
     const fvm_value_type* frequency;
+    const fvm_value_type* phase;
     const fvm_value_type* envl_amplitudes;
     const fvm_value_type* envl_times;
     const fvm_index_type* envl_divs;

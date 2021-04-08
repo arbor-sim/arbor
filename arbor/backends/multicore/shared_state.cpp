@@ -92,7 +92,8 @@ void ion_state::reset() {
 istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
     alignment(min_alignment(align)),
     accu_to_cv_(stim.cv_unique.begin(), stim.cv_unique.end(), pad(alignment)),
-    frequency_(stim.frequency.begin(), stim.frequency.end(), pad(alignment))
+    frequency_(stim.frequency.begin(), stim.frequency.end(), pad(alignment)),
+    phase_(stim.phase.begin(), stim.phase.end(), pad(alignment))
 {
     using util::assign;
 
@@ -138,7 +139,7 @@ void istim_state::reset() {
 }
 
 void istim_state::add_current(const array& time, const iarray& cv_to_intdom, array& current_density) {
-    constexpr double freq_scale = 2*math::pi<double>*0.001;
+    constexpr double two_pi = 2*math::pi<double>;
 
     // Consider vectorizing...
     for (auto i: util::count_along(accu_index_)) {
@@ -168,7 +169,7 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
         }
 
         if (frequency_[i]) {
-            J *= std::sin(freq_scale*frequency_[i]*t);
+            J *= std::sin(two_pi*frequency_[i]*t + phase_[i]);
         }
 
         accu_stim_[ai] += J;
