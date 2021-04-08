@@ -894,8 +894,8 @@ struct simd_cast_impl {
 };
 }  // namespace detail
 
-template <typename T, typename Other, typename = std::enable_if_t<detail::is_sve<T>::value>>
-void assign(T& a, const Other& b) {
+template <typename T, typename Other>
+void assign(T& a, const Other& b, typename std::enable_if_t<detail::is_sve<T>::value>* = 0) {
     a = detail::simd_cast_impl<T>::cast(b);
 }
 
