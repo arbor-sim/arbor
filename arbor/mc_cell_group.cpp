@@ -583,4 +583,8 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
     return result;
 }
 
+std::vector<std::tuple<cell_gid_type, std::string, lid_range>> mc_cell_group::get_source_table() const {
+    return lowered_->source_table();
+}
+
 } // namespace arb

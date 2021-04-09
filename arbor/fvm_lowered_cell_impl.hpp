@@ -83,6 +83,10 @@ public:
         return mechanisms_;
     }
 
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table() override {
+        return source_table_;
+    }
+
 private:
     // Host or GPU-side back-end dependent storage.
     using array = typename backend::array;
@@ -110,6 +114,9 @@ private:
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_;
+
+    // Source table storing gid, source_label and corresponding lid_range on the cell
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -396,6 +403,15 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
                }
            });
+
+    int i = 0;
+    for (const auto& c: cells) {
+        for (const auto& item: c.labeled_source_lid_ranges()) {
+            source_table_.emplace_back(gids[i], item.first, item.second);
+        }
+        ++i;
+    }
+    std::sort(source_table_.begin(), source_table_.end());
 
     cable_cell_global_properties global_props;
     try {

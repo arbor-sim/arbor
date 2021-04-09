@@ -53,6 +53,9 @@ struct cable_cell_impl {
     // The lid ranges of placements.
     std::vector<lid_range> placed_lid_ranges;
 
+    // The source_label; -> lid_range map
+    dynamic_typed_map<constant_type<std::unordered_map<std::string, lid_range>>::type> labeled_lid_ranges;
+
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
         dictionary(labels),
@@ -79,7 +82,7 @@ struct cable_cell_impl {
     }
 
     template <typename Item>
-    lid_range place(const locset& ls, const Item& item) {
+    lid_range place(const locset& ls, const Item& item, const std::string& label) {
         auto& mm = get_location_map(item);
         cell_lid_type& lid = placed_count.get<Item>();
         cell_lid_type first = lid;
@@ -88,7 +91,9 @@ struct cable_cell_impl {
             placed<Item> p{l, lid++, item};
             mm.push_back(p);
         }
-        return lid_range(first, lid);
+        auto range = lid_range(first, lid);
+        labeled_lid_ranges.get<Item>().insert(std::make_pair(label, range));
+        return range;
     }
 
     template <typename T>
@@ -151,14 +156,12 @@ impl_ptr make_impl(cable_cell_impl* c) {
 void cable_cell_impl::init(const decor& d) {
     for (const auto& p: d.paintings()) {
         auto& where = p.first;
-        std::visit([this, &where] (auto&& what) {this->paint(where, what);},
-                   p.second);
+        std::visit([this, &where] (auto&& what) {this->paint(where, what);}, p.second);
     }
     for (const auto& p: d.placements()) {
-        auto& where = p.first;
-        auto lids =
-            std::visit([this, &where] (auto&& what) {return this->place(where, what);},
-                       p.second);
+        auto& where = std::get<0>(p);
+        auto& label = std::get<2>(p);
+        auto lids = std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label);}, std::get<1>(p));
         placed_lid_ranges.push_back(lids);
     }
 }
@@ -215,6 +218,10 @@ const cable_cell_parameter_set& cable_cell::default_parameters() const {
 
 lid_range cable_cell::placed_lid_range(unsigned id) const {
     return impl_->placed_lid_range(id);
+}
+
+const std::unordered_map<std::string, lid_range>& cable_cell::labeled_source_lid_ranges() const {
+    return impl_->labeled_lid_ranges.get<mechanism_desc>();
 }
 
 } // namespace arb

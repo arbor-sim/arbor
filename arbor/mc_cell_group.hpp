@@ -55,6 +55,8 @@ public:
 
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const override;
 
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> get_source_table() const override;
+
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;

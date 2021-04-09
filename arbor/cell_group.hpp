@@ -44,6 +44,10 @@ public:
     virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
         return {};
     }
+
+    virtual std::vector<std::tuple<cell_gid_type, std::string, lid_range>> get_source_table() const {
+        return {};
+    };
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

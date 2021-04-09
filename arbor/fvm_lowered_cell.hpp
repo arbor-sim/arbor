@@ -211,6 +211,8 @@ struct fvm_lowered_cell {
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) = 0;
 
+    virtual std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table() = 0;
+
     virtual fvm_value_type time() const = 0;
 
     virtual ~fvm_lowered_cell() {}

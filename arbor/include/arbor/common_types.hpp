@@ -51,7 +51,18 @@ struct cell_member_type {
     cell_lid_type index;
 };
 
+// Pair of indexes that describe range of local indices.
+// Returned by cable_cell::place() calls, so that the caller can
+// refer to targets, detectors, etc on the cell.
+struct lid_range {
+    cell_lid_type begin;
+    cell_lid_type end;
+    lid_range(cell_lid_type b, cell_lid_type e):
+        begin(b), end(e) {}
+};
+
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
 
 // For storing time values [ms]
 

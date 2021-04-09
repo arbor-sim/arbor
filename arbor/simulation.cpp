@@ -1,3 +1,4 @@
+#include <iostream>
 #include <memory>
 #include <set>
 #include <vector>
@@ -230,6 +231,14 @@ simulation_state::simulation_state(
             auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
             group = factory(group_info.gids, rec);
         });
+
+    for(const auto& c: cell_groups_) {
+        auto map = c->get_source_table();
+        for (const auto& item: map) {
+            std::cout << std::get<0>(item) << ", " << std::get<1>(item) << ", (" << std::get<2>(item).begin << " -> " << std::get<2>(item).end << ")" << std::endl;
+        }
+        std::cout << std::endl;
+    }
 
     // Create event lane buffers.
     // One buffer is consumed by cell group updates while the other is filled with events for
