@@ -123,6 +123,41 @@ TEST(mpi, gather_string) {
     }
 }
 
+TEST(mpi, gather_string_vec) {
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
+
+    // Make a string of variable length, with the character
+    // in the string distrubuted as follows
+    // rank string
+    //  0   a
+    //  1   bb
+    //  2   ccc
+    //  3   dddd
+    //   ...
+    // 25   zzzz...zzz   (26 times z)
+    // 26   aaaa...aaaa  (27 times a)
+    auto make_string = [](int length, int id) {
+      return std::string(length, 'a'+char(id%26));};
+
+    std::vector<std::string> string_vec(id+1);
+    for (int i = 0; i < id+1; ++i) {
+        string_vec[i] = make_string(i+1, id);
+    }
+
+    auto gathered = mpi::gather_all(string_vec, MPI_COMM_WORLD);
+
+    int expected_size = size*(size+1)/2;
+    ASSERT_TRUE(expected_size==(int)gathered.size());
+
+    int idx = 0;
+    for (std::size_t i = 0; i < size; ++i) {
+        for (std::size_t j = 0; j < i+1; ++j) {
+            EXPECT_EQ(make_string(j+1, i), gathered[idx++]);
+        }
+    }
+}
+
 TEST(mpi, gather) {
     int id = mpi::rank(MPI_COMM_WORLD);
     int size = mpi::size(MPI_COMM_WORLD);
