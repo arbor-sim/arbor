@@ -85,6 +85,10 @@ public:
         return impl_->gather(value, root);
     }
 
+    cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {
+        return impl_->gather_labeled_range(local_ranges);
+    }
+
 private:
     struct interface {
         virtual gathered_vector<arb::spike>
@@ -98,6 +102,7 @@ private:
 
         ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
         virtual std::vector<std::string> gather(std::string value, int root) const = 0;
+        virtual cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const = 0;
 
         virtual ~interface() {}
     };
@@ -132,6 +137,10 @@ private:
 
         std::vector<std::string> gather(std::string value, int root) const override {
             return wrapped.gather(value, root);
+        }
+
+        cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const override {
+            return wrapped.gather_labeled_range(local_ranges);
         }
 
         Impl wrapped;
@@ -173,6 +182,8 @@ struct local_context {
 
     template <typename T>
     std::vector<T> gather(T value, int) const { return {std::move(value)}; }
+
+    cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {return std::move(local_ranges); }
 
     void barrier() const {}
 

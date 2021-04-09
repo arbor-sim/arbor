@@ -232,12 +232,20 @@ simulation_state::simulation_state(
             group = factory(group_info.gids, rec);
         });
 
+    cell_labeled_range split_table;
     for(const auto& c: cell_groups_) {
-        auto map = c->get_source_table();
-        for (const auto& item: map) {
-            std::cout << std::get<0>(item) << ", " << std::get<1>(item) << ", (" << std::get<2>(item).begin << " -> " << std::get<2>(item).end << ")" << std::endl;
+        auto table = c->get_source_table();
+        for (const auto& item: table) {
+            split_table.gids.push_back(std::get<0>(item));
+            split_table.labels.push_back(std::get<1>(item));
+            split_table.ranges.push_back(std::get<2>(item));
         }
-        std::cout << std::endl;
+    }
+
+    auto gathered_source_tables = ctx.distributed->gather_labeled_range(split_table);
+
+    for (unsigned i = 0; i < gathered_source_tables.gids.size(); ++i) {
+        std::cout << gathered_source_tables.gids[i] << ", " << gathered_source_tables.labels[i] << ", (" << gathered_source_tables.ranges[i].begin << " -> " << gathered_source_tables.ranges[i].end << ")" << std::endl;
     }
 
     // Create event lane buffers.

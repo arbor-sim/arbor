@@ -86,6 +86,20 @@ struct dry_run_context_impl {
         return std::vector<T>(num_ranks_, value);
     }
 
+    cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {
+        cell_labeled_range global_ranges;
+        global_ranges.gids.reserve(local_ranges.gids.size()*num_ranks_);
+        global_ranges.labels.reserve(local_ranges.labels.size()*num_ranks_);
+        global_ranges.ranges.reserve(local_ranges.ranges.size()*num_ranks_);
+
+        for (unsigned i = 0; i < num_ranks_; i++) {
+            std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), global_ranges.gids.begin(), [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
+            global_ranges.labels.insert(global_ranges.labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
+            global_ranges.ranges.insert(global_ranges.ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
+        }
+        return global_ranges;
+    }
+
     void barrier() const {}
 
     std::string name() const { return "dryrun"; }

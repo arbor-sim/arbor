@@ -38,6 +38,14 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
+    cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {
+        cell_labeled_range global_ranges;
+        global_ranges.gids = mpi::gather_all(local_ranges.gids, comm_);
+        global_ranges.labels = mpi::gather_all(local_ranges.labels, comm_);
+        global_ranges.ranges = mpi::gather_all(local_ranges.ranges, comm_);
+        return global_ranges;
+    }
+
     std::string name() const { return "MPI"; }
     int id() const { return rank_; }
     int size() const { return size_; }

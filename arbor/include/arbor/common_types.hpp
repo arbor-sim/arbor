@@ -57,12 +57,19 @@ struct cell_member_type {
 struct lid_range {
     cell_lid_type begin;
     cell_lid_type end;
+    lid_range() {};
     lid_range(cell_lid_type b, cell_lid_type e):
         begin(b), end(e) {}
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
+
+struct cell_labeled_range {
+    std::vector<cell_gid_type> gids;
+    std::vector<std::string> labels;
+    std::vector<lid_range> ranges;
+};
 
 // For storing time values [ms]
 
