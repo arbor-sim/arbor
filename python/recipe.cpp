@@ -158,15 +158,15 @@ void register_recipe(pybind11::module& m) {
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
         .def(pybind11::init<arb::cell_member_type, arb::cell_lid_type, double>(),
-            "local"_a, "peer"_a, "ggap"_a,
+            "peer"_a, "local"_a, "ggap"_a,
             "Construct a gap junction connection with arguments:\n"
-            "  local: One half of the gap junction connection.\n"
-            "  peer:  Other half of the gap junction connection.\n"
+            "  peer:  One half of the gap junction connection.\n"
+            "  local: Other half of the gap junction connection.\n"
             "  ggap:  Gap junction conductance [μS].")
-        .def_readwrite("local", &arb::gap_junction_connection::local,
-            "One half of the gap junction connection.")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,
-            "Other half of the gap junction connection.")
+            "Peer half of the gap junction connection.")
+        .def_readwrite("local", &arb::gap_junction_connection::local,
+            "Local half of the gap junction connection.")
         .def_readwrite("ggap", &arb::gap_junction_connection::ggap,
             "Gap junction conductance [μS].")
         .def("__str__",  &gj_to_string)
