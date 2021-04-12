@@ -406,7 +406,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     int i = 0;
     for (const auto& c: cells) {
-        for (const auto& item: c.labeled_source_lid_ranges()) {
+        for (const auto& item: c.labeled_source_ranges()) {
             source_table_.emplace_back(gids[i], item.first, item.second);
         }
         ++i;

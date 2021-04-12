@@ -39,11 +39,10 @@ struct mpi_context_impl {
     }
 
     cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {
-        cell_labeled_range global_ranges;
-        global_ranges.gids = mpi::gather_all(local_ranges.gids, comm_);
-        global_ranges.labels = mpi::gather_all(local_ranges.labels, comm_);
-        global_ranges.ranges = mpi::gather_all(local_ranges.ranges, comm_);
-        return global_ranges;
+        std::vector<cell_gid_type> gids   = mpi::gather_all(local_ranges.gids, comm_);
+        std::vector<cell_tag_type> labels = mpi::gather_all(local_ranges.labels, comm_);
+        std::vector<lid_range> ranges     = mpi::gather_all(local_ranges.ranges, comm_);
+        return cell_labeled_range(gids, labels, ranges);
     }
 
     std::string name() const { return "MPI"; }

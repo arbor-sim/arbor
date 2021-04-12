@@ -86,7 +86,7 @@ public:
 
     // Each cell has one spike detector (at the soma).
     cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
+        return gid+2;
     }
 
     // The cell has one target synapse, which will be connected to cell gid-1.
@@ -97,7 +97,9 @@ public:
     // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        return {arb::cell_connection({src, 0}, 0, event_weight_, min_delay_)};
+        return {arb::cell_connection({src, "for funsies!"}, 0, event_weight_, min_delay_),
+                arb::cell_connection({src, "for funsies!"}, 0, event_weight_, min_delay_),
+                arb::cell_connection({src, "for funsies!"}, 0, event_weight_, min_delay_)};
     }
 
     // Return one event generator on gid 0. This generates a single event that will

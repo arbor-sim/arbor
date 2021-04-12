@@ -87,17 +87,20 @@ struct dry_run_context_impl {
     }
 
     cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {
-        cell_labeled_range global_ranges;
-        global_ranges.gids.reserve(local_ranges.gids.size()*num_ranks_);
-        global_ranges.labels.reserve(local_ranges.labels.size()*num_ranks_);
-        global_ranges.ranges.reserve(local_ranges.ranges.size()*num_ranks_);
+        std::vector<cell_gid_type> gids;
+        std::vector<cell_tag_type> labels;
+        std::vector<lid_range> ranges;
+
+        gids.reserve(local_ranges.gids.size()*num_ranks_);
+        labels.reserve(local_ranges.labels.size()*num_ranks_);
+        ranges.reserve(local_ranges.ranges.size()*num_ranks_);
 
         for (unsigned i = 0; i < num_ranks_; i++) {
-            std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), global_ranges.gids.begin(), [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
-            global_ranges.labels.insert(global_ranges.labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
-            global_ranges.ranges.insert(global_ranges.ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
+            std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), gids.begin(), [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
+            labels.insert(labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
+            ranges.insert(ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
         }
-        return global_ranges;
+        return cell_labeled_range(gids, labels, ranges);
     }
 
     void barrier() const {}

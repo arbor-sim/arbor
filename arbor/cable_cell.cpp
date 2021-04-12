@@ -220,7 +220,11 @@ lid_range cable_cell::placed_lid_range(unsigned id) const {
     return impl_->placed_lid_range(id);
 }
 
-const std::unordered_map<std::string, lid_range>& cable_cell::labeled_source_lid_ranges() const {
+const std::unordered_map<std::string, lid_range>& cable_cell::labeled_source_ranges() const {
+    return impl_->labeled_lid_ranges.get<threshold_detector>();
+}
+
+const std::unordered_map<std::string, lid_range>& cable_cell::labeled_target_ranges() const {
     return impl_->labeled_lid_ranges.get<mechanism_desc>();
 }
 

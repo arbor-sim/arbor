@@ -41,13 +41,13 @@ struct cell_connection {
     // Connection end-points are represented by pairs
     // (cell index, source/target index on cell).
 
-    cell_member_type source;
+    cell_label_type source;
     cell_lid_type dest;
 
     float weight;
     float delay;
 
-    cell_connection(cell_member_type src, cell_lid_type dst, float w, float d):
+    cell_connection(cell_label_type src, cell_lid_type dst, float w, float d):
         source(src), dest(dst), weight(w), delay(d)
     {}
 };

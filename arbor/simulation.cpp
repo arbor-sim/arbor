@@ -184,10 +184,38 @@ simulation_state::simulation_state(
         const domain_decomposition& decomp,
         execution_context ctx
     ):
-    communicator_(rec, decomp, ctx),
     task_system_(ctx.thread_pool),
     local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
 {
+    // Generate the cell groups in parallel, with one task per cell group.
+    cell_groups_.resize(decomp.groups.size());
+    foreach_group_index(
+        [&](cell_group_ptr& group, int i) {
+          const auto& group_info = decomp.groups[i];
+          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
+          group = factory(group_info.gids, rec);
+        });
+
+
+    std::vector<cell_gid_type> gids;
+    std::vector<cell_tag_type> labels;
+    std::vector<lid_range> ranges;
+    for(const auto& c: cell_groups_) {
+        auto table = c->get_source_table();
+        for (const auto& item: table) {
+            gids.push_back(std::get<0>(item));
+            labels.push_back(std::get<1>(item));
+            ranges.push_back(std::get<2>(item));
+        }
+    }
+    auto gathered_source_tables = ctx.distributed->gather_labeled_range(cell_labeled_range(gids, labels, ranges));
+
+    auto t = cell_labeled_range(gids, labels, ranges);
+    for (unsigned i = 0; i < gathered_source_tables.gids.size(); ++i) {
+        std::cout << gathered_source_tables.gids[i] << ", " << gathered_source_tables.labels[i] << ", (" << gathered_source_tables.ranges[i].begin << " -> " << gathered_source_tables.ranges[i].end << ")" << std::endl;
+    }
+    communicator_ = arb::communicator(rec, decomp, gathered_source_tables, ctx);
+
     const auto num_local_cells = communicator_.num_local_cells();
 
     // Use half minimum delay of the network for max integration interval.
@@ -221,31 +249,6 @@ simulation_state::simulation_state(
             ++lidx;
         }
         ++grpidx;
-    }
-
-    // Generate the cell groups in parallel, with one task per cell group.
-    cell_groups_.resize(decomp.groups.size());
-    foreach_group_index(
-        [&](cell_group_ptr& group, int i) {
-            const auto& group_info = decomp.groups[i];
-            auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
-            group = factory(group_info.gids, rec);
-        });
-
-    cell_labeled_range split_table;
-    for(const auto& c: cell_groups_) {
-        auto table = c->get_source_table();
-        for (const auto& item: table) {
-            split_table.gids.push_back(std::get<0>(item));
-            split_table.labels.push_back(std::get<1>(item));
-            split_table.ranges.push_back(std::get<2>(item));
-        }
-    }
-
-    auto gathered_source_tables = ctx.distributed->gather_labeled_range(split_table);
-
-    for (unsigned i = 0; i < gathered_source_tables.gids.size(); ++i) {
-        std::cout << gathered_source_tables.gids[i] << ", " << gathered_source_tables.labels[i] << ", (" << gathered_source_tables.ranges[i].begin << " -> " << gathered_source_tables.ranges[i].end << ")" << std::endl;
     }
 
     // Create event lane buffers.

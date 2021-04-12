@@ -23,8 +23,9 @@
 namespace arb {
 
 communicator::communicator(const recipe& rec,
-                          const domain_decomposition& dom_dec,
-                          execution_context& ctx)
+                           const domain_decomposition& dom_dec,
+                           const cell_labeled_range& source_ranges,
+                           execution_context& ctx)
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -80,12 +81,8 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
-            auto num_sources = rec.num_sources(c.source.gid);
             if (c.source.gid >= num_total_cells) {
                 throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
-            }
-            if (c.source.index >= num_sources) {
-                throw arb::bad_connection_source_lid(cell.gid, c.source.index, num_sources);
             }
             if (c.dest >= num_targets) {
                 throw arb::bad_connection_target_lid(cell.gid, c.dest, num_targets);
@@ -106,7 +103,9 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
-            connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+            auto src_lid = source_ranges.get_lid(c.source);
+            std::cout << "(" << c.source.gid << " " << src_lid.value() << ") -> " << "(" << cell.gid << " " << c.dest << ")" <<  std::endl;
+            connections_[i] = {{c.source.gid, src_lid.value()}, c.dest, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
     }

@@ -293,8 +293,10 @@ public:
     // the placement index is the value returned by calling decor::place().
     lid_range placed_lid_range(unsigned idx) const;
 
-    // The labeled lid_ranges of sources on the cell;
-    const std::unordered_map<std::string, lid_range>& labeled_source_lid_ranges() const;
+    // The labeled lid_ranges of sources, targets and gap_junctions on the cell;
+    const std::unordered_map<std::string, lid_range>& labeled_source_ranges() const;
+    const std::unordered_map<std::string, lid_range>& labeled_target_ranges() const;
+    const std::unordered_map<std::string, lid_range>& labeled_gap_junction_ranges() const;
 
     private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

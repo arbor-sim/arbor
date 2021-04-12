@@ -31,7 +31,7 @@ struct cell_parameters {
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
-    unsigned synapses = 1;
+    unsigned synapses = 10;
 };
 
 cell_parameters parse_cell_parameters(nlohmann::json& json) {
@@ -117,15 +117,14 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10});
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "my_detector");
 
     // Add a synapse to the mid point of the first dendrite.
-    decor.place(arb::mlocation{0, 0.5}, "expsyn");
+    decor.place(arb::mlocation{0, 0.5}, "expsyn", "my_primary_syn");
 
     // Add additional synapses that will not be connected to anything.
-    for (unsigned i=1u; i<params.synapses; ++i) {
-        decor.place(arb::mlocation{1, 0.5}, "expsyn");
-    }
+    decor.place(arb::ls::uniform("dend"_lab, 1, params.synapses-1, gid), "expsyn", "my_extra_syns");
+    decor.place(arb::ls::uniform("dend"_lab, 12, 12+gid, gid), arb::threshold_detector{10}, "for funsies!");
 
     // Make a CV between every sample in the sample tree.
     decor.set_default(arb::cv_policy_every_segment());
