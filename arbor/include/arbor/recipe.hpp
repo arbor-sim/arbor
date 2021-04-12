@@ -42,12 +42,12 @@ struct cell_connection {
     // (cell index, source/target index on cell).
 
     cell_label_type source;
-    cell_lid_type dest;
+    cell_tag_type dest;
 
     float weight;
     float delay;
 
-    cell_connection(cell_label_type src, cell_lid_type dst, float w, float d):
+    cell_connection(cell_label_type src, cell_tag_type dst, float w, float d):
         source(src), dest(dst), weight(w), delay(d)
     {}
 };

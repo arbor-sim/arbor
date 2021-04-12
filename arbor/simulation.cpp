@@ -196,25 +196,27 @@ simulation_state::simulation_state(
           group = factory(group_info.gids, rec);
         });
 
-
-    std::vector<cell_gid_type> gids;
-    std::vector<cell_tag_type> labels;
-    std::vector<lid_range> ranges;
+    std::cout << "here" << std::endl;
+    cell_labeled_range local_sources, local_targets;
     for(const auto& c: cell_groups_) {
-        auto table = c->get_source_table();
-        for (const auto& item: table) {
-            gids.push_back(std::get<0>(item));
-            labels.push_back(std::get<1>(item));
-            ranges.push_back(std::get<2>(item));
-        }
+        local_sources.append(cell_labeled_range(c->get_source_table()));
+        local_targets.append(cell_labeled_range(c->get_target_table()));
     }
-    auto gathered_source_tables = ctx.distributed->gather_labeled_range(cell_labeled_range(gids, labels, ranges));
+    std::cout << local_sources.indices.size() << std::endl;
+    std::cout << local_targets.indices.size() << std::endl;
+    auto global_sources = ctx.distributed->gather_labeled_range(local_sources);
+    communicator_ = arb::communicator(rec, decomp, global_sources, local_targets, ctx);
 
-    auto t = cell_labeled_range(gids, labels, ranges);
-    for (unsigned i = 0; i < gathered_source_tables.gids.size(); ++i) {
-        std::cout << gathered_source_tables.gids[i] << ", " << gathered_source_tables.labels[i] << ", (" << gathered_source_tables.ranges[i].begin << " -> " << gathered_source_tables.ranges[i].end << ")" << std::endl;
+    for (unsigned i = 0; i < global_sources.gids.size(); ++i) {
+        std::cout << global_sources.gids[i] << ", " << global_sources.labels[i] << ", (" << global_sources.ranges[i].begin << " -> " << global_sources.ranges[i].end << ")" << std::endl;
     }
-    communicator_ = arb::communicator(rec, decomp, gathered_source_tables, ctx);
+    std::cout << std::endl;
+
+    for (unsigned i = 0; i < local_targets.gids.size(); ++i) {
+        std::cout << local_targets.gids[i] << ", " << local_targets.labels[i] << ", (" << local_targets.ranges[i].begin << " -> " << local_targets.ranges[i].end << ")" << std::endl;
+    }
+    std::cout << std::endl;
+
 
     const auto num_local_cells = communicator_.num_local_cells();
 

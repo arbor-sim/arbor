@@ -586,5 +586,11 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
 std::vector<std::tuple<cell_gid_type, std::string, lid_range>> mc_cell_group::get_source_table() const {
     return lowered_->source_table();
 }
+std::vector<std::tuple<cell_gid_type, std::string, lid_range>> mc_cell_group::get_target_table() const {
+    return lowered_->target_table();
+}
+std::vector<std::tuple<cell_gid_type, std::string, lid_range>> mc_cell_group::get_gap_junction_table() const {
+    return lowered_->gap_junction_table();
+}
 
 } // namespace arb

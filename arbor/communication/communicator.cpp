@@ -25,6 +25,7 @@ namespace arb {
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
                            const cell_labeled_range& source_ranges,
+                           const cell_labeled_range& target_ranges,
                            execution_context& ctx)
 {
     distributed_ = ctx.distributed;
@@ -79,13 +80,9 @@ communicator::communicator(const recipe& rec,
     std::vector<cell_size_type> src_counts(num_domains_);
 
     for (const auto& cell: gid_infos) {
-        auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
             if (c.source.gid >= num_total_cells) {
                 throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
-            }
-            if (c.dest >= num_targets) {
-                throw arb::bad_connection_target_lid(cell.gid, c.dest, num_targets);
             }
             const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
@@ -104,8 +101,9 @@ communicator::communicator(const recipe& rec,
         for (auto c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
             auto src_lid = source_ranges.get_lid(c.source);
-            std::cout << "(" << c.source.gid << " " << src_lid.value() << ") -> " << "(" << cell.gid << " " << c.dest << ")" <<  std::endl;
-            connections_[i] = {{c.source.gid, src_lid.value()}, c.dest, c.weight, c.delay, cell.index_on_domain};
+            auto tgt_lid = target_ranges.get_lid({cell.gid, c.dest});
+            std::cout << "(" << c.source.gid << " " << src_lid.value() << ") -> " << "(" << cell.gid << " " << tgt_lid.value() << ")" <<  std::endl;
+            connections_[i] = {{c.source.gid, src_lid.value()}, tgt_lid.value(), c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
     }

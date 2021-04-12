@@ -86,6 +86,12 @@ public:
     std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table() override {
         return source_table_;
     }
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> target_table() override {
+        return target_table_;
+    }
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> gap_junction_table() override {
+        return gap_junction_table_;
+    }
 
 private:
     // Host or GPU-side back-end dependent storage.
@@ -117,6 +123,8 @@ private:
 
     // Source table storing gid, source_label and corresponding lid_range on the cell
     std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table_;
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> target_table_;
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> gap_junction_table_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -409,9 +417,17 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         for (const auto& item: c.labeled_source_ranges()) {
             source_table_.emplace_back(gids[i], item.first, item.second);
         }
+        for (const auto& item: c.labeled_target_ranges()) {
+            target_table_.emplace_back(gids[i], item.first, item.second);
+        }
+        for (const auto& item: c.labeled_gap_junction_ranges()) {
+            gap_junction_table_.emplace_back(gids[i], item.first, item.second);
+        }
         ++i;
     }
     std::sort(source_table_.begin(), source_table_.end());
+    std::sort(target_table_.begin(), target_table_.end());
+    std::sort(gap_junction_table_.begin(), gap_junction_table_.end());
 
     cable_cell_global_properties global_props;
     try {

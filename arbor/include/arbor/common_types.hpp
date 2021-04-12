@@ -95,9 +95,27 @@ struct cell_labeled_range {
 
     mutable std::vector<cell_lid_type> indices;
 
-    cell_labeled_range() = delete;
+    cell_labeled_range() = default;
     cell_labeled_range(std::vector<cell_gid_type> gids, std::vector<cell_tag_type> lbls, std::vector<lid_range> rngs):
         gids(std::move(gids)), labels(std::move(lbls)), ranges(std::move(rngs)), indices(ranges.size(), 0) {};
+
+    cell_labeled_range(std::vector<std::tuple<cell_gid_type, std::string, lid_range>> tuple_vec): indices(tuple_vec.size(), 0) {
+        gids.reserve(tuple_vec.size());
+        labels.reserve(tuple_vec.size());
+        ranges.reserve(tuple_vec.size());
+        for (const auto& item: tuple_vec) {
+            gids.push_back(std::get<0>(item));
+            labels.push_back(std::get<1>(item));
+            ranges.push_back(std::get<2>(item));
+        }
+    }
+
+    void append(cell_labeled_range other) {
+        std::move(other.gids.begin(), other.gids.end(), std::back_inserter(gids));
+        std::move(other.labels.begin(), other.labels.end(), std::back_inserter(labels));
+        std::move(other.ranges.begin(), other.ranges.end(), std::back_inserter(ranges));
+        std::move(other.indices.begin(), other.indices.end(), std::back_inserter(indices));
+    }
 
     std::optional<cell_lid_type> get_lid(const cell_label_type& elem, cell_lid_policy policy=cell_lid_policy::round_robin) const {
         auto it = std::lower_bound(gids.begin(), gids.end(), elem.gid);

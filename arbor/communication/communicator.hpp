@@ -32,6 +32,7 @@ public:
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
                           const cell_labeled_range& source_ranges,
+                          const cell_labeled_range& source_targets,
                           execution_context& ctx);
 
     /// The range of event queues that belong to cells in group i.

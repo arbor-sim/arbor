@@ -228,4 +228,8 @@ const std::unordered_map<std::string, lid_range>& cable_cell::labeled_target_ran
     return impl_->labeled_lid_ranges.get<mechanism_desc>();
 }
 
+const std::unordered_map<std::string, lid_range>& cable_cell::labeled_gap_junction_ranges() const {
+    return impl_->labeled_lid_ranges.get<gap_junction_site>();
+}
+
 } // namespace arb
