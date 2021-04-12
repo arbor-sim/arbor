@@ -44,7 +44,7 @@ Version 0.5
     .. code-block:: latex
 
         @software{nora_abi_akar_2021_4428108,
-        author       = {Nora Abi Akar and
+        author       = {Nora {Abi Akar} and
                         John Biddiscombe and
                         Benjamin Cumming and
                         Felix Huber and
