@@ -4103,7 +4103,7 @@ div[class^='highlight'] pre {
 .wy-menu-vertical {
   width: 300px; }
 
-.wy-menu-vertical header, .wy-menu-vertical p.caption {
+.wy-menu-vertical header, .wy-menu-vertical p.caption, .wy-menu-vertical p {
   height: 32px;
   display: inline-block;
   line-height: 32px;
