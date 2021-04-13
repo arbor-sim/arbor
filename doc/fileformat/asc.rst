@@ -1,7 +1,7 @@
 .. _formatasc:
 
-Neurlucida ASCII format
-~~~~~~~~~~~~~~~~~~~~~~~
+Neurolucida ASCII
+~~~~~~~~~~~~~~~~~
 
 Arbor has support for reading cable cell morphologies described using the
 `Neurlucida ASCII file format <https://www.mbfbioscience.com/help/pdf/NL9.pdf>`_

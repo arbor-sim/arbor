@@ -1,7 +1,7 @@
 .. _formatcablecell:
 
-Arbor Cable Cell format (ACC)
-=============================
+Arbor Cable Cell
+================
 
 We define an s-expression format for describing :ref:`cable cells <cablecell>`.
 Cable cells are constructed from three components: a :ref:`label dictionary <labels>`,
