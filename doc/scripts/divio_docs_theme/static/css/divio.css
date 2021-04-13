@@ -4838,6 +4838,9 @@ footer span.commit code, footer span.commit .rst-content tt, .rst-content footer
   display: inline-block;
   padding-right: 8px; }
 
+.rst-content dl:not(.docutils) span.pre~code.sig-name.descname, .rst-content dl:not(.docutils) .pre~em {
+  padding-left: 8px; }
+
 .rst-content .viewcode-link, .rst-content .viewcode-back {
   display: inline-block;
   color: #27AE60;
