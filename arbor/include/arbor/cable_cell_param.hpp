@@ -94,41 +94,34 @@ struct gap_junction_site {};
 // cell-wide default:
 
 struct init_membrane_potential {
-    init_membrane_potential() = delete;
-    double value; // [mV]
+    double value = NAN; // [mV]
 };
 
 struct temperature_K {
-    temperature_K() = delete;
-    double value; // [K]
+    double value = NAN; // [K]
 };
 
 struct axial_resistivity {
-    axial_resistivity() = delete;
-    double value; // [Ω·cm]
+    double value = NAN; // [Ω·cm]
 };
 
 struct membrane_capacitance {
-    membrane_capacitance() = delete;
-    double value; // [F/m²]
+    double value = NAN; // [F/m²]
 };
 
 struct init_int_concentration {
-    init_int_concentration() = delete;
-    std::string ion;
-    double value; // [mM]
+    std::string ion = "";
+    double value = NAN; // [mM]
 };
 
 struct init_ext_concentration {
-    init_ext_concentration() = delete;
-    std::string ion;
-    double value; // [mM]
+    std::string ion = "";
+    double value = NAN; // [mM]
 };
 
 struct init_reversal_potential {
-    init_reversal_potential() = delete;
-    std::string ion;
-    double value; // [mV]
+    std::string ion = "";
+    double value = NAN; // [mV]
 };
 
 // Mechanism description, viz. mechanism name and
