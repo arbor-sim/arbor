@@ -197,6 +197,7 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
     thing could be achieved using hoc in NEURON, and whether it would be free of bugs
     and applicable to arbitrary morphologies.
 
+.. _labels-locset-expr:
 
 Locset expressions
 ~~~~~~~~~~~~~~~~~~
@@ -344,6 +345,8 @@ Locset expressions
     .. code-block:: lisp
 
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
+
+.. _labels-region-expr:
 
 Region expressions
 ~~~~~~~~~~~~~~~~~~
@@ -575,7 +578,7 @@ Thingification
 
 When a region or locset expression is applied to a cell morphology, it is represented
 as a list of unbranched :term:`cables <cable>` or a set of :term:`locations <mlocation>` on the morphology.
-This process is called ``thingify`` in arbor, because it turns the abstract description
+This process is called ``thingify`` in Arbor, because it turns the abstract description
 of a :term:`region` or a :term:`locset` into an actual 'thing' when it is applied to a real morphology.
 
 .. note::
@@ -644,7 +647,7 @@ and a :ref:`decor <cablecell-decoration>`. The decorations can be painted or pla
 the regions or locsets defined in the label dictionary by referring to their labels.
 
 .. code-block:: python
-   :caption: Example of a lable dictionary in python:
+   :caption: Example of a label dictionary in python:
 
     arbor.label_dict({
       'soma': '(tag 1)',  # soma is every cable with tag 1 in the morphology.

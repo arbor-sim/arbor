@@ -65,7 +65,7 @@ These locations will form the endpoints of the connections between the cells.
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) is on the ``'synapse_site'``.
 Note that mechanisms can be initialized with their name; ``'expsyn'`` is short for ``arbor.mechanism('expsyn')``.
 
-Step **(4)** places a spike detector at the ``'root'``. :py:class:`spike_detectors <spike_detector>` will send spikes into an
+Step **(4)** places a spike detector at the ``'root'``. :py:class:`spike_detectors <arbor.spike_detector>` will send spikes into an
 :class:`arbor.connection`, whereas the :ref:`expsyn mechanism <mechanisms_builtins>` can receive spikes from an
 :class:`arbor.connection`.
 
@@ -102,7 +102,9 @@ to :py:class:`arbor.connection` are the **source** and **target** of the connect
 cell index ``gid`` and the source or target index. (:term:`Remember <connection>` that sources and targets are
 separately indexed.)
 
-The two endpoints are of type :class:`arbor.cell_member`, and can be initialized with a ``(gid,index)`` tuple.
+The source endpoint has type :class:`arbor.cell_member`, and can be initialized with a ``(gid,index)`` tuple.
+The gid of the target end-point is implicitly known from the argument of :py:func:`arbor.recipe.connections_on`,
+Therefore, we only need to identify the index of the target on the cell using the :class:`arbor.cell_member.index` type.
 The cells have one synapse (step **3**), so the target endpoint has the 0th index. The cell has one
 spike generator (step **4**), so its source index is also 0.
 
@@ -193,8 +195,8 @@ In addition to having the timestamps of spikes, we want to extract the voltage a
 Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as
 attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the
 desired schedule (here: a recording frequency of 10 kHz). Note that the probe id is a separate index from those of
-:term:`connection` endpoints; probe ids correspond to the index of the list produced by :py:func:`arbor.recipe.
-probes` on cell ``gid``.
+:term:`connection` endpoints; probe ids correspond to the index of the list produced by
+:py:func:`arbor.recipe.probes` on cell ``gid``.
 
 :py:func:`arbor.simulation.sample` returns a handle to the :term:`samples <sample>` that will be recorded. We store
 these handles for later use.

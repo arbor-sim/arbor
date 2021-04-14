@@ -103,15 +103,15 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            poisson_generator(cell_member_type{0,0}, // Target synapse (gid, local_id).
-                              w_e,                   // Weight of events to deliver
-                              t0,                    // Events start being delivered from this time
-                              lambda_e,              // Expected frequency (kHz)
-                              RNG(29562872)));       // Random number generator to use
+            arb::poisson_generator(0,              // Target synapse index on cell `gid`
+                                   w_e,                   // Weight of events to deliver
+                                   t0,                    // Events start being delivered from this time
+                                   lambda_e,              // Expected frequency (kHz)
+                                   RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
-            poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i,  RNG(86543891)));
+            arb::poisson_generator(0, w_i, t0, lambda_i,  RNG(86543891)));
 
         return gens;
     }

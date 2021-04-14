@@ -94,7 +94,7 @@ struct lif_chain: public recipe {
 
     std::vector<cell_connection> connections_on(cell_gid_type target) const override {
         if (target) {
-            return {cell_connection({target-1, 0}, {target, 0}, weight_, delay_)};
+            return {cell_connection({target-1, 0}, 0, weight_, delay_)};
         }
         else {
             return {};
@@ -106,7 +106,7 @@ struct lif_chain: public recipe {
             return {};
         }
         else {
-            return {schedule_generator({target, 0}, weight_, triggers_)};
+            return {schedule_generator(0, weight_, triggers_)};
         }
     }
 

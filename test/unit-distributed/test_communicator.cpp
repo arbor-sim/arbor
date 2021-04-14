@@ -209,7 +209,7 @@ namespace {
             // weight is the destination gid
             // delay is 1
             cell_member_type src = {gid==0? size_-1: gid-1, 0};
-            cell_member_type dst = {gid, 0};
+            cell_lid_type dst = 0;
             return {cell_connection(
                         src, dst,   // end points
                         float(gid), // weight
@@ -233,7 +233,7 @@ namespace {
     spike_event expected_event_ring(cell_gid_type gid, cell_size_type num_cells) {
         auto sid = source_of(gid, num_cells);
         return {
-            {gid, 0u},  // source
+            0u,         // source
             sid+1.0f,   // time (all conns have delay 1 ms)
             float(gid)};// weight
     }
@@ -272,7 +272,7 @@ namespace {
             for (auto sid: util::make_span(0, size_)) {
                 cell_connection con(
                         {sid, 0},       // source
-                        {gid, sid},     // destination
+                        sid,     // destination
                         float(gid+sid), // weight
                         1.0f);          // delay
                 cons.push_back(con);
@@ -287,7 +287,7 @@ namespace {
 
     spike_event expected_event_all2all(cell_gid_type gid, cell_gid_type sid) {
         return {
-            {gid, sid},      // target, event from sid goes to synapse with index sid
+            sid,      // target, event from sid goes to synapse with index sid
             sid+1.0f,        // time (all conns have delay 1 ms)
             float(gid+sid)}; // weight
     }

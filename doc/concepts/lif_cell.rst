@@ -5,13 +5,13 @@ LIF cells
 
 The description of a LIF cell is used to control the leaky integrate-and-fire dynamics:
 
-    * Resting potential.
-    * Reset potential.
-    * Initial value of membrane potential.
-    * Membrane potential decaying constant.
-    * Membrane capacitance.
-    * Firing threshold.
-    * Refractory period.
+* Resting potential.
+* Reset potential.
+* Initial value of membrane potential.
+* Membrane potential decaying constant.
+* Membrane capacitance.
+* Firing threshold.
+* Refractory period.
 
 The morphology of a LIF cell is automatically modelled as a single :term:`compartment <control volume>`; each cell has one built-in
 **source** and one built-in **target** which do not need to be explicitly added in the cell description.

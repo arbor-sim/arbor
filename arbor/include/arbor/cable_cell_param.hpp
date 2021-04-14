@@ -41,8 +41,8 @@ struct cable_cell_ion_data {
 // * The time points must be monotonically increasing.
 // * Onset and initial amplitude is given by the first point.
 // * The amplitude for time after the last time point is that of the last
-//   amplitgude point; an explicit zero amplitude point must be provided if the
-//    envelope is intended to have finite support.
+//   amplitude point; an explicit zero amplitude point must be provided if the
+//   envelope is intended to have finite support.
 //
 // Periodic envelopes are not supported, but may well be a feature worth
 // considering in the future.
@@ -54,27 +54,32 @@ struct i_clamp {
     };
 
     std::vector<envelope_point> envelope;
-    double frequency = 0; // [Hz] 0 => constant
+    double frequency = 0; // [kHz] 0 => constant
+    double phase = 0;     // [rad]
 
     // A default constructed i_clamp, with empty envelope, describes
     // a trivial stimulus, providing no current at all.
     i_clamp() = default;
 
     // The simple constructor describes a constant amplitude stimulus starting from t=0.
-    explicit i_clamp(double amplitude, double frequency = 0):
+    explicit i_clamp(double amplitude, double frequency = 0, double phase = 0):
         envelope({{0., amplitude}}),
-        frequency(frequency)
+        frequency(frequency),
+        phase(phase)
     {}
 
     // Describe a stimulus by envelope and frequency.
-    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0):
+    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0, double phase = 0):
         envelope(std::move(envelope)),
-        frequency(frequency)
+        frequency(frequency),
+        phase(phase)
     {}
 
     // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
-    i_clamp(double onset, double duration, double amplitude, double frequency = 0):
-        i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency) {}
+    static i_clamp box(double onset, double duration, double amplitude, double frequency = 0, double phase = 0) {
+        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency, phase);
+    }
+
 };
 
 // Threshold detector description.
@@ -89,41 +94,34 @@ struct gap_junction_site {};
 // cell-wide default:
 
 struct init_membrane_potential {
-    init_membrane_potential() = delete;
-    double value; // [mV]
+    double value = NAN; // [mV]
 };
 
 struct temperature_K {
-    temperature_K() = delete;
-    double value; // [K]
+    double value = NAN; // [K]
 };
 
 struct axial_resistivity {
-    axial_resistivity() = delete;
-    double value; // [Ω·cm]
+    double value = NAN; // [Ω·cm]
 };
 
 struct membrane_capacitance {
-    membrane_capacitance() = delete;
-    double value; // [F/m²]
+    double value = NAN; // [F/m²]
 };
 
 struct init_int_concentration {
-    init_int_concentration() = delete;
-    std::string ion;
-    double value; // [mM]
+    std::string ion = "";
+    double value = NAN; // [mM]
 };
 
 struct init_ext_concentration {
-    init_ext_concentration() = delete;
-    std::string ion;
-    double value; // [mM]
+    std::string ion = "";
+    double value = NAN; // [mM]
 };
 
 struct init_reversal_potential {
-    init_reversal_potential() = delete;
-    std::string ion;
-    double value; // [mV]
+    std::string ion = "";
+    double value = NAN; // [mV]
 };
 
 // Mechanism description, viz. mechanism name and
@@ -195,14 +193,14 @@ struct ion_reversal_potential_method {
 };
 
 using paintable =
-    std::variant<mechanism_desc,
-                 init_membrane_potential,
+    std::variant<init_membrane_potential,
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
                  init_int_concentration,
                  init_ext_concentration,
-                 init_reversal_potential>;
+                 init_reversal_potential,
+                 mechanism_desc>;
 
 using placeable =
     std::variant<mechanism_desc,

@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-#include <tinyopt/smolopt.h>
+#include <tinyopt/tinyopt.h>
 
 #include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
@@ -119,12 +119,12 @@ public:
         std::vector<cell_connection> connections;
         // Add incoming excitatory connections.
         for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
-            connections.push_back({{cell_gid_type(i), 0}, {gid, 0}, weight_exc_, delay_});
+            connections.push_back({{cell_gid_type(i), 0}, 0, weight_exc_, delay_});
         }
 
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
-            connections.push_back({{cell_gid_type(i), 0}, {gid, 0}, weight_inh_, delay_});
+            connections.push_back({{cell_gid_type(i), 0}, 0, weight_inh_, delay_});
         }
         return connections;
     }
@@ -145,7 +145,7 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
         time_type t0 = 0;
-        return {poisson_generator({gid, 0}, weight_ext_, t0, lambda_, G)};
+        return {poisson_generator(0, weight_ext_, t0, lambda_, G)};
     }
 
     cell_size_type num_sources(cell_gid_type) const override {

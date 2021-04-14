@@ -110,7 +110,7 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
-    void inject_events(const pse_vector& events);
+    void inject_events(const cse_vector& events);
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
@@ -208,11 +208,8 @@ simulation_state::simulation_state(
             auto num_targets = rec.num_targets(gid);
             for (const auto& g: event_gens) {
                 for (const auto& t: g.targets()) {
-                    if (t.gid != gid) {
-                        throw arb::bad_event_generator_target_gid(gid,  t.gid);
-                    }
-                    if (t.index >= num_targets) {
-                        throw arb::bad_event_generator_target_lid(gid, t.index, num_targets);
+                    if (t >= num_targets) {
+                        throw arb::bad_event_generator_target_lid(gid, t, num_targets);
                     }
                 }
             }
@@ -316,8 +313,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     //     * For k≥0,  U(k) and D(k) have completed.
     //
     // Requires state at end of run(), with epoch_.id==k:
-    //     * U(k) and D(k) have compelted.
-
+    //     * U(k) and D(k) have completed.
 
     if (tfinal<=epoch_.t1) return epoch_.t1;
 
@@ -370,7 +366,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     };
 
     // Enqueue task: build event_lanes for next epoch from pending events, event-generator events for the
-    // next epoch, and with any unprocessed events the current event_lanes.
+    // next epoch, and with any unprocessed events from the current event_lanes.
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
@@ -469,16 +465,18 @@ void simulation_state::set_binning_policy(binning_kind policy, time_type bin_int
         [&](cell_group_ptr& group) { group->set_binning_policy(policy, bin_interval); });
 }
 
-void simulation_state::inject_events(const pse_vector& events) {
+void simulation_state::inject_events(const cse_vector& events) {
     // Push all events that are to be delivered to local cells into the
     // pending event list for the event's target cell.
-    for (auto& e: events) {
-        if (e.time<epoch_.t1) {
-            throw bad_event_time(e.time, epoch_.t1);
-        }
-        // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
-        if (auto lidx = util::value_by_key(gid_to_local_, e.target.gid)) {
-            pending_events_[lidx->cell_index].push_back(e);
+    for (auto& [gid, pse_vector]: events) {
+        for (auto& e: pse_vector) {
+            if (e.time < epoch_.t1) {
+                throw bad_event_time(e.time, epoch_.t1);
+            }
+            // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
+            if (auto lidx = util::value_by_key(gid_to_local_, gid)) {
+                pending_events_[lidx->cell_index].push_back(e);
+            }
         }
     }
 }
@@ -538,7 +536,7 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
     impl_->local_export_callback_ = std::move(export_callback);
 }
 
-void simulation::inject_events(const pse_vector& events) {
+void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
 

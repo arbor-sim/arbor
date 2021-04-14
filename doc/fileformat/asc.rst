@@ -36,18 +36,18 @@ and locsets from the meta data.
 Soma / CellBody
 """"""""""""""""
 
-The soma, or CellBody, is described in one of three different methods (that we are aware of) in
-an ASCII file.
+The soma, or CellBody, is described in one of three different methods in an ASCII file:
 
   1. As a CellBody statement containing a single location and radius, which models **a sphere**.
   2. As a CellBody statement containing an unbranched sequence of locations that define **a single contour**.
   3. As multiple CellBody statements, each defining a contour, that describe the soma as **a stack of contours**.
 
-Arbor supports description methods 1 and 2, and support for method 3 can be added on request
-(open an issue).
+Arbor supports description methods 1 and 2 following the `neuromporpho policies <http://neuromorpho.org/SomaFormat.html>`_.
+Currently multiple contours in method 3 are not supported, and if you need support make
+the request with an `issue <https://github.com/arbor-sim/arbor/issues>`_.
 
-In each case, the soma is modeled as a cylinder with diameter equal to it's length, centred
-at the centre of the soma, and oriented along the z axis.
+In each case, the soma is modeled as a cylinder with diameter equal to its length, centred
+at the centre of the soma, and oriented along the y axis.
 
 For a **spherical** soma, the centre and diameter are that of the sphere. For
 a **contour**, the centre is the centroid of the locations that define the contour,

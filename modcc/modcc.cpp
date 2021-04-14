@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <tinyopt/smolopt.h>
+#include <tinyopt/tinyopt.h>
 
 #include "printer/cprinter.hpp"
 #include "printer/gpuprinter.hpp"
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
         if (!to::run(options, argc, argv+1)) return 0;
     }
     catch (to::option_error& e) {
-        to::usage(argv[0], usage_str, e.what());
+        to::usage_error(argv[0], usage_str, e.what());
         return 1;
     }
 

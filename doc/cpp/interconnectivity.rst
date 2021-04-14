@@ -9,18 +9,17 @@ Interconnectivity
     post-synaptic destination. The source is typically a threshold detector on
     a cell or a spike source. The destination is a synapse on the post-synaptic cell.
 
-    .. cpp:type:: cell_connection_endpoint = cell_member_type
+    The :cpp:member:`dest` does not include the gid of a cell, this is because a
+    :cpp:class:`cell_connection` is bound to the destination cell which means that the gid
+    is implicitly known.
 
-        Connection end-points are represented by pairs
-        (cell index, source/target index on cell).
+    .. cpp:member:: cell_member_type source
 
-    .. cpp:member:: cell_connection_endpoint source
+        Source end point, represented by the pair (cell gid, source index on the cell)
 
-        Source end point.
+    .. cpp:member:: cell_lid_type dest
 
-    .. cpp:member:: cell_connection_endpoint dest
-
-        Destination end point.
+        Destination target index on the cell, target cell's gid is implicitly known.
 
     .. cpp:member:: float weight
 
@@ -36,16 +35,25 @@ Interconnectivity
 
 .. cpp:class:: gap_junction_connection
 
-    Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :cpp:type:cell_member_type.
+    Describes a gap junction between two gap junction sites. The :cpp:member:`local` site does not include
+    the gid of a cell, this is because a :cpp:class:`gap_junction_connection` is bound to the local
+    cell which means that the gid is implicitly known.
 
-    .. cpp:member:: cell_member_type local
+    .. note::
 
-        gap junction site: one half of the gap junction connection.
+       A bidirectional gap-junction between two cells ``c0`` and ``c1`` requires two
+       :cpp:class:`gap_junction_connection` objects to be constructed: one where ``c0`` is the
+       :cpp:member:`local` site, and ``c1`` is the :cpp:member:`peer` site; and another where ``c1`` is the
+       :cpp:member:`local` site, and ``c0`` is the :cpp:member:`peer` site. If :cpp:member:`ggap` is equal
+       in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
 
     .. cpp:member:: cell_member_type peer
 
-        gap junction site: other half of the gap junction connection.
+        Peer gap junction site, represented by the pair (cell gid, gap junction site index on the cell)
+
+    .. cpp:member:: cell_lid_type local
+
+        Local gap junction site index on the cell, the gid of the local site's cell is implicitly known.
 
     .. cpp:member:: float ggap
 

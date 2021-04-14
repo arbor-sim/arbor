@@ -103,21 +103,21 @@ public:
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
         switch (gid) {
             case 0 :
-                return {gap_junction_connection({5, 0}, {0, 0}, 0.1)};
+                return {gap_junction_connection({5, 0}, 0, 0.1)};
             case 2 :
                 return {
-                        gap_junction_connection({3, 0}, {2, 0}, 0.1),
+                        gap_junction_connection({3, 0}, 0, 0.1),
                 };
             case 3 :
                 return {
-                        gap_junction_connection({7, 0}, {3, 0}, 0.1),
-                        gap_junction_connection({3, 0}, {2, 0}, 0.1)
+                        gap_junction_connection({7, 0}, 0, 0.1),
+                        gap_junction_connection({2, 0}, 0, 0.1)
                 };
             case 5 :
-                return {gap_junction_connection({5, 0}, {0, 0}, 0.1)};
+                return {gap_junction_connection({0, 0}, 0, 0.1)};
             case 7 :
                 return {
-                        gap_junction_connection({3, 0}, {7, 0}, 0.1),
+                        gap_junction_connection({3, 0}, 0, 0.1),
                 };
             default :
                 return {};
@@ -169,27 +169,27 @@ public:
         switch (gid) {
             case 0 :
                 return {
-                        gap_junction_connection({2, 0}, {0, 0}, 0.1),
-                        gap_junction_connection({3, 0}, {0, 0}, 0.1),
-                        gap_junction_connection({5, 0}, {0, 0}, 0.1)
+                        gap_junction_connection({2, 0}, 0, 0.1),
+                        gap_junction_connection({3, 0}, 0, 0.1),
+                        gap_junction_connection({5, 0}, 0, 0.1)
                 };
             case 2 :
                 return {
-                        gap_junction_connection({0, 0}, {2, 0}, 0.1),
-                        gap_junction_connection({3, 0}, {2, 0}, 0.1),
-                        gap_junction_connection({5, 0}, {2, 0}, 0.1)
+                        gap_junction_connection({0, 0}, 0, 0.1),
+                        gap_junction_connection({3, 0}, 0, 0.1),
+                        gap_junction_connection({5, 0}, 0, 0.1)
                 };
             case 3 :
                 return {
-                        gap_junction_connection({0, 0}, {3, 0}, 0.1),
-                        gap_junction_connection({2, 0}, {3, 0}, 0.1),
-                        gap_junction_connection({5, 0}, {3, 0}, 0.1)
+                        gap_junction_connection({0, 0}, 0, 0.1),
+                        gap_junction_connection({2, 0}, 0, 0.1),
+                        gap_junction_connection({5, 0}, 0, 0.1)
                 };
             case 5 :
                 return {
-                        gap_junction_connection({2, 0}, {5, 0}, 0.1),
-                        gap_junction_connection({3, 0}, {5, 0}, 0.1),
-                        gap_junction_connection({0, 0}, {5, 0}, 0.1)
+                        gap_junction_connection({2, 0}, 0, 0.1),
+                        gap_junction_connection({3, 0}, 0, 0.1),
+                        gap_junction_connection({0, 0}, 0, 0.1)
                 };
             default :
                 return {};
@@ -341,9 +341,9 @@ TEST(fvm_lowered, stimulus) {
     auto desc = make_cell_ball_and_stick(false);
 
     // At end of stick
-    desc.decorations.place(mlocation{0,1},   i_clamp{5., 80., 0.3});
+    desc.decorations.place(mlocation{0,1},   i_clamp::box(5., 80., 0.3));
     // On the soma CV, which is over the approximate interval: (cable 0 0 0.1)
-    desc.decorations.place(mlocation{0,0.05}, i_clamp{1., 2.,  0.1});
+    desc.decorations.place(mlocation{0,0.05}, i_clamp::box(1., 2.,  0.1));
 
     std::vector<cable_cell> cells{desc};
 
@@ -412,12 +412,13 @@ TEST(fvm_lowered, ac_stimulus) {
     segment_tree tree;
     tree.append(mnpos, {0., 0., 0., 1.}, {100., 0., 0., 1.}, 1);
 
-    const double freq = 20; // (Hz)
+    const double freq = 0.02; // (kHz)
+    const double phase = 0.1; // (radian)
     const double max_amplitude = 30; // (nA)
     const double max_time = 8; // (ms)
 
     // Envelope is linear ramp from 0 to max_time.
-    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq));
+    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase));
     std::vector<cable_cell> cells = {cable_cell(tree, {}, dec)};
 
     cable_cell_global_properties gprop;
@@ -451,7 +452,7 @@ TEST(fvm_lowered, ac_stimulus) {
         memory::fill(T, t);
         state.add_stimulus_current();
 
-        double expected_I = t<=max_time? max_amplitude*t/max_time*std::sin(2*math::pi<double>*t*0.001*freq): 0;
+        double expected_I = t<=max_time? max_amplitude*t/max_time*std::sin(2*math::pi<double>*t*freq+phase): 0;
         EXPECT_TRUE(near_relative(-expected_I, J[0]*A[0]*unit_factor, reltol));
     }
 }
@@ -935,7 +936,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
-            conns.push_back(gap_junction_connection({(gid+1)%2, 0}, {gid, 0}, 0.5));
+            conns.push_back(gap_junction_connection({(gid+1)%2, 0}, 0, 0.5));
             return conns;
         }
 
@@ -1003,22 +1004,22 @@ TEST(fvm_lowered, gj_coords_complex) {
             switch (gid) {
             case 0:
                 return {
-                    gap_junction_connection({2, 0}, {0, 1}, 0.01),
-                    gap_junction_connection({1, 0}, {0, 0}, 0.03),
-                    gap_junction_connection({1, 1}, {0, 0}, 0.04)
+                    gap_junction_connection({2, 0}, 1, 0.01),
+                    gap_junction_connection({1, 0}, 0, 0.03),
+                    gap_junction_connection({1, 1}, 0, 0.04)
                 };
             case 1:
                 return {
-                    gap_junction_connection({0, 0}, {1, 0}, 0.03),
-                    gap_junction_connection({0, 0}, {1, 1}, 0.04),
-                    gap_junction_connection({2, 1}, {1, 2}, 0.02),
-                    gap_junction_connection({2, 2}, {1, 3}, 0.01)
+                    gap_junction_connection({0, 0}, 0, 0.03),
+                    gap_junction_connection({0, 0}, 1, 0.04),
+                    gap_junction_connection({2, 1}, 2, 0.02),
+                    gap_junction_connection({2, 2}, 3, 0.01)
                 };
             case 2:
                 return {
-                    gap_junction_connection({0, 1}, {2, 0}, 0.01),
-                    gap_junction_connection({1, 2}, {2, 1}, 0.02),
-                    gap_junction_connection({1, 3}, {2, 2}, 0.01)
+                    gap_junction_connection({0, 1}, 0, 0.01),
+                    gap_junction_connection({1, 2}, 1, 0.02),
+                    gap_junction_connection({1, 3}, 2, 0.01)
                 };
             default : return {};
             }
@@ -1148,8 +1149,8 @@ TEST(fvm_lowered, cell_group_gj) {
                 // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
                 auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
                 auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
-                conns.push_back(gap_junction_connection({next_cell, 0}, {gid, 0}, 0.03));
-                conns.push_back(gap_junction_connection({prev_cell, 0}, {gid, 0}, 0.03));
+                conns.push_back(gap_junction_connection({next_cell, 0}, 0, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, 0}, 0, 0.03));
             }
             return conns;
         }

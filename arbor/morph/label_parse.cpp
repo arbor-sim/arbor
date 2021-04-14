@@ -2,14 +2,12 @@
 #include <limits>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/morph/region.hpp>
-#include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
-#include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/region.hpp>
+#include <arbor/s_expr.hpp>
+#include <arbor/util/expected.hpp>
 
-#include "arbor/util/expected.hpp"
-#include "s_expr.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
@@ -351,7 +349,7 @@ parse_hopefully<std::any> eval(const s_expr& e) {
         // This must be a function evaluation, where head is the function name, and
         // tail is a list of arguments.
 
-        // Evaluate the arguments, and return error state if an error ocurred.
+        // Evaluate the arguments, and return error state if an error occurred.
         auto args = eval_args(e.tail());
         if (!args) {
             return args.error();
@@ -386,6 +384,9 @@ parse_hopefully<std::any> eval(const s_expr& e) {
 
 parse_hopefully<std::any> parse_label_expression(const std::string& e) {
     return eval(parse_s_expr(e));
+}
+parse_hopefully<std::any> parse_label_expression(const s_expr& s) {
+    return eval(s);
 }
 
 parse_hopefully<arb::region> parse_region_expression(const std::string& s) {

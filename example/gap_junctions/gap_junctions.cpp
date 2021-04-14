@@ -91,7 +91,7 @@ public:
         if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
             return{};
         }
-        return {arb::cell_connection({gid - 1, 0}, {gid, 0}, params_.event_weight, params_.event_min_delay)};
+        return {arb::cell_connection({gid - 1, 0}, 0, params_.event_weight, params_.event_min_delay)};
     }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
@@ -121,10 +121,10 @@ public:
         // Gap junction conductance in μS
 
         if (next_cell < cable_end) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, 0}, {gid, 1}, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, 0}, 1, 0.015));
         }
         if (prev_cell >= cable_begin) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, 1}, {gid, 0}, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, 1}, 0, 0.015));
         }
 
         return conns;
@@ -320,7 +320,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
 
     // Attach a stimulus to the second cell.
     if (!gid) {
-        arb::i_clamp stim(0, stim_duration, 0.4);
+        auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
         decor.place(arb::mlocation{0, 0.5}, stim);
     }
 

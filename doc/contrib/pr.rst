@@ -58,7 +58,7 @@ Each pull request is reviewed according to these guidelines:
    positive review.
 -  GitHub Actions CI must produce a favourable result on your PR.
 -  An Arbor team member will (squash) merge the PR with the PR change
-   summery as commit message.
+   summary as commit message.
 -  Consider using Gitpod to review larger PRs, see under checks on the Github PR page.
 
 .. _contribpr-merge:

@@ -23,7 +23,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
         An example is uniquely identifying a synapse in the model.
         Each synapse has a post-synaptic cell (with :attr:`gid`), and an :attr:`index` into the set of synapses on the post-synaptic cell.
 
-        Lexographically ordered by :attr:`gid`, then :attr:`index`.
+        Lexicographically ordered by :attr:`gid`, then :attr:`index`.
 
     .. attribute:: gid
 

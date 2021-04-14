@@ -44,6 +44,9 @@ struct cable_cell_impl {
     // Track number of point assignments by type for lid/target numbers.
     dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
 
+    // The label dictionary.
+    const label_dict dictionary;
+
     // The decorations on the cell.
     decor decorations;
 
@@ -52,6 +55,7 @@ struct cable_cell_impl {
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
+        dictionary(labels),
         decorations(decorations)
     {
         init(decorations);
@@ -168,6 +172,10 @@ cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 cable_cell::cable_cell(const cable_cell& other):
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
+
+const label_dict& cable_cell::labels() const {
+    return impl_->dictionary;
+}
 
 const concrete_embedding& cable_cell::embedding() const {
     return impl_->provider.embedding();

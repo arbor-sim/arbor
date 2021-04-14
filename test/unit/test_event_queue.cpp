@@ -14,10 +14,10 @@ TEST(event_queue, push) {
 
     ps_event_queue q;
 
-    q.push({{1u, 0u}, 2.f, 2.f});
-    q.push({{4u, 1u}, 1.f, 2.f});
-    q.push({{8u, 2u}, 20.f, 2.f});
-    q.push({{2u, 3u}, 8.f, 2.f});
+    q.push({0u, 2.f, 2.f});
+    q.push({1u, 1.f, 2.f});
+    q.push({2u, 20.f, 2.f});
+    q.push({3u, 8.f, 2.f});
 
     EXPECT_EQ(4u, q.size());
 
@@ -33,12 +33,7 @@ TEST(event_queue, push) {
 TEST(event_queue, pop_if_before) {
     using ps_event_queue = event_queue<spike_event>;
 
-    cell_member_type target[4] = {
-        {1u, 0u},
-        {4u, 1u},
-        {8u, 2u},
-        {2u, 3u}
-    };
+    cell_lid_type target[4] = {0u, 1u, 2u, 3u};
 
     spike_event events[] = {
         {target[0], 1.f, 2.f},

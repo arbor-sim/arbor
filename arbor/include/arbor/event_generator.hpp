@@ -68,7 +68,7 @@ struct empty_generator {
     event_seq events(time_type, time_type) {
         return {nullptr, nullptr};
     }
-    std::vector<cell_member_type> targets() {
+    std::vector<cell_lid_type> targets() {
         return {};
     };
 };
@@ -102,7 +102,7 @@ public:
         return impl_->events(t0, t1);
     }
 
-    std::vector<cell_member_type> targets() const {
+    std::vector<cell_lid_type> targets() const {
         return impl_->targets();
     }
 
@@ -110,7 +110,7 @@ private:
     struct interface {
         virtual void reset() = 0;
         virtual event_seq events(time_type, time_type) = 0;
-        virtual std::vector<cell_member_type> targets() = 0;
+        virtual std::vector<cell_lid_type> targets() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
     };
@@ -126,7 +126,7 @@ private:
             return wrapped.events(t0, t1);
         }
 
-        std::vector<cell_member_type> targets() override {
+        std::vector<cell_lid_type> targets() override {
             return wrapped.targets();
         }
 
@@ -148,7 +148,7 @@ private:
 // a provided time schedule.
 
 struct schedule_generator {
-    schedule_generator(cell_member_type target, float weight, schedule sched):
+    schedule_generator(cell_lid_type target, float weight, schedule sched):
         target_(target), weight_(weight), sched_(std::move(sched))
     {}
 
@@ -169,13 +169,13 @@ struct schedule_generator {
         return {events_.data(), events_.data()+events_.size()};
     }
 
-    std::vector<cell_member_type> targets() {
+    std::vector<cell_lid_type> targets() {
         return {target_};
     }
 
 private:
     pse_vector events_;
-    cell_member_type target_;
+    cell_lid_type target_;
     float weight_;
     schedule sched_;
 };
@@ -183,7 +183,7 @@ private:
 // Generate events at integer multiples of dt that lie between tstart and tstop.
 
 inline event_generator regular_generator(
-    cell_member_type target,
+    cell_lid_type target,
     float weight,
     time_type tstart,
     time_type dt,
@@ -194,7 +194,7 @@ inline event_generator regular_generator(
 
 template <typename RNG>
 inline event_generator poisson_generator(
-    cell_member_type target,
+    cell_lid_type target,
     float weight,
     time_type tstart,
     time_type rate_kHz,
@@ -237,8 +237,8 @@ struct explicit_generator {
         return {lb, ub};
     }
 
-    std::vector<cell_member_type> targets() {
-        std::vector<cell_member_type> tgts;
+    std::vector<cell_lid_type> targets() {
+        std::vector<cell_lid_type> tgts;
         std::transform(events_.begin(), events_.end(), std::back_inserter(tgts), [](auto&& e){ return e.target;});
         return tgts;
     }

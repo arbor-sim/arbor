@@ -11,7 +11,7 @@ class connection {
 public:
     connection() = default;
     connection( cell_member_type src,
-                cell_member_type dest,
+                cell_lid_type dest,
                 float w,
                 float d,
                 cell_gid_type didx=cell_gid_type(-1)):
@@ -26,7 +26,7 @@ public:
     time_type delay() const { return delay_; }
 
     cell_member_type source() const { return source_; }
-    cell_member_type destination() const { return destination_; }
+    cell_lid_type destination() const { return destination_; }
     cell_size_type index_on_domain() const { return index_on_domain_; }
 
     spike_event make_event(const spike& s) {
@@ -35,7 +35,7 @@ public:
 
 private:
     cell_member_type source_;
-    cell_member_type destination_;
+    cell_lid_type destination_;
     float weight_;
     float delay_;
     cell_size_type index_on_domain_;

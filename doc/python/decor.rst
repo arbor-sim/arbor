@@ -167,7 +167,7 @@ Cable cell decoration
 
         :param str locations: description of the locset.
         :param stim: the current stim.
-        :type stim: :py:class:`i_clamp`
+        :type stim: :py:class:`iclamp`
         :rtype: int
 
     .. method:: place(locations, d)

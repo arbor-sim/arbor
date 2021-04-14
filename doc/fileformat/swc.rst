@@ -13,10 +13,11 @@ The description of the morphology is encoded as a list of samples with an id,
 an `x,y,z` location in space, a radius, a tag and a parent id. Arbor parses these samples, performs some checks,
 then generates a morphology according to one of three possible interpretations.
 
-The SWC file format specifications are not very detailed, which has lead different simulators to interpret
-SWC files in different ways, especially when it comes to the soma. Arbor has its own an interpretation that
+The SWC file format specifications does not describe how the file should be interpretted to reconstruct
+a morphology from SWC samples. This has lead different simulators to interpret SWC files in different
+ways, specifically the reconstruction of the soma. Arbor has its own an interpretation that
 is powerful and simple to understand at the same time. However, we have also developed functions that will
-interpret SWC files similarly to how the NEURON simulator would, and how the Allen Institute would.
+interpret SWC files similarly to how the NEURON simulator would.
 
 Despite the differences between the interpretations, there is a common set of checks that are always performed
 to validate an SWC file:
@@ -29,6 +30,8 @@ In addition, all interpretations agree that a *segment* is (in the common case) 
 its parent and inherits the tag of the sample; and if more than 1 sample have the same parent, the parent sample
 is interpreted as a fork point in the morphology, and acts as the proximal point to a new branch for each of its
 "child" samples. There a couple of exceptions to these rules which are listed below.
+
+.. _formatswc-arbor:
 
 Arbor interpretation
 """"""""""""""""""""
@@ -54,42 +57,60 @@ like this:
    :width: 400
    :align: center
 
-
-Allen interpretation
-""""""""""""""""""""
-In addition to the previously mentioned checks, the Allen interpretation expects a single-sample soma to be the first
-sample of the file and to be interpreted as a spherical soma. Arbor represents the spherical soma as a cylinder with
-length and diameter equal to the diameter of the sample representing the sphere.
-
-This interpretation also expects that samples have the same tag as their parent samples, with the exception of samples
-that have the soma sample as a parent. In this case, when a sample's parent is the soma, no *segment* is created
-between the 2 samples; instead there is a gap in the morphology (represented electrically as a zero-resistance wire).
-Samples with the soma as a parent start new segments, that connect to the distal end of the soma if they are dendrites,
-or to the proximal end of the soma if they are axons or apical dendrites. Only axons, dendrites and apical dendrites
-(tags 2, 3 and 4 respectively) are allowed in this interpretation, in addition to the spherical soma.
-
-Finally the Allen institute interpretation of SWC files centres the morphology around the soma at the origin (0, 0, 0)
-and all samples are translated in space towards the origin.
+.. _formatswc-neuron:
 
 NEURON interpretation
 """""""""""""""""""""
-The NEURON interpretation was obtained by experimenting with the ``Import3d_SWC_read`` function. We came up with the
-following set of rules that govern NEURON's SWC behavior and enforced them in arbor's NEURON-complaint SWC
-interpreter:
+Arbor provides support for interpreting SWC inputs in the same way as NEURON,
+to ease porting of cell models developed in NEURON to Arbor.
 
-* SWC files must contain a soma sample and it must to be the first sample.
-* A soma is represented by a series of n≥1 unbranched, serially listed samples.
-* A soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-  segments forming the soma.
-* A single-sample soma at is constructed as a cylinder with length=diameter.
-* If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-  as the parent.
-* Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
-* If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-  instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-  electrically as a zero-resistance wire)
-* To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-  tag.
+The NEURON interpretations is based on the observed output of NEURON's ``Import3d_SWC_read``
+function, which is based on the `Neuromorpho approach <http://neuromorpho.org/SomaFormat.html>`_.
+However, there are differences and undocumented interpretations of the soma and how dendrites,
+axons and apical dendrites are attached to it that are not described explicitly by Neuromorpho.
+
+.. Warning::
+
+   The interpretation of SWC files by NEURON's import 3D method changed in NEURON
+   8 to address bugs in earlier versions. Arbor follows the NEURON 8 approach,
+   and can't guarantee compatibility with reconstructed SWC morphologies from NEURON 7.
+
+.. Note::
+
+    The rules below are applied to the morphology representation only when a soma
+    sample is present, otherwise the default
+    :ref:`Arbor interpretation <formatswc-arbor>` is applied.
+
+**Every sample must have the same SWC identifier (tag) as its parent, except for
+samples whose parent is tagged as soma**:
+This enforces that axons, dendrites and apical dendrites can only attach to the soma.
+Conversely, it isn't possible to attach an axon to a dendrite, for example.
+
+**The first sample is tagged as soma**:
+This requirement is a corollary of the previous rule.
+
+**Single-sample somas are permitted**:
+The `Neuromorpho guidelines <http://neuromorpho.org/SomaFormat.html>`_ regarding
+interpretation of a spherical soma described with a single soma sample can be summarised:
+
+* The soma is composed of two cylinders that have their proximal ends at the soma
+  center, extended first along the negative y-axis and then positive y-axis.
+
+Following the Neuromorpho specification, NEURON constructs the soma from two cylinders,
+joined at the soma center. It differs in two ways:
+
+* The soma is extended along the x-axis, not the y-axis.
+* The soma is constructed from three points, the first at ``x=x0-r``, the second with
+  ``x=x0`` and the third at ``x=x0+r``, to form a single section, with all dendrites, axons
+  and apical dendrites attached to the center of the soma with "zero resistance wires".
+
+**The axon, dendrite and apical sub-trees follow special rules for attachment to the soma**:
+By default, the sub-tree starts at the first sample with the dendrite, axon or apical tag, and not
+at the parent location on the soma, and the sub-tree is connected to its parent with a "zero resistance wire".
+**Except** when the sub tree is defined by a single child sample. In which case the sub-tree is
+composed of a single a segment from the parent location on the soma to the child sample,
+with constant radius of the child.
+
 
 API
 """

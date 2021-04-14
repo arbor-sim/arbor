@@ -20,6 +20,7 @@ else()
 endif()
 
 set(pyarb_source
+    cable_cell_io.cpp
     cable_probes.cpp
     cells.cpp
     config.cpp
@@ -81,12 +82,7 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 # Set the installation path
 
 # Ask Python where it keeps its system (platform) packages.
-
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "")
-else()
-    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
-endif()
+file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -c

@@ -40,26 +40,25 @@ struct probe_info {
 struct cell_connection {
     // Connection end-points are represented by pairs
     // (cell index, source/target index on cell).
-    using cell_connection_endpoint = cell_member_type;
 
-    cell_connection_endpoint source;
-    cell_connection_endpoint dest;
+    cell_member_type source;
+    cell_lid_type dest;
 
     float weight;
     float delay;
 
-    cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, float d):
+    cell_connection(cell_member_type src, cell_lid_type dst, float w, float d):
         source(src), dest(dst), weight(w), delay(d)
     {}
 };
 
 struct gap_junction_connection {
-    cell_member_type local;
     cell_member_type peer;
+    cell_lid_type local;
     double ggap;
 
-    gap_junction_connection(cell_member_type local, cell_member_type peer, double g):
-            local(local), peer(peer), ggap(g) {}
+    gap_junction_connection(cell_member_type peer, cell_lid_type local, double g):
+        peer(peer), local(local), ggap(g) {}
 };
 
 class recipe {
