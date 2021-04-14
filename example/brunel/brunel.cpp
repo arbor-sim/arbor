@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-#include <tinyopt/smolopt.h>
+#include <tinyopt/tinyopt.h>
 
 #include <arbor/context.hpp>
 #include <arbor/common_types.hpp>

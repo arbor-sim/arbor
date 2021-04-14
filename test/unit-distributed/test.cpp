@@ -57,9 +57,9 @@ int main(int argc, char **argv) {
     try {
         auto arg = argv+1;
         while (*arg) {
-            if (auto comm_size = to::parse<unsigned>(arg, 'd', "dryrun")) {
+            if (auto comm_size = to::parse<unsigned>(arg, "-d", "--dryrun")) {
                 if (*comm_size==0) {
-                    throw to::option_error("must be positive integer", *arg);
+                    throw to::user_option_error("number of dry run ranks must be positive");
                 }
                 // Note that this must be set again for each test that uses a different
                 // number of cells per domain, e.g.
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
                 // TODO: fix when dry run mode reimplemented
                 //policy::set_sizes(*comm_size, 0);
             }
-            else if (auto o = to::parse(arg, 'h', "help")) {
+            else if (to::parse(arg, "-h", "--help")) {
                 to::usage(argv[0], usage_str);
                 return 0;
             }
@@ -82,11 +82,10 @@ int main(int argc, char **argv) {
         return_value = RUN_ALL_TESTS();
     }
     catch (to::option_error& e) {
-        to::usage(argv[0], usage_str, e.what());
+        to::usage_error(argv[0], usage_str, e.what());
         return_value = 1;
     }
     catch (std::exception& e) {
-        //std::cerr << "caught exception: " << e.what() << "\n";
         std::cout << "caught exception: " << e.what() << std::endl;
         return_value = 1;
     }
