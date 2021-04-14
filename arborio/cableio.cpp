@@ -60,8 +60,7 @@ s_expr mksexp(const i_clamp& c) {
     std::vector<s_expr> evlps;
     std::transform(c.envelope.begin(), c.envelope.end(), std::back_inserter(evlps),
         [](const auto& x){return slist(x.t, x.amplitude);});
-    auto envelope = s_expr{"envelope"_symbol, slist_range(evlps)};
-    return slist("current-clamp"_symbol, envelope, c.frequency, c.phase);
+    return slist("current-clamp"_symbol, s_expr{"envelope"_symbol, slist_range(evlps)}, c.frequency, c.phase);
 }
 s_expr mksexp(const threshold_detector& d) {
     return slist("threshold-detector"_symbol, d.threshold);
