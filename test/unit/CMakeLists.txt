@@ -214,9 +214,9 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
     OUTPUT "CAT_DUMMY_SOURCES"
     MECHS dummy
-    ARBOR "${PROJECT_SOURCE_DIR}"
+    PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
     STANDALONE ON
-    VERBOSE OFF)
+    VERBOSE ON)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
   if(ARB_WITH_NVCC)
     target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)

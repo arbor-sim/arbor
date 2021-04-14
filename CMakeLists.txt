@@ -205,6 +205,12 @@ install(TARGETS arbor-public-deps EXPORT arbor-targets)
 add_library(arborio-public-deps INTERFACE)
 install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
+# Add scripts and supporting CMake for setting up external catalogues
+
+configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue TYPE BIN)
+install(FILES mechanisms/BuildModules.cmake TYPE DATA)
+install(FILES mechanisms/generate_catalogue TYPE DATA PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
