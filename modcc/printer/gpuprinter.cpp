@@ -112,11 +112,10 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     auto vars = local_module_variables(module_);
 
-    out << fmt::format(FMT_COMPILE("#include <{0}backends/gpu/gpu_common.hpp>\n"
-                                   "#include <{0}backends/gpu/math_cu.hpp>\n"
-                                   "#include <{0}backends/gpu/reduce_by_key.hpp>\n"
-                                   "#include <arbor/mechanism_abi.h>\n"),
-                       arb_private_header_prefix());
+    out << "#include <arbor/gpu/gpu_common.hpp>\n"
+           "#include <arbor/gpu/math_cu.hpp>\n"
+           "#include <arbor/gpu/reduce_by_key.hpp>\n"
+           "#include <arbor/mechanism_abi.h>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
