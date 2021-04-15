@@ -85,6 +85,7 @@ endforeach()
 
 set(unit_sources
     ../common_cells.cpp
+    test_abi.cpp
     test_asc.cpp
     test_any_cast.cpp
     test_any_ptr.cpp
