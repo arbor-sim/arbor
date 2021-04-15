@@ -1,5 +1,5 @@
 #include <arbor/fvm_types.hpp>
-#include <backends/gpu/gpu_common.hpp>
+#include <gpu/gpu_common.hpp>
 
 namespace arb {
 namespace gpu {
