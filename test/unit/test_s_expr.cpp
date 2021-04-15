@@ -10,7 +10,7 @@
 
 #include <arborio/cableio.hpp>
 
-#include "arborio/parse_s_expr.hpp"
+#include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;
