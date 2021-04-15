@@ -70,6 +70,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     ppack_.diam_um          = shared.diam_um.data();
     ppack_.time_since_spike = shared.time_since_spike.data();
     ppack_.n_detectors      = shared.n_detector;
+    ppack_.events           = {};
 
     // Allocate view pointers
     state_var_ptrs_.resize(mech_.n_state_vars); ppack_.state_vars = state_var_ptrs_.data();
