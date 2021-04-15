@@ -422,17 +422,19 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     for (const auto& c: ns_components) ss << c << "::";
     ss << namespace_name << "::";
 
-    out << fmt::format(FMT_COMPILE("arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
-                                   "  static arb_mechanism_interface result;\n"
-                                   "  result.partition_width = {3}simd_width_;\n"
-                                   "  result.backend={2};\n"
-                                   "  result.init_mechanism=(arb_mechanism_method){3}init;\n"
-                                   "  result.compute_currents=(arb_mechanism_method){3}compute_currents;\n"
-                                   "  result.apply_events=(arb_mechanism_method){3}apply_events;\n"
-                                   "  result.advance_state=(arb_mechanism_method){3}advance_state;\n"
-                                   "  result.write_ions=(arb_mechanism_method){3}write_ions;\n"
-                                   "  result.post_event=(arb_mechanism_method){3}post_event;\n"
-                                   "  return &result;\n"
+    out << fmt::format(FMT_COMPILE("extern \"C\" {{\n"
+                                   "  arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
+                                   "    static arb_mechanism_interface result;\n"
+                                   "    result.partition_width = {3}simd_width_;\n"
+                                   "    result.backend={2};\n"
+                                   "    result.init_mechanism=(arb_mechanism_method){3}init;\n"
+                                   "    result.compute_currents=(arb_mechanism_method){3}compute_currents;\n"
+                                   "    result.apply_events=(arb_mechanism_method){3}apply_events;\n"
+                                   "    result.advance_state=(arb_mechanism_method){3}advance_state;\n"
+                                   "    result.write_ions=(arb_mechanism_method){3}write_ions;\n"
+                                   "    result.post_event=(arb_mechanism_method){3}post_event;\n"
+                                   "    return &result;\n"
+                                   "  }}"
                                    "}}\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,

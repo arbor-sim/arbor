@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
 #define ARB_MECH_ABI_VERSION_MINOR 0
@@ -191,4 +195,7 @@ typedef struct {
     arb_size_type             n_ions;
 } arb_mechanism_type;
 
+#ifdef __cplusplus
+}
+#endif
 #endif

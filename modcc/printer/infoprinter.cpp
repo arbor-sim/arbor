@@ -71,7 +71,7 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                                                           i.expected_valence); };
 
 
-    out << fmt::format("// extern \"C\" {{\n"
+    out << fmt::format("extern \"C\" {{\n"
                        "  arb_mechanism_type make_{0}_{1}() {{\n",
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name);
@@ -154,7 +154,7 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                        m.has_post_events())
         << fmt::format("  arb_mechanism_interface* make_{0}_{1}_interface_multicore(){2}\n"
                        "  arb_mechanism_interface* make_{0}_{1}_interface_gpu(){3}\n"
-                       "// }}\n",
+                       "}}\n",
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
                        cpu ? ";" : " { return nullptr; }",
