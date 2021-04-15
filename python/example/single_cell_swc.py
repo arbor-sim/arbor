@@ -30,7 +30,7 @@ defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
         'axon': '(tag 2)',  # axon has tag 2 in swc files.
         'dend': '(tag 3)',  # dendrites have tag 3 in swc files.
         'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
-        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
+        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
         'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
 labels = arbor.label_dict(defs)
 
