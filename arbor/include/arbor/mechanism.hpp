@@ -58,12 +58,12 @@ public:
     virtual fvm_value_type* field_data(const std::string&) { return nullptr; }
 
     // Simulation interfaces:
-    virtual void initialize() {};
-    virtual void update_state() {};
-    virtual void update_current() {};
-    virtual void deliver_events() {};
-    virtual void post_event() {};
-    virtual void update_ions() {};
+    virtual void initialize() {}
+    virtual void update_state() {}
+    virtual void update_current() {}
+    virtual void deliver_events() {}
+    virtual void post_event() {}
+    virtual void update_ions() {}
 
     virtual ~mechanism() = default;
 
@@ -132,11 +132,12 @@ template <typename Backend>
 class concrete_mechanism: public mechanism {
 public:
     concrete_mechanism() = default;
-    using ::arb::mechanism::mechanism;
 
+    using ::arb::mechanism::mechanism;
     using backend = Backend;
+
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(unsigned id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) {};
+    virtual void instantiate(unsigned id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) {}
 
     std::size_t size() const override { return width_; }
 
@@ -147,18 +148,16 @@ public:
         return s;
     }
 
-    // Delegate to derived class.
     void initialize() override {
         iface_.init_mechanism(&ppack_);
     }
 
     void deliver_events() override {
         auto marked = event_stream_ptr_->marked_events();
-        // TODO(TH) fix janky code
         ppack_.events.n_streams = marked.n;
         ppack_.events.begin     = marked.begin_offset;
         ppack_.events.end       = marked.end_offset;
-        ppack_.events.events    = (arb_deliverable_event*) marked.ev_data;
+        ppack_.events.events    = (arb_deliverable_event*) marked.ev_data; // TODO(TH) bad: relies on rep. equality
         iface_.apply_events(&ppack_);
     }
 
@@ -167,7 +166,7 @@ public:
         iface_.compute_currents(&ppack_);
     }
 
-    void update_state()   override {
+    void update_state() override {
         set_time_ptr();
         iface_.advance_state(&ppack_);
     }
