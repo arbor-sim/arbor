@@ -1,9 +1,9 @@
 #include <cmath>
 
 #include <arbor/fvm_types.hpp>
-#include <arbor/gpu/backends/gpu/gpu_api.hpp>
-#include <arbor/gpu/backends/gpu/gpu_common.hpp>
-#include <arbor/gpu/backends/gpu/math_cu.hpp>
+#include <arbor/gpu/gpu_api.hpp>
+#include <arbor/gpu/gpu_common.hpp>
+#include <arbor/gpu/math_cu.hpp>
 
 #include "backends/gpu/stimulus.hpp"
 
