@@ -17,7 +17,7 @@ import pandas, seaborn
 import sys
 
 # Load a cell morphology from an swc file.
-# Example present here: morph.swc
+# Example present here: single_cell_detailed.swc
 if len(sys.argv) < 2:
     print("No SWC file passed to the program")
     sys.exit(0)
