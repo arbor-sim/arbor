@@ -165,6 +165,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # to the 'export set', even the private ones, and this must be done
 # in the same CMakeLists.txt in which the target is defined.
 
+# Data and internal scripts go here
+set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
 # defines should _not_ be used in any installed public headers.
@@ -210,8 +213,8 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue TYPE BIN)
-install(FILES mechanisms/BuildModules.cmake DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR})
-install(FILES mechanisms/generate_catalogue DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
+install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 

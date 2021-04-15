@@ -102,8 +102,8 @@ with TemporaryDirectory() as tmp:
     os.chdir(tmp / 'build')
     with open(tmp / 'CMakeLists.txt', 'w') as fd:
         fd.write(cmake)
-    shutil.copy2(f'@CMAKE_INSTALL_FULL_DATAROOTDIR@/BuildModules.cmake', tmp)
-    shutil.copy2(f'@CMAKE_INSTALL_FULL_DATAROOTDIR@/generate_catalogue', tmp)
+    shutil.copy2(f'@ARB_INSTALL_DATADIR@/BuildModules.cmake', tmp)
+    shutil.copy2(f'@ARB_INSTALL_DATADIR@/generate_catalogue', tmp)
     sp.run('cmake ..', shell=True, check=True, capture_output=not verbose)
     sp.run('make',     shell=True, capture_output=not verbose)
     shutil.copy2(f'{name}-catalogue.so', pwd)
