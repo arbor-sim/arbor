@@ -2,6 +2,7 @@ import os
 import sys
 import setuptools
 import pathlib
+from platform import machine
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
@@ -41,7 +42,7 @@ user_options_ = [
         ('gpu=',  None, 'enable nvidia cuda support (requires cudaruntime and nvcc) or amd hip support. Supported values: '
                         'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
-        ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
+        ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8-a, armv8.2-a+sve, znver2 (default native).'),
         ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)'),
         ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
     ]
@@ -91,7 +92,8 @@ class install_command(install):
         #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
-        opt['arch'] = "native" if self.arch is None else self.arch
+        opt['arch'] = ("armv8-a" if machine() == 'arm64' else "native"
+                       ) if self.arch is None else self.arch
         #   neuroml : compile with neuroml support for morphologies.
         opt['neuroml'] = self.neuroml is not None
         #   bundled : use bundled/git-submoduled 3rd party libraries.
@@ -126,7 +128,8 @@ if WHEEL_INSTALLED:
             #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
             opt['vec']  = self.vec is not None
             #   arch : target CPU micro-architecture (string).
-            opt['arch'] = "native" if self.arch is None else self.arch
+            opt['arch'] = ("armv8-a" if machine() == 'arm64' else "native"
+                           ) if self.arch is None else self.arch
             #   neuroml : compile with neuroml support for morphologies.
             opt['neuroml'] = self.neuroml is not None
             #   bundled : use bundled/git-submoduled 3rd party libraries.
@@ -237,4 +240,3 @@ setuptools.setup(
         'Bug Reports': 'https://github.com/arbor-sim/arbor/issues',
     },
 )
-
