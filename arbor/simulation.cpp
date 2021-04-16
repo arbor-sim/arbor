@@ -196,10 +196,10 @@ simulation_state::simulation_state(
           group = factory(group_info.gids, rec);
         });
 
-    cell_labeled_range local_sources, local_targets;
+    cell_labeled_ranges local_sources, local_targets;
     for(const auto& c: cell_groups_) {
-        local_sources.append(cell_labeled_range(c->source_table()));
-        local_targets.append(cell_labeled_range(c->target_table()));
+        local_sources.append(cell_labeled_ranges(c->source_table()));
+        local_targets.append(cell_labeled_ranges(c->target_table()));
     }
     auto global_sources = ctx.distributed->gather_labeled_range(local_sources);
 

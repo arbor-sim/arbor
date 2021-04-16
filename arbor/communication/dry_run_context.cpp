@@ -87,7 +87,7 @@ struct dry_run_context_impl {
         return std::vector<T>(num_ranks_, value);
     }
 
-    cell_labeled_range gather_labeled_range(const cell_labeled_range& local_ranges) const {
+    cell_labeled_ranges gather_labeled_range(const cell_labeled_ranges& local_ranges) const {
         std::vector<cell_gid_type> gids;
         std::vector<cell_tag_type> labels;
         std::vector<lid_range> ranges;
@@ -101,7 +101,7 @@ struct dry_run_context_impl {
             labels.insert(labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
             ranges.insert(ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
         }
-        return cell_labeled_range(gids, labels, ranges);
+        return cell_labeled_ranges(gids, labels, ranges);
     }
 
     void barrier() const {}

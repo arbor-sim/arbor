@@ -673,7 +673,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
-    label_resolver gj_resolver((cell_labeled_range(gap_junction_table_)));
+    label_resolver gj_resolver((cell_labeled_ranges(gap_junction_table_)));
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
