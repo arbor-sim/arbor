@@ -6,4 +6,4 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "ext/fmt"]
 	path = ext/fmt
-	url = git@github.com:fmtlib/fmt.git
+	url = https://github.com/fmtlib/fmt.git
