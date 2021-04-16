@@ -53,7 +53,7 @@ struct cable_cell_impl {
     // The lid ranges of placements.
     std::vector<lid_range> placed_lid_ranges;
 
-    // The source_label; -> lid_range map
+    // The source_label to lid_range map
     dynamic_typed_map<constant_type<std::unordered_map<std::string, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):

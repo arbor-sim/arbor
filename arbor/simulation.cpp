@@ -199,8 +199,8 @@ simulation_state::simulation_state(
     std::cout << "here" << std::endl;
     cell_labeled_range local_sources, local_targets;
     for(const auto& c: cell_groups_) {
-        local_sources.append(cell_labeled_range(c->get_source_table()));
-        local_targets.append(cell_labeled_range(c->get_target_table()));
+        local_sources.append(cell_labeled_range(c->source_table()));
+        local_targets.append(cell_labeled_range(c->target_table()));
     }
     std::cout << local_sources.indices.size() << std::endl;
     std::cout << local_targets.indices.size() << std::endl;
