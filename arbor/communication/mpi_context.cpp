@@ -10,6 +10,7 @@
 
 #include <mpi.h>
 
+#include <arbor/label_resolver.hpp>
 #include <arbor/spike.hpp>
 
 #include "communication/mpi.hpp"

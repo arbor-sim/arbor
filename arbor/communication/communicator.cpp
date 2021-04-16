@@ -24,8 +24,8 @@ namespace arb {
 
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
-                           const cell_labeled_range& source_ranges,
-                           const cell_labeled_range& target_ranges,
+                           const label_resolver& source_resolver,
+                           const label_resolver& target_resolver,
                            execution_context& ctx)
 {
     distributed_ = ctx.distributed;
@@ -100,8 +100,8 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
-            auto src_lid = source_ranges.get_lid(c.source);
-            auto tgt_lid = target_ranges.get_lid({cell.gid, c.dest});
+            auto src_lid = source_resolver.get_lid(c.source);
+            auto tgt_lid = target_resolver.get_lid({cell.gid, c.dest});
             std::cout << "(" << c.source.gid << " " << src_lid.value() << ") -> " << "(" << cell.gid << " " << tgt_lid.value() << ")" <<  std::endl;
             connections_[i] = {{c.source.gid, src_lid.value()}, tgt_lid.value(), c.weight, c.delay, cell.index_on_domain};
             ++pos;

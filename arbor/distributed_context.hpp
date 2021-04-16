@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <arbor/label_resolver.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/pp_util.hpp>
 

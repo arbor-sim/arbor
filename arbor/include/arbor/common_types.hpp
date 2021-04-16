@@ -80,76 +80,8 @@ struct lid_range {
         begin(b), end(e) {}
 };
 
-enum class cell_lid_policy {
-    round_robin,
-    assert_univalent
-};
-
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
-
-struct cell_labeled_range {
-    std::vector<cell_gid_type> gids;
-    std::vector<cell_tag_type> labels;
-    std::vector<lid_range> ranges;
-
-    mutable std::vector<cell_lid_type> indices;
-
-    cell_labeled_range() = default;
-    cell_labeled_range(std::vector<cell_gid_type> gids, std::vector<cell_tag_type> lbls, std::vector<lid_range> rngs):
-        gids(std::move(gids)), labels(std::move(lbls)), ranges(std::move(rngs)), indices(ranges.size(), 0) {};
-
-    cell_labeled_range(std::vector<std::tuple<cell_gid_type, std::string, lid_range>> tuple_vec): indices(tuple_vec.size(), 0) {
-        gids.reserve(tuple_vec.size());
-        labels.reserve(tuple_vec.size());
-        ranges.reserve(tuple_vec.size());
-        for (const auto& item: tuple_vec) {
-            gids.push_back(std::get<0>(item));
-            labels.push_back(std::get<1>(item));
-            ranges.push_back(std::get<2>(item));
-        }
-    }
-
-    void append(cell_labeled_range other) {
-        std::move(other.gids.begin(), other.gids.end(), std::back_inserter(gids));
-        std::move(other.labels.begin(), other.labels.end(), std::back_inserter(labels));
-        std::move(other.ranges.begin(), other.ranges.end(), std::back_inserter(ranges));
-        std::move(other.indices.begin(), other.indices.end(), std::back_inserter(indices));
-    }
-
-    std::optional<cell_lid_type> get_lid(const cell_label_type& elem, cell_lid_policy policy=cell_lid_policy::round_robin) const {
-        auto it = std::lower_bound(gids.begin(), gids.end(), elem.gid);
-        if (*it != elem.gid) return std::nullopt;
-
-        auto first = it - gids.begin();
-        auto last  = std::upper_bound(gids.begin(), gids.end(), elem.gid) - gids.begin();
-
-        auto lit = std::lower_bound(labels.begin()+first, labels.begin()+last, elem.label);
-        if (*lit != elem.label) return std::nullopt;
-
-        auto label_idx = lit - labels.begin();
-
-        auto range = ranges[label_idx];
-        auto size = range.end - range.begin;
-
-        switch (policy) {
-            case cell_lid_policy::round_robin:
-            {
-                auto idx = indices[label_idx];
-                indices[label_idx] = (idx+1)%size;
-                return idx + range.begin;
-            }
-            case cell_lid_policy::assert_univalent:
-            {
-                if (size != 1) {
-                    return std::nullopt;
-                }
-                return range.begin;
-            }
-        }
-        return std::nullopt;
-    }
-};
 
 // For storing time values [ms]
 

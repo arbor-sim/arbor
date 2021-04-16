@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include <arbor/label_resolver.hpp>
 #include <arbor/spike.hpp>
 
 #include <distributed_context.hpp>

@@ -196,16 +196,12 @@ simulation_state::simulation_state(
           group = factory(group_info.gids, rec);
         });
 
-    std::cout << "here" << std::endl;
     cell_labeled_range local_sources, local_targets;
     for(const auto& c: cell_groups_) {
         local_sources.append(cell_labeled_range(c->source_table()));
         local_targets.append(cell_labeled_range(c->target_table()));
     }
-    std::cout << local_sources.indices.size() << std::endl;
-    std::cout << local_targets.indices.size() << std::endl;
     auto global_sources = ctx.distributed->gather_labeled_range(local_sources);
-    communicator_ = arb::communicator(rec, decomp, global_sources, local_targets, ctx);
 
     for (unsigned i = 0; i < global_sources.gids.size(); ++i) {
         std::cout << global_sources.gids[i] << ", " << global_sources.labels[i] << ", (" << global_sources.ranges[i].begin << " -> " << global_sources.ranges[i].end << ")" << std::endl;
@@ -217,6 +213,7 @@ simulation_state::simulation_state(
     }
     std::cout << std::endl;
 
+    communicator_ = arb::communicator(rec, decomp, label_resolver(std::move(global_sources)), label_resolver(std::move(local_targets)), ctx);
 
     const auto num_local_cells = communicator_.num_local_cells();
 
