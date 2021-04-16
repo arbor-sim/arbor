@@ -91,7 +91,7 @@ public:
         if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
             return{};
         }
-        return {arb::cell_connection({gid - 1, 0}, 0, params_.event_weight, params_.event_min_delay)};
+        return {arb::cell_connection({gid - 1, "detector"}, "syn", params_.event_weight, params_.event_min_delay)};
     }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
@@ -121,10 +121,10 @@ public:
         // Gap junction conductance in μS
 
         if (next_cell < cable_end) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, 0}, 1, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0"}, "local_1", 0.015));
         }
         if (prev_cell >= cable_begin) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, 1}, 0, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1"}, "local_0", 0.015));
         }
 
         return conns;
@@ -312,20 +312,20 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     decor.paint("(all)", pas);
 
     // Add a spike detector to the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10});
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
 
     // Add two gap junction sites.
-    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
-    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{});
+    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_0");
+    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_1");
 
     // Attach a stimulus to the second cell.
     if (!gid) {
         auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
-        decor.place(arb::mlocation{0, 0.5}, stim);
+        decor.place(arb::mlocation{0, 0.5}, stim, "stim");
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    decor.place(arb::mlocation{0, 0.5}, "expsyn");
+    decor.place(arb::mlocation{0, 0.5}, "expsyn", "syn");
 
     // Create the cell and set its electrical properties.
     return arb::cable_cell(tree, {}, decor);

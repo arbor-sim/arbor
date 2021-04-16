@@ -672,19 +672,15 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
-
+    cell_labeled_range gj_ranges(gap_junction_table_);
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
-            if (g.local >= gid_to_cvs[gid].size()) {
-                throw arb::bad_gj_connection_lid(gid, {gid, g.local});
-            }
-            if (g.peer.index >= gid_to_cvs[g.peer.gid].size()) {
-                throw arb::bad_gj_connection_lid(gid, g.peer);
-            }
-            auto cv0 = gid_to_cvs[gid][g.local];
-            auto cv1 = gid_to_cvs[g.peer.gid][g.peer.index];
-            v.push_back(fvm_gap_junction(std::make_pair(cv0, cv1), g.ggap * 1e3 / D.cv_area[cv0]));
+            auto gj_local = gj_ranges.get_lid({gid, g.local});
+            auto gj_peer  = gj_ranges.get_lid(g.peer);
+            auto cv_local = gid_to_cvs[gid][gj_local.value()];
+            auto cv_peer = gid_to_cvs[g.peer.gid][gj_peer.value()];
+            v.push_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
         }
     }
 

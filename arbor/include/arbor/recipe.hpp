@@ -53,11 +53,11 @@ struct cell_connection {
 };
 
 struct gap_junction_connection {
-    cell_member_type peer;
-    cell_lid_type local;
+    cell_label_type peer;
+    cell_tag_type local;
     double ggap;
 
-    gap_junction_connection(cell_member_type peer, cell_lid_type local, double g):
+    gap_junction_connection(cell_label_type peer, cell_tag_type local, double g):
         peer(peer), local(local), ggap(g) {}
 };
 
