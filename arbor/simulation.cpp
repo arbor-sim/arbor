@@ -196,24 +196,18 @@ simulation_state::simulation_state(
           group = factory(group_info.gids, rec);
         });
 
-    cell_labeled_ranges local_sources, local_targets;
+    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> local_sources, local_targets;
     for(const auto& c: cell_groups_) {
-        local_sources.append(cell_labeled_ranges(c->source_table()));
-        local_targets.append(cell_labeled_ranges(c->target_table()));
+        auto cg_sources = c->source_table();
+        auto cg_targets = c->target_table();
+        std::move(cg_sources.begin(), cg_sources.end(), std::back_inserter(local_sources));
+        std::move(cg_targets.begin(), cg_targets.end(), std::back_inserter(local_targets));
     }
-    auto global_sources = ctx.distributed->gather_labeled_range(local_sources);
+    std::sort(local_sources.begin(), local_sources.end());
+    std::sort(local_targets.begin(), local_targets.end());
+    auto global_sources = ctx.distributed->gather_labeled_range(cell_labeled_ranges(local_sources));
 
-    for (unsigned i = 0; i < global_sources.gids.size(); ++i) {
-        std::cout << global_sources.gids[i] << ", " << global_sources.labels[i] << ", (" << global_sources.ranges[i].begin << " -> " << global_sources.ranges[i].end << ")" << std::endl;
-    }
-    std::cout << std::endl;
-
-    for (unsigned i = 0; i < local_targets.gids.size(); ++i) {
-        std::cout << local_targets.gids[i] << ", " << local_targets.labels[i] << ", (" << local_targets.ranges[i].begin << " -> " << local_targets.ranges[i].end << ")" << std::endl;
-    }
-    std::cout << std::endl;
-
-    communicator_ = arb::communicator(rec, decomp, label_resolver(std::move(global_sources)), label_resolver(std::move(local_targets)), ctx);
+    communicator_ = arb::communicator(rec, decomp, label_resolver(std::move(global_sources)), label_resolver(cell_labeled_ranges(local_targets)), ctx);
 
     const auto num_local_cells = communicator_.num_local_cells();
 

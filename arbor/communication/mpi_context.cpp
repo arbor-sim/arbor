@@ -15,6 +15,7 @@
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
+#include "util/partition.hpp"
 
 namespace arb {
 
@@ -40,10 +41,17 @@ struct mpi_context_impl {
     }
 
     cell_labeled_ranges gather_labeled_range(const cell_labeled_ranges& local_ranges) const {
+        arb_assert(local_ranges.is_one_partition());
+        std::vector<size_t> sizes, partitions;
+
         std::vector<cell_gid_type> gids   = mpi::gather_all(local_ranges.gids, comm_);
         std::vector<cell_tag_type> labels = mpi::gather_all(local_ranges.labels, comm_);
         std::vector<lid_range> ranges     = mpi::gather_all(local_ranges.ranges, comm_);
-        return cell_labeled_ranges(gids, labels, ranges);
+
+        sizes = mpi::gather_all(local_ranges.gids.size(), comm_);
+        util::make_partition(partitions, sizes);
+
+        return cell_labeled_ranges(gids, labels, ranges, partitions);
     }
 
     std::string name() const { return "MPI"; }
