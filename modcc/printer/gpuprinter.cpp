@@ -69,16 +69,18 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     std::stringstream ss;
     for (const auto& c: ns_components) ss << c <<"::";
 
-    out << fmt::format(FMT_COMPILE("arb_mechanism_interface* make_{4}_{1}_interface_gpu() {{\n"
-                                   "  static arb_mechanism_interface result;\n"
-                                   "  result.backend={2};\n"
-                                   "  result.init_mechanism=(arb_mechanism_method){3}{0}_init_;\n"
-                                   "  result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents_;\n"
-                                   "  result.apply_events=(arb_mechanism_method){3}{0}_apply_events_;\n"
-                                   "  result.advance_state=(arb_mechanism_method){3}{0}_advance_state_;\n"
-                                   "  result.write_ions=(arb_mechanism_method){3}{0}_write_ions_;\n"
-                                   "  result.post_event=(arb_mechanism_method){3}{0}_post_event_;\n"
-                                   "  return &result;\n"
+    out << fmt::format(FMT_COMPILE("extern \"C\" {{\n"
+				   "  arb_mechanism_interface* make_{4}_{1}_interface_gpu() {{\n"
+                                   "    static arb_mechanism_interface result;\n"
+                                   "    result.backend={2};\n"
+                                   "    result.init_mechanism=(arb_mechanism_method){3}{0}_init_;\n"
+                                   "    result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents_;\n"
+                                   "    result.apply_events=(arb_mechanism_method){3}{0}_apply_events_;\n"
+                                   "    result.advance_state=(arb_mechanism_method){3}{0}_advance_state_;\n"
+                                   "    result.write_ions=(arb_mechanism_method){3}{0}_write_ions_;\n"
+                                   "    result.post_event=(arb_mechanism_method){3}{0}_post_event_;\n"
+                                   "    return &result;\n"
+				   "  }}\n"
                                    "}};\n\n"),
                        class_name,
                        name,

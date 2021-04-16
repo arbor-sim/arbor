@@ -1,6 +1,7 @@
 #include <arbor/common_types.hpp>
-#include <arbor/gpu/backends/event.hpp>
 #include <arbor/gpu/gpu_common.hpp>
+
+#include "backends/event.hpp"
 
 namespace arb {
 namespace gpu {
