@@ -36,7 +36,7 @@ RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPIC
 
 # Install bundle tooling for creating small Docker images
 RUN wget -q https://github.com/haampie/libtree/releases/download/v1.2.0/libtree_x86_64.tar.gz && \
-    echo "4316a52aed7c8d2f7d2736c935bbda952204be92e56948110a143283764c427c cmake.tar.gz" | sha256sum --check --quiet && \
+    echo "4316a52aed7c8d2f7d2736c935bbda952204be92e56948110a143283764c427c libtree_x86_64.tar.gz" | sha256sum --check --quiet && \
     tar -xzf libtree_x86_64.tar.gz && \
     rm libtree_x86_64.tar.gz && \
     ln -s /root/libtree/libtree /usr/local/bin/libtree
