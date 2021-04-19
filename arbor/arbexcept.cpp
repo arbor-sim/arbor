@@ -37,16 +37,14 @@ bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid
     gid(gid), src_gid(src_gid), num_cells(num_cells)
 {}
 
-bad_connection_source_lid::bad_connection_source_lid(cell_gid_type gid, cell_lid_type src_lid, cell_size_type num_sources):
-    arbor_exception(pprintf("Model building error on cell {}: connection source index {} is out of range. Cell {} has {} sources", gid, src_lid, gid, num_sources) +
-                    (num_sources? pprintf(", in the range [{}:{}].",  0, num_sources-1) : ".")),
-    gid(gid), src_lid(src_lid), num_sources(num_sources)
+bad_connection_label::bad_connection_label(cell_label_type label):
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label {} does not exist.", label.gid, label.tag)),
+    label(label)
 {}
 
-bad_connection_target_lid::bad_connection_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets):
-    arbor_exception(pprintf("Model building error on cell {}: connection target index {} is out of range. Cell {} has {} targets", gid, tgt_lid, gid, num_targets) +
-                    (num_targets ? pprintf(", in the range [{}:{}].", 0, num_targets-1) : ".")),
-    gid(gid), tgt_lid(tgt_lid), num_targets(num_targets)
+bad_univalent_connection_label::bad_univalent_connection_label(cell_label_type label):
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label {} is not univalent.", label.gid, label.tag)),
+    label(label)
 {}
 
 bad_event_generator_target_lid::bad_event_generator_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets):

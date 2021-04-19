@@ -92,7 +92,11 @@ struct cable_cell_impl {
             mm.push_back(p);
         }
         auto range = lid_range(first, lid);
-        labeled_lid_ranges.get<Item>().insert(std::make_pair(label, range));
+        auto& lid_ranges = labeled_lid_ranges.get<Item>();
+        if (lid_ranges.count(label)) {
+            throw arb::cable_cell_error(util::pprintf("Duplicate label detected \"{}\"", label));
+        }
+        lid_ranges.insert(std::make_pair(label, range));
         return range;
     }
 

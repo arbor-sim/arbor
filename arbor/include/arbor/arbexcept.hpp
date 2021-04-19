@@ -60,18 +60,14 @@ struct bad_connection_source_gid: arbor_exception {
     cell_size_type num_cells;
 };
 
-struct bad_connection_source_lid: arbor_exception {
-    bad_connection_source_lid(cell_gid_type gid, cell_lid_type src_lid, cell_size_type num_sources);
-    cell_gid_type gid;
-    cell_lid_type src_lid;
-    cell_size_type num_sources;
+struct bad_connection_label: arbor_exception {
+    bad_connection_label(cell_label_type label);
+    cell_label_type label;
 };
 
-struct bad_connection_target_lid: arbor_exception {
-    bad_connection_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets);
-    cell_gid_type gid;
-    cell_lid_type tgt_lid;
-    cell_size_type num_targets;
+struct bad_univalent_connection_label: arbor_exception {
+    bad_univalent_connection_label(cell_label_type label);
+    cell_label_type label;
 };
 
 struct bad_event_generator_target_lid: arbor_exception {

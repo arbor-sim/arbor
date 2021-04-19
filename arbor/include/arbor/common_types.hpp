@@ -66,7 +66,7 @@ struct cell_member_type {
 
 struct cell_label_type {
     cell_gid_type gid;
-    cell_tag_type label;
+    cell_tag_type tag;
 };
 
 // Pair of indexes that describe range of local indices.

@@ -1,6 +1,7 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/arbexcept.hpp>
 #include <arbor/label_resolver.hpp>
 #include <arbor/common_types.hpp>
 
@@ -64,29 +65,31 @@ label_resolver::label_resolver(cell_labeled_ranges ranges):
     indices(mapper.gids.size(), 0) {
     arb_assert(mapper.labels.size() == indices.size());
     arb_assert(mapper.ranges.size() == indices.size());
-    for (unsigned i = 0; i < mapper.gids.size(); ++i) {
-        std::cout << mapper.gids[i] << ", " << mapper.labels[i] << ", (" << mapper.ranges[i].begin << " -> " << mapper.ranges[i].end << ")" << std::endl;
-    }
-    std::cout << "[";
-    for (auto i:mapper.sorted_partitions) {
-        std::cout << i << " ";
-    }
-    std::cout << "]" << std::endl;
-    std::cout << std::endl;
+//    for (unsigned i = 0; i < mapper.gids.size(); ++i) {
+//        std::cout << mapper.gids[i] << ", " << mapper.labels[i] << ", (" << mapper.ranges[i].begin << " -> " << mapper.ranges[i].end << ")" << std::endl;
+//    }
+//    std::cout << "[";
+//    for (auto i:mapper.sorted_partitions) {
+//        std::cout << i << " ";
+//    }
+//    std::cout << "]" << std::endl;
+//    std::cout << std::endl;
 }
 
-std::optional<cell_lid_type> label_resolver::get_lid(const cell_label_type& elem, lid_selection_policy policy) const {
+cell_lid_type label_resolver::get_lid(const cell_label_type& elem, lid_selection_policy policy) const {
     return get_lid(elem, -1, policy);
 }
 
-std::optional<cell_lid_type> label_resolver::get_lid(const cell_label_type& elem, int rank, lid_selection_policy policy) const {
+cell_lid_type label_resolver::get_lid(const cell_label_type& elem, int rank, lid_selection_policy policy) const {
     auto gid_range = mapper.get_gid_range(elem.gid, rank);
-    if(!gid_range) return std::nullopt;
-
-    auto label_range = mapper.get_label_range(elem.label, gid_range.value());
-    if(!label_range) return std::nullopt;
-
-    arb_assert(label_range.value().first == label_range.value().second);
+    if (!gid_range) {
+        throw arb::bad_connection_label(elem);
+    }
+    auto label_range = mapper.get_label_range(elem.tag, gid_range.value());
+    if (!label_range) {
+        throw arb::bad_connection_label(elem);
+    }
+    arb_assert(label_range.value().second - label_range.value().first == 1);
 
     auto rid = label_range.value().first;
     auto range = mapper.ranges[rid];
@@ -102,12 +105,12 @@ std::optional<cell_lid_type> label_resolver::get_lid(const cell_label_type& elem
     case lid_selection_policy::assert_univalent:
     {
         if (size != 1) {
-            return std::nullopt;
+            throw arb::bad_univalent_connection_label(elem);
         }
         return range.begin;
     }
+    default: throw arb::bad_connection_label(elem);
     }
-    return std::nullopt;
 }
 } // namespace arb
 
