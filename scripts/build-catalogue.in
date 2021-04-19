@@ -85,7 +85,7 @@ make_catalogue(
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
   OUTPUT "CAT_{name.upper()}_SOURCES"
   MECHS {' '.join(mods)}
-  PREFIX @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DATAROOTDIR@
+  PREFIX @ARB_INSTALL_DATADIR@
   STANDALONE ON
   VERBOSE {"ON" if verbose else "OFF"})
 """
