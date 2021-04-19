@@ -31,24 +31,31 @@ cell_labeled_ranges::cell_labeled_ranges(const std::vector<std::tuple<cell_gid_t
     sorted_partitions.push_back(0);
     sorted_partitions.push_back(tuple_vec.size());
 }
+
 bool cell_labeled_ranges::is_one_partition() const {
     return (sorted_partitions.size()==2 && sorted_partitions.front()== 0 && sorted_partitions.back()==gids.size());
 };
 
-std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_gid_range(cell_gid_type gid) const {
-    for (const auto& part : util::partition_view(sorted_partitions)) {
-        auto it_0 = std::lower_bound(gids.begin()+part.first, gids.end()+part.second, gid);
-        if (*it_0 != gid) continue;
-        auto it_1 = std::upper_bound(gids.begin(), gids.end(), gid);
-        return std::make_pair(it_0 - gids.begin(), it_1 - gids.begin());
+std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_gid_range(cell_gid_type gid, int partition) const {
+    auto part = (partition == -1) ? std::make_pair(sorted_partitions.front(), sorted_partitions.back()) : util::partition_view(sorted_partitions).at(partition);
+    auto first = gids.begin()+part.first;
+    auto last  = gids.begin()+part.second;
+    auto it_0 = std::lower_bound(first, last, gid);
+    if (*it_0 != gid) {
+        return std::nullopt;
     }
-    return std::nullopt;
+    auto it_1 = std::upper_bound(first, last, gid);
+    return std::make_pair(it_0 - gids.begin(), it_1 - gids.begin());
 }
 
 std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_label_range(const cell_tag_type& label, std::pair<std::size_t, std::size_t> gid_range) const {
-    auto it_0 = std::lower_bound(labels.begin()+gid_range.first, labels.begin()+gid_range.second, label);
-    if (*it_0 != label) return std::nullopt;
-    auto it_1  = std::upper_bound(labels.begin(), labels.end(), label);
+    auto first = labels.begin()+gid_range.first;
+    auto last  = labels.begin()+gid_range.second;
+    auto it_0 = std::lower_bound(first, last, label);
+    if (*it_0 != label) {
+        return std::nullopt;
+    }
+    auto it_1  = std::upper_bound(first, last, label);
     return std::make_pair(it_0 - labels.begin(), it_1 - labels.begin());
 }
 
@@ -57,11 +64,11 @@ label_resolver::label_resolver(cell_labeled_ranges ranges):
     indices(mapper.gids.size(), 0) {
     arb_assert(mapper.labels.size() == indices.size());
     arb_assert(mapper.ranges.size() == indices.size());
-    for (unsigned i = 0; i < ranges.gids.size(); ++i) {
-        std::cout << ranges.gids[i] << ", " << ranges.labels[i] << ", (" << ranges.ranges[i].begin << " -> " << ranges.ranges[i].end << ")" << std::endl;
+    for (unsigned i = 0; i < mapper.gids.size(); ++i) {
+        std::cout << mapper.gids[i] << ", " << mapper.labels[i] << ", (" << mapper.ranges[i].begin << " -> " << mapper.ranges[i].end << ")" << std::endl;
     }
     std::cout << "[";
-    for (auto i:ranges.sorted_partitions) {
+    for (auto i:mapper.sorted_partitions) {
         std::cout << i << " ";
     }
     std::cout << "]" << std::endl;
@@ -69,7 +76,11 @@ label_resolver::label_resolver(cell_labeled_ranges ranges):
 }
 
 std::optional<cell_lid_type> label_resolver::get_lid(const cell_label_type& elem, lid_selection_policy policy) const {
-    auto gid_range = mapper.get_gid_range(elem.gid);
+    return get_lid(elem, -1, policy);
+}
+
+std::optional<cell_lid_type> label_resolver::get_lid(const cell_label_type& elem, int rank, lid_selection_policy policy) const {
+    auto gid_range = mapper.get_gid_range(elem.gid, rank);
     if(!gid_range) return std::nullopt;
 
     auto label_range = mapper.get_label_range(elem.label, gid_range.value());
@@ -85,7 +96,7 @@ std::optional<cell_lid_type> label_resolver::get_lid(const cell_label_type& elem
     case lid_selection_policy::round_robin:
     {
         auto idx = indices[rid];
-        indices[idx] = (idx+1)%size;
+        indices[rid] = (idx+1)%size;
         return idx + range.begin;
     }
     case lid_selection_policy::assert_univalent:

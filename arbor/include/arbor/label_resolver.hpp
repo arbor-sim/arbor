@@ -36,7 +36,7 @@ struct cell_labeled_ranges {
     explicit cell_labeled_ranges(const std::vector<std::tuple<cell_gid_type, std::string, lid_range>>& tuple_vec);
 
     bool is_one_partition() const;
-    std::optional<std::pair<std::size_t, std::size_t>> get_gid_range(cell_gid_type) const;
+    std::optional<std::pair<std::size_t, std::size_t>> get_gid_range(cell_gid_type, int partition=-1) const;
     std::optional<std::pair<std::size_t, std::size_t>> get_label_range(const cell_tag_type&, std::pair<std::size_t, std::size_t>) const;
 };
 
@@ -54,6 +54,7 @@ struct label_resolver {
     explicit label_resolver(cell_labeled_ranges);
 
     std::optional<cell_lid_type> get_lid(const cell_label_type&, lid_selection_policy=lid_selection_policy::round_robin) const;
+    std::optional<cell_lid_type> get_lid(const cell_label_type&, int rank, lid_selection_policy=lid_selection_policy::round_robin) const;
 };
 
 } // namespace arb
