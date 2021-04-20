@@ -43,7 +43,8 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
 # Install some code cov related executables
 RUN libtree -d ${BUNDLE_DIR} $(which gcov) && \
     cp -L ${SOURCE_DIR}/ci/codecov_pre ${SOURCE_DIR}/ci/codecov_post ${SOURCE_DIR}/ci/upload_codecov ${BUNDLE_DIR}/usr/bin && \
-    cp -L $(which lcov geninfo) ${BUNDLE_DIR}/usr/bin
+    cp -L $(which lcov geninfo) ${BUNDLE_DIR}/usr/bin && \
+    cp -L /usr/local/bin/codecov.sh ${BUNDLE_DIR}/usr/bin
 
 # In the build dir, remove everything except for gcno coverage files
 RUN mv ${BUILD_DIR} ${BUILD_DIR}-tmp && \

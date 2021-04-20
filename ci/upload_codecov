@@ -6,6 +6,6 @@ TRACE_FILES_ARGS=`find "$SHARED_REPORTS" -type f -iname '*.info' -exec sh -c "ec
 lcov ${TRACE_FILES_ARGS} --output-file "$SHARED_REPORTS/combined.info"
 
 pushd $SOURCE_DIR
-bash <(curl -s https://codecov.io/bash) -f "$SHARED_REPORTS/combined.info" -t $CODECOV_TOKEN_GITHUB
-bash <(curl -s https://codecov.io/bash) -f "$SHARED_REPORTS/combined.info" -t $CODECOV_TOKEN_GITLAB
+codecov.sh -f "$SHARED_REPORTS/combined.info" -t $CODECOV_TOKEN_GITHUB
+codecov.sh -f "$SHARED_REPORTS/combined.info" -t $CODECOV_TOKEN_GITLAB
 popd
