@@ -105,7 +105,7 @@ s_expr mksexp(const decor& d) {
     }
     for (const auto& p: d.placements()) {
         decorations.push_back(std::visit([&](auto& x)
-            { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
+            { return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(std::get<2>(p))); }, std::get<1>(p)));
     }
     return {"decor"_symbol, slist_range(decorations)};
 }
@@ -252,10 +252,10 @@ arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std:
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
 // Define makers for placeable pairs, paintable pairs, defaultables and decors
-using place_pair = std::pair<arb::locset, arb::placeable>;
+using place_tuple = std::tuple<arb::locset, arb::placeable, std::string>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
-place_pair make_place(locset where, placeable what) {
-    return place_pair{where, what};
+place_tuple make_place(locset where, placeable what, std::string name) {
+    return place_tuple{where, what, name};
 }
 paint_pair make_paint(region where, paintable what) {
     return paint_pair{where, what};
@@ -263,11 +263,11 @@ paint_pair make_paint(region where, paintable what) {
 defaultable make_default(defaultable what) {
     return what;
 }
-decor make_decor(const std::vector<std::variant<place_pair, paint_pair, defaultable>>& args) {
+decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, defaultable>>& args) {
     decor d;
     for(const auto& a: args) {
         auto decor_visitor = arb::util::overload(
-            [&](const place_pair & p) { d.place(p.first, p.second); },
+            [&](const place_tuple & p) { d.place(std::get<0>(p), std::get<1>(p), std::get<2>(p)); },
             [&](const paint_pair & p) { d.paint(p.first, p.second); },
             [&](const defaultable & p){ d.set_default(p); });
         std::visit(decor_visitor, a);
@@ -769,10 +769,10 @@ eval_map named_evals{
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
                                       "(name:string (param:string val:real))")},
 
-    {"place", make_call<locset, gap_junction_site>(make_place, "'place' with 2 arguments (locset gap-junction-site)")},
-    {"place", make_call<locset, i_clamp>(make_place, "'place' with 2 arguments (locset current-clamp)")},
-    {"place", make_call<locset, threshold_detector>(make_place, "'place' with 2 arguments (locset threshold-detector)")},
-    {"place", make_call<locset, mechanism_desc>(make_place, "'place' with 2 arguments (locset mechanism)")},
+    {"place", make_call<locset, gap_junction_site, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:gap-junction-site name:string)")},
+    {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
+    {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
+    {"place", make_call<locset, mechanism_desc, std::string>(make_place, "'place' with 3 arguments (ls:locset mech:mechanism name:string)")},
 
     {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with 2 arguments (region membrane-potential)")},
     {"paint", make_call<region, temperature_K>(make_paint, "'paint' with 2 arguments (region temperature-kelvin)")},
@@ -804,7 +804,7 @@ eval_map named_evals{
     {"branch",  make_branch_call(
                     "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
-    {"decor", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
+    {"decor", make_arg_vec_call<place_tuple, paint_pair, defaultable>(make_decor,
                   "'decor' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
                        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},

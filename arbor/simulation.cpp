@@ -196,7 +196,7 @@ simulation_state::simulation_state(
           group = factory(group_info.gids, rec);
         });
 
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> local_sources, local_targets;
+    clr_vector local_sources, local_targets;
     for(const auto& c: cell_groups_) {
         auto cg_sources = c->source_table();
         auto cg_targets = c->target_table();

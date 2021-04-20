@@ -113,3 +113,18 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     // This is the last time a cell was updated.
     last_time_updated_[lid] = t;
 }
+
+clr_vector lif_cell_group::source_table() const {
+    clr_vector src_table;
+    for (auto lid: util::make_span(gids_.size())) {
+        src_table.push_back({gids_[lid], cells_[lid].source, {0, 1}});
+    }
+    return src_table;
+}
+clr_vector lif_cell_group::target_table() const {
+    clr_vector tgt_table;
+    for (auto lid: util::make_span(gids_.size())) {
+        tgt_table.push_back({gids_[lid], cells_[lid].target, {0, 1}});
+    }
+    return tgt_table;
+}

@@ -38,12 +38,12 @@ bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid
 {}
 
 bad_connection_label::bad_connection_label(cell_label_type label):
-    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label {} does not exist.", label.gid, label.tag)),
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" does not exist.", label.gid, label.tag)),
     label(label)
 {}
 
 bad_univalent_connection_label::bad_univalent_connection_label(cell_label_type label):
-    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label {} is not univalent.", label.gid, label.tag)),
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" is not univalent.", label.gid, label.tag)),
     label(label)
 {}
 
@@ -67,12 +67,6 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
     arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
     gid_0(gid_0),
     gid_1(gid_1)
-{}
-
-bad_gj_connection_lid::bad_gj_connection_lid(cell_gid_type gid, cell_member_type site):
-    arbor_exception(pprintf("Model building error on cell {}: gap junction index {} on cell {} does not exist)", gid, site.gid, site.index)),
-    gid(gid),
-    site(site)
 {}
 
 gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):

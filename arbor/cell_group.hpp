@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/label_resolver.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
@@ -46,9 +47,9 @@ public:
     }
 
     // Labeled source, target and gap_junction info
-    virtual std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table() const { return {};};
-    virtual std::vector<std::tuple<cell_gid_type, std::string, lid_range>> target_table() const { return {};};
-    virtual std::vector<std::tuple<cell_gid_type, std::string, lid_range>> gap_junction_table() const { return {};};
+    virtual clr_vector source_table() const { return {};};
+    virtual clr_vector target_table() const { return {};};
+    virtual clr_vector gap_junction_table() const { return {};};
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

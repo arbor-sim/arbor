@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arbor/common_types.hpp>
 #include <arbor/schedule.hpp>
 
 namespace arb {
@@ -9,6 +10,7 @@ namespace arb {
 
 struct spike_source_cell {
     schedule seq;
+    cell_tag_type source; // Label of source.
 };
 
 } // namespace arb

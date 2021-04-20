@@ -5,6 +5,8 @@
 
 namespace arb {
 
+using clr_vector = std::vector<std::tuple<cell_gid_type, cell_tag_type, lid_range>>;
+
 // Data required for {gid, label} to lid resolution.
 // gids, labels, ranges are expected to have the same size.
 // gids, labels, ranges are expected to be lexicographically sorted in the following order (gid, labels, ranges)
@@ -33,7 +35,7 @@ struct cell_labeled_ranges {
                        std::vector<size_t> ptns);
 
     // Expects sorted tuple_vec
-    explicit cell_labeled_ranges(const std::vector<std::tuple<cell_gid_type, std::string, lid_range>>& tuple_vec);
+    explicit cell_labeled_ranges(const clr_vector& tuple_vec);
 
     bool is_one_partition() const;
     std::optional<std::pair<std::size_t, std::size_t>> get_gid_range(cell_gid_type, int partition=-1) const;

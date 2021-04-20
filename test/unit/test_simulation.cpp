@@ -89,12 +89,14 @@ struct lif_chain: public recipe {
         lif.tau_m = 0.01;           // time constant (ms)
         lif.t_ref = 0;              // refactory period (ms)
         lif.V_th = lif.E_L + 0.001; // threshold voltage 1 µV higher than resting
+        lif.source = "src";
+        lif.target = "tgt";
         return lif;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type target) const {
         if (target) {
-            return {cell_connection({target-1, 0}, 0, weight_, delay_)};
+            return {cell_connection({target-1, "src"}, "tgt", weight_, delay_)};
         }
         else {
             return {};

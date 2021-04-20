@@ -35,9 +35,12 @@ public:
 
     void remove_all_samplers() override {}
 
+    clr_vector source_table() const override;
+
 private:
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
+    std::vector<cell_tag_type> src_labels_;
     std::vector<schedule> time_sequences_;
 };
 

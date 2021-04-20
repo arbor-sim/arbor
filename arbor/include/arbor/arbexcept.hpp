@@ -92,12 +92,6 @@ struct gj_kind_mismatch: arbor_exception {
     cell_gid_type gid_0, gid_1;
 };
 
-struct bad_gj_connection_lid: arbor_exception {
-    bad_gj_connection_lid(cell_gid_type gid, cell_member_type site);
-    cell_gid_type gid;
-    cell_member_type site;
-};
-
 // Domain decomposition errors:
 
 struct gj_unsupported_domain_decomposition: arbor_exception {

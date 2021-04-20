@@ -41,16 +41,16 @@ public:
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
-        cell_member_type source{(gid - 1) % n_lif_cells_, 0};
-        cell_lid_type target{0};
+        cell_label_type source{(gid - 1) % n_lif_cells_, "src"};
+        cell_tag_type target{"tgt"};
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
 
         // If first LIF cell, then add
         // the connection from the last LIF cell as well
         if (gid == 1) {
-            cell_member_type source{n_lif_cells_, 0};
-            cell_lid_type target{0};
+            cell_label_type source{n_lif_cells_, "src"};
+            cell_tag_type target{"tgt"};
             cell_connection conn(source, target, weight_, delay_);
             connections.push_back(conn);
         }
@@ -62,10 +62,13 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{explicit_schedule({0.f})};
+            return spike_source_cell{explicit_schedule({0.f}), "src"};
         }
         // LIF cell.
-        return lif_cell();
+        auto cell = lif_cell();
+        cell.source = "src";
+        cell.target = "tgt";
+        return cell;
     }
 
     cell_size_type num_sources(cell_gid_type) const override {
@@ -100,8 +103,8 @@ public:
             return {};
         }
         std::vector<cell_connection> connections;
-        cell_member_type source{gid - 1, 0};
-        cell_lid_type target{0};
+        cell_label_type source{gid - 1, "src"};
+        cell_tag_type target{"tgt"};
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
 
@@ -109,7 +112,10 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell();
+        auto cell = lif_cell();
+        cell.source = "src";
+        cell.target = "tgt";
+        return cell;
     }
 
     cell_size_type num_sources(cell_gid_type) const override {

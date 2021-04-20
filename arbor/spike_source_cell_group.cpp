@@ -26,6 +26,7 @@ spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));
+            src_labels_.push_back(cell.source);
         }
         catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);
@@ -70,6 +71,13 @@ void spike_source_cell_group::add_sampler(sampler_association_handle, cell_membe
     throw std::logic_error("A spike_source_cell group doen't support sampling of internal state!");
 }
 
+clr_vector spike_source_cell_group::source_table() const {
+    clr_vector src_table;
+    for (auto lid: util::make_span(gids_.size())) {
+        src_table.push_back({gids_[lid], src_labels_[lid], {0, 1}});
+    }
+    return src_table;
+}
 } // namespace arb
 
 

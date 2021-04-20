@@ -19,7 +19,7 @@ cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> ids,
     arb_assert(ranges.size() == gids.size());
 };
 
-cell_labeled_ranges::cell_labeled_ranges(const std::vector<std::tuple<cell_gid_type, std::string, lid_range>>& tuple_vec) {
+cell_labeled_ranges::cell_labeled_ranges(const clr_vector& tuple_vec) {
     arb_assert(std::is_sorted(tuple_vec.begin(), tuple_vec.end()));
     gids.reserve(tuple_vec.size());
     labels.reserve(tuple_vec.size());
@@ -42,7 +42,7 @@ std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_gid_
     auto first = gids.begin()+part.first;
     auto last  = gids.begin()+part.second;
     auto it_0 = std::lower_bound(first, last, gid);
-    if (*it_0 != gid) {
+    if (it_0 == gids.end() || *it_0 != gid) {
         return std::nullopt;
     }
     auto it_1 = std::upper_bound(first, last, gid);
@@ -53,7 +53,7 @@ std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_labe
     auto first = labels.begin()+gid_range.first;
     auto last  = labels.begin()+gid_range.second;
     auto it_0 = std::lower_bound(first, last, label);
-    if (*it_0 != label) {
+    if (it_0 == labels.end() || *it_0 != label) {
         return std::nullopt;
     }
     auto it_1  = std::upper_bound(first, last, label);

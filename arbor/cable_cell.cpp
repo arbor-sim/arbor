@@ -50,9 +50,6 @@ struct cable_cell_impl {
     // The decorations on the cell.
     decor decorations;
 
-    // The lid ranges of placements.
-    std::vector<lid_range> placed_lid_ranges;
-
     // The source_label to lid_range map
     dynamic_typed_map<constant_type<std::unordered_map<std::string, lid_range>>::type> labeled_lid_ranges;
 
@@ -82,7 +79,7 @@ struct cable_cell_impl {
     }
 
     template <typename Item>
-    lid_range place(const locset& ls, const Item& item, const std::string& label) {
+    void place(const locset& ls, const Item& item, const std::string& label) {
         auto& mm = get_location_map(item);
         cell_lid_type& lid = placed_count.get<Item>();
         cell_lid_type first = lid;
@@ -97,7 +94,6 @@ struct cable_cell_impl {
             throw arb::cable_cell_error(util::pprintf("Duplicate label detected \"{}\"", label));
         }
         lid_ranges.insert(std::make_pair(label, range));
-        return range;
     }
 
     template <typename T>
@@ -143,13 +139,6 @@ struct cable_cell_impl {
     mextent concrete_region(const region& r) const {
         return thingify(r, provider);
     }
-
-    lid_range placed_lid_range(unsigned id) const {
-        if (id>=placed_lid_ranges.size()) {
-            throw cable_cell_error(util::pprintf("invalid placement identifier {}", id));
-        }
-        return placed_lid_ranges[id];
-    }
 };
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
@@ -165,8 +154,7 @@ void cable_cell_impl::init(const decor& d) {
     for (const auto& p: d.placements()) {
         auto& where = std::get<0>(p);
         auto& label = std::get<2>(p);
-        auto lids = std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label);}, std::get<1>(p));
-        placed_lid_ranges.push_back(lids);
+        std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label);}, std::get<1>(p));
     }
 }
 
@@ -218,10 +206,6 @@ const decor& cable_cell::decorations() const {
 
 const cable_cell_parameter_set& cable_cell::default_parameters() const {
     return impl_->decorations.defaults();
-}
-
-lid_range cable_cell::placed_lid_range(unsigned id) const {
-    return impl_->placed_lid_range(id);
 }
 
 const std::unordered_map<std::string, lid_range>& cable_cell::labeled_source_ranges() const {

@@ -30,27 +30,29 @@ TEST(cable_cell, lid_ranges) {
 
     // Place synapses and threshold detectors in interleaved order.
     // Note: there are 2 terminal points.
-    auto idx1 = decorations.place("term"_lab, "expsyn");
-    auto idx2 = decorations.place("term"_lab, "expsyn");
-    auto idx3 = decorations.place("term"_lab, threshold_detector{-10});
-    auto idx4 = decorations.place(empty_sites, "expsyn");
-    auto idx5 = decorations.place("term"_lab, threshold_detector{-20});
-    auto idx6 = decorations.place(three_sites, "expsyn");
+    decorations.place("term"_lab, "expsyn", "s0");
+    decorations.place("term"_lab, "expsyn", "s1");
+    decorations.place("term"_lab, threshold_detector{-10}, "t0");
+    decorations.place(empty_sites, "expsyn", "s2");
+    decorations.place("term"_lab, threshold_detector{-20}, "t1");
+    decorations.place(three_sites, "expsyn", "s3");
 
     cable_cell cell(morph, dict, decorations);
 
     // Get the assigned lid ranges for each placement
-    auto r1 = cell.placed_lid_range(idx1);
-    auto r2 = cell.placed_lid_range(idx2);
-    auto r3 = cell.placed_lid_range(idx3);
-    auto r4 = cell.placed_lid_range(idx4);
-    auto r5 = cell.placed_lid_range(idx5);
-    auto r6 = cell.placed_lid_range(idx6);
+    const auto& src_ranges = cell.labeled_source_ranges();
+    const auto& tgt_ranges = cell.labeled_target_ranges();
+    auto r1 = tgt_ranges.at("s0");
+    auto r2 = tgt_ranges.at("s1");
+    auto r3 = src_ranges.at("t0");
+    auto r4 = tgt_ranges.at("s2");
+    auto r5 = src_ranges.at("t1");
+    auto r6 = tgt_ranges.at("s3");
 
-    EXPECT_EQ(idx1, 0u); EXPECT_EQ(r1.begin, 0u); EXPECT_EQ(r1.end, 2u);
-    EXPECT_EQ(idx2, 1u); EXPECT_EQ(r2.begin, 2u); EXPECT_EQ(r2.end, 4u);
-    EXPECT_EQ(idx3, 2u); EXPECT_EQ(r3.begin, 0u); EXPECT_EQ(r3.end, 2u);
-    EXPECT_EQ(idx4, 3u); EXPECT_EQ(r4.begin, 4u); EXPECT_EQ(r4.end, 4u);
-    EXPECT_EQ(idx5, 4u); EXPECT_EQ(r5.begin, 2u); EXPECT_EQ(r5.end, 4u);
-    EXPECT_EQ(idx6, 5u); EXPECT_EQ(r6.begin, 4u); EXPECT_EQ(r6.end, 7u);
+    EXPECT_EQ(r1.begin, 0u); EXPECT_EQ(r1.end, 2u);
+    EXPECT_EQ(r2.begin, 2u); EXPECT_EQ(r2.end, 4u);
+    EXPECT_EQ(r3.begin, 0u); EXPECT_EQ(r3.end, 2u);
+    EXPECT_EQ(r4.begin, 4u); EXPECT_EQ(r4.end, 4u);
+    EXPECT_EQ(r5.begin, 2u); EXPECT_EQ(r5.end, 4u);
+    EXPECT_EQ(r6.begin, 4u); EXPECT_EQ(r6.end, 7u);
 }

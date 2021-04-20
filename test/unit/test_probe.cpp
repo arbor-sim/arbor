@@ -111,7 +111,7 @@ void run_v_i_probe_test(const context& ctx) {
     bs.decorations.set_default(cv_policy_fixed_per_branch(1));
 
     auto stim = i_clamp::box(0, 100, 0.3);
-    bs.decorations.place(mlocation{1, 1}, stim);
+    bs.decorations.place(mlocation{1, 1}, stim, "clamp");
 
     cable1d_recipe rec((cable_cell(bs)));
 
@@ -280,8 +280,8 @@ void run_expsyn_g_probe_test(const context& ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     auto bs = builder.make_cell();
-    bs.decorations.place(loc0, "expsyn");
-    bs.decorations.place(loc1, "expsyn");
+    bs.decorations.place(loc0, "expsyn", "syn0");
+    bs.decorations.place(loc1, "expsyn", "syn1");
     bs.decorations.set_default(cv_policy_fixed_per_branch(2));
 
     auto run_test = [&](bool coalesce_synapses) {
@@ -384,10 +384,11 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
     unsigned n_expsyn = 0;
     for (unsigned bid = 0; bid<3u; ++bid) {
         for (unsigned j = 0; j<10; ++j) {
+            auto idx = (bid*10+j)*2;
             mlocation expsyn_loc{bid, 0.1*j};
-            d.place(expsyn_loc, "expsyn");
+            d.place(expsyn_loc, "expsyn", "syn"+std::to_string(idx));
             expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            d.place(mlocation{bid, 0.1*j+0.05}, "exp2syn");
+            d.place(mlocation{bid, 0.1*j+0.05}, "exp2syn", "syn"+std::to_string(idx+1));
             ++n_expsyn;
         }
     }
@@ -792,7 +793,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
     d.set_default(policy);
 
-    d.place(mlocation{0, 0}, i_clamp(0.3));
+    d.place(mlocation{0, 0}, i_clamp(0.3), "clamp");
 
     // The time constant will be membrane capacitance / membrane conductance.
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
@@ -989,8 +990,8 @@ void run_v_sampled_probe_test(const context& ctx) {
     // samples at the same point on each cell will give the same value at
     // 0.3 ms, but different at 0.6 ms.
 
-    d0.place(mlocation{1, 1}, i_clamp::box(0, 0.5, 1.));
-    d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.));
+    d0.place(mlocation{1, 1}, i_clamp::box(0, 0.5, 1.), "clamp0");
+    d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.), "clamp1");
     mlocation probe_loc{1, 0.2};
 
     std::vector<cable_cell> cells = {{bs.morph, bs.labels, d0}, {bs.morph, bs.labels, d1}};
@@ -1040,7 +1041,7 @@ void run_total_current_probe_test(const context& ctx) {
     // to 0.01 F/m².
 
     const double tau = 0.1;     // [ms]
-    d0.place(mlocation{0, 0}, i_clamp(0.3));
+    d0.place(mlocation{0, 0}, i_clamp(0.3), "clamp0");
 
     d0.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
     d0.set_default(membrane_capacitance{0.01}); // [F/m²]
@@ -1161,13 +1162,13 @@ void run_stimulus_probe_test(const context& ctx) {
 
     decor d0, d1;
     d0.set_default(policy);
-    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 10.));
-    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 20.));
+    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 10.), "clamp0");
+    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 20.), "clamp1");
     double expected_stim0 = 30;
 
     d1.set_default(policy);
-    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, 30.));
-    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.));
+    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, 30.), "clamp0");
+    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.), "clamp1");
     double expected_stim1 = 20;
 
     std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
@@ -1215,13 +1216,13 @@ void run_exact_sampling_probe_test(const context& ctx) {
             std::vector<cable_cell_description> cd;
             cd.assign(4, builder.make_cell());
 
-            cd[0].decorations.place(mlocation{1, 0.1}, "expsyn");
-            cd[1].decorations.place(mlocation{1, 0.1}, "exp2syn");
-            cd[2].decorations.place(mlocation{1, 0.9}, "expsyn");
-            cd[3].decorations.place(mlocation{1, 0.9}, "exp2syn");
+            cd[0].decorations.place(mlocation{1, 0.1}, "expsyn", "syn");
+            cd[1].decorations.place(mlocation{1, 0.1}, "exp2syn", "syn");
+            cd[2].decorations.place(mlocation{1, 0.9}, "expsyn", "syn");
+            cd[3].decorations.place(mlocation{1, 0.9}, "exp2syn", "syn");
 
-            cd[1].decorations.place(mlocation{1, 0.2}, gap_junction_site{});
-            cd[3].decorations.place(mlocation{1, 0.2}, gap_junction_site{});
+            cd[1].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
+            cd[3].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
 
             for (auto& d: cd) cells_.push_back(d);
         }
@@ -1249,9 +1250,9 @@ void run_exact_sampling_probe_test(const context& ctx) {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
             case 1:
-                return {gap_junction_connection({3, 0}, 0, 1.)};
+                return {gap_junction_connection({3, "gj"}, "gj", 1.)};
             case 3:
-                return {gap_junction_connection({1, 0}, 0, 1.)};
+                return {gap_junction_connection({1, "gj"}, "gj", 1.)};
             default:
                 return {};
             }

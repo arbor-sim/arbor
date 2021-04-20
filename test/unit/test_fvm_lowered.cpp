@@ -97,7 +97,7 @@ public:
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
         auto c = soma_cell_builder(20).make_cell();
-        c.decorations.place(mlocation{0, 1}, gap_junction_site{});
+        c.decorations.place(mlocation{0, 1}, gap_junction_site{}, "gj");
         return {cable_cell{c}};
     }
 
@@ -107,21 +107,21 @@ public:
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
         switch (gid) {
             case 0 :
-                return {gap_junction_connection({5, 0}, 0, 0.1)};
+                return {gap_junction_connection({5, "gj"}, "gj", 0.1)};
             case 2 :
                 return {
-                        gap_junction_connection({3, 0}, 0, 0.1),
+                        gap_junction_connection({3, "gj"}, "gj", 0.1),
                 };
             case 3 :
                 return {
-                        gap_junction_connection({7, 0}, 0, 0.1),
-                        gap_junction_connection({2, 0}, 0, 0.1)
+                        gap_junction_connection({7, "gj"}, "gj", 0.1),
+                        gap_junction_connection({2, "gj"}, "gj", 0.1)
                 };
             case 5 :
-                return {gap_junction_connection({0, 0}, 0, 0.1)};
+                return {gap_junction_connection({0, "gj"}, "gj", 0.1)};
             case 7 :
                 return {
-                        gap_junction_connection({3, 0}, 0, 0.1),
+                        gap_junction_connection({3, "gj"}, "gj", 0.1),
                 };
             default :
                 return {};
@@ -162,7 +162,7 @@ public:
 
     arb::util::unique_any get_cell_description(cell_gid_type) const override {
         auto c = soma_cell_builder(20).make_cell();
-        c.decorations.place(mlocation{0,1}, gap_junction_site{});
+        c.decorations.place(mlocation{0,1}, gap_junction_site{}, "gj");
         return {cable_cell{c}};
     }
 
@@ -173,27 +173,27 @@ public:
         switch (gid) {
             case 0 :
                 return {
-                        gap_junction_connection({2, 0}, 0, 0.1),
-                        gap_junction_connection({3, 0}, 0, 0.1),
-                        gap_junction_connection({5, 0}, 0, 0.1)
+                        gap_junction_connection({2, "gj"}, "gj", 0.1),
+                        gap_junction_connection({3, "gj"}, "gj", 0.1),
+                        gap_junction_connection({5, "gj"}, "gj", 0.1)
                 };
             case 2 :
                 return {
-                        gap_junction_connection({0, 0}, 0, 0.1),
-                        gap_junction_connection({3, 0}, 0, 0.1),
-                        gap_junction_connection({5, 0}, 0, 0.1)
+                        gap_junction_connection({0, "gj"}, "gj", 0.1),
+                        gap_junction_connection({3, "gj"}, "gj", 0.1),
+                        gap_junction_connection({5, "gj"}, "gj", 0.1)
                 };
             case 3 :
                 return {
-                        gap_junction_connection({0, 0}, 0, 0.1),
-                        gap_junction_connection({2, 0}, 0, 0.1),
-                        gap_junction_connection({5, 0}, 0, 0.1)
+                        gap_junction_connection({0, "gj"}, "gj", 0.1),
+                        gap_junction_connection({2, "gj"}, "gj", 0.1),
+                        gap_junction_connection({5, "gj"}, "gj", 0.1)
                 };
             case 5 :
                 return {
-                        gap_junction_connection({2, 0}, 0, 0.1),
-                        gap_junction_connection({3, 0}, 0, 0.1),
-                        gap_junction_connection({0, 0}, 0, 0.1)
+                        gap_junction_connection({2, "gj"}, "gj", 0.1),
+                        gap_junction_connection({3, "gj"}, "gj", 0.1),
+                        gap_junction_connection({0, "gj"}, "gj", 0.1)
                 };
             default :
                 return {};
@@ -268,12 +268,12 @@ TEST(fvm_lowered, target_handles) {
     };
 
     // (in increasing target order)
-    descriptions[0].decorations.place(mlocation{0, 0.7}, "expsyn");
-    descriptions[0].decorations.place(mlocation{0, 0.3}, "expsyn");
-    descriptions[1].decorations.place(mlocation{2, 0.2}, "exp2syn");
-    descriptions[1].decorations.place(mlocation{2, 0.8}, "expsyn");
+    descriptions[0].decorations.place(mlocation{0, 0.7}, "expsyn", "syn0");
+    descriptions[0].decorations.place(mlocation{0, 0.3}, "expsyn", "syn1");
+    descriptions[1].decorations.place(mlocation{2, 0.2}, "exp2syn", "syn2");
+    descriptions[1].decorations.place(mlocation{2, 0.8}, "expsyn", "syn3");
 
-    descriptions[1].decorations.place(mlocation{0, 0}, threshold_detector{3.3});
+    descriptions[1].decorations.place(mlocation{0, 0}, threshold_detector{3.3}, "detector");
 
     cable_cell cells[] = {descriptions[0], descriptions[1]};
 
@@ -345,9 +345,9 @@ TEST(fvm_lowered, stimulus) {
     auto desc = make_cell_ball_and_stick(false);
 
     // At end of stick
-    desc.decorations.place(mlocation{0,1},   i_clamp::box(5., 80., 0.3));
+    desc.decorations.place(mlocation{0,1},   i_clamp::box(5., 80., 0.3), "clamp0");
     // On the soma CV, which is over the approximate interval: (cable 0 0 0.1)
-    desc.decorations.place(mlocation{0,0.05}, i_clamp::box(1., 2.,  0.1));
+    desc.decorations.place(mlocation{0,0.05}, i_clamp::box(1., 2.,  0.1), "clamp1");
 
     std::vector<cable_cell> cells{desc};
 
@@ -422,7 +422,7 @@ TEST(fvm_lowered, ac_stimulus) {
     const double max_time = 8; // (ms)
 
     // Envelope is linear ramp from 0 to max_time.
-    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase));
+    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase), "clamp");
     std::vector<cable_cell> cells = {cable_cell(tree, {}, dec)};
 
     cable_cell_global_properties gprop;
@@ -784,7 +784,7 @@ TEST(fvm_lowered, point_ionic_current) {
     double soma_area_m2 = 4*math::pi<double>*r*r*1e-12; // [m²]
 
     // Event weight is translated by point_ica_current into a current contribution in nA.
-    c.decorations.place(mlocation{0u, 0.5}, "point_ica_current");
+    c.decorations.place(mlocation{0u, 0.5}, "point_ica_current", "syn");
 
     cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
@@ -931,32 +931,37 @@ TEST(fvm_lowered, gj_coords_simple) {
 
     class gap_recipe: public recipe {
     public:
-        gap_recipe() {}
+        gap_recipe(std::vector<cable_cell> cells) : cells_(cells) {
+            gprop_.default_parameters = neuron_parameter_defaults;
+        }
 
         cell_size_type num_cells() const override { return n_; }
         cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
         util::unique_any get_cell_description(cell_gid_type gid) const override {
-            return {};
+            return cells_[gid];
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
-            conns.push_back(gap_junction_connection({(gid+1)%2, 0}, 0, 0.5));
+            conns.push_back(gap_junction_connection({(gid+1)%2, "gj"}, "gj", 0.5));
             return conns;
         }
-
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
     protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
         cell_size_type n_ = 2;
     };
 
     fvm_cell fvcell(context);
 
-    gap_recipe rec;
     std::vector<cable_cell> cells;
     {
         soma_cell_builder b(2.1);
         b.add_branch(0, 10, 0.3, 0.2, 5, "dend");
         auto c = b.make_cell();
-        c.decorations.place(b.location({1, 0.8}), gap_junction_site{});
+        c.decorations.place(b.location({1, 0.8}), gap_junction_site{}, "gj");
         cells.push_back(c);
     }
 
@@ -964,13 +969,19 @@ TEST(fvm_lowered, gj_coords_simple) {
         soma_cell_builder b(2.4);
         b.add_branch(0, 10, 0.3, 0.2, 2, "dend");
         auto c = b.make_cell();
-        c.decorations.place(b.location({1, 1}), gap_junction_site{});
+        c.decorations.place(b.location({1, 1}), gap_junction_site{}, "gj");
         cells.push_back(c);
     }
+    gap_recipe rec(cells);
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
 
     std::vector<cell_gid_type> gids = {0, 1};
+    std::vector<fvm_index_type> cell_to_intdom;
+    std::vector<target_handle> target_handles;
+    probe_association_map map;
+    fvcell.initialize(gids, rec, cell_to_intdom, target_handles, map);
+
     auto GJ = fvcell.fvm_gap_junctions(cells, gids, rec, D);
 
     auto weight = [&](fvm_value_type g, fvm_index_type i){
@@ -996,41 +1007,47 @@ TEST(fvm_lowered, gj_coords_complex) {
 
     class gap_recipe: public recipe {
     public:
-        gap_recipe() {}
+        gap_recipe(std::vector<cable_cell> cells) : cells_(cells) {
+            gprop_.default_parameters = neuron_parameter_defaults;
+        }
 
         cell_size_type num_cells() const override { return n_; }
         cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
         util::unique_any get_cell_description(cell_gid_type gid) const override {
-            return {};
+            return cells_[gid];
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
             switch (gid) {
             case 0:
                 return {
-                    gap_junction_connection({2, 0}, 1, 0.01),
-                    gap_junction_connection({1, 0}, 0, 0.03),
-                    gap_junction_connection({1, 1}, 0, 0.04)
+                    gap_junction_connection({2, "gj0"}, "gj1", 0.01),
+                    gap_junction_connection({1, "gj0"},  "gj0", 0.03),
+                    gap_junction_connection({1, "gj1"}, "gj0", 0.04)
                 };
             case 1:
                 return {
-                    gap_junction_connection({0, 0}, 0, 0.03),
-                    gap_junction_connection({0, 0}, 1, 0.04),
-                    gap_junction_connection({2, 1}, 2, 0.02),
-                    gap_junction_connection({2, 2}, 3, 0.01)
+                    gap_junction_connection({0, "gj0"}, "gj0", 0.03),
+                    gap_junction_connection({0, "gj0"}, "gj1", 0.04),
+                    gap_junction_connection({2, "gj1"}, "gj2", 0.02),
+                    gap_junction_connection({2, "gj2"}, "gj3", 0.01)
                 };
             case 2:
                 return {
-                    gap_junction_connection({0, 1}, 0, 0.01),
-                    gap_junction_connection({1, 2}, 1, 0.02),
-                    gap_junction_connection({1, 3}, 2, 0.01)
+                    gap_junction_connection({0, "gj1"}, "gj0", 0.01),
+                    gap_junction_connection({1, "gj2"}, "gj1", 0.02),
+                    gap_junction_connection({1, "gj3"}, "gj2", 0.01)
                 };
             default : return {};
             }
             return conns;
         }
-
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
     protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
         cell_size_type n_ = 3;
     };
 
@@ -1041,8 +1058,8 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c0 = b0.make_cell();
     mlocation c0_gj[2] = {b0.location({1, 1}), b0.location({1, 0.5})};
 
-    c0.decorations.place(c0_gj[0], gap_junction_site{});
-    c0.decorations.place(c0_gj[1], gap_junction_site{});
+    c0.decorations.place(c0_gj[0], gap_junction_site{}, "gj0");
+    c0.decorations.place(c0_gj[1], gap_junction_site{}, "gj1");
 
     soma_cell_builder b1(1.4);
     b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
@@ -1052,10 +1069,10 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c1 = b1.make_cell();
     mlocation c1_gj[4] = {b1.location({2, 1}), b1.location({1, 1}), b1.location({1, 0.45}), b1.location({1, 0.1})};
 
-    c1.decorations.place(c1_gj[0], gap_junction_site{});
-    c1.decorations.place(c1_gj[1], gap_junction_site{});
-    c1.decorations.place(c1_gj[2], gap_junction_site{});
-    c1.decorations.place(c1_gj[3], gap_junction_site{});
+    c1.decorations.place(c1_gj[0], gap_junction_site{}, "gj0");
+    c1.decorations.place(c1_gj[1], gap_junction_site{}, "gj1");
+    c1.decorations.place(c1_gj[2], gap_junction_site{}, "gj2");
+    c1.decorations.place(c1_gj[3], gap_junction_site{}, "gj3");
 
 
     soma_cell_builder b2(2.9);
@@ -1068,18 +1085,20 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c2 = b2.make_cell();
     mlocation c2_gj[3] = {b2.location({1, 0.5}), b2.location({4, 1}), b2.location({2, 1})};
 
-    c2.decorations.place(c2_gj[0], gap_junction_site{});
-    c2.decorations.place(c2_gj[1], gap_junction_site{});
-    c2.decorations.place(c2_gj[2], gap_junction_site{});
+    c2.decorations.place(c2_gj[0], gap_junction_site{}, "gj0");
+    c2.decorations.place(c2_gj[1], gap_junction_site{}, "gj1");
+    c2.decorations.place(c2_gj[2], gap_junction_site{}, "gj2");
 
     std::vector<cable_cell> cells{c0, c1, c2};
-
-    std::vector<fvm_index_type> cell_to_intdom;
-
     std::vector<cell_gid_type> gids = {0, 1, 2};
+    std::vector<fvm_index_type> cell_to_intdom;
+    std::vector<target_handle> target_handles;
+    probe_association_map map;
 
-    gap_recipe rec;
+    gap_recipe rec(cells);
     fvm_cell fvcell(context);
+
+    fvcell.initialize(gids, rec, cell_to_intdom, target_handles, map);
     fvcell.fvm_intdom(rec, gids, cell_to_intdom);
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
 
@@ -1140,12 +1159,16 @@ TEST(fvm_lowered, cell_group_gj) {
 
     class gap_recipe: public recipe {
     public:
-        gap_recipe() {}
+        gap_recipe(const std::vector<cable_cell>& cg0, const std::vector<cable_cell>& cg1) {
+            cells_ = cg0;
+            cells_.insert(cells_.end(), cg1.begin(), cg1.end());
+            gprop_.default_parameters = neuron_parameter_defaults;
+        }
 
         cell_size_type num_cells() const override { return n_; }
         cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
         util::unique_any get_cell_description(cell_gid_type gid) const override {
-            return {};
+            return cells_[gid];
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
@@ -1153,17 +1176,21 @@ TEST(fvm_lowered, cell_group_gj) {
                 // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
                 auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
                 auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
-                conns.push_back(gap_junction_connection({next_cell, 0}, 0, 0.03));
-                conns.push_back(gap_junction_connection({prev_cell, 0}, 0, 0.03));
+                conns.push_back(gap_junction_connection({next_cell, "gj"}, "gj", 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, "gj"}, "gj", 0.03));
             }
             return conns;
         }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
 
     protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
         cell_size_type n_ = 20;
     };
 
-    gap_recipe rec;
     std::vector<cable_cell> cell_group0;
     std::vector<cable_cell> cell_group1;
 
@@ -1171,7 +1198,7 @@ TEST(fvm_lowered, cell_group_gj) {
     for (unsigned i = 0; i < 20; i++) {
         cable_cell_description c = soma_cell_builder(2.1).make_cell();
         if (i % 2 == 0) {
-            c.decorations.place(mlocation{0, 1}, gap_junction_site{});
+            c.decorations.place(mlocation{0, 1}, gap_junction_site{}, "gj");
         }
         if (i < 10) {
             cell_group0.push_back(c);
@@ -1184,18 +1211,25 @@ TEST(fvm_lowered, cell_group_gj) {
     std::vector<cell_gid_type> gids_cg0 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     std::vector<cell_gid_type> gids_cg1 = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
 
+    gap_recipe rec(cell_group0, cell_group1);
     std::vector<fvm_index_type> cell_to_intdom0, cell_to_intdom1;
+    std::vector<target_handle> target_handles0, target_handles1;
+    probe_association_map map0, map1;
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell0(context);
+    fvm_cell fvcell1(context);
 
-    auto num_dom0 = fvcell.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
-    auto num_dom1 = fvcell.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
+    fvcell0.initialize(gids_cg0, rec, cell_to_intdom0, target_handles0, map0);
+    fvcell1.initialize(gids_cg1, rec, cell_to_intdom1, target_handles1, map1);
+
+    auto num_dom0 = fvcell0.fvm_intdom(rec, gids_cg0, cell_to_intdom0);
+    auto num_dom1 = fvcell1.fvm_intdom(rec, gids_cg1, cell_to_intdom1);
 
     fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, context);
     fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, context);
 
-    auto GJ0 = fvcell.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
-    auto GJ1 = fvcell.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);
+    auto GJ0 = fvcell0.fvm_gap_junctions(cell_group0, gids_cg0, rec, D0);
+    auto GJ1 = fvcell1.fvm_gap_junctions(cell_group1, gids_cg1, rec, D1);
 
     EXPECT_EQ(10u, GJ0.size());
     EXPECT_EQ(10u, GJ1.size());
@@ -1293,9 +1327,9 @@ TEST(fvm_lowered, post_events_shared_state) {
             auto ndetectors = detectors_per_cell_[gid];
             auto offset = 1.0 / ndetectors;
             for (unsigned i = 0; i < ndetectors; ++i) {
-                decor.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10});
+                decor.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10}, "detector"+std::to_string(i));
             }
-            decor.place(arb::mlocation{0, 0.5}, synapse_);
+            decor.place(arb::mlocation{0, 0.5}, synapse_, "syanpse");
 
             return arb::cable_cell(arb::morphology(tree), {}, decor);;
         }
@@ -1332,7 +1366,7 @@ TEST(fvm_lowered, post_events_shared_state) {
     std::vector<target_handle> targets;
     probe_association_map probe_map;
 
-    std::vector<unsigned> gids                 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<unsigned> gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     const unsigned ncell = gids.size();
     const unsigned cv_per_cell = 10;
 

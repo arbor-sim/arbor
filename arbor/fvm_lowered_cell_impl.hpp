@@ -84,13 +84,13 @@ public:
         return mechanisms_;
     }
 
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table() override {
+    clr_vector source_table() override {
         return source_table_;
     }
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> target_table() override {
+    clr_vector target_table() override {
         return target_table_;
     }
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> gap_junction_table() override {
+    clr_vector gap_junction_table() override {
         return gap_junction_table_;
     }
 
@@ -123,9 +123,9 @@ private:
     bool post_events_;
 
     // Source table storing gid, source_label and corresponding lid_range on the cell
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> source_table_;
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> target_table_;
-    std::vector<std::tuple<cell_gid_type, std::string, lid_range>> gap_junction_table_;
+    clr_vector source_table_;
+    clr_vector target_table_;
+    clr_vector gap_junction_table_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;

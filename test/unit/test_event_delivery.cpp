@@ -35,9 +35,9 @@ struct test_recipe: public n_cable_cell_recipe {
         labels.set("soma", arb::reg::tagged(1));
 
         decor decorations;
-        decorations.place(mlocation{0, 0.5}, "expsyn");
-        decorations.place(mlocation{0, 0.5}, threshold_detector{-64});
-        decorations.place(mlocation{0, 0.5}, gap_junction_site{});
+        decorations.place(mlocation{0, 0.5}, "expsyn", "synapse");
+        decorations.place(mlocation{0, 0.5}, threshold_detector{-64}, "detector");
+        decorations.place(mlocation{0, 0.5}, gap_junction_site{}, "gapjunction");
         cable_cell c(st, labels, decorations);
 
         return c;
@@ -112,8 +112,8 @@ struct test_recipe_gj: public test_recipe {
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type i) const override {
         std::vector<gap_junction_connection> gjs;
         for (auto p: gj_pairs_) {
-            if (p.first == i) gjs.push_back({{p.second, 0u}, 0u, 0.});
-            if (p.second == i) gjs.push_back({{p.first, 0u}, 0u, 0.});
+            if (p.first == i) gjs.push_back({{p.second, "gapjunction"}, "gapjunction", 0.});
+            if (p.second == i) gjs.push_back({{p.first, "gapjunction"}, "gapjunction", 0.});
         }
         return gjs;
     }

@@ -35,6 +35,10 @@ public:
     virtual void remove_sampler(sampler_association_handle) override;
     virtual void remove_all_samplers() override;
 
+    // Labeled source, target and gap_junction info
+    clr_vector source_table() const override;
+    clr_vector target_table() const override;
+
 private:
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
