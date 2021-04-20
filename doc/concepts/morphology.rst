@@ -607,7 +607,7 @@ because it has two children: the dendrites attached to its distal end.
 Supported file formats
 ----------------------
 
-See the main menu under the "file formats" caption, or have a look in the ``doc/fileformat`` directory.
+See the supported :ref:`file formats <format-overview>`.
 
 .. _morph-cv-policies:
 
