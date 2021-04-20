@@ -47,18 +47,34 @@ struct cell_connection {
     float weight;
     float delay;
 
-    cell_connection(cell_label_type src, cell_tag_type dst, float w, float d):
-        source(src), dest(dst), weight(w), delay(d)
+    lid_selection_policy source_policy = lid_selection_policy::round_robin;
+    lid_selection_policy dest_policy  = lid_selection_policy::round_robin;
+
+    cell_connection(cell_label_type src,
+                    cell_tag_type dst,
+                    float w,
+                    float d,
+                    lid_selection_policy src_policy  = lid_selection_policy::round_robin,
+                    lid_selection_policy dest_policy = lid_selection_policy::round_robin):
+        source(src), dest(dst), weight(w), delay(d), source_policy(src_policy), dest_policy(dest_policy)
     {}
 };
 
 struct gap_junction_connection {
     cell_label_type peer;
     cell_tag_type local;
+
     double ggap;
 
-    gap_junction_connection(cell_label_type peer, cell_tag_type local, double g):
-        peer(peer), local(local), ggap(g) {}
+    lid_selection_policy local_policy = lid_selection_policy::round_robin;
+    lid_selection_policy peer_policy  = lid_selection_policy::round_robin;
+
+    gap_junction_connection(cell_label_type peer,
+                            cell_tag_type local,
+                            double g,
+                            lid_selection_policy local_policy = lid_selection_policy::round_robin,
+                            lid_selection_policy peer_policy  = lid_selection_policy::round_robin):
+        peer(peer), local(local), ggap(g), local_policy(local_policy), peer_policy(peer_policy) {}
 };
 
 class recipe {

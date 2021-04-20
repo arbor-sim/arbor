@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/label_resolver.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
@@ -13,6 +12,7 @@
 
 #include "epoch.hpp"
 #include "event_binner.hpp"
+#include "label_resolver.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {

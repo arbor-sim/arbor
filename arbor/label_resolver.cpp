@@ -2,9 +2,9 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
-#include <arbor/label_resolver.hpp>
 #include <arbor/common_types.hpp>
 
+#include "label_resolver.hpp"
 #include "util/partition.hpp"
 
 namespace arb {

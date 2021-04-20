@@ -100,8 +100,8 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
-            auto src_lid = source_resolver.get_lid(c.source, dom_dec.gid_domain(c.source.gid));
-            auto tgt_lid = target_resolver.get_lid({cell.gid, c.dest});
+            auto src_lid = source_resolver.get_lid(c.source, dom_dec.gid_domain(c.source.gid), c.source_policy);
+            auto tgt_lid = target_resolver.get_lid({cell.gid, c.dest}, c.target_policy);
             connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }

@@ -42,11 +42,6 @@ struct cell_labeled_ranges {
     std::optional<std::pair<std::size_t, std::size_t>> get_label_range(const cell_tag_type&, std::pair<std::size_t, std::size_t>) const;
 };
 
-enum class lid_selection_policy {
-    round_robin,
-    assert_univalent
-};
-
 // Struct selecting an lid of a {cell, label} pair according to an lid_selection_policy
 struct label_resolver {
     cell_labeled_ranges mapper;

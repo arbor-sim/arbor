@@ -207,7 +207,10 @@ simulation_state::simulation_state(
     std::sort(local_targets.begin(), local_targets.end());
     auto global_sources = ctx.distributed->gather_labeled_range(cell_labeled_ranges(local_sources));
 
-    communicator_ = arb::communicator(rec, decomp, label_resolver(std::move(global_sources)), label_resolver(cell_labeled_ranges(local_targets)), ctx);
+    auto source_resolver = label_resolver(std::move(global_sources));
+    auto target_resolver = label_resolver(cell_labeled_ranges(local_targets));
+
+    communicator_ = arb::communicator(rec, decomp, source_resolver, target_resolver, ctx);
 
     const auto num_local_cells = communicator_.num_local_cells();
 
@@ -225,15 +228,14 @@ simulation_state::simulation_state(
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = gid_local_info{lidx, grpidx};
 
-            // Check validity of event_generator targets
+            // Resolve event_generator targets
             auto event_gens = rec.event_generators(gid);
-            auto num_targets = rec.num_targets(gid);
-            for (const auto& g: event_gens) {
+            for (auto& g: event_gens) {
+                std::vector<cell_lid_type> lids;
                 for (const auto& t: g.targets()) {
-                    if (t >= num_targets) {
-                        throw arb::bad_event_generator_target_lid(gid, t, num_targets);
-                    }
+                    lids.push_back(target_resolver.get_lid({gid, t.first}, t.second));
                 }
+                g.init(lids);
             }
 
             // Set up the event generators for cell gid.

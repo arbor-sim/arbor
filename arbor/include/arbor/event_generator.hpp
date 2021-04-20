@@ -32,9 +32,9 @@ namespace arb {
 //     Provide a non-owning view on to the events in the time interval
 //     [to, from).
 //
-// `std::vector<cell_member_type> targets()`
+// `std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets()`
 //
-//     Return a vector of all the targets of the generator.
+//     Return a vector of the target labels and lid selection policy of the generator.
 //
 // The `event_seq` type is a pair of `spike_event` pointers that
 // provide a view onto an internally-maintained contiguous sequence
@@ -68,9 +68,10 @@ struct empty_generator {
     event_seq events(time_type, time_type) {
         return {nullptr, nullptr};
     }
-    std::vector<cell_lid_type> targets() {
+    std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets() {
         return {};
     };
+    void init(const std::vector<cell_lid_type>&) {};
 };
 
 class event_generator {
@@ -102,15 +103,20 @@ public:
         return impl_->events(t0, t1);
     }
 
-    std::vector<cell_lid_type> targets() const {
+    std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets() const {
         return impl_->targets();
     }
+
+    void init(const std::vector<cell_lid_type>& lids) {
+        impl_->init(lids);
+    };
 
 private:
     struct interface {
         virtual void reset() = 0;
+        virtual void init(const std::vector<cell_lid_type>&) = 0;
         virtual event_seq events(time_type, time_type) = 0;
-        virtual std::vector<cell_lid_type> targets() = 0;
+        virtual std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
     };
@@ -126,13 +132,17 @@ private:
             return wrapped.events(t0, t1);
         }
 
-        std::vector<cell_lid_type> targets() override {
+        std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets() override {
             return wrapped.targets();
         }
 
         void reset() override {
             wrapped.reset();
         }
+
+        void init(const std::vector<cell_lid_type>& lids) override {
+            wrapped.init(lids);
+        };
 
         std::unique_ptr<interface> clone() override {
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
@@ -148,9 +158,14 @@ private:
 // a provided time schedule.
 
 struct schedule_generator {
-    schedule_generator(cell_lid_type target, float weight, schedule sched):
-        target_(target), weight_(weight), sched_(std::move(sched))
+    schedule_generator(cell_tag_type target_label, float weight, schedule sched, lid_selection_policy policy= lid_selection_policy::round_robin):
+        target_({target_label, policy}), weight_(weight), sched_(std::move(sched))
     {}
+
+    void init(const std::vector<cell_lid_type>& lids) {
+        arb_assert(lids.size() == 1);
+        target_lid_ = lids.front();
+    }
 
     void reset() {
         sched_.reset();
@@ -163,19 +178,20 @@ struct schedule_generator {
         events_.reserve(ts.second-ts.first);
 
         for (auto i = ts.first; i!=ts.second; ++i) {
-            events_.push_back(spike_event{target_, *i, weight_});
+            events_.push_back(spike_event{target_lid_, *i, weight_});
         }
 
         return {events_.data(), events_.data()+events_.size()};
     }
 
-    std::vector<cell_lid_type> targets() {
+    std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets() {
         return {target_};
     }
 
 private:
     pse_vector events_;
-    cell_lid_type target_;
+    std::pair<cell_tag_type, lid_selection_policy> target_;
+    cell_lid_type target_lid_;
     float weight_;
     schedule sched_;
 };
@@ -183,7 +199,7 @@ private:
 // Generate events at integer multiples of dt that lie between tstart and tstop.
 
 inline event_generator regular_generator(
-    cell_lid_type target,
+    cell_tag_type target,
     float weight,
     time_type tstart,
     time_type dt,
@@ -194,7 +210,7 @@ inline event_generator regular_generator(
 
 template <typename RNG>
 inline event_generator poisson_generator(
-    cell_lid_type target,
+    cell_tag_type target,
     float weight,
     time_type tstart,
     time_type rate_kHz,
@@ -207,19 +223,37 @@ inline event_generator poisson_generator(
 // Generate events from a predefined sorted event sequence.
 
 struct explicit_generator {
+    struct labeled_synapse_event {
+        cell_tag_type label;
+        time_type time;
+        float weight;
+        lid_selection_policy policy = lid_selection_policy::round_robin;
+    };
+    using lse_vector = std::vector<labeled_synapse_event>;
+
     explicit_generator() = default;
     explicit_generator(const explicit_generator&) = default;
     explicit_generator(explicit_generator&&) = default;
 
-    template <typename Seq>
-    explicit_generator(const Seq& events):
+    explicit_generator(const lse_vector& events):
         start_index_(0)
     {
         using std::begin;
         using std::end;
 
-        events_ = pse_vector(begin(events), end(events));
+        auto labeled_events = lse_vector(begin(events), end(events));
+        for (const auto& e: labeled_events) {
+            targets_.emplace_back(e.label, e.policy);
+            events_.push_back({-1u, e.time, e.weight});
+        }
         arb_assert(std::is_sorted(events_.begin(), events_.end()));
+    }
+
+    void init(const std::vector<cell_lid_type>& lids) {
+        arb_assert(lids.size() == events_.size());
+        for (unsigned i = 0; i < lids.size(); i++) {
+            events_[i].target = lids[i];
+        }
     }
 
     void reset() {
@@ -237,14 +271,13 @@ struct explicit_generator {
         return {lb, ub};
     }
 
-    std::vector<cell_lid_type> targets() {
-        std::vector<cell_lid_type> tgts;
-        std::transform(events_.begin(), events_.end(), std::back_inserter(tgts), [](auto&& e){ return e.target;});
-        return tgts;
+    std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets() {
+        return targets_;
     }
 
 private:
     pse_vector events_;
+    std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets_;
     std::size_t start_index_ = 0;
 };
 

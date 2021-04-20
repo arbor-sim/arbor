@@ -80,6 +80,11 @@ struct lid_range {
         begin(b), end(e) {}
 };
 
+enum class lid_selection_policy {
+    round_robin,
+    assert_univalent
+};
+
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
 

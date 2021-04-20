@@ -10,11 +10,11 @@
 
 #include <mpi.h>
 
-#include <arbor/label_resolver.hpp>
 #include <arbor/spike.hpp>
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
+#include "label_resolver.hpp"
 #include "util/partition.hpp"
 
 namespace arb {

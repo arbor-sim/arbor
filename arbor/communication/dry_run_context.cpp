@@ -2,11 +2,11 @@
 #include <string>
 #include <vector>
 
-#include <arbor/label_resolver.hpp>
 #include <arbor/spike.hpp>
 
-#include <distributed_context.hpp>
-#include <threading/threading.hpp>
+#include "distributed_context.hpp"
+#include "label_resolver.hpp"
+#include "threading/threading.hpp"
 
 namespace arb {
 
