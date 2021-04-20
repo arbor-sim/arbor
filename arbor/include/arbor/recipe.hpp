@@ -41,40 +41,24 @@ struct cell_connection {
     // Connection end-points are represented by pairs
     // (cell index, source/target index on cell).
 
-    cell_label_type source;
-    cell_tag_type dest;
+    cell_global_label_type source;
+    cell_local_label_type dest;
 
     float weight;
     float delay;
 
-    lid_selection_policy source_policy = lid_selection_policy::round_robin;
-    lid_selection_policy dest_policy  = lid_selection_policy::round_robin;
-
-    cell_connection(cell_label_type src,
-                    cell_tag_type dst,
-                    float w,
-                    float d,
-                    lid_selection_policy src_policy  = lid_selection_policy::round_robin,
-                    lid_selection_policy dest_policy = lid_selection_policy::round_robin):
-        source(src), dest(dst), weight(w), delay(d), source_policy(src_policy), dest_policy(dest_policy)
-    {}
+    cell_connection(cell_global_label_type src, cell_local_label_type dst, float w, float d):
+        source(std::move(src)), dest(std::move(std::move(dst))), weight(w), delay(d) {}
 };
 
 struct gap_junction_connection {
-    cell_label_type peer;
-    cell_tag_type local;
+    cell_global_label_type peer;
+    cell_local_label_type local;
 
     double ggap;
 
-    lid_selection_policy local_policy = lid_selection_policy::round_robin;
-    lid_selection_policy peer_policy  = lid_selection_policy::round_robin;
-
-    gap_junction_connection(cell_label_type peer,
-                            cell_tag_type local,
-                            double g,
-                            lid_selection_policy local_policy = lid_selection_policy::round_robin,
-                            lid_selection_policy peer_policy  = lid_selection_policy::round_robin):
-        peer(peer), local(local), ggap(g), local_policy(local_policy), peer_policy(peer_policy) {}
+    gap_junction_connection(cell_global_label_type peer, cell_local_label_type local, double g):
+        peer(std::move(peer)), local(std::move(local)), ggap(g) {}
 };
 
 class recipe {

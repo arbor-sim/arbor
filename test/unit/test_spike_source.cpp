@@ -96,7 +96,7 @@ TEST(spike_source, exhaust)
 {
     // This test assumes that seq will exhaust itself before t=10 ms.
     auto test_seq = [](schedule seq) {
-        ss_recipe rec(1u, spike_source_cell{seq});
+        ss_recipe rec(1u, spike_source_cell{seq, "src"});
         spike_source_cell_group group({0}, rec);
 
         // epoch ending at 10ms

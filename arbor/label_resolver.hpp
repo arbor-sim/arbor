@@ -50,8 +50,7 @@ struct label_resolver {
     label_resolver() = delete;
     explicit label_resolver(cell_labeled_ranges);
 
-    cell_lid_type get_lid(const cell_label_type&, lid_selection_policy=lid_selection_policy::round_robin) const;
-    cell_lid_type get_lid(const cell_label_type&, int rank, lid_selection_policy=lid_selection_policy::round_robin) const;
+    cell_lid_type get_lid(cell_global_label_type, int rank = -1) const;
 };
 
 } // namespace arb

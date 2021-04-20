@@ -41,17 +41,15 @@ public:
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
-        cell_label_type source{(gid - 1) % n_lif_cells_, "src"};
-        cell_tag_type target{"tgt"};
-        cell_connection conn(source, target, weight_, delay_);
+        auto src_gid = (gid - 1) % n_lif_cells_;
+        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
         // If first LIF cell, then add
         // the connection from the last LIF cell as well
         if (gid == 1) {
-            cell_label_type source{n_lif_cells_, "src"};
-            cell_tag_type target{"tgt"};
-            cell_connection conn(source, target, weight_, delay_);
+            auto src_gid = n_lif_cells_;
+            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
             connections.push_back(conn);
         }
 
@@ -103,9 +101,7 @@ public:
             return {};
         }
         std::vector<cell_connection> connections;
-        cell_label_type source{gid - 1, "src"};
-        cell_tag_type target{"tgt"};
-        cell_connection conn(source, target, weight_, delay_);
+        cell_connection conn({gid-1, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
         return connections;

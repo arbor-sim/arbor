@@ -86,7 +86,7 @@ public:
 
     // Each cell has one spike detector (at the soma).
     cell_size_type num_sources(cell_gid_type gid) const override {
-        return gid+2;
+        return 1;
     }
 
     // The cell has one target synapse, which will be connected to cell gid-1.
@@ -96,10 +96,26 @@ public:
 
     // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        return {arb::cell_connection({src, "for funsies!"}, "my_extra_syns", event_weight_, min_delay_),
-                arb::cell_connection({src, "for funsies!"}, "my_extra_syns", event_weight_, min_delay_),
-                arb::cell_connection({src, "for funsies!"}, "my_extra_syns", event_weight_, min_delay_)};
+        cons.push_back(arb::cell_connection({src, "my_detector"}, "my_primary_syn", event_weight_, min_delay_));
+
+        // Used to pick source cell for a connection.
+        std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
+        // Used to pick delay for a connection.
+        std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
+        auto src_gen = std::mt19937(gid);
+        for (unsigned i=1; i<cell_params_.synapses; ++i) {
+            // Make a connection with weight 0.
+            // The source is randomly picked, with no self connections.
+            src = dist(src_gen);
+            if (src==gid) ++src;
+            const float delay = min_delay_+delay_dist(src_gen);
+            //const float delay = min_delay_;
+            cons.push_back(
+                arb::cell_connection({src, "my_detector"}, "my_extra_syns", 0.f, delay));
+        }
+        return cons;
     }
 
     // Return one event generator on gid 0. This generates a single event that will
@@ -107,7 +123,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{0, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({{"my_primary_syn", 1.0, event_weight_}}));
         }
         return gens;
     }

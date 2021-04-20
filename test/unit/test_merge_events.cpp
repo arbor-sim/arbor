@@ -156,9 +156,9 @@ TEST(merge_events, X)
         {0, 26, 4},
     };
 
-    std::vector<event_generator> generators = {
-        regular_generator(2, 42.f, t0, 5)
-    };
+    auto gen = regular_generator({"l0"}, 42.f, t0, 5);
+    gen.init({2});
+    std::vector<event_generator> generators = {gen};
 
     merge_events(t0, t1, lc, events, generators, lf);
 
@@ -182,24 +182,34 @@ TEST(merge_events, X)
 // Test the tournament tree for merging two small sequences 
 TEST(merge_events, tourney_seq)
 {
-    pse_vector evs1 = {
-        {0, 1, 1},
-        {0, 2, 2},
-        {0, 3, 3},
-        {0, 4, 4},
-        {0, 5, 5},
+    explicit_generator::lse_vector evs1 = {
+        {{"l0"}, 1, 1},
+        {{"l0"}, 2, 2},
+        {{"l0"}, 3, 3},
+        {{"l0"}, 4, 4},
+        {{"l0"}, 5, 5},
     };
 
-    pse_vector evs2 = {
-        {0, 1.5, 1},
-        {0, 2.5, 2},
-        {0, 3.5, 3},
-        {0, 4.5, 4},
-        {0, 5.5, 5},
+    explicit_generator::lse_vector evs2 = {
+        {{"l0"}, 1.5, 1},
+        {{"l0"}, 2.5, 2},
+        {{"l0"}, 3.5, 3},
+        {{"l0"}, 4.5, 4},
+        {{"l0"}, 5.5, 5},
     };
+
+    std::vector<cell_lid_type> lid_vector = {0,0,0,0,0};
+    pse_vector expected;
+
+    auto gen_pse = [](const auto& lhs, const auto& rhs) {return spike_event{rhs, lhs.time, lhs.weight};};
+    std::transform(evs1.begin(), evs1.end(), lid_vector.begin(), std::back_inserter(expected), gen_pse);
+    std::transform(evs2.begin(), evs2.end(), lid_vector.begin(), std::back_inserter(expected), gen_pse);
+    util::sort(expected);
 
     event_generator g1 = explicit_generator(evs1);
     event_generator g2 = explicit_generator(evs2);
+    g1.init(lid_vector);
+    g2.init(lid_vector);
 
     std::vector<event_span> spans;
     spans.emplace_back(g1.events(0, terminal_time));
@@ -213,10 +223,6 @@ TEST(merge_events, tourney_seq)
     }
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
-    auto expected = evs1;
-    util::append(expected, evs2);
-    util::sort(expected);
-
     EXPECT_EQ(expected, lf);
 }
 
@@ -234,13 +240,15 @@ TEST(merge_events, tourney_poisson)
 
     std::vector<event_generator> generators;
     for (auto i=0u; i<ngen; ++i) {
-        cell_lid_type tgt = i;
+        cell_lid_type lid = i;
+        cell_tag_type label = "tgt"+std::to_string(i);
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.
         rndgen G(i%(ngen-1));
-        generators.emplace_back(
-                poisson_generator(tgt, weight, t0, lambda, G));
+        auto gen = poisson_generator(label, weight, t0, lambda, G);
+        gen.init({lid});
+        generators.push_back(std::move(gen));
     }
 
     // manually generate the expected output

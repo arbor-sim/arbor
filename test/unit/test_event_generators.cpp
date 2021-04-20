@@ -18,7 +18,8 @@ namespace{
 }
 
 TEST(event_generators, assign_and_copy) {
-    event_generator gen = regular_generator(2, 5., 0.5, 0.75);
+    event_generator gen = regular_generator({"l2"}, 5., 0.5, 0.75);
+    gen.init({2});
     spike_event expected{2, 0.75, 5.};
 
     auto first = [](const event_seq& seq) {
@@ -54,16 +55,18 @@ TEST(event_generators, regular) {
     // events regularly spaced 0.5 ms apart.
     time_type t0 = 2.0;
     time_type dt = 0.5;
-    cell_lid_type target = 3;
+    cell_tag_type label = "label";
+    cell_lid_type lid = 3;
     float weight = 3.14;
 
-    event_generator gen = regular_generator(target, weight, t0, dt);
+    event_generator gen = regular_generator(label, weight, t0, dt);
+    gen.init({lid});
 
     // Helper for building a set of expected events.
     auto expected = [&] (std::vector<time_type> times) {
         pse_vector events;
         for (auto t: times) {
-            events.push_back({target, t, weight});
+            events.push_back({lid, t, weight});
         }
         return events;
     };
@@ -80,42 +83,54 @@ TEST(event_generators, regular) {
 }
 
 TEST(event_generators, seq) {
-    pse_vector in = {
-        {0, 0.1, 1.0},
-        {0, 1.0, 2.0},
-        {0, 1.0, 3.0},
-        {0, 1.5, 4.0},
-        {0, 2.3, 5.0},
-        {0, 3.0, 6.0},
-        {0, 3.5, 7.0},
+    explicit_generator::lse_vector in = {
+        {{"l0"}, 0.1, 1.0},
+        {{"l0"}, 1.0, 2.0},
+        {{"l2"}, 1.0, 3.0},
+        {{"l1"}, 1.5, 4.0},
+        {{"l2"}, 2.3, 5.0},
+        {{"l0"}, 3.0, 6.0},
+        {{"l0"}, 3.5, 7.0},
     };
-
-    auto events = [&in] (int b, int e) {
-        return pse_vector(in.begin()+b, in.begin()+e);
-    };
+    std::vector<cell_lid_type> lid_vector = {0,0,2,1,2,0,0};
+    pse_vector expected;
+    std::transform(in.begin(), in.end(), lid_vector.begin(), std::back_inserter(expected),
+        [](const auto& lhs, const auto& rhs) {return spike_event{rhs, lhs.time, lhs.weight};});
 
     event_generator gen = explicit_generator(in);
-    EXPECT_EQ(in, as_vector(gen.events(0, 100.)));
+    gen.init(lid_vector);
+
+    EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
     gen.reset();
-    EXPECT_EQ(in, as_vector(gen.events(0, 100.)));
+    EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
     gen.reset();
 
     // Check reported sub-intervals against a smaller set of events.
     in = {
-        {0, 1.5, 4.0},
-        {0, 2.3, 5.0},
-        {0, 3.0, 6.0},
-        {0, 3.5, 7.0},
+        {{"l0"}, 1.5, 4.0},
+        {{"l0"}, 2.3, 5.0},
+        {{"l0"}, 3.0, 6.0},
+        {{"l0"}, 3.5, 7.0},
     };
+    lid_vector = {0,0,0,0};
+    expected.clear();
+    std::transform(in.begin(), in.end(), lid_vector.begin(), std::back_inserter(expected),
+                   [](const auto& lhs, const auto& rhs) {return spike_event{rhs, lhs.time, lhs.weight};});
+
     gen = explicit_generator(in);
+    gen.init(lid_vector);
 
     auto draw = [](event_generator& gen, time_type t0, time_type t1) {
         gen.reset();
         return as_vector(gen.events(t0, t1));
     };
 
+    auto events = [&expected] (int b, int e) {
+      return pse_vector(expected.begin()+b, expected.begin()+e);
+    };
+
     // a range that includes all the events
-    EXPECT_EQ(in, draw(gen, 0, 4));
+    EXPECT_EQ(expected, draw(gen, 0, 4));
 
     // a strict subset including the first event
     EXPECT_EQ(events(0, 2), draw(gen, 0, 3));
@@ -143,10 +158,12 @@ TEST(event_generators, poisson) {
     time_type t0 = 0;
     time_type t1 = 10;
     time_type lambda = 10; // expect 10 events per ms
-    cell_lid_type target = 2;
+    cell_tag_type label = "label";
+    cell_lid_type lid = 2;
     float weight = 42;
 
-    event_generator gen = poisson_generator(target, weight, t0, lambda, G);
+    event_generator gen = poisson_generator(label, weight, t0, lambda, G);
+    gen.init({lid});
 
     pse_vector int1 = as_vector(gen.events(0, t1));
     // Test that the output is sorted

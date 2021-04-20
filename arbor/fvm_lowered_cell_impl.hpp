@@ -677,8 +677,8 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {
-            auto gj_local = gj_resolver.get_lid({gid, g.local}, g.local_policy);
-            auto gj_peer  = gj_resolver.get_lid(g.peer, g.peer_policy);
+            auto gj_local = gj_resolver.get_lid({gid, g.local});
+            auto gj_peer  = gj_resolver.get_lid(g.peer);
             auto cv_local = gid_to_cvs[gid][gj_local];
             auto cv_peer = gid_to_cvs[g.peer.gid][gj_peer];
             v.push_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));

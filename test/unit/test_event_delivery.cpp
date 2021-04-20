@@ -112,8 +112,8 @@ struct test_recipe_gj: public test_recipe {
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type i) const override {
         std::vector<gap_junction_connection> gjs;
         for (auto p: gj_pairs_) {
-            if (p.first == i) gjs.push_back({{p.second, "gapjunction"}, "gapjunction", 0.});
-            if (p.second == i) gjs.push_back({{p.first, "gapjunction"}, "gapjunction", 0.});
+            if (p.first == i) gjs.push_back({{p.second, "gapjunction"}, {"gapjunction"}, 0.});
+            if (p.second == i) gjs.push_back({{p.first, "gapjunction"}, {"gapjunction"}, 0.});
         }
         return gjs;
     }

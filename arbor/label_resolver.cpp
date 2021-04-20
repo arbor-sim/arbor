@@ -76,18 +76,14 @@ label_resolver::label_resolver(cell_labeled_ranges ranges):
 //    std::cout << std::endl;
 }
 
-cell_lid_type label_resolver::get_lid(const cell_label_type& elem, lid_selection_policy policy) const {
-    return get_lid(elem, -1, policy);
-}
-
-cell_lid_type label_resolver::get_lid(const cell_label_type& elem, int rank, lid_selection_policy policy) const {
-    auto gid_range = mapper.get_gid_range(elem.gid, rank);
+cell_lid_type label_resolver::get_lid(cell_global_label_type iden, int rank) const {
+    auto gid_range = mapper.get_gid_range(iden.gid, rank);
     if (!gid_range) {
-        throw arb::bad_connection_label(elem);
+        throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
-    auto label_range = mapper.get_label_range(elem.tag, gid_range.value());
+    auto label_range = mapper.get_label_range(iden.label.tag, gid_range.value());
     if (!label_range) {
-        throw arb::bad_connection_label(elem);
+        throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
     arb_assert(label_range.value().second - label_range.value().first == 1);
 
@@ -95,7 +91,7 @@ cell_lid_type label_resolver::get_lid(const cell_label_type& elem, int rank, lid
     auto range = mapper.ranges[rid];
     auto size = range.end - range.begin;
 
-    switch (policy) {
+    switch (iden.label.policy) {
     case lid_selection_policy::round_robin:
     {
         auto idx = indices[rid];
@@ -105,11 +101,11 @@ cell_lid_type label_resolver::get_lid(const cell_label_type& elem, int rank, lid
     case lid_selection_policy::assert_univalent:
     {
         if (size != 1) {
-            throw arb::bad_univalent_connection_label(elem);
+            throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
         }
         return range.begin;
     }
-    default: throw arb::bad_connection_label(elem);
+    default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
 }
 } // namespace arb

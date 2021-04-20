@@ -56,19 +56,6 @@ struct cell_member_type {
     cell_lid_type index;
 };
 
-// Items of cell_label_type must:
-//
-//  * be associated with a unique cell, identified by the member `gid`
-//    (see: cell_gid_type);
-//
-//  * identify a labeled item within a cell-local collection by the label `label`
-//    (see: cell_tag_type).
-
-struct cell_label_type {
-    cell_gid_type gid;
-    cell_tag_type tag;
-};
-
 // Pair of indexes that describe range of local indices.
 // Returned by cable_cell::place() calls, so that the caller can
 // refer to targets, detectors, etc on the cell.
@@ -83,6 +70,22 @@ struct lid_range {
 enum class lid_selection_policy {
     round_robin,
     assert_univalent
+};
+
+struct cell_local_label_type {
+    cell_tag_type tag;
+    lid_selection_policy policy;
+
+    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::round_robin): tag(tag), policy(policy) {}
+};
+
+struct cell_global_label_type {
+    cell_gid_type gid;
+    cell_local_label_type label;
+
+    cell_global_label_type(cell_gid_type gid, cell_local_label_type label): gid(gid), label(std::move(label)) {}
+    cell_global_label_type(cell_gid_type gid, cell_tag_type tag): gid(gid), label(std::move(tag)) {}
+    cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
