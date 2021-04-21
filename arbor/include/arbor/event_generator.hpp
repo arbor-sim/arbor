@@ -11,7 +11,6 @@
 #include <arbor/generic_event.hpp>
 #include <arbor/spike_event.hpp>
 #include <arbor/schedule.hpp>
-#include <utility>
 
 namespace arb {
 

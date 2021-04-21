@@ -51,7 +51,7 @@ struct cable_cell_impl {
     decor decorations;
 
     // The source_label to lid_range map
-    dynamic_typed_map<constant_type<std::unordered_map<std::string, lid_range>>::type> labeled_lid_ranges;
+    dynamic_typed_map<constant_type<std::unordered_map<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
@@ -79,7 +79,7 @@ struct cable_cell_impl {
     }
 
     template <typename Item>
-    void place(const locset& ls, const Item& item, const std::string& label) {
+    void place(const locset& ls, const Item& item, const cell_tag_type& label) {
         auto& mm = get_location_map(item);
         cell_lid_type& lid = placed_count.get<Item>();
         cell_lid_type first = lid;
@@ -208,15 +208,15 @@ const cable_cell_parameter_set& cable_cell::default_parameters() const {
     return impl_->decorations.defaults();
 }
 
-const std::unordered_map<std::string, lid_range>& cable_cell::labeled_source_ranges() const {
+const std::unordered_map<cell_tag_type, lid_range>& cable_cell::labeled_source_ranges() const {
     return impl_->labeled_lid_ranges.get<threshold_detector>();
 }
 
-const std::unordered_map<std::string, lid_range>& cable_cell::labeled_target_ranges() const {
+const std::unordered_map<cell_tag_type, lid_range>& cable_cell::labeled_target_ranges() const {
     return impl_->labeled_lid_ranges.get<mechanism_desc>();
 }
 
-const std::unordered_map<std::string, lid_range>& cable_cell::labeled_gap_junction_ranges() const {
+const std::unordered_map<cell_tag_type, lid_range>& cable_cell::labeled_gap_junction_ranges() const {
     return impl_->labeled_lid_ranges.get<gap_junction_site>();
 }
 

@@ -99,7 +99,7 @@ struct dry_run_context_impl {
 
         for (unsigned i = 0; i < num_ranks_; i++) {
             arb_assert(local_ranges.is_one_partition());
-            std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), gids.begin(), [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
+            std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), std::back_inserter(gids), [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
             labels.insert(labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
             ranges.insert(ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
             sorted_partitions.push_back(sorted_partitions.back() + local_ranges.gids.size());

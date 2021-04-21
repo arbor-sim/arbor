@@ -11,11 +11,9 @@
 #include <limits>
 #include <iosfwd>
 #include <type_traits>
-#include <iostream>
 
 #include <arbor/util/lexcmp_def.hpp>
 #include <arbor/util/hash_def.hpp>
-#include <utility>
 
 namespace arb {
 
@@ -57,8 +55,7 @@ struct cell_member_type {
 };
 
 // Pair of indexes that describe range of local indices.
-// Returned by cable_cell::place() calls, so that the caller can
-// refer to targets, detectors, etc on the cell.
+
 struct lid_range {
     cell_lid_type begin;
     cell_lid_type end;
@@ -72,12 +69,18 @@ enum class lid_selection_policy {
     assert_univalent
 };
 
+// For referring to a labeled placement on an unknown cell.
+// The placement may be associated with multiple locations, the policy
+// can be used to select a specific location.
+
 struct cell_local_label_type {
     cell_tag_type tag;
     lid_selection_policy policy;
 
     cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::round_robin): tag(tag), policy(policy) {}
 };
+
+// For referring to a labeled placement on a cell.
 
 struct cell_global_label_type {
     cell_gid_type gid;

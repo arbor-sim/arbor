@@ -415,14 +415,14 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     int i = 0;
     for (const auto& c: cells) {
-        for (const auto& item: c.labeled_source_ranges()) {
-            source_table_.emplace_back(gids[i], item.first, item.second);
+        for (const auto& [label, range]: c.labeled_source_ranges()) {
+            source_table_.emplace_back(gids[i], label, range);
         }
-        for (const auto& item: c.labeled_target_ranges()) {
-            target_table_.emplace_back(gids[i], item.first, item.second);
+        for (const auto& [label, range]: c.labeled_target_ranges()) {
+            target_table_.emplace_back(gids[i], label, range);
         }
-        for (const auto& item: c.labeled_gap_junction_ranges()) {
-            gap_junction_table_.emplace_back(gids[i], item.first, item.second);
+        for (const auto& [label, range]: c.labeled_gap_junction_ranges()) {
+            gap_junction_table_.emplace_back(gids[i], label, range);
         }
         ++i;
     }

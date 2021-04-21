@@ -113,8 +113,8 @@ void decor::paint(region where, paintable what) {
     paintings_.push_back({std::move(where), std::move(what)});
 }
 
-void decor::place(locset where, placeable what, const std::string& label) {
-    placements_.push_back({std::move(where), std::move(what), label});
+void decor::place(locset where, placeable what, cell_tag_type label) {
+    placements_.push_back({std::move(where), std::move(what), std::move(label)});
 }
 
 void decor::set_default(defaultable what) {

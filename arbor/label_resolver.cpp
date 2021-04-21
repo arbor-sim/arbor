@@ -65,15 +65,6 @@ label_resolver::label_resolver(cell_labeled_ranges ranges):
     indices(mapper.gids.size(), 0) {
     arb_assert(mapper.labels.size() == indices.size());
     arb_assert(mapper.ranges.size() == indices.size());
-//    for (unsigned i = 0; i < mapper.gids.size(); ++i) {
-//        std::cout << mapper.gids[i] << ", " << mapper.labels[i] << ", (" << mapper.ranges[i].begin << " -> " << mapper.ranges[i].end << ")" << std::endl;
-//    }
-//    std::cout << "[";
-//    for (auto i:mapper.sorted_partitions) {
-//        std::cout << i << " ";
-//    }
-//    std::cout << "]" << std::endl;
-//    std::cout << std::endl;
 }
 
 cell_lid_type label_resolver::get_lid(cell_global_label_type iden, int rank) const {
