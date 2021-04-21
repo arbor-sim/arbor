@@ -60,6 +60,19 @@ std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_labe
     return std::make_pair(it_0 - labels.begin(), it_1 - labels.begin());
 }
 
+std::optional<std::size_t> cell_labeled_ranges::get_range_idx(cell_gid_type gid, const cell_tag_type& label, int partition) const {
+    auto gid_range = get_gid_range(gid, partition);
+    if (!gid_range) {
+        return std::nullopt;
+    }
+    auto label_range = get_label_range(label, gid_range.value());
+    if (!label_range) {
+        return std::nullopt;
+    }
+    arb_assert(label_range.value().second - label_range.value().first == 1);
+    return label_range.value().first;
+}
+
 label_resolver::label_resolver(cell_labeled_ranges ranges):
     mapper(std::move(ranges)),
     indices(mapper.gids.size(), 0) {
@@ -68,17 +81,12 @@ label_resolver::label_resolver(cell_labeled_ranges ranges):
 }
 
 cell_lid_type label_resolver::get_lid(cell_global_label_type iden, int rank) const {
-    auto gid_range = mapper.get_gid_range(iden.gid, rank);
-    if (!gid_range) {
+    auto lid_range_idx = mapper.get_range_idx(iden.gid, iden.label.tag, rank);
+    if (!lid_range_idx) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
-    auto label_range = mapper.get_label_range(iden.label.tag, gid_range.value());
-    if (!label_range) {
-        throw arb::bad_connection_label(iden.gid, iden.label.tag);
-    }
-    arb_assert(label_range.value().second - label_range.value().first == 1);
 
-    auto rid = label_range.value().first;
+    auto rid = lid_range_idx.value();
     auto range = mapper.ranges[rid];
     auto size = range.end - range.begin;
 
@@ -98,6 +106,10 @@ cell_lid_type label_resolver::get_lid(cell_global_label_type iden, int rank) con
     }
     default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
+}
+
+void label_resolver::reset() {
+    std::fill(indices.begin(), indices.end(), 0);
 }
 } // namespace arb
 

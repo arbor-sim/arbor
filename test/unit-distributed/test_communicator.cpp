@@ -201,9 +201,6 @@ namespace {
             return gid%2? cell_kind::cable: cell_kind::spike_source;
         }
 
-        cell_size_type num_sources(cell_gid_type) const override { return 1; }
-        cell_size_type num_targets(cell_gid_type) const override { return 1; }
-
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             // a single connection from the preceding cell, i.e. a ring
             // weight is the destination gid
@@ -262,9 +259,6 @@ namespace {
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2? cell_kind::cable: cell_kind::spike_source;
         }
-
-        cell_size_type num_sources(cell_gid_type) const override { return 1; }
-        cell_size_type num_targets(cell_gid_type) const override { return size_; }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             std::vector<cell_connection> cons;

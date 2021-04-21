@@ -1241,8 +1241,6 @@ void run_exact_sampling_probe_test(const context& ctx) {
             return {cable_probe_membrane_voltage{mlocation{1, 0.5}}};
         }
 
-        cell_size_type num_targets(cell_gid_type) const override { return 1; }
-
         cell_size_type num_gap_junction_sites(cell_gid_type gid) const override {
             return gid==1 || gid==3;
         }

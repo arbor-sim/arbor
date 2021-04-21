@@ -51,9 +51,6 @@ namespace {
                 cell_kind::cable;
         }
 
-        cell_size_type num_sources(cell_gid_type) const override { return 0; }
-        cell_size_type num_targets(cell_gid_type) const override { return 0; }
-
         std::vector<cell_connection> connections_on(cell_gid_type) const override {
             return {};
         }

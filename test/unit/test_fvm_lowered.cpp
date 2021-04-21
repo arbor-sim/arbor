@@ -1338,16 +1338,6 @@ TEST(fvm_lowered, post_events_shared_state) {
             return cell_kind::cable;
         }
 
-        // Each cell has one spike detector (at the soma).
-        cell_size_type num_sources(cell_gid_type gid) const override {
-            return detectors_per_cell_[gid];
-        }
-
-        // The cell has one target synapse, which will be connected to cell gid-1.
-        cell_size_type num_targets(cell_gid_type gid) const override {
-            return 1;
-        }
-
         std::any get_global_properties(arb::cell_kind) const override {
             arb::cable_cell_global_properties gprop;
             gprop.default_parameters = arb::neuron_parameter_defaults;

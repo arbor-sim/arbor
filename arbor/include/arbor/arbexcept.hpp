@@ -42,18 +42,6 @@ struct bad_cell_description: arbor_exception {
     cell_kind kind;
 };
 
-struct bad_target_description: arbor_exception {
-    bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val);
-    cell_gid_type gid;
-    cell_size_type rec_val, cell_val;
-};
-
-struct bad_source_description: arbor_exception {
-    bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val);
-    cell_gid_type gid;
-    cell_size_type rec_val, cell_val;
-};
-
 struct bad_connection_source_gid: arbor_exception {
     bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells);
     cell_gid_type gid, src_gid;

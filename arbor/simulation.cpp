@@ -222,6 +222,8 @@ simulation_state::simulation_state(
     event_generators_.resize(num_local_cells);
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
+
+    target_resolver.reset();
     for (const auto& group_info: decomp.groups) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.

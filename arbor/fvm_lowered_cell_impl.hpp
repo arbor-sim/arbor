@@ -84,14 +84,20 @@ public:
         return mechanisms_;
     }
 
-    clr_vector source_table() override {
+    clr_vector source_table() const override {
         return source_table_;
     }
-    clr_vector target_table() override {
+    clr_vector target_table() const override {
         return target_table_;
     }
-    clr_vector gap_junction_table() override {
+    clr_vector gap_junction_table() const override {
         return gap_junction_table_;
+    }
+    fvm_size_type num_targets(cell_gid_type gid) const override {
+        return num_targets_.at(gid);
+    }
+    fvm_size_type num_sources(cell_gid_type gid) const override {
+        return num_sources_.at(gid);
     }
 
 private:
@@ -122,10 +128,14 @@ private:
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_;
 
-    // Source table storing gid, source_label and corresponding lid_range on the cell
+    // Vectors storing gid, labels and corresponding lid_ranges for each cell.
     clr_vector source_table_;
     clr_vector target_table_;
     clr_vector gap_junction_table_;
+
+    // Maps storing number of targets/sources per cell.
+    std::unordered_map<cell_gid_type, fvm_size_type> num_targets_;
+    std::unordered_map<cell_gid_type, fvm_size_type> num_sources_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -413,18 +423,24 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                }
            });
 
-    int i = 0;
-    for (const auto& c: cells) {
+    // Populate source, target and gap_junction tables.
+    // Create a list of the global identifiers for the spike sources.
+    for (auto i : util::make_span(ncell)) {
+        auto gid = gids[i];
+        const auto& c = cells[i];
+        num_sources_[gid] = 0;
         for (const auto& [label, range]: c.labeled_source_ranges()) {
-            source_table_.emplace_back(gids[i], label, range);
+            source_table_.emplace_back(gid, label, range);
+            num_sources_[gid]+=(range.end - range.begin);
         }
+        num_targets_[gid] = 0;
         for (const auto& [label, range]: c.labeled_target_ranges()) {
-            target_table_.emplace_back(gids[i], label, range);
+            target_table_.emplace_back(gid, label, range);
+            num_targets_[gid]+=(range.end - range.begin);
         }
         for (const auto& [label, range]: c.labeled_gap_junction_ranges()) {
-            gap_junction_table_.emplace_back(gids[i], label, range);
+            gap_junction_table_.emplace_back(gid, label, range);
         }
-        ++i;
     }
     std::sort(source_table_.begin(), source_table_.end());
     std::sort(target_table_.begin(), target_table_.end());
@@ -444,26 +460,6 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     // Assert that all global default parameters have been set.
     // (Throws cable_cell_error on failure.)
     check_global_properties(global_props);
-
-    // Sanity check recipe; find max num_sources and
-    // create a list of the global identifiers for the spike sources
-
-    std::vector<fvm_size_type> nsources;
-    for (auto cell_idx: make_span(ncell)) {
-        cell_gid_type gid = gids[cell_idx];
-        auto& cell = cells[cell_idx];
-
-        auto num_sources = rec.num_sources(gid);
-        nsources.push_back(num_sources);
-
-        if (num_sources != cell.detectors().size()) {
-            throw arb::bad_source_description(gid, num_sources, cell.detectors().size());
-        }
-        auto cell_targets = util::sum_by(cell.synapses(), [](auto& syn) { return syn.second.size(); });
-        if (rec.num_targets(gid) > cell_targets) {
-            throw arb::bad_target_description(gid, rec.num_targets(gid), cell_targets);
-        }
-    }
 
     const mechanism_catalogue* catalogue = global_props.catalogue;
 
@@ -501,12 +497,16 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
-    auto max_detector = post_events_ ? util::max_value(nsources) : 0;
+    auto max_detector = 0;
+    if (post_events_) {
+        auto it = std::max_element(num_sources_.begin(), num_sources_.end(), [](const auto& lhs, const auto& rhs) -> bool {return lhs.second < rhs.second;});
+        max_detector = it->second;
+    }
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
     if (post_events_) {
         for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(nsources[cell_idx])) {
+            for (auto lid: make_span(num_sources_[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
             }
         }

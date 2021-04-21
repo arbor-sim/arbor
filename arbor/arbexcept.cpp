@@ -22,16 +22,6 @@ bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     kind(kind)
 {}
 
-bad_target_description::bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
-    arbor_exception(pprintf("Model building error on cell {}: recipe::num_targets(gid={}) = {} is greater than the number of synapses on the cell = {}", gid, gid, rec_val, cell_val)),
-    gid(gid), rec_val(rec_val), cell_val(cell_val)
-{}
-
-bad_source_description::bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
-    arbor_exception(pprintf("Model building error on cell {}: recipe::num_sources(gid={}) = {} is not equal to the number of detectors on the cell = {}", gid, gid, rec_val, cell_val)),
-    gid(gid), rec_val(rec_val), cell_val(cell_val)
-{}
-
 bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
     arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are only {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
     gid(gid), src_gid(src_gid), num_cells(num_cells)

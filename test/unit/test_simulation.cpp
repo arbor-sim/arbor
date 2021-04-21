@@ -22,8 +22,6 @@ struct play_spikes: public recipe {
 
     cell_size_type num_cells() const override { return spike_times_.size(); }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::spike_source; }
-    cell_size_type num_sources(cell_gid_type) const override { return 1; }
-    cell_size_type num_targets(cell_gid_type) const override { return 0; }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
         return spike_source_cell{spike_times_.at(gid)};
     }
@@ -81,8 +79,6 @@ struct lif_chain: public recipe {
     cell_size_type num_cells() const override { return n_; }
 
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::lif; }
-    cell_size_type num_sources(cell_gid_type) const override { return 1; }
-    cell_size_type num_targets(cell_gid_type) const override { return 1; }
     util::unique_any get_cell_description(cell_gid_type) const override {
         // A hair-trigger LIF cell with tiny time constant and no refractory period.
         lif_cell lif;

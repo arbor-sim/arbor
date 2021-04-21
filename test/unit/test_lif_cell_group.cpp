@@ -69,13 +69,6 @@ public:
         return cell;
     }
 
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
-    }
-
 private:
     cell_size_type n_lif_cells_;
     float weight_, delay_;
@@ -114,13 +107,6 @@ public:
         return cell;
     }
 
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
-    }
-
 private:
     cell_size_type ncells_;
     float weight_, delay_;
@@ -142,12 +128,6 @@ public:
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
         return lif_cell();
-    }
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
     }
     std::vector<probe_info> get_probes(cell_gid_type gid) const override{
         return {arb::cable_probe_membrane_voltage{mlocation{0, 0}}};

@@ -40,20 +40,16 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
         gid_index_map_[gids_[i]] = i;
     }
 
+    // Construct cell implementation, retrieving handles and maps.
+    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
+
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-            util::transform_view(gids_, [&rec](cell_gid_type i) { return rec.num_targets(i); }));
-    std::size_t n_targets = target_handle_divisions_.back();
-
-    // Pre-allocate space to store handles.
-    target_handles_.reserve(n_targets);
-
-    // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
+                         util::transform_view(gids_, [&](cell_gid_type i) { return lowered_->num_targets(i); }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
-        for (cell_lid_type lid = 0; lid<rec.num_sources(source_gid); ++lid) {
+        for (cell_lid_type lid = 0; lid<lowered_->num_sources(source_gid); ++lid) {
             spike_sources_.push_back({source_gid, lid});
         }
     }

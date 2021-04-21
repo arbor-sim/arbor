@@ -42,9 +42,6 @@ struct test_recipe: public n_cable_cell_recipe {
 
         return c;
     }
-
-    cell_size_type num_sources(cell_gid_type) const override { return 1; }
-    cell_size_type num_targets(cell_gid_type) const override { return 1; }
 };
 
 using gid_vector = std::vector<cell_gid_type>;

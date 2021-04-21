@@ -43,6 +43,12 @@ struct cell_labeled_ranges {
     // Evaluates whether there is only one partition in sorted_partitions
     bool is_one_partition() const;
 
+    // Returns the index corresponding the the lid_range of the {gid, label} pair in the ranges vector.
+    // If given a partition != -1, it will narrow the search to that single partition,
+    // otherwise it searches everywhere.
+    std::optional<std::size_t> get_range_idx(cell_gid_type gid, const cell_tag_type& label, int partition=-1) const;
+
+private:
     // Returns the index range in `gids` that matches a given gid.
     // If given a partition != -1, it will narrow the search to that single partition,
     // otherwise it searches everywhere.
@@ -64,6 +70,9 @@ struct label_resolver {
     // Returns the lid of a {gid, label} pair according to a policy.
     // The optional rank index is used to accelerate the search for {gid, label}.
     cell_lid_type get_lid(cell_global_label_type, int rank = -1) const;
+
+    // Reset the indices vector to 0;
+    void reset();
 };
 
 } // namespace arb
