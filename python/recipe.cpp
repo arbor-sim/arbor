@@ -118,13 +118,13 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 }
 
 std::string con_to_string(const arb::cell_connection& c) {
-    return util::pprintf("<arbor.connection: source ({},{}), destination {}, delay {}, weight {}>",
-         c.source.gid, c.source.index, c.dest, c.delay, c.weight);
+    return util::pprintf("<arbor.connection: source ({},{}, \"{}\"), destination ({}, \"{}\"), delay {}, weight {}>",
+         c.source.gid, c.source.label.tag, c.source.label.policy, c.dest.tag, c.dest.policy, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<arbor.gap_junction_connection: peer ({},{}), local {}, ggap {}>",
-         gc.peer.gid, gc.peer.index, gc.local, gc.ggap);
+    return util::pprintf("<arbor.gap_junction_connection: peer ({},{}, \"{}\"), local ({}, \"{}\"), ggap {}>",
+         gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.ggap);
 }
 
 void register_recipe(pybind11::module& m) {
@@ -135,7 +135,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<arb::cell_member_type, arb::cell_lid_type, float, float>(),
+        .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, float, float>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"
@@ -143,9 +143,9 @@ void register_recipe(pybind11::module& m) {
             "  weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
             "  delay:       The delay of the connection [ms].")
         .def_readwrite("source", &arb::cell_connection::source,
-            "The source of the connection.")
+            "The source gid and label of the connection.")
         .def_readwrite("dest", &arb::cell_connection::dest,
-            "The destination of the connection.")
+            "The destination label of the connection.")
         .def_readwrite("weight", &arb::cell_connection::weight,
             "The weight of the connection.")
         .def_readwrite("delay", &arb::cell_connection::delay,
@@ -157,16 +157,16 @@ void register_recipe(pybind11::module& m) {
     pybind11::class_<arb::gap_junction_connection> gap_junction_connection(m, "gap_junction_connection",
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
-        .def(pybind11::init<arb::cell_member_type, arb::cell_lid_type, double>(),
+        .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, double>(),
             "peer"_a, "local"_a, "ggap"_a,
             "Construct a gap junction connection with arguments:\n"
-            "  peer:  One half of the gap junction connection.\n"
-            "  local: Other half of the gap junction connection.\n"
+            "  peer:  remote half of the gap junction connection.\n"
+            "  local: local half of the gap junction connection.\n"
             "  ggap:  Gap junction conductance [μS].")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,
-            "Peer half of the gap junction connection.")
+            "Remote gid and label of the gap junction connection.")
         .def_readwrite("local", &arb::gap_junction_connection::local,
-            "Local half of the gap junction connection.")
+            "Local label of the gap junction connection.")
         .def_readwrite("ggap", &arb::gap_junction_connection::ggap,
             "Gap junction conductance [μS].")
         .def("__str__",  &gj_to_string)
@@ -187,15 +187,6 @@ void register_recipe(pybind11::module& m) {
         .def("cell_kind", &py_recipe::cell_kind,
             "gid"_a,
             "The kind of cell with global identifier gid.")
-        .def("num_sources", &py_recipe::num_sources,
-            "gid"_a,
-            "The number of spike sources on gid, 0 by default.")
-        .def("num_targets", &py_recipe::num_targets,
-            "gid"_a,
-            "The number of post-synaptic sites on gid, 0 by default.")
-        .def("num_gap_junction_sites", &py_recipe::num_gap_junction_sites,
-            "gid"_a,
-            "The number of gap junction sites on gid, 0 by default.")
         .def("event_generators", &py_recipe::event_generators,
             "gid"_a,
             "A list of all the event generators that are attached to gid, [] by default.")

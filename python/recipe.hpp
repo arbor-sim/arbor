@@ -74,18 +74,6 @@ public:
         PYBIND11_OVERLOAD_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
     }
 
-    arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_sources, gid);
-    }
-
-    arb::cell_size_type num_targets(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_targets, gid);
-    }
-
-    arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_gap_junction_sites, gid);
-    }
-
     std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, event_generators, gid);
     }
@@ -134,18 +122,6 @@ public:
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {
         return try_catch_pyexception([&](){ return impl_->cell_kind(gid); }, msg);
-    }
-
-    arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception([&](){ return impl_->num_sources(gid); }, msg);
-    }
-
-    arb::cell_size_type num_targets(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception([&](){ return impl_->num_targets(gid); }, msg);
-    }
-
-    arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid) const override {
-        return try_catch_pyexception([&](){ return impl_->num_gap_junction_sites(gid); }, msg);
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;

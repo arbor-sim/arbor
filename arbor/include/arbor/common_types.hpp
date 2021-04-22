@@ -132,6 +132,7 @@ enum class binning_kind {
     following, // => round times down to previous event if within binning interval.
 };
 
+std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
 std::ostream& operator<<(std::ostream& o, cell_member_type m);
 std::ostream& operator<<(std::ostream& o, cell_kind k);
 std::ostream& operator<<(std::ostream& o, backend_kind k);
