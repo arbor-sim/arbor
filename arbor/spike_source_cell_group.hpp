@@ -35,7 +35,7 @@ public:
 
     void remove_all_samplers() override {}
 
-    clr_vector source_table() const override;
+    cell_labeled_ranges source_data() const override;
 
 private:
     std::vector<spike> spikes_;

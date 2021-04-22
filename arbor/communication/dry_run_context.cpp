@@ -89,22 +89,22 @@ struct dry_run_context_impl {
 
     cell_labeled_ranges gather_labeled_range(const cell_labeled_ranges& local_ranges) const {
         std::vector<cell_gid_type> gids;
+        std::vector<cell_size_type> sizes;
         std::vector<cell_tag_type> labels;
         std::vector<lid_range> ranges;
-        std::vector<std::size_t> sorted_partitions = {0};
 
         gids.reserve(local_ranges.gids.size()*num_ranks_);
+        sizes.reserve(local_ranges.sizes.size()*num_ranks_);
         labels.reserve(local_ranges.labels.size()*num_ranks_);
         ranges.reserve(local_ranges.ranges.size()*num_ranks_);
 
         for (unsigned i = 0; i < num_ranks_; i++) {
-            arb_assert(local_ranges.is_one_partition());
             std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), std::back_inserter(gids), [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
+            sizes.insert(sizes.end(), local_ranges.sizes.begin(), local_ranges.sizes.end());
             labels.insert(labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
             ranges.insert(ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
-            sorted_partitions.push_back(sorted_partitions.back() + local_ranges.gids.size());
         }
-        return cell_labeled_ranges(gids, labels, ranges, sorted_partitions);
+        return cell_labeled_ranges(gids, sizes, labels, ranges);
     }
 
     void barrier() const {}

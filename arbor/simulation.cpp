@@ -195,15 +195,11 @@ simulation_state::simulation_state(
           group = factory(group_info.gids, rec);
         });
 
-    clr_vector local_sources, local_targets;
+    cell_labeled_ranges local_sources, local_targets;
     for(const auto& c: cell_groups_) {
-        auto cg_sources = c->source_table();
-        auto cg_targets = c->target_table();
-        std::move(cg_sources.begin(), cg_sources.end(), std::back_inserter(local_sources));
-        std::move(cg_targets.begin(), cg_targets.end(), std::back_inserter(local_targets));
+        local_sources.append(c->source_data());
+        local_targets.append(c->target_data());
     }
-    std::sort(local_sources.begin(), local_sources.end());
-    std::sort(local_targets.begin(), local_targets.end());
     auto global_sources = ctx.distributed->gather_labeled_range(cell_labeled_ranges(local_sources));
 
     auto source_resolver = label_resolver(std::move(global_sources));

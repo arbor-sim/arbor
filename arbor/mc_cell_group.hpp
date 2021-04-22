@@ -55,9 +55,9 @@ public:
 
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const override;
 
-    clr_vector source_table() const override;
-    clr_vector target_table() const override;
-    clr_vector gap_junction_table() const override;
+    cell_labeled_ranges source_data() const override;
+    cell_labeled_ranges target_data() const override;
+    cell_labeled_ranges gap_junction_data() const override;
 
 private:
     // List of the gids of the cells in the group.

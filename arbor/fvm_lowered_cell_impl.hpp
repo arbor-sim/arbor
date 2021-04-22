@@ -84,14 +84,14 @@ public:
         return mechanisms_;
     }
 
-    clr_vector source_table() const override {
-        return source_table_;
+    cell_labeled_ranges source_data() const override {
+        return {gids_, num_source_labels_, source_labels_, source_ranges_};
     }
-    clr_vector target_table() const override {
-        return target_table_;
+    cell_labeled_ranges target_data() const override {
+        return {gids_, num_target_labels_, target_labels_, target_ranges_};
     }
-    clr_vector gap_junction_table() const override {
-        return gap_junction_table_;
+    cell_labeled_ranges gap_junction_data() const override {
+        return {gids_, num_gap_junction_labels_, gap_junction_labels_, gap_junction_ranges_};;
     }
     fvm_size_type num_targets(cell_gid_type gid) const override {
         return num_targets_.at(gid);
@@ -128,10 +128,27 @@ private:
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_;
 
-    // Vectors storing gid, labels and corresponding lid_ranges for each cell.
-    clr_vector source_table_;
-    clr_vector target_table_;
-    clr_vector gap_junction_table_;
+    // Vectors storing source, target and gap junction info for each cell.
+
+    // gids of the cells
+    std::vector<cell_gid_type> gids_;
+
+    // Number of source, target and gap-junction labels and lids on each cell
+    std::vector<cell_size_type> num_source_labels_;
+    std::vector<cell_size_type> num_target_labels_;
+    std::vector<cell_size_type> num_gap_junction_labels_;
+
+    // Labels of the sources, targets and gap junctions, sorted by gid,
+    // partiitoned according to num_type_labels_
+    std::vector<cell_tag_type> source_labels_;
+    std::vector<cell_tag_type> target_labels_;
+    std::vector<cell_tag_type> gap_junction_labels_;
+
+    // Ranges of the source, targets and gap junctions, sorted by gid,
+    // partiitoned according to num_type_labels_
+    std::vector<lid_range> source_ranges_;
+    std::vector<lid_range> target_ranges_;
+    std::vector<lid_range> gap_junction_ranges_;
 
     // Maps storing number of targets/sources per cell.
     std::unordered_map<cell_gid_type, fvm_size_type> num_targets_;
@@ -423,28 +440,36 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                }
            });
 
-    // Populate source, target and gap_junction tables.
-    // Create a list of the global identifiers for the spike sources.
+    // Populate source, target and gap_junction data vectors.
+    gids_ = gids;
+    num_source_labels_.reserve(ncell);
+    num_target_labels_.reserve(ncell);
+    num_gap_junction_labels_.reserve(ncell);
     for (auto i : util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
+
         num_sources_[gid] = 0;
+        num_source_labels_.push_back(c.labeled_source_ranges().size());
         for (const auto& [label, range]: c.labeled_source_ranges()) {
-            source_table_.emplace_back(gid, label, range);
+            source_labels_.push_back(label);
+            source_ranges_.push_back(range);
             num_sources_[gid]+=(range.end - range.begin);
         }
+
         num_targets_[gid] = 0;
+        num_target_labels_.push_back(c.labeled_target_ranges().size());
         for (const auto& [label, range]: c.labeled_target_ranges()) {
-            target_table_.emplace_back(gid, label, range);
+            target_labels_.push_back(label);
+            target_ranges_.push_back(range);
             num_targets_[gid]+=(range.end - range.begin);
         }
+        num_gap_junction_labels_.push_back(c.labeled_gap_junction_ranges().size());
         for (const auto& [label, range]: c.labeled_gap_junction_ranges()) {
-            gap_junction_table_.emplace_back(gid, label, range);
+            gap_junction_labels_.push_back(label);
+            gap_junction_ranges_.push_back(range);
         }
     }
-    std::sort(source_table_.begin(), source_table_.end());
-    std::sort(target_table_.begin(), target_table_.end());
-    std::sort(gap_junction_table_.begin(), gap_junction_table_.end());
 
     cable_cell_global_properties global_props;
     try {
@@ -673,7 +698,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
-    label_resolver gj_resolver((cell_labeled_ranges(gap_junction_table_)));
+    label_resolver gj_resolver((cell_labeled_ranges({gids_, num_gap_junction_labels_, gap_junction_labels_, gap_junction_ranges_})));
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (auto g: gj_list) {

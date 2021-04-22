@@ -579,14 +579,14 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
     return result;
 }
 
-clr_vector mc_cell_group::source_table() const {
-    return lowered_->source_table();
+cell_labeled_ranges mc_cell_group::source_data() const {
+    return lowered_->source_data();
 }
-clr_vector mc_cell_group::target_table() const {
-    return lowered_->target_table();
+cell_labeled_ranges mc_cell_group::target_data() const {
+    return lowered_->target_data();
 }
-clr_vector mc_cell_group::gap_junction_table() const {
-    return lowered_->gap_junction_table();
+cell_labeled_ranges mc_cell_group::gap_junction_data() const {
+    return lowered_->gap_junction_data();
 }
 
 } // namespace arb

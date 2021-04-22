@@ -36,8 +36,8 @@ public:
     virtual void remove_all_samplers() override;
 
     // Labeled source, target and gap_junction info
-    clr_vector source_table() const override;
-    clr_vector target_table() const override;
+    cell_labeled_ranges source_data() const override;
+    cell_labeled_ranges target_data() const override;
 
 private:
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).

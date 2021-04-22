@@ -47,9 +47,9 @@ public:
     }
 
     // Labeled source, target and gap_junction info
-    virtual clr_vector source_table() const { return {};};
-    virtual clr_vector target_table() const { return {};};
-    virtual clr_vector gap_junction_table() const { return {};};
+    virtual cell_labeled_ranges source_data() const { return {};};
+    virtual cell_labeled_ranges target_data() const { return {};};
+    virtual cell_labeled_ranges gap_junction_data() const { return {};};
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

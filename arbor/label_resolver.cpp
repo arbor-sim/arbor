@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -6,95 +7,84 @@
 
 #include "label_resolver.hpp"
 #include "util/partition.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
-cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> ids,
-                                         std::vector<cell_tag_type> lbls,
-                                         std::vector<lid_range> rngs,
-                                         std::vector<std::size_t> ptns):
-    gids(std::move(ids)), labels(std::move(lbls)), ranges(std::move(rngs)), sorted_partitions(std::move(ptns))
+cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> gid_vec,
+                                         std::vector<cell_size_type> size_vec,
+                                         std::vector<cell_tag_type> label_vec,
+                                         std::vector<lid_range> range_vec):
+    gids(std::move(gid_vec)), sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec))
 {
-    arb_assert(labels.size() == gids.size());
-    arb_assert(ranges.size() == gids.size());
+    arb_assert(labels.size() == ranges.size());
+    arb_assert(gids.size() == sizes.size());
 };
 
-cell_labeled_ranges::cell_labeled_ranges(const clr_vector& tuple_vec) {
-    arb_assert(std::is_sorted(tuple_vec.begin(), tuple_vec.end()));
-    gids.reserve(tuple_vec.size());
-    labels.reserve(tuple_vec.size());
-    ranges.reserve(tuple_vec.size());
-    for (const auto& item: tuple_vec) {
-        gids.push_back(std::get<0>(item));
-        labels.push_back(std::get<1>(item));
-        ranges.push_back(std::get<2>(item));
-    }
-    sorted_partitions.push_back(0);
-    sorted_partitions.push_back(tuple_vec.size());
+void cell_labeled_ranges::append(cell_labeled_ranges other) {
+    gids.insert(gids.end(), std::make_move_iterator(other.gids.begin()), std::make_move_iterator(other.gids.end()));
+    sizes.insert(sizes.end(), std::make_move_iterator(other.sizes.begin()), std::make_move_iterator(other.sizes.end()));
+    labels.insert(labels.end(), std::make_move_iterator(other.labels.begin()), std::make_move_iterator(other.labels.end()));
+    ranges.insert(ranges.end(), std::make_move_iterator(other.ranges.begin()), std::make_move_iterator(other.ranges.end()));
 }
 
-bool cell_labeled_ranges::is_one_partition() const {
-    return (sorted_partitions.size()==2 && sorted_partitions.front()== 0 && sorted_partitions.back()==gids.size());
-};
+label_resolver::label_resolver(cell_labeled_ranges clr) {
+    arb_assert(clr.gids.size() == clr.sizes.size());
+    arb_assert(clr.labels.size() == clr.ranges.size());
 
-std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_gid_range(cell_gid_type gid, int partition) const {
-    auto part = (partition == -1) ? std::make_pair(sorted_partitions.front(), sorted_partitions.back()) : util::partition_view(sorted_partitions).at(partition);
-    auto first = gids.begin()+part.first;
-    auto last  = gids.begin()+part.second;
-    auto it_0 = std::lower_bound(first, last, gid);
-    if (it_0 == gids.end() || *it_0 != gid) {
-        return std::nullopt;
+    std::cout << "gid : ";
+    for (auto a: clr.gids) {
+        std::cout << a << " ";
     }
-    auto it_1 = std::upper_bound(first, last, gid);
-    return std::make_pair(it_0 - gids.begin(), it_1 - gids.begin());
+    std::cout << std::endl;
+
+    std::cout << "sizes : ";
+    for (auto a: clr.sizes) {
+        std::cout << a << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "labels : ";
+    for (auto a: clr.labels) {
+        std::cout << a << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "ranges : ";
+    for (auto a: clr.ranges) {
+        std::cout << "{" << a.begin << ", " << a.end <<"} ";
+    }
+    std::cout << std::endl<< std::endl;
+
+    std::vector<cell_size_type> label_partition;
+    util::make_partition(label_partition, clr.sizes);
+    for(unsigned i = 0; i < clr.gids.size(); ++i) {
+        auto labels = util::subrange_view(clr.labels, label_partition[i], label_partition[i+1]);
+        auto ranges = util::subrange_view(clr.ranges, label_partition[i], label_partition[i+1]);
+
+        label_resolution_map m;
+        for (unsigned label_idx = 0; label_idx < labels.size(); ++label_idx) {
+            m.insert({labels[label_idx], {ranges[label_idx], 0u}});
+        }
+        mapper.insert({clr.gids[i], std::move(m)});
+    }
 }
 
-std::optional<std::pair<std::size_t, std::size_t>> cell_labeled_ranges::get_label_range(const cell_tag_type& label, std::pair<std::size_t, std::size_t> gid_range) const {
-    auto first = labels.begin()+gid_range.first;
-    auto last  = labels.begin()+gid_range.second;
-    auto it_0 = std::lower_bound(first, last, label);
-    if (it_0 == labels.end() || *it_0 != label) {
-        return std::nullopt;
-    }
-    auto it_1  = std::upper_bound(first, last, label);
-    return std::make_pair(it_0 - labels.begin(), it_1 - labels.begin());
-}
-
-std::optional<std::size_t> cell_labeled_ranges::get_range_idx(cell_gid_type gid, const cell_tag_type& label, int partition) const {
-    auto gid_range = get_gid_range(gid, partition);
-    if (!gid_range) {
-        return std::nullopt;
-    }
-    auto label_range = get_label_range(label, gid_range.value());
-    if (!label_range) {
-        return std::nullopt;
-    }
-    arb_assert(label_range.value().second - label_range.value().first == 1);
-    return label_range.value().first;
-}
-
-label_resolver::label_resolver(cell_labeled_ranges ranges):
-    mapper(std::move(ranges)),
-    indices(mapper.gids.size(), 0) {
-    arb_assert(mapper.labels.size() == indices.size());
-    arb_assert(mapper.ranges.size() == indices.size());
-}
-
-cell_lid_type label_resolver::get_lid(cell_global_label_type iden, int rank) const {
-    auto lid_range_idx = mapper.get_range_idx(iden.gid, iden.label.tag, rank);
-    if (!lid_range_idx) {
+cell_lid_type label_resolver::get_lid(const cell_global_label_type& iden) const {
+    if (!mapper.count(iden.gid) || !mapper.at(iden.gid).count(iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
 
-    auto rid = lid_range_idx.value();
-    auto range = mapper.ranges[rid];
+    auto& range_idx_pair = mapper[iden.gid][iden.label.tag];
+
+    auto range = range_idx_pair.first;
     auto size = range.end - range.begin;
 
     switch (iden.label.policy) {
     case lid_selection_policy::round_robin:
     {
-        auto idx = indices[rid];
-        indices[rid] = (idx+1)%size;
+        auto idx = range_idx_pair.second;
+        range_idx_pair.second = (idx+1)%size;
         return idx + range.begin;
     }
     case lid_selection_policy::assert_univalent:
@@ -109,7 +99,12 @@ cell_lid_type label_resolver::get_lid(cell_global_label_type iden, int rank) con
 }
 
 void label_resolver::reset() {
-    std::fill(indices.begin(), indices.end(), 0);
+    for (auto& [gid, map]: mapper) {
+        for (auto& [lable, range_idx_pair]: map) {
+            range_idx_pair.second = 0;
+        }
+    }
 }
+
 } // namespace arb
 
