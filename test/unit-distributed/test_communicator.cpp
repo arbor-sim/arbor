@@ -205,8 +205,8 @@ namespace {
             // a single connection from the preceding cell, i.e. a ring
             // weight is the destination gid
             // delay is 1
-            cell_member_type src = {gid==0? size_-1: gid-1, 0};
-            cell_lid_type dst = 0;
+            cell_global_label_type src = {gid==0? size_-1: gid-1, "src"};
+            cell_local_label_type dst = {"tgt"};
             return {cell_connection(
                         src, dst,   // end points
                         float(gid), // weight
@@ -265,8 +265,8 @@ namespace {
             cons.reserve(size_);
             for (auto sid: util::make_span(0, size_)) {
                 cell_connection con(
-                        {sid, 0},       // source
-                        sid,     // destination
+                        {sid, "src"},       // source
+                        {"tgt"},     // destination
                         float(gid+sid), // weight
                         1.0f);          // delay
                 cons.push_back(con);
@@ -383,7 +383,22 @@ TEST(communicator, ring)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, g_context);
-    auto C = communicator(R, D, *g_context);
+
+    cell_labeled_ranges local_targets, local_sources;
+    for (auto g: D.groups) {
+        local_targets.gids.insert(local_targets.gids.end(), g.gids.begin(), g.gids.end());
+    }
+    local_targets.sizes.resize(local_targets.gids.size(), 1);
+    local_targets.labels.resize(local_targets.gids.size(), "tgt");
+    local_targets.ranges.resize(local_targets.gids.size(), {0,1});
+
+    local_sources.gids = local_targets.gids;
+    local_sources.sizes.resize(local_sources.gids.size(), 1);
+    local_sources.labels.resize(local_sources.gids.size(), "src");
+    local_sources.ranges.resize(local_sources.gids.size(), {0, 1});
+    auto global_sources = g_context->distributed->gather_labeled_range(local_sources);
+
+    auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
 
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
@@ -478,7 +493,23 @@ TEST(communicator, all2all)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, g_context);
-    auto C = communicator(R, D, *g_context);
+
+    // set-up label resolvers
+    cell_labeled_ranges local_targets, local_sources;
+    for (auto g: D.groups) {
+        local_targets.gids.insert(local_targets.gids.end(), g.gids.begin(), g.gids.end());
+    }
+    local_targets.sizes.resize(local_targets.gids.size(), 1);
+    local_targets.labels.resize(local_targets.gids.size(), "tgt");
+    local_targets.ranges.resize(local_targets.gids.size(), {0,n_global});
+
+    local_sources.gids = local_targets.gids;
+    local_sources.sizes.resize(local_sources.gids.size(), 1);
+    local_sources.labels.resize(local_sources.gids.size(), "src");
+    local_sources.ranges.resize(local_sources.gids.size(), {0, 1});
+    auto global_sources = g_context->distributed->gather_labeled_range(local_sources);
+
+    auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
 
     // every cell fires
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return true;}));

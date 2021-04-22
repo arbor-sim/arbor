@@ -82,20 +82,20 @@ namespace {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned shift = (gid/size_)*size_;
             switch (gid % size_) {
-                case 1 :  return { gap_junction_connection({7 + shift, 0}, 0, 0.1)};
+                case 1 :  return { gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)};
                 case 2 :  return {
-                    gap_junction_connection({6 + shift, 0}, 0, 0.1),
-                    gap_junction_connection({9 + shift, 0}, 0, 0.1)
+                    gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({9 + shift, "gj"}, {"gj"}, 0.1)
                 };
                 case 6 :  return {
-                    gap_junction_connection({2 + shift, 0}, 0, 0.1),
-                    gap_junction_connection({7 + shift, 0}, 0, 0.1)
+                    gap_junction_connection({2 + shift, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)
                 };
                 case 7 :  return {
-                    gap_junction_connection({6 + shift, 0}, 0, 0.1),
-                    gap_junction_connection({1 + shift, 0}, 0, 0.1)
+                    gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({1 + shift, "gj"}, {"gj"}, 0.1)
                 };
-                case 9 :  return { gap_junction_connection({2 + shift, 0}, 0, 0.1)};
+                case 9 :  return { gap_junction_connection({2 + shift, "gj"}, {"gj"}, 0.1)};
                 default : return {};
             }
         }
@@ -124,10 +124,10 @@ namespace {
             unsigned group = gid/groups_;
             unsigned id = gid%size_;
             if (id == group && group != (groups_ - 1)) {
-                return {gap_junction_connection({gid + size_, 0}, 0, 0.1)};
+                return {gap_junction_connection({gid + size_, "gj"}, {"gj"}, 0.1)};
             }
             else if (id == group - 1) {
-                return {gap_junction_connection({gid - size_, 0}, 0, 0.1)};
+                return {gap_junction_connection({gid - size_, "gj"}, {"gj"}, 0.1)};
             }
             else {
                 return {};
