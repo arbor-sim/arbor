@@ -40,13 +40,13 @@ class single_recipe(arbor.recipe):
         decor.set_property(Vm=-40)
         decor.paint('(all)', 'hh')
 
-        decor.place('"center"', arbor.spike_detector(-10))
-        decor.place('"center"', 'expsyn')
+        decor.place('"center"', arbor.spike_detector(-10), "detector")
+        decor.place('"center"', 'expsyn', "synapse")
 
         mech_syn = arbor.mechanism('expsyn_stdp')
         mech_syn.set("max_weight", 1.)
 
-        decor.place('"center"', mech_syn)
+        decor.place('"center"', mech_syn, "stpd_synapse")
 
         cell = arbor.cable_cell(tree, labels, decor)
 
@@ -59,10 +59,10 @@ class single_recipe(arbor.recipe):
         stimulus_times = numpy.linspace(50, 500, self.n_pairs)
 
         # strong enough stimulus
-        spike = arbor.event_generator(0, 1., arbor.explicit_schedule(stimulus_times))
+        spike = arbor.event_generator("synapse", 1., arbor.explicit_schedule(stimulus_times))
 
         # zero weight -> just modify synaptic weight via stdp
-        stdp = arbor.event_generator(1, 0., arbor.explicit_schedule(stimulus_times - self.dT))
+        stdp = arbor.event_generator("stpd_synapse", 0., arbor.explicit_schedule(stimulus_times - self.dT))
 
         return [spike, stdp]
 

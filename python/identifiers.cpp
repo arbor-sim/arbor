@@ -59,6 +59,7 @@ void register_identifiers(py::module& m) {
         .def("__repr__",[](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);});
 
     py::implicitly_convertible<py::tuple, arb::cell_local_label_type>();
+    py::implicitly_convertible<py::str, arb::cell_local_label_type>();
 
     py::class_<arb::cell_global_label_type> cell_global_label_type(m, "cell_global_label",
         "For global identification of an item.\n\n"

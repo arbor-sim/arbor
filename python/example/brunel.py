@@ -64,14 +64,14 @@ class brunel_recipe (arbor.recipe):
         connections=[]
         # Add incoming excitatory connections.
         for i in sample_subset(gid, 0, self.ncells_exc_, self.in_degree_exc_):
-            connections.append(arbor.connection((i,0), 0, self.weight_exc_, self.delay_))
+            connections.append(arbor.connection((i,"src"), "tgt", self.weight_exc_, self.delay_))
         # Add incoming inhibitory connections.
         for i in sample_subset(gid, self.ncells_exc_, self.ncells_exc_ + self.ncells_inh_, self.in_degree_inh_):
-            connections.append(arbor.connection((i,0), 0, self.weight_inh_, self.delay_))
+            connections.append(arbor.connection((i,"src"), "tgt", self.weight_inh_, self.delay_))
         return connections
 
     def cell_description(self, gid):
-        cell = arbor.lif_cell()
+        cell = arbor.lif_cell("src", "tgt")
         cell.tau_m = 10
         cell.V_th = 10
         cell.C_m = 20
@@ -83,9 +83,8 @@ class brunel_recipe (arbor.recipe):
 
     def event_generators(self, gid):
         t0 = 0
-        idx = 0
         sched = arbor.poisson_schedule(t0, self.lambda_, gid + self.seed_)
-        return [arbor.event_generator(idx, self.weight_ext_, sched)]
+        return [arbor.event_generator("tgt", self.weight_ext_, sched)]
 
     def num_targets(self, gid):
         return 1
