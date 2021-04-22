@@ -32,30 +32,6 @@ label_resolver::label_resolver(cell_labeled_ranges clr) {
     arb_assert(clr.gids.size() == clr.sizes.size());
     arb_assert(clr.labels.size() == clr.ranges.size());
 
-    std::cout << "gid : ";
-    for (auto a: clr.gids) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "sizes : ";
-    for (auto a: clr.sizes) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "labels : ";
-    for (auto a: clr.labels) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "ranges : ";
-    for (auto a: clr.ranges) {
-        std::cout << "{" << a.begin << ", " << a.end <<"} ";
-    }
-    std::cout << std::endl<< std::endl;
-
     std::vector<cell_size_type> label_partition;
     util::make_partition(label_partition, clr.sizes);
     for(unsigned i = 0; i < clr.gids.size(); ++i) {

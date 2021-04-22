@@ -104,8 +104,6 @@ struct test_recipe_gj: public test_recipe {
     explicit test_recipe_gj(int n, cell_gj_pairs gj_pairs):
         test_recipe(n), gj_pairs_(std::move(gj_pairs)) {}
 
-    cell_size_type num_gap_junction_sites(cell_gid_type) const override { return 1; }
-
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type i) const override {
         std::vector<gap_junction_connection> gjs;
         for (auto p: gj_pairs_) {

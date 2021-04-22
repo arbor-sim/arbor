@@ -1241,10 +1241,6 @@ void run_exact_sampling_probe_test(const context& ctx) {
             return {cable_probe_membrane_voltage{mlocation{1, 0.5}}};
         }
 
-        cell_size_type num_gap_junction_sites(cell_gid_type gid) const override {
-            return gid==1 || gid==3;
-        }
-
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
             case 1:

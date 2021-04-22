@@ -688,10 +688,10 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
 
     std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
     for (auto cell_idx: util::make_span(0, D.n_cell())) {
-        if (!rec.num_gap_junction_sites(gids[cell_idx])) continue;
+        if (rec.gap_junctions_on(gids[cell_idx]).empty()) continue;
 
-        gid_to_cvs[gids[cell_idx]].reserve(rec.num_gap_junction_sites(gids[cell_idx]));
         const auto& cell_gj = cells[cell_idx].gap_junction_sites();
+        gid_to_cvs[gids[cell_idx]].reserve(cell_gj.size());
 
         for (auto gj : cell_gj) {
             auto cv = D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty);
