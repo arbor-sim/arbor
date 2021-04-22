@@ -60,12 +60,10 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{explicit_schedule({0.f}), "src"};
+            return spike_source_cell("src", explicit_schedule({0.f}));
         }
         // LIF cell.
-        auto cell = lif_cell();
-        cell.source = "src";
-        cell.target = "tgt";
+        auto cell = lif_cell("src", "tgt");
         return cell;
     }
 
@@ -101,9 +99,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell();
-        cell.source = "src";
-        cell.target = "tgt";
+        auto cell = lif_cell("src", "tgt");
         return cell;
     }
 
@@ -127,7 +123,7 @@ public:
         return {};
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell();
+        return lif_cell("src", "tgt");
     }
     std::vector<probe_info> get_probes(cell_gid_type gid) const override{
         return {arb::cable_probe_membrane_voltage{mlocation{0, 0}}};

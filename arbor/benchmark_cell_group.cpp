@@ -93,4 +93,26 @@ void benchmark_cell_group::add_sampler(sampler_association_handle h,
     throw std::logic_error("A benchmark_cell group doen't support sampling of internal state!");
 }
 
+cell_labeled_ranges benchmark_cell_group::source_data() const {
+    cell_labeled_ranges src_table;
+    src_table.gids = gids_;
+    for (auto lid: util::make_span(gids_.size())) {
+        src_table.sizes.push_back(1);
+        src_table.labels.push_back(cells_[lid].source);
+        src_table.ranges.push_back({0, 1});
+    }
+    return src_table;
+}
+
+cell_labeled_ranges benchmark_cell_group::target_data() const {
+    cell_labeled_ranges tgt_table;
+    tgt_table.gids = gids_;
+    for (auto lid: util::make_span(gids_.size())) {
+        tgt_table.sizes.push_back(1);
+        tgt_table.labels.push_back(cells_[lid].target);
+        tgt_table.ranges.push_back({0, 1});
+    }
+    return tgt_table;
+}
+
 } // namespace arb

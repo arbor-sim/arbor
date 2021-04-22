@@ -33,6 +33,10 @@ public:
 
     void remove_all_samplers() override {}
 
+    cell_labeled_ranges source_data() const override;
+
+    cell_labeled_ranges target_data() const override;
+
 private:
     std::vector<benchmark_cell> cells_;
     std::vector<spike> spikes_;
