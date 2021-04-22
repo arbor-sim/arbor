@@ -408,7 +408,7 @@ A simple model of a cell as a sphere can be modelled using a cylinder with lengt
 and diameter equal to the diameter of the sphere, which will have the same
 surface area (disregarding the area of the cylinder's circular ends).
 
-Here a cylinder of length and diameter 5 μm is used to represent a *spherical cell*
+Here a cylinder of length and diameter 4 μm is used to represent a *spherical cell*
 with a radius of 2 μm, centred at the origin.
 
 .. code:: Python
