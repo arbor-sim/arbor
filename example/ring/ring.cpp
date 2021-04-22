@@ -89,22 +89,6 @@ public:
         std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
         cons.push_back(arb::cell_connection({src, "my_detector"}, {"my_primary_syn"}, event_weight_, min_delay_));
-
-        // Used to pick source cell for a connection.
-        std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
-        // Used to pick delay for a connection.
-        std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
-        auto src_gen = std::mt19937(gid);
-        for (unsigned i=1; i<cell_params_.synapses; ++i) {
-            // Make a connection with weight 0.
-            // The source is randomly picked, with no self connections.
-            src = dist(src_gen);
-            if (src==gid) ++src;
-            const float delay = min_delay_+delay_dist(src_gen);
-            //const float delay = min_delay_;
-            cons.push_back(
-                arb::cell_connection({src, "my_detector"}, {"my_extra_syns"}, 0.f, delay));
-        }
         return cons;
     }
 
@@ -282,7 +266,7 @@ ring_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option not permitted.");
     }
 
     std::string fname = argv[1];

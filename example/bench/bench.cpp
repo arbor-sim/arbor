@@ -87,31 +87,19 @@ public:
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
         std::mt19937_64 rng(gid);
-        arb::benchmark_cell cell;
-        cell.realtime_ratio = params_.cell.realtime_ratio;
 
         // The time_sequence of the cell produces the series of time points at
         // which it will spike. We use a poisson_schedule with a random sequence
         // seeded with the gid. In this way, a cell's random stream depends only
         // on its gid, and will hence give reproducable results when run with
         // different MPI ranks and threads.
-        cell.time_sequence = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, rng);
-        return std::move(cell);
+        auto sched = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, rng);
+
+        return arb::benchmark_cell("src", "tgt", sched, params_.cell.realtime_ratio);
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {
         return arb::cell_kind::benchmark;
-    }
-
-    arb::cell_size_type num_targets(arb::cell_gid_type gid) const override {
-        // Only one target, to which all incoming connections connect.
-        // This could be parameterized, in which case the connections
-        // generated in connections_on should end on random cell-local targets.
-        return 1;
-    }
-
-    arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
-        return 1;
     }
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
@@ -134,7 +122,7 @@ public:
             arb::cell_gid_type src = dist(rng);
             if (src>=gid) ++src;
             // Note: target is {gid, 0}, i.e. the first (and only) target on the cell.
-            arb::cell_connection con({src, 0}, 0, 1.f, params_.network.min_delay);
+            arb::cell_connection con({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay);
             cons.push_back(con);
         }
 
@@ -244,7 +232,7 @@ bench_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option not permitted.");
     }
 
     std::string fname = argv[1];

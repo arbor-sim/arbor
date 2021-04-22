@@ -31,7 +31,7 @@ struct cell_parameters {
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
-    unsigned synapses = 100000;
+    unsigned synapses = 1;
 };
 
 cell_parameters parse_cell_parameters(nlohmann::json& json) {
@@ -123,7 +123,10 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.place(arb::mlocation{0, 0.5}, "expsyn", "my_primary_syn");
 
     // Add additional synapses that will not be connected to anything.
-    decor.place(arb::ls::uniform("dend"_lab, 1, params.synapses-1, gid), "expsyn", "my_extra_syns");
+
+    if (params.synapses > 1) {
+        decor.place(arb::ls::uniform("dend"_lab, 0, params.synapses - 2, gid), "expsyn", "my_extra_syns");
+    }
 
     // Make a CV between every sample in the sample tree.
     decor.set_default(arb::cv_policy_every_segment());

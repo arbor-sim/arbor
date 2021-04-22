@@ -77,21 +77,11 @@ public:
         return cell_kind::cable;
     }
 
-    // Each cell has one spike detector (at the soma).
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
-    }
-
-    // The cell has one target synapse, which will be connected to a cell in another cable.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        return 1;
-    }
-
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
             return{};
         }
-        return {arb::cell_connection({gid - 1, "detector"}, "syn", params_.event_weight, params_.event_min_delay)};
+        return {arb::cell_connection({gid - 1, "detector"}, {"syn"}, params_.event_weight, params_.event_min_delay)};
     }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
@@ -121,10 +111,10 @@ public:
         // Gap junction conductance in μS
 
         if (next_cell < cable_end) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0"}, "local_1", 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0"}, {"local_1"}, 0.015));
         }
         if (prev_cell >= cable_begin) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1"}, "local_0", 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1"}, {"local_0"}, 0.015));
         }
 
         return conns;
@@ -340,7 +330,7 @@ gap_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option not permitted.");
     }
 
     std::string fname = argv[1];
