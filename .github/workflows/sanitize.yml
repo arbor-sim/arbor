@@ -1,4 +1,4 @@
-name: Arbor
+name: Sanitize
 
 on:
   pull-request:
