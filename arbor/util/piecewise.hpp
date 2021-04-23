@@ -484,11 +484,13 @@ inline pw_elements<void> zip(const pw_elements<void>& a, const pw_elements<void>
     double a_right = a.interval(ai).second;
     double b_right = b.interval(bi).second;
 
-    while (left<rmin) {
+    for(;;) {
         double right = std::min(a_right, b_right);
         right = std::min(right, rmin);
 
         z.push_back(left, right);
+        if (right==rmin) break;
+
         if (a_right<=right) {
             a_right = a.interval(++ai).second;
         }

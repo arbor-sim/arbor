@@ -46,18 +46,23 @@ namespace {
             return cell_kind::cable;
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            if (gid >= gap_junctions_.size()) return {};
             return gap_junctions_[gid];
         }
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+            if (gid >= connections_.size()) return {};
             return connections_[gid];
         }
         cell_size_type num_sources(cell_gid_type gid) const override {
+            if (gid >= num_sources_.size()) return 0;
             return num_sources_[gid];
         }
         cell_size_type num_targets(cell_gid_type gid) const override {
+            if (gid >= num_targets_.size()) return 0;
             return num_targets_[gid];
         }
         std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
+            if (gid >= event_generators_.size()) return {};
             return event_generators_[gid];
         }
         std::any get_global_properties(cell_kind) const override {
