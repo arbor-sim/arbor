@@ -402,7 +402,7 @@ struct key {
     enum style { shortfmt, longfmt, compact } style = shortfmt;
 
     key(std::string l): label(std::move(l)) {
-        if (label.size() >= 2 && label[0]=='-' && label[1]=='-') style = longfmt;
+        if (label[0]=='-' && label[1]=='-') style = longfmt;
     }
 
     key(const char* label): key(std::string(label)) {}
