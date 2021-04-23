@@ -513,6 +513,17 @@ TEST(communicator, all2all)
 
     // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
+    auto connections = C.connections();
+
+    for (auto i: util::make_span(0, n_global)) {
+        for (unsigned j = 0; j < n_local; ++j) {
+            auto c = connections[i*n_local+j];
+            EXPECT_EQ(0, c.source().index);
+            EXPECT_EQ(i, c.source().gid);
+            EXPECT_EQ(i, c.destination());
+            EXPECT_LT(c.index_on_domain(), n_local);
+        }
+    }
 
     // every cell fires
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return true;}));
