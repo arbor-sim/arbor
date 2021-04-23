@@ -818,8 +818,8 @@ TEST(cable_cell, round_tripping) {
                                 "            (10.000000 0.500000)\n"
                                 "            (110.000000 0.500000)\n"
                                 "            (110.000000 0.000000))\n"
-                                "          0.000000 0.000000))\n"
-                                "        \"iclamp\")))";
+                                "          0.000000 0.000000)\n"
+                                "        \"iclamp\"))))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str.c_str()));
 
