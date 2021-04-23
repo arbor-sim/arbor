@@ -54,7 +54,11 @@ cell_lid_type label_resolver::get_lid(const cell_global_label_type& iden) const 
     auto& range_idx_pair = mapper[iden.gid][iden.label.tag];
 
     auto range = range_idx_pair.first;
-    auto size = range.end - range.begin;
+    int size = range.end - range.begin;
+
+    if (size < 1) {
+        throw arb::bad_connection_range(iden.gid, iden.label.tag, range);
+    }
 
     switch (iden.label.policy) {
     case lid_selection_policy::round_robin:

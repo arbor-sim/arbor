@@ -1401,5 +1401,144 @@ TEST(fvm_lowered, post_events_shared_state) {
         EXPECT_EQ(0u, S->src_to_spike.size());
         EXPECT_EQ(0u, S->time_since_spike.size());
     }
+}
 
+TEST(fvm_lowered, label_data) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    } else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
+    class decorated_recipe: public arb::recipe {
+    public:
+        decorated_recipe(unsigned ncell): ncell_(ncell) {
+            // Cells will have one of 2 decorations:
+            //   (1)  1 synapse label with 4 locations; 1 synapse label with 1 location
+            //        1 detector label with 1 location
+            //        0 gap junctions
+            //   (2)  0 synapse labels
+            //        1 detector label with 3 locations; 1 detector label with 2 locations
+            //        1 gap-junction label with 2 locations; 1 gap-junction label with 1 location
+            using arb::reg::all;
+            using arb::ls::uniform;
+            arb::segment_tree tree;
+            tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
+            {
+                arb::decor decor;
+                decor.set_default(arb::cv_policy_fixed_per_branch(10));
+                decor.place(uniform(all(), 0, 3, 42), "expsyn", "4_synapses");
+                decor.place(uniform(all(), 4, 4, 42), "expsyn", "1_synapse");
+                decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
+
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
+            }
+            {
+                arb::decor decor;
+                decor.set_default(arb::cv_policy_fixed_per_branch(10));
+                decor.place(uniform(all(), 0, 2, 24), arb::threshold_detector{10}, "3_detectors");
+                decor.place(uniform(all(), 3, 4, 24), arb::threshold_detector{10}, "2_detectors");
+                decor.place(uniform(all(), 5, 6, 24), arb::gap_junction_site(), "2_gap_junctions");
+                decor.place(uniform(all(), 7, 7, 24), arb::gap_junction_site(), "1_gap_junction");
+
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
+            }
+        }
+
+        cell_size_type num_cells() const override {
+            return ncell_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
+            if (gid %3 == 0) {
+                return cells_[0];
+            }
+            return cells_[1];
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable;
+        }
+
+        std::any get_global_properties(arb::cell_kind) const override {
+            arb::cable_cell_global_properties gprop;
+            gprop.default_parameters = arb::neuron_parameter_defaults;
+            return gprop;
+        }
+
+    private:
+        unsigned ncell_;
+        std::vector<cable_cell> cells_;
+    };
+
+    std::vector<target_handle> targets;
+    probe_association_map probe_map;
+
+    std::vector<unsigned> gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    const unsigned ncell = gids.size();
+
+    decorated_recipe rec(ncell);
+    std::vector<fvm_index_type> cell_to_intdom;
+
+    fvm_cell fvcell(context);
+    fvcell.initialize(gids, rec, cell_to_intdom, targets, probe_map);
+
+    for (auto gid: gids) {
+        if (gid%3 == 0) {
+            EXPECT_EQ(5u, fvcell.num_synapses(gid));
+            EXPECT_EQ(1u, fvcell.num_detectors(gid));
+        }
+        else {
+            EXPECT_EQ(0u, fvcell.num_synapses(gid));
+            EXPECT_EQ(5u, fvcell.num_detectors(gid));
+        }
+    }
+    // synapses
+    {
+        auto synapse_data = fvcell.synapse_data();
+        std::vector<cell_size_type> expected_sizes = {2, 0, 0, 2, 0, 0, 2, 0, 0, 2};
+        std::vector<cell_tag_type> expected_labels = {"1_synapse", "4_synapses", "1_synapse", "4_synapses", "1_synapse", "4_synapses", "1_synapse", "4_synapses"};
+        std::vector<lid_range> expected_ranges = {{4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}};
+
+        EXPECT_EQ(gids, synapse_data.gids);
+        EXPECT_EQ(expected_sizes, synapse_data.sizes);
+        EXPECT_EQ(expected_labels, synapse_data.labels);
+        EXPECT_EQ(expected_ranges, synapse_data.ranges);
+    }
+
+    // detectors
+    {
+        auto detector_data = fvcell.detector_data();
+        std::vector<cell_size_type> expected_sizes = {1, 2, 2, 1, 2, 2, 1, 2, 2, 1};
+        std::vector<cell_tag_type> expected_labels = {"1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors",
+                                                      "1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors",
+                                                      "1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors", "1_detector"};
+        std::vector<lid_range> expected_ranges = {{0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3},
+                                                  {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3},
+                                                  {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3}, {0, 1}};
+
+        EXPECT_EQ(gids, detector_data.gids);
+        EXPECT_EQ(expected_sizes, detector_data.sizes);
+        EXPECT_EQ(expected_labels, detector_data.labels);
+        EXPECT_EQ(expected_ranges, detector_data.ranges);
+    }
+
+    // gap_junctions
+    {
+        auto gap_junction_data = fvcell.gap_junction_data();
+        std::vector<cell_size_type> expected_sizes = {0, 2, 2, 0, 2, 2, 0, 2, 2, 0};
+        std::vector<cell_tag_type> expected_labels = {"1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions",
+                                                      "1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions",
+                                                      "1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions"};
+        std::vector<lid_range> expected_ranges = {{2, 3}, {0, 2}, {2, 3}, {0, 2},
+                                                  {2, 3}, {0, 2}, {2, 3}, {0, 2},
+                                                  {2, 3}, {0, 2}, {2, 3}, {0, 2}};
+
+        EXPECT_EQ(gids, gap_junction_data.gids);
+        EXPECT_EQ(expected_sizes, gap_junction_data.sizes);
+        EXPECT_EQ(expected_labels, gap_junction_data.labels);
+        EXPECT_EQ(expected_ranges, gap_junction_data.ranges);
+    }
 }

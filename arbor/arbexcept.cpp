@@ -32,6 +32,11 @@ bad_connection_label::bad_connection_label(cell_gid_type gid, cell_tag_type labe
     gid(gid), label(label)
 {}
 
+bad_connection_range::bad_connection_range(cell_gid_type gid, cell_tag_type label, lid_range range):
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" has invalid lid_range ({}, {}).", gid, label, range.begin, range.end)),
+    gid(gid), label(label), range(range)
+{}
+
 bad_univalent_connection_label::bad_univalent_connection_label(cell_gid_type gid, cell_tag_type label):
     arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" is not univalent.", gid, label)),
     gid(gid), label(label)
