@@ -1,4 +1,4 @@
-name: Sanitize
+name: Arbor
 
 on:
   pull-request:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: "Default"
+    name: "Sanitize"
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
