@@ -9,6 +9,7 @@ jobs:
     name: "Sanitize"
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         name:      ["Linux Clang"]
         os:        ["ubuntu-20.04"]
@@ -19,7 +20,6 @@ jobs:
         mpi:       ["ON"]
         simd:      ["OFF"]
         sanitizer: ["address", "leak", "undefined", "memory", "thread"]
-    fail-fast: false
     env:
         CC:         ${{ matrix.cc }}
         CXX:        ${{ matrix.cxx }}
