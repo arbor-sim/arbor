@@ -1,7 +1,7 @@
 name: Arbor
 
 on:
-  push:
+  pull-request:
     branches: [ master ]
 
 jobs:
