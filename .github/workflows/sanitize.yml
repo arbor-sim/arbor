@@ -11,14 +11,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name:      ["Linux Clang"]
+        name:      ["Linux Clang -fsanitize ${{ matrix.sanitizer }}"]
         os:        ["ubuntu-20.04"]
         cc:        ["clang-10"]
         cxx:       ["clang++-10"]
         py:        ["3.9"]
         cmake:     ["3.19.x"]
         mpi:       ["ON"]
-        simd:      ["OFF"]
+        simd:      ["ON", "OFF"]
         sanitizer: ["address", "leak", "undefined", "memory", "thread"]
     env:
         CC:         ${{ matrix.cc }}
