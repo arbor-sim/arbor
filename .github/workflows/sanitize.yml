@@ -19,6 +19,7 @@ jobs:
         mpi:       ["ON"]
         simd:      ["OFF"]
         sanitizer: ["address", "leak", "undefined", "memory", "thread"]
+    fail-fast: false
     env:
         CC:         ${{ matrix.cc }}
         CXX:        ${{ matrix.cxx }}
