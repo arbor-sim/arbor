@@ -494,6 +494,21 @@ constitute part of the CV boundary point set.
 
     :param str domain: The region on which the policy is applied.
 
+.. py:function:: cv_policy_explicit(locset, domain='(all)')
+
+    Use the provided locset as control volume boundaries.
+
+    .. code-block:: Python
+
+        # Place CV boundaries midway every branch.
+        midbranch_cvp = arbor.cv_policy_explicit('"(on-branches 0.5)"')
+
+        # Place CV boundaries at 10 random positions on the soma.
+        random_soma_cvp = arbor.cv_policy_explicit('(uniform (tag 3) 0 9 0)','"soma"')
+
+    :param str locset: The locset on which CV boundaries are placed.
+    :param str domain: The region on which the policy is applied.
+
 .. py:function:: cv_policy_every_segment(domain='(all)')
 
     Use every sample point in the morphology definition as a CV boundary, optionally
@@ -521,6 +536,9 @@ constitute part of the CV boundary point set.
     :param str domain: The region on which the policy is applied.
 
 .. _pyneuroml:
+
+NeuroML
+-------
 
 .. py:class:: neuroml_morph_data
 
