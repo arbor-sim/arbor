@@ -26,7 +26,7 @@ void register_identifiers(py::module& m) {
         "For local identification of an item.\n\n"
         "cell_local_label identifies:\n"
         "(1) a labeled item, referring to one or multiple locations on the cell.\n"
-        "(2) a policy for selecting one of the locations of the group.\n");
+        "(2) a policy for selecting one of the locations.\n");
 
     cell_local_label_type
         .def(py::init(
@@ -34,27 +34,27 @@ void register_identifiers(py::module& m) {
               return arb::cell_local_label_type{std::move(label)};
             }),
              "label"_a,
-             "Construct a cell local label identifier from a label argument identifying an item on the cell. "
-             "The default round_robin policy is used for selecting one of possibly multiple locations on the cell associated with the label.")
+             "Construct a local label identifier from a label argument identifying an item on a cell.\n"
+             "The default round_robin policy is used for selecting one of possibly multiple locations associated with the label.")
         .def(py::init(
             [](arb::cell_tag_type label, arb::lid_selection_policy policy) {
               return arb::cell_local_label_type{std::move(label), policy};
             }),
              "label"_a, "policy"_a,
-             "Construct a cell local label identifier with arguments:\n"
-             "  label:  The identifier of an item on the cell.\n"
-             "  policy: The policy for selecting one of possibly multiple locations on the cell associated with the label.\n")
+             "Construct a local label identifier with arguments:\n"
+             "  label:  The identifier of an item on a cell.\n"
+             "  policy: The policy for selecting one of possibly multiple locations associated with the label.\n")
         .def(py::init([](py::tuple t) {
                if (py::len(t)!=2) throw std::runtime_error("tuple length != 2");
                return arb::cell_local_label_type{t[0].cast<arb::cell_tag_type>(), t[1].cast<arb::lid_selection_policy>()};
              }),
-             "Construct a cell member identifier with tuple argument (label, policy):\n"
-             "  label:  The identifier of an item on the cell.\n"
-             "  policy: The policy for selecting one of possibly multiple locations on the cell associated with the label.\n")
+             "Construct a local label identifier with tuple argument (label, policy):\n"
+             "  label:  The identifier of an item on a cell.\n"
+             "  policy: The policy for selecting one of possibly multiple locations associated with the label.\n")
         .def_readwrite("label",  &arb::cell_local_label_type::tag,
-             "The identifier of an item on the cell.")
+             "The identifier of an item on a cell.")
         .def_readwrite("index", &arb::cell_local_label_type::policy,
-            "The policy for selecting one of possibly multiple locations on the cell associated with the label.")
+            "The policy for selecting one of possibly multiple locations associated with the label.")
         .def("__str__", [](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);})
         .def("__repr__",[](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);});
 
@@ -73,7 +73,7 @@ void register_identifiers(py::module& m) {
               return arb::cell_global_label_type{gid, std::move(label)};
             }),
              "gid"_a, "label"_a,
-             "Construct a cell global identifier from a gid and a label argument identifying an item on the cell. "
+             "Construct a cell global identifier from a gid and a label argument identifying an item on the cell.\n"
              "The default round_robin policy is used for selecting one of possibly multiple locations on the cell associated with the label.")
         .def(py::init(
             [](arb::cell_gid_type gid, arb::cell_local_label_type label) {

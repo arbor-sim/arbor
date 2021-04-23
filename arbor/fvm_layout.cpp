@@ -473,7 +473,7 @@ fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
 
     fvm_cv_discretization combined;
     for (auto cell_idx: count_along(cells)) {
-        append(combined, cell_disc.at(cell_idx));
+        append(combined, cell_disc[cell_idx]);
     }
     return combined;
 }

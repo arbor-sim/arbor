@@ -198,7 +198,7 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (place ls:locset prop:placeable label:string)
 
-   This places the property ``prop`` on locset ``ls`` and gives labels it ``label``.
+   This places the property ``prop`` on locset ``ls`` and labels it ``label``.
    For example:
 
    .. code:: lisp
@@ -334,7 +334,7 @@ expressions.
           (paint (region "my_region") (membrane-potential -50.000000))
           (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
           (place (locset "root") (mechanism "expsyn") "root_synapse")
-          (place (location 1 0.2) (gap-junction-site) \"terminal_gj\"))
+          (place (location 1 0.2) (gap-junction-site) "terminal_gj"))
         (morphology
           (branch 0 -1
             (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)

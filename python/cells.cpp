@@ -137,17 +137,20 @@ void register_cells(pybind11::module& m) {
             [](arb::cell_tag_type source_label, const regular_schedule_shim& sched){
                 return arb::spike_source_cell{source_label, sched.schedule()};}),
             "source_label"_a, "schedule"_a,
-            "Construct a spike source cell with a single source labeled 'source_label'. The cell generates spikes on 'source_label' at regular intervals.")
+            "Construct a spike source cell with a single source labeled 'source_label'.\n"
+            "The cell generates spikes on 'source_label' at regular intervals.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, const explicit_schedule_shim& sched){
                 return arb::spike_source_cell{source_label, sched.schedule()};}),
-             "source_label"_a, "schedule"_a,
-             "Construct a spike source cell with a single source labeled 'source_label'. The cell generates spikes at a sequence of user-defined times.")
+            "source_label"_a, "schedule"_a,
+            "Construct a spike source cell with a single source labeled 'source_label'.\n"
+            "The cell generates spikes on 'source_label' at a sequence of user-defined times.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, const poisson_schedule_shim& sched){
                 return arb::spike_source_cell{source_label, sched.schedule()};}),
-             "source_label"_a, "schedule"_a,
-             "Construct a spike source cell with a single source labeled 'source_label'. The cell generates spikes at times defined by a Poisson sequence.")
+            "source_label"_a, "schedule"_a,
+            "Construct a spike source cell with a single source labeled 'source_label'.\n"
+            "The cell generates spikes on 'source_label' at times defined by a Poisson sequence.")
         .def("__repr__", [](const arb::spike_source_cell&){return "<arbor.spike_source_cell>";})
         .def("__str__",  [](const arb::spike_source_cell&){return "<arbor.spike_source_cell>";});
 
@@ -165,19 +168,19 @@ void register_cells(pybind11::module& m) {
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const regular_schedule_shim& sched, double ratio){
                 return arb::benchmark_cell{source_label, target_label, sched.schedule(), ratio};}),
             "source_label"_a, "target_label"_a,"schedule"_a, "realtime_ratio"_a=1.0,
-            "Construct a benchmark cell that generates spikes at regular intervals. "
+            "Construct a benchmark cell that generates spikes on 'source_label' at regular intervals.\n"
             "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const explicit_schedule_shim& sched, double ratio){
                 return arb::benchmark_cell{source_label, target_label,sched.schedule(), ratio};}),
             "source_label"_a, "target_label"_a, "schedule"_a, "realtime_ratio"_a=1.0,
-            "Construct a benchmark cell that generates spikes at a sequence of user-defined times."
+            "Construct a benchmark cell that generates spikes on 'source_label' at a sequence of user-defined times.\n"
             "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const poisson_schedule_shim& sched, double ratio){
                 return arb::benchmark_cell{source_label, target_label, sched.schedule(), ratio};}),
             "source_label"_a, "target_label"_a, "schedule"_a, "realtime_ratio"_a=1.0,
-            "Construct a benchmark cell that generates spikes at times defined by a Poisson sequence."
+            "Construct a benchmark cell that generates spikeson 'source_label' at times defined by a Poisson sequence.\n"
             "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def("__repr__", [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";})
         .def("__str__",  [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";});
@@ -541,7 +544,7 @@ void register_cells(pybind11::module& m) {
             },
             "locations"_a, "iclamp"_a, "label"_a,
             "Add a current stimulus at each location in locations."
-            "The group of synapses has the label 'label'.")
+            "The group of current stimuli has the label 'label'.")
         // Place spike detector.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::threshold_detector& d, const char* label_name) {

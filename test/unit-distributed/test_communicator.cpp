@@ -396,7 +396,7 @@ TEST(communicator, ring)
     local_sources.gids = local_targets.gids;
     local_sources.sizes.resize(local_sources.gids.size(), 1);
     local_sources.labels.resize(local_sources.gids.size(), "src");
-    local_sources.ranges.resize(local_sources.gids.size(), {0, 1});
+    local_sources.ranges.resize(local_sources.gids.size(), {0,1});
     auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
     // construct the communicator
@@ -508,7 +508,7 @@ TEST(communicator, all2all)
     local_sources.gids = local_targets.gids;
     local_sources.sizes.resize(local_sources.gids.size(), 1);
     local_sources.labels.resize(local_sources.gids.size(), "src");
-    local_sources.ranges.resize(local_sources.gids.size(), {0, 1});
+    local_sources.ranges.resize(local_sources.gids.size(), {0,1});
     auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
     // construct the communicator

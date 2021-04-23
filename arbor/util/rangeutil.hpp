@@ -91,13 +91,6 @@ Container& append(Container &c, const Seq& seq) {
     return c;
 }
 
-/*template <typename Container, typename Seq>
-Container& append(Container &c, Seq&& seq) {
-    auto canon = canonical_view(seq);
-    c.insert(c.end(), std::make_move_iterator(canon.begin()), std::make_move_iterator(canon.end()));
-    return c;
-}*/
-
 // Assign sequence to a container
 
 template <typename AssignableContainer, typename Seq>

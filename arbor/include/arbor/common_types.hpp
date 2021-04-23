@@ -73,7 +73,7 @@ enum class lid_selection_policy {
 
 // For referring to a labeled placement on an unspecified cell.
 // The placement may be associated with multiple locations, the policy
-// can be used to select a specific location.
+// is used to select a specific location.
 
 struct cell_local_label_type {
     cell_tag_type tag;

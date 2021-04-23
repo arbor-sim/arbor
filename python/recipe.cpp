@@ -118,12 +118,12 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 }
 
 std::string con_to_string(const arb::cell_connection& c) {
-    return util::pprintf("<arbor.connection: source ({},{}, \"{}\"), destination ({}, \"{}\"), delay {}, weight {}>",
+    return util::pprintf("<arbor.connection: source ({}, \"{}\", {}), destination (\"{}\", {}), delay {}, weight {}>",
          c.source.gid, c.source.label.tag, c.source.label.policy, c.dest.tag, c.dest.policy, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<arbor.gap_junction_connection: peer ({},{}, \"{}\"), local ({}, \"{}\"), ggap {}>",
+    return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), ggap {}>",
          gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.ggap);
 }
 

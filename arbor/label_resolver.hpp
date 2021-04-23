@@ -6,7 +6,8 @@
 namespace arb {
 
 // Data required for {gid, label} to lid resolution.
-// gids, sizes and labels, ranges are expected to have the same size.
+// (gids, sizes) and (labels, ranges) are expected to have the same size.
+// `sizes` is a partitioning vector for associating a gid, with a (label, range) pair.
 struct cell_labeled_ranges {
     // The gids of the cells.
     std::vector<cell_gid_type> gids;
@@ -30,7 +31,7 @@ struct cell_labeled_ranges {
     void append(cell_labeled_ranges other);
 };
 
-// Struct selecting an lid of a {cell, label} pair according to an lid_selection_policy
+// Struct used for selecting an lid of a {cell, label} pair according to an lid_selection_policy
 struct label_resolver {
     using label_resolution_map = std::unordered_map<cell_tag_type, std::pair<lid_range, cell_lid_type>>;
     mutable std::unordered_map<cell_gid_type, label_resolution_map> mapper;

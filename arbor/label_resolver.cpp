@@ -22,10 +22,10 @@ cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> gid_vec,
 
 void cell_labeled_ranges::append(cell_labeled_ranges other) {
     using util::append;
-    append(gids, std::move(other.gids));
-    append(sizes, std::move(other.sizes));
-    append(labels, std::move(other.labels));
-    append(ranges, std::move(other.ranges));
+    append(gids, other.gids);
+    append(sizes, other.sizes);
+    append(labels, other.labels);
+    append(ranges, other.ranges);
 }
 
 label_resolver::label_resolver(cell_labeled_ranges clr) {

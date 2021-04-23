@@ -127,16 +127,15 @@ TEST(mpi, gather_string_vec) {
     int id = mpi::rank(MPI_COMM_WORLD);
     int size = mpi::size(MPI_COMM_WORLD);
 
-    // Make a string of variable length, with the character
-    // in the string distrubuted as follows
-    // rank string
+    // Make a vector of strings of variable length:
+    // rank strings
     //  0   a
-    //  1   bb
-    //  2   ccc
-    //  3   dddd
+    //  1   b; bb
+    //  2   c; cc; ccc
+    //  3   d; dd; ddd; dddd
     //   ...
-    // 25   zzzz...zzz   (26 times z)
-    // 26   aaaa...aaaa  (27 times a)
+    // 25   z; zz; ...; zzzz...zzz   (26 times z)
+    // 26   a; aa; ...; aaaa...aaaa  (27 times a)
     auto make_string = [](int length, int id) {
       return std::string(length, 'a'+char(id%26));};
 

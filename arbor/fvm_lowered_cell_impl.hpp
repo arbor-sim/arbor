@@ -133,7 +133,7 @@ private:
     // gids of the cells
     std::vector<cell_gid_type> gids_;
 
-    // Number of source, target and gap-junction labels and lids on each cell
+    // Number of source, target and gap-junction labels and lid_ranges on each cell
     std::vector<cell_size_type> num_detector_labels_;
     std::vector<cell_size_type> num_synapse_labels_;
     std::vector<cell_size_type> num_gap_junction_labels_;

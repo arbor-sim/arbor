@@ -7,6 +7,7 @@
 #include "distributed_context.hpp"
 #include "label_resolver.hpp"
 #include "threading/threading.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -25,7 +26,7 @@ struct dry_run_context_impl {
         gathered_spikes.reserve(local_size*num_ranks_);
 
         for (count_type i = 0; i < num_ranks_; i++) {
-            gathered_spikes.insert(gathered_spikes.end(), local_spikes.begin(), local_spikes.end());
+            util::append(gathered_spikes, local_spikes);
         }
 
         for (count_type i = 0; i < num_ranks_; i++) {
@@ -52,7 +53,7 @@ struct dry_run_context_impl {
         gathered_gids.reserve(local_size*num_ranks_);
 
         for (count_type i = 0; i < num_ranks_; i++) {
-            gathered_gids.insert(gathered_gids.end(), local_gids.begin(), local_gids.end());
+            util::append(gathered_gids, local_gids);
         }
 
         for (count_type i = 0; i < num_ranks_; i++) {
@@ -78,11 +79,10 @@ struct dry_run_context_impl {
         global_ranges.ranges.reserve(local_ranges.ranges.size()*num_ranks_);
 
         for (unsigned i = 0; i < num_ranks_; i++) {
-            std::transform(local_ranges.gids.begin(), local_ranges.gids.end(), std::back_inserter(global_ranges.gids),
-                           [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
-            global_ranges.sizes.insert(global_ranges.sizes.end(), local_ranges.sizes.begin(), local_ranges.sizes.end());
-            global_ranges.labels.insert(global_ranges.labels.end(), local_ranges.labels.begin(), local_ranges.labels.end());
-            global_ranges.ranges.insert(global_ranges.ranges.end(), local_ranges.ranges.begin(), local_ranges.ranges.end());
+            auto copy = local_ranges;
+            std::transform(copy.gids.begin(), copy.gids.end(), copy.gids.begin(),
+                [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
+            global_ranges.append(local_ranges);
         }
         return global_ranges;
     }
