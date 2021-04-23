@@ -384,6 +384,7 @@ TEST(communicator, ring)
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, g_context);
 
+    // set up source and target label->lid resolvers
     cell_labeled_ranges local_targets, local_sources;
     for (auto g: D.groups) {
         local_targets.gids.insert(local_targets.gids.end(), g.gids.begin(), g.gids.end());
@@ -396,8 +397,9 @@ TEST(communicator, ring)
     local_sources.sizes.resize(local_sources.gids.size(), 1);
     local_sources.labels.resize(local_sources.gids.size(), "src");
     local_sources.ranges.resize(local_sources.gids.size(), {0, 1});
-    auto global_sources = g_context->distributed->gather_labeled_range(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
+    // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
 
     // every cell fires
@@ -494,7 +496,7 @@ TEST(communicator, all2all)
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, g_context);
 
-    // set-up label resolvers
+    // set up source and target label->lid resolvers
     cell_labeled_ranges local_targets, local_sources;
     for (auto g: D.groups) {
         local_targets.gids.insert(local_targets.gids.end(), g.gids.begin(), g.gids.end());
@@ -507,8 +509,9 @@ TEST(communicator, all2all)
     local_sources.sizes.resize(local_sources.gids.size(), 1);
     local_sources.labels.resize(local_sources.gids.size(), "src");
     local_sources.ranges.resize(local_sources.gids.size(), {0, 1});
-    auto global_sources = g_context->distributed->gather_labeled_range(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
+    // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
 
     // every cell fires

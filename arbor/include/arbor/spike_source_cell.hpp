@@ -13,7 +13,7 @@ struct spike_source_cell {
     schedule seq;
 
     spike_source_cell() = delete;
-    spike_source_cell(cell_tag_type source, schedule seq): source(std::move(source)), seq(seq) {};
+    spike_source_cell(cell_tag_type source, schedule seq): source(std::move(source)), seq(std::move(seq)) {};
 };
 
 } // namespace arb

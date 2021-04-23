@@ -64,12 +64,14 @@ struct lid_range {
         begin(b), end(e) {}
 };
 
+// Policy for selecting a cell_lid_type from a range of possible values.
+
 enum class lid_selection_policy {
     round_robin,
-    assert_univalent
+    assert_univalent // throw if the range of possible lids is wider than 1
 };
 
-// For referring to a labeled placement on an unknown cell.
+// For referring to a labeled placement on an unspecified cell.
 // The placement may be associated with multiple locations, the policy
 // can be used to select a specific location.
 
@@ -77,10 +79,11 @@ struct cell_local_label_type {
     cell_tag_type tag;
     lid_selection_policy policy;
 
-    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::round_robin): tag(tag), policy(policy) {}
+    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::round_robin):
+        tag(tag), policy(policy) {}
 };
 
-// For referring to a labeled placement on a cell.
+// For referring to a labeled placement on a cell identified by gid.
 
 struct cell_global_label_type {
     cell_gid_type gid;

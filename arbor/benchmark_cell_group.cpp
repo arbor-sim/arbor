@@ -96,22 +96,20 @@ void benchmark_cell_group::add_sampler(sampler_association_handle h,
 cell_labeled_ranges benchmark_cell_group::source_data() const {
     cell_labeled_ranges src_table;
     src_table.gids = gids_;
-    for (auto lid: util::make_span(gids_.size())) {
-        src_table.sizes.push_back(1);
-        src_table.labels.push_back(cells_[lid].source);
-        src_table.ranges.push_back({0, 1});
-    }
+    src_table.sizes.resize(cells_.size(), 1);
+    src_table.ranges.resize(cells_.size(), {0, 1});
+    src_table.labels.reserve(cells_.size());
+    std::transform(cells_.begin(), cells_.end(), std::back_inserter(src_table.labels), [](const auto& c){return c.source;});
     return src_table;
 }
 
 cell_labeled_ranges benchmark_cell_group::target_data() const {
     cell_labeled_ranges tgt_table;
     tgt_table.gids = gids_;
-    for (auto lid: util::make_span(gids_.size())) {
-        tgt_table.sizes.push_back(1);
-        tgt_table.labels.push_back(cells_[lid].target);
-        tgt_table.ranges.push_back({0, 1});
-    }
+    tgt_table.sizes.resize(cells_.size(), 1);
+    tgt_table.ranges.resize(cells_.size(), {0, 1});
+    tgt_table.labels.reserve(cells_.size());
+    std::transform(cells_.begin(), cells_.end(), std::back_inserter(tgt_table.labels), [](const auto& c){return c.target;});
     return tgt_table;
 }
 

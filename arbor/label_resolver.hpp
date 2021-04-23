@@ -6,12 +6,7 @@
 namespace arb {
 
 // Data required for {gid, label} to lid resolution.
-// gids, labels, ranges are expected to have the same size.
-// gids, labels, ranges are expected to be lexicographically sorted in that
-// order within the boundaries of the partition vector. Typically, vectors
-// are sorted per domain.
-// For example if the partition vector is [0, 10, 20]:
-// (gids, labels, ranges) are lexicographically sorted between (0, 10) and (10, 20).
+// gids, sizes and labels, ranges are expected to have the same size.
 struct cell_labeled_ranges {
     // The gids of the cells.
     std::vector<cell_gid_type> gids;
@@ -19,7 +14,7 @@ struct cell_labeled_ranges {
     // The number of labels associated with each gid.
     std::vector<cell_size_type> sizes;
 
-    // The labels corresponding to each gid, sorted relative to the gids.
+    // The labels corresponding to the gids, sorted relative to the gids.
     std::vector<cell_tag_type> labels;
 
     // The lid_range corresponding to each label.
@@ -44,10 +39,9 @@ struct label_resolver {
     explicit label_resolver(cell_labeled_ranges);
 
     // Returns the lid of a {gid, label} pair according to a policy.
-    // The optional rank index is used to accelerate the search for {gid, label}.
     cell_lid_type get_lid(const cell_global_label_type&) const;
 
-    // Reset the indices vector to 0;
+    // Reset the current lid_indices to 0.
     void reset();
 };
 

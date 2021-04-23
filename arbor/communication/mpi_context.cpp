@@ -40,13 +40,18 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
-    cell_labeled_ranges gather_labeled_range(const cell_labeled_ranges& local_ranges) const {
-        auto gids   = mpi::gather_all(local_ranges.gids, comm_);
-        auto sizes = mpi::gather_all(local_ranges.sizes, comm_);
-        auto labels = mpi::gather_all(local_ranges.labels, comm_);
-        auto ranges     = mpi::gather_all(local_ranges.ranges, comm_);
+    cell_labeled_ranges gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const {
+        cell_labeled_ranges global_ranges;
+        global_ranges.gids   = mpi::gather_all(local_ranges.gids, comm_);
+        global_ranges.sizes  = mpi::gather_all(local_ranges.sizes, comm_);
+        global_ranges.labels = mpi::gather_all(local_ranges.labels, comm_);
+        global_ranges.ranges = mpi::gather_all(local_ranges.ranges, comm_);
+        return global_ranges;
+    }
 
-        return cell_labeled_ranges(gids, sizes, labels, ranges);
+    template <typename T>
+    std::vector<T> gather(T value, int root) const {
+        return mpi::gather(value, root, comm_);
     }
 
     std::string name() const { return "MPI"; }
@@ -66,11 +71,6 @@ struct mpi_context_impl {
     template <typename T>
     T sum(T value) const {
         return mpi::reduce(value, MPI_SUM, comm_);
-    }
-
-    template <typename T>
-    std::vector<T> gather(T value, int root) const {
-        return mpi::gather(value, root, comm_);
     }
 
     void barrier() const {

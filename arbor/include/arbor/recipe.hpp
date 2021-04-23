@@ -48,7 +48,7 @@ struct cell_connection {
     float delay;
 
     cell_connection(cell_global_label_type src, cell_local_label_type dst, float w, float d):
-        source(std::move(src)), dest(std::move(std::move(dst))), weight(w), delay(d) {}
+        source(std::move(src)), dest(std::move(dst)), weight(w), delay(d) {}
 };
 
 struct gap_junction_connection {

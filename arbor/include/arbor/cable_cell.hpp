@@ -290,9 +290,9 @@ public:
     const cable_cell_parameter_set& default_parameters() const;
 
     // The labeled lid_ranges of sources, targets and gap_junctions on the cell;
-    const std::unordered_map<cell_tag_type, lid_range>& labeled_source_ranges() const;
-    const std::unordered_map<cell_tag_type, lid_range>& labeled_target_ranges() const;
-    const std::unordered_map<cell_tag_type, lid_range>& labeled_gap_junction_ranges() const;
+    const std::unordered_map<cell_tag_type, lid_range>& detector_ranges() const;
+    const std::unordered_map<cell_tag_type, lid_range>& synapse_ranges() const;
+    const std::unordered_map<cell_tag_type, lid_range>& gap_junction_ranges() const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

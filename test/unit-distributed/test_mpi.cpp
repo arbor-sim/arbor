@@ -151,8 +151,8 @@ TEST(mpi, gather_string_vec) {
     ASSERT_TRUE(expected_size==(int)gathered.size());
 
     int idx = 0;
-    for (std::size_t i = 0; i < size; ++i) {
-        for (std::size_t j = 0; j < i+1; ++j) {
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < i+1; ++j) {
             EXPECT_EQ(make_string(j+1, i), gathered[idx++]);
         }
     }

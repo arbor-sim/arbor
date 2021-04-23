@@ -40,8 +40,8 @@ TEST(cable_cell, lid_ranges) {
     cable_cell cell(morph, dict, decorations);
 
     // Get the assigned lid ranges for each placement
-    const auto& src_ranges = cell.labeled_source_ranges();
-    const auto& tgt_ranges = cell.labeled_target_ranges();
+    const auto& src_ranges = cell.detector_ranges();
+    const auto& tgt_ranges = cell.synapse_ranges();
     auto r1 = tgt_ranges.at("s0");
     auto r2 = tgt_ranges.at("s1");
     auto r3 = src_ranges.at("t0");

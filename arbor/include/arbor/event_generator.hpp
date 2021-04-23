@@ -32,7 +32,7 @@ namespace arb {
 //     Provide a non-owning view on to the events in the time interval
 //     [to, from).
 //
-// `std::vector<std::pair<cell_tag_type, lid_selection_policy>> targets()`
+// `std::vector<cell_local_label_type> targets()`
 //
 //     Return a vector of the target labels and lid selection policy of the generator.
 //
@@ -237,11 +237,7 @@ struct explicit_generator {
     explicit_generator(const lse_vector& events):
         start_index_(0)
     {
-        using std::begin;
-        using std::end;
-
-        auto labeled_events = lse_vector(begin(events), end(events));
-        for (const auto& e: labeled_events) {
+        for (const auto& e: events) {
             targets_.push_back(e.label);
             events_.push_back({-1u, e.time, e.weight});
         }

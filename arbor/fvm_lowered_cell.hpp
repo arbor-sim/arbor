@@ -211,12 +211,12 @@ struct fvm_lowered_cell {
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) = 0;
 
-    virtual cell_labeled_ranges source_data() const = 0;
-    virtual cell_labeled_ranges target_data() const = 0;
+    virtual cell_labeled_ranges detector_data() const = 0;
+    virtual cell_labeled_ranges synapse_data() const = 0;
     virtual cell_labeled_ranges gap_junction_data() const = 0;
 
-    virtual fvm_size_type num_targets(cell_gid_type gid) const = 0;
-    virtual fvm_size_type num_sources(cell_gid_type gid) const = 0;
+    virtual fvm_size_type num_detectors(cell_gid_type gid) const = 0;
+    virtual fvm_size_type num_synapses(cell_gid_type gid) const = 0;
 
     virtual fvm_value_type time() const = 0;
 

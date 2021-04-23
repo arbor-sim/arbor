@@ -50,7 +50,7 @@ struct cable_cell_impl {
     // The decorations on the cell.
     decor decorations;
 
-    // The source_label to lid_range map
+    // The placeable label to lid_range map
     dynamic_typed_map<constant_type<std::unordered_map<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
@@ -208,15 +208,15 @@ const cable_cell_parameter_set& cable_cell::default_parameters() const {
     return impl_->decorations.defaults();
 }
 
-const std::unordered_map<cell_tag_type, lid_range>& cable_cell::labeled_source_ranges() const {
+const std::unordered_map<cell_tag_type, lid_range>& cable_cell::detector_ranges() const {
     return impl_->labeled_lid_ranges.get<threshold_detector>();
 }
 
-const std::unordered_map<cell_tag_type, lid_range>& cable_cell::labeled_target_ranges() const {
+const std::unordered_map<cell_tag_type, lid_range>& cable_cell::synapse_ranges() const {
     return impl_->labeled_lid_ranges.get<mechanism_desc>();
 }
 
-const std::unordered_map<cell_tag_type, lid_range>& cable_cell::labeled_gap_junction_ranges() const {
+const std::unordered_map<cell_tag_type, lid_range>& cable_cell::gap_junction_ranges() const {
     return impl_->labeled_lid_ranges.get<gap_junction_site>();
 }
 

@@ -74,10 +74,11 @@ void spike_source_cell_group::add_sampler(sampler_association_handle, cell_membe
 cell_labeled_ranges spike_source_cell_group::source_data() const {
     cell_labeled_ranges src_table;
     src_table.gids = gids_;
+    src_table.sizes.resize(gids_.size(), 1);
+    src_table.ranges.resize(gids_.size(), {0, 1});
+    src_table.labels.reserve(gids_.size());
     for (auto lid: util::make_span(gids_.size())) {
-        src_table.sizes.push_back(1);
         src_table.labels.push_back(src_labels_[lid]);
-        src_table.ranges.push_back({0, 1});
     }
     return src_table;
 }

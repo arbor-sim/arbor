@@ -84,20 +84,20 @@ public:
         return mechanisms_;
     }
 
-    cell_labeled_ranges source_data() const override {
-        return {gids_, num_source_labels_, source_labels_, source_ranges_};
+    cell_labeled_ranges detector_data() const override {
+        return {gids_, num_detector_labels_, detector_labels_, detector_ranges_};
     }
-    cell_labeled_ranges target_data() const override {
-        return {gids_, num_target_labels_, target_labels_, target_ranges_};
+    cell_labeled_ranges synapse_data() const override {
+        return {gids_, num_synapse_labels_, synapse_labels_, synapse_ranges_};
     }
     cell_labeled_ranges gap_junction_data() const override {
-        return {gids_, num_gap_junction_labels_, gap_junction_labels_, gap_junction_ranges_};;
+        return {gids_, num_gap_junction_labels_, gap_junction_labels_, gap_junction_ranges_};
     }
-    fvm_size_type num_targets(cell_gid_type gid) const override {
-        return num_targets_.at(gid);
+    fvm_size_type num_synapses(cell_gid_type gid) const override {
+        return num_synapses_.at(gid);
     }
-    fvm_size_type num_sources(cell_gid_type gid) const override {
-        return num_sources_.at(gid);
+    fvm_size_type num_detectors(cell_gid_type gid) const override {
+        return num_detectors_.at(gid);
     }
 
 private:
@@ -134,25 +134,25 @@ private:
     std::vector<cell_gid_type> gids_;
 
     // Number of source, target and gap-junction labels and lids on each cell
-    std::vector<cell_size_type> num_source_labels_;
-    std::vector<cell_size_type> num_target_labels_;
+    std::vector<cell_size_type> num_detector_labels_;
+    std::vector<cell_size_type> num_synapse_labels_;
     std::vector<cell_size_type> num_gap_junction_labels_;
 
     // Labels of the sources, targets and gap junctions, sorted by gid,
-    // partiitoned according to num_type_labels_
-    std::vector<cell_tag_type> source_labels_;
-    std::vector<cell_tag_type> target_labels_;
+    // partiitioned according to num_`type`_labels_
+    std::vector<cell_tag_type> detector_labels_;
+    std::vector<cell_tag_type> synapse_labels_;
     std::vector<cell_tag_type> gap_junction_labels_;
 
     // Ranges of the source, targets and gap junctions, sorted by gid,
-    // partiitoned according to num_type_labels_
-    std::vector<lid_range> source_ranges_;
-    std::vector<lid_range> target_ranges_;
+    // partiitioned according to num_`type`_labels_
+    std::vector<lid_range> detector_ranges_;
+    std::vector<lid_range> synapse_ranges_;
     std::vector<lid_range> gap_junction_ranges_;
 
-    // Maps storing number of targets/sources per cell.
-    std::unordered_map<cell_gid_type, fvm_size_type> num_targets_;
-    std::unordered_map<cell_gid_type, fvm_size_type> num_sources_;
+    // Maps storing number of sources/targets per cell.
+    std::unordered_map<cell_gid_type, fvm_size_type> num_detectors_;
+    std::unordered_map<cell_gid_type, fvm_size_type> num_synapses_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -442,30 +442,33 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Populate source, target and gap_junction data vectors.
     gids_ = gids;
-    num_source_labels_.reserve(ncell);
-    num_target_labels_.reserve(ncell);
+    num_detector_labels_.reserve(ncell);
+    num_synapse_labels_.reserve(ncell);
     num_gap_junction_labels_.reserve(ncell);
     for (auto i : util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
 
-        num_sources_[gid] = 0;
-        num_source_labels_.push_back(c.labeled_source_ranges().size());
-        for (const auto& [label, range]: c.labeled_source_ranges()) {
-            source_labels_.push_back(label);
-            source_ranges_.push_back(range);
-            num_sources_[gid]+=(range.end - range.begin);
+        unsigned count = 0;
+        num_detector_labels_.push_back(c.detector_ranges().size());
+        for (const auto& [label, range]: c.detector_ranges()) {
+            detector_labels_.push_back(label);
+            detector_ranges_.push_back(range);
+            count+=(range.end - range.begin);
         }
+        num_detectors_[gid] = count;
 
-        num_targets_[gid] = 0;
-        num_target_labels_.push_back(c.labeled_target_ranges().size());
-        for (const auto& [label, range]: c.labeled_target_ranges()) {
-            target_labels_.push_back(label);
-            target_ranges_.push_back(range);
-            num_targets_[gid]+=(range.end - range.begin);
+        count = 0;
+        num_synapse_labels_.push_back(c.synapse_ranges().size());
+        for (const auto& [label, range]: c.synapse_ranges()) {
+            synapse_labels_.push_back(label);
+            synapse_ranges_.push_back(range);
+            count+=(range.end - range.begin);
         }
-        num_gap_junction_labels_.push_back(c.labeled_gap_junction_ranges().size());
-        for (const auto& [label, range]: c.labeled_gap_junction_ranges()) {
+        num_synapses_[gid] = count;
+
+        num_gap_junction_labels_.push_back(c.gap_junction_ranges().size());
+        for (const auto& [label, range]: c.gap_junction_ranges()) {
             gap_junction_labels_.push_back(label);
             gap_junction_ranges_.push_back(range);
         }
@@ -524,14 +527,14 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
     if (post_events_) {
-        auto it = std::max_element(num_sources_.begin(), num_sources_.end(), [](const auto& lhs, const auto& rhs) -> bool {return lhs.second < rhs.second;});
+        auto it = std::max_element(num_detectors_.begin(), num_detectors_.end(), [](const auto& lhs, const auto& rhs) -> bool {return lhs.second < rhs.second;});
         max_detector = it->second;
     }
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
     if (post_events_) {
         for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(num_sources_[gids[cell_idx]])) {
+            for (auto lid: make_span(num_detectors_[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
             }
         }
@@ -684,7 +687,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         const std::vector<cell_gid_type>& gids,
         const recipe& rec, const fvm_cv_discretization& D) {
 
-    std::vector<fvm_gap_junction> v;
+    std::vector<fvm_gap_junction> gj_vec;
 
     std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
     for (auto cell_idx: util::make_span(0, D.n_cell())) {
@@ -698,18 +701,18 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
-    label_resolver gj_resolver((cell_labeled_ranges({gids_, num_gap_junction_labels_, gap_junction_labels_, gap_junction_ranges_})));
+    label_resolver gj_resolver(gap_junction_data());
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
-        for (auto g: gj_list) {
+        for (const auto& g: gj_list) {
             auto gj_local = gj_resolver.get_lid({gid, g.local});
             auto gj_peer  = gj_resolver.get_lid(g.peer);
             auto cv_local = gid_to_cvs[gid][gj_local];
             auto cv_peer = gid_to_cvs[g.peer.gid][gj_peer];
-            v.push_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
+            gj_vec.emplace_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
         }
     }
-    return v;
+    return gj_vec;
 }
 
 template <typename Backend>

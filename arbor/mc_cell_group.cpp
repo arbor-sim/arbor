@@ -45,11 +45,11 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-                         util::transform_view(gids_, [&](cell_gid_type i) { return lowered_->num_targets(i); }));
+    util::transform_view(gids_, [&](cell_gid_type i) { return lowered_->num_synapses(i); }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
-        for (cell_lid_type lid = 0; lid<lowered_->num_sources(source_gid); ++lid) {
+        for (cell_lid_type lid = 0; lid<lowered_->num_detectors(source_gid); ++lid) {
             spike_sources_.push_back({source_gid, lid});
         }
     }
@@ -580,10 +580,10 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
 }
 
 cell_labeled_ranges mc_cell_group::source_data() const {
-    return lowered_->source_data();
+    return lowered_->detector_data();
 }
 cell_labeled_ranges mc_cell_group::target_data() const {
-    return lowered_->target_data();
+    return lowered_->synapse_data();
 }
 cell_labeled_ranges mc_cell_group::gap_junction_data() const {
     return lowered_->gap_junction_data();

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <numeric>
 #include <type_traits>
 #include <vector>
 
@@ -13,6 +12,7 @@
 
 #include "communication/gathered_vector.hpp"
 #include "profile/profiler_macro.hpp"
+#include "util/rangeutil.hpp"
 #include "util/partition.hpp"
 
 namespace arb {
@@ -154,7 +154,7 @@ inline std::vector<std::string> gather_all(const std::vector<std::string>& value
     std::transform(values.begin(), values.end(), individual_sizes.begin(), [](const std::string& val){return int(val.size());});
 
     counts_individual = gather_all(individual_sizes, comm);
-    counts_total      = gather_all(std::accumulate(individual_sizes.begin(), individual_sizes.end(), 0), comm);
+    counts_total      = gather_all(util::sum(individual_sizes, 0), comm);
 
     util::make_partition(displs_total, counts_total);
     std::vector<char> buffer(displs_total.back());

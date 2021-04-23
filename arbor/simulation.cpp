@@ -200,7 +200,7 @@ simulation_state::simulation_state(
         local_sources.append(c->source_data());
         local_targets.append(c->target_data());
     }
-    auto global_sources = ctx.distributed->gather_labeled_range(cell_labeled_ranges(local_sources));
+    auto global_sources = ctx.distributed->gather_cell_labeled_ranges(cell_labeled_ranges(local_sources));
 
     auto source_resolver = label_resolver(std::move(global_sources));
     auto target_resolver = label_resolver(cell_labeled_ranges(local_targets));

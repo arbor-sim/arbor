@@ -24,7 +24,6 @@
 
 namespace arb {
 
-using util::append;
 using util::assign;
 using util::assign_by;
 using util::count_along;
@@ -208,7 +207,7 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
         }
 
         sort(cables);
-        append(geom.cv_cables, std::move(cables));
+        util::append(geom.cv_cables, std::move(cables));
         geom.cv_cables_divs.push_back(geom.cv_cables.size());
         ++cv_index;
     }
@@ -289,6 +288,7 @@ namespace impl {
 // Merge CV geometry lists in-place.
 
 cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
+    using util::append;
     using impl::tail;
     using impl::append_offset;
     using impl::append_divs;
@@ -322,6 +322,8 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 // Combine two fvm_cv_geometry groups in-place.
 
 fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
+    using util::append;
+
     append(dczn.geometry, right.geometry);
 
     append(dczn.face_conductance, right.face_conductance);
@@ -471,7 +473,7 @@ fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
 
     fvm_cv_discretization combined;
     for (auto cell_idx: count_along(cells)) {
-        append(combined, cell_disc[cell_idx]);
+        append(combined, cell_disc.at(cell_idx));
     }
     return combined;
 }
@@ -705,6 +707,7 @@ fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_d
 // Only target numbers need to be shifted.
 
 fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& right) {
+    using util::append;
     using impl::append_offset;
     using impl::append_divs;
 

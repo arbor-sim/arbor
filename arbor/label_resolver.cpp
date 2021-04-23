@@ -21,10 +21,11 @@ cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> gid_vec,
 };
 
 void cell_labeled_ranges::append(cell_labeled_ranges other) {
-    gids.insert(gids.end(), std::make_move_iterator(other.gids.begin()), std::make_move_iterator(other.gids.end()));
-    sizes.insert(sizes.end(), std::make_move_iterator(other.sizes.begin()), std::make_move_iterator(other.sizes.end()));
-    labels.insert(labels.end(), std::make_move_iterator(other.labels.begin()), std::make_move_iterator(other.labels.end()));
-    ranges.insert(ranges.end(), std::make_move_iterator(other.ranges.begin()), std::make_move_iterator(other.ranges.end()));
+    using util::append;
+    append(gids, std::move(other.gids));
+    append(sizes, std::move(other.sizes));
+    append(labels, std::move(other.labels));
+    append(ranges, std::move(other.ranges));
 }
 
 label_resolver::label_resolver(cell_labeled_ranges clr) {
