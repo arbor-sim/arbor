@@ -30,14 +30,6 @@ build release:
     DEPLOY_DOCKERFILE: ci/release/deploy.Dockerfile
     DEPLOY_IMAGE: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
 
-build codecov:
-  extends: .build_docker_images
-  variables:
-    BUILD_DOCKERFILE: ci/codecov/build.Dockerfile
-    BUILD_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/build:v2
-    DEPLOY_DOCKERFILE: ci/codecov/deploy.Dockerfile
-    DEPLOY_IMAGE: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
-
 notify_github_start:
   stage: build
   allow_failure: true
@@ -102,71 +94,6 @@ deallocate release:
   extends: .daint_dealloc
   variables:
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
-
-### Codecov tests ###
-allocate codecov:
-  stage: allocate
-  only: ['master', 'staging', 'trying']
-  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
-  extends: .daint_alloc
-  variables:
-    PULL_IMAGE: 'YES'
-    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
-
-single node codecov:
-  extends: .daint
-  only: ['master', 'staging', 'trying']
-  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
-  stage: test
-  script:
-    - codecov_pre
-    - unit
-    - unit-local
-    - unit-modcc
-    - codecov_post
-  variables:
-    SLURM_JOB_NUM_NODES: 1
-    SLURM_NTASKS: 1
-    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
-  artifacts:
-    paths:
-      - codecov-reports/
-
-multi node codecov:
-  extends: .daint
-  only: ['master', 'staging', 'trying']
-  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
-  stage: test
-  script:
-    - codecov_pre
-    - unit-mpi
-    - codecov_post
-  variables:
-    SLURM_JOB_NUM_NODES: 2
-    SLURM_NTASKS: 2
-    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
-  artifacts:
-    paths:
-      - codecov-reports/
-
-upload codecov reports:
-  extends: .daint
-  only: ['master', 'staging', 'trying']
-  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
-  stage: upload_reports
-  variables:
-    SLURM_JOB_NUM_NODES: 1
-    SLURM_NTASKS: 1
-    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
-  script: upload_codecov
-
-deallocate codecov:
-  only: ['master', 'staging', 'trying']
-  image: $CSCS_REGISTRY_IMAGE/codecov/deploy:$CI_COMMIT_SHA
-  stage: cleanup
-  extends: .daint_dealloc
-  variables:
-    ALLOCATION_NAME: arbor-ci-codecov-$CI_PIPELINE_ID
 
 notify_github_success:
   stage: cleanup
