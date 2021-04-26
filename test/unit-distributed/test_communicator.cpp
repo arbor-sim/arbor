@@ -1,16 +1,18 @@
 #include "../gtest.h"
 #include "test.hpp"
 
-#include <stdexcept>
 #include <vector>
 
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/spike_event.hpp>
-#include <threading/threading.hpp>
 
 #include "communication/communicator.hpp"
 #include "execution_context.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "lif_cell_group.hpp"
+#include "mc_cell_group.hpp"
 #include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -184,21 +186,27 @@ namespace {
     // Even gid are rss, and odd gid are cable cells.
     class ring_recipe: public recipe {
     public:
-        ring_recipe(cell_size_type s):
-            size_(s),
-            ranks_(g_context->distributed->size())
-        {}
+        ring_recipe(cell_size_type s): size_(s) {}
 
         cell_size_type num_cells() const override {
             return size_;
         }
 
-        util::unique_any get_cell_description(cell_gid_type) const override {
-            return {};
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            if (gid%2) {
+                arb::segment_tree tree;
+                tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
+                arb::decor decor;
+                decor.set_default(arb::cv_policy_fixed_per_branch(10));
+                decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
+                decor.place(arb::mlocation{0, 0.5}, "expsyn", "tgt");
+                return arb::cable_cell(arb::morphology(tree), {}, decor);
+            }
+            return arb::lif_cell("src", "tgt");
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable: cell_kind::spike_source;
+            return gid%2? cell_kind::cable: cell_kind::lif;
         }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -213,9 +221,17 @@ namespace {
                         1.0f)};     // delay
         }
 
+        std::any get_global_properties(arb::cell_kind kind) const override {
+            if (kind == arb::cell_kind::cable) {
+                arb::cable_cell_global_properties gprop;
+                gprop.default_parameters = arb::neuron_parameter_defaults;
+                return gprop;
+            }
+            return {};
+        }
+
     private:
         cell_size_type size_;
-        cell_size_type ranks_;
     };
 
     cell_gid_type source_of(cell_gid_type gid, cell_size_type num_cells) {
@@ -244,20 +260,23 @@ namespace {
     // Even gid are rss, and odd gid are cable cells.
     class all2all_recipe: public recipe {
     public:
-        all2all_recipe(cell_size_type s):
-            size_(s),
-            ranks_(g_context->distributed->size())
-        {}
+        all2all_recipe(cell_size_type s): size_(s) {}
 
         cell_size_type num_cells() const override {
             return size_;
         }
 
-        util::unique_any get_cell_description(cell_gid_type) const override {
-            return {};
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            arb::segment_tree tree;
+            tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
+            arb::decor decor;
+            decor.set_default(arb::cv_policy_fixed_per_branch(10));
+            decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
+            decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), "expsyn", "tgt");
+            return arb::cable_cell(arb::morphology(tree), {}, decor);
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable: cell_kind::spike_source;
+            return cell_kind::cable;
         }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -274,9 +293,14 @@ namespace {
             return cons;
         }
 
+        std::any get_global_properties(arb::cell_kind) const override {
+            arb::cable_cell_global_properties gprop;
+            gprop.default_parameters = arb::neuron_parameter_defaults;
+            return gprop;
+        }
+
     private:
         cell_size_type size_;
-        cell_size_type ranks_;
     };
 
     spike_event expected_event_all2all(cell_gid_type gid, cell_gid_type sid) {
@@ -306,6 +330,83 @@ namespace {
         }
         return map;
     }
+
+    class mini_recipe: public recipe {
+    public:
+        mini_recipe(cell_size_type s): size_(s) {}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            arb::segment_tree tree;
+            tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
+            arb::decor decor;
+            if (gid%2 == 0) {
+                decor.place(arb::ls::uniform(arb::reg::all(), 0, 1, gid), "expsyn", "synapses_0");
+                decor.place(arb::ls::uniform(arb::reg::all(), 2, 2, gid), "expsyn", "synapses_1");
+            }
+            else {
+                decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10}, "detectors_0");
+                decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10}, "detectors_1");
+            }
+            return arb::cable_cell(arb::morphology(tree), {}, decor);
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return gid%2? cell_kind::cable: cell_kind::lif;
+        }
+
+        std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+            // Connections from odd to even numbered cells
+            // 4 from detectors_0 (round-robin) to synapses_0 (round-robin)
+            // 1 from detectors_0 (round-robin) to synapses_1 (univalent)
+            // 2 from detectors_1 (round-robin) to synapses_0 (round-robin)
+            // 1 from detectors_1 (univalent)   to synapses_1 (round-robin)
+            // Should generate the following {src_gid, src_lid} -> {tgt_gid, tgt_lid} connections on rank 0 (before sorting):
+            //   {1, 0} -> {0, 0}
+            //   {1, 1} -> {0, 1}
+            //   {1, 2} -> {0, 0}
+            //   {1, 0} -> {0, 1}
+            //   {1, 1} -> {0, 2}
+            //   {1, 3} -> {0, 0}
+            //   {1, 3} -> {0, 1}
+            //   {1, 4} -> {0, 2}
+            std::vector<cell_connection> cons;
+            using pol = lid_selection_policy;
+            if (gid%2 == 0) {
+                for (auto sid: util::make_span(0, size_)) {
+                    if (sid%2 == 1) {
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_1", pol::assert_univalent}, 1.0, 1.0});
+
+                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+
+                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin}, 1.0, 1.0});
+                    }
+                }
+            }
+            return cons;
+        }
+
+        std::any get_global_properties(arb::cell_kind kind) const override {
+            if (kind == arb::cell_kind::cable) {
+                arb::cable_cell_global_properties gprop;
+                gprop.default_parameters = arb::neuron_parameter_defaults;
+                return gprop;
+            }
+            return {};
+        }
+
+    private:
+        cell_size_type size_;
+    };
 }
 
 template <typename F>
@@ -385,18 +486,24 @@ TEST(communicator, ring)
     const auto D = partition_load_balance(R, g_context);
 
     // set up source and target label->lid resolvers
-    cell_labeled_ranges local_targets, local_sources;
+    // from mc_cell_group and lif_cell_group
+    std::vector<cell_gid_type> mc_gids, lif_gids;
     for (auto g: D.groups) {
-        local_targets.gids.insert(local_targets.gids.end(), g.gids.begin(), g.gids.end());
+        if (g.kind == cell_kind::cable) {
+            mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
+        }
+        else if (g.kind == cell_kind::lif) {
+            lif_gids.insert(lif_gids.end(), g.gids.begin(), g.gids.end());
+        }
     }
-    local_targets.sizes.resize(local_targets.gids.size(), 1);
-    local_targets.labels.resize(local_targets.gids.size(), "tgt");
-    local_targets.ranges.resize(local_targets.gids.size(), {0,1});
+    auto mc_group = mc_cell_group(mc_gids, R, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto lif_group = lif_cell_group(lif_gids, R);
 
-    local_sources.gids = local_targets.gids;
-    local_sources.sizes.resize(local_sources.gids.size(), 1);
-    local_sources.labels.resize(local_sources.gids.size(), "src");
-    local_sources.ranges.resize(local_sources.gids.size(), {0,1});
+    auto local_sources = mc_group.source_data();
+    local_sources.append(lif_group.source_data());
+
+    auto local_targets = mc_group.target_data();
+    local_targets.append(lif_group.target_data());
     auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
     // construct the communicator
@@ -497,18 +604,14 @@ TEST(communicator, all2all)
     const auto D = partition_load_balance(R, g_context);
 
     // set up source and target label->lid resolvers
-    cell_labeled_ranges local_targets, local_sources;
+    // from mc_cell_group
+    std::vector<cell_gid_type> mc_gids;
     for (auto g: D.groups) {
-        local_targets.gids.insert(local_targets.gids.end(), g.gids.begin(), g.gids.end());
+        mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
     }
-    local_targets.sizes.resize(local_targets.gids.size(), 1);
-    local_targets.labels.resize(local_targets.gids.size(), "tgt");
-    local_targets.ranges.resize(local_targets.gids.size(), {0,n_global});
-
-    local_sources.gids = local_targets.gids;
-    local_sources.sizes.resize(local_sources.gids.size(), 1);
-    local_sources.labels.resize(local_sources.gids.size(), "src");
-    local_sources.ranges.resize(local_sources.gids.size(), {0,1});
+    auto mc_group = mc_cell_group(mc_gids, R, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto local_sources = mc_group.source_data();
+    auto local_targets = mc_group.target_data();
     auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
     // construct the communicator
@@ -518,8 +621,8 @@ TEST(communicator, all2all)
     for (auto i: util::make_span(0, n_global)) {
         for (unsigned j = 0; j < n_local; ++j) {
             auto c = connections[i*n_local+j];
-            EXPECT_EQ(0, c.source().index);
             EXPECT_EQ(i, c.source().gid);
+            EXPECT_EQ(0u, c.source().index);
             EXPECT_EQ(i, c.destination());
             EXPECT_LT(c.index_on_domain(), n_local);
         }
@@ -533,4 +636,49 @@ TEST(communicator, all2all)
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return g%2==0;}));
     // odd-numbered cells fire
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return g%2==1;}));
+}
+
+TEST(communicator, mini_network)
+{
+    using util::make_span;
+
+    // construct a homogeneous network of 10*n_domain identical cells in a ring
+    unsigned N = g_context->distributed->size();
+
+    unsigned n_local = 2u;
+    unsigned n_global = n_local*N;
+
+    auto R = mini_recipe(n_global);
+    // use a node decomposition that reflects the resources available
+    // on the node that the test is running on, including gpus.
+    const auto D = partition_load_balance(R, g_context);
+
+    // set up source and target label->lid resolvers
+    // from mc_cell_group
+    std::vector<cell_gid_type> gids;
+    for (auto g: D.groups) {
+        gids.insert(gids.end(), g.gids.begin(), g.gids.end());
+    }
+    auto mc_group = mc_cell_group(gids, R, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto local_sources = mc_group.source_data();
+    auto local_targets = mc_group.target_data();
+    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
+
+    // construct the communicator
+    auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
+    auto connections = C.connections();
+
+    // Expect one set of 8 connections from every rank
+    std::vector<cell_lid_type> ex_source_lids = {0, 0, 1, 1, 2, 3, 3, 3};
+    std::vector<cell_lid_type> ex_target_lids = {0, 1, 1, 2, 0, 0, 1, 2};
+
+    for (auto i: util::make_span(0, N)) {
+        std::vector<cell_gid_type> ex_source_gids(8u, i*2 + 1);
+        for (unsigned j = 0; j < 8u; ++j) {
+            auto c = connections[i*8 + j];
+            EXPECT_EQ(ex_source_gids[j], c.source().gid);
+            EXPECT_EQ(ex_source_lids[j], c.source().index);
+            EXPECT_EQ(ex_target_lids[j], c.destination());
+        }
+    }
 }

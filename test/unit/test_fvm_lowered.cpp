@@ -1331,7 +1331,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             }
             decor.place(arb::mlocation{0, 0.5}, synapse_, "syanpse");
 
-            return arb::cable_cell(arb::morphology(tree), {}, decor);;
+            return arb::cable_cell(arb::morphology(tree), {}, decor);
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -1414,11 +1414,12 @@ TEST(fvm_lowered, label_data) {
 
     class decorated_recipe: public arb::recipe {
     public:
-        decorated_recipe(unsigned ncell): ncell_(ncell) {
+        decorated_recipe(unsigned ncell, bool duplicate=false): ncell_(ncell) {
             // Cells will have one of 2 decorations:
             //   (1)  1 synapse label with 4 locations; 1 synapse label with 1 location
             //        1 detector label with 1 location
             //        0 gap junctions
+            //        if (duplicate) add a duplicate label, check fvm initialize throws
             //   (2)  0 synapse labels
             //        1 detector label with 3 locations; 1 detector label with 2 locations
             //        1 gap-junction label with 2 locations; 1 gap-junction label with 1 location
@@ -1433,6 +1434,9 @@ TEST(fvm_lowered, label_data) {
                 decor.place(uniform(all(), 4, 4, 42), "expsyn", "1_synapse");
                 decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
 
+                if (duplicate) {
+                    decor.place(uniform(all(), 6, 6, 42), arb::threshold_detector{10}, "1_detector");
+                }
                 cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
             }
             {
@@ -1473,14 +1477,17 @@ TEST(fvm_lowered, label_data) {
         std::vector<cable_cell> cells_;
     };
 
-    std::vector<target_handle> targets;
-    probe_association_map probe_map;
-
     std::vector<unsigned> gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     const unsigned ncell = gids.size();
 
+    // Check duplicate label throws
+    EXPECT_THROW(decorated_recipe(ncell, true), arb::cable_cell_error);
+
+    // Check correct synapse, deterctor and gj data
     decorated_recipe rec(ncell);
     std::vector<fvm_index_type> cell_to_intdom;
+    std::vector<target_handle> targets;
+    probe_association_map probe_map;
 
     fvm_cell fvcell(context);
     fvcell.initialize(gids, rec, cell_to_intdom, targets, probe_map);
