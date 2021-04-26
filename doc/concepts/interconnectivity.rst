@@ -15,6 +15,7 @@ Connection sites and gap junction sites are defined on locations on cells as par
 :ref:`cell description <modelcelldesc>`.
 A recipe lets you define which sites are connected to which.
 
+.. _modelconnections:
 
 .. glossary::
 
@@ -45,6 +46,8 @@ A recipe lets you define which sites are connected to which.
    event generator
       Externally stimulate a synapse. Events can be delivered on a schedule.
       See :py:class:`arbor.event_generator` for details.
+
+.. _modelgapjunctions:
 
 .. glossary::
 

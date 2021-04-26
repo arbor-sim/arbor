@@ -309,17 +309,17 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 .. code-block:: Python
 
     # Constant stimulus, amplitude 10 nA.
-    decor.place('(root)', arbor.iclamp(10))
+    decor.place('(root)', arbor.iclamp(10), "iclamp0")
 
     # Constant amplitude 10 nA stimulus at 20 Hz, with initial phase of π/4 radians.
-    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phasce=math.pi/4))
+    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phasce=math.pi/4), "iclamp1")
 
     # Stimulus at 1 kHz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
-    decor.place('(root)', arbor.iclamp(30, 40, 10, frequency=1))
+    decor.place('(root)', arbor.iclamp(30, 40, 10, frequency=1), "iclamp2")
 
     # Piecewise linear stimulus with amplitude ranging from 0 nA to 10 nA,
     # starting at t = 30 ms and stopping at t = 50 ms.
-    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)])
+    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)], "iclamp3")
 
 
 .. _cablecell-probes:

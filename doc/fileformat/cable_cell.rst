@@ -198,8 +198,8 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (place ls:locset prop:placeable label:string)
 
-   This places the property ``prop`` on locset ``ls`` and labels it ``label``.
-   For example:
+   This places the property ``prop`` on locset ``ls`` and labels the group of items on the
+   locset with ``label``. For example:
 
    .. code:: lisp
 
