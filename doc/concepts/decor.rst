@@ -261,21 +261,24 @@ Placed dynamics
 ---------------
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
-and are assigned to specific locations.
+and are assigned to :term:`locsets <locset>`. Because locsets can contain multiple locations
+on the cell, and the exact number of these locations can not be known until the model is build,
+each placed dynamic is given a string label, used to refer to the group of items on the underlying
+locset.
 
 .. _cablecell-synapses:
 
 1. Connection sites
 ~~~~~~~~~~~~~~~~~~~
 
-Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
+Connections (synapses) are instances of NMODL POINT mechanisms. See also :term:`connection`.
 
 .. _cablecell-gj-sites:
 
 2. Gap junction sites
 ~~~~~~~~~~~~~~~~~~~~~
 
-See :ref:`modelgapjunctions`.
+See :term:`gap junction`.
 
 .. _cablecell-threshold-detectors:
 

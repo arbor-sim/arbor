@@ -10,9 +10,6 @@ building phase to provide information about individual cells in the model, such 
   * The **kind** of each cell.
   * The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
     stimuli etc.
-  * The number of **spike targets** on each cell.
-  * The number of **spike sources** on each cell.
-  * The number of **gap junction sites** on each cell.
   * Incoming **network connections** from other cells terminating on a cell.
   * **Gap junction connections** on each cell.
   * **Probes** on each cell.
@@ -27,41 +24,30 @@ To better illustrate the content of a recipe, let's consider the following netwo
 three cells:
 
 -  | ``Cell 0``: Is a single soma, with ``hh`` (Hodgkin-huxley) dynamics. In the middle
-     of the soma, a spike detector is attached, it generates a spiking event when the
-     voltage goes above 10 mV. In the same spot on the soma, a current clamp is also
-     attached, with the intention of triggering some spikes. All of the preceding info:
+     of the soma, a spike detector is attached labeled "detector_0", it generates a spiking
+     event when the voltage goes above 10 mV. In the same spot on the soma, a current clamp
+     is also attached, with the intention of triggering some spikes. All of the preceding info:
      the morphology, dynamics, spike detector and current clamp are what is referred to in
      Arbor as the **description** of the cell.
    | ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`,
      (because cable cells allow complex dynamics such as ``hh``). This is referred to as
      the **kind** of the cell.
-   | It's quite expensive to build cable cells, so we don't want to do this too often.
-     But when the simulation is first set up, it needs to know how cells interact with
-     one another in order to distribute the simulation over the available computational
-     resources. This is why the number of **targets**, **sources** and **gap junction sites**
-     is needed separately from the cell description: with them, the simulation can tell
-     that ``cell 0`` has 1 **spike source** (the detector), 0 **spike targets**, and 0
-     **gap junction sites**, without having to build the cell.
 -  | ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
-     It has a single synapse at the end of the dendrite and a gap junction site in the
-     middle of the soma. This is the **description** of the cell.
-     It's also a cable cell, which is its **cell kind**. It has 0 **spike sources**, 1
-     **spike target** (the synapse) and 1 **gap junction site**.
+     It has a single synapse at the end of the dendrite labeled "syanpse_1" and a gap
+     junction site in the middle of the soma labeled "gap_junction_1".
+     This is the **description** of the cell. It's also a cable cell, which is its **cell kind**.
 -  | ``Cell 2``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
-     It has a gap junction site in the middle of the soma. This is the **description**
-     of the cell. It's also a cable cell, which is its **cell kind**. It has 0
-     **spike sources**, 0 **spike targets** and 1 **gap junction site**.
+     It has a gap junction site in the middle of the soma labeled "gap_junction_2".
+     This is the **description** of the cell. It's also a cable cell, which is its **cell kind**.
 
-The total **number of cells** in the model is 3. The **kind**, **description** and
-number of **spike sources**, **spike targets** and **gap junction sites** on each cell
+The total **number of cells** in the model is 3. The **kind**, and **description** of each cell
 is known and can be registered in the recipe. Next is the cell interaction.
 
-The model is designed such that ``cell 0`` has a spike source, ``cell 1`` has
-a spike target and gap junction site, and ``cell 2`` has a gap junction site. A
-**network connection** can be formed from ``cell 0`` to ``cell 1``; and a
-**gap junction connection** from ``cell 1`` to ``cell 2``. If ``cell 0`` spikes,
-a spike should be observed on ``cell 2`` after some delay. To monitor
-the voltage on ``cell 2`` and record the spike, a **probe** can be set up
+The model is designed such that each cell has labeled source, target and gap junction sites.
+A **network connection** can be formed from ``detector_0`` to ``synpase_1``; and a
+**gap junction connection** between ``gap_junction_1`` and ``gap_junction_2``.
+If ``detector_0`` spikes, a spike should be observed on ``gap_junction_2`` after some delay.
+To monitor the voltage on ``gap_junction_2`` and record the spike, a **probe** can be set up
 on ``cell 2``. All this information is also registered via the recipe.
 
 There are additional docs on :ref:`cell kinds <modelcellkind>`;
@@ -78,11 +64,11 @@ Are recipes always necessary?
 Yes. However, we provide a python :class:`single_cell_model <py_single_cell_model>`
 that abstracts away the details of a recipe for simulations of  single, stand-alone
 :ref:`cable cells<modelcablecell>`, which absolves the users from having to create the
-recipe themselves. This is possible because the number of cells, spike targets, spike sources
-and gap junction sites is fixed and known, as well as the fact that there can be no connections
-or gap junctions on a single cell. The single cell model is able to fill out the details of the
-recipe under the hood, and the user need only provide the cell description, and any probes they
-wish to place on the cell.
+recipe themselves. This is possible because the number of cells is fixed and known,
+and it is guaranteed that there can be no connections or gap junctions in a model of a
+single cell. The single cell model is able to fill out the details of the recipe under
+the hood, and the user need only provide the cell description, and any probes they wish
+to place on the cell.
 
 Why recipes?
 ------------
