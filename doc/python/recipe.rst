@@ -20,7 +20,7 @@ Recipe
     All recipes derive from this abstract base class.
 
     Recipes provide a cell-centric interface for describing a model.
-    This means that model properties, such as connections, are queried using the global identifier (:attr:`arbor.cell_member.gid`) of a cell.
+    This means that model properties, such as connections, are queried using the global identifier ``gid`` of a cell.
     In the description below, the term ``gid`` is used as shorthand for the cell with global identifier.
 
     **Required Member Functions**
@@ -49,8 +49,8 @@ Recipe
     .. function:: connections_on(gid)
 
         Returns a list of all the **incoming** connections to ``gid``.
-        Each connection should have a valid synapse id ``connection.dest`` on the post-synaptic target ``gid``,
-        and a valid source id ``connection.source.index`` on the pre-synaptic source ``connection.source.gid``.
+        Each connection should have a valid synapse label ``connection.dest`` on the post-synaptic target ``gid``,
+        and a valid source label ``connection.source.label`` on the pre-synaptic source ``connection.source.gid``.
         See :class:`connection`.
 
         By default returns an empty list.
@@ -58,8 +58,8 @@ Recipe
     .. function:: gap_junctions_on(gid)
 
         Returns a list of all the gap junctions connected to ``gid``.
-        Each gap junction ``gj`` should have a valid gap junction site id ``gj.local`` on ``gid``,
-        and a valid gap junction site id ``gj.peer.index`` on ``gj.peer.gid``.
+        Each gap junction ``gj`` should have a valid gap junction site label ``gj.local`` on ``gid``,
+        and a valid gap junction site label ``gj.peer.label`` on ``gj.peer.gid``.
         See :class:`gap_junction_connection`.
 
         By default returns an empty list.
@@ -70,30 +70,12 @@ Recipe
 
         By default returns an empty list.
 
-    .. function:: num_sources(gid)
-
-        The number of spike sources on ``gid``.
-
-        By default returns 0.
-
-    .. function:: num_targets(gid)
-
-        The number of post-synaptic sites on ``gid``, which corresponds to the number of synapses.
-
-        By default returns 0.
-
-    .. function:: num_gap_junction_sites(gid)
-
-        Returns the number of gap junction sites on ``gid``.
-
-        By default returns 0.
-
     .. function:: probes(gid)
 
         Returns a list specifying the probe addresses describing probes on the cell ``gid``.
         Each address in the list is an opaque object of type :class:`probe` produced by
         cell kind-specific probe address functions. Each probe address in the list
-        has a corresponding probe id of type :class:`cell_member_type`: an id ``(gid, i)``
+        has a corresponding probe id of type :class:`cell_member`: an id ``(gid, i)``
         refers to the probes described by the ith entry in the list returned by ``get_probes(gid)``.
 
         By default returns an empty list.
@@ -126,11 +108,13 @@ Event generator and schedules
 
     .. function:: event_generator(target, weight, schedule)
 
-        Construct an event generator for a :attr:`target` synapse with :attr:`weight` of the events to deliver based on a schedule (i.e., :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, :class:`arbor.poisson_schedule`).
+        Construct an event generator for a :attr:`target` synapse with :attr:`weight` of the events to
+        deliver based on a schedule (i.e., :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`,
+        :class:`arbor.poisson_schedule`).
 
     .. attribute:: target
 
-        The target synapse of type :class:`arbor.cell_member.index`.
+        The target synapse of type :class:`arbor.cell_local_label`.
 
     .. attribute:: weight
 
@@ -221,7 +205,7 @@ An example of an event generator reads as follows:
         # define a Poisson schedule with start time 1 ms, expected frequency of 5 Hz,
         # and the target cell's gid as seed
         def event_generators(gid):
-            target = 0   # index of the synapse on target cell gid
+            target = arbor.cell_local_label("syn", arbor.selection_policy.round_robin) # local_label of the synapse on target cell gid
             seed   = gid
             tstart = 1
             freq   = 0.005
@@ -261,13 +245,9 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
 
             # The cell_description method returns a cell.
             def cell_description(self, gid):
+                # Cell should have a synapse labeled "syn"
+                # and a detector labeled "detector"
                 return make_cable_cell(gid, self.params)
-
-            def num_targets(self, gid):
-                return 1
-
-            def num_sources(self, gid):
-                return 1
 
             # The kind method returns the type of cell with gid.
             # Note: this must agree with the type returned by cell_description.
@@ -279,7 +259,7 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
                 src = (gid-1)%self.ncells
                 w = 0.01
                 d = 10
-                return [arbor.connection(arbor.cell_member(src,0), 0, w, d)]
+                return [arbor.connection((src,"detector"), "syn", w, d)]
 
             # Attach a generator to the first cell in the ring.
             def event_generators(self, gid):

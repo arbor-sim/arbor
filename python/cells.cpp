@@ -135,19 +135,19 @@ void register_cells(pybind11::module& m) {
     spike_source_cell
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, const regular_schedule_shim& sched){
-                return arb::spike_source_cell{source_label, sched.schedule()};}),
+                return arb::spike_source_cell{std::move(source_label), sched.schedule()};}),
             "source_label"_a, "schedule"_a,
             "Construct a spike source cell with a single source labeled 'source_label'.\n"
             "The cell generates spikes on 'source_label' at regular intervals.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, const explicit_schedule_shim& sched){
-                return arb::spike_source_cell{source_label, sched.schedule()};}),
+                return arb::spike_source_cell{std::move(source_label), sched.schedule()};}),
             "source_label"_a, "schedule"_a,
             "Construct a spike source cell with a single source labeled 'source_label'.\n"
             "The cell generates spikes on 'source_label' at a sequence of user-defined times.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, const poisson_schedule_shim& sched){
-                return arb::spike_source_cell{source_label, sched.schedule()};}),
+                return arb::spike_source_cell{std::move(source_label), sched.schedule()};}),
             "source_label"_a, "schedule"_a,
             "Construct a spike source cell with a single source labeled 'source_label'.\n"
             "The cell generates spikes on 'source_label' at times defined by a Poisson sequence.")
@@ -166,19 +166,19 @@ void register_cells(pybind11::module& m) {
     benchmark_cell
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const regular_schedule_shim& sched, double ratio){
-                return arb::benchmark_cell{source_label, target_label, sched.schedule(), ratio};}),
+                return arb::benchmark_cell{std::move(source_label), std::move(target_label), sched.schedule(), ratio};}),
             "source_label"_a, "target_label"_a,"schedule"_a, "realtime_ratio"_a=1.0,
             "Construct a benchmark cell that generates spikes on 'source_label' at regular intervals.\n"
             "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const explicit_schedule_shim& sched, double ratio){
-                return arb::benchmark_cell{source_label, target_label,sched.schedule(), ratio};}),
+                return arb::benchmark_cell{std::move(source_label), std::move(target_label),sched.schedule(), ratio};}),
             "source_label"_a, "target_label"_a, "schedule"_a, "realtime_ratio"_a=1.0,
             "Construct a benchmark cell that generates spikes on 'source_label' at a sequence of user-defined times.\n"
             "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const poisson_schedule_shim& sched, double ratio){
-                return arb::benchmark_cell{source_label, target_label, sched.schedule(), ratio};}),
+                return arb::benchmark_cell{std::move(source_label), std::move(target_label), sched.schedule(), ratio};}),
             "source_label"_a, "target_label"_a, "schedule"_a, "realtime_ratio"_a=1.0,
             "Construct a benchmark cell that generates spikeson 'source_label' at times defined by a Poisson sequence.\n"
             "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
@@ -193,7 +193,7 @@ void register_cells(pybind11::module& m) {
     lif_cell
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label){
-                return arb::lif_cell(source_label, target_label);}),
+                return arb::lif_cell(std::move(source_label), std::move(target_label));}),
             "source_label"_a, "target_label"_a,
             "Construct a lif cell with one source labeled 'source_label', and one target labeled 'target_label'.")
         .def_readwrite("tau_m", &arb::lif_cell::tau_m,
@@ -210,6 +210,10 @@ void register_cells(pybind11::module& m) {
             "Refractory period [ms].")
         .def_readwrite("V_reset", &arb::lif_cell::V_reset,
             "Reset potential [mV].")
+        .def_readwrite("source", &arb::lif_cell::source,
+            "Label of the single build-in source on the cell.")
+        .def_readwrite("target", &arb::lif_cell::target,
+            "Label of the single build-in target on the cell.")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
