@@ -62,12 +62,19 @@ These locations will form the endpoints of the connections between the cells.
    # Mark the root of the tree.
    labels['root'] = '(root)'
 
-After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) is on the ``'synapse_site'``.
+After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
+The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
 Note that mechanisms can be initialized with their name; ``'expsyn'`` is short for ``arbor.mechanism('expsyn')``.
 
-Step **(4)** places a spike detector at the ``'root'``. :py:class:`spike_detectors <arbor.spike_detector>` will send spikes into an
-:class:`arbor.connection`, whereas the :ref:`expsyn mechanism <mechanisms_builtins>` can receive spikes from an
-:class:`arbor.connection`.
+Step **(4)** places a spike detector at the ``'root'``. The detector is given the label ``'detector'``, which is later used to form
+:py:class:`arbor.connection` objects originating *from* the cell.
+
+.. Note::
+
+   The number of synapses placed on the cell in this case is 1, because the ``'synapse_sites'`` locset is an explicit location.
+   Had the chosen locset contained multiple locations, an equal number of synapses would have been placed, all given the same label ``'syn'``.
+
+   The same explanation applies to the number of detectors on this cell.
 
 .. code-block:: python
 
@@ -77,11 +84,11 @@ Step **(4)** places a spike detector at the ``'root'``. :py:class:`spike_detecto
    decor.paint('"soma"', 'hh')
    decor.paint('"dend"', 'pas')
 
-   # (3) Attach a single synapse.
-   decor.place('"synapse_site"', 'expsyn')
+   # (3) Attach a single synapse, label it 'syn'
+   decor.place('"synapse_site"', 'expsyn', 'syn')
 
    # (4) Attach a spike detector with threshold of -10 mV.
-   decor.place('"root"', arbor.spike_detector(-10))
+   decor.place('"root"', arbor.spike_detector(-10), 'detector')
 
    cell = arbor.cable_cell(tree, labels, decor)
 
@@ -97,20 +104,24 @@ are connecting the cells **(8)**, returning a configurable number of cells **(6)
 (``make_cable_cell()`` returns the cell above).
 
 Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
-previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.1 μS and a delay of 5 ms. The first two arguments
-to :py:class:`arbor.connection` are the **source** and **target** of the connection, and these are defined by the
-cell index ``gid`` and the source or target index. (:term:`Remember <connection>` that sources and targets are
-separately indexed.)
+previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.1 μS and a delay of 5 ms.
+The first two arguments to :py:class:`arbor.connection` are the **source** and **target** of the connection.
 
-The source endpoint has type :class:`arbor.cell_member`, and can be initialized with a ``(gid,index)`` tuple.
-The gid of the target end-point is implicitly known from the argument of :py:func:`arbor.recipe.connections_on`,
-Therefore, we only need to identify the index of the target on the cell using the :class:`arbor.cell_member.index` type.
-The cells have one synapse (step **3**), so the target endpoint has the 0th index. The cell has one
-spike generator (step **4**), so its source index is also 0.
+The **source** is a :py:class:`arbor.cell_global_label` object containing a cell index ``gid``, the source label
+corresponding to a valid detector label on the cell and an optional selection policy (for choosing a single detector
+out of potentially many detectors grouped under the same label - remember, in this case the number of detectors labeled
+'detector' is 1).
+The :py:class:`arbor.cell_global_label` can be initialized with a ``(gid, label)`` tuple, in which case the selection
+policy is the default :py:attr:`arbor.selection_policy.round_robin`; or a ``(gid, label, policy)`` tuple.
 
-Lastly, we must inform the recipe how many sources and targets we have on each cell (``gid``).
-:func:`arbor.cable_cell.num_targets` and :func:`arbor.cable_cell.num_sources` must be set to 1: each cell has one
-source and one target endpoint.
+The **target** is a :py:class:`arbor.cell_local_label` object containing a cell index ``gid``, the target label
+corresponding to a valid synapse label on the cell and an optional selection policy (for choosing a single synapse
+out of potentially many synapses grouped under the same label - remember, in this case the number of synapses labeled
+'syn' is 1).
+The :py:class:`arbor.cell_local_label` can be initialized with a ``label`` string, in which case the selection
+policy is the default :py:attr:`arbor.selection_policy.round_robin`; or a ``(label, policy)`` tuple. The ``gid``
+of the target cell doesn't need to be explicitly added to the connection, it is the argument to the
+:py:func:`arbor.recipe.connections_on` method.
 
 Step **(9)** attaches an :py:class:`arbor.event_generator` on the 0th target (synapse) on the 0th cell; this means it
 is connected to the ``"synapse_site"`` on cell 0. This initiates the signal cascade through the network. The
@@ -153,19 +164,13 @@ Step **(11)** instantiates the recipe with 4 cells.
          src = (gid-1)%self.ncells
          w = 0.01
          d = 5
-         return [arbor.connection((src,0), (gid,0), w, d)]
-
-      def num_targets(self, gid):
-         return 1
-
-      def num_sources(self, gid):
-         return 1
+         return [arbor.connection((src,'detector'), 'syn', w, d)]
 
       # (9) Attach a generator to the first cell in the ring.
       def event_generators(self, gid):
          if gid==0:
                sched = arbor.explicit_schedule([1])
-               return [arbor.event_generator((0,0), 0.1, sched)]
+               return [arbor.event_generator('syn', 0.1, sched)]
          return []
 
       # (10) Place a probe at the root of each cell.

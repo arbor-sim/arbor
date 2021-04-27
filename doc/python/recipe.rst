@@ -205,7 +205,7 @@ An example of an event generator reads as follows:
         # define a Poisson schedule with start time 1 ms, expected frequency of 5 Hz,
         # and the target cell's gid as seed
         def event_generators(gid):
-            target = arbor.cell_local_label("syn", arbor.selection_policy.round_robin) # local_label of the synapse on target cell gid
+            target = arbor.cell_local_label("syn", arbor.selection_policy.round_robin) # label of the synapse on target cell gid
             seed   = gid
             tstart = 1
             freq   = 0.005
@@ -265,7 +265,7 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
             def event_generators(self, gid):
                 if gid==0:
                     sched = arbor.explicit_schedule([1])
-                    return [arbor.event_generator(0, 0.1, sched)]
+                    return [arbor.event_generator("syn", 0.1, sched)]
                 return []
 
             def get_probes(self, id):

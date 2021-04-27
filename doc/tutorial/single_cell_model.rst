@@ -52,8 +52,8 @@ Our *single-segment HH cell* has a simple morphology and dynamics, constructed a
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')
-    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"midpoint"', arbor.spike_detector(-10))
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), 'iclamp')
+    decor.place('"midpoint"', arbor.spike_detector(-10), 'detector')
 
     # (4) Create cell
     cell = arbor.cable_cell(tree, labels, decor)

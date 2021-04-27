@@ -37,8 +37,8 @@ We can immediately paste the cell description code from the
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')
-    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"midpoint"', arbor.spike_detector(-10))
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), 'iclamp')
+    decor.place('"midpoint"', arbor.spike_detector(-10), 'detector')
     cell = arbor.cable_cell(tree, labels, decor)
 
 The recipe
@@ -73,24 +73,20 @@ It returns `0` by default and models without cells are quite boring!
             # (4.2) Override the num_cells method
             return 1
 
-        def num_sources(self, gid):
-            # (4.3) Override the num_sources method
-            return 1
-
         def cell_kind(self, gid):
-            # (4.4) Override the cell_kind method
+            # (4.3) Override the cell_kind method
             return arbor.cell_kind.cable
 
         def cell_description(self, gid):
-            # (4.5) Override the cell_description method
+            # (4.4) Override the cell_description method
             return self.the_cell
 
         def probes(self, gid):
-            # (4.6) Override the probes method
+            # (4.5) Override the probes method
             return self.the_probes
 
         def global_properties(self, kind):
-            # (4.7) Override the global_properties method
+            # (4.6) Override the global_properties method
             return self.the_props
 
 Step **(4)** describes the recipe that will reflect our single cell model.
@@ -105,21 +101,19 @@ extend with Arbor's own :meth:`arbor.default_catalogue`.
 
 Step **(4.2)** defines that this model has one cell.
 
-Step **(4.3)** defines that this model has one source.
-
-Step **(4.4)** returns :class:`arbor.cell_kind.cable`, the :class:`arbor.cell_kind`
+Step **(4.3)** returns :class:`arbor.cell_kind.cable`, the :class:`arbor.cell_kind`
 associated with the cable cell defined above. If you mix multiple cell kinds and
 descriptions in one recipe, make sure a particular ``gid`` returns matching cell kinds
 and descriptions.
 
-Step **(4.5)** returns the cell description passed in on class initialisation. If we
+Step **(4.4)** returns the cell description passed in on class initialisation. If we
 were modelling multiple cells of different kinds, we would need to make sure that the
 cell returned by :meth:`arbor.recipe.cell_description` has the same cell kind as
 returned by :meth:`arbor.recipe.cell_kind` for every :gen:`gid`.
 
-Step **(4.6)** returns the probes passed in at class initialisation.
+Step **(4.5)** returns the probes passed in at class initialisation.
 
-Step **(4.7)** returns the properties that will be applied to all cells of that kind in the model.
+Step **(4.6)** returns the properties that will be applied to all cells of that kind in the model.
 
 More methods can be overridden if your model requires that, see :class:`arbor.recipe` for options.
 
