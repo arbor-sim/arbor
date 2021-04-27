@@ -11,7 +11,7 @@ Benchmark cells
 
     .. function:: benchmark_cell(source, target, schedule, realtime_ratio)
 
-        Construct a benchmark cell that generates with a single built-in source with label ``source``; and a
+        Construct a benchmark cell with a single built-in source with label ``source``; and a
         single built-in target with label ``target``. The labels can be used for forming connections from/to
         the cell in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
 

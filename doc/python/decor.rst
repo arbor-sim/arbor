@@ -128,7 +128,7 @@ Cable cell decoration
 
     .. method:: place(locations, mech_name, label)
 
-        Place one instance of synapse names ``mech_name`` to each location in ``locations`` and label the
+        Place one instance of the synapse named ``mech_name`` to each location in ``locations`` and label the
         group of synapses with ``label``. The label can be used to form connections to one of the synapses
         in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
 
@@ -139,7 +139,7 @@ Cable cell decoration
     .. method:: place(locations, mechanism, label)
         :noindex:
 
-        Place one instance of synapse described by ``mechanism`` to each location in ``locations`` and label the
+        Place one instance of the synapse described by ``mechanism`` to each location in ``locations`` and label the
         group of synapses with ``label``. The label can be used to form connections to one of the synapses
         in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
 

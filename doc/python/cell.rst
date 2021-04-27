@@ -59,7 +59,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
            # Create the policy
            policy = arbor.selection_policy.univalent
 
-           # Creat the local label referring to the group of items labeled "syn0".
+           # Create the local label referring to the group of items labeled "syn0".
            # The group is expected to only contain 1 item.
            local_label = arbor.cell_local_label("syn0", policy)
 

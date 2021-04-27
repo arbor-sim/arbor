@@ -14,7 +14,8 @@ cells and members of cell-local collections.
 .. Note::
     Arbor uses ``std::unit32_t`` for :cpp:type:`cell_gid_type`,
     :cpp:type:`cell_size_type`, :cpp:type:`cell_lid_type`, and
-    :cpp:type:`cell_local_size_type` at the time of writing, however
+    :cpp:type:`cell_local_size_type`; and uses ``std::string`` for
+    :cpp:type:`cell_tag_type` at the time of writing. However,
     this could change, e.g. to handle models that cell gid that don't
     fit into a 32 bit unsigned integer.
     It is thus recommended that these type aliases be used whenever identifying
@@ -47,8 +48,7 @@ cells and members of cell-local collections.
 .. cpp:enum::  lid_selection_policy
 
    For selecting an individual item from a group of items sharing the
-   same :cpp:type:`cell_tag_type` label. The individual item has a :cpp:type:`cell_lid_type`
-   index taken from the range available to the label.
+   same :cpp:type:`cell_tag_type` label.
 
    .. cpp:enumerator:: round_robin
 
@@ -62,9 +62,8 @@ cells and members of cell-local collections.
 .. cpp:class::  cell_local_label_type
 
    For local identification of an item on an unspecified cell.
-   This is used for selecting the target of a connection or the
-   local site of a gap junction connection. The cell is implicitly
-   known in the recipe.
+   This is used for selecting the target of a connection or the local site of a gap junction
+   connection. The cell ``gid`` is implicitly known from the recipe.
 
    .. cpp:member:: cell_tag_type  tag
 
@@ -77,8 +76,8 @@ cells and members of cell-local collections.
 .. cpp:class::  cell_global_label_type
 
    For global identification of an item on a cell.
-   This is used for selecting the source of a connection or the
-   peer site of a gap junction connection.
+   This is used for selecting the source of a connection or the peer site of a gap junction
+   connection.
 
    .. cpp:member:: cell_gid_type   gid
 

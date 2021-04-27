@@ -17,9 +17,10 @@ Cells interact with each other via spike exchange and gap junctions.
                                                                                 For example the synapses "syns_0" on a cell.
     .. generic:: selection_policy  enum                                         The policy for selecting a single item out of a group
                                                                                 identified by its label.
-    .. generic:: local_label       tuple (:gen:`tag`, :gen:`selection_policy`)  The local identification of an item on an unspecified cell.
+    .. generic:: local_label       tuple (:gen:`tag`, :gen:`selection_policy`)  The local identification of an cell-local item from a
+                                                                                cell-local collection on an unspecified cell.
     .. generic:: global_label      tuple (:gen:`gid`, :gen:`local_lable`)       The global identification of a cell-local item from a
-                                                                                a cell-local collection on the cell identified by `gid`.
+                                                                                cell-local collection on the cell identified by `gid`.
     =============================  ===========================================  ===========================================================
 
 Cell interactions via :ref:`connections <modelconnections>` and :ref:`gap junctions <modelgapjunctions>` occur
