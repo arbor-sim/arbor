@@ -124,7 +124,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     // Add additional synapses that will not be connected to anything.
     for (unsigned i=1u; i<params.synapses; ++i) {
-        decor.place(arb::mlocation{1, 0.5}, "expsyn", "dummy_synapse");
+        decor.place(arb::mlocation{1, 0.5}, "expsyn", "dummy_synapses");
     }
 
     // Make a CV between every sample in the sample tree.

@@ -46,7 +46,7 @@ public:
         return {};
     }
 
-    // Labeled source, target and gap_junction info
+    // Labeled source, target and gap_junction lid_ranges per gid
     virtual cell_labeled_ranges source_data() const { return {};};
     virtual cell_labeled_ranges target_data() const { return {};};
     virtual cell_labeled_ranges gap_junction_data() const { return {};};

@@ -88,7 +88,7 @@ public:
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        cons.push_back(arb::cell_connection({src, "my_detector"}, {"my_primary_syn"}, event_weight_, min_delay_));
+        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_));
         return cons;
     }
 
@@ -97,7 +97,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator({{{"my_primary_syn"}, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({{{"primary_syn"}, 1.0, event_weight_}}));
         }
         return gens;
     }
@@ -266,7 +266,7 @@ ring_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than one command line option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];

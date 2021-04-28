@@ -501,10 +501,10 @@ TEST(communicator, ring)
 
     auto local_sources = mc_group.source_data();
     local_sources.append(lif_group.source_data());
+    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
     auto local_targets = mc_group.target_data();
     local_targets.append(lif_group.target_data());
-    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
 
     // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);

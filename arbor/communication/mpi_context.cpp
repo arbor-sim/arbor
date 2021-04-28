@@ -15,7 +15,6 @@
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
 #include "label_resolver.hpp"
-#include "util/partition.hpp"
 
 namespace arb {
 

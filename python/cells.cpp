@@ -524,14 +524,14 @@ void register_cells(pybind11::module& m) {
             [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d, const char* label_name) {
                 return dec.place(locset, d, label_name); },
             "locations"_a, "mechanism"_a, "label"_a,
-            "Place one instance of synapse described by 'mechanism' to each location in 'locations'. "
+            "Place one instance of the synapse described by 'mechanism' on each location in 'locations'. "
             "The group of synapses has the label 'label', used for forming connections between cells.")
         .def("place",
             [](arb::decor& dec, const char* locset, const char* mech_name, const char* label_name) {
                 return dec.place(locset, mech_name, label_name);
             },
             "locations"_a, "mechanism"_a, "label"_a,
-            "Place one instance of synapse described by 'mechanism' to each location in 'locations'."
+            "Place one instance of the synapse described by 'mechanism' on each location in 'locations'."
             "The group of synapses has the label 'label', used for forming connections between cells.")
         // Place gap junctions.
         .def("place",
@@ -539,7 +539,7 @@ void register_cells(pybind11::module& m) {
                 return dec.place(locset, site, label_name);
             },
             "locations"_a, "gapjunction"_a, "label"_a,
-            "Place one gap junction site labeled 'label' at each location in 'locations'."
+            "Place one gap junction site labeled 'label' on each location in 'locations'."
             "The group of gap junctions has the label 'label', used for forming connections between cells.")
         // Place current clamp stimulus.
         .def("place",

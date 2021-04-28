@@ -270,7 +270,7 @@ run_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than one command line option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];

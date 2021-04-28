@@ -121,7 +121,6 @@ public:
             // Draw random source and adjust to avoid self-connections if neccesary.
             arb::cell_gid_type src = dist(rng);
             if (src>=gid) ++src;
-            // Note: target is {gid, 0}, i.e. the first (and only) target on the cell.
             arb::cell_connection con({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay);
             cons.push_back(con);
         }
@@ -232,7 +231,7 @@ bench_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than one command line option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];
