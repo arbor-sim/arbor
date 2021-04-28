@@ -37,7 +37,7 @@ class EventGenerator(unittest.TestCase):
         ps = arb.poisson_schedule(0., 10., 0)
         pg = arb.event_generator(2, 42., ps)
         self.assertEqual(pg.target, 2)
-        self.assertjEqual(pg.weight, 42.)
+        self.assertEqual(pg.weight, 42.)
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class EventGenerator
