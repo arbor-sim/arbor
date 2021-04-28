@@ -10,6 +10,7 @@
 #include <functional>
 #include <limits>
 #include <iosfwd>
+#include <string>
 #include <type_traits>
 
 #include <arbor/util/lexcmp_def.hpp>

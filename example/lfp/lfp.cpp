@@ -254,6 +254,7 @@ int main(int argc, char** argv) {
     std::vector<std::array<double, 2>> electrodes_xz;
     std::transform(electrodes.begin(), electrodes.end(), std::back_inserter(electrodes_xz), to_xz);
 
+    if (arb::rank(context) == 0) {
     std::cout <<
         "{\n"
         "\"morphology\": {\n"
@@ -283,4 +284,5 @@ int main(int argc, char** argv) {
         "\"value\": " << as_json_array(get_v)(ionic_current_density.get(0)) << "\n"
         "}\n"
         "}\n";
+    }
 }
