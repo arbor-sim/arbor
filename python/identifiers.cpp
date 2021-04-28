@@ -34,7 +34,7 @@ void register_identifiers(py::module& m) {
               return arb::cell_local_label_type{std::move(label)};
             }),
              "label"_a,
-             "Construct a cell_local_label identifier from a label argument identifying an item on a cell.\n"
+             "Construct a cell_local_label identifier from a label argument identifying a group of one or more items on a cell.\n"
              "The default round_robin policy is used for selecting one of possibly multiple items associated with the label.")
         .def(py::init(
             [](arb::cell_tag_type label, arb::lid_selection_policy policy) {
@@ -53,7 +53,7 @@ void register_identifiers(py::module& m) {
              "  policy: The policy for selecting one of possibly multiple items associated with the label.\n")
         .def_readwrite("label",  &arb::cell_local_label_type::tag,
              "The identifier of a a group of one or more items on a cell.")
-        .def_readwrite("index", &arb::cell_local_label_type::policy,
+        .def_readwrite("policy", &arb::cell_local_label_type::policy,
             "The policy for selecting one of possibly multiple items associated with the label.")
         .def("__str__", [](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);})
         .def("__repr__",[](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);});

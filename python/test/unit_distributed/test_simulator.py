@@ -46,7 +46,7 @@ class lifN_recipe(A.recipe):
     def event_generators(self, gid):
         sched_dt = 0.25
         weight = 400
-        return [A.event_generator((gid,0), weight, A.regular_schedule(sched_dt)) for gid in range(0, self.num_cells())]
+        return [A.event_generator("tgt", weight, A.regular_schedule(sched_dt)) for gid in range(0, self.num_cells())]
 
     def probes(self, gid):
         return []
@@ -55,7 +55,7 @@ class lifN_recipe(A.recipe):
         return self.props
 
     def cell_description(self, gid):
-        c = A.lif_cell()
+        c = A.lif_cell("src", "tgt")
         if gid%2==0:
             c.t_ref = 2
         else:
