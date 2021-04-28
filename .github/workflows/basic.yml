@@ -184,7 +184,10 @@ jobs:
             mpirun -n 4 -oversubscribe build/bin/ring
             mpirun -n 4 -oversubscribe build/bin/single-cell
       - name: Run python tests
-        run: python python/test/unit/runner.py
+        run: |
+          cd build
+          python ../python/test/unit/runner.py
+          cd -
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py

@@ -79,22 +79,22 @@ class gj_switch:
         return getattr(self, 'case_' + str(arg), lambda: default)()
 
     def case_1(self):
-        return [arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), 0, 0.1)]
 
     def case_2(self):
-        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1),
-                arb.gap_junction_connection(arb.cell_member(9 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), 0, 0.1),
+                arb.gap_junction_connection(arb.cell_member(9 + self.shift_, 0), 0, 0.1)]
 
     def case_6(self):
-        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1),
-                arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), 0, 0.1),
+                arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), 0, 0.1)]
 
     def case_7(self):
-        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1),
-                arb.gap_junction_connection(arb.cell_member(1 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), 0, 0.1),
+                arb.gap_junction_connection(arb.cell_member(1 + self.shift_, 0), 0, 0.1)]
 
     def case_9(self):
-        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), 0, 0.1)]
 
 class gj_symmetric (arb.recipe):
     def __init__(self, num_ranks):
@@ -137,9 +137,9 @@ class gj_non_symmetric (arb.recipe):
         id = gid%self.size
 
         if (id == group and group != (self.groups - 1)):
-            return [arb.gap_junction_connection(arb.cell_member(gid + self.size, 0), arb.cell_member(gid, 0), 0.1)]
+            return [arb.gap_junction_connection(arb.cell_member(gid + self.size, 0), 0, 0.1)]
         elif (id == group - 1):
-            return [arb.gap_junction_connection(arb.cell_member(gid - self.size, 0), arb.cell_member(gid, 0), 0.1)]
+            return [arb.gap_junction_connection(arb.cell_member(gid - self.size, 0), 0, 0.1)]
         else:
             return []
 

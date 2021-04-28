@@ -22,28 +22,22 @@ all tests for event generators (regular, explicit, poisson)
 class EventGenerator(unittest.TestCase):
 
     def test_event_generator_regular_schedule(self):
-        cm = arb.cell_member(42,3)
         rs = arb.regular_schedule(2.0, 1., 100.)
-        rg = arb.event_generator(cm, 3.14, rs)
-        self.assertEqual(rg.target.gid, 42)
-        self.assertEqual(rg.target.index, 3)
+        rg = arb.event_generator(3, 3.14, rs)
+        self.assertEqual(rg.target, 3)
         self.assertAlmostEqual(rg.weight, 3.14)
 
     def test_event_generator_explicit_schedule(self):
-        cm = arb.cell_member(0,42)
         es = arb.explicit_schedule([0,1,2,3,4.4])
-        eg = arb.event_generator(cm, -0.01, es)
-        self.assertEqual(eg.target.gid, 0)
-        self.assertEqual(eg.target.index, 42)
+        eg = arb.event_generator(42, -0.01, es)
+        self.assertEqual(eg.target, 42)
         self.assertAlmostEqual(eg.weight, -0.01)
 
     def test_event_generator_poisson_schedule(self):
-        cm = arb.cell_member(4,2)
         ps = arb.poisson_schedule(0., 10., 0)
-        pg = arb.event_generator(cm, 42., ps)
-        self.assertEqual(pg.target.gid, 4)
-        self.assertEqual(pg.target.index, 2)
-        self.assertEqual(pg.weight, 42.)
+        pg = arb.event_generator(2, 42., ps)
+        self.assertEqual(pg.target, 2)
+        self.assertjEqual(pg.weight, 42.)
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class EventGenerator
