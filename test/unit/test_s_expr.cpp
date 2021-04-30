@@ -210,13 +210,27 @@ TEST(cv_policies, round_tripping) {
                      "(max-extent 23.1 (segment 0) 1)",
                      "(single (segment 0))",
                      "(explicit (terminal) (segment 0))",
-                     "(add (every-segment (tag 42)) (single (segment 0)))",
+                     "(join (every-segment (tag 42)) (single (segment 0)))",
                      "(replace (every-segment (tag 42)) (single (segment 0)))",
     };
     for (const auto& literal: literals) {
         EXPECT_EQ(literal, round_trip_cv(literal));
     }
 }
+
+TEST(cv_policies, bad) {
+    auto check = [](const std::string& s) {
+        auto cv = cv::parse_expression(s);
+        if (!cv.has_value()) throw cv.error();
+        return cv.value();
+    };
+
+    EXPECT_THROW(check("(every-segment (tag 42) 1)"), cv::parse_error); // extra arg
+    EXPECT_THROW(check("(every-segment (terminal))"), cv::parse_error); // locset instead of region
+    EXPECT_THROW(check("(every-segment"), cv::parse_error);             // missing paren
+    EXPECT_THROW(check("(tag 42)"), cv::parse_error);                   // not a cv_policy
+}
+
 
 TEST(regloc, round_tripping) {
     EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));

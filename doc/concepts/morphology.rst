@@ -716,7 +716,7 @@ DSL. Constructors are
 
 with the obvious correspondences. The composition operators are
 
-* ``(add <cv-policy> <cv-policy> ...)`` equivalent to ``+``
+* ``(join <cv-policy> <cv-policy> ...)`` equivalent to ``+``
 * ``(replace <cv-policy> <cv-policy> ...)`` equivalent to ``|``
 
 and take arbitrary many policies.

@@ -37,7 +37,7 @@ struct cv_policy_plus_: cv_policy_base {
     region domain() const override { return join(lhs_.domain(), rhs_.domain()); }
 
     std::ostream& print(std::ostream& os) override {
-        os << "(add " << lhs_ << ' ' << rhs_ << ')';
+        os << "(join " << lhs_ << ' ' << rhs_ << ')';
         return os;
     }
 
