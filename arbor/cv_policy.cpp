@@ -1,4 +1,5 @@
 #include <utility>
+#include <ostream>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -35,6 +36,11 @@ struct cv_policy_plus_: cv_policy_base {
 
     region domain() const override { return join(lhs_.domain(), rhs_.domain()); }
 
+    std::ostream& print(std::ostream& os) override {
+        os << "(add " << lhs_ << ' ' << rhs_ << ')';
+        return os;
+    }
+
     cv_policy lhs_, rhs_;
 };
 
@@ -55,6 +61,11 @@ struct cv_policy_bar_: cv_policy_base {
     }
 
     region domain() const override { return join(lhs_.domain(), rhs_.domain()); }
+
+    std::ostream& print(std::ostream& os) override {
+        os << "(replace " << lhs_ << ' ' << rhs_ << ')';
+        return os;
+    }
 
     cv_policy lhs_, rhs_;
 };
