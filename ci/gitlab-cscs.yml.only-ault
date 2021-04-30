@@ -1,0 +1,11 @@
+stages:
+  - test
+
+test-ault-fujitsu:
+    needs: []
+    tags:
+        - arm-a64fx
+    stage: test
+    script:
+        - chmod +x ci/test-ault-fujitsu.sh
+        - srun --partition=a64fx -c48 ci/test-ault-fujitsu.sh "$(pwd)"
