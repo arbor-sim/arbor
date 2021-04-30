@@ -231,7 +231,6 @@ TEST(cv_policies, bad) {
     EXPECT_THROW(check("(tag 42)"), cv::parse_error);                   // not a cv_policy
 }
 
-
 TEST(regloc, round_tripping) {
     EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));
     EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))", round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
