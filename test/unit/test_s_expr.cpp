@@ -6,6 +6,8 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/label_parse.hpp>
+#include <arbor/cv_policy.hpp>
+#include <arbor/cv_policy_parse.hpp>
 #include <arbor/s_expr.hpp>
 
 #include <arborio/cableio.hpp>
@@ -174,6 +176,15 @@ std::string round_trip_label(const char* in) {
     }
 }
 
+std::string round_trip_cv(const char* in) {
+    if (auto x = cv::parse_expression(in)) {
+        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
         return util::pprintf("{}", std::any_cast<arb::region>(*x));
@@ -189,6 +200,21 @@ std::string round_trip_locset(const char* in) {
     }
     else {
         return x.error().what();
+    }
+}
+
+
+TEST(cv_policies, round_tripping) {
+    auto literals = {"(every-segment (tag 42))",
+                     "(fixed-per-branch 23 (segment 0) 1)",
+                     "(max-extent 23.1 (segment 0) 1)",
+                     "(single (segment 0))",
+                     "(explicit (terminal) (segment 0))",
+                     "(add (every-segment (tag 42)) (single (segment 0)))",
+                     "(replace (every-segment (tag 42)) (single (segment 0)))",
+    };
+    for (const auto& literal: literals) {
+        EXPECT_EQ(literal, round_trip_cv(literal));
     }
 }
 
@@ -355,9 +381,6 @@ std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
 }
 std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
     return o << "(ion-reversal-potential-method \"" << p.ion << "\" " << p.method << ')';
-}
-std::ostream& operator<<(std::ostream& o, const cv_policy&) {
-    return o;
 }
 std::ostream& operator<<(std::ostream& o, const branch& b) {
     o << "(branch " << std::to_string(std::get<0>(b)) << " " << std::to_string(std::get<1>(b));

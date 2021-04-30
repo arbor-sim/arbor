@@ -703,6 +703,24 @@ and *B*, while *A* | *B* is a policy which gives all the boundary points from
 The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
 *B*.
 
+Reading CV policies from strings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CV policies can also be converted to and from strings, using an S-Expression-based
+DSL. Constructors are
+
+* ``(single <optional:region>)``
+* ``(max-extent <double> <optional:region> <optional:flags>)``
+* ``(fixed-per-branch <int> <optional:region> <optional:flags>)``
+* ``(explicit <locset> <optional:region>)``
+
+with the obvious correspondences. The composition operators are
+
+* ``(add <cv-policy> <cv-policy> ...)`` equivalent to ``+``
+* ``(replace <cv-policy> <cv-policy> ...)`` equivalent to ``|``
+
+and take arbitrary many policies.
+
 API
 ---
 

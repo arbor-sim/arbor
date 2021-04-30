@@ -14,6 +14,8 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/cv_policy.hpp>
+#include <arbor/cv_policy_parse.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
@@ -243,13 +245,22 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
+        .def(pybind11::init([](const std::string& s) { return arb::cv::parse_expression(s).value(); }))
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
         .def(pybind11::self + pybind11::self)
         .def(pybind11::self | pybind11::self)
-        .def("__repr__", [](const arb::cv_policy& p) {return "(cv-policy)";})
-        .def("__str__",  [](const arb::cv_policy& p) {return "(cv-policy)";});
+        .def("__repr__", [](const arb::cv_policy& p) {
+            std::stringstream ss;
+            ss << p;
+            return ss.str();
+        })
+        .def("__str__", [](const arb::cv_policy& p) {
+            std::stringstream ss;
+            ss << p;
+            return ss.str();
+        });
 
     m.def("cv_policy_single",
           &make_cv_policy_single,
