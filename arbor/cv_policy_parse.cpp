@@ -32,21 +32,6 @@ bool match<double>(const std::type_info& info) {
     return info == typeid(double) || info == typeid(int);
 }
 
-template <>
-bool match<cv_policy>(const std::type_info& info) {
-    return info == typeid(cv_policy);
-}
-
-template <>
-bool match<region>(const std::type_info& info) {
-    return info == typeid(region);
-}
-
-template <>
-bool match<locset>(const std::type_info& info) {
-    return info == typeid(locset);
-}
-
 template <typename T>
 T eval_cast(std::any arg) {
     return std::move(std::any_cast<T&>(arg));
