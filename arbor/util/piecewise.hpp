@@ -72,11 +72,20 @@ struct pw_elements {
     using size_type = pw_size_type;
     static constexpr size_type npos = pw_npos;
 
-    using value_type = std::pair<std::pair<double, double>, X>;
+    struct value_type {
+        std::pair<double, double> interval;
+        X element;
+
+        bool operator==(const value_type& other) const { return interval==other.interval && element==other.element; }
+        bool operator!=(const value_type& other) const { return interval!=other.interval || element!=other.element; }
+    };
+
+    using const_iterator = indexed_const_iterator<pw_elements<X>>;
+    using iterator = const_iterator;
 
     // Consistency requirements:
-    // 1. empty() || element.size()+1 = vertex.size()
-    // 2. vertex[i]<=vertex[j] for i<=j.
+    // 1. empty() || element_.size()+1 = vertex_.size()
+    // 2. vertex_[i]<=vertex_[j] for i<=j.
 
     std::vector<double> vertex_;
     std::vector<X> element_;
@@ -127,9 +136,6 @@ struct pw_elements {
     X& element(size_type i) & { return element_[i]; }
     const X& element(size_type i) const & { return element_[i]; }
     value_type operator[](size_type i) const { return value_type{interval(i), element(i)}; }
-
-    using const_iterator = indexed_const_iterator<pw_elements<X>>;
-    using iterator = const_iterator;
 
     const_iterator cbegin() const { return const_iterator{this, 0}; }
     const_iterator begin() const { return cbegin(); }
@@ -261,7 +267,15 @@ template <> struct pw_elements<void> {
 
     std::vector<double> vertex_;
 
-    using value_type = std::pair<double, double>;
+    struct value_type {
+        std::pair<double, double> interval;
+
+        bool operator==(const value_type& other) const { return interval==other.interval; }
+        bool operator!=(const value_type& other) const { return interval!=other.interval; }
+    };
+
+    using const_iterator = indexed_const_iterator<pw_elements<void>>;
+    using iterator = const_iterator;
 
     // ctors and assignment:
 
@@ -285,7 +299,7 @@ template <> struct pw_elements<void> {
 
     auto intervals() const { return util::partition_view(vertex_); }
     auto interval(size_type i) const { return intervals()[i]; }
-    value_type operator[](size_type i) const { return interval(i); }
+    value_type operator[](size_type i) const { return value_type{interval(i)}; }
 
     auto bounds() const { return intervals().bounds(); }
 
@@ -305,8 +319,16 @@ template <> struct pw_elements<void> {
         else return partn.index(x);
     }
 
-    using const_iterator = indexed_const_iterator<pw_elements<void>>;
-    using iterator = const_iterator;
+    // Return iterator pair spanning elements whose corresponding closed intervals contain x.
+    std::pair<iterator, iterator> equal_range(double x) const {
+        auto eq = std::equal_range(vertex_.begin(), vertex_.end(), x);
+
+        if (eq.first==vertex_.end()) return {end(), end()};
+        if (eq.first>vertex_.begin()) --eq.first;
+        if (eq.second==vertex_.end()) --eq.second;
+
+        return {begin()+(eq.first-vertex_.begin()), begin()+(eq.second-vertex_.begin())};
+    }
 
     const_iterator cbegin() const { return const_iterator{this, 0}; }
     const_iterator begin() const { return cbegin(); }
@@ -382,10 +404,10 @@ namespace impl {
     struct piecewise_pairify {
         std::pair<A, B> operator()(
             double left, double right,
-            const pw_element<A> a_elem,
-            const pw_element<B> b_elem) const
+            const pw_element<A>& a_elem,
+            const pw_element<B>& b_elem) const
          {
-            return {a_elem.second, b_elem.second};
+            return {a_elem.element, b_elem.element};
         }
     };
 
@@ -393,10 +415,10 @@ namespace impl {
     struct piecewise_pairify<X, void> {
         X operator()(
             double left, double right,
-            const pw_element<X> a_elem,
-            const pw_element<void> b_elem) const
+            const pw_element<X>& a_elem,
+            const pw_element<void>& b_elem) const
         {
-            return a_elem.second;
+            return a_elem.element;
         }
     };
 
@@ -404,25 +426,56 @@ namespace impl {
     struct piecewise_pairify<void, X> {
         X operator()(
             double left, double right,
-            const pw_element<void> a_elem,
-            const pw_element<X> b_elem) const
+            const pw_element<void>& a_elem,
+            const pw_element<X>& b_elem) const
         {
-            return b_elem.second;
+            return b_elem.element;
         }
+    };
+
+    template <>
+    struct piecewise_pairify<void, void> {
+        void operator()(
+            double left, double right,
+            const pw_element<void>&,
+            const pw_element<void>&) const {}
     };
 }
 
-// TODO: Consider making a lazy `zip_view` version of zip.
-
-// Combine functional takes four arguments: 
-//     double left, double right, pw_elements<A>::value_type, pw_elements<B>::value_type b>
+// Zip combines successive elements from two pw_elements sequences where the
+// elements overlap. Let A_i and B_i denote the ordered elements from each of
+// the sequences A and B, and Z_i denote the elements from the resulting
+// sequence Z.
 //
-// Default combine functional returns std::pair<A, B>, unless one of A and B is void.
+// * The support (`bounds()`) of the zipped result is the intersections of the
+//   support of the two sequences.
+//
+// * Each element Z_k in the zip corresponds to the intersection of some
+//   element A_i and B_j. The extent of Z_k is the intersection of the
+//   extents of A_i and B_j, and its value is determined by the supplied
+//   `combine` function.
+//
+// * For every element in A_i in A, if A_i intersects with an element of
+//   B, then there will be an Z_k corresponding to the intersection of A_i
+//   with some element of B. Likewise for elements B_i of B.
+//
+// * Elements of Z respect the ordering of elements in A and B, and do
+//   not repeat. If Z_k is derived from A_i and B_j, then Z_(k+1) is derived
+//   from A_(i+1) and B_(j+1) if possible, or else from A_i and B_(j+1) or
+//   A_(i+1) and B_j.
+//
+// The Combine functional takes four arguments: double left, double right,
+// pw_elements<A>::value_type, pw_elements<B>::value_type b. The default
+// combine functional returns std::pair<A, B>, unless one of A and B is void.
+//
+// TODO: Consider making a lazy `zip_view` version of zip.
 
 template <typename A, typename B, typename Combine = impl::piecewise_pairify<A, B>>
 auto zip(const pw_elements<A>& a, const pw_elements<B>& b, Combine combine = {})
 {
     using Out = decltype(combine(0., 0., a.front(), b.front()));
+    constexpr bool is_void = std::is_void_v<Out>;
+
     pw_elements<Out> z;
     if (a.empty() || b.empty()) return z;
 
@@ -430,77 +483,34 @@ auto zip(const pw_elements<A>& a, const pw_elements<B>& b, Combine combine = {})
     double rmin = std::min(a.bounds().second, b.bounds().second);
     if (rmin<lmax) return z;
 
+    auto ai = a.equal_range(lmax).first;
+    auto bi = b.equal_range(lmax).first;
+
+    auto a_end = a.equal_range(rmin).second;
+    auto b_end = b.equal_range(rmin).second;
+
     double left = lmax;
-    pw_size_type ai = a.index_of(left);
-    pw_size_type bi = b.index_of(left);
-
-    arb_assert(ai!=(pw_size_type)-1);
-    arb_assert(bi!=(pw_size_type)-1);
-
-    if (rmin==left) {
-        z.push_back(left, left, combine(left, left, a[ai], b[bi]));
-        return z;
-    }
-
-    double a_right = a.interval(ai).second;
-    double b_right = b.interval(bi).second;
-
+    double a_right = ai->interval.second;
+    double b_right = bi->interval.second;
     for (;;) {
         double right = std::min(a_right, b_right);
-        right = std::min(right, rmin);
-
-        z.push_back(left, right, combine(left, right, a[ai], b[bi]));
-        if (right==rmin) break;
-
-        if (a_right==right) {
-            a_right = a.interval(++ai).second;
+        if constexpr (is_void) {
+            z.push_back(left, right);
         }
-        if (b_right==right) {
-            b_right = b.interval(++bi).second;
+        else {
+            z.push_back(left, right, combine(left, right, *ai, *bi));
         }
 
+        bool advance_a = a_right==right && std::next(ai)!=a_end;
+        bool advance_b = b_right==right && std::next(bi)!=b_end;
+        if (!advance_a && !advance_b) break;
+
+        if (advance_a) a_right = (++ai)->interval.second;
+        if (advance_b) b_right = (++bi)->interval.second;
         left = right;
     }
     return z;
 }
-
-inline pw_elements<void> zip(const pw_elements<void>& a, const pw_elements<void>& b) {
-    pw_elements<void> z;
-    if (a.empty() || b.empty()) return z;
-
-    double lmax = std::max(a.bounds().first, b.bounds().first);
-    double rmin = std::min(a.bounds().second, b.bounds().second);
-    if (rmin<lmax) return z;
-
-    double left = lmax;
-    pw_size_type ai = a.intervals().index(left);
-    pw_size_type bi = b.intervals().index(left);
-
-    if (rmin==left) {
-        z.push_back(left, left);
-        return z;
-    }
-
-    double a_right = a.interval(ai).second;
-    double b_right = b.interval(bi).second;
-
-    while (left<rmin) {
-        double right = std::min(a_right, b_right);
-        right = std::min(right, rmin);
-
-        z.push_back(left, right);
-        if (a_right<=right) {
-            a_right = a.interval(++ai).second;
-        }
-        if (b_right<=right) {
-            b_right = b.interval(++bi).second;
-        }
-
-        left = right;
-    }
-    return z;
-}
-
 
 } // namespace util
 } // namespace arb

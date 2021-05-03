@@ -145,7 +145,7 @@ struct cv_geometry {
         }
 
         index_type cv_base = cell_cv_divs.at(cell_idx);
-        return cv_base+pw_cv_offset[i].second;
+        return cv_base+pw_cv_offset[i].element;
     }
 };
 
