@@ -600,6 +600,9 @@ TEST(decor, round_tripping) {
                                 "      (ion-internal-concentration \"ca\" 0.500000))\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
+                                "      (gap-junction-site))\n"
+                                "    (place \n"
+                                "      (location 0 0)\n"
                                 "      (threshold-detector 10.000000))\n"
                                 "    (place \n"
                                 "      (location 0 0.5)\n"
@@ -803,10 +806,16 @@ TEST(cable_cell, round_tripping) {
                                 "        (mechanism \"pas\"))\n"
                                 "      (paint \n"
                                 "        (region \"soma\")\n"
-                                "        (mechanism \"hh\"))\n"
+                                "        (mechanism \"hh\" \n"
+                                "          (\"el\" 0.500000)))\n"
                                 "      (place \n"
                                 "        (location 0 1)\n"
-                                "        (mechanism \"exp2syn\")))))";
+                                "        (current-clamp \n"
+                                "          (envelope \n"
+                                "            (10.000000 0.500000)\n"
+                                "            (110.000000 0.500000)\n"
+                                "            (110.000000 0.000000))\n"
+                                "          0.000000 0.000000)))))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str.c_str()));
 

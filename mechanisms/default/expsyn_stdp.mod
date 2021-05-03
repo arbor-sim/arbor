@@ -18,7 +18,7 @@ PARAMETER {
     Apre = 0.01 : pre-synaptic contribution
     Apost = -0.01  : post-synaptic contribution
     e = 0   (mV) : reversal potential
-    max_weight = 10 (nS) : maximum synaptic conductance
+    max_weight = 10 (uS) : maximum synaptic conductance
 }
 
 STATE {

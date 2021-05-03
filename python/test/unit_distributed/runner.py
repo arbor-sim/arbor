@@ -72,7 +72,9 @@ if __name__ == "__main__":
         sys.stdout = open(os.devnull, 'w')
         runner = unittest.TextTestRunner(stream=sys.stdout)
 
-    runner.run(suite())
+    result = runner.run(suite())
 
     if not arb.mpi_is_finalized():
        arb.mpi_finalize()
+
+    sys.exit(not(result.wasSuccessful()))

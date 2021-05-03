@@ -57,25 +57,21 @@ public:
 
         // Add soma.
         auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
-
         // Add dendrite
         auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
         tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
-        arb::label_dict d;
-        d.set("soma", arb::reg::tagged(1));
-        arb::cable_cell cell{arb::morphology(tree), d};
-        cell.paint("soma", "pas");
+        arb::decor decor;
+        decor.paint(arb::reg::tagged(1), "pas");
+        decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         for(unsigned i = 0; i < num_synapse_; i++) {
             auto gen = std::mt19937(i);
-            cell.place(arb::mlocation{1, distribution(gen)}, "expsyn");
+            decor.place(arb::mlocation{0, distribution(gen)}, "expsyn");
         }
 
-        cell.default_parameters = arb::neuron_parameter_defaults;
-        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
-        return std::move(cell);
+        return arb::cable_cell{arb::morphology(tree), {}, decor};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -108,17 +104,15 @@ public:
 
         // Add soma.
         auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
-
         // Add dendrite
         auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
         tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
-        arb::cable_cell cell{arb::morphology(tree)};
-        cell.paint(arb::reg::all(), "pas");
+        arb::decor decor;
+        decor.paint(arb::reg::all(), "pas");
+        decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
-        cell.default_parameters = arb::neuron_parameter_defaults;
-        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
-        return std::move(cell);
+        return arb::cable_cell {arb::morphology(tree), {}, decor};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -151,19 +145,17 @@ public:
 
         // Add soma.
         auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
-
         // Add dendrite
         auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
         auto s2 = tree.append(s1, {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
         tree.append(s2,           {0          ,dend_length,soma_radius+dend_length, dend_radius}, 3);
         tree.append(s2,           {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell{arb::morphology(tree)};
-        cell.paint(arb::reg::all(), "pas");
+        arb::decor decor;
+        decor.paint(arb::reg::all(), "pas");
+        decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
 
-        cell.default_parameters = arb::neuron_parameter_defaults;
-        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length*3/num_comp_);
-        return std::move(cell);
+        return arb::cable_cell{arb::morphology(tree), {}, decor};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -196,17 +188,15 @@ public:
 
         // Add soma.
         auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
-
         // Add dendrite
         auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
         tree.append(s1,           {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell{arb::morphology(tree)};
-        cell.paint(arb::reg::all(), "hh");
+        arb::decor decor;
+        decor.paint(arb::reg::all(), "hh");
+        decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
-        cell.default_parameters = arb::neuron_parameter_defaults;
-        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length/num_comp_);
-        return std::move(cell);
+        return arb::cable_cell{arb::morphology(tree), {}, decor};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -239,19 +229,17 @@ public:
 
         // Add soma.
         auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
-
         // Add dendrite
         auto s1 = tree.append(s0, {0          ,0          ,soma_radius,             dend_radius}, 3);
         auto s2 = tree.append(s1, {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
         tree.append(          s2, {0          ,dend_length,soma_radius+dend_length, dend_radius}, 3);
         tree.append(          s2, {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
-        arb::cable_cell cell{arb::morphology(tree)};
-        cell.paint(arb::reg::all(), "hh");
+        arb::decor decor;
+        decor.paint(arb::reg::all(), "hh");
+        decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
 
-        cell.default_parameters = arb::neuron_parameter_defaults;
-        cell.default_parameters.discretization = arb::cv_policy_max_extent(dend_length*3/num_comp_);
-        return std::move(cell);
+        return arb::cable_cell{arb::morphology(tree), {}, decor};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {

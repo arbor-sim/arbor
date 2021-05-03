@@ -606,10 +606,8 @@ static void check_dlerror(const std::string& fn, const std::string& call) {
     if (error) { throw arb::bad_catalogue_error{fn, call}; }
 }
 
-const mechanism_catalogue& load_catalogue(const std::filesystem::path& fn) {
+const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
-
-    if (!std::filesystem::exists(fn)) { throw arb::file_not_found_error{fn}; }
 
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
     check_dlerror(fn, "dlopen");

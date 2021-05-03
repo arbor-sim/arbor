@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
@@ -132,7 +131,7 @@ const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
 
-const mechanism_catalogue& load_catalogue(const std::filesystem::path&);
+const mechanism_catalogue& load_catalogue(const std::string&);
 
 mechanism_info get_mech_info(const arb_mechanism_type& mech_);
 } // namespace arb

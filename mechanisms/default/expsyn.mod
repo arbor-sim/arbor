@@ -6,6 +6,7 @@ NEURON {
 
 UNITS {
     (mV) = (millivolt)
+    (uS) = (microsiemens)
 }
 
 PARAMETER {
@@ -16,7 +17,7 @@ PARAMETER {
 ASSIGNED {}
 
 STATE {
-    g
+    g (uS)
 }
 
 INITIAL {

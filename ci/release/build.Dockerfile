@@ -20,18 +20,23 @@ RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Install cmake
-RUN wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+RUN wget -q "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" -O cmake.tar.gz && \
+    echo "486edd6710b5250946b4b199406ccbf8f567ef0e23cfe38f7938b8c78a2ffa5f cmake.tar.gz" | sha256sum --check --quiet && \
+    tar --strip-components=1 -xzf cmake.tar.gz -C /usr/local && \
+    rm -rf cmake.tar.gz
 
 # Install MPICH ABI compatible with Cray's lib on Piz Daint
-RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz && \
-    tar -xzf mpich-${MPICH_VERSION}.tar.gz && \
+RUN wget -q https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz -O mpich.tar.gz && \
+    echo "4bfaf8837a54771d3e4922c84071ef80ffebddbb6971a006038d91ee7ef959b9 mpich.tar.gz" | sha256sum --check --quiet && \
+    tar -xzf mpich.tar.gz && \
     cd mpich-${MPICH_VERSION} && \
     ./configure --disable-fortran && \
     make install -j$(nproc) && \
-    rm -rf mpich-${MPICH_VERSION}.tar.gz mpich-${MPICH_VERSION}
+    rm -rf mpich.tar.gz mpich-${MPICH_VERSION}
 
 # Install bundle tooling for creating small Docker images
 RUN wget -q https://github.com/haampie/libtree/releases/download/v1.2.0/libtree_x86_64.tar.gz && \
+    echo "4316a52aed7c8d2f7d2736c935bbda952204be92e56948110a143283764c427c libtree_x86_64.tar.gz" | sha256sum --check --quiet && \
     tar -xzf libtree_x86_64.tar.gz && \
     rm libtree_x86_64.tar.gz && \
     ln -s /root/libtree/libtree /usr/local/bin/libtree
