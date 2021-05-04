@@ -181,7 +181,10 @@ struct make_fold {
 };
 
 std::unordered_multimap<std::string, evaluator>
-eval_map {{"every-segment",
+eval_map {{"default",
+           make_call<>([] () { return cv_policy{default_cv_policy()}; },
+                       "'default' with no arguments")},
+          {"every-segment",
            make_call<>([] () { return cv_policy{cv_policy_every_segment()}; },
                        "'every-segment' with no arguments")},
           {"every-segment",
