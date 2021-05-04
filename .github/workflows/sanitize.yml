@@ -25,9 +25,6 @@ jobs:
         CXX:        ${{ matrix.cxx }}
         # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
         PYTHONPATH: ${{ github.workspace }}/build/python
-        # This is a workaround for the unfortunate interaction of MacOS and OpenMPI 4
-        # See https://github.com/open-mpi/ompi/issues/6518
-        OMPI_MCA_btl: "self,tcp"
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.7
