@@ -157,6 +157,20 @@ struct pw_elements {
     std::pair<iterator, iterator> equal_range(double x) const {
         auto eq = std::equal_range(vertex_.begin(), vertex_.end(), x);
 
+        // Let n be the number of elements, indexed from 0 to n-1, with
+        // vertices indexed from 0 to n. Observe:
+        // * eq.first points to least vertex v_i ≥ x.
+        // * eq.second points to vertex_.end() if the last vertex v_n ≤ x,
+        //   or else to the least vertex v_k > x.
+        //
+        // Elements then correspond to the index range [b, e), where:
+        // * b=0 if i=0, else b=i-1, as v_i will be the upper vertex for
+        //   the first element whose (closed) support contains x.
+        // * e=k if k<n, since v_k will be the upper vertex for the
+        //   the last element (index k-1) whose support contains x.
+        //   Otherwise, if k==n or eq.second is vertex_.end(), the
+        //   last element (index n-1) contains x, and so e=n.
+
         if (eq.first==vertex_.end()) return {end(), end()};
         if (eq.first>vertex_.begin()) --eq.first;
         if (eq.second==vertex_.end()) --eq.second;
@@ -403,7 +417,7 @@ namespace impl {
     template <typename A, typename B>
     struct piecewise_pairify {
         std::pair<A, B> operator()(
-            double left, double right,
+            double, double,
             const pw_element<A>& a_elem,
             const pw_element<B>& b_elem) const
          {
@@ -414,7 +428,7 @@ namespace impl {
     template <typename X>
     struct piecewise_pairify<X, void> {
         X operator()(
-            double left, double right,
+            double, double,
             const pw_element<X>& a_elem,
             const pw_element<void>& b_elem) const
         {
@@ -425,7 +439,7 @@ namespace impl {
     template <typename X>
     struct piecewise_pairify<void, X> {
         X operator()(
-            double left, double right,
+            double, double,
             const pw_element<void>& a_elem,
             const pw_element<X>& b_elem) const
         {
@@ -436,7 +450,7 @@ namespace impl {
     template <>
     struct piecewise_pairify<void, void> {
         void operator()(
-            double left, double right,
+            double, double,
             const pw_element<void>&,
             const pw_element<void>&) const {}
     };
