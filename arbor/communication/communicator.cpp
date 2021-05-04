@@ -80,11 +80,10 @@ communicator::communicator(const recipe& rec,
     for (const auto& cell: gid_infos) {
         auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
-            auto num_sources = rec.num_sources(c.source.gid);
             if (c.source.gid >= num_total_cells) {
                 throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
             }
-            if (c.source.index >= num_sources) {
+            if (auto num_sources = rec.num_sources(c.source.gid); c.source.index >= num_sources) {
                 throw arb::bad_connection_source_lid(cell.gid, c.source.index, num_sources);
             }
             if (c.dest >= num_targets) {

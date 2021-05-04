@@ -58,4 +58,5 @@ def suite():
 if __name__ == "__main__":
     v = options.parse_arguments().verbosity
     runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
+    result = runner.run(suite())
+    sys.exit(not(result.wasSuccessful()))
