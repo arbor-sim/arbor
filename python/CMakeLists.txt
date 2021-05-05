@@ -44,6 +44,7 @@ set(pyarb_source
 # use by both the Python wrapper target (pyarb) and for the
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
+set_target_properties(pyarb_obj PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_link_libraries(pyarb_obj PRIVATE arbor arborio pybind11::module)
 
 # The Python library. MODULE will make a Python-exclusive model.
