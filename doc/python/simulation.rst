@@ -105,6 +105,9 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         Each spike is represented as a NumPy structured datatype with signature
         ``('source', [('gid', '<u4'), ('index', '<u4')]), ('time', '<f8')``.
 
+        The spikes are sorted in ascending order of spike time, and spikes with the same time are
+        sorted accourding to source gid then index.
+
     **Sampling probes:**
 
     .. function:: sample(probe_id, schedule, policy)
@@ -209,6 +212,11 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
 ``source`` and ``time``. The ``source`` field itself is a structured datatype with two fields,
 ``gid`` and ``index``, identifying the spike detector that generated the spike.
 
+.. Note::
+
+    The spikes returned by :py:func:`simulation.record` are sorted in ascending order of spike time.
+    Spikes that have the same spike time are sorted in ascending order of gid and local index of the
+    spike source.
 
 .. container:: example-code
 
@@ -219,7 +227,9 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
         # Instantiate the simulation.
         sim = arbor.simulation(recipe, decomp, context)
 
-        # Direct the simulation to record all spikes.
+        # Direct the simulation to record all spikes, which will record all spikes
+        # across multiple MPI ranks in distrubuted simulation.
+        # To only record spikes from the local MPI rank, use arbor.spike_recording.local
         sim.record(arbor.spike_recording.all)
 
         # Run the simulation for 2000 ms with time stepping of 0.025 ms
