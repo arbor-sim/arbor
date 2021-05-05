@@ -1164,7 +1164,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
 
         auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
-            return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.second*b.second; });
+            return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
         };
 
         for (auto i: count_along(config.cv)) {
