@@ -118,7 +118,9 @@ function("make_catalogue")
   endforeach()
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
-  set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXXOPT_ARCH})
+  if(${ARB_CXXOPT_ARCH})
+	set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXXOPT_ARCH})
+  endif()
 
   if(${MK_CAT_STANDALONE})
     add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
