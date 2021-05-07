@@ -18,8 +18,8 @@ and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
 The cell
 --------
 
-We can immediately paste the cell description code from the
-:ref:`previous example <tutorialsinglecell-cell>` where it is explained in detail.
+Let's copy the cell description from the :ref:`previous example <tutorialsinglecell-cell>`,
+where construction of the cell is explained in detail.
 
 .. code-block:: python
 
@@ -44,8 +44,9 @@ We can immediately paste the cell description code from the
 The recipe
 ----------
 
-The :class:`arbor.single_cell_model` of the previous example created a :class:`arbor.recipe` under
-the hood, and abstracted away the details so we were unaware of its existence.
+The :class:`arbor.single_cell_model` of the previous example creates a :class:`arbor.recipe` under
+the hood, and abstracts away a few details that you may want control over in more complex simulations.
+Let's go into which we need to go into so we were unaware of its existence.
 
 Creating an analogous recipe starts with creating a class that inherits from :class:`arbor.recipe`
 and overrides and implements some of :class:`arbor.recipe` methods. Not all methods

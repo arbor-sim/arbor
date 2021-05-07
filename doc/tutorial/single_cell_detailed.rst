@@ -52,7 +52,7 @@ The morphology
 We begin by constructing the following morphology:
 
 .. figure:: ../gen-images/tutorial_morph.svg
-   :width: 400
+   :width: 600
    :align: center
 
 This can be done by manually building a segment tree:
