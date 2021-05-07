@@ -234,6 +234,9 @@ if(ARB_ARCH)
     set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
     target_compile_options(arbor-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
     target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
+    set(MAYBE_EMPTY_ARB_ARCH ${ARB_ARCH})
+else()
+    set(MAYBE_EMPTY_ARB_ARCH "notset")
 endif()
 
 # Profiling and test features
