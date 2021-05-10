@@ -29,8 +29,8 @@ namespace {
         auto d = builder.make_cell();
         d.decorations.paint("soma"_lab, "hh");
         d.decorations.paint("dend"_lab, "pas");
-        d.decorations.place(builder.location({1,1}), i_clamp::box(5, 80, 0.3));
-        d.decorations.place(builder.location({0, 0}), threshold_detector{0});
+        d.decorations.place(builder.location({1,1}), i_clamp::box(5, 80, 0.3), "clamp0");
+        d.decorations.place(builder.location({0, 0}), threshold_detector{0}, "detector0");
         return d;
     }
 }
