@@ -78,6 +78,10 @@ arb::cv_policy make_cv_policy_single(const std::string& reg) {
     return arb::cv_policy_single(reg);
 }
 
+arb::cv_policy make_cv_policy_explicit(const std::string& locset, const std::string& reg) {
+    return arb::cv_policy_explicit(locset, reg);
+}
+
 arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
     return arb::cv_policy_every_segment(reg);
 }
@@ -267,6 +271,12 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::self | pybind11::self)
         .def("__repr__", [](const arb::cv_policy& p) {return "(cv-policy)";})
         .def("__str__",  [](const arb::cv_policy& p) {return "(cv-policy)";});
+
+    m.def("cv_policy_explicit",
+          &make_cv_policy_explicit,
+          "locset"_a, "the locset describing the desired CV boundaries",
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to create compartments at explicit locations.");
 
     m.def("cv_policy_single",
           &make_cv_policy_single,

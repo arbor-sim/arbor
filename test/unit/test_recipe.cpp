@@ -36,19 +36,19 @@ namespace {
             return num_cells_;
         }
         arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-            return cells_[gid];
+            return cells_.at(gid);
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable;
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
-            return gap_junctions_[gid];
+            return gap_junctions_.at(gid);
         }
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-            return connections_[gid];
+            return connections_.at(gid);
         }
         std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-            return event_generators_[gid];
+            return event_generators_.at(gid);
         }
         std::any get_global_properties(cell_kind) const override {
             arb::cable_cell_global_properties a;

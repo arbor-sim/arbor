@@ -32,10 +32,10 @@ class lifN_recipe(A.recipe):
         return self.n_cell
 
     def num_targets(self, gid):
-        return 0
+        return 1
 
     def num_sources(self, gid):
-        return 0
+        return 1
 
     def cell_kind(self, gid):
         return A.cell_kind.lif

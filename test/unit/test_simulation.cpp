@@ -88,7 +88,7 @@ struct lif_chain: public recipe {
         return lif;
     }
 
-    std::vector<cell_connection> connections_on(cell_gid_type target) const {
+    std::vector<cell_connection> connections_on(cell_gid_type target) const override {
         if (target) {
             return {cell_connection({target-1, "src"}, {"tgt"}, weight_, delay_)};
         }
@@ -97,7 +97,7 @@ struct lif_chain: public recipe {
         }
     }
 
-    std::vector<event_generator> event_generators(cell_gid_type target) const {
+    std::vector<event_generator> event_generators(cell_gid_type target) const override {
         if (target) {
             return {};
         }
