@@ -98,6 +98,7 @@ public:
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+        using policy = arb::lid_selection_policy;
         std::vector<arb::gap_junction_connection> conns;
 
         int cable_begin = (gid/params_.n_cells_per_cable) * params_.n_cells_per_cable;
@@ -111,10 +112,12 @@ public:
         // Gap junction conductance in μS
 
         if (next_cell < cable_end) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0"}, {"local_1"}, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0", policy::assert_univalent},
+                                                         {"local_1", policy ::assert_univalent}, 0.015));
         }
         if (prev_cell >= cable_begin) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1"}, {"local_0"}, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1", policy::assert_univalent},
+                                                         {"local_0", policy::assert_univalent}, 0.015));
         }
 
         return conns;
