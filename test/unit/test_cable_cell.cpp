@@ -30,29 +30,45 @@ TEST(cable_cell, lid_ranges) {
 
     // Place synapses and threshold detectors in interleaved order.
     // Note: there are 2 terminal points.
-    decorations.place("term"_lab, "expsyn", "s0");
-    decorations.place("term"_lab, "expsyn", "s1");
-    decorations.place("term"_lab, threshold_detector{-10}, "t0");
-    decorations.place(empty_sites, "expsyn", "s2");
-    decorations.place("term"_lab, threshold_detector{-20}, "t1");
-    decorations.place(three_sites, "expsyn", "s3");
+    decorations.place("term"_lab, "expsyn", "t0");
+    decorations.place("term"_lab, "expsyn", "t1");
+    decorations.place("term"_lab, threshold_detector{-10}, "s0");
+    decorations.place(empty_sites, "expsyn", "t2");
+    decorations.place("term"_lab, threshold_detector{-20}, "s1");
+    decorations.place(three_sites, "expsyn", "t3");
+    decorations.place("term"_lab, "exp2syn", "t3");
 
     cable_cell cell(morph, dict, decorations);
 
     // Get the assigned lid ranges for each placement
     const auto& src_ranges = cell.detector_ranges();
     const auto& tgt_ranges = cell.synapse_ranges();
-    auto r1 = tgt_ranges.at("s0");
-    auto r2 = tgt_ranges.at("s1");
-    auto r3 = src_ranges.at("t0");
-    auto r4 = tgt_ranges.at("s2");
-    auto r5 = src_ranges.at("t1");
-    auto r6 = tgt_ranges.at("s3");
+
+    EXPECT_EQ(1u, tgt_ranges.count("t0"));
+    EXPECT_EQ(1u, tgt_ranges.count("t1"));
+    EXPECT_EQ(1u, src_ranges.count("s0"));
+    EXPECT_EQ(1u, tgt_ranges.count("t2"));
+    EXPECT_EQ(1u, src_ranges.count("s1"));
+    EXPECT_EQ(2u, tgt_ranges.count("t3"));
+
+    auto r1 = tgt_ranges.equal_range("t0").first->second;
+    auto r2 = tgt_ranges.equal_range("t1").first->second;
+    auto r3 = src_ranges.equal_range("s0").first->second;
+    auto r4 = tgt_ranges.equal_range("t2").first->second;
+    auto r5 = src_ranges.equal_range("s1").first->second;
+
+    auto r6_range = tgt_ranges.equal_range("t3");
+    auto r6_0 = r6_range.first;
+    auto r6_1 = std::next(r6_range.first);
+    if (r6_0->second.begin != 4u) {
+        std::swap(r6_0, r6_1);
+    }
 
     EXPECT_EQ(r1.begin, 0u); EXPECT_EQ(r1.end, 2u);
     EXPECT_EQ(r2.begin, 2u); EXPECT_EQ(r2.end, 4u);
     EXPECT_EQ(r3.begin, 0u); EXPECT_EQ(r3.end, 2u);
     EXPECT_EQ(r4.begin, 4u); EXPECT_EQ(r4.end, 4u);
     EXPECT_EQ(r5.begin, 2u); EXPECT_EQ(r5.end, 4u);
-    EXPECT_EQ(r6.begin, 4u); EXPECT_EQ(r6.end, 7u);
+    EXPECT_EQ(r6_0->second.begin, 4u); EXPECT_EQ(r6_0->second.end, 7u);
+    EXPECT_EQ(r6_1->second.begin, 7u); EXPECT_EQ(r6_1->second.end, 9u);
 }

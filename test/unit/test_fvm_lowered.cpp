@@ -943,7 +943,7 @@ TEST(fvm_lowered, gj_coords_simple) {
         }
         std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
             std::vector<gap_junction_connection> conns;
-            conns.push_back(gap_junction_connection({(gid+1)%2, "gj"}, {"gj"}, 0.5));
+            conns.push_back(gap_junction_connection({(gid+1)%2, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 0.5));
             return conns;
         }
         std::any get_global_properties(cell_kind) const override {
@@ -1022,22 +1022,22 @@ TEST(fvm_lowered, gj_coords_complex) {
             switch (gid) {
             case 0:
                 return {
-                    gap_junction_connection({2, "gj0"}, {"gj1"}, 0.01),
-                    gap_junction_connection({1, "gj0"}, {"gj0"}, 0.03),
-                    gap_junction_connection({1, "gj1"}, {"gj0"}, 0.04)
+                    gap_junction_connection({2, "gj0", lid_selection_policy::assert_univalent}, {"gj1", lid_selection_policy::assert_univalent}, 0.01),
+                    gap_junction_connection({1, "gj0", lid_selection_policy::assert_univalent}, {"gj0", lid_selection_policy::assert_univalent}, 0.03),
+                    gap_junction_connection({1, "gj1", lid_selection_policy::assert_univalent}, {"gj0", lid_selection_policy::assert_univalent}, 0.04)
                 };
             case 1:
                 return {
-                    gap_junction_connection({0, "gj0"}, {"gj0"}, 0.03),
-                    gap_junction_connection({0, "gj0"}, {"gj1"}, 0.04),
-                    gap_junction_connection({2, "gj1"}, {"gj2"}, 0.02),
-                    gap_junction_connection({2, "gj2"}, {"gj3"}, 0.01)
+                    gap_junction_connection({0, "gj0", lid_selection_policy::assert_univalent}, {"gj0", lid_selection_policy::assert_univalent}, 0.03),
+                    gap_junction_connection({0, "gj0", lid_selection_policy::assert_univalent}, {"gj1", lid_selection_policy::assert_univalent}, 0.04),
+                    gap_junction_connection({2, "gj1", lid_selection_policy::assert_univalent}, {"gj2", lid_selection_policy::assert_univalent}, 0.02),
+                    gap_junction_connection({2, "gj2", lid_selection_policy::assert_univalent}, {"gj3", lid_selection_policy::assert_univalent}, 0.01)
                 };
             case 2:
                 return {
-                    gap_junction_connection({0, "gj1"}, {"gj0"}, 0.01),
-                    gap_junction_connection({1, "gj2"}, {"gj1"}, 0.02),
-                    gap_junction_connection({1, "gj3"}, {"gj2"}, 0.01)
+                    gap_junction_connection({0, "gj1", lid_selection_policy::assert_univalent}, {"gj0", lid_selection_policy::assert_univalent}, 0.01),
+                    gap_junction_connection({1, "gj2", lid_selection_policy::assert_univalent}, {"gj1", lid_selection_policy::assert_univalent}, 0.02),
+                    gap_junction_connection({1, "gj3", lid_selection_policy::assert_univalent}, {"gj2", lid_selection_policy::assert_univalent}, 0.01)
                 };
             default : return {};
             }
@@ -1177,8 +1177,10 @@ TEST(fvm_lowered, cell_group_gj) {
                 // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
                 auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
                 auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
-                conns.push_back(gap_junction_connection({next_cell, "gj"}, {"gj"}, 0.03));
-                conns.push_back(gap_junction_connection({prev_cell, "gj"}, {"gj"}, 0.03));
+                conns.push_back(gap_junction_connection({next_cell, "gj", lid_selection_policy::assert_univalent},
+                                                             {"gj", lid_selection_policy::assert_univalent}, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, "gj", lid_selection_policy::assert_univalent},
+                                                             {"gj", lid_selection_policy::assert_univalent}, 0.03));
             }
             return conns;
         }
@@ -1415,7 +1417,7 @@ TEST(fvm_lowered, label_data) {
 
     class decorated_recipe: public arb::recipe {
     public:
-        decorated_recipe(unsigned ncell, bool duplicate=false): ncell_(ncell) {
+        decorated_recipe(unsigned ncell): ncell_(ncell) {
             // Cells will have one of 2 decorations:
             //   (1)  1 synapse label with 4 locations; 1 synapse label with 1 location
             //        1 detector label with 1 location
@@ -1435,9 +1437,6 @@ TEST(fvm_lowered, label_data) {
                 decor.place(uniform(all(), 4, 4, 42), "expsyn", "1_synapse");
                 decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
 
-                if (duplicate) {
-                    decor.place(uniform(all(), 6, 6, 42), arb::threshold_detector{10}, "1_detector");
-                }
                 cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
             }
             {
@@ -1480,9 +1479,6 @@ TEST(fvm_lowered, label_data) {
 
     std::vector<unsigned> gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     const unsigned ncell = gids.size();
-
-    // Check duplicate label throws
-    EXPECT_THROW(decorated_recipe(ncell, true), arb::cable_cell_error);
 
     // Check correct synapse, deterctor and gj data
     decorated_recipe rec(ncell);

@@ -20,7 +20,7 @@ cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> gid_vec,
     arb_assert(gids.size() == sizes.size());
 };
 
-void cell_labeled_ranges::append(cell_labeled_ranges other) {
+void cell_labeled_ranges::append(const cell_labeled_ranges& other) {
     using util::append;
     append(gids, other.gids);
     append(sizes, other.sizes);
@@ -46,36 +46,41 @@ label_resolver::label_resolver(cell_labeled_ranges clr) {
     }
 }
 
-cell_lid_type label_resolver::get_lid(const cell_global_label_type& iden) const {
+std::vector<cell_lid_type> label_resolver::get_lid(const cell_global_label_type& iden) const {
+    std::vector<cell_lid_type> lids;
     if (!mapper.count(iden.gid) || !mapper.at(iden.gid).count(iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
 
-    auto& range_idx_pair = mapper[iden.gid][iden.label.tag];
+    auto matching_labels = mapper[iden.gid].equal_range(iden.label.tag);
+    for (auto it = matching_labels.first; it != matching_labels.second; ++it) {
+        auto& range_idx_pair = it->second;
 
-    auto range = range_idx_pair.first;
-    int size = range.end - range.begin;
+        auto range = range_idx_pair.first;
+        int size = range.end - range.begin;
 
-    if (size < 1) {
-        throw arb::bad_connection_range(iden.gid, iden.label.tag, range);
-    }
-
-    switch (iden.label.policy) {
-    case lid_selection_policy::round_robin:
-    {
-        auto idx = range_idx_pair.second;
-        range_idx_pair.second = (idx+1)%size;
-        return idx + range.begin;
-    }
-    case lid_selection_policy::assert_univalent:
-    {
-        if (size != 1) {
-            throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
+        if (size < 1) {
+            throw arb::bad_connection_range(iden.gid, iden.label.tag, range);
         }
-        return range.begin;
+
+        switch (iden.label.policy) {
+        case lid_selection_policy::round_robin: {
+            auto idx = range_idx_pair.second;
+            range_idx_pair.second = (idx + 1) % size;
+            lids.push_back(idx + range.begin);
+            break;
+        }
+        case lid_selection_policy::assert_univalent: {
+            if (size != 1) {
+                throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
+            }
+            lids.push_back(range.begin);
+            break;
+        }
+        default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
+        }
     }
-    default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
-    }
+    return lids;
 }
 
 void label_resolver::reset() {

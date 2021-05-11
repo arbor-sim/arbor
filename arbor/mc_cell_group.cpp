@@ -45,7 +45,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-    util::transform_view(gids_, [&](cell_gid_type i) { return lowered_->num_synapses(i); }));
+        util::transform_view(gids_, [&](cell_gid_type i) { return lowered_->num_synapses(i); }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {

@@ -163,8 +163,7 @@ struct schedule_generator {
     {}
 
     void init(const std::vector<cell_lid_type>& lids) {
-        arb_assert(lids.size() == 1);
-        target_lid_ = lids.front();
+        target_lids_ = lids;
     }
 
     void reset() {
@@ -178,7 +177,9 @@ struct schedule_generator {
         events_.reserve(ts.second-ts.first);
 
         for (auto i = ts.first; i!=ts.second; ++i) {
-            events_.push_back(spike_event{target_lid_, *i, weight_});
+            for (auto lid: target_lids_) {
+                events_.push_back(spike_event{lid, *i, weight_});
+            }
         }
 
         return {events_.data(), events_.data()+events_.size()};
@@ -191,7 +192,7 @@ struct schedule_generator {
 private:
     pse_vector events_;
     cell_local_label_type target_;
-    cell_lid_type target_lid_;
+    std::vector<cell_lid_type> target_lids_;
     float weight_;
     schedule sched_;
 };

@@ -1244,9 +1244,9 @@ void run_exact_sampling_probe_test(const context& ctx) {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
             case 1:
-                return {gap_junction_connection({3, "gj"}, {"gj"}, 1.)};
+                return {gap_junction_connection({3, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 1.)};
             case 3:
-                return {gap_junction_connection({1, "gj"}, {"gj"}, 1.)};
+                return {gap_junction_connection({1, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 1.)};
             default:
                 return {};
             }

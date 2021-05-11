@@ -161,7 +161,7 @@ inline std::vector<std::string> gather_all(const std::vector<std::string>& value
 
     // Concatenate string data
     std::string values_concat;
-    for (const auto& v:values) {
+    for (const auto& v: values) {
         values_concat += v;
     }
 

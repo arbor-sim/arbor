@@ -527,7 +527,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
     if (post_events_) {
-        auto it = std::max_element(num_detectors_.begin(), num_detectors_.end(), [](const auto& lhs, const auto& rhs) -> bool {return lhs.second < rhs.second;});
+        auto it = util::max_element_by(num_detectors_, [](auto elem) {return util::second(elem);});
         max_detector = it->second;
     }
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
@@ -705,11 +705,21 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (const auto& g: gj_list) {
-            auto gj_local = gj_resolver.get_lid({gid, g.local});
-            auto gj_peer  = gj_resolver.get_lid(g.peer);
-            auto cv_local = gid_to_cvs[gid][gj_local];
-            auto cv_peer = gid_to_cvs[g.peer.gid][gj_peer];
-            gj_vec.emplace_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
+            if (g.local.policy != lid_selection_policy::assert_univalent) {
+                throw gj_unsupported_lid_selection_policy(gid, g.local.tag);
+            }
+            if (g.peer.label.policy != lid_selection_policy::assert_univalent) {
+                throw gj_unsupported_lid_selection_policy(g.peer.gid, g.peer.label.tag);
+            }
+            auto gj_local_lids = gj_resolver.get_lid({gid, g.local});
+            auto gj_peer_lids  = gj_resolver.get_lid(g.peer);
+            for (auto local_lid : gj_local_lids) {
+                for (auto peer_lid: gj_peer_lids) {
+                    auto cv_local = gid_to_cvs[gid][local_lid];
+                    auto cv_peer = gid_to_cvs[g.peer.gid][peer_lid];
+                    gj_vec.emplace_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
+                }
+            }
         }
     }
     return gj_vec;

@@ -82,6 +82,12 @@ struct gj_kind_mismatch: arbor_exception {
     cell_gid_type gid_0, gid_1;
 };
 
+struct gj_unsupported_lid_selection_policy: arbor_exception {
+    gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label);
+    cell_gid_type gid;
+    cell_tag_type label;
+};
+
 // Domain decomposition errors:
 
 struct gj_unsupported_domain_decomposition: arbor_exception {

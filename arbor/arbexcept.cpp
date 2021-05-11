@@ -58,6 +58,12 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
     gid_1(gid_1)
 {}
 
+gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
+    arbor_exception(pprintf("Model building error on cell {}: gap junction site label \"{}\" must be univalent.", gid, label)),
+    gid(gid),
+    label(label)
+{}
+
 gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):
     arbor_exception(pprintf("Cells on gid {} and {} connected via gap junction have different cell kinds", gid_0, gid_1)),
     gid_0(gid_0),

@@ -51,7 +51,7 @@ struct cable_cell_impl {
     decor decorations;
 
     // The placeable label to lid_range map
-    dynamic_typed_map<constant_type<std::unordered_map<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
+    dynamic_typed_map<constant_type<std::unordered_multimap<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
@@ -90,9 +90,6 @@ struct cable_cell_impl {
         }
         auto range = lid_range(first, lid);
         auto& lid_ranges = labeled_lid_ranges.get<Item>();
-        if (lid_ranges.count(label)) {
-            throw arb::cable_cell_error(util::pprintf("Duplicate label detected \"{}\"", label));
-        }
         lid_ranges.insert(std::make_pair(label, range));
     }
 
@@ -208,15 +205,15 @@ const cable_cell_parameter_set& cable_cell::default_parameters() const {
     return impl_->decorations.defaults();
 }
 
-const std::unordered_map<cell_tag_type, lid_range>& cable_cell::detector_ranges() const {
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::detector_ranges() const {
     return impl_->labeled_lid_ranges.get<threshold_detector>();
 }
 
-const std::unordered_map<cell_tag_type, lid_range>& cable_cell::synapse_ranges() const {
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::synapse_ranges() const {
     return impl_->labeled_lid_ranges.get<mechanism_desc>();
 }
 
-const std::unordered_map<cell_tag_type, lid_range>& cable_cell::gap_junction_ranges() const {
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::gap_junction_ranges() const {
     return impl_->labeled_lid_ranges.get<gap_junction_site>();
 }
 

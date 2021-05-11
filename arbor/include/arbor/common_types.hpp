@@ -81,7 +81,7 @@ struct cell_local_label_type {
     lid_selection_policy policy;
 
     cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::round_robin):
-        tag(tag), policy(policy) {}
+        tag(std::move(tag)), policy(policy) {}
 };
 
 // For referring to a labeled placement on a cell identified by gid.

@@ -31,19 +31,20 @@ struct cell_labeled_ranges {
                         std::vector<cell_tag_type> lbls,
                         std::vector<lid_range> rngs);
 
-    void append(cell_labeled_ranges other);
+    void append(const cell_labeled_ranges& other);
 };
 
 // Struct used for selecting an lid of a {cell, label} pair according to an lid_selection_policy
 struct label_resolver {
-    using label_resolution_map = std::unordered_map<cell_tag_type, std::pair<lid_range, cell_lid_type>>;
+    using label_resolution_map = std::unordered_multimap<cell_tag_type, std::pair<lid_range, cell_lid_type>>;
     mutable std::unordered_map<cell_gid_type, label_resolution_map> mapper;
 
     label_resolver() = delete;
     explicit label_resolver(cell_labeled_ranges);
 
-    // Returns the lid of a {gid, label} pair according to a policy.
-    cell_lid_type get_lid(const cell_global_label_type&) const;
+    // Returns a vector of lids of a {gid, label} pair according to a policy.
+    // The vector contains as many elements as identically names labels on the cell.
+    std::vector<cell_lid_type> get_lid(const cell_global_label_type&) const;
 
     // Reset the current lid_indices to 0.
     void reset();

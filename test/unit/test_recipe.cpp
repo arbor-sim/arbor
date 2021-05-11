@@ -106,14 +106,15 @@ TEST(recipe, gap_junctions)
     auto cell_0 = custom_cell(0, 0, 3);
     auto cell_1 = custom_cell(0, 0, 3);
 
+    using policy = lid_selection_policy;
     {
-        std::vector<arb::gap_junction_connection> gjs_0 = {{{1, "gapjunction1"}, {"gapjunction0"}, 0.1},
-                                                           {{1, "gapjunction2"}, {"gapjunction1"}, 0.1},
-                                                           {{1, "gapjunction0"}, {"gapjunction2"}, 0.1}};
+        std::vector<arb::gap_junction_connection> gjs_0 = {{{1, "gapjunction1", policy::assert_univalent}, {"gapjunction0", policy::assert_univalent}, 0.1},
+                                                           {{1, "gapjunction2", policy::assert_univalent}, {"gapjunction1", policy::assert_univalent}, 0.1},
+                                                           {{1, "gapjunction0", policy::assert_univalent}, {"gapjunction2", policy::assert_univalent}, 0.1}};
 
-        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, "gapjunction0"}, {"gapjunction1"}, 0.1},
-                                                           {{0, "gapjunction1"}, {"gapjunction2"}, 0.1},
-                                                           {{0, "gapjunction2"}, {"gapjunction0"}, 0.1}};
+        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, "gapjunction0", policy::assert_univalent}, {"gapjunction1", policy::assert_univalent}, 0.1},
+                                                           {{0, "gapjunction1", policy::assert_univalent}, {"gapjunction2", policy::assert_univalent}, 0.1},
+                                                           {{0, "gapjunction2", policy::assert_univalent}, {"gapjunction0", policy::assert_univalent}, 0.1}};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {gjs_0, gjs_1}, {{}, {}});
         auto decomp_0 = partition_load_balance(recipe_0, context);
@@ -121,13 +122,13 @@ TEST(recipe, gap_junctions)
         EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
     }
     {
-        std::vector<arb::gap_junction_connection> gjs_0 = {{{1, "gapjunction1"}, {"gapjunction0"}, 0.1},
-                                                           {{1, "gapjunction2"}, {"gapjunction1"}, 0.1},
-                                                           {{1, "gapjunction5"}, {"gapjunction2"}, 0.1}};
+        std::vector<arb::gap_junction_connection> gjs_0 = {{{1, "gapjunction1", policy::assert_univalent}, {"gapjunction0", policy::assert_univalent}, 0.1},
+                                                           {{1, "gapjunction2", policy::assert_univalent}, {"gapjunction1", policy::assert_univalent}, 0.1},
+                                                           {{1, "gapjunction5", policy::assert_univalent}, {"gapjunction2", policy::assert_univalent}, 0.1}};
 
-        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, "gapjunction0"}, {"gapjunction1"}, 0.1},
-                                                           {{0, "gapjunction1"}, {"gapjunction2"}, 0.1},
-                                                           {{0, "gapjunction2"}, {"gapjunction5"}, 0.1}};
+        std::vector<arb::gap_junction_connection> gjs_1 = {{{0, "gapjunction0", policy::assert_univalent}, {"gapjunction1", policy::assert_univalent}, 0.1},
+                                                           {{0, "gapjunction1", policy::assert_univalent}, {"gapjunction2", policy::assert_univalent}, 0.1},
+                                                           {{0, "gapjunction2", policy::assert_univalent}, {"gapjunction5", policy::assert_univalent}, 0.1}};
 
         auto recipe_1 = custom_recipe({cell_0, cell_1}, {{}, {}}, {gjs_0, gjs_1}, {{}, {}});
         auto decomp_1 = partition_load_balance(recipe_1, context);

@@ -230,7 +230,9 @@ simulation_state::simulation_state(
             for (auto& g: event_gens) {
                 std::vector<cell_lid_type> lids;
                 for (const auto& t: g.targets()) {
-                    lids.push_back(target_resolver.get_lid({gid, t}));
+                    for (auto lid: target_resolver.get_lid({gid, t})) {
+                        lids.push_back(lid);
+                    }
                 }
                 g.init(lids);
             }
