@@ -123,13 +123,10 @@ void run_v_i_probe_test(const context& ctx) {
     rec.add_probe(0, 20, cable_probe_membrane_voltage{loc1});
     rec.add_probe(0, 30, cable_probe_total_ion_current_density{loc2});
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_map;
-
     fvm_cell lcell(*ctx);
-    lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+    auto fvm_info = lcell.initialize({0}, rec);
 
+    const auto& probe_map = fvm_info.probe_map;
     EXPECT_EQ(3u, rec.get_probes(0).size());
     EXPECT_EQ(3u, probe_map.size());
 
@@ -226,16 +223,12 @@ void run_v_cell_probe_test(const context& ctx) {
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, 0, cable_probe_membrane_voltage_cell{});
 
-        std::vector<target_handle> targets;
-        std::vector<fvm_index_type> cell_to_intdom;
-        probe_association_map probe_map;
-
         fvm_cell lcell(*ctx);
-        lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+        auto fvm_info = lcell.initialize({0}, rec);
 
-        ASSERT_EQ(1u, probe_map.size());
+        ASSERT_EQ(1u, fvm_info.probe_map.size());
 
-        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, 0}).front().info);
+        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, 0}).front().info);
         ASSERT_TRUE(h_ptr);
         auto& h = *h_ptr;
 
@@ -289,12 +282,10 @@ void run_expsyn_g_probe_test(const context& ctx) {
         rec.add_probe(0, 10, cable_probe_point_state{0u, "expsyn", "g"});
         rec.add_probe(0, 20, cable_probe_point_state{1u, "expsyn", "g"});
 
-        std::vector<target_handle> targets;
-        std::vector<fvm_index_type> cell_to_intdom;
-        probe_association_map probe_map;
-
         fvm_cell lcell(*ctx);
-        lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+        auto fvm_info = lcell.initialize({0}, rec);
+        const auto& probe_map = fvm_info.probe_map;
+        const auto& targets = fvm_info.target_handles;
 
         EXPECT_EQ(2u, rec.get_probes(0).size());
         EXPECT_EQ(2u, probe_map.size());
@@ -401,12 +392,10 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
         rec.add_probe(0, 0, cable_probe_point_state_cell{"expsyn", "g"});
         rec.add_probe(1, 0, cable_probe_point_state_cell{"expsyn", "g"});
 
-        std::vector<target_handle> targets;
-        std::vector<fvm_index_type> cell_to_intdom;
-        probe_association_map probe_map;
-
         fvm_cell lcell(*ctx);
-        lcell.initialize({0, 1}, rec, cell_to_intdom, targets, probe_map);
+        auto fvm_info = lcell.initialize({0, 1}, rec);
+        const auto& probe_map = fvm_info.probe_map;
+        const auto& targets = fvm_info.target_handles;
 
         // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
         // integrate for a tiny time step.
@@ -559,12 +548,9 @@ void run_ion_density_probe_test(const context& ctx) {
     // Probe (0, 12): ca external on whole cell.
     rec.add_probe(0, 0, cable_probe_ion_ext_concentration_cell{"ca"});
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_map;
-
     fvm_cell lcell(*ctx);
-    lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+    auto fvm_info = lcell.initialize({0}, rec);
+    const auto& probe_map = fvm_info.probe_map;
 
     // Should be no sodium ion instantiated on CV 0, so probe (0, 6) should
     // have been silently discared. Similarly, write_ca2 is not instantiated on
@@ -737,12 +723,9 @@ void run_partial_density_probe_test(const context& ctx) {
         rec.add_probe(1, 0, cable_probe_density_state{mlocation{0, tp.pos}, "param_as_state", "s"});
     }
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_map;
-
     fvm_cell lcell(*ctx);
-    lcell.initialize({0, 1}, rec, cell_to_intdom, targets, probe_map);
+    auto fvm_info = lcell.initialize({0, 1}, rec);
+    const auto& probe_map = fvm_info.probe_map;
 
     // There should be 10 probes on each cell, but only 10 in total in the probe map,
     // as only those probes that are in the mechanism support should have an entry.

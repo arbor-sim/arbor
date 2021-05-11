@@ -63,8 +63,8 @@ private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
-    // Map from gid to integration domain id
-    std::vector<fvm_index_type> cell_to_intdom_;
+    // Information needed from the lowered_cell
+    fvm_initialization_data fvm_data_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
@@ -86,12 +86,6 @@ private:
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;
-
-    // Handles for accessing lowered cell.
-    std::vector<target_handle> target_handles_;
-
-    // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
-    probe_association_map probe_map_;
 
     // Collection of samplers to be run against probes in this group.
     sampler_association_map sampler_map_;

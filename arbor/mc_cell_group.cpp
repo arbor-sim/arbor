@@ -41,15 +41,15 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
     }
 
     // Construct cell implementation, retrieving handles and maps.
-    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
+    fvm_data_ = lowered_->initialize(gids_, rec);
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-        util::transform_view(gids_, [&](cell_gid_type i) { return lowered_->num_synapses(i); }));
+        util::transform_view(gids_, [&](cell_gid_type i) { return fvm_data_.num_targets[i]; }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
-        for (cell_lid_type lid = 0; lid<lowered_->num_detectors(source_gid); ++lid) {
+        for (cell_lid_type lid = 0; lid<fvm_data_.num_sources[source_gid]; ++lid) {
             spike_sources_.push_back({source_gid, lid});
         }
     }
@@ -379,9 +379,9 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Skip event handling if nothing to deliver.
     if (event_lanes.size()) {
-        std::vector<cell_size_type> idx_sorted_by_intdom(cell_to_intdom_.size());
+        std::vector<cell_size_type> idx_sorted_by_intdom(fvm_data_.cell_to_intdom.size());
         std::iota(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), 0);
-        util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
+        util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return fvm_data_.cell_to_intdom[i]; });
 
         /// Event merging on integration domain could benefit from the use of the logic from `tree_merge_events`
         fvm_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
@@ -391,12 +391,12 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
             auto lid = idx_sorted_by_intdom[i];
             auto& lane = event_lanes[lid];
-            auto curr_intdom = cell_to_intdom_[lid];
+            auto curr_intdom = fvm_data_.cell_to_intdom[lid];
 
             for (auto e: lane) {
                 if (e.time>=ep.t1) break;
                 e.time = binners_[lid].bin(e.time, tstart);
-                auto h = target_handles_[target_handle_divisions_[lid]+e.target];
+                auto h = fvm_data_.target_handles[target_handle_divisions_[lid]+e.target];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
                 count_staged++;
@@ -459,11 +459,11 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             for (cell_member_type pid: sa.probe_ids) {
                 auto cell_index = gid_index_map_.at(pid.gid);
 
-                probe_tag tag = probe_map_.tag.at(pid);
+                probe_tag tag = fvm_data_.probe_map.tag.at(pid);
                 unsigned index = 0;
-                for (const fvm_probe_data& pdata: probe_map_.data_on(pid)) {
+                for (const fvm_probe_data& pdata: fvm_data_.probe_map.data_on(pid)) {
                     call_info.push_back({sa.sampler, pid, tag, index++, &pdata, n_samples, n_samples + n_times*pdata.n_raw()});
-                    auto intdom = cell_to_intdom_[cell_index];
+                    auto intdom = fvm_data_.cell_to_intdom[cell_index];
 
                     for (auto t: sample_times) {
                         for (probe_handle h: pdata.raw_handle_range()) {
@@ -541,7 +541,7 @@ void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predic
     std::lock_guard<std::mutex> guard(sampler_mex_);
 
     std::vector<cell_member_type> probeset =
-        util::assign_from(util::filter(util::keys(probe_map_.tag), probe_ids));
+        util::assign_from(util::filter(util::keys(fvm_data_.probe_map.tag), probe_ids));
 
     if (!probeset.empty()) {
         auto result = sampler_map_.insert({h, sampler_association{std::move(sched), std::move(fn), std::move(probeset), policy}});
@@ -562,12 +562,12 @@ void mc_cell_group::remove_all_samplers() {
 std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type probe_id) const {
     // Probe associations are fixed after construction, so we do not need to grab the mutex.
 
-    std::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probe_id);
+    std::optional<probe_tag> maybe_tag = util::value_by_key(fvm_data_.probe_map.tag, probe_id);
     if (!maybe_tag) {
         return {};
     }
 
-    auto data = probe_map_.data_on(probe_id);
+    auto data = fvm_data_.probe_map.data_on(probe_id);
 
     std::vector<probe_metadata> result;
     result.reserve(data.size());
@@ -580,13 +580,13 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
 }
 
 cell_labeled_ranges mc_cell_group::source_data() const {
-    return lowered_->detector_data();
+    return fvm_data_.source_data;
 }
 cell_labeled_ranges mc_cell_group::target_data() const {
-    return lowered_->synapse_data();
+    return fvm_data_.target_data;
 }
 cell_labeled_ranges mc_cell_group::gap_junction_data() const {
-    return lowered_->gap_junction_data();
+    return fvm_data_.gap_junction_data;
 }
 
 } // namespace arb

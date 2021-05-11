@@ -51,12 +51,9 @@ public:
 
     void reset() override;
 
-    void initialize(
+    fvm_initialization_data initialize(
         const std::vector<cell_gid_type>& gids,
-        const recipe& rec,
-        std::vector<fvm_index_type>& cell_to_intdom,
-        std::vector<target_handle>& target_handles,
-        probe_association_map& probe_map) override;
+        const recipe& rec) override;
 
     fvm_integration_result integrate(
         value_type tfinal,
@@ -67,6 +64,7 @@ public:
     std::vector<fvm_gap_junction> fvm_gap_junctions(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
+        const cell_labeled_ranges& gj_data,
         const recipe& rec,
         const fvm_cv_discretization& D);
 
@@ -82,22 +80,6 @@ public:
     //Exposed for testing purposes
     std::vector<mechanism_ptr>& mechanisms() {
         return mechanisms_;
-    }
-
-    cell_labeled_ranges detector_data() const override {
-        return {gids_, num_detector_labels_, detector_labels_, detector_ranges_};
-    }
-    cell_labeled_ranges synapse_data() const override {
-        return {gids_, num_synapse_labels_, synapse_labels_, synapse_ranges_};
-    }
-    cell_labeled_ranges gap_junction_data() const override {
-        return {gids_, num_gap_junction_labels_, gap_junction_labels_, gap_junction_ranges_};
-    }
-    fvm_size_type num_synapses(cell_gid_type gid) const override {
-        return num_synapses_.at(gid);
-    }
-    fvm_size_type num_detectors(cell_gid_type gid) const override {
-        return num_detectors_.at(gid);
     }
 
 private:
@@ -127,32 +109,6 @@ private:
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_;
-
-    // Vectors storing source, target and gap junction info for each cell.
-
-    // gids of the cells
-    std::vector<cell_gid_type> gids_;
-
-    // Number of source, target and gap-junction labels and lid_ranges on each cell
-    std::vector<cell_size_type> num_detector_labels_;
-    std::vector<cell_size_type> num_synapse_labels_;
-    std::vector<cell_size_type> num_gap_junction_labels_;
-
-    // Labels of the sources, targets and gap junctions, sorted by gid,
-    // partiitioned according to num_`type`_labels_
-    std::vector<cell_tag_type> detector_labels_;
-    std::vector<cell_tag_type> synapse_labels_;
-    std::vector<cell_tag_type> gap_junction_labels_;
-
-    // Ranges of the source, targets and gap junctions, sorted by gid,
-    // partiitioned according to num_`type`_labels_
-    std::vector<lid_range> detector_ranges_;
-    std::vector<lid_range> synapse_ranges_;
-    std::vector<lid_range> gap_junction_ranges_;
-
-    // Maps storing number of sources/targets per cell.
-    std::unordered_map<cell_gid_type, fvm_size_type> num_detectors_;
-    std::unordered_map<cell_gid_type, fvm_size_type> num_synapses_;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -410,18 +366,17 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(fvm_value_type bound
 }
 
 template <typename Backend>
-void fvm_lowered_cell_impl<Backend>::initialize(
+fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     const std::vector<cell_gid_type>& gids,
-    const recipe& rec,
-    std::vector<fvm_index_type>& cell_to_intdom,
-    std::vector<target_handle>& target_handles,
-    probe_association_map& probe_map)
+    const recipe& rec)
 {
     using std::any_cast;
     using util::count_along;
     using util::make_span;
     using util::value_by_key;
     using util::keys;
+
+    fvm_initialization_data fvm_info;
 
     set_gpu();
 
@@ -441,38 +396,41 @@ void fvm_lowered_cell_impl<Backend>::initialize(
            });
 
     // Populate source, target and gap_junction data vectors.
-    gids_ = gids;
-    num_detector_labels_.reserve(ncell);
-    num_synapse_labels_.reserve(ncell);
-    num_gap_junction_labels_.reserve(ncell);
+
+    fvm_info.source_data.sizes.reserve(ncell);
+    fvm_info.target_data.sizes.reserve(ncell);
+    fvm_info.gap_junction_data.sizes.reserve(ncell);
     for (auto i : util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
 
         unsigned count = 0;
-        num_detector_labels_.push_back(c.detector_ranges().size());
+        fvm_info.source_data.sizes.push_back(c.detector_ranges().size());
         for (const auto& [label, range]: c.detector_ranges()) {
-            detector_labels_.push_back(label);
-            detector_ranges_.push_back(range);
+            fvm_info.source_data.labels.push_back(label);
+            fvm_info.source_data.ranges.push_back(range);
             count+=(range.end - range.begin);
         }
-        num_detectors_[gid] = count;
+        fvm_info.num_sources[gid] = count;
 
         count = 0;
-        num_synapse_labels_.push_back(c.synapse_ranges().size());
+        fvm_info.target_data.sizes.push_back(c.synapse_ranges().size());
         for (const auto& [label, range]: c.synapse_ranges()) {
-            synapse_labels_.push_back(label);
-            synapse_ranges_.push_back(range);
+            fvm_info.target_data.labels.push_back(label);
+            fvm_info.target_data.ranges.push_back(range);
             count+=(range.end - range.begin);
         }
-        num_synapses_[gid] = count;
+        fvm_info.num_targets[gid] = count;
 
-        num_gap_junction_labels_.push_back(c.gap_junction_ranges().size());
+        fvm_info.gap_junction_data.sizes.push_back(c.gap_junction_ranges().size());
         for (const auto& [label, range]: c.gap_junction_ranges()) {
-            gap_junction_labels_.push_back(label);
-            gap_junction_ranges_.push_back(range);
+            fvm_info.gap_junction_data.labels.push_back(label);
+            fvm_info.gap_junction_data.ranges.push_back(range);
         }
     }
+    fvm_info.source_data.gids = gids;
+    fvm_info.target_data.gids = gids;
+    fvm_info.gap_junction_data.gids = gids;
 
     cable_cell_global_properties global_props;
     try {
@@ -500,7 +458,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
-    auto nintdom = fvm_intdom(rec, gids, cell_to_intdom);
+    auto nintdom = fvm_intdom(rec, gids, fvm_info.cell_to_intdom);
 
     // Discretize cells, build matrix.
 
@@ -508,11 +466,11 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     std::vector<index_type> cv_to_intdom(D.size());
     std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_intdom.begin(),
-                   [&cell_to_intdom](index_type i){ return cell_to_intdom[i]; });
+                   [&fvm_info](index_type i){ return fvm_info.cell_to_intdom[i]; });
 
     arb_assert(D.n_cell() == ncell);
     matrix_ = matrix<backend>(D.geometry.cv_parent, D.geometry.cell_cv_divs,
-                              D.cv_capacitance, D.face_conductance, D.cv_area, cell_to_intdom);
+                              D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom);
     sample_events_ = sample_event_stream(nintdom);
 
     // Discretize mechanism data.
@@ -521,20 +479,20 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
     // Discretize and build gap junction info.
 
-    auto gj_vector = fvm_gap_junctions(cells, gids, rec, D);
+    auto gj_vector = fvm_gap_junctions(cells, gids, fvm_info.gap_junction_data, rec, D);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
     if (post_events_) {
-        auto it = util::max_element_by(num_detectors_, [](auto elem) {return util::second(elem);});
+        auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
         max_detector = it->second;
     }
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
     if (post_events_) {
         for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(num_detectors_[gids[cell_idx]])) {
+            for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
             }
         }
@@ -571,7 +529,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         state_->configure_stimulus(mech_data.stimuli);
     }
 
-    target_handles.resize(mech_data.n_target);
+    fvm_info.target_handles.resize(mech_data.n_target);
 
     // Keep track of mechanisms by name for probe lookup.
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
@@ -606,11 +564,11 @@ void fvm_lowered_cell_impl<Backend>::initialize(
 
                 target_handle handle(mech_id, i, cv_to_intdom[cv]);
                 if (config.multiplicity.empty()) {
-                    target_handles[config.target[i]] = handle;
+                    fvm_info.target_handles[config.target[i]] = handle;
                 }
                 else {
                     for (auto j: make_span(multiplicity_part[i])) {
-                        target_handles[config.target[j]] = handle;
+                        fvm_info.target_handles[config.target[j]] = handle;
                     }
                 }
             }
@@ -662,14 +620,14 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         for (cell_lid_type i: count_along(rec_probes)) {
             probe_info& pi = rec_probes[i];
             resolve_probe_address(probe_data, cells, cell_idx, std::move(pi.address),
-                D, mech_data, target_handles, mechptr_by_name);
+                D, mech_data, fvm_info.target_handles, mechptr_by_name);
 
             if (!probe_data.empty()) {
                 cell_member_type probe_id{gid, i};
-                probe_map.tag[probe_id] = pi.tag;
+                fvm_info.probe_map.tag[probe_id] = pi.tag;
 
                 for (auto& data: probe_data) {
-                    probe_map.data.insert({probe_id, std::move(data)});
+                    fvm_info.probe_map.data.insert({probe_id, std::move(data)});
                 }
             }
         }
@@ -678,6 +636,8 @@ void fvm_lowered_cell_impl<Backend>::initialize(
     threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
 
     reset();
+
+    return fvm_info;
 }
 
 // Get vector of gap_junctions
@@ -685,6 +645,7 @@ template <typename Backend>
 std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
+        const cell_labeled_ranges& gap_junction_data,
         const recipe& rec, const fvm_cv_discretization& D) {
 
     std::vector<fvm_gap_junction> gj_vec;
@@ -701,7 +662,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
-    label_resolver gj_resolver(gap_junction_data());
+    label_resolver gj_resolver(gap_junction_data);
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (const auto& g: gj_list) {
