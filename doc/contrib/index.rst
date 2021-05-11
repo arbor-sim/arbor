@@ -121,9 +121,19 @@ We have a brief code of conduct which we ask you to respect:
 * Respect that people have differences of opinion and that every design or implementation choice carries a trade-off and numerous costs.
 * Please keep unstructured critique to a minimum. If you have solid ideas you want to experiment with, make a fork and see how it works.
 
-If you believe one of these standards has been violated, you can reach out to the `Arbor project by email <mailto:arbor-sim@fz-juelich.de>`_ or contact someone outside of the Arbor team at Ebrains, see below. Your complaint and the private information therein will be handled with the utmost care and confidentiality.
+Concerns
+~~~~~~~~
 
-Keep in mind that most mistakes are due to ignorance rather than malice.
+If you believe one of these standards has been violated, you can reach out to the Arbor project by email, `concern@arbor-simulator.org <mailto:concern@arbor-simulator.org>`_. Nora Abi Akar, Sam Yates and Brent Huisman read this inbox and will get back to you in a timely manner. Your complaint and the private information therein will be handled with the utmost care and confidentiality. Alternatively, you can contact someone outside of the Arbor team at Ebrains, [see below](#ebrains).
+
+In general, violations of the community standards will generate one or more of the following responses from the Arbor Team:
+
+1. Informal feedback, privately and/or (for public violations) in the forum where a violation appeared, with the goal of encouraging good-faith contributions and mutual understanding while making offenders aware of the problem and preventing future incidents. Where possible, good intentions of the participants should be assumed.
+2. Gross online violations of community standards may result in immediate deletion of the offending comments, coupled with informal feedback.
+3. For severe cases, especially persistent, disruptive violations despite repeated warnings and other feedback, a formal investigation may be started through the Ebrains Ombudsperson.
+
+Ebrains
+~~~~~~~
 
 Arbor is an Ebrains/HBP project. Its policies and recourse options in case of concern are therefore available to you. In addition, the European Commission recognizes the ALLEA Code of Conduct as a model for all research it funds, which includes Ebrains/HBP/Arbor.
 
