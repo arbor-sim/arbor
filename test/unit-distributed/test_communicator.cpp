@@ -496,13 +496,13 @@ TEST(communicator, ring)
             lif_gids.insert(lif_gids.end(), g.gids.begin(), g.gids.end());
         }
     }
-    cell_labeled_ranges local_sources, local_targets, srcs, tgts;
+    cell_label_range local_sources, local_targets, srcs, tgts;
     auto mc_group = mc_cell_group(mc_gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
     auto lif_group = lif_cell_group(lif_gids, R, srcs, tgts);
 
     local_sources.append(srcs);
     local_targets.append(tgts);
-    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_label_range(local_sources);
 
     // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
@@ -607,9 +607,9 @@ TEST(communicator, all2all)
     for (auto g: D.groups) {
         mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
     }
-    cell_labeled_ranges local_sources, local_targets;
+    cell_label_range local_sources, local_targets;
     auto mc_group = mc_cell_group(mc_gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
-    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_label_range(local_sources);
 
     // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
@@ -656,9 +656,9 @@ TEST(communicator, mini_network)
     for (auto g: D.groups) {
         gids.insert(gids.end(), g.gids.begin(), g.gids.end());
     }
-    cell_labeled_ranges local_sources, local_targets;
+    cell_label_range local_sources, local_targets;
     auto mc_group = mc_cell_group(gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
-    auto global_sources = g_context->distributed->gather_cell_labeled_ranges(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_label_range(local_sources);
 
     // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);

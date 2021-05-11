@@ -28,8 +28,8 @@ public:
 
     mc_cell_group(const std::vector<cell_gid_type>& gids,
                   const recipe& rec,
-                  cell_labeled_ranges& cg_sources,
-                  cell_labeled_ranges& cg_targets,
+                  cell_label_range& cg_sources,
+                  cell_label_range& cg_targets,
                   fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {

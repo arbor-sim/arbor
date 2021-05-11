@@ -64,8 +64,8 @@ public:
         return impl_->gather_gids(local_gids);
     }
 
-    cell_labeled_ranges gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const {
-        return impl_->gather_cell_labeled_ranges(local_ranges);
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        return impl_->gather_cell_label_range(local_ranges);
     }
 
     std::vector<std::string> gather(std::string value, int root) const {
@@ -96,8 +96,8 @@ private:
             gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
             gather_gids(const gid_vector& local_gids) const = 0;
-        virtual cell_labeled_ranges
-            gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const = 0;
+        virtual cell_label_range
+            gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
         virtual std::vector<std::string>
             gather(std::string value, int root) const = 0;
         virtual int id() const = 0;
@@ -123,9 +123,9 @@ private:
         gather_gids(const gid_vector& local_gids) const override {
             return wrapped.gather_gids(local_gids);
         }
-        cell_labeled_ranges
-        gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const override {
-            return wrapped.gather_cell_labeled_ranges(local_ranges);
+        cell_label_range
+        gather_cell_label_range(const cell_label_range& local_ranges) const override {
+            return wrapped.gather_cell_label_range(local_ranges);
         }
         std::vector<std::string>
         gather(std::string value, int root) const override {
@@ -169,8 +169,8 @@ struct local_context {
                 {0u, static_cast<count_type>(local_gids.size())}
         );
     }
-    cell_labeled_ranges
-    gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const {
+    cell_label_range
+    gather_cell_label_range(const cell_label_range& local_ranges) const {
         return local_ranges;
     }
     template <typename T>

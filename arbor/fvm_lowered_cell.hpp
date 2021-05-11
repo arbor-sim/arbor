@@ -204,9 +204,9 @@ struct fvm_initialization_data {
     probe_association_map probe_map;
 
     // Structs required for {gid, label} to lid resolution
-    cell_labeled_ranges source_data;
-    cell_labeled_ranges target_data;
-    cell_labeled_ranges gap_junction_data;
+    cell_label_range source_data;
+    cell_label_range target_data;
+    cell_label_range gap_junction_data;
 
     // Maps storing number of sources/targets per cell.
     std::unordered_map<cell_gid_type, fvm_size_type> num_sources;

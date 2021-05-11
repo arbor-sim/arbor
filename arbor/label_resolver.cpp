@@ -10,25 +10,24 @@
 
 namespace arb {
 
-cell_labeled_ranges::cell_labeled_ranges(std::vector<cell_gid_type> gid_vec,
-                                         std::vector<cell_size_type> size_vec,
-                                         std::vector<cell_tag_type> label_vec,
-                                         std::vector<lid_range> range_vec):
+cell_label_range::cell_label_range(std::vector<cell_gid_type> gid_vec,
+                                   std::vector<cell_size_type> size_vec,
+                                   std::vector<cell_tag_type> label_vec,
+                                   std::vector<lid_range> range_vec):
     gids(std::move(gid_vec)), sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec))
 {
     arb_assert(labels.size() == ranges.size());
     arb_assert(gids.size() == sizes.size());
 };
 
-void cell_labeled_ranges::append(const cell_labeled_ranges& other) {
-    using util::append;
-    append(gids, other.gids);
-    append(sizes, other.sizes);
-    append(labels, other.labels);
-    append(ranges, other.ranges);
+void cell_label_range::append(cell_label_range other) {
+    gids.insert(gids.end(), std::make_move_iterator(other.gids.begin()), std::make_move_iterator(other.gids.end()));
+    sizes.insert(sizes.end(), std::make_move_iterator(other.sizes.begin()), std::make_move_iterator(other.sizes.end()));
+    labels.insert(labels.end(), std::make_move_iterator(other.labels.begin()), std::make_move_iterator(other.labels.end()));
+    ranges.insert(ranges.end(), std::make_move_iterator(other.ranges.begin()), std::make_move_iterator(other.ranges.end()));
 }
 
-label_resolver::label_resolver(cell_labeled_ranges clr) {
+label_resolver::label_resolver(cell_label_range clr) {
     arb_assert(clr.gids.size() == clr.sizes.size());
     arb_assert(clr.labels.size() == clr.ranges.size());
 

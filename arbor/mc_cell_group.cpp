@@ -31,8 +31,8 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weig
 
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
-                             cell_labeled_ranges& cg_sources,
-                             cell_labeled_ranges& cg_targets,
+                             cell_label_range& cg_sources,
+                             cell_label_range& cg_targets,
                              fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {

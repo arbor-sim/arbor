@@ -1456,7 +1456,7 @@ TEST(fvm_lowered, label_data) {
         std::vector<lid_range> expected_ranges = {{4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}};
 
         // Create label_resolvers and compare the maps
-        auto expected_map = label_resolver(cell_labeled_ranges(gids, expected_sizes, expected_labels, expected_ranges)).mapper;
+        auto expected_map = label_resolver(cell_label_range(gids, expected_sizes, expected_labels, expected_ranges)).mapper;
         EXPECT_EQ(expected_map, label_resolver(synapse_data).mapper);
     }
 
@@ -1472,7 +1472,7 @@ TEST(fvm_lowered, label_data) {
                                                   {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3}, {0, 1}};
 
         // Create label_resolvers and compare the maps
-        auto expected_map = label_resolver(cell_labeled_ranges(gids, expected_sizes, expected_labels, expected_ranges)).mapper;
+        auto expected_map = label_resolver(cell_label_range(gids, expected_sizes, expected_labels, expected_ranges)).mapper;
         EXPECT_EQ(expected_map, label_resolver(detector_data).mapper);
     }
 
@@ -1488,7 +1488,7 @@ TEST(fvm_lowered, label_data) {
                                                   {2, 3}, {0, 2}, {2, 3}, {0, 2}};
 
         // Create label_resolvers and compare the maps
-        auto expected_map = label_resolver(cell_labeled_ranges(gids, expected_sizes, expected_labels, expected_ranges)).mapper;
+        auto expected_map = label_resolver(cell_label_range(gids, expected_sizes, expected_labels, expected_ranges)).mapper;
         EXPECT_EQ(expected_map, label_resolver(gap_junction_data).mapper);
     }
 }

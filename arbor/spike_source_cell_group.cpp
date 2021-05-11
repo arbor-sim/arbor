@@ -15,8 +15,8 @@ namespace arb {
 spike_source_cell_group::spike_source_cell_group(
     const std::vector<cell_gid_type>& gids,
     const recipe& rec,
-    cell_labeled_ranges& cg_sources,
-    cell_labeled_ranges& cg_targets):
+    cell_label_range& cg_sources,
+    cell_label_range& cg_targets):
     gids_(gids)
 {
     cg_sources.gids = gids_;

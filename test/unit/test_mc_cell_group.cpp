@@ -41,7 +41,7 @@ ACCESS_BIND(
 
 TEST(mc_cell_group, get_kind) {
     cable_cell cell = make_cell();
-    cell_labeled_ranges srcs, tgts;
+    cell_label_range srcs, tgts;
     mc_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
@@ -54,7 +54,7 @@ TEST(mc_cell_group, test) {
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    cell_labeled_ranges srcs, tgts;
+    cell_label_range srcs, tgts;
     mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
@@ -84,7 +84,7 @@ TEST(mc_cell_group, sources) {
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    cell_labeled_ranges srcs, tgts;
+    cell_label_range srcs, tgts;
     mc_cell_group group{gids, rec, srcs, tgts, lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id

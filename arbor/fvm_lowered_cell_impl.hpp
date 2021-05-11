@@ -64,7 +64,7 @@ public:
     std::vector<fvm_gap_junction> fvm_gap_junctions(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const cell_labeled_ranges& gj_data,
+        const cell_label_range& gj_data,
         const recipe& rec,
         const fvm_cv_discretization& D);
 
@@ -396,6 +396,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
            });
 
     // Populate source, target and gap_junction data vectors.
+    fvm_info.source_data.gids = gids;
+    fvm_info.target_data.gids = gids;
+    fvm_info.gap_junction_data.gids = gids;
 
     fvm_info.source_data.sizes.reserve(ncell);
     fvm_info.target_data.sizes.reserve(ncell);
@@ -428,9 +431,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             fvm_info.gap_junction_data.ranges.push_back(range);
         }
     }
-    fvm_info.source_data.gids = gids;
-    fvm_info.target_data.gids = gids;
-    fvm_info.gap_junction_data.gids = gids;
 
     cable_cell_global_properties global_props;
     try {
@@ -645,7 +645,7 @@ template <typename Backend>
 std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const cell_labeled_ranges& gap_junction_data,
+        const cell_label_range& gap_junction_data,
         const recipe& rec, const fvm_cv_discretization& D) {
 
     std::vector<fvm_gap_junction> gj_vec;

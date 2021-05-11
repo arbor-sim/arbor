@@ -70,8 +70,8 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
-    cell_labeled_ranges gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const {
-        cell_labeled_ranges global_ranges;
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        cell_label_range global_ranges;
 
         global_ranges.gids.reserve(local_ranges.gids.size()*num_ranks_);
         global_ranges.sizes.reserve(local_ranges.sizes.size()*num_ranks_);

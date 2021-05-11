@@ -13,7 +13,7 @@ namespace arb {
 
 class benchmark_cell_group: public cell_group {
 public:
-    benchmark_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_labeled_ranges& cg_sources, cell_labeled_ranges& cg_targets);
+    benchmark_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
     cell_kind get_cell_kind() const override;
 

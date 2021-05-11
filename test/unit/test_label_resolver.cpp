@@ -15,7 +15,7 @@ TEST(label_resolver, policies) {
     std::vector<cell_tag_type> labels = {"l0_0", "l2_0", "l3_0", "l3_1", "l4_0", "l4_1", "l4_1", "l5_0"};
     std::vector<lid_range> ranges = {{0, 1}, {0, 3}, {1, 0}, {4, 10}, {5, 6}, {8, 11}, {11, 12}, {0, 0}};
 
-    auto resolver = label_resolver(cell_labeled_ranges(gids, sizes, labels, ranges));
+    auto resolver = label_resolver(cell_label_range(gids, sizes, labels, ranges));
 
     // Check resolver map correctness
     // gid 0

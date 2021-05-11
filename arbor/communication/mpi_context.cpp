@@ -39,8 +39,8 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
-    cell_labeled_ranges gather_cell_labeled_ranges(const cell_labeled_ranges& local_ranges) const {
-        cell_labeled_ranges global_ranges;
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        cell_label_range global_ranges;
         global_ranges.gids   = mpi::gather_all(local_ranges.gids, comm_);
         global_ranges.sizes  = mpi::gather_all(local_ranges.sizes, comm_);
         global_ranges.labels = mpi::gather_all(local_ranges.labels, comm_);

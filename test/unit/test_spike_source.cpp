@@ -17,7 +17,7 @@ using ss_recipe = homogeneous_recipe<cell_kind::spike_source, spike_source_cell>
 TEST(spike_source, cell_kind)
 {
     ss_recipe rec(1u, spike_source_cell("src", explicit_schedule({})));
-    cell_labeled_ranges srcs, tgts;
+    cell_label_range srcs, tgts;
     spike_source_cell_group group({0}, rec, srcs, tgts);
 
     EXPECT_EQ(cell_kind::spike_source, group.get_cell_kind());
@@ -41,7 +41,7 @@ TEST(spike_source, matches_time_seq)
 {
     auto test_seq = [](schedule seq) {
         ss_recipe rec(1u, spike_source_cell("src", seq));
-        cell_labeled_ranges srcs, tgts;
+        cell_label_range srcs, tgts;
         spike_source_cell_group group({0}, rec, srcs, tgts);
 
         // epoch ending at 10ms
@@ -69,7 +69,7 @@ TEST(spike_source, reset)
 {
     auto test_seq = [](schedule seq) {
         ss_recipe rec(1u, spike_source_cell("src", seq));
-        cell_labeled_ranges srcs, tgts;
+        cell_label_range srcs, tgts;
         spike_source_cell_group group({0}, rec, srcs, tgts);
 
         // Advance for 10 ms and store generated spikes in spikes1.
@@ -100,7 +100,7 @@ TEST(spike_source, exhaust)
     // This test assumes that seq will exhaust itself before t=10 ms.
     auto test_seq = [](schedule seq) {
         ss_recipe rec(1u, spike_source_cell("src", seq));
-        cell_labeled_ranges srcs, tgts;
+        cell_label_range srcs, tgts;
         spike_source_cell_group group({0}, rec, srcs, tgts);
 
         // epoch ending at 10ms
