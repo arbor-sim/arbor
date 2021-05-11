@@ -9,7 +9,7 @@
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
-lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_labeled_ranges& cg_sources, cell_labeled_ranges& cg_targets):
     gids_(gids)
 {
     for (auto gid: gids_) {
@@ -26,6 +26,18 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
     for (auto lid: util::make_span(gids_.size())) {
         cells_.push_back(util::any_cast<lif_cell>(rec.get_cell_description(gids_[lid])));
     }
+
+    cg_sources.gids = gids_;
+    cg_sources.sizes.resize(cells_.size(), 1);
+    cg_sources.ranges.resize(cells_.size(), {0, 1});
+    cg_sources.labels.reserve(cells_.size());
+    std::transform(cells_.begin(), cells_.end(), std::back_inserter(cg_sources.labels), [](const auto& c){return c.source;});
+
+    cg_targets.gids = gids_;
+    cg_targets.sizes.resize(cells_.size(), 1);
+    cg_targets.ranges.resize(cells_.size(), {0, 1});
+    cg_targets.labels.reserve(cells_.size());
+    std::transform(cells_.begin(), cells_.end(), std::back_inserter(cg_targets.labels), [](const auto& c){return c.target;});
 }
 
 cell_kind lif_cell_group::get_cell_kind() const {
@@ -112,24 +124,4 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
 
     // This is the last time a cell was updated.
     last_time_updated_[lid] = t;
-}
-
-cell_labeled_ranges lif_cell_group::source_data() const {
-    cell_labeled_ranges src_table;
-    src_table.gids = gids_;
-    src_table.sizes.resize(cells_.size(), 1);
-    src_table.ranges.resize(cells_.size(), {0, 1});
-    src_table.labels.reserve(cells_.size());
-    std::transform(cells_.begin(), cells_.end(), std::back_inserter(src_table.labels), [](const auto& c){return c.source;});
-    return src_table;
-}
-
-cell_labeled_ranges lif_cell_group::target_data() const {
-    cell_labeled_ranges tgt_table;
-    tgt_table.gids = gids_;
-    tgt_table.sizes.resize(cells_.size(), 1);
-    tgt_table.ranges.resize(cells_.size(), {0, 1});
-    tgt_table.labels.reserve(cells_.size());
-    std::transform(cells_.begin(), cells_.end(), std::back_inserter(tgt_table.labels), [](const auto& c){return c.target;});
-    return tgt_table;
 }

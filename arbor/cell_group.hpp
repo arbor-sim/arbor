@@ -45,11 +45,6 @@ public:
     virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
         return {};
     }
-
-    // Labeled source, target and gap_junction lid_ranges per gid
-    virtual cell_labeled_ranges source_data() const { return {};};
-    virtual cell_labeled_ranges target_data() const { return {};};
-    virtual cell_labeled_ranges gap_junction_data() const { return {};};
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

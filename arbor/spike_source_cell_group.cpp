@@ -12,9 +12,18 @@
 
 namespace arb {
 
-spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+spike_source_cell_group::spike_source_cell_group(
+    const std::vector<cell_gid_type>& gids,
+    const recipe& rec,
+    cell_labeled_ranges& cg_sources,
+    cell_labeled_ranges& cg_targets):
     gids_(gids)
 {
+    cg_sources.gids = gids_;
+    cg_sources.sizes.resize(gids_.size(), 1);
+    cg_sources.ranges.resize(gids_.size(), {0, 1});
+    cg_sources.labels.reserve(gids_.size());
+
     for (auto gid: gids_) {
         if (!rec.get_probes(gid).empty()) {
             throw bad_cell_probe(cell_kind::spike_source, gid);
@@ -26,7 +35,7 @@ spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));
-            src_labels_.push_back(cell.source);
+            cg_sources.labels.push_back(cell.source);
         }
         catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);
@@ -71,17 +80,6 @@ void spike_source_cell_group::add_sampler(sampler_association_handle, cell_membe
     throw std::logic_error("A spike_source_cell group doen't support sampling of internal state!");
 }
 
-cell_labeled_ranges spike_source_cell_group::source_data() const {
-    cell_labeled_ranges src_table;
-    src_table.gids = gids_;
-    src_table.sizes.resize(gids_.size(), 1);
-    src_table.ranges.resize(gids_.size(), {0, 1});
-    src_table.labels.reserve(gids_.size());
-    for (auto lid: util::make_span(gids_.size())) {
-        src_table.labels.push_back(src_labels_[lid]);
-    }
-    return src_table;
-}
 } // namespace arb
 
 

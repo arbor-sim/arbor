@@ -26,7 +26,11 @@ class mc_cell_group: public cell_group {
 public:
     mc_cell_group() = default;
 
-    mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
+    mc_cell_group(const std::vector<cell_gid_type>& gids,
+                  const recipe& rec,
+                  cell_labeled_ranges& cg_sources,
+                  cell_labeled_ranges& cg_targets,
+                  fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable;
@@ -55,16 +59,12 @@ public:
 
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const override;
 
-    cell_labeled_ranges source_data() const override;
-    cell_labeled_ranges target_data() const override;
-    cell_labeled_ranges gap_junction_data() const override;
-
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
-    // Information needed from the lowered_cell
-    fvm_initialization_data fvm_data_;
+    // Map from gid to integration domain id
+    std::vector<fvm_index_type> cell_to_intdom_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
@@ -86,6 +86,12 @@ private:
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;
+
+    // Handles for accessing lowered cell.
+    std::vector<target_handle> target_handles_;
+
+    // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
+    probe_association_map probe_map_;
 
     // Collection of samplers to be run against probes in this group.
     sampler_association_map sampler_map_;

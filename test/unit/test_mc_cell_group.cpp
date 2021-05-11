@@ -41,7 +41,8 @@ ACCESS_BIND(
 
 TEST(mc_cell_group, get_kind) {
     cable_cell cell = make_cell();
-    mc_cell_group group{{0}, cable1d_recipe({cell}), lowered_cell()};
+    cell_labeled_ranges srcs, tgts;
+    mc_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
 }
@@ -53,7 +54,8 @@ TEST(mc_cell_group, test) {
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    mc_cell_group group{{0}, rec, lowered_cell()};
+    cell_labeled_ranges srcs, tgts;
+    mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
@@ -82,7 +84,8 @@ TEST(mc_cell_group, sources) {
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    mc_cell_group group{gids, rec, lowered_cell()};
+    cell_labeled_ranges srcs, tgts;
+    mc_cell_group group{gids, rec, srcs, tgts, lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.

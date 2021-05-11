@@ -19,7 +19,7 @@ public:
     lif_cell_group() = default;
 
     // Constructor containing gid of first cell in a group and a container of all cells.
-    lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec);
+    lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_labeled_ranges& cg_sources, cell_labeled_ranges& cg_targets);
 
     virtual cell_kind get_cell_kind() const override;
     virtual void reset() override;
@@ -34,10 +34,6 @@ public:
     virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) override;
     virtual void remove_sampler(sampler_association_handle) override;
     virtual void remove_all_samplers() override;
-
-    // Labeled source, target and gap_junction info
-    cell_labeled_ranges source_data() const override;
-    cell_labeled_ranges target_data() const override;
 
 private:
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).

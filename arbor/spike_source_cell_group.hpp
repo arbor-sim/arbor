@@ -15,7 +15,7 @@ namespace arb {
 
 class spike_source_cell_group: public cell_group {
 public:
-    spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec);
+    spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_labeled_ranges& cg_sources, cell_labeled_ranges& cg_targets);
 
     cell_kind get_cell_kind() const override;
 
@@ -35,12 +35,9 @@ public:
 
     void remove_all_samplers() override {}
 
-    cell_labeled_ranges source_data() const override;
-
 private:
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
-    std::vector<cell_tag_type> src_labels_;
     std::vector<schedule> time_sequences_;
 };
 

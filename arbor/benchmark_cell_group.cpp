@@ -15,7 +15,9 @@
 namespace arb {
 
 benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gids,
-                                           const recipe& rec):
+                                           const recipe& rec,
+                                           cell_labeled_ranges& cg_sources,
+                                           cell_labeled_ranges& cg_targets):
     gids_(gids)
 {
     for (auto gid: gids_) {
@@ -28,6 +30,18 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
     for (auto gid: gids_) {
         cells_.push_back(util::any_cast<benchmark_cell>(rec.get_cell_description(gid)));
     }
+
+    cg_sources.gids = gids_;
+    cg_sources.sizes.resize(cells_.size(), 1);
+    cg_sources.ranges.resize(cells_.size(), {0, 1});
+    cg_sources.labels.reserve(cells_.size());
+    std::transform(cells_.begin(), cells_.end(), std::back_inserter(cg_sources.labels), [](const auto& c){return c.source;});
+
+    cg_targets.gids = gids_;
+    cg_targets.sizes.resize(cells_.size(), 1);
+    cg_targets.ranges.resize(cells_.size(), {0, 1});
+    cg_targets.labels.reserve(cells_.size());
+    std::transform(cells_.begin(), cells_.end(), std::back_inserter(cg_targets.labels), [](const auto& c){return c.target;});
 
     reset();
 }
@@ -91,26 +105,6 @@ void benchmark_cell_group::add_sampler(sampler_association_handle h,
                                    sampling_policy policy)
 {
     throw std::logic_error("A benchmark_cell group doen't support sampling of internal state!");
-}
-
-cell_labeled_ranges benchmark_cell_group::source_data() const {
-    cell_labeled_ranges src_table;
-    src_table.gids = gids_;
-    src_table.sizes.resize(cells_.size(), 1);
-    src_table.ranges.resize(cells_.size(), {0, 1});
-    src_table.labels.reserve(cells_.size());
-    std::transform(cells_.begin(), cells_.end(), std::back_inserter(src_table.labels), [](const auto& c){return c.source;});
-    return src_table;
-}
-
-cell_labeled_ranges benchmark_cell_group::target_data() const {
-    cell_labeled_ranges tgt_table;
-    tgt_table.gids = gids_;
-    tgt_table.sizes.resize(cells_.size(), 1);
-    tgt_table.ranges.resize(cells_.size(), {0, 1});
-    tgt_table.labels.reserve(cells_.size());
-    std::transform(cells_.begin(), cells_.end(), std::back_inserter(tgt_table.labels), [](const auto& c){return c.target;});
-    return tgt_table;
 }
 
 } // namespace arb
