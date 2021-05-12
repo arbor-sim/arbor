@@ -11,15 +11,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        name:      ["Sanitize"]
         sanitizer: ["address", "leak", "undefined", "memory", "thread"]
-        name:      ["Clang sanitizer"]
+        simd:      ["ON", "OFF"]
+        mpi:       ["ON"]
         os:        ["ubuntu-20.04"]
         cc:        ["clang-10"]
         cxx:       ["clang++-10"]
         py:        ["3.9"]
         cmake:     ["3.19.x"]
-        mpi:       ["ON"]
-        simd:      ["ON", "OFF"]
     env:
         CC:         ${{ matrix.cc }}
         CXX:        ${{ matrix.cxx }}
@@ -83,7 +83,7 @@ jobs:
           cd -
       - name: Run unit tests
         run: |
-          build/bin/unit
+          build/bin/unit --gtest_filter=-*DeathTest
           build/bin/unit-modcc
       - if:   ${{ matrix.mpi == 'ON' }}
         name: Run MPI tests
