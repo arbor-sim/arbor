@@ -178,11 +178,12 @@ void FunctionInliner::visit(AssignmentExpression* e) {
     }
 
     if (auto rhs = e->rhs()->is_identifier()) {
-        if (local_arg_map_.count(rhs->spelling())) {
-            e->replace_rhs(local_arg_map_.at(rhs->spelling())->clone());
+        auto name = rhs->spelling();
+        if (local_arg_map_.count(name)) {
+            e->replace_rhs(local_arg_map_.at(name)->clone());
         }
-        if (call_arg_map_.count(rhs->spelling())) {
-            e->replace_rhs(call_arg_map_.at(rhs->spelling())->clone());
+        if (call_arg_map_.count(name)) {
+            e->replace_rhs(call_arg_map_.at(name)->clone());
         }
     }
     else {
