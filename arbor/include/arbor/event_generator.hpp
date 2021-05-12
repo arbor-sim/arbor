@@ -32,6 +32,12 @@ namespace arb {
 //     Provide a non-owning view on to the events in the time interval
 //     [to, from).
 //
+// `void resolve_label(resolution_function)`
+//
+//     event_generators are constructed on cable_local_label_types comprising
+//     a label and a selection policy. These labels need to be resolved to a
+//     specific cell_lid_type. This is done using a resolution_function.
+//
 // The `event_seq` type is a pair of `spike_event` pointers that
 // provide a view onto an internally-maintained contiguous sequence
 // of generated spike event objects. This view is valid only for
@@ -45,13 +51,18 @@ namespace arb {
 //
 // `event_generator` objects have value semantics, and use type erasure
 // to wrap implementation details. An `event_generator` can be constructed
-// from an onbject of an implementation class Impl that is copy-constructible
+// from an object of an implementation class Impl that is copy-constructable
 // and otherwise provides `reset` and `events` methods following the
 // API described above.
 //
 // Some pre-defined event generators are included:
 //  - `empty_generator`: produces no events
-//  - `schedule_generator`: events to a fixed target according to a time schedule
+//  - `schedule_generator`: produces events according to a time schedule.
+//    A target is selected using a label resolution function for every generated
+//    event.
+//  - `explicit_generator`: is constructed from a vector of {label, time, weight}
+//    objects. Explicit targets are generated from the labels using a resolution
+//    function before the first call to the `events` method.
 
 using event_seq = std::pair<const spike_event*, const spike_event*>;
 using resolution_function = std::function<std::vector<cell_lid_type>(const cell_local_label_type&)>;
@@ -227,7 +238,7 @@ struct explicit_generator {
                 events_.push_back({t, e.time, e.weight});
             }
         }
-        arb_assert(std::is_sorted(events_.begin(), events_.end()));
+        std::sort(events_.begin(), events_.end());
     }
 
     void reset() {
