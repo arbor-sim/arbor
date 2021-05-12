@@ -84,7 +84,7 @@ jobs:
           cd -
       - name: Run unit tests
         run: |
-          build/bin/unitb --gtest_filter=-*DeathTest
+          build/bin/unit --gtest_filter=-*DeathTest
           build/bin/unit-modcc
       - if:   ${{ matrix.mpi == 'ON' }}
         name: Run MPI tests
