@@ -43,6 +43,7 @@ struct run_params {
     double min_delay = 10;
     double duration = 100;
     cell_parameters cell;
+    bool defaulted = true;
 };
 
 void write_trace_json(const arb::trace_data<double>& trace);
@@ -152,15 +153,10 @@ int main(int argc, char** argv) {
 #ifdef ARB_MPI_ENABLED
         else {
             ctx = arb::make_context(resources, MPI_COMM_WORLD);
-            {
-                int rank;
-                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-                root = rank==0;
-            }
+            if (params.defaulted) params.num_ranks = arb::num_ranks(ctx);
+            root = arb::rank(ctx)==0;
         }
 #endif
-        assert(arb::num_ranks(ctx)==params.num_ranks);
-
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
@@ -171,9 +167,10 @@ int main(int argc, char** argv) {
         std::cout << "gpu:      " << (has_gpu(ctx)? "yes": "no") << "\n";
         std::cout << "threads:  " << num_threads(ctx) << "\n";
         std::cout << "mpi:      " << (has_mpi(ctx)? "yes": "no") << "\n";
-        std::cout << "ranks:    " << num_ranks(ctx) << "\n" << std::endl;
-
+        std::cout << "ranks:    " << num_ranks(ctx) << "(" << params.num_ranks << ")\n" << std::endl;
         std::cout << "run mode: " << distribution_type(ctx) << "\n";
+
+        assert(arb::num_ranks(ctx)==params.num_ranks);
 
         arb::profile::meter_manager meters;
         meters.start(ctx);
@@ -278,6 +275,8 @@ run_params read_options(int argc, char** argv) {
     if (argc<2) {
         std::cout << "Using default parameters.\n";
         return params;
+    } else {
+        params.defaulted = false;
     }
     if (argc>2) {
         throw std::runtime_error("More than command line one option not permitted.");
