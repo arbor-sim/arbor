@@ -228,9 +228,7 @@ struct explicit_generator {
     explicit_generator(explicit_generator&&) = default;
 
     explicit_generator(const lse_vector& events):
-        input_events_(events), start_index_(0) {
-        arb_assert(std::is_sorted(input_events_.begin(), input_events_.end(), [](const auto& rhs, const auto& lhs) {return rhs.time < lhs.time;}));
-    }
+        input_events_(events), start_index_(0) {}
 
     void resolve_label(resolution_function label_resolver) {
         for (const auto& e: input_events_) {

@@ -113,7 +113,7 @@ public:
 
         if (next_cell < cable_end) {
             conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0", policy::assert_univalent},
-                                                         {"local_1", policy ::assert_univalent}, 0.015));
+                                                         {"local_1", policy::assert_univalent}, 0.015));
         }
         if (prev_cell >= cable_begin) {
             conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1", policy::assert_univalent},

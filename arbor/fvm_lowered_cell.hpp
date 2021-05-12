@@ -200,7 +200,7 @@ struct fvm_initialization_data {
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles;
 
-    // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
+    // Maps probe ids to probe handles and tags.
     probe_association_map probe_map;
 
     // Structs required for {gid, label} to lid resolution

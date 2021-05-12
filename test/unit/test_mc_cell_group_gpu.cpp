@@ -43,7 +43,8 @@ TEST(mc_cell_group, gpu_test)
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    mc_cell_group group{{0}, rec, lowered_cell()};
+    cell_label_range srcs, tgts;
+    mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // The model is expected to generate 4 spikes as a result of the
