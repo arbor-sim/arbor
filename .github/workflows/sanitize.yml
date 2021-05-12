@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         name:      ["Sanitize"]
-        sanitizer: ["address", "leak", "undefined", "memory", "thread"]
+        sanitizer: ["address", undefined", "memory", "thread"]
         simd:      ["ON", "OFF"]
         mpi:       ["ON"]
         os:        ["ubuntu-20.04"]
@@ -21,8 +21,9 @@ jobs:
         py:        ["3.9"]
         cmake:     ["3.19.x"]
     env:
-        CC:         ${{ matrix.cc }}
-        CXX:        ${{ matrix.cxx }}
+        CC:           ${{ matrix.cc }}
+        CXX:          ${{ matrix.cxx }}
+        ASAN_OPTIONS: detect_leaks=1
         # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
         PYTHONPATH: ${{ github.workspace }}/build/python
     steps:
@@ -83,7 +84,7 @@ jobs:
           cd -
       - name: Run unit tests
         run: |
-          build/bin/unit --gtest_filter=-*DeathTest
+          build/bin/unitb --gtest_filter=-*DeathTest
           build/bin/unit-modcc
       - if:   ${{ matrix.mpi == 'ON' }}
         name: Run MPI tests
