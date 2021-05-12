@@ -20,7 +20,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
    .. attribute:: assert_univalent
 
-      Assert that ony one item is available in the group. Throws an exception if the assertion
+      Assert that only one item is available in the group. Throws an exception if the assertion
       fails.
 
 .. class:: cell_local_label
