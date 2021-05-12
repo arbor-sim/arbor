@@ -181,12 +181,10 @@ void FunctionInliner::visit(AssignmentExpression* e) {
         auto name = rhs->spelling();
         if (local_arg_map_.count(name)) {
             e->replace_rhs(local_arg_map_.at(name)->clone());
-        }
-        if (call_arg_map_.count(name)) {
+        } else if (call_arg_map_.count(name)) {
             e->replace_rhs(call_arg_map_.at(name)->clone());
         }
-    }
-    else {
+    } else {
         e->rhs()->accept(this);
     }
     statements_.push_back(e->clone());
