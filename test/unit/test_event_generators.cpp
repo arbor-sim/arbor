@@ -19,7 +19,7 @@ namespace{
 
 TEST(event_generators, assign_and_copy) {
     event_generator gen = regular_generator({"l2"}, 5., 0.5, 0.75);
-    gen.init({2});
+    gen.resolve_label([](const cell_local_label_type&) {return std::vector<cell_lid_type>{2};});
     spike_event expected{2, 0.75, 5.};
 
     auto first = [](const event_seq& seq) {
@@ -60,7 +60,7 @@ TEST(event_generators, regular) {
     float weight = 3.14;
 
     event_generator gen = regular_generator(label, weight, t0, dt);
-    gen.init({lid});
+    gen.resolve_label([lid](const cell_local_label_type&) {return std::vector<cell_lid_type>{lid};});
 
     // Helper for building a set of expected events.
     auto expected = [&] (std::vector<time_type> times) {
@@ -92,13 +92,13 @@ TEST(event_generators, seq) {
         {{"l0"}, 3.0, 6.0},
         {{"l0"}, 3.5, 7.0},
     };
-    std::vector<cell_lid_type> lid_vector = {0,0,2,1,2,0,0};
+    std::unordered_map<cell_tag_type, cell_lid_type> lid_map = {{"l0", 0},{"l1", 1}, {"l2", 2}};
     pse_vector expected;
-    std::transform(in.begin(), in.end(), lid_vector.begin(), std::back_inserter(expected),
-        [](const auto& lhs, const auto& rhs) {return spike_event{rhs, lhs.time, lhs.weight};});
+    std::transform(in.begin(), in.end(), std::back_inserter(expected),
+        [lid_map](const auto& item) {return spike_event{lid_map.at(item.label.tag), item.time, item.weight};});
 
     event_generator gen = explicit_generator(in);
-    gen.init(lid_vector);
+    gen.resolve_label([lid_map](const cell_local_label_type& item) {return std::vector<cell_lid_type>{lid_map.at(item.tag)};});
 
     EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
     gen.reset();
@@ -112,13 +112,12 @@ TEST(event_generators, seq) {
         {{"l0"}, 3.0, 6.0},
         {{"l0"}, 3.5, 7.0},
     };
-    lid_vector = {0,0,0,0};
     expected.clear();
-    std::transform(in.begin(), in.end(), lid_vector.begin(), std::back_inserter(expected),
-                   [](const auto& lhs, const auto& rhs) {return spike_event{rhs, lhs.time, lhs.weight};});
+    std::transform(in.begin(), in.end(), std::back_inserter(expected),
+        [lid_map](const auto& item) {return spike_event{lid_map.at(item.label.tag), item.time, item.weight};});
 
     gen = explicit_generator(in);
-    gen.init(lid_vector);
+    gen.resolve_label([lid_map](const cell_local_label_type& item) {return std::vector<cell_lid_type>{lid_map.at(item.tag)};});
 
     auto draw = [](event_generator& gen, time_type t0, time_type t1) {
         gen.reset();
@@ -163,7 +162,7 @@ TEST(event_generators, poisson) {
     float weight = 42;
 
     event_generator gen = poisson_generator(label, weight, t0, lambda, G);
-    gen.init({lid});
+    gen.resolve_label([lid](const cell_local_label_type&) {return std::vector<cell_lid_type>{lid};});
 
     pse_vector int1 = as_vector(gen.events(0, t1));
     // Test that the output is sorted

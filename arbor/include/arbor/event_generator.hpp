@@ -32,10 +32,6 @@ namespace arb {
 //     Provide a non-owning view on to the events in the time interval
 //     [to, from).
 //
-// `std::vector<cell_local_label_type> targets()`
-//
-//     Return a vector of the target labels and lid selection policy of the generator.
-//
 // The `event_seq` type is a pair of `spike_event` pointers that
 // provide a view onto an internally-maintained contiguous sequence
 // of generated spike event objects. This view is valid only for
@@ -58,7 +54,7 @@ namespace arb {
 //  - `schedule_generator`: events to a fixed target according to a time schedule
 
 using event_seq = std::pair<const spike_event*, const spike_event*>;
-
+using resolution_function = std::function<std::vector<cell_lid_type>(const cell_local_label_type&)>;
 
 // The simplest possible generator that generates no events.
 // Declared ahead of event_generator so that it can be used as the default
@@ -68,10 +64,7 @@ struct empty_generator {
     event_seq events(time_type, time_type) {
         return {nullptr, nullptr};
     }
-    std::vector<cell_local_label_type> targets() {
-        return {};
-    };
-    void init(const std::vector<cell_lid_type>&) {};
+    void resolve_label(resolution_function) {}
 };
 
 class event_generator {
@@ -103,20 +96,15 @@ public:
         return impl_->events(t0, t1);
     }
 
-    std::vector<cell_local_label_type> targets() const {
-        return impl_->targets();
+    void resolve_label(resolution_function label_resolver) {
+        impl_->resolve_label(std::move(label_resolver));
     }
-
-    void init(const std::vector<cell_lid_type>& lids) {
-        impl_->init(lids);
-    };
 
 private:
     struct interface {
         virtual void reset() = 0;
-        virtual void init(const std::vector<cell_lid_type>&) = 0;
+        virtual void resolve_label(resolution_function) = 0;
         virtual event_seq events(time_type, time_type) = 0;
-        virtual std::vector<cell_local_label_type> targets() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
     };
@@ -132,17 +120,13 @@ private:
             return wrapped.events(t0, t1);
         }
 
-        std::vector<cell_local_label_type> targets() override {
-            return wrapped.targets();
-        }
-
         void reset() override {
             wrapped.reset();
         }
 
-        void init(const std::vector<cell_lid_type>& lids) override {
-            wrapped.init(lids);
-        };
+        void resolve_label(resolution_function label_resolver) override {
+            wrapped.resolve_label(std::move(label_resolver));
+        }
 
         std::unique_ptr<interface> clone() override {
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
@@ -162,8 +146,8 @@ struct schedule_generator {
         target_(std::move(target)), weight_(weight), sched_(std::move(sched))
     {}
 
-    void init(const std::vector<cell_lid_type>& lids) {
-        target_lids_ = lids;
+    void resolve_label(resolution_function label_resolver) {
+        label_resolver_ = std::move(label_resolver);
     }
 
     void reset() {
@@ -177,22 +161,18 @@ struct schedule_generator {
         events_.reserve(ts.second-ts.first);
 
         for (auto i = ts.first; i!=ts.second; ++i) {
-            for (auto lid: target_lids_) {
-                events_.push_back(spike_event{lid, *i, weight_});
+            for (auto t: label_resolver_(target_)) {
+                events_.push_back(spike_event{t, *i, weight_});
             }
         }
 
         return {events_.data(), events_.data()+events_.size()};
     }
 
-    std::vector<cell_local_label_type> targets() {
-        return {target_};
-    }
-
 private:
     pse_vector events_;
     cell_local_label_type target_;
-    std::vector<cell_lid_type> target_lids_;
+    resolution_function label_resolver_;
     float weight_;
     schedule sched_;
 };
@@ -229,6 +209,7 @@ struct explicit_generator {
         time_type time;
         float weight;
     };
+
     using lse_vector = std::vector<labeled_synapse_event>;
 
     explicit_generator() = default;
@@ -236,20 +217,17 @@ struct explicit_generator {
     explicit_generator(explicit_generator&&) = default;
 
     explicit_generator(const lse_vector& events):
-        start_index_(0)
-    {
-        for (const auto& e: events) {
-            targets_.push_back(e.label);
-            events_.push_back({-1u, e.time, e.weight});
-        }
-        arb_assert(std::is_sorted(events_.begin(), events_.end()));
+        input_events_(events), start_index_(0) {
+        arb_assert(std::is_sorted(input_events_.begin(), input_events_.end(), [](const auto& rhs, const auto& lhs) {return rhs.time < lhs.time;}));
     }
 
-    void init(const std::vector<cell_lid_type>& lids) {
-        arb_assert(lids.size() == events_.size());
-        for (unsigned i = 0; i < lids.size(); i++) {
-            events_[i].target = lids[i];
+    void resolve_label(resolution_function label_resolver) {
+        for (const auto& e: input_events_) {
+            for (auto t: label_resolver(e.label)) {
+                events_.push_back({t, e.time, e.weight});
+            }
         }
+        arb_assert(std::is_sorted(events_.begin(), events_.end()));
     }
 
     void reset() {
@@ -267,13 +245,9 @@ struct explicit_generator {
         return {lb, ub};
     }
 
-    std::vector<cell_local_label_type> targets() {
-        return targets_;
-    }
-
 private:
+    lse_vector input_events_;
     pse_vector events_;
-    std::vector<cell_local_label_type> targets_;
     std::size_t start_index_ = 0;
 };
 

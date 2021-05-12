@@ -230,13 +230,7 @@ simulation_state::simulation_state(
             // Resolve event_generator targets
             auto event_gens = rec.event_generators(gid);
             for (auto& g: event_gens) {
-                std::vector<cell_lid_type> lids;
-                for (const auto& t: g.targets()) {
-                    for (auto lid: target_resolver.get_lid({gid, t})) {
-                        lids.push_back(lid);
-                    }
-                }
-                g.init(lids);
+                g.resolve_label([target_resolver, gid](const cell_local_label_type& label) mutable {return target_resolver.get_lid({gid, label});});
             }
 
             // Set up the event generators for cell gid.
