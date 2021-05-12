@@ -40,12 +40,12 @@ enum class targetKind {
     gpu,
 };
 
-std::unordered_map<std::string, targetKind> targetKindMap = {
+const static std::unordered_map<std::string, targetKind> targetKindMap = {
     {"cpu", targetKind::cpu},
     {"gpu", targetKind::gpu},
 };
 
-std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
+const static std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
     {"none", simd_spec::none},
     {"neon", simd_spec::neon},
     {"sve", simd_spec::sve},
