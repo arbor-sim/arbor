@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
 include(CMakeDependentOption)
-include(GNUInstallDirs)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
@@ -8,6 +7,8 @@ string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version
 
 project(arbor VERSION ${numeric_version})
 enable_language(CXX)
+
+include(GNUInstallDirs)
 
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
