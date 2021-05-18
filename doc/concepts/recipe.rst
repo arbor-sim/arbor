@@ -6,16 +6,16 @@ Recipes
 An Arbor *recipe* is a description of a model. The recipe is queried during the model
 building phase to provide information about individual cells in the model, such as:
 
-  * The **number of cells** in the model.
-  * The **kind** of each cell.
-  * The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
-    stimuli etc.
-  * The number of **spike targets** on each cell.
-  * The number of **spike sources** on each cell.
-  * The number of **gap junction sites** on each cell.
-  * Incoming **network connections** from other cells terminating on a cell.
-  * **Gap junction connections** on each cell.
-  * **Probes** on each cell.
+* The **number of cells** in the model.
+* The **kind** of each cell.
+* The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
+  stimuli etc.
+* The number of **spike targets** on each cell.
+* The number of **spike sources** on each cell.
+* The number of **gap junction sites** on each cell.
+* Incoming **network connections** from other cells terminating on a cell.
+* **Gap junction connections** on each cell.
+* **Probes** on each cell.
 
 Recipes are structured to provide a consistent interface for describing each cell in the
 network using their global identifier (`gid`).
@@ -26,31 +26,31 @@ which helps make Arbor fast and easily distributable over many nodes.
 To better illustrate the content of a recipe, let's consider the following network of
 three cells:
 
--  | ``Cell 0``: Is a single soma, with ``hh`` (Hodgkin-huxley) dynamics. In the middle
-     of the soma, a spike detector is attached, it generates a spiking event when the
-     voltage goes above 10 mV. In the same spot on the soma, a current clamp is also
-     attached, with the intention of triggering some spikes. All of the preceding info:
-     the morphology, dynamics, spike detector and current clamp are what is referred to in
-     Arbor as the **description** of the cell.
-   | ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`,
-     (because cable cells allow complex dynamics such as ``hh``). This is referred to as
-     the **kind** of the cell.
-   | It's quite expensive to build cable cells, so we don't want to do this too often.
-     But when the simulation is first set up, it needs to know how cells interact with
-     one another in order to distribute the simulation over the available computational
-     resources. This is why the number of **targets**, **sources** and **gap junction sites**
-     is needed separately from the cell description: with them, the simulation can tell
-     that ``cell 0`` has 1 **spike source** (the detector), 0 **spike targets**, and 0
-     **gap junction sites**, without having to build the cell.
--  | ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
-     It has a single synapse at the end of the dendrite and a gap junction site in the
-     middle of the soma. This is the **description** of the cell.
-     It's also a cable cell, which is its **cell kind**. It has 0 **spike sources**, 1
-     **spike target** (the synapse) and 1 **gap junction site**.
--  | ``Cell 2``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
-     It has a gap junction site in the middle of the soma. This is the **description**
-     of the cell. It's also a cable cell, which is its **cell kind**. It has 0
-     **spike sources**, 0 **spike targets** and 1 **gap junction site**.
+- ``Cell 0``: Is a single soma, with ``hh`` (Hodgkin-huxley) dynamics. In the middle
+  of the soma, a spike detector is attached, it generates a spiking event when the
+  voltage goes above 10 mV. In the same spot on the soma, a current clamp is also
+  attached, with the intention of triggering some spikes. All of the preceding info:
+  the morphology, dynamics, spike detector and current clamp are what is referred to in
+  Arbor as the **description** of the cell.
+  ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`,
+  (because cable cells allow complex dynamics such as ``hh``). This is referred to as
+  the **kind** of the cell.
+  It's quite expensive to build cable cells, so we don't want to do this too often.
+  But when the simulation is first set up, it needs to know how cells interact with
+  one another in order to distribute the simulation over the available computational
+  resources. This is why the number of **targets**, **sources** and **gap junction sites**
+  is needed separately from the cell description: with them, the simulation can tell
+  that ``cell 0`` has 1 **spike source** (the detector), 0 **spike targets**, and 0
+  **gap junction sites**, without having to build the cell.
+- ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
+  It has a single synapse at the end of the dendrite and a gap junction site in the
+  middle of the soma. This is the **description** of the cell.
+  It's also a cable cell, which is its **cell kind**. It has 0 **spike sources**, 1
+  **spike target** (the synapse) and 1 **gap junction site**.
+- ``Cell 2``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
+  It has a gap junction site in the middle of the soma. This is the **description**
+  of the cell. It's also a cable cell, which is its **cell kind**. It has 0
+  **spike sources**, 0 **spike targets** and 1 **gap junction site**.
 
 The total **number of cells** in the model is 3. The **kind**, **description** and
 number of **spike sources**, **spike targets** and **gap junction sites** on each cell
@@ -89,10 +89,10 @@ Why recipes?
 
 The interface and design of Arbor recipes was motivated by the following aims:
 
-    * Building a simulation from a recipe description must be possible in a
-      distributed system efficiently with minimal communication.
-    * Minimising the amount of memory used in model building, making it
-      possible to build and run simulations in one run.
+* Building a simulation from a recipe description must be possible in a
+  distributed system efficiently with minimal communication.
+* Minimising the amount of memory used in model building, making it
+  possible to build and run simulations in one run.
 
 Recipe descriptions are cell-oriented, in order that the building phase can
 be efficiently distributed and that the model can be built independently of any
@@ -153,8 +153,8 @@ General best practices
     information only when requested.
     This has multiple benefits, including:
 
-        * thread safety;
-        * minimising the memory footprint of the recipe.
+    * thread safety;
+    * minimising the memory footprint of the recipe.
 
 .. topic:: Be reproducible
 
