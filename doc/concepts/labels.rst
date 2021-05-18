@@ -602,6 +602,11 @@ Examples of locations, :ref:`expressed using the DSL <labels-location-def>`, inc
 * The end of branch 5 ``(location 5 1)``.
 * One quarter of the way along branch 5 ``(location 5 0.25)``.
 
+In general, a location on a component can be specific with ``on-components``, e.g.:
+
+* One quarter of the way along segment 3 ``(on-components 0.25 (segment 3))``.
+* One tenth of the way along branch 4 ``(on-components 0.1 (branch 4))`` (identical to ``(location 4 0.1)``).
+
 .. _labels-cables:
 
 Cables
