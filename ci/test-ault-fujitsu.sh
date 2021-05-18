@@ -13,6 +13,7 @@ build_path="$base_path/build"
 echo "=== building: $build_path"
 mkdir "$build_path"
 cd "$build_path"
+echo "=== CC=gcc CXX=g++ cmake .. -DARB_USE_BUNDLED_LIBS=on -DARB_ARCH=armv8.2-a+sve -DARB_VECTORIZE=on -G Ninja"
 CC=gcc CXX=g++ cmake .. -DARB_USE_BUNDLED_LIBS=on -DARB_ARCH=armv8.2-a+sve -DARB_VECTORIZE=on -G Ninja
 ninja -j48 unit
 

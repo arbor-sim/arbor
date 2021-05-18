@@ -68,7 +68,7 @@ stages:
     - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
     - docker push $DEPLOY_IMAGE
 
-build release:
+build_release:
   extends: .build_docker_images
   variables:
     BUILD_DOCKERFILE: ci/release/build.Dockerfile
@@ -86,7 +86,7 @@ notify_github_start:
 
 
 ### Release tests ###
-allocate release:
+allocate_release:
   stage: allocate
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
@@ -95,7 +95,7 @@ allocate release:
     PULL_IMAGE: 'YES'
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-single node release:
+single_node_release:
   extends: .daint
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
@@ -109,7 +109,7 @@ single node release:
     SLURM_NTASKS: 1
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-multi node release:
+multi_node_release:
   extends: .daint
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
@@ -121,7 +121,7 @@ multi node release:
     SLURM_NTASKS: 2
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-test-ault-fujitsu:
+test_ault_fujitsu:
     needs: []
     tags:
         - arm-a64fx
@@ -130,7 +130,7 @@ test-ault-fujitsu:
         - chmod +x ci/test-ault-fujitsu.sh
         - srun --partition=a64fx -c48 ci/test-ault-fujitsu.sh "$(pwd)"
 
-deallocate release:
+deallocate_release:
   only: ['master', 'staging', 'trying']
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   stage: cleanup
