@@ -1,5 +1,5 @@
 [![hpc ci](https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg)](https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master)
-[![basic ci](https://github.com/arbor-sim/arbor/workflows/Basic%20Tests%20and%20Documentation/badge.svg)](https://github.com/arbor-sim/arbor/actions?query=workflow%3A%22Basic+Tests+and+Documentation%22)
+[![basic ci](https://github.com/arbor-sim/arbor/actions/workflows/basic.yml/badge.svg)](https://github.com/arbor-sim/arbor/actions/workflows/basic.yml)
 [![gitpod](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor)
 [![docs](https://readthedocs.org/projects/arbor/badge/?version=latest)](https://docs.arbor-sim.org/en/latest/)
 
