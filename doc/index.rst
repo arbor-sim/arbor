@@ -3,8 +3,8 @@ Arbor
 
 |testbadge| |zlatest|
 
-.. |testbadge| image:: https://github.com/arbor-sim/arbor/workflows/Basic%20Tests%20and%20Documentation/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions?query=workflow%3A%22Basic+Tests+and+Documentation%22
+.. |testbadge| image:: https://github.com/arbor-sim/arbor/actions/workflows/basic.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/basic.yml
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
@@ -13,7 +13,7 @@ You can find out how to :ref:`get Arbor<in_install>`; get started quickly with o
 What is Arbor?
 --------------
 
-Arbor is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
+`Arbor <https://arbor-sim.org>`_. is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
 from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to
 help neuroscientists effectively use contemporary and future HPC systems to meet their simulation needs.
 
