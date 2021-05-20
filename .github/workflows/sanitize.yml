@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san)
+          export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san-x86_64.so)
           export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer -shared-libsan"
           cmake .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
           make -j4 VERBOSE=1 tests examples pyarb
