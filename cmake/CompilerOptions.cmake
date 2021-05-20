@@ -6,12 +6,6 @@ include(CMakePushCheckState)
 set(CXXOPT_DEBUG "-g")
 set(CXXOPT_CXX11 "-std=c++11")
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-    # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
-    string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
-
-
 if(${ARBDEV_COLOR})
     set(colorflags
         $<IF:$<CXX_COMPILER_ID:Clang>,-fcolor-diagnostics,>
@@ -82,6 +76,12 @@ set(CXXOPT_WALL
     #   is a primitive type.
 
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-maybe-uninitialized,>
+
+    # * Disable comments that point out that an ABI bug has been patched, which
+    #   could lead to bugs when linking against code compiled an older compiler,
+    #   because there is nothing to fix on our side.
+
+    $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-psabi,>
 
     # Intel:
     #

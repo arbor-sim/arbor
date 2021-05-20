@@ -6,6 +6,17 @@
 #include "errorvisitor.hpp"
 #include "symdiff.hpp"
 
+// Note: on renaming variables when inlining functions:
+// Identifiers will refer either to a local variable, or a function argument,
+// or both (in the case when a local variable shadows a function argument.)
+//
+// All local variables are renamed and the mapping is stored in local_arg_map_.
+// The mapping from function arguments to call arguments is in call_args_map_.
+//
+// Local variable renaming of identifiers should be performed before call
+// argument renaming. This means that if a local variable shadows a function
+// argument, the local variable takes precedence.
+
 expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block) {
     auto inline_block = block->clone();
 
@@ -164,27 +175,22 @@ void FunctionInliner::visit(AssignmentExpression* e) {
 
     // If we're inlining a function call, take care of variable renaming
     if (auto lhs = e->lhs()->is_identifier()) {
-        std::string iden_name = lhs->spelling();
-
         // if the identifier name matches the function name, then we are setting the return value
-        if (iden_name == inlining_func_) {
+        if (lhs->spelling() == inlining_func_) {
             e->replace_lhs(lhs_->clone());
             return_set_ = true;
         } else {
-            if (local_arg_map_.count(iden_name)) {
-                e->replace_lhs(local_arg_map_.at(iden_name)->clone());
-            }
+            // lhs can only be a local variable, since call variables are read only
+            e->replace_lhs(substitute(e->lhs(), local_arg_map_));
         }
     }
 
-    if (auto rhs = e->rhs()->is_identifier()) {
-        auto name = rhs->spelling();
-        if (local_arg_map_.count(name)) {
-            e->replace_rhs(local_arg_map_.at(name)->clone());
-        } else if (call_arg_map_.count(name)) {
-            e->replace_rhs(call_arg_map_.at(name)->clone());
-        }
-    } else {
+    if (e->rhs()->is_identifier()) {
+        auto sub_rhs = substitute(e->rhs(), local_arg_map_);
+        sub_rhs = substitute(sub_rhs, call_arg_map_);
+        e->replace_rhs(std::move(sub_rhs));
+    }
+    else {
         e->rhs()->accept(this);
     }
     statements_.push_back(e->clone());
@@ -248,14 +254,9 @@ void FunctionInliner::visit(CallExpression* e) {
     auto& args = e->is_function_call() ? e->is_function_call()->args() : e->is_procedure_call()->args();
 
     for (auto& a: args) {
-        if (auto id = a->is_identifier()) {
-            std::string iden_name = id->spelling();
-            if (local_arg_map_.count(iden_name)) {
-                a = local_arg_map_.at(iden_name)->clone();
-            }
-            if (call_arg_map_.count(iden_name)) {
-                a = call_arg_map_.at(iden_name)->clone();
-            }
+        if (a->is_identifier()) {
+            a = substitute(a, local_arg_map_);
+            a = substitute(a, call_arg_map_);
         } else {
             a->accept(this);
         }

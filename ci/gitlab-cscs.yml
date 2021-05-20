@@ -1,5 +1,3 @@
-include:
-  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.cscs.yml'
 
 stages:
   - build
@@ -7,6 +5,54 @@ stages:
   - test
   - upload_reports
   - cleanup
+
+# instead of including parameters from here:
+#       https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.cscs.yml
+# hard code them here, to make it easier to also use runners on other systems
+## Piz Daint slurm stuff
+
+.daint:
+  tags:
+    - daint-container
+  variables:
+    CRAY_CUDA_MPS: 1
+    USE_MPI: 'YES'
+    DISABLE_AFTER_SCRIPT: 'YES'
+    PULL_IMAGE: 'NO'
+    SLURM_CONSTRAINT: gpu
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_PARTITION: normal
+    SLURM_TIMELIMIT: '15:00'
+    SLURM_EXCLUSIVE: '' # make sure resources are not shared
+
+.daint_alloc:
+  extends: .daint
+  variables:
+    ONLY_ALLOCATE: 1
+    GIT_STRATEGY: none
+  script: nothing
+
+.daint_dealloc:
+  extends: .daint
+  variables:
+    ONLY_DEALLOCATE: 1
+    GIT_STRATEGY: none
+  script: nothing
+  when: always
+
+## Kubernetes for building docker images
+.dind:
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: 1
+    BUILDKIT_PROGRESS: plain
+  image: docker:19.03.12
+  tags:
+    - kubernetes
+  services:
+    - docker:19.03.12-dind
 
 # Builds a docker image on kubernetes
 .build_docker_images:
@@ -22,7 +68,7 @@ stages:
     - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
     - docker push $DEPLOY_IMAGE
 
-build release:
+build_release:
   extends: .build_docker_images
   variables:
     BUILD_DOCKERFILE: ci/release/build.Dockerfile
@@ -39,20 +85,8 @@ notify_github_start:
   script: ./ci/set_github_status.sh pending
 
 
-# Some variables used for running on daint
-variables:
-  CRAY_CUDA_MPS: 1
-  USE_MPI: 'YES'
-  DISABLE_AFTER_SCRIPT: 'YES'
-  PULL_IMAGE: 'NO'
-  SLURM_CONSTRAINT: gpu
-  SLURM_JOB_NUM_NODES: 2
-  SLURM_PARTITION: normal
-  SLURM_TIMELIMIT: '15:00'
-  SLURM_EXCLUSIVE: '' # make sure resources are not shared
-
 ### Release tests ###
-allocate release:
+allocate_release:
   stage: allocate
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
@@ -61,7 +95,7 @@ allocate release:
     PULL_IMAGE: 'YES'
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-single node release:
+single_node_release:
   extends: .daint
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
@@ -75,7 +109,7 @@ single node release:
     SLURM_NTASKS: 1
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-multi node release:
+multi_node_release:
   extends: .daint
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   only: ['master', 'staging', 'trying']
@@ -87,7 +121,16 @@ multi node release:
     SLURM_NTASKS: 2
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-deallocate release:
+test_ault_fujitsu:
+    needs: []
+    tags:
+        - arm-a64fx
+    stage: test
+    script:
+        - chmod +x ci/test-ault-fujitsu.sh
+        - srun --partition=a64fx -c48 ci/test-ault-fujitsu.sh "$(pwd)"
+
+deallocate_release:
   only: ['master', 'staging', 'trying']
   image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
   stage: cleanup

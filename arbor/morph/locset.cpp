@@ -417,6 +417,9 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     mextent reg_extent = thingify(u.reg, p);
     const mcable_list& reg_cables = reg_extent.cables();
 
+    // Only proceed if the region is non-empty.
+    if (reg_cables.empty()) return {};
+
     std::vector<double> lengths_bounds;
     auto lengths_part = util::make_partition(lengths_bounds,
                                        util::transform_view(reg_cables, [&embed](const auto& c) {
