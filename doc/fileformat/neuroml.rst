@@ -3,6 +3,11 @@
 NeuroML2
 --------
 
+.. csv-table::
+   :header: "Name", "File extension", "Read", "Write"
+
+   "NeuroML2", "``nml``", "✓", "✗"
+
 Arbor offers limited support for models described in `NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
 This is not built by default (see :ref:`NeuroML support <install-neuroml>` for instructions on how
 to build Arbor with NeuroML).
