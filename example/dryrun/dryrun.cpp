@@ -275,7 +275,8 @@ run_params read_options(int argc, char** argv) {
     if (argc<2) {
         std::cout << "Using default parameters.\n";
         return params;
-    } else {
+    }
+    else {
         params.defaulted = false;
     }
     if (argc>2) {
