@@ -18,8 +18,6 @@ jobs:
         CC:           clang-10
         CXX:          clang++-10
         ASAN_OPTIONS: detect_leaks=1
-        # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
-        PYTHONPATH: ${{ github.workspace }}/build/python
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.7
@@ -29,27 +27,21 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.6
       - name: Build arbor
         run: |
           mkdir build
           cd build
           export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san-x86_64.so)
-          export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer -shared-libsan"
+          export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
           cmake .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
           make -j4 VERBOSE=1 tests examples pyarb
           cd -
       - name: Run unit tests
         run: |
-          export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san)
           build/bin/unit --gtest_filter=-*DeathTest
           build/bin/unit-modcc
       - name: Run examples
         run: |
-          export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san)
           build/bin/bench
           build/bin/brunel
           build/bin/dryrun
@@ -59,20 +51,3 @@ jobs:
           build/bin/probe-demo v
           build/bin/ring
           build/bin/single-cell
-      - name: Run python tests
-        run: |
-          export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san)
-          cd build
-          python ../python/test/unit/runner.py
-          cd -
-      - name: Run Python examples
-        run: |
-          export LD_PRELOAD=$(clang -print-file-name=libclang_rt.san)
-          python python/example/network_ring.py
-          python python/example/single_cell_model.py
-          python python/example/single_cell_recipe.py
-          python python/example/single_cell_stdp.py
-          python python/example/brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123
-          python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
-          python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
-          python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
