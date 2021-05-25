@@ -53,11 +53,28 @@ TEST(span, int_iterators) {
     EXPECT_EQ(n, std::distance(s.begin(), s.end()));
     EXPECT_EQ(n, std::distance(s.cbegin(), s.cend()));
 
-    int sum = 0;
-    for (auto i: span(a, b)) {
-        sum += i;
+    {
+        int sum = 0;
+        for (auto i: span(a, b)) {
+            sum += i;
+        }
+        EXPECT_EQ(sum, (a+b-1)*(b-a)/2);
     }
-    EXPECT_EQ(sum, (a+b-1)*(b-a)/2);
+
+    {
+        auto touched = 0ul;
+        auto s = span(b, a);
+        for (auto _: s) ++touched;
+        EXPECT_EQ(s.size(), touched);
+        EXPECT_GT(touched, 0ul); //
+    }
+
+    {
+        auto touched = 0ul;
+        auto s = span(a, a);
+        for (auto _: s) ++touched;
+        EXPECT_EQ(s.size(), touched);
+    }
 }
 
 TEST(span, make_span) {
