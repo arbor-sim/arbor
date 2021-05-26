@@ -3,6 +3,11 @@
 SWC
 ~~~
 
+.. csv-table::
+   :header: "Name", "File extension", "Read", "Write"
+
+   "SWC", "``swc``", "✓", "✗"
+
 Arbor supports reading morphologies described using the
 `SWC <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_ file format.
 

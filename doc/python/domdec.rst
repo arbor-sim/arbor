@@ -163,18 +163,18 @@ Therefore, the following data structures are used to describe domain decompositi
 
     Return the indexes of a set of cells of the same kind that are grouped together in a cell group in an :class:`arbor.simulation`.
 
-        .. function:: group_description(kind, gids, backend)
+    .. function:: group_description(kind, gids, backend)
 
-            Construct a group description with parameters :attr:`kind`, :attr:`gids` and :attr:`backend`.
+        Construct a group description with parameters :attr:`kind`, :attr:`gids` and :attr:`backend`.
 
-        .. attribute:: kind
+    .. attribute:: kind
 
-            The kind of cell in the group.
+        The kind of cell in the group.
 
-        .. attribute:: gids
+    .. attribute:: gids
 
-            The list of gids of the cells in the cell group.
+        The list of gids of the cells in the cell group.
 
-        .. attribute:: backend
+    .. attribute:: backend
 
-            The hardware :class:`backend` on which the cell group will run.
+        The hardware :class:`backend` on which the cell group will run.
