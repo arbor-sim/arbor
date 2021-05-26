@@ -80,7 +80,7 @@ struct label_dict_proxy {
             }
             else {
                 // Successfully parsed an expression that is neither region nor locset.
-                throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
+                throw util::pprintf("The definition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
             // The entry was added succesfully: store it in the cache.
             cache[name] = desc;
