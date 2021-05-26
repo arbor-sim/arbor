@@ -118,7 +118,7 @@ function("make_catalogue")
   endforeach()
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
-  if(${ARB_CXXOPT_ARCH})
+  if(DEFINED ARB_CXXOPT_ARCH)
 	set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXXOPT_ARCH})
   endif()
 
