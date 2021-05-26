@@ -233,7 +233,7 @@ setuptools.setup(
     ],
     project_urls={
         'Source': 'https://github.com/arbor-sim/arbor',
-        'Documentation': 'https://arbor.readthedocs.io',
+        'Documentation': 'https://docs.arbor-sim.org',
         'Bug Reports': 'https://github.com/arbor-sim/arbor/issues',
     },
 )
