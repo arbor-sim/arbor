@@ -352,7 +352,7 @@ parse_hopefully<std::any> eval(const s_expr& e) {
         // Evaluate the arguments, and return error state if an error occurred.
         auto args = eval_args(e.tail());
         if (!args) {
-            return args.error();
+            return util::unexpected(args.error());
         }
 
         // Find all candidate functions that match the name of the function.
