@@ -21,25 +21,9 @@ The cell
 We can immediately paste the cell description code from the
 :ref:`previous example <tutorialsinglecell-cell>` where it is explained in detail.
 
-.. code-block:: python
-
-    import arbor
-
-    # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
-    tree = arbor.segment_tree()
-    tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
-
-    # (2) Define the soma and its midpoint
-    labels = arbor.label_dict({'soma':   '(tag 1)',
-                              'midpoint': '(location 0 0.5)'})
-
-    # (3) Create cell and set properties
-    decor = arbor.decor()
-    decor.set_property(Vm=-40)
-    decor.paint('"soma"', 'hh')
-    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"midpoint"', arbor.spike_detector(-10))
-    cell = arbor.cable_cell(tree, labels, decor)
+.. literalinclude:: ../../python/example/single_cell_recipe.py
+   :language: python
+   :lines: 3,5,8-22
 
 The recipe
 ----------
