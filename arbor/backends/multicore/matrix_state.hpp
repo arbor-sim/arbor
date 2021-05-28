@@ -58,7 +58,7 @@ public:
 
         auto n = size();
         invariant_d = array(n, 0);
-        if (n >= 1) {
+        if (n >= 1) { // skip empty matrix, ie cell with empty morphology
             for (auto i: util::make_span(1u, n)) {
                 auto gij = face_conductance[i];
 

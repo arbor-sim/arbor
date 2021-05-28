@@ -48,6 +48,7 @@ struct null_recipe: arb::recipe {
     std::any get_global_properties(arb::cell_kind) const override { return properties; }
 };
 
+// Test that cell models with empty morpologies build and run without error.
 TEST(simulation, null) {
     auto r = null_recipe{};
     auto c = arb::make_context();

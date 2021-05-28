@@ -40,7 +40,7 @@ TEST(span, int_access) {
 
 TEST(span, int_iterators) {
     using span = util::span<int>;
-
+    using uc_span = util::span<unsigned char>;
     int n = 97;
     int a = 3;
     int b = a+n;
@@ -63,7 +63,7 @@ TEST(span, int_iterators) {
 
     {
         auto touched = 0ul;
-        auto s = span(b, a);
+        auto s = uc_span(b, a);
         for (auto _: s) ++touched;
         EXPECT_EQ(s.size(), touched);
         EXPECT_GT(touched, 0ul); //
@@ -71,9 +71,10 @@ TEST(span, int_iterators) {
 
     {
         auto touched = 0ul;
-        auto s = span(a, a);
+        auto s = uc_span(a, a);
         for (auto _: s) ++touched;
         EXPECT_EQ(s.size(), touched);
+        EXPECT_EQ(0ul, touched);
     }
 }
 
