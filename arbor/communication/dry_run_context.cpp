@@ -72,19 +72,16 @@ struct dry_run_context_impl {
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         cell_label_range global_ranges;
-
-        global_ranges.gids.reserve(local_ranges.gids.size()*num_ranks_);
-        global_ranges.sizes.reserve(local_ranges.sizes.size()*num_ranks_);
-        global_ranges.labels.reserve(local_ranges.labels.size()*num_ranks_);
-        global_ranges.ranges.reserve(local_ranges.ranges.size()*num_ranks_);
-
         for (unsigned i = 0; i < num_ranks_; i++) {
-            auto copy = local_ranges;
-            std::transform(copy.gids.begin(), copy.gids.end(), copy.gids.begin(),
-                [&](cell_gid_type gid){return gid+num_cells_per_tile_*i;});
             global_ranges.append(local_ranges);
         }
         return global_ranges;
+    }
+
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
+        auto gids = gather_gids(local_labels_and_gids.gids);
+        return cell_labels_and_gids(global_ranges, gids.values());
     }
 
     template <typename T>

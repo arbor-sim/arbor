@@ -12,43 +12,75 @@
 
 namespace arb {
 
-cell_label_range::cell_label_range(std::vector<cell_gid_type> gid_vec,
-                                   std::vector<cell_size_type> size_vec,
+cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
                                    std::vector<cell_tag_type> label_vec,
                                    std::vector<lid_range> range_vec):
-    gids(std::move(gid_vec)), sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec))
+    sizes_(std::move(size_vec)), labels_(std::move(label_vec)), ranges_(std::move(range_vec))
 {
-    arb_assert(labels.size() == ranges.size());
-    arb_assert(gids.size() == sizes.size());
+    arb_assert(check_invariant());
 };
 
-void cell_label_range::append(cell_label_range other) {
-    gids.insert(gids.end(), std::make_move_iterator(other.gids.begin()), std::make_move_iterator(other.gids.end()));
-    sizes.insert(sizes.end(), std::make_move_iterator(other.sizes.begin()), std::make_move_iterator(other.sizes.end()));
-    labels.insert(labels.end(), std::make_move_iterator(other.labels.begin()), std::make_move_iterator(other.labels.end()));
-    ranges.insert(ranges.end(), std::make_move_iterator(other.ranges.begin()), std::make_move_iterator(other.ranges.end()));
+void cell_label_range::add_cell() {
+    sizes_.push_back(0);
 }
 
-label_resolver::label_resolver(cell_label_range clr) {
-    arb_assert(clr.gids.size() == clr.sizes.size());
-    arb_assert(clr.labels.size() == clr.ranges.size());
+void cell_label_range::add_label(cell_tag_type label, lid_range range) {
+    if (sizes_.empty()) throw arbor_internal_error("adding label to cell_label_range without cell");
+    ++sizes_.back();
+    labels_.push_back(std::move(label));
+    ranges_.push_back(std::move(range));
+}
+
+void cell_label_range::append(cell_label_range other) {
+    using std::make_move_iterator;
+    sizes_.insert(sizes_.end(), make_move_iterator(other.sizes_.begin()), make_move_iterator(other.sizes_.end()));
+    labels_.insert(labels_.end(), make_move_iterator(other.labels_.begin()), make_move_iterator(other.labels_.end()));
+    ranges_.insert(ranges_.end(), make_move_iterator(other.ranges_.begin()), make_move_iterator(other.ranges_.end()));
+}
+
+bool cell_label_range::check_invariant() const {
+    const cell_size_type count = std::accumulate(sizes_.begin(), sizes_.end(), cell_size_type(0));
+    return count==labels_.size() && count==ranges_.size();
+}
+
+cell_labels_and_gids::cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gids):
+    label_range(std::move(lr)), gids(std::move(gids))
+{
+    if (lr.sizes().size()!=gids.size()) throw arbor_internal_error("cell_label_range and gid count mismatch");
+}
+
+void cell_labels_and_gids::append(cell_labels_and_gids other) {
+    label_range.append(other.label_range);
+    gids.insert(gids.end(), make_move_iterator(other.gids.begin()), make_move_iterator(other.gids.end()));
+}
+
+bool cell_labels_and_gids::check_invariant() const {
+    return label_range.check_invariant() && label_range.sizes().size()==gids.size();
+}
+
+label_resolver::label_resolver(cell_labels_and_gids clg) {
+    arb_assert(clg.label_range.check_invariant());
+    const auto& gids = clg.gids;
+    const auto& labels = clg.label_range.labels();
+    const auto& ranges = clg.label_range.ranges();
+    const auto& sizes = clg.label_range.sizes();
 
     std::vector<cell_size_type> label_divs;
-    auto partn = util::make_partition(label_divs, clr.sizes);
+    auto partn = util::make_partition(label_divs, sizes);
     for (auto i: util::count_along(partn)) {
-        auto gid = clr.gids[i];
+        auto gid = gids[i];
 
         label_resolution_map m;
         for (auto label_idx: util::make_span(partn[i])) {
-            auto& pair = m[clr.labels[label_idx]];
+            auto& pair = m[labels[label_idx]];
             auto& const_state = pair.first;
             auto& mutable_state = pair.second;
 
-            const auto range = clr.ranges[label_idx];
+            const auto range = ranges[label_idx];
             const int size = range.end - range.begin;
 
             if (size < 0) {
-                throw arb::bad_connection_range(clr.gids[i], clr.labels[label_idx], range);
+                throw arb::bad_connection_range(gids[i], labels[label_idx], range);
             }
 
             const_state.ranges.push_back(range);

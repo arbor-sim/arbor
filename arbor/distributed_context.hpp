@@ -68,6 +68,10 @@ public:
         return impl_->gather_cell_label_range(local_ranges);
     }
 
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        return impl_->gather_cell_labels_and_gids(local_labels_and_gids);
+    }
+
     std::vector<std::string> gather(std::string value, int root) const {
         return impl_->gather(value, root);
     }
@@ -98,6 +102,8 @@ private:
             gather_gids(const gid_vector& local_gids) const = 0;
         virtual cell_label_range
             gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
+        virtual cell_labels_and_gids
+            gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const = 0;
         virtual std::vector<std::string>
             gather(std::string value, int root) const = 0;
         virtual int id() const = 0;
@@ -126,6 +132,10 @@ private:
         cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const override {
             return wrapped.gather_cell_label_range(local_ranges);
+        }
+        cell_labels_and_gids
+        gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const override {
+            return wrapped.gather_cell_labels_and_gids(local_labels_and_gids);
         }
         std::vector<std::string>
         gather(std::string value, int root) const override {
@@ -172,6 +182,10 @@ struct local_context {
     cell_label_range
     gather_cell_label_range(const cell_label_range& local_ranges) const {
         return local_ranges;
+    }
+    cell_labels_and_gids
+    gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        return local_labels_and_gids;
     }
     template <typename T>
     std::vector<T> gather(T value, int) const {

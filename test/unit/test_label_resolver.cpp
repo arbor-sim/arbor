@@ -17,7 +17,7 @@ TEST(label_resolver, policies) {
         std::vector<cell_tag_type> labels = {"l0_0", "l2_0", "l3_0", "l3_1", "l4_0", "l4_1", "l4_1"};
         std::vector<lid_range> ranges = {{0, 1}, {0, 3}, {1, 2}, {4, 10}, {5, 6}, {8, 11}, {12, 14}};
 
-        auto resolver = label_resolver(cell_label_range(gids, sizes, labels, ranges));
+        auto resolver = label_resolver(cell_labels_and_gids({sizes, labels, ranges}, gids));
 
         // Check resolver map correctness
         // gid 0
@@ -107,10 +107,10 @@ TEST(label_resolver, policies) {
         sizes.push_back(1);
         labels.push_back("l5_0");
         ranges.push_back({0, 0});
-        EXPECT_THROW(label_resolver(cell_label_range(gids, sizes, labels, ranges)), arb::bad_connection_set);
+        EXPECT_THROW(label_resolver(cell_labels_and_gids({sizes, labels, ranges}, gids)), arb::bad_connection_set);
 
         ranges.back() = {4, 2};
-        EXPECT_THROW(label_resolver(cell_label_range(gids, sizes, labels, ranges)), arb::bad_connection_range);
+        EXPECT_THROW(label_resolver(cell_labels_and_gids({sizes, labels, ranges}, gids)), arb::bad_connection_range);
 
     }
     // multivalent labels
@@ -120,7 +120,7 @@ TEST(label_resolver, policies) {
         std::vector<cell_tag_type> labels = {"l0_0", "l0_1", "l0_0", "l2_0", "l2_0", "l2_2", "l2_1", "l2_1", "l2_2"};
         std::vector<lid_range> ranges = {{0, 1}, {0, 3}, {1, 3}, {4, 6}, {9, 12}, {5, 5}, {1, 2}, {0, 1}, {22, 23}};
 
-        auto resolver = label_resolver(cell_label_range(gids, sizes, labels, ranges));
+        auto resolver = label_resolver(cell_labels_and_gids({sizes, labels, ranges}, gids));
 
         // Check resolver map correctness
         // gid 0

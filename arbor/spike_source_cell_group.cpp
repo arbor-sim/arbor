@@ -20,11 +20,6 @@ spike_source_cell_group::spike_source_cell_group(
     cell_label_range& cg_targets):
     gids_(gids)
 {
-    cg_sources.gids = gids_;
-    cg_sources.sizes.assign(gids_.size(), 1);
-    cg_sources.ranges.assign(gids_.size(), {0, 1});
-    cg_sources.labels.reserve(gids_.size());
-
     for (auto gid: gids_) {
         if (!rec.get_probes(gid).empty()) {
             throw bad_cell_probe(cell_kind::spike_source, gid);
@@ -33,10 +28,11 @@ spike_source_cell_group::spike_source_cell_group(
 
     time_sequences_.reserve(gids_.size());
     for (auto gid: gids_) {
+        cg_sources.add_cell();
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));
-            cg_sources.labels.push_back(cell.source);
+            cg_sources.add_label(cell.source, {0, 1});
         }
         catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);

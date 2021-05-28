@@ -396,39 +396,30 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
            });
 
     // Populate source, target and gap_junction data vectors.
-    fvm_info.source_data.gids = gids;
-    fvm_info.target_data.gids = gids;
-    fvm_info.gap_junction_data.gids = gids;
-
-    fvm_info.source_data.sizes.reserve(ncell);
-    fvm_info.target_data.sizes.reserve(ncell);
-    fvm_info.gap_junction_data.sizes.reserve(ncell);
     for (auto i : util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
 
+        fvm_info.source_data.add_cell();
+        fvm_info.target_data.add_cell();
+        fvm_info.gap_junction_data.add_cell();
+
         unsigned count = 0;
-        fvm_info.source_data.sizes.push_back(c.detector_ranges().size());
         for (const auto& [label, range]: c.detector_ranges()) {
-            fvm_info.source_data.labels.push_back(label);
-            fvm_info.source_data.ranges.push_back(range);
+            fvm_info.source_data.add_label(label, range);
             count+=(range.end - range.begin);
         }
         fvm_info.num_sources[gid] = count;
 
         count = 0;
-        fvm_info.target_data.sizes.push_back(c.synapse_ranges().size());
         for (const auto& [label, range]: c.synapse_ranges()) {
-            fvm_info.target_data.labels.push_back(label);
-            fvm_info.target_data.ranges.push_back(range);
+            fvm_info.target_data.add_label(label, range);
             count+=(range.end - range.begin);
         }
         fvm_info.num_targets[gid] = count;
 
-        fvm_info.gap_junction_data.sizes.push_back(c.gap_junction_ranges().size());
         for (const auto& [label, range]: c.gap_junction_ranges()) {
-            fvm_info.gap_junction_data.labels.push_back(label);
-            fvm_info.gap_junction_data.ranges.push_back(range);
+            fvm_info.gap_junction_data.add_label(label, range);
         }
     }
 
@@ -662,7 +653,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             gid_to_cvs[gids[cell_idx]].push_back(cv);
         }
     }
-    label_resolver gj_resolver(gap_junction_data);
+    label_resolver gj_resolver({gap_junction_data, gids});
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (const auto& g: gj_list) {

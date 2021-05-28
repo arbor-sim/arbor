@@ -40,12 +40,20 @@ struct mpi_context_impl {
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
-        cell_label_range global_ranges;
-        global_ranges.gids   = mpi::gather_all(local_ranges.gids, comm_);
-        global_ranges.sizes  = mpi::gather_all(local_ranges.sizes, comm_);
-        global_ranges.labels = mpi::gather_all(local_ranges.labels, comm_);
-        global_ranges.ranges = mpi::gather_all(local_ranges.ranges, comm_);
-        return global_ranges;
+        std::vector<cell_size_type> sizes;
+        std::vector<cell_tag_type> labels;
+        std::vector<lid_range> ranges;
+        sizes  = mpi::gather_all(local_ranges.sizes(), comm_);
+        labels = mpi::gather_all(local_ranges.labels(), comm_);
+        ranges = mpi::gather_all(local_ranges.ranges(), comm_);
+        return cell_label_range(sizes, labels, ranges);
+    }
+
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
+        auto global_gids = mpi::gather_all(local_labels_and_gids.gids, comm_);
+
+        return cell_labels_and_gids(global_ranges, global_gids);
     }
 
     template <typename T>

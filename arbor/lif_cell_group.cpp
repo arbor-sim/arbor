@@ -27,15 +27,12 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
         cells_.push_back(util::any_cast<lif_cell>(rec.get_cell_description(gids_[lid])));
     }
 
-    cg_sources.gids = gids_;
-    cg_sources.sizes.assign(cells_.size(), 1);
-    cg_sources.ranges.assign(cells_.size(), {0, 1});
-    util::assign(cg_sources.labels, util::transform_view(cells_, [](const auto& c) { return c.source; }));
-
-    cg_targets.gids = gids_;
-    cg_targets.sizes.assign(cells_.size(), 1);
-    cg_targets.ranges.assign(cells_.size(), {0, 1});
-    util::assign(cg_targets.labels, util::transform_view(cells_, [](const auto& c) { return c.target; }));
+    for (const auto& c: cells_) {
+        cg_sources.add_cell();
+        cg_targets.add_cell();
+        cg_sources.add_label(c.source, {0, 1});
+        cg_targets.add_label(c.target, {0, 1});
+    }
 }
 
 cell_kind lif_cell_group::get_cell_kind() const {

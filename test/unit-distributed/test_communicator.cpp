@@ -496,13 +496,16 @@ TEST(communicator, ring)
             lif_gids.insert(lif_gids.end(), g.gids.begin(), g.gids.end());
         }
     }
-    cell_label_range local_sources, local_targets, srcs, tgts;
-    auto mc_group = mc_cell_group(mc_gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
-    auto lif_group = lif_cell_group(lif_gids, R, srcs, tgts);
+    cell_label_range mc_srcs, mc_tgts, lif_srcs, lif_tgts;
+    auto mc_group = mc_cell_group(mc_gids, R, mc_srcs, mc_tgts, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto lif_group = lif_cell_group(lif_gids, R, lif_srcs, lif_tgts);
 
-    local_sources.append(srcs);
-    local_targets.append(tgts);
-    auto global_sources = g_context->distributed->gather_cell_label_range(local_sources);
+    auto local_sources = cell_labels_and_gids(mc_srcs, mc_gids);
+    auto local_targets = cell_labels_and_gids(mc_tgts, mc_gids);
+    local_sources.append({lif_srcs, lif_gids});
+    local_targets.append({lif_tgts, lif_gids});
+
+    auto global_sources = g_context->distributed->gather_cell_labels_and_gids(local_sources);
 
     // construct the communicator
     auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
@@ -609,10 +612,10 @@ TEST(communicator, all2all)
     }
     cell_label_range local_sources, local_targets;
     auto mc_group = mc_cell_group(mc_gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
-    auto global_sources = g_context->distributed->gather_cell_label_range(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
+    auto C = communicator(R, D, label_resolver(global_sources), label_resolver({local_targets, mc_gids}), *g_context);
     auto connections = C.connections();
 
     for (auto i: util::make_span(0, n_global)) {
@@ -658,10 +661,10 @@ TEST(communicator, mini_network)
     }
     cell_label_range local_sources, local_targets;
     auto mc_group = mc_cell_group(gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
-    auto global_sources = g_context->distributed->gather_cell_label_range(local_sources);
+    auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
+    auto C = communicator(R, D, label_resolver(global_sources), label_resolver({local_targets, gids}), *g_context);
     auto connections = C.connections();
 
     // Expect one set of 8 connections from every rank
