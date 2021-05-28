@@ -19,7 +19,7 @@ namespace{
 
 TEST(event_generators, assign_and_copy) {
     event_generator gen = regular_generator({"l2"}, 5., 0.5, 0.75);
-    gen.resolve_label([](const cell_local_label_type&) {return std::vector<cell_lid_type>{2};});
+    gen.resolve_label([](const cell_local_label_type&) {return 2;});
     spike_event expected{2, 0.75, 5.};
 
     auto first = [](const event_seq& seq) {
@@ -60,7 +60,7 @@ TEST(event_generators, regular) {
     float weight = 3.14;
 
     event_generator gen = regular_generator(label, weight, t0, dt);
-    gen.resolve_label([lid](const cell_local_label_type&) {return std::vector<cell_lid_type>{lid};});
+    gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
 
     // Helper for building a set of expected events.
     auto expected = [&] (std::vector<time_type> times) {
@@ -98,7 +98,7 @@ TEST(event_generators, seq) {
         [lid_map](const auto& item) {return spike_event{lid_map.at(item.label.tag), item.time, item.weight};});
 
     event_generator gen = explicit_generator(in);
-    gen.resolve_label([lid_map](const cell_local_label_type& item) {return std::vector<cell_lid_type>{lid_map.at(item.tag)};});
+    gen.resolve_label([lid_map](const cell_local_label_type& item) {return lid_map.at(item.tag);});
 
     EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
     gen.reset();
@@ -117,7 +117,7 @@ TEST(event_generators, seq) {
         [lid_map](const auto& item) {return spike_event{lid_map.at(item.label.tag), item.time, item.weight};});
 
     gen = explicit_generator(in);
-    gen.resolve_label([lid_map](const cell_local_label_type& item) {return std::vector<cell_lid_type>{lid_map.at(item.tag)};});
+    gen.resolve_label([lid_map](const cell_local_label_type& item) {return lid_map.at(item.tag);});
 
     auto draw = [](event_generator& gen, time_type t0, time_type t1) {
         gen.reset();
@@ -162,7 +162,7 @@ TEST(event_generators, poisson) {
     float weight = 42;
 
     event_generator gen = poisson_generator(label, weight, t0, lambda, G);
-    gen.resolve_label([lid](const cell_local_label_type&) {return std::vector<cell_lid_type>{lid};});
+    gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
 
     pse_vector int1 = as_vector(gen.events(0, t1));
     // Test that the output is sorted

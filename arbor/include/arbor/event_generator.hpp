@@ -65,7 +65,7 @@ namespace arb {
 //    function before the first call to the `events` method.
 
 using event_seq = std::pair<const spike_event*, const spike_event*>;
-using resolution_function = std::function<std::vector<cell_lid_type>(const cell_local_label_type&)>;
+using resolution_function = std::function<cell_lid_type(const cell_local_label_type&)>;
 
 // The simplest possible generator that generates no events.
 // Declared ahead of event_generator so that it can be used as the default
@@ -172,9 +172,8 @@ struct schedule_generator {
         events_.reserve(ts.second-ts.first);
 
         for (auto i = ts.first; i!=ts.second; ++i) {
-            for (auto t: label_resolver_(target_)) {
-                events_.push_back(spike_event{t, *i, weight_});
-            }
+            const auto t = label_resolver_(target_);
+            events_.push_back(spike_event{t, *i, weight_});
         }
 
         return {events_.data(), events_.data()+events_.size()};
@@ -232,9 +231,7 @@ struct explicit_generator {
 
     void resolve_label(resolution_function label_resolver) {
         for (const auto& e: input_events_) {
-            for (auto t: label_resolver(e.label)) {
-                events_.push_back({t, e.time, e.weight});
-            }
+            events_.push_back({label_resolver(e.label), e.time, e.weight});
         }
         std::sort(events_.begin(), events_.end());
     }

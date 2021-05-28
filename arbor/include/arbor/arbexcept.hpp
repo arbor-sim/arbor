@@ -61,6 +61,12 @@ struct bad_connection_range: arbor_exception {
     lid_range range;
 };
 
+struct bad_connection_set: arbor_exception {
+    bad_connection_set(cell_gid_type gid, cell_tag_type label);
+    cell_gid_type gid;
+    cell_tag_type label;
+};
+
 struct bad_univalent_connection_label: arbor_exception {
     bad_univalent_connection_label(cell_gid_type gid, cell_tag_type label);
     cell_gid_type gid;

@@ -157,7 +157,7 @@ TEST(merge_events, X)
     };
 
     auto gen = regular_generator({"l0"}, 42.f, t0, 5);
-    gen.resolve_label([](const cell_local_label_type&) {return std::vector<cell_lid_type>{2};});
+    gen.resolve_label([](const cell_local_label_type&) {return 2;});
     std::vector<event_generator> generators = {gen};
 
     merge_events(t0, t1, lc, events, generators, lf);
@@ -207,8 +207,8 @@ TEST(merge_events, tourney_seq)
 
     event_generator g1 = explicit_generator(evs1);
     event_generator g2 = explicit_generator(evs2);
-    g1.resolve_label([](const cell_local_label_type&) {return std::vector<cell_lid_type>{0};});
-    g2.resolve_label([](const cell_local_label_type&) {return std::vector<cell_lid_type>{0};});
+    g1.resolve_label([](const cell_local_label_type&) {return 0;});
+    g2.resolve_label([](const cell_local_label_type&) {return 0;});
 
     std::vector<event_span> spans;
     spans.emplace_back(g1.events(0, terminal_time));
@@ -246,7 +246,7 @@ TEST(merge_events, tourney_poisson)
         // of events with the same time but different weights works properly.
         rndgen G(i%(ngen-1));
         auto gen = poisson_generator(label, weight, t0, lambda, G);
-        gen.resolve_label([lid](const cell_local_label_type&) {return std::vector<cell_lid_type>{lid};});
+        gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
         generators.push_back(std::move(gen));
     }
 

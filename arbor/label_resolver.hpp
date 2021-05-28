@@ -35,7 +35,16 @@ struct cell_label_range {
 
 // Struct used for selecting an lid of a {cell, label} pair according to an lid_selection_policy
 struct label_resolver {
-    using label_resolution_map = std::unordered_multimap<cell_tag_type, std::pair<lid_range, cell_lid_type>>;
+    struct range_set {
+        std::vector<lid_range> ranges;
+        std::vector<unsigned> ranges_partition = {0};
+
+        bool operator==(const arb::label_resolver::range_set& other) const {
+            return (ranges == other.ranges) && (ranges_partition == other.ranges_partition);
+        }
+    };
+
+    using label_resolution_map = std::unordered_map<cell_tag_type, std::pair<range_set, cell_lid_type>>;
     mutable std::unordered_map<cell_gid_type, label_resolution_map> mapper;
 
     label_resolver() = delete;
@@ -43,7 +52,7 @@ struct label_resolver {
 
     // Returns a vector of lids of a {gid, label} pair according to a policy.
     // The vector contains as many elements as identically names labels on the cell.
-    std::vector<cell_lid_type> get_lid(const cell_global_label_type&) const;
+    cell_lid_type get_lid(const cell_global_label_type&) const;
 
     // Reset the current lid_indices to 0.
     void reset();

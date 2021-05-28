@@ -1448,6 +1448,7 @@ TEST(fvm_lowered, label_data) {
             EXPECT_EQ(5u, fvm_info.num_sources[gid]);
         }
     }
+
     // synapses
     {
         auto synapse_data = fvm_info.target_data;

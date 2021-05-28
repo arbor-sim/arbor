@@ -36,49 +36,74 @@ label_resolver::label_resolver(cell_label_range clr) {
     std::vector<cell_size_type> label_divs;
     auto partn = util::make_partition(label_divs, clr.sizes);
     for (auto i: util::count_along(partn)) {
+        auto gid = clr.gids[i];
+
         label_resolution_map m;
         for (auto label_idx: util::make_span(partn[i])) {
-            m.insert({clr.labels[label_idx], {clr.ranges[label_idx], 0u}});
+            auto& pair = m[clr.labels[label_idx]];
+            auto& const_state = pair.first;
+            auto& mutable_state = pair.second;
+
+            const auto range = clr.ranges[label_idx];
+            const int size = range.end - range.begin;
+
+            if (size < 0) {
+                throw arb::bad_connection_range(clr.gids[i], clr.labels[label_idx], range);
+            }
+
+            const_state.ranges.push_back(range);
+            const_state.ranges_partition.push_back(const_state.ranges_partition.back() + size);
+            mutable_state = 0;
         }
-        mapper.insert({clr.gids[i], std::move(m)});
+
+        for (const auto& [label, state]: m) {
+            if (state.first.ranges_partition.back() < 1) {
+                throw arb::bad_connection_set(gid, label);
+            }
+        }
+        mapper.insert({gid, std::move(m)});
     }
 }
 
-std::vector<cell_lid_type> label_resolver::get_lid(const cell_global_label_type& iden) const {
-    std::vector<cell_lid_type> lids;
+cell_lid_type label_resolver::get_lid(const cell_global_label_type& iden) const {
     if (!mapper.count(iden.gid) || !mapper.at(iden.gid).count(iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
 
-    auto matching_labels = mapper[iden.gid].equal_range(iden.label.tag);
-    for (auto it = matching_labels.first; it != matching_labels.second; ++it) {
-        auto& range_idx_pair = it->second;
+    auto& range_idx_pair = mapper[iden.gid][iden.label.tag];
 
-        auto range = range_idx_pair.first;
-        int size = range.end - range.begin;
+    auto ranges = range_idx_pair.first.ranges;
+    auto ranges_part = util::partition_view(range_idx_pair.first.ranges_partition);
+    auto size = ranges_part.bounds().second;
 
-        if (size < 1) {
-            throw arb::bad_connection_range(iden.gid, iden.label.tag, range);
-        }
+    switch (iden.label.policy) {
+    case lid_selection_policy::round_robin: {
+        // Get the state of the round_robin iterator.
+        auto curr = range_idx_pair.second;
 
-        switch (iden.label.policy) {
-        case lid_selection_policy::round_robin: {
-            auto idx = range_idx_pair.second;
-            range_idx_pair.second = (idx + 1) % size;
-            lids.push_back(idx + range.begin);
-            break;
-        }
-        case lid_selection_policy::assert_univalent: {
-            if (size != 1) {
-                throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
-            }
-            lids.push_back(range.begin);
-            break;
-        }
-        default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
-        }
+        // Update the state of the round_robin iterator.
+        range_idx_pair.second = (curr + 1) % size;
+
+        // Get the range that contains the current state.
+        auto range_idx = ranges_part.index(curr);
+        auto range = range_idx_pair.first.ranges.at(range_idx);
+
+        // Get the offset into that range
+        auto offset = curr - range_idx_pair.first.ranges_partition.at(range_idx);
+
+        return range.begin + offset;
     }
-    return lids;
+    case lid_selection_policy::assert_univalent: {
+        if (size != 1) {
+            throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
+        }
+        // Get the range that contains the only element.
+        auto range_idx = ranges_part.index(0);
+        auto range = range_idx_pair.first.ranges.at(range_idx);
+        return range.begin;
+    }
+    default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
+    }
 }
 
 void label_resolver::reset() {
