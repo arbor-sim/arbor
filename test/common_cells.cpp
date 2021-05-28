@@ -1,8 +1,9 @@
-#include <arbor/string_literals.hpp>
+#include <arborio/label_parse.hpp>
 #include "arbor/morph/morphology.hpp"
 #include "common_cells.hpp"
 
 namespace arb {
+using namespace arborio::literals;
 
 // Generate a segment tree from a sequence of points and parent index.
 arb::segment_tree segments_from_points(
@@ -175,7 +176,6 @@ cable_cell_description  soma_cell_builder::make_cell() const {
  */
 
 cable_cell_description make_cell_soma_only(bool with_stim) {
-    using namespace arb::literals;
     soma_cell_builder builder(18.8/2.0);
 
     auto c = builder.make_cell();
@@ -209,7 +209,6 @@ cable_cell_description make_cell_soma_only(bool with_stim) {
  */
 
 cable_cell_description make_cell_ball_and_stick(bool with_stim) {
-    using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
@@ -246,7 +245,6 @@ cable_cell_description make_cell_ball_and_stick(bool with_stim) {
  */
 
 cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
-    using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");

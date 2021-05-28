@@ -3,6 +3,8 @@ set(arborio-sources
     neurolucida.cpp
     swcio.cpp
     cableio.cpp
+    cv_policy_parse.cpp
+    label_parse.cpp
 )
 if(ARB_WITH_NEUROML)
     list(APPEND arborio-sources

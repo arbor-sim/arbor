@@ -10,6 +10,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/assert_macro.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
@@ -29,6 +31,8 @@
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
+
+using namespace arborio::literals;
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
@@ -306,10 +310,10 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     pas["g"] =  1.0/12000.0;
 
     // Paint density channels on all parts of the cell
-    decor.paint("(all)", nax);
-    decor.paint("(all)", kdrmt);
-    decor.paint("(all)", kamt);
-    decor.paint("(all)", pas);
+    decor.paint("(all)"_rg, nax);
+    decor.paint("(all)"_rg, kdrmt);
+    decor.paint("(all)"_rg, kamt);
+    decor.paint("(all)"_rg, pas);
 
     // Add a spike detector to the soma.
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10});

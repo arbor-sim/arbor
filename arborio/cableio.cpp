@@ -2,13 +2,14 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
 
+#include <arborio/label_parse.hpp>
 #include <arborio/cableio.hpp>
 
+#include "parse_helpers.hpp"
 #include "parse_s_expr.hpp"
 
 namespace arborio {
@@ -32,7 +33,6 @@ cableio_version_error::cableio_version_error(const std::string& version):
     arb::arbor_exception("Unsupported cable-cell format version `" + version + "`")
 {}
 
-struct nil_tag {};
 
 // Define s-expr makers for various types
 s_expr mksexp(const init_membrane_potential& p) {
@@ -179,36 +179,6 @@ std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
 
 // Anonymous namespace containing helper functions and types for parsing s-expr
 namespace {
-// Test whether a value wrapped in std::any can be converted to a target type
-template <typename T>
-bool match(const std::type_info& info) {
-    return info == typeid(T);
-}
-template <>
-bool match<double>(const std::type_info& info) {
-    return info == typeid(double) || info == typeid(int);
-}
-
-// Convert a value wrapped in a std::any to target type.
-template <typename T>
-T eval_cast(std::any arg) {
-    return std::move(std::any_cast<T&>(arg));
-}
-template <>
-double eval_cast<double>(std::any arg) {
-    if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
-    return std::any_cast<double>(arg);
-}
-
-// Convert a value wrapped in a std::any to an optional std::variant type
-template <typename T, std::size_t I=0>
-std::optional<T> eval_cast_variant(const std::any& a) {
-    if constexpr (I<std::variant_size_v<T>) {
-        using var_type = std::variant_alternative_t<I, T>;
-        return match<var_type>(a.type())? eval_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
-    }
-    return std::nullopt;
-}
 
 // Useful tuple aliases
 using envelope_tuple = std::tuple<double,double>;
@@ -357,142 +327,6 @@ template <typename T>
 cable_cell_component make_component(const meta_data& m, const T& d) {
     return cable_cell_component{m, d};
 }
-
-// Evaluator: member of make_call, make_arg_vec_call, make_mech_call, make_branch_call, make_unordered_call
-struct evaluator {
-    using any_vec = std::vector<std::any>;
-    using eval_fn = std::function<std::any(any_vec)>;
-    using args_fn = std::function<bool(const any_vec&)>;
-
-    eval_fn eval;
-    args_fn match_args;
-    const char* message;
-
-    evaluator(eval_fn f, args_fn a, const char* m):
-        eval(std::move(f)),
-        match_args(std::move(a)),
-        message(m)
-    {}
-
-    std::any operator()(any_vec args) {
-        return eval(std::move(args));
-    }
-};
-
-// Test whether a list of arguments passed as a std::vector<std::any> can be converted
-// to the types in Args.
-//
-// For example, the following would return true:
-//
-//  call_match<int, int, string>(vector<any(4), any(12), any(string("hello"))>)
-template <typename... Args>
-struct call_match {
-    template <std::size_t I, typename T, typename Q, typename... Rest>
-    bool match_args_impl(const std::vector<std::any>& args) const {
-        return match<T>(args[I].type()) && match_args_impl<I+1, Q, Rest...>(args);
-    }
-
-    template <std::size_t I, typename T>
-    bool match_args_impl(const std::vector<std::any>& args) const {
-        return match<T>(args[I].type());
-    }
-
-    template <std::size_t I>
-    bool match_args_impl(const std::vector<std::any>& args) const {
-        return true;
-    }
-
-    bool operator()(const std::vector<std::any>& args) const {
-        const auto nargs_in = args.size();
-        const auto nargs_ex = sizeof...(Args);
-        return nargs_in==nargs_ex? match_args_impl<0, Args...>(args): false;
-    }
-};
-// Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
-// The arguments are expanded and converted to the correct types, as specified by Args.
-template <typename... Args>
-struct call_eval {
-    using ftype = std::function<std::any(Args...)>;
-    ftype f;
-    call_eval(ftype f): f(std::move(f)) {}
-
-    template<std::size_t... I>
-    std::any expand_args_then_eval(const std::vector<std::any>& args, std::index_sequence<I...>) {
-        return f(eval_cast<Args>(std::move(args[I]))...);
-    }
-
-    std::any operator()(const std::vector<std::any>& args) {
-        return expand_args_then_eval(std::move(args), std::make_index_sequence<sizeof...(Args)>());
-    }
-};
-// Wrap call_match and call_eval in an evaluator
-template <typename... Args>
-struct make_call {
-    evaluator state;
-
-    template <typename F>
-    make_call(F&& f, const char* msg="call"):
-        state(call_eval<Args...>(std::forward<F>(f)), call_match<Args...>(), msg)
-    {}
-    operator evaluator() const {
-        return state;
-    }
-};
-
-// Test whether a list of arguments passed as a std::vector<std::any> can be converted
-// to a std::vector<std::variant<Args...>>.
-//
-// For example, the following would return true:
-//
-//  call_match<int, string>(vector<any(4), any(12), any(string("hello"))>)
-template <typename... Args>
-struct arg_vec_match {
-    template <typename T, typename Q, typename... Rest>
-    bool match_args_impl(const std::any& arg) const {
-        return match<T>(arg.type()) || match_args_impl<Q, Rest...>(arg);
-    }
-
-    template <typename T>
-    bool match_args_impl(const std::any& arg) const {
-        return match<T>(arg.type());
-    }
-
-    bool operator()(const std::vector<std::any>& args) const {
-        for (const auto& a: args) {
-            if (!match_args_impl<Args...>(a)) return false;
-        }
-        return true;
-    }
-};
-// Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
-// The arguments are converted to std::variant<Args...> and passed to the function as a std::vector.
-template <typename... Args>
-struct arg_vec_eval {
-    using ftype = std::function<std::any(std::vector<std::variant<Args...>>)>;
-    ftype f;
-    arg_vec_eval(ftype f): f(std::move(f)) {}
-
-    std::any operator()(const std::vector<std::any>& args) {
-        std::vector<std::variant<Args...>> vars;
-        for (const auto& a: args) {
-            vars.push_back(eval_cast_variant<std::variant<Args...>>(a).value());
-        }
-        return f(vars);
-    }
-};
-// Wrap arg_vec_match and arg_vec_eval in an evaluator
-template <typename... Args>
-struct make_arg_vec_call {
-    evaluator state;
-
-    template <typename F>
-    make_arg_vec_call(F&& f, const char* msg="argument vector"):
-        state(arg_vec_eval<Args...>(std::forward<F>(f)), arg_vec_match<Args...>(), msg)
-    {}
-    operator evaluator() const {
-        return state;
-    }
-};
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
 // to a string followed by any number of std::pair<std::string, double>

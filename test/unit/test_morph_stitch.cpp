@@ -8,13 +8,14 @@
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/stitch.hpp>
-#include <arbor/string_literals.hpp>
+
+#include <arborio/label_parse.hpp>
 
 #include "../test/gtest.h"
 #include "morph_pred.hpp"
 
 using namespace arb;
-using namespace arb::literals;
+using namespace arborio::literals;
 using testing::region_eq;
 
 TEST(morph, stitch_none_or_one) {
@@ -147,8 +148,8 @@ TEST(morph, stitch_two) {
             ASSERT_EQ(p2, seg1.dist);
             EXPECT_TRUE(region_eq(p, "stitch:0"_lab, join(reg::segment(0), reg::segment(1))));
             EXPECT_TRUE(region_eq(p, "stitch:1"_lab, reg::segment(2)));
-            EXPECT_TRUE(region_eq(p, "(segment 2)", reg::segment(2)));
-            EXPECT_TRUE(region_eq(p, "(region \"stitch:1\")", reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "(segment 2)"_rg, reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "(region \"stitch:1\")"_rg, reg::segment(2)));
         }
     }
 }

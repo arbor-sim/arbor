@@ -2,10 +2,11 @@
 #include <string>
 #include <vector>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
-
 #include "arbor/cable_cell_param.hpp"
 #include "arbor/morph/morphology.hpp"
 #include "arbor/morph/segment_tree.hpp"
@@ -22,6 +23,7 @@
 
 using namespace std::string_literals;
 using namespace arb;
+using namespace arborio::literals;
 
 using util::make_span;
 using util::count_along;
@@ -54,8 +56,8 @@ namespace {
             builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
             auto description = builder.make_cell();
-            description.decorations.paint("\"soma\"", "hh");
-            description.decorations.paint("\"dend\"", "pas");
+            description.decorations.paint("soma"_lab, "hh");
+            description.decorations.paint("dend"_lab, "pas");
             description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
 
             s.builders.push_back(std::move(builder));
@@ -97,8 +99,8 @@ namespace {
             auto b3 = b.add_branch(1, 180, 0.35, 0.35, 4, "dend");
             auto desc = b.make_cell();
 
-            desc.decorations.paint("\"soma\"", "hh");
-            desc.decorations.paint("\"dend\"", "pas");
+            desc.decorations.paint("soma"_lab, "hh");
+            desc.decorations.paint("dend"_lab, "pas");
 
             using ::arb::reg::branch;
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
@@ -563,10 +565,10 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gl"] = seg3_gl;
 
     auto desc = builder.make_cell();
-    desc.decorations.paint("\"soma\"", std::move(hh_0));
-    desc.decorations.paint("\"reg1\"", std::move(hh_1));
-    desc.decorations.paint("\"reg2\"", std::move(hh_2));
-    desc.decorations.paint("\"reg3\"", std::move(hh_3));
+    desc.decorations.paint("soma"_lab, std::move(hh_0));
+    desc.decorations.paint("reg1"_lab, std::move(hh_1));
+    desc.decorations.paint("reg2"_lab, std::move(hh_2));
+    desc.decorations.paint("reg3"_lab, std::move(hh_3));
 
     std::vector<cable_cell> cells{desc};
 
@@ -712,7 +714,7 @@ TEST(fvm_layout, density_norm_area_partial) {
 
 TEST(fvm_layout, valence_verify) {
     auto desc = soma_cell_builder(6).make_cell();
-    desc.decorations.paint("\"soma\"", "test_cl_valence");
+    desc.decorations.paint("soma"_lab, "test_cl_valence");
     std::vector<cable_cell> cells{desc};
 
     cable_cell_global_properties gprop;
@@ -841,9 +843,9 @@ TEST(fvm_layout, revpot) {
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
     auto desc = builder.make_cell();
-    desc.decorations.paint("\"soma\"", "read_eX/c");
-    desc.decorations.paint("\"soma\"", "read_eX/a");
-    desc.decorations.paint("\"dend\"", "read_eX/a");
+    desc.decorations.paint("soma"_lab, "read_eX/c");
+    desc.decorations.paint("soma"_lab, "read_eX/a");
+    desc.decorations.paint("dend"_lab, "read_eX/a");
 
     std::vector<cable_cell_description> descriptions{desc, desc};
 

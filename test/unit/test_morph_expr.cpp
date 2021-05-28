@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
@@ -9,7 +11,6 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/string_literals.hpp>
 
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
@@ -19,7 +20,7 @@
 #include "morph_pred.hpp"
 
 using namespace arb;
-using namespace arb::literals;
+using namespace arborio::literals;
 using embedding = embed_pwlin;
 
 using testing::region_eq;
@@ -124,7 +125,7 @@ TEST(locset, thingify_named) {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
-        dict.set("topping", locset("(locset \"fruit\")"));
+        dict.set("topping", locset("fruit"_lab));
         dict.set("fruit", sum(locset("banana"_lab), locset("topping"_lab)));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
@@ -157,7 +158,7 @@ TEST(region, thingify_named) {
         dict.set("banana", banana);
         dict.set("cake", cake);
         dict.set("topping", region("fruit"_lab));
-        dict.set("fruit", region("(region \"strawberry\")"));
+        dict.set("fruit", "(region \"strawberry\")"_rg);
 
         EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
@@ -166,7 +167,7 @@ TEST(region, thingify_named) {
         dict.set("banana", banana);
         dict.set("cake", cake);
         dict.set("topping", region("fruit"_lab));
-        dict.set("fruit", join(region("(region \"cake\")"), region("topping"_lab)));
+        dict.set("fruit", join("(region \"cake\")"_rg, region("topping"_lab)));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }

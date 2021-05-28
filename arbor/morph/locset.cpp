@@ -3,7 +3,6 @@
 #include <numeric>
 
 #include <arbor/math.hpp>
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -152,7 +151,10 @@ std::ostream& operator<<(std::ostream& o, const segments_& x) {
 
 // Proportional location on every branch.
 
-struct on_branches_ { double pos; };
+struct on_branches_: locset_tag {
+    explicit on_branches_(double p): pos{p} {}
+    double pos;
+};
 
 locset on_branches(double pos) {
     return locset{on_branches_{pos}};
@@ -397,7 +399,10 @@ std::ostream& operator<<(std::ostream& o, const on_components_& x) {
 
 // Uniform locset.
 
-struct uniform_ {
+struct uniform_: locset_tag {
+    uniform_(const arb::region& reg_, unsigned left_, unsigned right_, uint64_t seed_):
+        reg{reg_}, left{left_}, right{right_}, seed{seed_}
+    {}
     region reg;
     unsigned left;
     unsigned right;
@@ -522,7 +527,8 @@ std::ostream& operator<<(std::ostream& o, const lsup_& x) {
 // Restrict a locset on to a region: returns all locations in the locset that
 // are also in the region.
 
-struct lrestrict_ {
+struct lrestrict_: locset_tag {
+    explicit lrestrict_(const locset& l, const region& r): ls{l}, reg{r} {}
     locset ls;
     region reg;
 };
@@ -584,16 +590,5 @@ locset::locset(mlocation loc) {
 locset::locset(mlocation_list ll) {
     *this = ls::location_list(std::move(ll));
 }
-
-locset::locset(const std::string& desc) {
-    if (auto r=parse_locset_expression(desc)) {
-        *this = *r;
-    }
-    else {
-        throw r.error();
-    }
-}
-
-locset::locset(const char* label): locset(std::string(label)) {}
 
 } // namespace arb

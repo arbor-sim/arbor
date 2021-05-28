@@ -14,7 +14,6 @@ set(arbor_sources
     cell_group_factory.cpp
     common_types_io.cpp
     cv_policy.cpp
-    cv_policy_parse.cpp
     execution_context.cpp
     gpu_context.cpp
     event_binner.cpp
@@ -31,7 +30,6 @@ set(arbor_sources
     memory/util.cpp
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
-    morph/label_parse.cpp
     morph/locset.cpp
     morph/morphexcept.cpp
     morph/morphology.cpp

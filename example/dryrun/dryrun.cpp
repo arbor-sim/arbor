@@ -11,6 +11,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/cable_cell.hpp>
@@ -34,6 +36,8 @@
 #include <mpi.h>
 #include <arborenv/with_mpi.hpp>
 #endif
+
+using namespace arborio::literals;
 
 struct run_params {
     std::string name = "default";

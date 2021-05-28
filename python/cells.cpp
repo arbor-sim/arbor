@@ -11,13 +11,14 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <arborio/cv_policy_parse.hpp>
+#include <arborio/label_parse.hpp>
+
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/cv_policy.hpp>
-#include <arbor/cv_policy_parse.hpp>
 #include <arbor/morph/label_dict.hpp>
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -77,19 +78,19 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
 //
 
 arb::cv_policy make_cv_policy_single(const std::string& reg) {
-    return arb::cv_policy_single(reg);
+    return arb::cv_policy_single(*arborio::parse_region_expression(reg));
 }
 
 arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
-    return arb::cv_policy_every_segment(reg);
+    return arb::cv_policy_every_segment(*arborio::parse_region_expression(reg));
 }
 
 arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std::string& reg) {
-    return arb::cv_policy_fixed_per_branch(cv_per_branch, reg);
+    return arb::cv_policy_fixed_per_branch(cv_per_branch, *arborio::parse_region_expression(reg));
 }
 
 arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
-    return arb::cv_policy_max_extent(cv_length, reg);
+    return arb::cv_policy_max_extent(cv_length, *arborio::parse_region_expression(reg));
 }
 
 // Helper for finding a mechanism description in a Python object.
@@ -245,7 +246,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
-        .def(pybind11::init([](const std::string& s) { return arb::cv::parse_expression(s).value(); }))
+        .def(pybind11::init([](const std::string& s) { return arborio::parse_cv_policy_expression(s).value(); }))
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
@@ -472,13 +473,13 @@ void register_cells(pybind11::module& m) {
         // Paint mechanisms.
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::mechanism_desc& d) {
-                dec.paint(region, d);
+                dec.paint(*arborio::parse_region_expression(region), d);
             },
             "region"_a, "mechanism"_a,
             "Associate a mechanism with a region.")
         .def("paint",
             [](arb::decor& dec, const char* region, const char* mech_name) {
-                dec.paint(region, arb::mechanism_desc(mech_name));
+                dec.paint(*arborio::parse_region_expression(region), arb::mechanism_desc(mech_name));
             },
             "region"_a, "mechanism"_a,
             "Associate a mechanism with a region.")
@@ -489,10 +490,11 @@ void register_cells(pybind11::module& m) {
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
-                if (Vm) dec.paint(region, arb::init_membrane_potential{*Vm});
-                if (cm) dec.paint(region, arb::membrane_capacitance{*cm});
-                if (rL) dec.paint(region, arb::axial_resistivity{*rL});
-                if (tempK) dec.paint(region, arb::temperature_K{*tempK});
+                auto r = *arborio::parse_region_expression(region);
+                if (Vm) dec.paint(r, arb::init_membrane_potential{*Vm});
+                if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
+                if (rL) dec.paint(r, arb::axial_resistivity{*rL});
+                if (tempK) dec.paint(r, arb::temperature_K{*tempK});
             },
             pybind11::arg_v("region", "the region label or description."),
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
@@ -504,9 +506,10 @@ void register_cells(pybind11::module& m) {
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
                optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
-                if (int_con) dec.paint(region, arb::init_int_concentration{name, *int_con});
-                if (ext_con) dec.paint(region, arb::init_ext_concentration{name, *ext_con});
-                if (rev_pot) dec.paint(region, arb::init_reversal_potential{name, *rev_pot});
+                auto r = *arborio::parse_region_expression(region);
+                if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
+                if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
+                if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
             },
             "region"_a, "ion_name"_a,
             pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
@@ -516,33 +519,33 @@ void register_cells(pybind11::module& m) {
         // Place synapses
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d) -> int {
-                return dec.place(locset, d); },
+                return dec.place(*arborio::parse_locset_expression(locset), d); },
             "locations"_a, "mechanism"_a,
             "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
         .def("place",
             [](arb::decor& dec, const char* locset, const char* mech_name) -> int {
-                return dec.place(locset, mech_name);
+                return dec.place(*arborio::parse_locset_expression(locset), mech_name);
             },
             "locations"_a, "mechanism"_a,
             "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
         // Place gap junctions.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site) -> int {
-                return dec.place(locset, site);
+                return dec.place(*arborio::parse_locset_expression(locset), site);
             },
             "locations"_a, "gapjunction"_a,
             "Place one gap junction site at each location in 'locations'.")
         // Place current clamp stimulus.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) -> int {
-                return dec.place(locset, stim);
+                return dec.place(*arborio::parse_locset_expression(locset), stim);
             },
             "locations"_a, "iclamp"_a,
             "Add a current stimulus at each location in locations.")
         // Place spike detector.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::threshold_detector& d) -> int {
-                return dec.place(locset, d);
+                return dec.place(*arborio::parse_locset_expression(locset), d);
             },
             "locations"_a, "detector"_a,
             "Add a voltage spike detector at each location in locations.")
@@ -572,11 +575,11 @@ void register_cells(pybind11::module& m) {
             "The number of unbranched cable sections in the morphology.")
         // Get locations associated with a locset label.
         .def("locations",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(label);},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arb::ls::named(label));},
             "label"_a, "The locations of the cell morphology for a locset label.")
         // Get cables associated with a region label.
         .def("cables",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arb::reg::named(label)).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Get lid range associated with a placement.
         .def("placed_lid_range",
