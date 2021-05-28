@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 
 namespace arb {

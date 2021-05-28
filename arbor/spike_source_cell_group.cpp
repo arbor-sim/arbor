@@ -6,6 +6,7 @@
 #include <arbor/schedule.hpp>
 
 #include "cell_group.hpp"
+#include "label_resolver.hpp"
 #include "profile/profiler_macro.hpp"
 #include "spike_source_cell_group.hpp"
 #include "util/span.hpp"
@@ -20,8 +21,8 @@ spike_source_cell_group::spike_source_cell_group(
     gids_(gids)
 {
     cg_sources.gids = gids_;
-    cg_sources.sizes.resize(gids_.size(), 1);
-    cg_sources.ranges.resize(gids_.size(), {0, 1});
+    cg_sources.sizes.assign(gids_.size(), 1);
+    cg_sources.ranges.assign(gids_.size(), {0, 1});
     cg_sources.labels.reserve(gids_.size());
 
     for (auto gid: gids_) {

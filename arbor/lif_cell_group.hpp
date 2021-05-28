@@ -9,6 +9,7 @@
 #include <arbor/spike.hpp>
 
 #include "cell_group.hpp"
+#include "label_resolver.hpp"
 
 namespace arb {
 

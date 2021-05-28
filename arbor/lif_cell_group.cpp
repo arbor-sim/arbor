@@ -1,7 +1,7 @@
 #include <arbor/arbexcept.hpp>
 
-#include <lif_cell_group.hpp>
-
+#include "lif_cell_group.hpp"
+#include "label_resolver.hpp"
 #include "profile/profiler_macro.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -28,16 +28,14 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
     }
 
     cg_sources.gids = gids_;
-    cg_sources.sizes.resize(cells_.size(), 1);
-    cg_sources.ranges.resize(cells_.size(), {0, 1});
-    cg_sources.labels.reserve(cells_.size());
-    std::transform(cells_.begin(), cells_.end(), std::back_inserter(cg_sources.labels), [](const auto& c){return c.source;});
+    cg_sources.sizes.assign(cells_.size(), 1);
+    cg_sources.ranges.assign(cells_.size(), {0, 1});
+    util::assign(cg_sources.labels, util::transform_view(cells_, [](const auto& c) { return c.source; }));
 
     cg_targets.gids = gids_;
-    cg_targets.sizes.resize(cells_.size(), 1);
-    cg_targets.ranges.resize(cells_.size(), {0, 1});
-    cg_targets.labels.reserve(cells_.size());
-    std::transform(cells_.begin(), cells_.end(), std::back_inserter(cg_targets.labels), [](const auto& c){return c.target;});
+    cg_targets.sizes.assign(cells_.size(), 1);
+    cg_targets.ranges.assign(cells_.size(), {0, 1});
+    util::assign(cg_targets.labels, util::transform_view(cells_, [](const auto& c) { return c.target; }));
 }
 
 cell_kind lif_cell_group::get_cell_kind() const {

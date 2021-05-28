@@ -1,3 +1,4 @@
+#include <iterator>
 #include <vector>
 
 #include <arbor/assert.hpp>
@@ -7,6 +8,7 @@
 #include "label_resolver.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 
@@ -31,15 +33,12 @@ label_resolver::label_resolver(cell_label_range clr) {
     arb_assert(clr.gids.size() == clr.sizes.size());
     arb_assert(clr.labels.size() == clr.ranges.size());
 
-    std::vector<cell_size_type> label_partition;
-    util::make_partition(label_partition, clr.sizes);
-    for(unsigned i = 0; i < clr.gids.size(); ++i) {
-        auto labels = util::subrange_view(clr.labels, label_partition[i], label_partition[i+1]);
-        auto ranges = util::subrange_view(clr.ranges, label_partition[i], label_partition[i+1]);
-
+    std::vector<cell_size_type> label_divs;
+    auto partn = util::make_partition(label_divs, clr.sizes);
+    for (auto i: util::count_along(partn)) {
         label_resolution_map m;
-        for (unsigned label_idx = 0; label_idx < labels.size(); ++label_idx) {
-            m.insert({labels[label_idx], {ranges[label_idx], 0u}});
+        for (auto label_idx: util::make_span(partn[i])) {
+            m.insert({clr.labels[label_idx], {clr.ranges[label_idx], 0u}});
         }
         mapper.insert({clr.gids[i], std::move(m)});
     }
