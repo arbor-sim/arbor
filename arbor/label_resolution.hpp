@@ -10,8 +10,8 @@
 namespace arb {
 
 // class containing the data required for {cell, label} to lid resolution.
-// `sizes` is a partitioning vector for associating a cell
-// with a set of (label, range) pairs in `labels`, `ranges`.
+// `sizes` is a partitioning vector for associating a cell with a set of
+// (label, range) pairs in `labels`, `ranges`.
 // gids of the cells are unknown.
 class cell_label_range {
 public:
@@ -67,15 +67,15 @@ public:
     struct range_set {
         std::vector<lid_range> ranges;
         std::vector<unsigned> ranges_partition = {0};
-        unsigned size() const;
-        unsigned at(unsigned idx) const;
+        cell_size_type size() const;
+        cell_lid_type at(unsigned idx) const;
     };
 
     label_resolution_map() = delete;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
     const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const;
-    bool find(const cell_gid_type& gid, const cell_tag_type& tag) const;
+    std::size_t count(const cell_gid_type& gid, const cell_tag_type& tag) const;
 
 private:
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
@@ -91,7 +91,6 @@ struct round_robin_state {
 // Requires a `label_resolution_map` which stores the constant mapping of (gid, label) pairs to lid sets.
 struct resolver {
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, round_robin_state>>> state_map;
-
     cell_lid_type resolve(const cell_global_label_type& iden, const label_resolution_map& label_map);
 };
 } // namespace arb

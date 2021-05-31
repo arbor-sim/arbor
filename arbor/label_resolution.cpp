@@ -61,11 +61,11 @@ bool cell_labels_and_gids::check_invariant() const {
 }
 
 // label_resolution_map methods
-unsigned label_resolution_map::range_set::size() const {
+cell_size_type label_resolution_map::range_set::size() const {
     return ranges_partition.back();
 }
 
-unsigned label_resolution_map::range_set::at(unsigned idx) const {
+cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
     auto part = util::partition_view(ranges_partition);
     // Index of the range containing idx.
     auto ridx = part.index(idx);
@@ -84,8 +84,8 @@ const label_resolution_map::range_set& label_resolution_map::at(const cell_gid_t
     return map.at(gid).at(tag);
 }
 
-bool label_resolution_map::find(const cell_gid_type& gid, const cell_tag_type& tag) const {
-    if (!map.count(gid)) return false;
+std::size_t label_resolution_map::count(const cell_gid_type& gid, const cell_tag_type& tag) const {
+    if (!map.count(gid)) return 0u;
     return map.at(gid).count(tag);
 }
 
@@ -103,15 +103,12 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
 
         std::unordered_map<cell_tag_type, range_set> m;
         for (auto label_idx: util::make_span(partn[i])) {
-            auto& range_set = m[labels[label_idx]];
-
             const auto range = ranges[label_idx];
             auto size = int(range.end - range.begin);
-
             if (size < 0) {
                 throw arb::bad_connection_range(gids[i], labels[label_idx], range);
             }
-
+            auto& range_set = m[labels[label_idx]];
             range_set.ranges.push_back(range);
             range_set.ranges_partition.push_back(range_set.ranges_partition.back() + size);
         }
@@ -127,7 +124,7 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
 
 // resolver methods
 cell_lid_type resolver::resolve(const cell_global_label_type& iden, const label_resolution_map& label_map) {
-    if (!label_map.find(iden.gid, iden.label.tag)) {
+    if (!label_map.count(iden.gid, iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
     const auto& range_set = label_map.at(iden.gid, iden.label.tag);
@@ -135,14 +132,14 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden, const label_
     switch (iden.label.policy) {
     case lid_selection_policy::round_robin: {
         // Get the state of the round_robin iterator.
-        auto& label_states = state_map[iden.gid][iden.label.tag];
-        const auto curr = !label_states.count(iden.label.policy) ? round_robin_state(0) : label_states.at(iden.label.policy);
+        auto& rr_state = state_map[iden.gid][iden.label.tag][iden.label.policy];
+        auto idx = rr_state.state;
 
         // Update the state of the round_robin iterator.
-        label_states[iden.label.policy] = round_robin_state((curr.state+1) % range_set.size());
+        rr_state = round_robin_state((idx+1) % range_set.size());
 
         // Get the lid at the current index.
-        return range_set.at(curr.state);
+        return range_set.at(idx);
     }
     case lid_selection_policy::assert_univalent: {
         if (range_set.size() != 1) {

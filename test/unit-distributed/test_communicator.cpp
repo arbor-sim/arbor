@@ -361,12 +361,12 @@ namespace {
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             // Cells with gid%3 == 1 are senders, the others are receivers.
-            // These connections are used to test out lid resolutions.
+            // The following connections are formed; used to test out lid resolutions:
             // 7 from detectors_0 (round-robin) to synapses_0 (round-robin)
             // 1 from detectors_0 (round-robin) to synapses_1 (univalent)
             // 2 from detectors_1 (round-robin) to synapses_0 (round-robin)
             // 1 from detectors_1 (univalent)   to synapses_1 (round-robin)
-            // Should generate the following {src_gid, src_lid} -> {tgt_gid, tgt_lid} (before sorting, 1 rank with 3 cells):
+            // These Should generate the following {src_gid, src_lid} -> {tgt_gid, tgt_lid} mappings (unsorted; 1 rank with 3 cells total):
             // cell 1 - > cell 0:
             //   {1, 0} -> {0, 0}
             //   {1, 1} -> {0, 1}

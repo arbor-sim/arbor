@@ -172,8 +172,7 @@ struct schedule_generator {
         events_.reserve(ts.second-ts.first);
 
         for (auto i = ts.first; i!=ts.second; ++i) {
-            const auto t = label_resolver_(target_);
-            events_.push_back(spike_event{t, *i, weight_});
+            events_.push_back(spike_event{label_resolver_(target_), *i, weight_});
         }
 
         return {events_.data(), events_.data()+events_.size()};
