@@ -56,28 +56,40 @@ struct cell_labels_and_gids {
 };
 
 // Struct used for selecting an lid of a {cell, label} pair according to an lid_selection_policy
-struct label_resolver {
+struct label_resolution_map {
     struct range_set {
         std::vector<lid_range> ranges;
         std::vector<unsigned> ranges_partition = {0};
 
-        bool operator==(const arb::label_resolver::range_set& other) const {
+        bool operator==(const label_resolution_map::range_set& other) const {
             return (ranges == other.ranges) && (ranges_partition == other.ranges_partition);
         }
     };
 
-    using label_resolution_map = std::unordered_map<cell_tag_type, std::pair<range_set, cell_lid_type>>;
-    mutable std::unordered_map<cell_gid_type, label_resolution_map> mapper;
+    label_resolution_map() = delete;
+    explicit label_resolution_map(cell_labels_and_gids);
 
-    label_resolver() = delete;
-    explicit label_resolver(cell_labels_and_gids);
+    const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const {
+        return map.at(gid).at(tag);
+    }
 
-    // Returns a vector of lids of a {gid, label} pair according to a policy.
-    // The vector contains as many elements as identically names labels on the cell.
-    cell_lid_type get_lid(const cell_global_label_type&) const;
+    bool find(const cell_gid_type& gid, const cell_tag_type& tag) const {
+        if (!map.count(gid)) return false;
+        return map.at(gid).count(tag);
+    }
 
-    // Reset the current lid_indices to 0.
-    void reset();
+    std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
 };
 
+struct round_robin_state {
+    cell_size_type state = 0;
+    round_robin_state() : state(0) {};
+    round_robin_state(cell_lid_type state) : state(state) {};
+};
+
+struct resolver {
+    std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, round_robin_state>>> state_map;
+
+    cell_lid_type resolve(const cell_global_label_type& iden, const label_resolution_map& label_map);
+};
 } // namespace arb

@@ -58,7 +58,7 @@ bool cell_labels_and_gids::check_invariant() const {
     return label_range.check_invariant() && label_range.sizes().size()==gids.size();
 }
 
-label_resolver::label_resolver(cell_labels_and_gids clg) {
+label_resolution_map::label_resolution_map(cell_labels_and_gids clg) {
     arb_assert(clg.label_range.check_invariant());
     const auto& gids = clg.gids;
     const auto& labels = clg.label_range.labels();
@@ -70,11 +70,9 @@ label_resolver::label_resolver(cell_labels_and_gids clg) {
     for (auto i: util::count_along(partn)) {
         auto gid = gids[i];
 
-        label_resolution_map m;
+        std::unordered_map<cell_tag_type, range_set> m;
         for (auto label_idx: util::make_span(partn[i])) {
-            auto& pair = m[labels[label_idx]];
-            auto& const_state = pair.first;
-            auto& mutable_state = pair.second;
+            auto& range_set = m[labels[label_idx]];
 
             const auto range = ranges[label_idx];
             const int size = range.end - range.begin;
@@ -83,45 +81,44 @@ label_resolver::label_resolver(cell_labels_and_gids clg) {
                 throw arb::bad_connection_range(gids[i], labels[label_idx], range);
             }
 
-            const_state.ranges.push_back(range);
-            const_state.ranges_partition.push_back(const_state.ranges_partition.back() + size);
-            mutable_state = 0;
+            range_set.ranges.push_back(range);
+            range_set.ranges_partition.push_back(range_set.ranges_partition.back() + size);
         }
 
-        for (const auto& [label, state]: m) {
-            if (state.first.ranges_partition.back() < 1) {
+        for (const auto& [label, range_set]: m) {
+            if (range_set.ranges_partition.back() < 1) {
                 throw arb::bad_connection_set(gid, label);
             }
         }
-        mapper.insert({gid, std::move(m)});
+        map.insert({gid, std::move(m)});
     }
 }
 
-cell_lid_type label_resolver::get_lid(const cell_global_label_type& iden) const {
-    if (!mapper.count(iden.gid) || !mapper.at(iden.gid).count(iden.label.tag)) {
+cell_lid_type resolver::resolve(const cell_global_label_type& iden, const label_resolution_map& label_map) {
+    if (!label_map.find(iden.gid, iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
 
-    auto& range_idx_pair = mapper[iden.gid][iden.label.tag];
-
-    auto ranges = range_idx_pair.first.ranges;
-    auto ranges_part = util::partition_view(range_idx_pair.first.ranges_partition);
+    const auto& range_set = label_map.at(iden.gid, iden.label.tag);
+    const auto& ranges = range_set.ranges;
+    auto ranges_part = util::partition_view(range_set.ranges_partition);
     auto size = ranges_part.bounds().second;
 
     switch (iden.label.policy) {
     case lid_selection_policy::round_robin: {
         // Get the state of the round_robin iterator.
-        auto curr = range_idx_pair.second;
+        auto& label_states = state_map[iden.gid][iden.label.tag];
+        const auto curr = !label_states.count(iden.label.policy) ? round_robin_state(0) : label_states.at(iden.label.policy);
 
         // Update the state of the round_robin iterator.
-        range_idx_pair.second = (curr + 1) % size;
+        label_states[iden.label.policy].state = (curr.state+1) % size;
 
         // Get the range that contains the current state.
-        auto range_idx = ranges_part.index(curr);
-        auto range = range_idx_pair.first.ranges.at(range_idx);
+        auto range_idx = ranges_part.index(curr.state);
+        auto range = ranges.at(range_idx);
 
         // Get the offset into that range
-        auto offset = curr - range_idx_pair.first.ranges_partition.at(range_idx);
+        auto offset = curr.state - ranges_part.at(range_idx).first;
 
         return range.begin + offset;
     }
@@ -131,18 +128,10 @@ cell_lid_type label_resolver::get_lid(const cell_global_label_type& iden) const 
         }
         // Get the range that contains the only element.
         auto range_idx = ranges_part.index(0);
-        auto range = range_idx_pair.first.ranges.at(range_idx);
+        auto range = ranges.at(range_idx);
         return range.begin;
     }
     default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
-    }
-}
-
-void label_resolver::reset() {
-    for (auto& [gid, map]: mapper) {
-        for (auto& [lable, range_idx_pair]: map) {
-            range_idx_pair.second = 0;
-        }
     }
 }
 
