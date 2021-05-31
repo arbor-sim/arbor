@@ -14,7 +14,7 @@
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 

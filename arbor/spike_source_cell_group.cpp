@@ -6,7 +6,7 @@
 #include <arbor/schedule.hpp>
 
 #include "cell_group.hpp"
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
 #include "spike_source_cell_group.hpp"
 #include "util/span.hpp"
@@ -29,6 +29,7 @@ spike_source_cell_group::spike_source_cell_group(
     time_sequences_.reserve(gids_.size());
     for (auto gid: gids_) {
         cg_sources.add_cell();
+        cg_targets.add_cell();
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));

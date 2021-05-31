@@ -1,7 +1,7 @@
 #include <arbor/arbexcept.hpp>
 
+#include "label_resolution.hpp"
 #include "lif_cell_group.hpp"
-#include "label_resolver.hpp"
 #include "profile/profiler_macro.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"

@@ -26,7 +26,7 @@
 #include "execution_context.hpp"
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 #include "matrix.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"

@@ -7,7 +7,7 @@
 #include <arbor/util/pp_util.hpp>
 
 #include "communication/gathered_vector.hpp"
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 

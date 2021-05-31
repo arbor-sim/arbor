@@ -6,10 +6,10 @@
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 
-#include "cell_group.hpp"
-#include "label_resolver.hpp"
-#include "profile/profiler_macro.hpp"
 #include "benchmark_cell_group.hpp"
+#include "cell_group.hpp"
+#include "label_resolution.hpp"
+#include "profile/profiler_macro.hpp"
 
 #include "util/span.hpp"
 

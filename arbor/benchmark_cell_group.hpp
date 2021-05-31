@@ -8,7 +8,7 @@
 
 #include "cell_group.hpp"
 #include "epoch.hpp"
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 

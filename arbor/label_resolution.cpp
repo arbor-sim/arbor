@@ -5,7 +5,7 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -45,10 +45,10 @@ bool cell_label_range::check_invariant() const {
 }
 
 // cell_labels_and_gids methods
-cell_labels_and_gids::cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gids):
-    label_range(std::move(lr)), gids(std::move(gids))
+cell_labels_and_gids::cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gid):
+    label_range(std::move(lr)), gids(std::move(gid))
 {
-    if (lr.sizes().size()!=gids.size()) throw arbor_internal_error("cell_label_range and gid count mismatch");
+    if (label_range.sizes().size()!=gids.size()) throw arbor_internal_error("cell_label_range and gid count mismatch");
 }
 
 void cell_labels_and_gids::append(cell_labels_and_gids other) {

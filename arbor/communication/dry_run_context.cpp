@@ -5,7 +5,7 @@
 #include <arbor/spike.hpp>
 
 #include "distributed_context.hpp"
-#include "label_resolver.hpp"
+#include "label_resolution.hpp"
 #include "threading/threading.hpp"
 #include "util/rangeutil.hpp"
 
