@@ -3,13 +3,16 @@
 #include <unordered_map>
 #include <vector>
 
+#include "util/partition.hpp"
+
 #include <arbor/common_types.hpp>
 
 namespace arb {
 
-// Data required for {gid, label} to lid resolution.
+// class containing the data required for {cell, label} to lid resolution.
 // `sizes` is a partitioning vector for associating a cell
 // with a set of (label, range) pairs in `labels`, `ranges`.
+// gids of the cells are unknown.
 class cell_label_range {
 public:
     cell_label_range() = default;
@@ -43,6 +46,7 @@ private:
     std::vector<lid_range> ranges_;
 };
 
+// Struct for associating each cell of `cell_label_range` with a gid.
 struct cell_labels_and_gids {
     cell_labels_and_gids() = default;
     cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gids);
@@ -55,29 +59,25 @@ struct cell_labels_and_gids {
     std::vector<cell_gid_type> gids;
 };
 
-// Struct used for selecting an lid of a {cell, label} pair according to an lid_selection_policy
-struct label_resolution_map {
+// Class constructed from `cell_labels_and_ranges`:
+// Represents the information in the object in a more
+// structured manner for lid resolution in `resolver`
+class label_resolution_map {
+public:
     struct range_set {
         std::vector<lid_range> ranges;
         std::vector<unsigned> ranges_partition = {0};
-
-        bool operator==(const label_resolution_map::range_set& other) const {
-            return (ranges == other.ranges) && (ranges_partition == other.ranges_partition);
-        }
+        unsigned size() const;
+        unsigned at(unsigned idx) const;
     };
 
     label_resolution_map() = delete;
-    explicit label_resolution_map(cell_labels_and_gids);
+    explicit label_resolution_map(const cell_labels_and_gids&);
 
-    const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const {
-        return map.at(gid).at(tag);
-    }
+    const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const;
+    bool find(const cell_gid_type& gid, const cell_tag_type& tag) const;
 
-    bool find(const cell_gid_type& gid, const cell_tag_type& tag) const {
-        if (!map.count(gid)) return false;
-        return map.at(gid).count(tag);
-    }
-
+private:
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
 };
 
@@ -87,6 +87,8 @@ struct round_robin_state {
     round_robin_state(cell_lid_type state) : state(state) {};
 };
 
+// Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
+// Requires a `label_resolution_map` which stores the constant mapping of (gid, label) pairs to lid sets.
 struct resolver {
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, round_robin_state>>> state_map;
 

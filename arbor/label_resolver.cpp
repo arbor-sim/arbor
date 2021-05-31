@@ -12,6 +12,7 @@
 
 namespace arb {
 
+// cell_label_range methods
 cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
                                    std::vector<cell_tag_type> label_vec,
                                    std::vector<lid_range> range_vec):
@@ -43,6 +44,7 @@ bool cell_label_range::check_invariant() const {
     return count==labels_.size() && count==ranges_.size();
 }
 
+// cell_labels_and_gids methods
 cell_labels_and_gids::cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gids):
     label_range(std::move(lr)), gids(std::move(gids))
 {
@@ -58,7 +60,36 @@ bool cell_labels_and_gids::check_invariant() const {
     return label_range.check_invariant() && label_range.sizes().size()==gids.size();
 }
 
-label_resolution_map::label_resolution_map(cell_labels_and_gids clg) {
+// label_resolution_map methods
+unsigned label_resolution_map::range_set::size() const {
+    return ranges_partition.back();
+}
+
+unsigned label_resolution_map::range_set::at(unsigned idx) const {
+    auto part = util::partition_view(ranges_partition);
+    // Index of the range containing idx.
+    auto ridx = part.index(idx);
+
+    // First element of the range containing idx.
+    const auto& start = ranges.at(ridx).begin;
+
+    // Offset into the range containing idx.
+    const auto& range_part = part.at(ridx);
+    auto offset = idx - range_part.first;
+
+    return start + offset;
+}
+
+const label_resolution_map::range_set& label_resolution_map::at(const cell_gid_type& gid, const cell_tag_type& tag) const {
+    return map.at(gid).at(tag);
+}
+
+bool label_resolution_map::find(const cell_gid_type& gid, const cell_tag_type& tag) const {
+    if (!map.count(gid)) return false;
+    return map.at(gid).count(tag);
+}
+
+label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     arb_assert(clg.label_range.check_invariant());
     const auto& gids = clg.gids;
     const auto& labels = clg.label_range.labels();
@@ -75,7 +106,7 @@ label_resolution_map::label_resolution_map(cell_labels_and_gids clg) {
             auto& range_set = m[labels[label_idx]];
 
             const auto range = ranges[label_idx];
-            const int size = range.end - range.begin;
+            auto size = int(range.end - range.begin);
 
             if (size < 0) {
                 throw arb::bad_connection_range(gids[i], labels[label_idx], range);
@@ -94,15 +125,12 @@ label_resolution_map::label_resolution_map(cell_labels_and_gids clg) {
     }
 }
 
+// resolver methods
 cell_lid_type resolver::resolve(const cell_global_label_type& iden, const label_resolution_map& label_map) {
     if (!label_map.find(iden.gid, iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
-
     const auto& range_set = label_map.at(iden.gid, iden.label.tag);
-    const auto& ranges = range_set.ranges;
-    auto ranges_part = util::partition_view(range_set.ranges_partition);
-    auto size = ranges_part.bounds().second;
 
     switch (iden.label.policy) {
     case lid_selection_policy::round_robin: {
@@ -111,25 +139,17 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden, const label_
         const auto curr = !label_states.count(iden.label.policy) ? round_robin_state(0) : label_states.at(iden.label.policy);
 
         // Update the state of the round_robin iterator.
-        label_states[iden.label.policy].state = (curr.state+1) % size;
+        label_states[iden.label.policy] = round_robin_state((curr.state+1) % range_set.size());
 
-        // Get the range that contains the current state.
-        auto range_idx = ranges_part.index(curr.state);
-        auto range = ranges.at(range_idx);
-
-        // Get the offset into that range
-        auto offset = curr.state - ranges_part.at(range_idx).first;
-
-        return range.begin + offset;
+        // Get the lid at the current index.
+        return range_set.at(curr.state);
     }
     case lid_selection_policy::assert_univalent: {
-        if (size != 1) {
+        if (range_set.size() != 1) {
             throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
         }
-        // Get the range that contains the only element.
-        auto range_idx = ranges_part.index(0);
-        auto range = ranges.at(range_idx);
-        return range.begin;
+        // Get the lid of the only element.
+        return range_set.at(0);
     }
     default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }

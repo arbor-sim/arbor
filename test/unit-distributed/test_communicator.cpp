@@ -1,6 +1,7 @@
 #include "../gtest.h"
 #include "test.hpp"
 
+#include <tuple>
 #include <vector>
 
 #include <arbor/domain_decomposition.hpp>
@@ -333,17 +334,17 @@ namespace {
 
     class mini_recipe: public recipe {
     public:
-        mini_recipe(cell_size_type s): size_(s) {}
+        mini_recipe(cell_size_type s): nranks_(s), ncells_(nranks_*3) {}
 
         cell_size_type num_cells() const override {
-            return size_;
+            return ncells_;
         }
 
         util::unique_any get_cell_description(cell_gid_type gid) const override {
             arb::segment_tree tree;
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
             arb::decor decor;
-            if (gid%2 == 0) {
+            if (gid%3 != 1) {
                 decor.place(arb::ls::uniform(arb::reg::all(), 0, 1, gid), "expsyn", "synapses_0");
                 decor.place(arb::ls::uniform(arb::reg::all(), 2, 2, gid), "expsyn", "synapses_1");
             }
@@ -355,29 +356,50 @@ namespace {
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable: cell_kind::lif;
+            return gid%3 != 1? cell_kind::cable: cell_kind::lif;
         }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-            // Connections from odd to even numbered cells
-            // 4 from detectors_0 (round-robin) to synapses_0 (round-robin)
+            // Cells with gid%3 == 1 are senders, the others are receivers.
+            // These connections are used to test out lid resolutions.
+            // 7 from detectors_0 (round-robin) to synapses_0 (round-robin)
             // 1 from detectors_0 (round-robin) to synapses_1 (univalent)
             // 2 from detectors_1 (round-robin) to synapses_0 (round-robin)
             // 1 from detectors_1 (univalent)   to synapses_1 (round-robin)
-            // Should generate the following {src_gid, src_lid} -> {tgt_gid, tgt_lid} connections on rank 0 (before sorting):
+            // Should generate the following {src_gid, src_lid} -> {tgt_gid, tgt_lid} (before sorting, 1 rank with 3 cells):
+            // cell 1 - > cell 0:
             //   {1, 0} -> {0, 0}
             //   {1, 1} -> {0, 1}
             //   {1, 2} -> {0, 0}
             //   {1, 0} -> {0, 1}
+            //   {1, 1} -> {0, 0}
+            //   {1, 2} -> {0, 1}
+            //   {1, 0} -> {0, 0}
             //   {1, 1} -> {0, 2}
-            //   {1, 3} -> {0, 0}
             //   {1, 3} -> {0, 1}
-            //   {1, 4} -> {0, 2}
+            //   {1, 3} -> {0, 0}
+            //   {1, 3} -> {0, 2}
+
+            // cell 1 - > cell 2:
+            //   {1, 0} -> {2, 0}
+            //   {1, 1} -> {2, 1}
+            //   {1, 2} -> {2, 0}
+            //   {1, 0} -> {2, 1}
+            //   {1, 1} -> {2, 0}
+            //   {1, 2} -> {2, 1}
+            //   {1, 0} -> {2, 0}
+            //   {1, 1} -> {2, 2}
+            //   {1, 3} -> {2, 1}
+            //   {1, 3} -> {2, 0}
+            //   {1, 3} -> {2, 2}
             std::vector<cell_connection> cons;
             using pol = lid_selection_policy;
-            if (gid%2 == 0) {
-                for (auto sid: util::make_span(0, size_)) {
-                    if (sid%2 == 1) {
+            if (gid%3 != 1) {
+                for (auto sid: util::make_span(0, ncells_)) {
+                    if (sid%3 == 1) {
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
                         cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
                         cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
                         cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
@@ -405,7 +427,8 @@ namespace {
         }
 
     private:
-        cell_size_type size_;
+        cell_size_type nranks_;
+        cell_size_type ncells_;
     };
 }
 
@@ -508,7 +531,7 @@ TEST(communicator, ring)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids(local_sources);
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolver(global_sources), label_resolver(local_targets), *g_context);
+    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets), *g_context);
 
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
@@ -615,7 +638,7 @@ TEST(communicator, all2all)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolver(global_sources), label_resolver({local_targets, mc_gids}), *g_context);
+    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}), *g_context);
     auto connections = C.connections();
 
     for (auto i: util::make_span(0, n_global)) {
@@ -645,10 +668,7 @@ TEST(communicator, mini_network)
     // construct a homogeneous network of 10*n_domain identical cells in a ring
     unsigned N = g_context->distributed->size();
 
-    unsigned n_local = 2u;
-    unsigned n_global = n_local*N;
-
-    auto R = mini_recipe(n_global);
+    auto R = mini_recipe(N);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, g_context);
@@ -664,20 +684,26 @@ TEST(communicator, mini_network)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolver(global_sources), label_resolver({local_targets, gids}), *g_context);
-    auto connections = C.connections();
+    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}), *g_context);
 
-    // Expect one set of 8 connections from every rank
-    std::vector<cell_lid_type> ex_source_lids = {0, 0, 1, 1, 2, 3, 3, 3};
-    std::vector<cell_lid_type> ex_target_lids = {0, 1, 1, 2, 0, 0, 1, 2};
+    // sort connections by source then target
+    auto connections = C.connections();
+    util::sort(connections, [](const connection& lhs, const connection& rhs) {
+      return std::forward_as_tuple(lhs.source(), lhs.index_on_domain(), lhs.destination()) < std::forward_as_tuple(rhs.source(), rhs.index_on_domain(), rhs.destination());
+    });
+
+    // Expect one set of 22 connections from every rank: these have been sorted.
+    std::vector<cell_lid_type> ex_source_lids =  {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3};
+    std::vector<std::vector<cell_lid_type>> ex_target_lids = {{0, 0, 1, 0, 0, 1, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2},
+                                                              {0, 1, 1, 0, 1, 1, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2}};
 
     for (auto i: util::make_span(0, N)) {
-        std::vector<cell_gid_type> ex_source_gids(8u, i*2 + 1);
-        for (unsigned j = 0; j < 8u; ++j) {
-            auto c = connections[i*8 + j];
+        std::vector<cell_gid_type> ex_source_gids(22u, i*3 + 1);
+        for (unsigned j = 0; j < 22u; ++j) {
+            auto c = connections[i*22 + j];
             EXPECT_EQ(ex_source_gids[j], c.source().gid);
             EXPECT_EQ(ex_source_lids[j], c.source().index);
-            EXPECT_EQ(ex_target_lids[j], c.destination());
+            EXPECT_EQ(ex_target_lids[i%2][j], c.destination());
         }
     }
 }

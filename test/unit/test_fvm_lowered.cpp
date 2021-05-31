@@ -1451,19 +1451,20 @@ TEST(fvm_lowered, label_data) {
 
     // synapses
     {
-        auto synapse_data = fvm_info.target_data;
+        auto clg = cell_labels_and_gids(fvm_info.target_data, gids);
         std::vector<cell_size_type> expected_sizes = {2, 0, 0, 2, 0, 0, 2, 0, 0, 2};
         std::vector<cell_tag_type> expected_labels = {"1_synapse", "4_synapses", "1_synapse", "4_synapses", "1_synapse", "4_synapses", "1_synapse", "4_synapses"};
         std::vector<lid_range> expected_ranges = {{4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}};
 
-        // Create label_resolvers and compare the maps
-        auto expected_map = label_resolver(cell_labels_and_gids({expected_sizes, expected_labels, expected_ranges}, gids)).mapper;
-        EXPECT_EQ(expected_map, label_resolver({synapse_data, gids}).mapper);
+        EXPECT_EQ(clg.gids, gids);
+        EXPECT_EQ(clg.label_range.sizes(), expected_sizes);
+        EXPECT_EQ(clg.label_range.labels(), expected_labels);
+        EXPECT_EQ(clg.label_range.ranges(), expected_ranges);
     }
 
     // detectors
     {
-        auto detector_data = fvm_info.source_data;
+        auto clg = cell_labels_and_gids(fvm_info.source_data, gids);
         std::vector<cell_size_type> expected_sizes = {1, 2, 2, 1, 2, 2, 1, 2, 2, 1};
         std::vector<cell_tag_type> expected_labels = {"1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors",
                                                       "1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors",
@@ -1472,14 +1473,15 @@ TEST(fvm_lowered, label_data) {
                                                   {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3},
                                                   {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3}, {0, 1}};
 
-        // Create label_resolvers and compare the maps
-        auto expected_map = label_resolver(cell_labels_and_gids({expected_sizes, expected_labels, expected_ranges}, gids)).mapper;
-        EXPECT_EQ(expected_map, label_resolver({detector_data, gids}).mapper);
+        EXPECT_EQ(clg.gids, gids);
+        EXPECT_EQ(clg.label_range.sizes(), expected_sizes);
+        EXPECT_EQ(clg.label_range.labels(), expected_labels);
+        EXPECT_EQ(clg.label_range.ranges(), expected_ranges);
     }
 
     // gap_junctions
     {
-        auto gap_junction_data = fvm_info.gap_junction_data;
+        auto clg = cell_labels_and_gids(fvm_info.gap_junction_data, gids);
         std::vector<cell_size_type> expected_sizes = {0, 2, 2, 0, 2, 2, 0, 2, 2, 0};
         std::vector<cell_tag_type> expected_labels = {"1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions",
                                                       "1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions",
@@ -1488,8 +1490,9 @@ TEST(fvm_lowered, label_data) {
                                                   {2, 3}, {0, 2}, {2, 3}, {0, 2},
                                                   {2, 3}, {0, 2}, {2, 3}, {0, 2}};
 
-        // Create label_resolvers and compare the maps
-        auto expected_map = label_resolver(cell_labels_and_gids({expected_sizes, expected_labels, expected_ranges}, gids)).mapper;
-        EXPECT_EQ(expected_map, label_resolver({gap_junction_data, gids}).mapper);
+        EXPECT_EQ(clg.gids, gids);
+        EXPECT_EQ(clg.label_range.sizes(), expected_sizes);
+        EXPECT_EQ(clg.label_range.labels(), expected_labels);
+        EXPECT_EQ(clg.label_range.ranges(), expected_ranges);
     }
 }
