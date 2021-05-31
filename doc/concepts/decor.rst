@@ -28,8 +28,8 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 
 Decorations are described by a **decor** object in Arbor. It provides facilities for
 
-  * setting properties defined over the whole cell;
-  * descriptions of dynamics applied to regions and locsets.
+* setting properties defined over the whole cell;
+* descriptions of dynamics applied to regions and locsets.
 
 .. _cablecell-paint:
 
@@ -290,9 +290,10 @@ See :ref:`modelgapjunctions`.
 A current stimulus is a DC or sinusoidal current of fixed frequency with a time-varying amplitude
 governed by a piecewise-linear envelope.
 
-The stimulus is described by two parameters: a frequency in Hertz, where a value of zero denotes DC;
-and a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ) describing the envelope, where the times
-*t*\ :sub:`i` are in milliseconds and the amplitudes *a*\ :sub:`i` are in nanoamperes.
+The stimulus is described by three parameters:
+a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ) describing the envelope, where the times
+*t*\ :sub:`i` are in milliseconds and the amplitudes *a*\ :sub:`i` are in nanoamperes;
+a frequency in kilohertz, where a value of zero denotes DC; and the phase in radians at time zero.
 
 The stimulus starts at the first timepoint *t*\ :sub:`0` with amplitude *a*\ :sub:`0`, and the amplitude
 is then interpolated linearly between successive points. The last envelope point
@@ -307,11 +308,11 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
     # Constant stimulus, amplitude 10 nA.
     decor.place('(root)', arbor.iclamp(10))
 
-    # Constant amplitude 10 nA stimulus at 20 Hz.
-    decor.place('(root)', arbor.iclamp(10, 20))
+    # Constant amplitude 10 nA stimulus at 20 Hz, with initial phase of π/4 radians.
+    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phasce=math.pi/4))
 
-    # Stimulus at 20 Hz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
-    decor.place('(root)', arbor.iclamp(30, 40, 10, 20))
+    # Stimulus at 1 kHz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
+    decor.place('(root)', arbor.iclamp(30, 40, 10, frequency=1))
 
     # Piecewise linear stimulus with amplitude ranging from 0 nA to 10 nA,
     # starting at t = 30 ms and stopping at t = 50 ms.

@@ -10,7 +10,7 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is, steps to reproduce, expected behavior, etc.
+<!-- A clear and concise description of what the bug is, steps to reproduce, expected behavior, etc. -->
 
 **Additional context**
-Add any other context about the problem here (e.g. OS, Arbor version, etc.).
+<!-- Add any other context about the problem here (e.g. OS, Arbor version, etc.). -->

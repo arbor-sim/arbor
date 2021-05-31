@@ -60,8 +60,8 @@ public:
 
 protected:
     static std::unordered_set<std::string> mask_names_;
-    bool processing_true_;
-    bool is_indirect_;
+    bool processing_true_ = false;
+    bool is_indirect_ = false;
     std::string current_mask_, current_mask_bar_, input_mask_;
     std::unordered_set<std::string> scalars_;
     Visitor* fallback_;

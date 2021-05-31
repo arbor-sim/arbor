@@ -66,7 +66,8 @@ struct istim_state {
     iarray accu_index_;     // Instance to accumulator index (accu_stim_ index) map.
     iarray accu_to_cv_;     // Accumulator index to CV map.
 
-    array frequency_;       // (Hz) stimulus frequency per instance.
+    array frequency_;       // (kHz) stimulus frequency per instance.
+    array phase_;           // (rad) stimulus waveform phase at t=0.
     array envl_amplitudes_; // (A/m²) stimulus envelope amplitudes, partitioned by instance.
     array envl_times_;      // (A/m²) stimulus envelope timepoints, partitioned by instance.
     iarray envl_divs_;      // Partition divisions for envl_ arrays,

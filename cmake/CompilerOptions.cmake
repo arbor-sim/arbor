@@ -6,12 +6,6 @@ include(CMakePushCheckState)
 set(CXXOPT_DEBUG "-g")
 set(CXXOPT_CXX11 "-std=c++11")
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-    # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
-    string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
-
-
 if(${ARBDEV_COLOR})
     set(colorflags
         $<IF:$<CXX_COMPILER_ID:Clang>,-fcolor-diagnostics,>
@@ -19,66 +13,6 @@ if(${ARBDEV_COLOR})
         $<IF:$<CXX_COMPILER_ID:GNU>,-fdiagnostics-color=always,>)
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${colorflags}>")
 endif()
-
-# A library to collect compiler-specific linking adjustments.
-add_library(arbor-compiler-compat INTERFACE)
-
-cmake_push_check_state()
-# Check how to use std::filesystem
-string(CONFIGURE [[
-  #include <cstdio>
-  #include <filesystem>
-  int main() {
-    auto cwd = std::filesystem::current_path();
-    std::printf("%s %d", cwd.c_str(), std::filesystem::exists(cwd));
-  }
-  ]] arb_cxx_fs_test @ONLY)
-
-# Remember some state to avoid constant push/pop
-set(arb_req_libs ${CMAKE_REQUIRED_LIBRARIES})
-
-# Test whether we can run probes
-set(STD_FS_LIB "")
-set(CMAKE_REQUIRED_FLAGS -std=c++17 ${CMAKE_REQUIRED_FLAGS})
-check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_PLAIN_RUN)
-
-if(NOT STD_FS_PLAIN_RUN)
-  set(STD_FS_LIB -lstdc++fs)
-  set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
-  check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_STDCXX_RUN)
-
-  if(NOT STD_FS_STDCXX_RUN)
-    set(STD_FS_LIB -lc++fs)
-    set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
-    check_cxx_source_runs("${arb_cxx_fs_test}" STD_FS_CXX_RUN)
-
-    # If running is not ok, we are possibly cross-compiling, so check linking as a fallback
-    if(NOT STD_FS_CXX_RUN)
-      check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_PLAIN_LNK)
-
-      if(NOT STD_FS_PLAIN_LNK)
-        set(STD_FS_LIB -lstdc++fs)
-        set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
-        check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_STDCXX_LNK)
-
-        if(NOT STD_FS_STDCXX_LNK)
-          set(STD_FS_LIB -lc++fs)
-          set(CMAKE_REQUIRED_LIBRARIES ${arb_req_libs} ${STD_FS_LIB})
-          check_cxx_source_compiles("${arb_cxx_fs_test}" STD_FS_CXX_LNK)
-
-          if(NOT STD_FS_CXX_LNK)
-            message(FATAL_ERROR "Could not enable support for std::filesystem")
-          endif()
-        endif()
-      endif()
-    endif()
-  endif()
-endif()
-cmake_pop_check_state()
-
-target_link_libraries(arbor-compiler-compat INTERFACE ${STD_FS_LIB})
-
-install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
 
 # Warning options: disable specific spurious warnings as required.
 
@@ -143,6 +77,12 @@ set(CXXOPT_WALL
 
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-maybe-uninitialized,>
 
+    # * Disable comments that point out that an ABI bug has been patched, which
+    #   could lead to bugs when linking against code compiled an older compiler,
+    #   because there is nothing to fix on our side.
+
+    $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-psabi,>
+
     # Intel:
     #
     # Disable warning for unused template parameter
@@ -172,7 +112,9 @@ function(set_arch_target optvar arch)
 
         # Use -mcpu for all supported targets _except_ for x86, where it should be -march.
 
-        if(target_model MATCHES "x86|i[3456]86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
+        if("${target}" MATCHES "aarch64-apple-darwin")
+            set(arch_opt "-mcpu=${arch}")
+        elseif(target_model MATCHES "x86|i[3456]86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
             set(arch_opt "-march=${arch}")
         else()
             set(arch_opt "-mcpu=${arch}")

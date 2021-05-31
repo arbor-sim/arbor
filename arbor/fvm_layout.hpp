@@ -145,7 +145,7 @@ struct cv_geometry {
         }
 
         index_type cv_base = cell_cv_divs.at(cell_idx);
-        return cv_base+pw_cv_offset[i].second;
+        return cv_base+pw_cv_offset[i].element;
     }
 };
 
@@ -279,7 +279,8 @@ struct fvm_stimulus_config {
 
     // Frequency, amplitude info, per instance.
     // Note that amplitudes have been scaled by 1/CV area so that they are represent as current densities, not currents.
-    std::vector<double> frequency; // [Hz]
+    std::vector<double> frequency; // [kHz]
+    std::vector<double> phase; // [rad]
     std::vector<std::vector<double>> envelope_time;      // [ms]
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };

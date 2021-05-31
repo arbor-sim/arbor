@@ -320,7 +320,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
 
     // Attach a stimulus to the second cell.
     if (!gid) {
-        arb::i_clamp stim(0, stim_duration, 0.4);
+        auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
         decor.place(arb::mlocation{0, 0.5}, stim);
     }
 
