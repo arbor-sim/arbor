@@ -104,7 +104,13 @@ communicator::communicator(const recipe& rec,
             const auto i = offsets[src_domains[pos]]++;
             auto src_lid = source_resolver.resolve(c.source, source_resolution_map);
             auto tgt_lid = target_resolver.resolve({cell.gid, c.dest}, target_resolution_map);
-            connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
+            if (!src_lid) {
+                throw arb::bad_connection_set(c.source.gid, c.source.label.tag);
+            }
+            if (!tgt_lid) {
+                throw arb::bad_connection_set(cell.gid, c.dest.tag);
+            }
+            connections_[i] = {{c.source.gid, src_lid.value()}, tgt_lid.value(), c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
     }

@@ -68,7 +68,7 @@ public:
         std::vector<lid_range> ranges;
         std::vector<unsigned> ranges_partition = {0};
         cell_size_type size() const;
-        cell_lid_type at(unsigned idx) const;
+        std::optional<cell_lid_type> at(unsigned idx) const;
     };
 
     label_resolution_map() = delete;
@@ -90,7 +90,8 @@ struct round_robin_state {
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
 // Requires a `label_resolution_map` which stores the constant mapping of (gid, label) pairs to lid sets.
 struct resolver {
-    std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, round_robin_state>>> state_map;
-    cell_lid_type resolve(const cell_global_label_type& iden, const label_resolution_map& label_map);
+    using state_variant = std::variant<round_robin_state>;
+    std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, state_variant>>> state_map;
+    std::optional<cell_lid_type> resolve(const cell_global_label_type& iden, const label_resolution_map& label_map);
 };
 } // namespace arb

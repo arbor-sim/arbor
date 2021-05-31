@@ -235,7 +235,11 @@ simulation_state::simulation_state(
             auto event_gens = rec.event_generators(gid);
             for (auto& g: event_gens) {
                 g.resolve_label([target_resolution_map, event_resolver, gid](const cell_local_label_type& label) mutable {
-                    return event_resolver.resolve({gid, label}, target_resolution_map);
+                    auto lid = event_resolver.resolve({gid, label}, target_resolution_map);
+                    if (!lid) {
+                        throw arb::bad_connection_set(gid, label.tag);
+                    }
+                    return lid.value();
                 });
             }
 
