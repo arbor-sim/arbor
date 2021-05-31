@@ -118,7 +118,7 @@ public:
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             auto first = cv_span.first;
             auto last = cv_span.second; // one past the end
-            if (first >= last) continue; // skip empty / reversed partitions. Bugs lurk.
+            if (first >= last) continue; // skip cell with no CVs
             if (d[first]!=0) {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {
