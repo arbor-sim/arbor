@@ -18,4 +18,4 @@ You can reach out in the following ways:
 * [Discussions](https://github.com/arbor-sim/arbor/discussions). Any questions or remarks regarding using Arbor
 for your research are welcome.
 * [Slack](https://mcnest.slack.com). If you're interested in developing Arbor itself, you can visit our Slack.
-* [Email](mailto:arbor-sim@fz-juelich.de).
+* [Email](mailto:contact@arbor-sim.org).
