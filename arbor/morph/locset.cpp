@@ -146,7 +146,7 @@ mlocation_list thingify_(const segments_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const segments_& x) {
-    return o << "(segment_boundaries)";
+    return o << "(segment-boundaries)";
 }
 
 
