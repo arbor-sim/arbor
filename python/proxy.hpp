@@ -24,12 +24,7 @@ struct label_dict_proxy {
     }
 
     label_dict_proxy(const arb::label_dict& label_dict): dict(label_dict) {
-        for (const auto& [l, reg]: dict.regions()) {
-            regions.push_back(l);
-        }
-        for (const auto& [l, ls]: dict.locsets()) {
-            locsets.push_back(l);
-        }
+        update_cache();
     }
 
     std::size_t size() const  {
@@ -37,15 +32,10 @@ struct label_dict_proxy {
     }
 
     void import(const label_dict_proxy& other, std::string prefix) {
-        regions.clear();
-        locsets.clear();
         dict.import(other.dict, prefix);
-        for (const auto& [l, reg]: dict.regions()) {
-            regions.push_back(l);
-        }
-        for (const auto& [l, ls]: dict.locsets()) {
-            locsets.push_back(l);
-        }
+
+        clear_cache();
+        update_cache();
     }
 
     void set(const char* name, const char* desc) {
@@ -80,7 +70,7 @@ struct label_dict_proxy {
             }
             else {
                 // Successfully parsed an expression that is neither region nor locset.
-                throw util::pprintf("The defninition of '{} = {}' does not define a valid region or locset.", name, desc);
+                throw util::pprintf("The definition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
             // The entry was added succesfully: store it in the cache.
             cache[name] = desc;
@@ -116,6 +106,36 @@ struct label_dict_proxy {
         }
         s += ")";
         return s;
+    }
+
+    private:
+
+    void clear_cache() {
+        regions.clear();
+        locsets.clear();
+        cache.clear();
+    }
+
+    void update_cache() {
+        for (const auto& [lab, reg]: dict.regions()) {
+            if (!cache.count(lab)) {
+                std::stringstream s;
+                s << reg;
+                regions.push_back(lab);
+                cache[lab] = s.str();
+            }
+        }
+        for (const auto& [lab, ls]: dict.locsets()) {
+            if (!cache.count(lab)) {
+                std::stringstream s;
+                s << ls;
+                locsets.push_back(lab);
+                cache[lab] = s.str();
+            }
+        }
+        // Sort the region and locset names
+        std::sort(regions.begin(), regions.end());
+        std::sort(locsets.begin(), locsets.end());
     }
 };
 }

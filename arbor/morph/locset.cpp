@@ -146,7 +146,7 @@ mlocation_list thingify_(const segments_&, const mprovider& p) {
 }
 
 std::ostream& operator<<(std::ostream& o, const segments_& x) {
-    return o << "(segment_boundaries)";
+    return o << "(segment-boundaries)";
 }
 
 
@@ -416,6 +416,9 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     // Thingify the region and store relevant data
     mextent reg_extent = thingify(u.reg, p);
     const mcable_list& reg_cables = reg_extent.cables();
+
+    // Only proceed if the region is non-empty.
+    if (reg_cables.empty()) return {};
 
     std::vector<double> lengths_bounds;
     auto lengths_part = util::make_partition(lengths_bounds,

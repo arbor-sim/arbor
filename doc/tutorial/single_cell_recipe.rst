@@ -94,6 +94,10 @@ It returns `0` by default and models without cells are quite boring!
             # (4.7) Override the global_properties method
             return self.the_props
 
+    # (5) Instantiate recipe with a voltage probe located on "midpoint".
+
+    recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
+
 Step **(4)** describes the recipe that will reflect our single cell model.
 
 Step **(4.1)** defines the class constructor. It can take any shape you need, but it
