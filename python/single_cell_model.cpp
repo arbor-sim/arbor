@@ -249,7 +249,7 @@ void register_single_cell(pybind11::module& m) {
              "Run model from t=0 to t=tfinal ms.")
         .def("probe",
             [](single_cell_model& m, const char* what, const char* where, double frequency) {
-                m.probe(what, *arborio::parse_locset_expression(where), frequency);},
+                m.probe(what, arborio::parse_locset_expression(where).unwrap(), frequency);},
             "what"_a, "where"_a, "frequency"_a,
             "Sample a variable on the cell.\n"
             " what:      Name of the variable to record (currently only 'voltage').\n"

@@ -27,40 +27,40 @@ eval_map {{"default",
                        "'every-segment' with no arguments")},
           {"every-segment",
            make_call<region>([] (const region& r) { return arb::cv_policy{arb::cv_policy_every_segment(r) }; },
-                             "'every-segment' with one argument (every-segment <region-expr>)")},
+                             "'every-segment' with one argument (every-segment (reg:region))")},
           {"fixed-per-branch",
            make_call<int>([] (int i) { return arb::cv_policy{arb::cv_policy_fixed_per_branch(i) }; },
-                          "'every-segment' with one argument (fixed-per-branch <int>)")},
+                          "'every-segment' with one argument (fixed-per-branch (count:int))")},
           {"fixed-per-branch",
            make_call<int, region>([] (int i, const region& r) { return arb::cv_policy{arb::cv_policy_fixed_per_branch(i, r) }; },
-                                  "'every-segment' with two arguments (fixed-per-branch <int> <region-expr>)")},
+                                  "'every-segment' with two arguments (fixed-per-branch (count:int) (reg:region))")},
           {"fixed-per-branch",
            make_call<int, region, int>([] (int i, const region& r, int f) { return arb::cv_policy{arb::cv_policy_fixed_per_branch(i, r, f) }; },
-                                       "'fixed-per-branch' with three arguments (fixed-per-branch <int> <region-expr> <int>)")},
+                                       "'fixed-per-branch' with three arguments (fixed-per-branch (count:int) (reg:region) (flags:int))")},
           {"max-extent",
            make_call<double>([] (double i) { return arb::cv_policy{arb::cv_policy_max_extent(i) }; },
-                             "'max-extent' with one argument (max-extent <double>)")},
+                             "'max-extent' with one argument (max-extent (length:double))")},
           {"max-extent",
            make_call<double, region>([] (double i, const region& r) { return arb::cv_policy{arb::cv_policy_max_extent(i, r) }; },
-                                     "'max-extent' with two arguments (max-extent <double> <region-expr>)")},
+                                     "'max-extent' with two arguments (max-extent (length:double) (reg:region))")},
           {"max-extent",
            make_call<double, region, int>([] (double i, const region& r, int f) { return arb::cv_policy{arb::cv_policy_max_extent(i, r, f) }; },
-                                          "'max-extent' with three arguments (max-extent <double> <region-expr> <int>)")},
+                                          "'max-extent' with three arguments (max-extent (length:double) (reg:region) (flags:int))")},
           {"single",
            make_call<>([] () { return arb::cv_policy{arb::cv_policy_single()}; },
                        "'single' with no arguments")},
           {"single",
            make_call<region>([] (const region& r) { return arb::cv_policy{arb::cv_policy_single(r) }; },
-                             "'single' with one argument (single <region-expr>)")},
+                             "'single' with one argument (single (reg:region))")},
           {"explicit",
            make_call<locset>([] (const locset& l) { return arb::cv_policy{arb::cv_policy_explicit(l) }; },
-                             "'explicit' with one argument (explicit <locset-expr>)")},
+                             "'explicit' with one argument (explicit (ls:locset))")},
           {"explicit",
            make_call<locset, region>([] (const locset& l, const region& r) { return arb::cv_policy{arb::cv_policy_explicit(l, r) }; },
-                                     "'explicit' with one argument (explicit <locset-expr> <region-expr>)")},
+                                     "'explicit' with two arguments (explicit (ls:locset) (reg:region))")},
           {"join",
            make_fold<cv_policy>([](cv_policy l, cv_policy r) { return l + r; },
-                                "'add' with at least 2 arguments: (join cv_policy cv_policy ...)")},
+                                "'join' with at least 2 arguments: (join cv_policy cv_policy ...)")},
           {"replace",
            make_fold<cv_policy>([](cv_policy l, cv_policy r) { return l | r; },
                                 "'replace' with at least 2 arguments: (replace cv_policy cv_policy ...)")},
@@ -124,7 +124,7 @@ inline cv_policy_parse_error make_parse_error(std::string const& msg, src_locati
 // On success the result is wrapped in std::any, where the result is one of:
 //      int:            an integer atom
 //      double:         a real atom
-//      cv_policy: a region
+//      cv_policy:      a discretization policy expression
 //
 // If there invalid input is detected, hopefully return value contains
 // a cv_policy_error_state with an error string and location.
@@ -168,7 +168,7 @@ parse_hopefully<std::any> eval(const s_expr& e) {
         auto& name = e.head().atom().spelling;
         auto matches = eval_map.equal_range(name);
 
-        // if no matches found, maybe this is a locset?
+        // if no matches found, maybe this is a morphology expression?
         if (matches.first == matches.second) {
             auto lbl = parse_label_expression(e);
             if (lbl.has_value()) {

@@ -86,7 +86,9 @@ s_expr mksexp(const msegment& seg) {
 }
 // This can be removed once cv_policy is removed from the decor.
 s_expr mksexp(const cv_policy& c) {
-    return s_expr();
+    std::stringstream s;
+    s << c;
+    return parse_s_expr(s.str());
 }
 s_expr mksexp(const decor& d) {
     auto round_trip = [](auto& x) {
