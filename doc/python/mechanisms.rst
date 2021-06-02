@@ -48,7 +48,7 @@ mechanism that is to be painted or placed on the cable cell.
         # by comma-separated list of parameter after the base mechanism name.
         rev = arbor.mechanism('nernst/F=96485,x=ca')
 
-    Mechanisms can then be painted to a region. Different mechanism can be painted on top of each other.
+    Mechanisms can be painted to a region. Different mechanisms can be painted on top of each other.
 
     .. code-block:: Python
 
