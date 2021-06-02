@@ -37,86 +37,18 @@ We outline the following steps of this example:
 The cell
 ********
 
-We can immediately paste the cell description code from the
+We can copy the cell description code or reuse ``single_cell_detailed.swc`` from the
 :ref:`previous example <tutorialsinglecellswc-cell>` where it is explained in detail.
 
-.. code-block:: python
-
-   import arbor
-   from arbor import mechanism as mech
-
-   #(1) Read the morphology from an SWC file.
-
-   morph = arbor.load_swc_arbor("single_cell_detailed.swc")
-
-   #(2) Create and populate the label dictionary.
-
-   labels = arbor.label_dict()
-
-   # Regions:
-
-   labels['soma'] = '(tag 1)'
-   labels['axon'] = '(tag 2)'
-   labels['dend'] = '(tag 3)'
-   labels['last'] = '(tag 4)'
-
-   labels['all'] = '(all)'
-
-   labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-   labels['custom'] = '(join (region "last") (region "gt_1.5"))'
-
-   # Locsets:
-
-   labels['root']     = '(root)'
-   labels['terminal'] = '(terminal)'
-   labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
-   labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
-
-   # (3) Create and populate the decor.
-
-   decor = arbor.decor()
-
-   # Set the default properties of the cell (this overrides the model defaults)
-
-   decor.set_property(Vm =-55)
-
-   # Override the cell defaults.
-
-   decor.paint('"custom"', tempK=270)
-   decor.paint('"soma"',   Vm=-50)
-
-   # Paint density mechanisms.
-
-   decor.paint('"all"', 'pas')
-   decor.paint('"custom"', 'hh')
-   decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
-
-   # Place stimuli and spike detectors.
-
-   decor.place('"root"', arbor.iclamp(10, 1, current=2))
-   decor.place('"root"', arbor.iclamp(30, 1, current=2))
-   decor.place('"root"', arbor.iclamp(50, 1, current=2))
-   decor.place('"axon_terminal"', arbor.spike_detector(-10))
-
-   # Set cv_policy
-
-   soma_policy = arbor.cv_policy_single('"soma"')
-   dflt_policy = arbor.cv_policy_max_extent(1.0)
-   policy = dflt_policy | soma_policy
-   decor.discretization(policy)
-
-   # (4) Create the cell.
-
-   cell = arbor.cable_cell(morph, labels, decor)
-
-We will add one more thing to this section. We will create the voltage probe at the "custom_terminal" locset.
+We will need to add one more thing to the cell. We will create the voltage probe at the "custom_terminal" locset.
 In the previous example, this probe was registered directly using the :class:`arbor.single_cell_model` object.
 Now it has to be explicitly created and registered in the recipe.
 
 .. _tutorialsinglecellswcrecipe-probe:
-.. code-block:: python
 
-   probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 84-86
 
 The recipe
 **********
