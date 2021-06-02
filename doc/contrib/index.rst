@@ -124,7 +124,7 @@ We have a brief code of conduct which we ask you to respect:
 Concerns
 ~~~~~~~~
 
-If you believe one of these standards has been violated, you can reach out to the Arbor project by email, `contact@arbor-sim.org <mailto:contact@arbor-sim.org>`_. Nora Abi Akar, Sam Yates and Brent Huisman read this inbox and will get back to you in a timely manner. Your complaint and the private information therein will be handled with the utmost care and confidentiality. Alternatively, you can contact someone outside of the Arbor team at Ebrains, [see below](#ebrains).
+If you believe one of these standards has been violated, you can reach out to the Arbor project by email, `concern@arbor-sim.org <mailto:concern@arbor-sim.org>`_. Nora Abi Akar, Thorsten Hater, Brent Huisman and Sam Yates read this inbox and will get back to you in a timely manner. Your complaint and the private information therein will be handled with the utmost care and confidentiality. Alternatively, you can contact someone outside of the Arbor team at Ebrains, `see below <#ebrains>`_.
 
 In general, violations of the community standards will generate one or more of the following responses from the Arbor Team:
 
