@@ -148,8 +148,8 @@ TEST(morph, stitch_two) {
             ASSERT_EQ(p2, seg1.dist);
             EXPECT_TRUE(region_eq(p, "stitch:0"_lab, join(reg::segment(0), reg::segment(1))));
             EXPECT_TRUE(region_eq(p, "stitch:1"_lab, reg::segment(2)));
-            EXPECT_TRUE(region_eq(p, "(segment 2)"_rg, reg::segment(2)));
-            EXPECT_TRUE(region_eq(p, "(region \"stitch:1\")"_rg, reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "(segment 2)"_reg, reg::segment(2)));
+            EXPECT_TRUE(region_eq(p, "(region \"stitch:1\")"_reg, reg::segment(2)));
         }
     }
 }

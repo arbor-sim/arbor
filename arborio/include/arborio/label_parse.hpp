@@ -62,7 +62,7 @@ arb::locset operator "" _ls(const char* s, std::size_t) {
 }
 
 inline
-arb::region operator "" _rg(const char* s, std::size_t) {
+arb::region operator "" _reg(const char* s, std::size_t) {
     if (auto r = parse_region_expression(s)) return *r;
     else throw r.error();
 }

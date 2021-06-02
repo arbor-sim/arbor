@@ -158,7 +158,7 @@ TEST(region, thingify_named) {
         dict.set("banana", banana);
         dict.set("cake", cake);
         dict.set("topping", region("fruit"_lab));
-        dict.set("fruit", "(region \"strawberry\")"_rg);
+        dict.set("fruit", "(region \"strawberry\")"_reg);
 
         EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
     }
@@ -167,7 +167,7 @@ TEST(region, thingify_named) {
         dict.set("banana", banana);
         dict.set("cake", cake);
         dict.set("topping", region("fruit"_lab));
-        dict.set("fruit", join("(region \"cake\")"_rg, region("topping"_lab)));
+        dict.set("fruit", join("(region \"cake\")"_reg, region("topping"_lab)));
 
         EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
     }
