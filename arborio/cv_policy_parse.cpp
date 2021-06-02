@@ -14,6 +14,15 @@
 #include "parse_helpers.hpp"
 
 namespace arborio {
+
+cv_policy_parse_error::cv_policy_parse_error(const std::string& msg, const arb::src_location& loc):
+    arb::arbor_exception(concat("error in CV policy description: ", msg," at :", loc.line, ":", loc.column))
+{}
+
+cv_policy_parse_error::cv_policy_parse_error(const std::string& msg):
+    arb::arbor_exception(concat("error in CV policy description: ", msg))
+{}
+
 namespace {
 
 template<typename T> using parse_hopefully = arb::util::expected<T, cv_policy_parse_error>;
@@ -116,10 +125,6 @@ std::string eval_description(const char* name, const std::vector<std::any>& args
     return msg;
 }
 
-inline cv_policy_parse_error make_parse_error(std::string const& msg, src_location loc) {
-    return {concat("error in CV policy description at ", loc, ": ", msg, ".")};
-}
-
 // Evaluate an s expression.
 // On success the result is wrapped in std::any, where the result is one of:
 //      int:            an integer atom
@@ -132,26 +137,7 @@ inline cv_policy_parse_error make_parse_error(std::string const& msg, src_locati
 // If there was an unexpected/fatal error, an exception will be thrown.
 parse_hopefully<std::any> eval(const s_expr& e) {
     if (e.is_atom()) {
-        auto& t = e.atom();
-        switch (t.kind) {
-            case tok::integer:
-                return {std::stoi(t.spelling)};
-            case tok::real:
-                return {std::stod(t.spelling)};
-            case tok::nil:
-                return {nil_tag()};
-            case tok::string:
-                return {std::string(t.spelling)};
-            // An arbitrary symbol in a CV policy expression is an error.
-            case tok::symbol:
-                return util::unexpected(
-                    make_parse_error(concat("Unexpected symbol '", e, "' in a CV policy definition."),
-                                     location(e)));
-            case tok::error:
-                return util::unexpected(make_parse_error(e.atom().spelling, location(e)));
-            default:
-                return util::unexpected(make_parse_error(concat("Unexpected term '", e, "' in a CV policy definition"), location(e)));
-        }
+        return eval_atom<cv_policy_parse_error>(e);
     }
 
     if (e.head().is_atom()) {
@@ -174,7 +160,7 @@ parse_hopefully<std::any> eval(const s_expr& e) {
             if (lbl.has_value()) {
                 return { lbl.value() };
             } else {
-                return util::unexpected(make_parse_error(lbl.error().what(), location(e)));
+                return util::unexpected(cv_policy_parse_error(lbl.error().what(), location(e)));
             }
         } else {
             // Search for a candidate that matches the argument list.
@@ -192,11 +178,11 @@ parse_hopefully<std::any> eval(const s_expr& e) {
                 msg += concat("\n  Candidate ", ++count, ": ", i->second.message);
             }
 
-            return util::unexpected(make_parse_error(msg, location(e)));
+            return util::unexpected(cv_policy_parse_error(msg, location(e)));
         }
     }
 
-    return util::unexpected(make_parse_error(
+    return util::unexpected(cv_policy_parse_error(
                                 concat("'", e, "' is not either integer, real expression of the form (op <args>)"),
                                 location(e)));
 }

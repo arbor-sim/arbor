@@ -553,7 +553,6 @@ void register_cells(pybind11::module& m) {
             [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
             pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"));
 
-
     // arb::cable_cell
 
     pybind11::class_<arb::cable_cell> cable_cell(m, "cable_cell",

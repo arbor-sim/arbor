@@ -490,26 +490,9 @@ parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map
 
 parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_vec& vec) {
     if (e.is_atom()) {
-        auto& t = e.atom();
-        switch (t.kind) {
-        case tok::integer:
-            return {std::stoi(t.spelling)};
-        case tok::real:
-            return {std::stod(t.spelling)};
-        case tok::nil:
-            return {nil_tag()};
-        case tok::string:
-            return std::any{std::string(t.spelling)};
-            // An arbitrary symbol in a region/locset expression is an error, and is
-            // often a result of not quoting a label correctly.
-        case tok::symbol:
-            return util::unexpected(cableio_parse_error("Unexpected symbol "+e.atom().spelling, location(e)));
-        case tok::error:
-            return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
-        default:
-            return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
-        }
+        return eval_atom<cableio_parse_error>(e);
     }
+
     if (e.head().is_atom()) {
         // If this is not a symbol, parse as a tuple
         if (e.head().atom().kind != tok::symbol) {

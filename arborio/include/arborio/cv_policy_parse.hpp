@@ -6,11 +6,13 @@
 #include <arbor/cv_policy.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/util/expected.hpp>
+#include <arbor/s_expr.hpp>
 
 namespace arborio {
 
 struct cv_policy_parse_error: arb::arbor_exception {
-    cv_policy_parse_error(const std::string& msg): arb::arbor_exception(msg) {}
+    explicit cv_policy_parse_error(const std::string& msg, const arb::src_location& loc);
+    explicit cv_policy_parse_error(const std::string& msg);
 };
 
 using parse_cv_policy_hopefully = arb::util::expected<arb::cv_policy, cv_policy_parse_error>;

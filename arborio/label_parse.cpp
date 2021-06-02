@@ -13,6 +13,11 @@
 
 namespace arborio {
 
+label_parse_error::label_parse_error(const std::string& msg, const arb::src_location& loc):
+    arb::arbor_exception(concat("error in label description: ", msg," at :", loc.line, ":", loc.column))
+{}
+
+
 namespace {
 
 std::unordered_multimap<std::string, evaluator> eval_map {
@@ -139,8 +144,6 @@ std::string eval_description(const char* name, const std::vector<std::any>& args
     return msg;
 }
 
-label_parse_error parse_error(std::string const& msg, src_location loc) { return {concat("error in label description at ", loc, ": ", msg, ".")}; }
-
 // Evaluate an s expression.
 // On success the result is wrapped in std::any, where the result is one of:
 //      int         : an integer atom
@@ -155,27 +158,7 @@ label_parse_error parse_error(std::string const& msg, src_location loc) { return
 // If there was an unexpected/fatal error, an exception will be thrown.
 parse_label_hopefully<std::any> eval(const s_expr& e) {
     if (e.is_atom()) {
-        auto& t = e.atom();
-        switch (t.kind) {
-            case tok::integer:
-                return {std::stoi(t.spelling)};
-            case tok::real:
-                return {std::stod(t.spelling)};
-            case tok::nil:
-                return {nil_tag()};
-            case tok::string:
-                return std::any{std::string(t.spelling)};
-            // An arbitrary symbol in a region/locset expression is an error, and is
-            // often a result of not quoting a label correctly.
-            case tok::symbol:
-                return util::unexpected(parse_error(
-                                            concat("Unexpected symbol '", e, "' in a region or locset definition. If '", e, "' is a label, it must be quoted \"", e, "\""),
-                                            location(e)));
-            case tok::error:
-                return util::unexpected(parse_error(e.atom().spelling, location(e)));
-            default:
-                return util::unexpected(parse_error(concat("Unexpected term '", e, "' in a region or locset definition"), location(e)));
-        }
+        return eval_atom<label_parse_error>(e);
     }
     if (e.head().is_atom()) {
         // This must be a function evaluation, where head is the function name, and
@@ -205,10 +188,10 @@ parse_label_hopefully<std::any> eval(const s_expr& e) {
         for (auto i=matches.first; i!=matches.second; ++i) {
             msg += concat("\n  Candidate ", ++count, "  ", i->second.message);
         }
-        return util::unexpected(parse_error(msg, location(e)));
+        return util::unexpected(label_parse_error(msg, location(e)));
     }
 
-    return util::unexpected(parse_error(
+    return util::unexpected(label_parse_error(
                                 concat("'", e, "' is not either integer, real expression of the form (op <args>)"),
                                 location(e)));
 }

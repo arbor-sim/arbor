@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 
+#include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/util/expected.hpp>
 #include <arbor/morph/locset.hpp>
@@ -238,10 +239,33 @@ struct make_arg_vec_call {
     }
 };
 
-template<typename... Ts> std::string concat(Ts... ts) {
+template<typename... Ts>
+std::string concat(Ts... ts) {
     std::stringstream ss;
     (ss << ... << ts);
     return ss.str();
 }
 
+// try to parse an atom
+template<typename E>
+util::expected<std::any, E> eval_atom(const s_expr& e) {
+    arb_assert(e.is_atom());
+    auto& t = e.atom();
+    switch (t.kind) {
+        case tok::integer:
+            return {std::stoi(t.spelling)};
+        case tok::real:
+            return {std::stod(t.spelling)};
+        case tok::nil:
+            return {nil_tag()};
+        case tok::string:
+            return {std::string(t.spelling)};
+        case tok::symbol:
+            return util::unexpected(E(concat("Unexpected symbol '", e, "' in definition."), location(e)));
+        case tok::error:
+            return util::unexpected(E(e.atom().spelling, location(e)));
+        default:
+            return util::unexpected(E(concat("Unexpected term '", e, "' in definition"), location(e)));
+    }
+}
 }

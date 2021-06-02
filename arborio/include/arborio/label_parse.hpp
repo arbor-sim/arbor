@@ -13,7 +13,8 @@
 namespace arborio {
 
 struct label_parse_error: arb::arbor_exception {
-    label_parse_error(const std::string& msg): arb::arbor_exception(msg) {}
+    explicit label_parse_error(const std::string& msg, const arb::src_location& loc);
+    explicit label_parse_error(const std::string& msg): arb::arbor_exception(msg) {}
 };
 
 template <typename T>
