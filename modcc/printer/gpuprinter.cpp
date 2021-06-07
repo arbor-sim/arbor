@@ -73,6 +73,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
 				   "  arb_mechanism_interface* make_{4}_{1}_interface_gpu() {{\n"
                                    "    static arb_mechanism_interface result;\n"
                                    "    result.backend={2};\n"
+                                   "    result.alignment=1;\n"
                                    "    result.init_mechanism=(arb_mechanism_method){3}{0}_init_;\n"
                                    "    result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents_;\n"
                                    "    result.apply_events=(arb_mechanism_method){3}{0}_apply_events_;\n"
@@ -84,7 +85,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                                    "}};\n\n"),
                        class_name,
                        name,
-                       "arb_backend_kind::gpu",
+                       "arb_backend_kind::arb_backend_kind_gpu",
                        ss.str(),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"));
     EXIT(out);

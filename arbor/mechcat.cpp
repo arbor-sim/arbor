@@ -578,11 +578,11 @@ void mechanism_catalogue::register_impl(std::type_index tidx, const std::string&
 
 void mechanism_catalogue::register_implementation(const std::string& name, const arb_mechanism_type& mech, const arb_mechanism_interface* iface) {
     if (!iface) throw arbor_internal_error("Null interface for mechanism registration");
-    if (iface->backend == arb_backend_kind::cpu) {
+    if (iface->backend == arb_backend_kind::arb_backend_kind_cpu) {
         return register_implementation(name, concrete_mech_ptr<multicore::backend>(new multicore::mechanism(mech, *iface)));
     }
     #ifdef ARB_GPU_ENABLED
-    if (iface->backend == arb_backend_kind::gpu) {
+    if (iface->backend == arb_backend_kind::arb_backend_kind_gpu) {
         return register_implementation(name, concrete_mech_ptr<gpu::backend>(new gpu::mechanism(mech, *iface)));
     }
     #endif

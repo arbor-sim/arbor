@@ -51,14 +51,13 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     util::padded_allocator<> pad(shared.alignment);
     // Set internal variables
     mult_in_place_    = !pos_data.multiplicity.empty();
-    width_            = pos_data.cv.size();
     num_ions_         = mech_.n_ions;
     vec_t_ptr_        = &shared.time;
     event_stream_ptr_ = &shared.deliverable_events;
-    width_padded_     = math::round_up(width_, shared.alignment);     // Extend width to account for requisite SIMD padding.
+    width_padded_     = math::round_up(pos_data.cv.size(), shared.alignment);     // Extend width to account for requisite SIMD padding.
 
     // Assign non-owning views onto shared state:
-    ppack_.width            = width_;
+    ppack_.width            = pos_data.cv.size();
     ppack_.mechanism_id     = id;
     ppack_.vec_ci           = shared.cv_to_cell.data();
     ppack_.vec_di           = shared.cv_to_intdom.data();
@@ -87,7 +86,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (width_==0) return;
+    if (ppack_.width==0) return;
 
     auto append_chunk = [n=width_padded_](const auto& in, auto& out, auto pad, auto& ptr) {
         copy_extend(in, util::range_n(ptr, n), pad);
@@ -146,7 +145,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
         append_chunk(pos_data.cv, ppack_.node_index, pos_data.cv.back(), base_ptr);
         auto node_index = util::range_n(ppack_.node_index, width_padded_);
         // Make SIMD index constraints and set the view
-        constraints_ = make_constraint_partition(node_index, width_, iface_.partition_width);
+        constraints_ = make_constraint_partition(node_index, ppack_.width, iface_.partition_width);
         ppack_.index_constraints.contiguous    = constraints_.contiguous.data();
         ppack_.index_constraints.constant      = constraints_.constant.data();
         ppack_.index_constraints.independent   = constraints_.independent.data();
@@ -175,10 +174,10 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const me
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
-    if (values.size()!=width_) throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
+    if (values.size()!=ppack_.width) throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
     auto field_ptr = field_data(key);
     if (!field_ptr) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism parameter '{}'", key));
-    if (!width_) return;
+    if (!ppack_.width) return;
     auto field = util::range_n(field_ptr, width_padded_);
     copy_extend(values, field, values.back());
 }

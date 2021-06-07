@@ -427,6 +427,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "    static arb_mechanism_interface result;\n"
                                    "    result.partition_width = {3}simd_width_;\n"
                                    "    result.backend={2};\n"
+                                   "    result.alignment=1;\n"
                                    "    result.init_mechanism=(arb_mechanism_method){3}init;\n"
                                    "    result.compute_currents=(arb_mechanism_method){3}compute_currents;\n"
                                    "    result.apply_events=(arb_mechanism_method){3}apply_events;\n"
@@ -438,7 +439,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "}}\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
-                       "arb_backend_kind::cpu",
+                       "arb_backend_kind::arb_backend_kind_cpu",
                        ss.str());
 
     EXIT(out);

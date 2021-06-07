@@ -58,8 +58,8 @@ struct namespace_declaration_close {
 
 inline const char* module_kind_str(const Module& m) {
     return m.kind()==moduleKind::density?
-        "arb_mechanism_kind::density":
-        "arb_mechanism_kind::point";
+        "arb_mechanism_kind::arb_mechanism_kind_density":
+        "arb_mechanism_kind::arb_mechanism_kind_point";
 }
 
 // Check expression non-null and scoped, or else throw.

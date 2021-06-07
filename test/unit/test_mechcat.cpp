@@ -57,7 +57,7 @@ mechanism_info fleeb_info = {
 template <typename B>
 struct common_impl: concrete_mechanism<B> {
     void instantiate(fvm_size_type id, typename B::shared_state& state, const mechanism_overrides& o, const mechanism_layout& l) override {
-        this->width_ = l.cv.size();
+        this->ppack_.width = l.cv.size();
         // Write mechanism global values to shared state to test instatiation call and catalogue global
         // variable overrides.
         for (auto& kv: o.globals) {
@@ -72,8 +72,6 @@ struct common_impl: concrete_mechanism<B> {
             }
         }
     }
-
-    std::size_t memory() const override { return 10u; }
 
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& vs) override {}
 
@@ -167,58 +165,45 @@ using bar_mechanism = common_impl<bar_backend>;
 struct fleeb_foo: foo_mechanism {
     fleeb_foo() {
         this->mech_ions = {"a", "b", "c", "d"};
+        mech_.fingerprint = "fleebprint";
+        mech_.name        = "fleeb";
+        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
     }
 
-    const mechanism_fingerprint fingerprint() const override {
-        static mechanism_fingerprint hash = "fleebprint";
-        return hash;
-    }
-
-    std::string internal_name() const override { return "fleeb"; }
-    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new fleeb_foo()); }
 };
 
 struct special_fleeb_foo: foo_mechanism {
     special_fleeb_foo() {
-        this->mech_ions = {"a", "b", "c", "d"};
+        this->mech_ions   = {"a", "b", "c", "d"};
+        mech_.fingerprint = "fleebprint";
+        mech_.name        = "special fleeb";
+        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
     }
 
-    const mechanism_fingerprint fingerprint() const override {
-        static mechanism_fingerprint hash = "fleebprint";
-        return hash;
-    }
-
-    std::string internal_name() const override { return "special fleeb"; }
-    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new special_fleeb_foo()); }
 };
 
 struct fleeb_bar: bar_mechanism {
     fleeb_bar() {
         this->mech_ions = {"a", "b", "c", "d"};
+        mech_.fingerprint = "fleebprint";
+        mech_.name        = "fleeb";
+        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
     }
 
-    const mechanism_fingerprint fingerprint() const override {
-        static mechanism_fingerprint hash = "fleebprint";
-        return hash;
-    }
-
-    std::string internal_name() const override { return "fleeb"; }
-    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new fleeb_bar()); }
 };
 
 // Burble implementation:
 
 struct burble_bar: bar_mechanism {
-    const mechanism_fingerprint fingerprint() const override {
-        static mechanism_fingerprint hash = "fnord";
-        return hash;
+    burble_bar() {
+        mech_.fingerprint = "fnord";
+        mech_.name        = "burble";
+        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
     }
 
-    std::string internal_name() const override { return "burble"; }
-    arb_mechanism_kind kind() const override { return arb_mechanism_kind::density; }
     mechanism_ptr clone() const override { return mechanism_ptr(new burble_bar()); }
 };
 

@@ -533,7 +533,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         // to convert from the mechanism current contribution units to A/m².
 
         switch (config.kind) {
-        case arb_mechanism_kind::point:
+        case arb_mechanism_kind::arb_mechanism_kind_point:
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
@@ -554,14 +554,14 @@ void fvm_lowered_cell_impl<Backend>::initialize(
                 }
             }
             break;
-        case arb_mechanism_kind::density:
+        case arb_mechanism_kind::arb_mechanism_kind_density:
             // Current density contributions from mechanism are already in [A/m²].
 
             for (auto i: count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
             }
             break;
-        case arb_mechanism_kind::reversal_potential:
+        case arb_mechanism_kind::arb_mechanism_kind_reversal_potential:
             // Mechanisms that set reversal potential should not be contributing
             // to any currents, so leave weights as zero.
             break;
@@ -575,7 +575,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
             minst.mech->set_parameter(pv.first, pv.second);
         }
 
-        if (config.kind==arb_mechanism_kind::reversal_potential) {
+        if (config.kind==arb_mechanism_kind::arb_mechanism_kind_reversal_potential) {
             revpot_mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
         }
         else {

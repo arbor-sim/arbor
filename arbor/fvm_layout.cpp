@@ -857,7 +857,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         std::vector<double> param_dflt;
         fvm_mechanism_config config;
-        config.kind = arb_mechanism_kind::density;
+        config.kind = arb_mechanism_kind::arb_mechanism_kind_density;
 
         std::vector<std::string> param_names;
         assign(param_names, util::keys(info.parameters));
@@ -1041,7 +1041,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
-        config.kind = arb_mechanism_kind::point;
+        config.kind = arb_mechanism_kind::arb_mechanism_kind_point;
         for (auto& kv: info.parameters) {
             config.param_values.emplace_back(kv.first, std::vector<value_type>{});
             if (!coalesce) {
@@ -1245,7 +1245,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 }
                 else {
                     fvm_mechanism_config config;
-                    config.kind = arb_mechanism_kind::reversal_potential;
+                    config.kind = arb_mechanism_kind::arb_mechanism_kind_reversal_potential;
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 

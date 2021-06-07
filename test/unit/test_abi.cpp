@@ -24,7 +24,8 @@ TEST(abi, multicore_initialisation) {
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
 
-    arb_mechanism_interface iface { arb_backend_kind::cpu,
+    arb_mechanism_interface iface { arb_backend_kind::arb_backend_kind_cpu,
+                                    1,
                                     1,
                                     nullptr,
                                     nullptr,
@@ -104,7 +105,7 @@ TEST(abi, gpu_initialisation) {
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
 
-    arb_mechanism_interface iface { arb_backend_kind::cpu,
+    arb_mechanism_interface iface { arb_backend_kind::arb_backend_kind_cpu,
                                     1,
                                     nullptr,
                                     nullptr,

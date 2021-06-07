@@ -29,23 +29,16 @@ public:
     mechanism(const mechanism&) = delete;
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
-    virtual const mechanism_fingerprint fingerprint() const { return mech_.fingerprint; };
+    const mechanism_fingerprint fingerprint() const { return mech_.fingerprint; };
 
     // Name as given in mechanism source.
-    virtual std::string internal_name() const { return mech_.name; }
+    std::string internal_name() const { return mech_.name; }
 
     // Density or point mechanism?
-    virtual arb_mechanism_kind kind() const { return mech_.kind; };
+    arb_mechanism_kind kind() const { return mech_.kind; };
 
     // Does the implementation require padding and alignment of shared data structures?
-    virtual unsigned data_alignment() const { return 1; }
-
-    // Memory use in bytes.
-    virtual std::size_t memory() const = 0;
-
-    // Width of an instance: number of CVs (density mechanism) or sites (point mechanism)
-    // that the mechanism covers.
-    virtual std::size_t size() const { return ppack_.width; }
+    unsigned data_alignment() const { return iface_.alignment; }
 
     // Cloning makes a new object of the derived concrete mechanism type, but does not
     // copy any state.
@@ -68,7 +61,7 @@ public:
     virtual ~mechanism() = default;
 
     // Per-cell group identifier for an instantiated mechanism.
-    virtual unsigned mechanism_id() const { return ppack_.mechanism_id; }
+    unsigned mechanism_id() const { return ppack_.mechanism_id; }
 
 protected:
     arb_mechanism_type  mech_;
@@ -139,15 +132,6 @@ public:
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
     virtual void instantiate(unsigned id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) {}
 
-    std::size_t size() const override { return width_; }
-
-    std::size_t memory() const override {
-        size_t s = 0;
-        s += sizeof(data_[0])    * data_.size();
-        s += sizeof(indices_[0]) * indices_.size();
-        return s;
-    }
-
     void initialize() override {
         iface_.init_mechanism(&ppack_);
     }
@@ -157,7 +141,7 @@ public:
         ppack_.events.n_streams = marked.n;
         ppack_.events.begin     = marked.begin_offset;
         ppack_.events.end       = marked.end_offset;
-        ppack_.events.events    = (arb_deliverable_event*) marked.ev_data; // TODO(TH) bad: relies on rep. equality
+        ppack_.events.events    = (arb_deliverable_event_data*) marked.ev_data; // TODO(TH) bad: relies on rep. equality
         iface_.apply_events(&ppack_);
     }
 
@@ -190,7 +174,6 @@ protected:
 
     const array* vec_t_ptr_;                         // indirection for accessing time in mechanisms
     deliverable_event_stream* event_stream_ptr_;     // events to be processed
-    size_type width_ = 0;                            // Instance width (number of CVs/sites)
     size_type num_ions_ = 0;                         // Ion count
     bool mult_in_place_;                             // perform multiplication in place?
 

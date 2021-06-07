@@ -18,18 +18,18 @@ extern "C" {
 
 // FVM typedefs
 typedef double   arb_value_type;
-typedef float    arb_float_type;
+typedef float    arb_weight_type;
 typedef int      arb_index_type;
 typedef uint32_t arb_size_type;
 
 typedef const char* arb_mechanism_fingerprint;
 
 // Selectors
-enum arb_mechanism_kind { point, density, reversal_potential };
-enum arb_backend_kind { cpu, gpu };
+enum arb_mechanism_kind { arb_mechanism_kind_point, arb_mechanism_kind_density, arb_mechanism_kind_reversal_potential };
+enum arb_backend_kind   { arb_backend_kind_cpu, arb_backend_kind_gpu };
 
 // Ion state variables; view into shared_state
-typedef struct {
+typedef struct arb_ion_state {
     arb_value_type* current_density;
     arb_value_type* reversal_potential;
     arb_value_type* internal_concentration;
@@ -39,25 +39,25 @@ typedef struct {
 } arb_ion_state;
 
 // Event; consumed by `apply_event`
-typedef struct {
+typedef struct arb_deliverable_event_data {
     arb_size_type   mech_id;       // mechanism type identifier (per cell group).
     arb_size_type   mech_index;    // instance of the mechanism
-    arb_float_type  weight;
-} arb_deliverable_event;
+    arb_weight_type weight;
+} arb_deliverable_event_data;
 
 /* A set of `n` streams of events, where those in the
  * ranges (events + begin[i], events + end[i]) i = 0..n-1
  * are meant to be consumed
  */
-typedef struct {
-    arb_size_type                n_streams; // number of streams
-    const arb_deliverable_event* events;    // array of event data items
-    const arb_index_type*        begin;     // array of offsets to beginning of marked events
-    const arb_index_type*        end;       // array of offsets to end of marked events
+typedef struct arb_deliverable_event_stream {
+    arb_size_type                     n_streams; // number of streams
+    const arb_deliverable_event_data* events;    // array of event data items
+    const arb_index_type*             begin;     // array of offsets to beginning of marked events
+    const arb_index_type*             end;       // array of offsets to end of marked events
 }  arb_deliverable_event_stream;
 
 // Constraints for use in SIMD implementations, see there.
-typedef struct {
+typedef struct arb_constraint_partition {
     arb_size_type   n_contiguous;
     arb_size_type   n_constant;
     arb_size_type   n_independent;
@@ -69,7 +69,7 @@ typedef struct {
 } arb_constraint_partition;
 
 // Parameter Pack
-typedef struct {
+typedef struct arb_mechanism_ppack {
     arb_index_type width;                           // Number of CVs
     arb_index_type n_detectors;                     // Number of spike detectors
     arb_index_type* vec_ci;
@@ -106,9 +106,10 @@ typedef struct {
  */
 typedef void (*arb_mechanism_method)(arb_mechanism_ppack*); // Convenience for extension methods
 
-typedef struct {
+typedef struct arb_mechanism_interface {
     arb_backend_kind   backend;               // GPU, CPU, ...
     arb_size_type      partition_width;       // Width for partitioning indices, based on SIMD for example
+    arb_size_type      alignment;
     // Interface methods; hooks called by the engine during the lifetime of the mechanism.
     /* 1. init_mechanism
      *   - called once during instantiation,
@@ -156,7 +157,7 @@ typedef struct {
     arb_mechanism_method post_event;
 } arb_mechanism_interface;
 
-typedef struct {
+typedef struct arb_field_info {
     const char* name;
     const char* unit;
     arb_value_type default_value;
@@ -165,7 +166,7 @@ typedef struct {
 } arb_field_info;
 
 // Ion dependency
-typedef struct {
+typedef struct arb_ion_info {
     const char* name;
     bool write_int_concentration;
     bool write_ext_concentration;
@@ -177,7 +178,7 @@ typedef struct {
 } arb_ion_info;
 
 // Backend independent data
-typedef struct {
+typedef struct arb_mechanism_type {
     // Metadata
     unsigned long             abi_version;      // plugin ABI version used to build this mechanism
     arb_mechanism_fingerprint fingerprint;      // provide a unique ID

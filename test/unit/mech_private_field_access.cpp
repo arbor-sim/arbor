@@ -17,14 +17,17 @@ using namespace arb;
 
 // Multicore mechanisms:
 
-ACCESS_BIND(mechanism_field_table (concrete_mechanism<multicore::backend>::*)(), multicore_field_table_ptr, &concrete_mechanism<multicore::backend>::field_table)
+ACCESS_BIND(mechanism_field_table (concrete_mechanism<multicore::backend>::*)(), multicore_field_table_ptr, &concrete_mechanism<multicore::backend>::field_table);
+ACCESS_BIND(arb_mechanism_type  mechanism::*, mech_type_ptr,  &mechanism::mech_);
+ACCESS_BIND(arb_mechanism_ppack mechanism::*, mech_ppack_ptr, &mechanism::ppack_);
 
 std::vector<fvm_value_type> mechanism_field(multicore::mechanism* m, const std::string& key) {
     auto opt_ptr = util::value_by_key((m->*multicore_field_table_ptr)(), key);
     if (!opt_ptr) throw std::logic_error("internal error: no such field in mechanism");
 
     const fvm_value_type* field_data = opt_ptr.value().first;
-    return std::vector<fvm_value_type>(field_data, field_data+m->size());
+    auto ppack = m->*mech_ppack_ptr;
+    return std::vector<fvm_value_type>(field_data, field_data+ppack.width);
 }
 
 // GPU mechanisms:
