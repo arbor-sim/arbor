@@ -26,10 +26,27 @@ using std::condition_variable;
 using task = std::function<void()>;
 
 namespace impl {
+
+constexpr int max_task_depth = 2;
+
 class notification_queue {
+public:
+    // Pops a task from the task queue returns false when queue is empty.
+    task try_pop(int priority);
+    task pop();
+
+    // Pushes a task into the task queue and increases task group counter.
+    void push(task&& tsk, int priority); // TODO: need to use value?
+    bool try_push(task& tsk, int priority);
+
+    // Finish popping all waiting tasks on queue then stop trying to pop new tasks
+    void quit();
+
+    bool empty();
+
 private:
-    // FIFOs of pending tasks: q_tasks_[1] has higher priority than q_tasks_[0]
-    std::array<std::deque<task>, 2> q_tasks_;
+    // FIFOs of pending tasks: q_tasks_[i+1] has higher priority than q_tasks_[i]
+    std::array<std::deque<task>, max_task_depth> q_tasks_;
 
     // Lock and signal on task availability change this is the crucial bit.
     mutex q_mutex_;
@@ -38,24 +55,15 @@ private:
     // Flag to handle exit from all threads.
     bool quit_ = false;
 
-public:
-    // Pops a task from the task queue returns false when queue is empty.
-    task try_pop();
-    task pop();
-
-    // Pushes a task into the task queue and increases task group counter.
-    void push(task&& tsk, bool priority); // TODO: need to use value?
-    bool try_push(task& tsk, bool priority);
-
-    // Finish popping all waiting tasks on queue then stop trying to pop new tasks
-    void quit();
 };
 }// namespace impl
 
 class task_system {
 private:
+    // number of queues
     unsigned count_;
 
+    // spawned std::treads
     std::vector<std::thread> threads_;
 
     // for encoding priority
@@ -68,7 +76,7 @@ private:
     std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
     // total number of tasks pushed in each priority level
-    std::array<std::atomic<unsigned>, 2> index_{0,0};
+    std::array<std::atomic<unsigned>, impl::max_task_depth> index_{0,0};
 
 public:
     task_system();
@@ -82,7 +90,7 @@ public:
     ~task_system();
 
     // Pushes tasks into notification queue.
-    void async(task tsk, bool depth);
+    void async(task tsk, int depth);
 
     // Runs tasks until quit is true.
     void run_tasks_loop(int i);
@@ -94,8 +102,11 @@ public:
     // Includes master thread.
     int get_num_threads() const;
 
+    // Returns the current depth of nested parallelism on the current thread.
+    // 0 is the first level of parallelism, 1 is the next, so on.
     static int get_thread_depth();
 
+    // Set the depth of the nested parallelism on the current thread.
     static void set_thread_depth(int depth);
 
     // Returns the thread_id map
@@ -219,7 +230,7 @@ public:
         running_ = true;
         ++in_flight_;
         int thread_depth = task_system::get_thread_depth();
-        auto depth = thread_depth<1 ? thread_depth+1 : thread_depth;
+        auto depth = thread_depth+1<impl::max_task_depth? thread_depth+1 : thread_depth;
         task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, depth, exception_status_), depth);
     }
 
@@ -255,7 +266,7 @@ struct parallel_for {
     template <typename F>
     static void apply(int left, int right, task_system* ts, F f) {
         int current_depth = task_system::get_thread_depth();
-        if (current_depth >= 1) {
+        if (current_depth+1 >= impl::max_task_depth) {
             for (int i = left; i < right; i++) {
                 f(i);
             }

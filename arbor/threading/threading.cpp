@@ -1,21 +1,21 @@
 #include <atomic>
 
+#include <arbor/assert.hpp>
+
 #include "threading.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
 using namespace arb;
 
-task notification_queue::try_pop() {
+task notification_queue::try_pop(int priority) {
     task tsk;
     lock q_lock{q_mutex_, std::try_to_lock};
-    if (q_lock && !q_tasks_[1].empty()) {
-        tsk = std::move(q_tasks_[1].front());
-        q_tasks_[1].pop_front();
-    }
-    if (!tsk && q_lock && !q_tasks_[0].empty()) {
-        tsk = std::move(q_tasks_[0].front());
-        q_tasks_[0].pop_front();
+    if (!q_lock) return tsk;
+    auto& q = q_tasks_.at(priority);
+    if (!q.empty()) {
+        tsk = std::move(q.front());
+        q.pop_front();
     }
     return tsk;
 }
@@ -23,35 +23,36 @@ task notification_queue::try_pop() {
 task notification_queue::pop() {
     task tsk;
     lock q_lock{q_mutex_};
-    while (q_tasks_[1].empty() && q_tasks_[0].empty() && !quit_) {
+    while (empty() && !quit_) {
         q_tasks_available_.wait(q_lock);
     }
-    if (!q_tasks_[1].empty()) {
-        tsk = std::move(q_tasks_[1].front());
-        q_tasks_[1].pop_front();
-    }
-    else if (!q_tasks_[0].empty()) {
-        tsk = std::move(q_tasks_[0].front());
-        q_tasks_[0].pop_front();
+    for (auto it = q_tasks_.rbegin(); it != q_tasks_.rend(); ++it) {
+        if (!it->empty()) {
+            tsk = std::move(it->front());
+            it->pop_front();
+            break;
+        }
     }
     return tsk;
 }
 
-bool notification_queue::try_push(task& tsk, bool priority) {
+bool notification_queue::try_push(task& tsk, int priority) {
+    arb_assert(priority < max_task_depth);
     {
         lock q_lock{q_mutex_, std::try_to_lock};
         if (!q_lock) return false;
-        q_tasks_[(int)priority].push_front(std::move(tsk));
+        q_tasks_.at(priority).push_front(std::move(tsk));
         tsk = 0;
     }
     q_tasks_available_.notify_all();
     return true;
 }
 
-void notification_queue::push(task&& tsk, bool priority) {
+void notification_queue::push(task&& tsk, int priority) {
+    arb_assert(priority < max_task_depth);
     {
         lock q_lock{q_mutex_};
-        q_tasks_[(int)priority].push_front(std::move(tsk));
+        q_tasks_.at(priority).push_front(std::move(tsk));
     }
     q_tasks_available_.notify_all();
 }
@@ -64,13 +65,27 @@ void notification_queue::quit() {
     q_tasks_available_.notify_all();
 }
 
+bool notification_queue::empty() {
+    for(const auto& q: q_tasks_) {
+        if (!q.empty()) return false;
+    }
+    return true;
+}
+
 void task_system::run_tasks_loop(int i){
     while (true) {
         task tsk;
-        for (unsigned n = 0; n != count_; n++) {
-            tsk = q_[(i + n) % count_].try_pop();
+        // Loop over the levels of priority for the queues, starting from
+        // the ones with highest priority
+        for (int depth = impl::max_task_depth-1; depth >= 0; depth--) {
+            // Loop over the thread specific queues, trying to pop a task.
+            for (unsigned n = 0; n != count_; n++) {
+                tsk = q_[(i + n) % count_].try_pop(depth);
+                if (tsk) break;
+            }
             if (tsk) break;
         }
+        // If a task can not be acquired, force a pop from the queue: blocking.
         if (!tsk) tsk = q_[i].pop();
         if (!tsk) break;
         tsk();
@@ -80,20 +95,15 @@ void task_system::run_tasks_loop(int i){
 void task_system::try_run_task(int i) {
     auto nthreads = get_num_threads();
     task tsk;
-    for (int n = 0; n != nthreads; n++) {
-        tsk = q_[(i + n) % nthreads].try_pop();
-        if (tsk) {
-            tsk();
-            break;
+    for (int depth = impl::max_task_depth-1; depth >= 0; depth--) {
+        for (int n = 0; n != nthreads; n++) {
+            tsk = q_[(i + n) % nthreads].try_pop(depth);
+            if (tsk) {
+                tsk();
+                return;
+            }
         }
     }
-    /*task tsk;
-    for (unsigned n = 0; n != count_; n++) {
-        tsk = q_[(i + n) % count_].try_pop();
-        if (tsk) break;
-    }
-    if (!tsk) tsk = q_[i].pop();
-    if (tsk) tsk();*/
 }
 
 thread_local int task_system::thread_depth_ = -1;
@@ -121,8 +131,8 @@ task_system::~task_system() {
     for (auto& e: threads_) e.join();
 }
 
-void task_system::async(task tsk, bool priority) {
-    auto i = index_[(int)priority]++;
+void task_system::async(task tsk, int priority) {
+    auto i = index_[priority]++;
 
     for (unsigned n = 0; n != count_; n++) {
         if (q_[(i + n) % count_].try_push(tsk, priority)) return;

@@ -133,7 +133,7 @@ struct null_recipe: arb::recipe {
     arb::cable_cell cell;
     arb::cable_cell_global_properties properties;
     null_recipe() { properties.default_parameters = arb::neuron_parameter_defaults; }
-    arb::cell_size_type num_cells() const override { return 100000; }
+    arb::cell_size_type num_cells() const override { return 1000000; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override { return cell; }
     std::any get_global_properties(arb::cell_kind) const override { return properties; }

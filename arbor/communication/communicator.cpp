@@ -65,15 +65,11 @@ communicator::communicator(const recipe& rec,
     // Build the connection information for local cells in parallel.
     std::vector<gid_info> gid_infos;
     gid_infos.resize(num_local_cells_);
-//    threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
-//        [&](cell_size_type i) {
-//            auto gid = gids[i];
-//            gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
-//        });
-    for (unsigned i = 0; i < gids.size(); ++i) {
-        auto gid = gids[i];
-        gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
-    }
+    threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
+        [&](cell_size_type i) {
+            auto gid = gids[i];
+            gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
+        });
 
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
@@ -123,13 +119,10 @@ communicator::communicator(const recipe& rec,
     // Sort the connections for each domain.
     // This is num_domains_ independent sorts, so it can be parallelized trivially.
     const auto& cp = connection_part_;
-//    threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
-//        [&](cell_size_type i) {
-//            util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
-//        });
-    for (unsigned i = 0; i < num_domains_; ++i) {
-        util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
-    }
+    threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
+        [&](cell_size_type i) {
+            util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
+        });
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
