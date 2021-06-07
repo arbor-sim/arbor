@@ -1,7 +1,12 @@
 .. _formatnmodl:
 
 NMODL
-======
+=====
+
+.. csv-table::
+   :header: "Name", "File extension", "Read", "Write"
+
+   "NMODL", "``mod``", "✓", "✗"
 
 *NMODL* is a `DSL <https://www.neuron.yale.edu/neuron/static/py_doc/modelspec/programmatic/mechanisms/nmodl.html>`_
 for describing ion channel and synapse dynamics that is used by NEURON,

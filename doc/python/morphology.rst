@@ -315,47 +315,6 @@ Cable cell morphology
             :param int i: branch index
             :rtype: list
 
-.. _pyswc:
-
-.. py:function:: load_swc_arbor(filename)
-
-    Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
-    (See the morphology concepts :ref:`page <morph-formats>` for more details).
-
-    The samples in the SWC files are treated as the end points of segments, where a
-    sample and its parent form a segment.
-    The :py:attr:`tag <segment.tag>` of each segment is the
-    `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
-    of the distal sample.
-    The structure identifier of the first (root) sample is ignored, as it can only be the
-    proximal end of any segment.
-
-    .. note::
-        This method does not interpret the first sample, typically associated with the soma,
-        as a sphere. SWC files with single point somas are common, for example
-        `SONATA <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_
-        model descriptions.
-
-        Such representations are challenging to consistently interpret in different
-        simulation tools because they require heuristics and, often undocumented, rules
-        for how to interpret the connectin of axons and dendrites to the soma.
-
-        The :func:`load_swc_neuron` function provides support for loading
-        SWC files according to the interpretation used by NEURON.
-
-
-    :param str filename: the name of the SWC file.
-    :rtype: morphology
-
-.. py:function:: load_swc_neuron(filename)
-
-    Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
-    interpretation of the SWC specification.
-    See :ref:`the SWC file documention <formatswc-neuron>` for more details.
-
-    :param str filename: the name of the SWC file.
-    :rtype: morphology
-
 .. py:class:: place_pwlin
 
     A :class:`place_pwlin` object allows the querying of the 3-d location of locations and cables
@@ -494,6 +453,21 @@ constitute part of the CV boundary point set.
 
     :param str domain: The region on which the policy is applied.
 
+.. py:function:: cv_policy_explicit(locset, domain='(all)')
+
+    Use the provided locset as control volume boundaries.
+
+    .. code-block:: Python
+
+        # Place CV boundaries midway every branch.
+        midbranch_cvp = arbor.cv_policy_explicit('(on-branches 0.5)')
+
+        # Place CV boundaries at 10 random positions on the soma.
+        random_soma_cvp = arbor.cv_policy_explicit('(uniform (tag 3) 0 9 0)','"soma"')
+
+    :param str locset: The locset on which CV boundaries are placed.
+    :param str domain: The region on which the policy is applied.
+
 .. py:function:: cv_policy_every_segment(domain='(all)')
 
     Use every sample point in the morphology definition as a CV boundary, optionally
@@ -520,7 +494,54 @@ constitute part of the CV boundary point set.
     :param float max_etent: The maximum length for generated CVs.
     :param str domain: The region on which the policy is applied.
 
+.. _pyswc:
+
+SWC
+---
+
+.. py:function:: load_swc_arbor(filename)
+
+    Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
+    (See the morphology concepts :ref:`page <morph-formats>` for more details).
+
+    The samples in the SWC files are treated as the end points of segments, where a
+    sample and its parent form a segment.
+    The :py:attr:`tag <segment.tag>` of each segment is the
+    `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
+    of the distal sample.
+    The structure identifier of the first (root) sample is ignored, as it can only be the
+    proximal end of any segment.
+
+    .. note::
+        This method does not interpret the first sample, typically associated with the soma,
+        as a sphere. SWC files with single point somas are common, for example
+        `SONATA <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_
+        model descriptions.
+
+        Such representations are challenging to consistently interpret in different
+        simulation tools because they require heuristics and, often undocumented, rules
+        for how to interpret the connectin of axons and dendrites to the soma.
+
+        The :func:`load_swc_neuron` function provides support for loading
+        SWC files according to the interpretation used by NEURON.
+
+
+    :param str filename: the name of the SWC file.
+    :rtype: morphology
+
+.. py:function:: load_swc_neuron(filename)
+
+    Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
+    interpretation of the SWC specification.
+    See :ref:`the SWC file documention <formatswc-neuron>` for more details.
+
+    :param str filename: the name of the SWC file.
+    :rtype: morphology
+
 .. _pyneuroml:
+
+NeuroML
+-------
 
 .. py:class:: neuroml_morph_data
 
@@ -615,6 +636,9 @@ constitute part of the CV boundary point set.
       :rtype: optional(neuroml_morph_data)
 
 .. _pyasc:
+
+Neurolucida
+-----------
 
 .. py:class:: asc_morphology
 
