@@ -58,13 +58,15 @@ public:
 
         auto n = size();
         invariant_d = array(n, 0);
-        for (auto i: util::make_span(1u, n)) {
-            auto gij = face_conductance[i];
+        if (n>=1) {
+            for (auto i: util::make_span(1u, n)) {
+                auto gij = face_conductance[i];
 
-            u[i] = -gij;
-            invariant_d[i] += gij;
-            if (p[i]!=-1) {
-                invariant_d[p[i]] += gij;
+                u[i] = -gij;
+                invariant_d[i] += gij;
+                if (p[i] != -1) {
+                    invariant_d[p[i]] += gij;
+                }
             }
         }
     }
@@ -116,7 +118,7 @@ public:
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             auto first = cv_span.first;
             auto last = cv_span.second; // one past the end
-
+            if (first >= last) continue;
             if (d[first]!=0) {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {

@@ -47,6 +47,9 @@ public:
     void push(task&& tsk); // TODO: need to use value?
     bool try_push(task& tsk);
 
+    // Checks whether queue is empty.
+    bool empty();
+
     // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
 };
@@ -58,8 +61,11 @@ private:
 
     std::vector<std::thread> threads_;
 
-    // queue of tasks
-    std::vector<impl::notification_queue> q_;
+    // for encoding priority
+    static thread_local int thread_depth_;
+
+    // queues of tasks: q1_ has higher priority than q0_
+    std::vector<impl::notification_queue> q0_, q1_;
 
     // threads -> index
     std::unordered_map<std::thread::id, std::size_t> thread_ids_;
@@ -79,7 +85,7 @@ public:
     ~task_system();
 
     // Pushes tasks into notification queue.
-    void async(task tsk);
+    void async(task tsk, bool depth);
 
     // Runs tasks until quit is true.
     void run_tasks_loop(int i);
@@ -90,6 +96,10 @@ public:
 
     // Includes master thread.
     int get_num_threads() const;
+
+    static int get_thread_depth();
+
+    static void set_thread_depth(int depth);
 
     // Returns the thread_id map
     std::unordered_map<std::thread::id, std::size_t> get_thread_ids() const;
@@ -146,20 +156,23 @@ public:
     class wrap {
         F f_;
         std::atomic<std::size_t>& counter_;
+        int depth_;
         exception_state& exception_status_;
 
     public:
         // Construct from a compatible function and atomic counter
         template <typename F2>
-        explicit wrap(F2&& other, std::atomic<std::size_t>& c, exception_state& ex):
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c, int d, exception_state& ex):
                 f_(std::forward<F2>(other)),
                 counter_(c),
+                depth_(d),
                 exception_status_(ex)
         {}
 
         wrap(wrap&& other):
                 f_(std::move(other.f_)),
                 counter_(other.counter_),
+                depth_(other.depth_),
                 exception_status_(other.exception_status_)
         {}
 
@@ -168,13 +181,25 @@ public:
         wrap(const wrap& other):
                 f_(other.f_),
                 counter_(other.counter_),
+                depth_(other.depth_),
                 exception_status_(other.exception_status_)
         {}
 
         void operator()() {
             if (!exception_status_) {
                 try {
+                    // save the current depth of the thread
+                    // to be reset after task execution.
+                    auto tdepth = task_system::get_thread_depth();
+
+                    // set the depth of the thread to the depth of the task.
+                    task_system::set_thread_depth(depth_);
+
+                    // execute the task.
                     f_();
+
+                    // reset the depth of the thread.
+                    task_system::set_thread_depth(tdepth);
                 }
                 catch (...) {
                     exception_status_.set(std::current_exception());
@@ -188,15 +213,24 @@ public:
     using callable = typename std::decay<F>::type;
 
     template <typename F>
-    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c, exception_state& ex) {
-        return wrap<callable<F>>(std::forward<F>(f), c, ex);
+    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c, int d, exception_state& ex) {
+        return wrap<callable<F>>(std::forward<F>(f), c, d, ex);
     }
 
     template<typename F>
     void run(F&& f) {
         running_ = true;
         ++in_flight_;
-        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, exception_status_));
+        int thread_depth = task_system::get_thread_depth();
+        auto depth = thread_depth<1 ? thread_depth+1 : thread_depth;
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, depth, exception_status_), depth);
+    }
+
+    template<typename F>
+    void run(F&& f, int depth) {
+        running_ = true;
+        ++in_flight_;
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, depth, exception_status_), depth);
     }
 
     // Wait till all tasks in this group are done.
@@ -222,11 +256,25 @@ public:
 struct parallel_for {
     template <typename F>
     static void apply(int left, int right, task_system* ts, F f) {
-        task_group g(ts);
-        for (int i = left; i < right; ++i) {
-          g.run([=] {f(i);});
+        int current_depth = task_system::get_thread_depth();
+        if (current_depth >= 1) {
+            for (int i = left; i < right; i++) {
+                f(i);
+            }
         }
-        g.wait();
+        else {
+            int batch_size = ((right - left) / ts->get_num_threads()) / 10 + 1;
+            task_group g(ts);
+            for (int i = left; i < right; i += batch_size) {
+                g.run([=] {
+                    int r = i + batch_size < right ? i + batch_size : right;
+                    for (int j = i; j < r; ++j) {
+                        f(j);
+                    }
+                }, current_depth + 1);
+            }
+            g.wait();
+        }
     }
 };
 } // namespace threading

@@ -66,7 +66,7 @@ TEST(task_system, test_copy) {
     task_system ts;
 
     ftor f;
-    ts.async(f);
+    ts.async(f, 0);
 
     // Copy into new ftor and move ftor into a task (std::function<void()>)
     EXPECT_EQ(1, nmove);
@@ -78,7 +78,7 @@ TEST(task_system, test_move) {
     task_system ts;
 
     ftor f;
-    ts.async(std::move(f));
+    ts.async(std::move(f), 0);
 
     // Move into new ftor and move ftor into a task (std::function<void()>)
     EXPECT_LE(nmove, 2);

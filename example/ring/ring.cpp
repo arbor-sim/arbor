@@ -129,6 +129,16 @@ private:
     arb::cable_cell_global_properties gprop_;
 };
 
+struct null_recipe: arb::recipe {
+    arb::cable_cell cell;
+    arb::cable_cell_global_properties properties;
+    null_recipe() { properties.default_parameters = arb::neuron_parameter_defaults; }
+    arb::cell_size_type num_cells() const override { return 100000; }
+    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
+    arb::util::unique_any get_cell_description(arb::cell_gid_type) const override { return cell; }
+    std::any get_global_properties(arb::cell_kind) const override { return properties; }
+};
+
 int main(int argc, char** argv) {
     try {
         bool root = true;
@@ -169,7 +179,8 @@ int main(int argc, char** argv) {
         meters.start(context);
 
         // Create an instance of our recipe.
-        ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
+//        ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
+        auto recipe = null_recipe();
 
         auto decomp = arb::partition_load_balance(recipe, context);
 
