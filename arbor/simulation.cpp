@@ -159,22 +159,31 @@ private:
     // Apply a functional to each cell group in parallel.
     template <typename L>
     void foreach_group(L&& fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
-            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
+//        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
+//            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
+        for (unsigned i = 0; i < cell_groups_.size(); ++i) {
+            fn(cell_groups_[i]);
+        }
     }
 
     // Apply a functional to each cell group in parallel, supplying
     // the cell group pointer reference and index.
     template <typename L>
     void foreach_group_index(L&& fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
-            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
+//        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
+//            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
+        for (unsigned i = 0; i < cell_groups_.size(); ++i) {
+            fn(cell_groups_[i], i);
+        }
     }
 
     // Apply a functional to each local cell in parallel.
     template <typename L>
     void foreach_cell(L&& fn) {
-        threading::parallel_for::apply(0, communicator_.num_local_cells(), task_system_.get(), fn);
+//        threading::parallel_for::apply(0, communicator_.num_local_cells(), task_system_.get(), fn);
+        for (unsigned i = 0; i < communicator_.num_local_cells(); ++i) {
+            fn(i);
+        }
     }
 };
 
@@ -224,11 +233,11 @@ simulation_state::simulation_state(
 
     // Generate the cell groups in parallel, with one task per cell group.
     cell_groups_.resize(decomp.groups.size());
-    foreach_group_index(
-        [&](cell_group_ptr& group, int i) {
+    threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
+        [&](cell_size_type i) {
             const auto& group_info = decomp.groups[i];
             auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
-            group = factory(group_info.gids, rec);
+            cell_groups_[i] = factory(group_info.gids, rec);
         });
 
     // Create event lane buffers.

@@ -466,8 +466,11 @@ fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
     const arb::execution_context& ctx)
 {
     std::vector<fvm_cv_discretization> cell_disc(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);});
+//    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
+//          [&] (int i) { cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);});
+    for (unsigned i = 0; i < cells.size(); ++i) {
+        cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);
+    }
 
     fvm_cv_discretization combined;
     for (auto cell_idx: count_along(cells)) {
@@ -773,8 +776,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const execution_context& ctx)
 {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], D, i);});
+//    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
+//          [&] (int i) { cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], D, i);});
+    for (unsigned i = 0; i < cells.size(); ++i) {
+        cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], D, i);
+    }
 
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {

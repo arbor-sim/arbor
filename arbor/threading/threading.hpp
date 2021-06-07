@@ -28,8 +28,8 @@ using task = std::function<void()>;
 namespace impl {
 class notification_queue {
 private:
-    // FIFO of pending tasks.
-    std::deque<task> q_tasks_;
+    // FIFOs of pending tasks: q_tasks_[1] has higher priority than q_tasks_[0]
+    std::array<std::deque<task>, 2> q_tasks_;
 
     // Lock and signal on task availability change this is the crucial bit.
     mutex q_mutex_;
@@ -44,11 +44,8 @@ public:
     task pop();
 
     // Pushes a task into the task queue and increases task group counter.
-    void push(task&& tsk); // TODO: need to use value?
-    bool try_push(task& tsk);
-
-    // Checks whether queue is empty.
-    bool empty();
+    void push(task&& tsk, bool priority); // TODO: need to use value?
+    bool try_push(task& tsk, bool priority);
 
     // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
@@ -64,14 +61,14 @@ private:
     // for encoding priority
     static thread_local int thread_depth_;
 
-    // queues of tasks: q1_ has higher priority than q0_
-    std::vector<impl::notification_queue> q0_, q1_;
+    // queue of tasks
+    std::vector<impl::notification_queue> q_;
 
     // threads -> index
     std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
-    // total number of tasks pushed in all queues
-    std::atomic<unsigned> index_{0};
+    // total number of tasks pushed in each priority level
+    std::array<std::atomic<unsigned>, 2> index_{0,0};
 
 public:
     task_system();
@@ -92,7 +89,7 @@ public:
 
     // Request that the task_system attempts to find and run a _single_ task.
     // Will return without executing a task if no tasks available.
-    void try_run_task();
+    void try_run_task(int i);
 
     // Includes master thread.
     int get_num_threads() const;
@@ -235,8 +232,9 @@ public:
 
     // Wait till all tasks in this group are done.
     void wait() {
+        auto tid = task_system_->get_thread_ids()[std::this_thread::get_id()];
         while (in_flight_) {
-            task_system_->try_run_task();
+            task_system_->try_run_task(tid);
         }
         running_ = false;
 
@@ -263,7 +261,7 @@ struct parallel_for {
             }
         }
         else {
-            int batch_size = ((right - left) / ts->get_num_threads()) / 10 + 1;
+            int batch_size = 1;//((right - left) / ts->get_num_threads()) / 32 + 1;
             task_group g(ts);
             for (int i = left; i < right; i += batch_size) {
                 g.run([=] {
@@ -271,7 +269,7 @@ struct parallel_for {
                     for (int j = i; j < r; ++j) {
                         f(j);
                     }
-                }, current_depth + 1);
+                }, current_depth+1);
             }
             g.wait();
         }
