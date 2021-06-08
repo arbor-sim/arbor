@@ -97,7 +97,7 @@ public:
 
     // Request that the task_system attempts to find and run a _single_ task.
     // Will return without executing a task if no tasks available.
-    void try_run_task(int i);
+    void try_run_task(int i, int lowest_priority);
 
     // Includes master thread.
     int get_num_threads() const;
@@ -230,6 +230,7 @@ public:
         running_ = true;
         ++in_flight_;
         int thread_depth = task_system::get_thread_depth();
+        // todo don't enque if reach max depth
         auto depth = thread_depth+1<impl::max_task_depth? thread_depth+1 : thread_depth;
         task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, depth, exception_status_), depth);
     }
@@ -242,10 +243,10 @@ public:
     }
 
     // Wait till all tasks in this group are done.
-    void wait() {
+    void wait(int lowest_priority=0) {
         auto tid = task_system_->get_thread_ids()[std::this_thread::get_id()];
         while (in_flight_) {
-            task_system_->try_run_task(tid);
+            task_system_->try_run_task(tid, lowest_priority);
         }
         running_ = false;
 
@@ -272,7 +273,7 @@ struct parallel_for {
             }
         }
         else {
-            int batch_size = 1;//((right - left) / ts->get_num_threads()) / 32 + 1;
+            int batch_size = 1;//((right - left) / (ts->get_num_threads()) * 32) + 1;
             task_group g(ts);
             for (int i = left; i < right; i += batch_size) {
                 g.run([=] {
@@ -282,7 +283,7 @@ struct parallel_for {
                     }
                 }, current_depth+1);
             }
-            g.wait();
+            g.wait(current_depth+1);
         }
     }
 };

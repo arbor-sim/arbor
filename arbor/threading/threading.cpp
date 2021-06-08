@@ -92,10 +92,10 @@ void task_system::run_tasks_loop(int i){
     }
 }
 
-void task_system::try_run_task(int i) {
+void task_system::try_run_task(int i, int lowest_priority) {
     auto nthreads = get_num_threads();
     task tsk;
-    for (int depth = impl::max_task_depth-1; depth >= 0; depth--) {
+    for (int depth = impl::max_task_depth-1; depth >= lowest_priority; depth--) {
         for (int n = 0; n != nthreads; n++) {
             tsk = q_[(i + n) % nthreads].try_pop(depth);
             if (tsk) {
