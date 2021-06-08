@@ -9,6 +9,7 @@ using namespace arb::threading;
 using namespace arb;
 
 task notification_queue::try_pop(int priority) {
+    arb_assert(priority < q_tasks_.size());
     task tsk;
     lock q_lock{q_mutex_, std::try_to_lock};
     if (!q_lock) return tsk;
@@ -37,7 +38,7 @@ task notification_queue::pop() {
 }
 
 bool notification_queue::try_push(task& tsk, int priority) {
-    arb_assert(priority < max_task_depth);
+    arb_assert(priority < q_tasks_.size());
     {
         lock q_lock{q_mutex_, std::try_to_lock};
         if (!q_lock) return false;
@@ -49,7 +50,7 @@ bool notification_queue::try_push(task& tsk, int priority) {
 }
 
 void notification_queue::push(task&& tsk, int priority) {
-    arb_assert(priority < max_task_depth);
+    arb_assert(priority < q_tasks_.size());
     {
         lock q_lock{q_mutex_};
         q_tasks_.at(priority).push_front(std::move(tsk));
@@ -75,17 +76,16 @@ bool notification_queue::empty() {
 void task_system::run_tasks_loop(int i){
     while (true) {
         task tsk;
-        // Loop over the levels of priority for the queues, starting from
-        // the ones with highest priority
+        // Loop over the levels of priority starting from highest to lowest
         for (int depth = impl::max_task_depth-1; depth >= 0; depth--) {
-            // Loop over the thread specific queues, trying to pop a task.
+            // Loop over the threads trying to pop a task of the requested priority.
             for (unsigned n = 0; n != count_; n++) {
                 tsk = q_[(i + n) % count_].try_pop(depth);
                 if (tsk) break;
             }
             if (tsk) break;
         }
-        // If a task can not be acquired, force a pop from the queue: blocking.
+        // If a task can not be acquired, force a pop from the queue. This is a blocking action.
         if (!tsk) tsk = q_[i].pop();
         if (!tsk) break;
         tsk();
@@ -95,7 +95,9 @@ void task_system::run_tasks_loop(int i){
 void task_system::try_run_task(int i, int lowest_priority) {
     auto nthreads = get_num_threads();
     task tsk;
+    // Loop over the levels of priority starting from highest to lowest_priority
     for (int depth = impl::max_task_depth-1; depth >= lowest_priority; depth--) {
+        // Loop over the threads trying to pop a task of the requested priority.
         for (int n = 0; n != nthreads; n++) {
             tsk = q_[(i + n) % nthreads].try_pop(depth);
             if (tsk) {

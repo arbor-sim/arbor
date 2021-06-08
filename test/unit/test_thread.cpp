@@ -63,27 +63,31 @@ struct ftor_parallel_wait {
 }
 
 TEST(task_system, test_copy) {
-    task_system ts;
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
 
-    ftor f;
-    ts.async(f, 0);
+        ftor f;
+        ts.async(f, 0);
 
-    // Copy into new ftor and move ftor into a task (std::function<void()>)
-    EXPECT_EQ(1, nmove);
-    EXPECT_EQ(1, ncopy);
-    reset();
+        // Copy into new ftor and move ftor into a task (std::function<void()>)
+        EXPECT_EQ(1, nmove);
+        EXPECT_EQ(1, ncopy);
+        reset();
+    }
 }
 
 TEST(task_system, test_move) {
-    task_system ts;
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
 
-    ftor f;
-    ts.async(std::move(f), 0);
+        ftor f;
+        ts.async(std::move(f), 0);
 
-    // Move into new ftor and move ftor into a task (std::function<void()>)
-    EXPECT_LE(nmove, 2);
-    EXPECT_LE(ncopy, 1);
-    reset();
+        // Move into new ftor and move ftor into a task (std::function<void()>)
+        EXPECT_LE(nmove, 2);
+        EXPECT_LE(ncopy, 1);
+        reset();
+    }
 }
 
 TEST(notification_queue, test_copy) {
@@ -111,83 +115,107 @@ TEST(notification_queue, test_move) {
 }
 
 TEST(task_group, test_copy) {
-    task_system ts;
-    task_group g(&ts);
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
+        task_group g(&ts);
 
-    ftor f;
-    g.run(f);
-    g.wait();
+        ftor f;
+        g.run(f);
+        g.wait();
 
-    // Copy into "wrap" and move wrap into a task (std::function<void()>)
-    EXPECT_EQ(1, nmove);
-    EXPECT_EQ(1, ncopy);
-    reset();
+        // Copy into "wrap" and move wrap into a task (std::function<void()>)
+        EXPECT_EQ(1, nmove);
+        EXPECT_EQ(1, ncopy);
+        reset();
+    }
 }
 
 TEST(task_group, test_move) {
-    task_system ts;
-    task_group g(&ts);
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
+        task_group g(&ts);
 
-    ftor f;
-    g.run(std::move(f));
-    g.wait();
+        ftor f;
+        g.run(std::move(f));
+        g.wait();
 
-    // Move into wrap and move wrap into a task (std::function<void()>)
-    EXPECT_LE(nmove, 2);
-    EXPECT_LE(ncopy, 1);
-    reset();
+        // Move into wrap and move wrap into a task (std::function<void()>)
+        EXPECT_LE(nmove, 2);
+        EXPECT_LE(ncopy, 1);
+        reset();
+    }
 }
 
 TEST(task_group, individual_tasks) {
     // Simple check for deadlock
-    task_system ts;
-    task_group g(&ts);
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
+        task_group g(&ts);
 
-    auto nthreads = ts.get_num_threads();
-
-    ftor_wait f;
-    for (int i = 0; i < 32 * nthreads; i++) {
-        g.run(f);
+        ftor_wait f;
+        for (int i = 0; i < 32 * nthreads; i++) {
+            g.run(f);
+        }
+        g.wait();
     }
-    g.wait();
 }
 
 TEST(task_group, parallel_for_sleep) {
     // Simple check for deadlock for nested parallelism
-    task_system ts;
-    auto nthreads = ts.get_num_threads();
-    task_group g(&ts);
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
+        task_group g(&ts);
 
-    ftor_parallel_wait f(&ts);
-    for (int i = 0; i < nthreads; i++) {
-        g.run(f);
+        ftor_parallel_wait f(&ts);
+        for (int i = 0; i < nthreads; i++) {
+            g.run(f);
+        }
+        g.wait();
     }
-    g.wait();
 }
 
 TEST(task_group, parallel_for) {
-    task_system ts;
-    for (int n = 0; n < 10000; n=!n?1:2*n) {
-        std::vector<int> v(n, -1);
-        parallel_for::apply(0, n, &ts, [&](int i) {v[i] = i;});
-        for (int i = 0; i< n; i++) {
-            EXPECT_EQ(i, v[i]);
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
+        for (int n = 0; n < 10000; n = !n ? 1 : 2 * n) {
+            std::vector<int> v(n, -1);
+            parallel_for::apply(0, n, &ts, [&](int i) { v[i] = i; });
+            for (int i = 0; i < n; i++) {
+                EXPECT_EQ(i, v[i]);
+            }
+        }
+    }
+}
+
+TEST(task_group, nested_parallel_for_stack_overflow) {
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        for (int i = 100000; i < 10000000; i*=10) {
+            task_system ts(nthreads);
+            std::vector<int> v(i);
+            parallel_for::apply(0, i, &ts, [&](int i) {
+                parallel_for::apply(0, 1, &ts, [&](int j) { v[i] = i; });
+            });
+            for (int j = 0; j < i; j++) {
+                EXPECT_EQ(j, v[j]);
+            }
         }
     }
 }
 
 TEST(task_group, nested_parallel_for) {
-    task_system ts;
-    for (int m = 1; m < 512; m*=2) {
-        for (int n = 0; n < 1000; n=!n?1:2*n) {
-            std::vector<std::vector<int>> v(n, std::vector<int>(m, -1));
-            parallel_for::apply(0, n, &ts, [&](int i) {
-                auto &w = v[i];
-                parallel_for::apply(0, m, &ts, [&](int j) { w[j] = i + j; });
-            });
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < m; j++) {
-                    EXPECT_EQ(i + j, v[i][j]);
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system ts(nthreads);
+        for (int m = 1; m < 512; m *= 2) {
+            for (int n = 0; n < 1000; n = !n ? 1 : 2 * n) {
+                std::vector<std::vector<int>> v(n, std::vector<int>(m, -1));
+                parallel_for::apply(0, n, &ts, [&](int i) {
+                    auto& w = v[i];
+                    parallel_for::apply(0, m, &ts, [&](int j) { w[j] = i + j; });
+                });
+                for (int i = 0; i < n; i++) {
+                    for (int j = 0; j < m; j++) {
+                        EXPECT_EQ(i + j, v[i][j]);
+                    }
                 }
             }
         }
@@ -195,22 +223,24 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    task_system_handle ts = task_system_handle(new task_system);
-    enumerable_thread_specific<int> buffers(ts);
-    task_group g(ts.get());
+    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
+        task_system_handle ts = task_system_handle(new task_system(nthreads));
+        enumerable_thread_specific<int> buffers(ts);
+        task_group g(ts.get());
 
-    for (int i = 0; i < 100000; i++) {
-        g.run([&](){
-            auto& buf = buffers.local();
-            buf++;
-        });
+        for (int i = 0; i < 100000; i++) {
+            g.run([&]() {
+                auto& buf = buffers.local();
+                buf++;
+            });
+        }
+        g.wait();
+
+        int sum = 0;
+        for (auto b: buffers) {
+            sum += b;
+        }
+
+        EXPECT_EQ(100000, sum);
     }
-    g.wait();
-
-    int sum = 0;
-    for (auto b: buffers) {
-        sum += b;
-    }
-
-    EXPECT_EQ(100000, sum);
 }

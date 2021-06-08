@@ -27,21 +27,41 @@ using task = std::function<void()>;
 
 namespace impl {
 
+// The maximum levels of nested parallelism allowed.
+// If the user attempts to nest deeper, tasks from that level will be
+// executed immediately, outside of the task system and notification queues.
 constexpr int max_task_depth = 2;
 
 class notification_queue {
 public:
-    // Pops a task from the task queue returns false when queue is empty.
+
+    // Tries to acquire the lock to get a task from the deque with the
+    // requested priority. if unsuccessful returns an empty task.
+    // If the lock is acquired successfully, and the requested deque
+    // is not empty, pops a task from the deque; otherwise returns an
+    // empty task.
     task try_pop(int priority);
+
+    // Acquires the lock and pops a task from the highest priority deque
+    // that is not empty. If all deques are empty it waits for a task to
+    // be enqueued. If after a task is enqueued, it still can't acquire it
+    // (because it was popped by another thread), returns an empty task.
+    // If quit_ is set and the deques are all empty, returns an empty task.
     task pop();
 
-    // Pushes a task into the task queue and increases task group counter.
+    // Acquires the lock and pushes a task into the deque with the requested
+    // priority and notifies the condition variable to awaken waiting threads.
     void push(task&& tsk, int priority); // TODO: need to use value?
+
+    // Tries to acquire the lock; if successful, pushes a task onto the deque
+    // with the requested priority, notifies the condition variable to awaken
+    // waiting threads and returns true. If unsuccessful returns false.
     bool try_push(task& tsk, int priority);
 
     // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
 
+    // Checks whether the deques of the queue are all empty.
     bool empty();
 
 private:
@@ -60,43 +80,77 @@ private:
 
 class task_system {
 private:
-    // number of queues
+    // Number of notification queues.
     unsigned count_;
 
-    // spawned std::treads
+    // Spawned worker std::threads.
     std::vector<std::thread> threads_;
 
-    // for encoding priority
+    // Local thread storage, used to encode the priority of the task
+    // currently executed by the thread: higher thread_depth_ means
+    // higher priority.
+    // It is initialized to -1 and reset to -1 in the destructor.
+    // It is manipulated during task execution:
+    // - Before a *new* task is executed, thread_depth_ (depth of
+    //   *currently* executing task) is saved.
+    // - thread_depth_ is then set to the depth of the *new* task.
+    // - Once the *new* task has been executed, the thread_depth_
+    //   is reset to its previous value.
+    // (The depth of *new* tasks is set to the depth of the *current*
+    // task + 1).
     static thread_local int thread_depth_;
 
-    // queue of tasks
+    // Notification queues containing max_task_depth deques representing
+    // different priority levels.
     std::vector<impl::notification_queue> q_;
 
-    // threads -> index
+    // Map from thread id to index.
     std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
-    // total number of tasks pushed in each priority level
+    // Total number of tasks pushed in each priority level.
+    // Used to index which notification queue to enqueue tasks on to,
+    // to balance the workload among the queues.
     std::array<std::atomic<unsigned>, impl::max_task_depth> index_{0,0};
 
 public:
+    // Create zero new threads. Only worker thread is the main thread.
     task_system();
-    // Create nthreads-1 new c std threads
+
+    // Create nthreads-1 new std::threads running run_tasks_loop(tid)
     task_system(int nthreads);
 
     // task_system is a singleton.
     task_system(const task_system&) = delete;
     task_system& operator=(const task_system&) = delete;
 
+    // Quits the notification queues. Joins the threads. Resets thread_depth_.
+    // Won't wait for the existing tasks in the notification queues to be executed.
     ~task_system();
 
-    // Pushes tasks into notification queue.
-    void async(task tsk, int depth);
+    // Pushes tasks into notification queue, with the requested priority level.
+    // Will first attempt to push on all the queues, round-robin, starting with
+    // the queue at index_[priority]. If unsuccessful, forces a push onto the
+    // queue at index_[priority].
+    void async(task tsk, int priority);
 
-    // Runs tasks until quit is true.
+    // The main function that all spawned std::threads execute.
+    // It will try to acquire a task of the highest possible of priority from
+    // all of the notification queues. If unsuccessful it will force pop any task
+    // from the thread's personal queue, trying again from highest to lowest priority.
+    // Note on stack overflow possibility: the force pop can seem like it'll cause
+    // an issue in cases when the personal queue only has low priority tasks, and
+    // the other queues have many higher priority tasks. It seems like the thread
+    // can end up in a situation where it keeps spawning low priority tasks as it
+    // waits for higher priority tasks to finish. The key point here is that
+    // **while the thread is waiting for other tasks to finish, it is not executing
+    // the run_tasks_loop, but the task_group::wait() loop which doesn't use pop**
+    // `i` is the thread id, it's the index of the first queue to check for tasks.
     void run_tasks_loop(int i);
 
-    // Request that the task_system attempts to find and run a _single_ task.
-    // Will return without executing a task if no tasks available.
+    // Try to run a single task with at least the requested priority level.
+    // Will return without executing a task if no tasks available or the
+    // lock can't be acquired.
+    // `i` is the thread id, it's the index of the first queue to check for tasks.
     void try_run_task(int i, int lowest_priority);
 
     // Includes master thread.
@@ -115,6 +169,18 @@ public:
 
 class task_group {
 private:
+    // For tracking exceptions raised inside the task_system.
+    // If multiple tasks raise exceptions, any exception can be
+    // saved and returned. Once an exception has been raised, the
+    // rest of the tasks don't need to be executed, but if a few are
+    // that's okay.
+    // For the reset to work correctly using the relaxed memory order,
+    // it is necessary that both task_group::run and task_group::wait
+    // are synchronization points, which they are because they require
+    // mutex acquisition. This is because exception_state::reset is
+    // called at the end of task_group::wait, and we need it to actually
+    // reset exception_state::error_ before we start running any new tasks
+    // in the group.
     struct exception_state {
         std::atomic<bool> error_{false};
         std::exception_ptr exception_;
@@ -141,10 +207,10 @@ private:
         }
     };
 
+    // Number of tasks that are queued but not yet executed.
     std::atomic<std::size_t> in_flight_{0};
 
-    // Set by run(), cleared by wait(). Used to check task completion status
-    // in destructor.
+    // Set by run(), cleared by wait(). Used to check task completion status in destructor.
     bool running_ = false;
 
     // We use a raw pointer here instead of a shared_ptr to avoid a race condition
@@ -168,7 +234,7 @@ public:
         exception_state& exception_status_;
 
     public:
-        // Construct from a compatible function and atomic counter
+        // Construct from a compatible function, atomic counter, priority level and exception_state.
         template <typename F2>
         explicit wrap(F2&& other, std::atomic<std::size_t>& c, int d, exception_state& ex):
                 f_(std::forward<F2>(other)),
@@ -193,16 +259,20 @@ public:
                 exception_status_(other.exception_status_)
         {}
 
+        // This is where tasks of the task_group are actually executed.
+        // Uses the local thread storage in the task system to track the priority
+        // level of the currently executing task. Before a new task is executed,
+        // priority of the thread is updated to the priority of the new task (depth_)
+        // and then reset to the previous priority when the execution is done.
         void operator()() {
             if (!exception_status_) {
-                // save the current depth of the thread
-                // to be reset after task execution.
+                // Save the current depth of the thread to be reset after task execution.
                 auto tdepth = task_system::get_thread_depth();
 
-                // set the depth of the thread to the depth of the task.
+                // Set the depth of the thread to the depth of the task.
                 task_system::set_thread_depth(depth_);
 
-                // execute the task.
+                // Execute the task.
                 try {
                     f_();
                 }
@@ -210,9 +280,10 @@ public:
                     exception_status_.set(std::current_exception());
                 }
 
-                // reset the depth of the thread.
+                // Reset the depth of the thread.
                 task_system::set_thread_depth(tdepth);
             }
+            // Decrement the atomic counter of the tasks in the task_group;
             --counter_;
         }
     };
@@ -225,10 +296,14 @@ public:
         return wrap<callable<F>>(std::forward<F>(f), c, d, ex);
     }
 
+    // Enqueues new tasks belonging to the task_group.
+    // The depth of nested parallelism is automatically
+    // calculated used to set the priority of the task.
     template<typename F>
     void run(F&& f) {
         running_ = true;
         int thread_depth = task_system::get_thread_depth();
+        // Don't nest parallelism after a certain depth.
         if (thread_depth+1 >= impl::max_task_depth) {
             f();
             return;
@@ -237,6 +312,7 @@ public:
         task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, thread_depth+1, exception_status_), thread_depth+1);
     }
 
+    // Enqueues new tasks belonging to the task_group with a given priority.
     template<typename F>
     void run(F&& f, int depth) {
         running_ = true;
@@ -245,6 +321,13 @@ public:
     }
 
     // Wait till all tasks in this group are done.
+    // While waiting the thread will participate in executing the tasks.
+    // It's necessary that the waiting thread participate in execution:
+    // otherwise, due to nested parallelism, all the threads could become
+    // stuck waiting forever, while no new tasks get executed.
+    // To shorten waiting time, and reduce the chances of stack overflow,
+    // the waiting thread can only execute tasks with a higher or equal
+    // priority to the task it is currently running.
     void wait(int lowest_priority=0) {
         auto tid = task_system_->get_thread_ids()[std::this_thread::get_id()];
         while (in_flight_) {
@@ -266,8 +349,14 @@ public:
 // algorithms
 ///////////////////////////////////////////////////////////////////////
 struct parallel_for {
+    // Creates a task group, tasks and waits for their completion.
+    // If a batching size if not specified, a default batch size of
+    // num_tasks/(num_thread*32)+1 is chosen.
+    // Automatically checks the nested parallelism level and executes
+    // the tasks outside of the task system if it exceeds a predefined
+    // threshold.
     template <typename F>
-    static void apply(int left, int right, task_system* ts, F f) {
+    static void apply(int left, int right, int batch_size, task_system* ts, F f) {
         int current_depth = task_system::get_thread_depth();
         if (current_depth+1 >= impl::max_task_depth) {
             for (int i = left; i < right; i++) {
@@ -275,7 +364,6 @@ struct parallel_for {
             }
         }
         else {
-            int batch_size = 1;//((right - left) / (ts->get_num_threads()) * 32) + 1;
             task_group g(ts);
             for (int i = left; i < right; i += batch_size) {
                 g.run([=] {
@@ -287,6 +375,12 @@ struct parallel_for {
             }
             g.wait(current_depth+1);
         }
+    }
+
+    template <typename F>
+    static void apply(int left, int right, task_system* ts, F f) {
+        int batch_size = ((right - left) / (ts->get_num_threads()) * 32) + 1;
+        apply(left, right, batch_size, ts, std::move(f));
     }
 };
 } // namespace threading
