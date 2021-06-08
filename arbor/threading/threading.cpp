@@ -129,6 +129,7 @@ task_system::task_system(int nthreads): count_(nthreads), q_(nthreads) {
 task_system::~task_system() {
     for (auto& e: q_) e.quit();
     for (auto& e: threads_) e.join();
+    set_thread_depth(-1);
 }
 
 void task_system::async(task tsk, int priority) {

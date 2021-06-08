@@ -195,23 +195,23 @@ public:
 
         void operator()() {
             if (!exception_status_) {
+                // save the current depth of the thread
+                // to be reset after task execution.
+                auto tdepth = task_system::get_thread_depth();
+
+                // set the depth of the thread to the depth of the task.
+                task_system::set_thread_depth(depth_);
+
+                // execute the task.
                 try {
-                    // save the current depth of the thread
-                    // to be reset after task execution.
-                    auto tdepth = task_system::get_thread_depth();
-
-                    // set the depth of the thread to the depth of the task.
-                    task_system::set_thread_depth(depth_);
-
-                    // execute the task.
                     f_();
-
-                    // reset the depth of the thread.
-                    task_system::set_thread_depth(tdepth);
                 }
                 catch (...) {
                     exception_status_.set(std::current_exception());
                 }
+
+                // reset the depth of the thread.
+                task_system::set_thread_depth(tdepth);
             }
             --counter_;
         }
@@ -228,11 +228,13 @@ public:
     template<typename F>
     void run(F&& f) {
         running_ = true;
-        ++in_flight_;
         int thread_depth = task_system::get_thread_depth();
-        // todo don't enque if reach max depth
-        auto depth = thread_depth+1<impl::max_task_depth? thread_depth+1 : thread_depth;
-        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, depth, exception_status_), depth);
+        if (thread_depth+1 >= impl::max_task_depth) {
+            f();
+            return;
+        }
+        ++in_flight_;
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, thread_depth+1, exception_status_), thread_depth+1);
     }
 
     template<typename F>
