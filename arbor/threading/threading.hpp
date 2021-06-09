@@ -299,23 +299,40 @@ public:
     // Enqueues new tasks belonging to the task_group.
     // The depth of nested parallelism is automatically
     // calculated used to set the priority of the task.
+    // Returns the depth of the enqueued task.
     template<typename F>
-    void run(F&& f) {
+    int run(F&& f) {
         running_ = true;
         int thread_depth = task_system::get_thread_depth();
         // Don't nest parallelism after a certain depth.
         if (thread_depth+1 >= impl::max_task_depth) {
-            f();
-            return;
+            try {
+                f();
+            }
+            catch (...) {
+                exception_status_.set(std::current_exception());
+            }
+            return thread_depth;
         }
+        auto task_depth = thread_depth+1;
         ++in_flight_;
-        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, thread_depth+1, exception_status_), thread_depth+1);
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, task_depth, exception_status_), task_depth);
+        return task_depth;
     }
 
     // Enqueues new tasks belonging to the task_group with a given priority.
     template<typename F>
     void run(F&& f, int depth) {
         running_ = true;
+        if (depth >= impl::max_task_depth) {
+            try {
+                f();
+            }
+            catch (...) {
+                exception_status_.set(std::current_exception());
+            }
+            return;
+        }
         ++in_flight_;
         task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, depth, exception_status_), depth);
     }
@@ -341,7 +358,7 @@ public:
     }
 
     ~task_group() {
-        if (running_) std::terminate();
+        if (in_flight_&&running_) std::terminate();
     }
 };
 
@@ -358,23 +375,16 @@ struct parallel_for {
     template <typename F>
     static void apply(int left, int right, int batch_size, task_system* ts, F f) {
         int current_depth = task_system::get_thread_depth();
-        if (current_depth+1 >= impl::max_task_depth) {
-            for (int i = left; i < right; i++) {
-                f(i);
-            }
+        task_group g(ts);
+        for (int i = left; i < right; i += batch_size) {
+            g.run([=] {
+                int r = i + batch_size < right ? i + batch_size : right;
+                for (int j = i; j < r; ++j) {
+                    f(j);
+                }
+            }, current_depth+1);
         }
-        else {
-            task_group g(ts);
-            for (int i = left; i < right; i += batch_size) {
-                g.run([=] {
-                    int r = i + batch_size < right ? i + batch_size : right;
-                    for (int j = i; j < r; ++j) {
-                        f(j);
-                    }
-                }, current_depth+1);
-            }
-            g.wait(current_depth+1);
-        }
+        g.wait(current_depth+1);
     }
 
     template <typename F>

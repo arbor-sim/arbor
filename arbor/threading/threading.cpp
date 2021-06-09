@@ -9,7 +9,7 @@ using namespace arb::threading;
 using namespace arb;
 
 task notification_queue::try_pop(int priority) {
-    arb_assert(priority < q_tasks_.size());
+    arb_assert(priority < (int)q_tasks_.size());
     task tsk;
     lock q_lock{q_mutex_, std::try_to_lock};
     if (!q_lock) return tsk;
@@ -38,7 +38,7 @@ task notification_queue::pop() {
 }
 
 bool notification_queue::try_push(task& tsk, int priority) {
-    arb_assert(priority < q_tasks_.size());
+    arb_assert(priority < (int)q_tasks_.size());
     {
         lock q_lock{q_mutex_, std::try_to_lock};
         if (!q_lock) return false;
@@ -50,7 +50,7 @@ bool notification_queue::try_push(task& tsk, int priority) {
 }
 
 void notification_queue::push(task&& tsk, int priority) {
-    arb_assert(priority < q_tasks_.size());
+    arb_assert(priority < (int)q_tasks_.size());
     {
         lock q_lock{q_mutex_};
         q_tasks_.at(priority).push_front(std::move(tsk));
