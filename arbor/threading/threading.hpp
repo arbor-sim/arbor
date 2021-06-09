@@ -389,8 +389,7 @@ struct parallel_for {
 
     template <typename F>
     static void apply(int left, int right, task_system* ts, F f) {
-        int batch_size = ((right - left) / (ts->get_num_threads()) * 32) + 1;
-        apply(left, right, batch_size, ts, std::move(f));
+        apply(left, right, 1, ts, std::move(f));
     }
 };
 } // namespace threading

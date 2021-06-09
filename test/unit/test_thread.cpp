@@ -303,13 +303,14 @@ TEST(task_group, nested_parallel_for_unbalanced) {
                 }
             }
         }
-        // 1 task per batch
+        // 128 tasks per batch
+        const int batch_size = 128;
         for (int nthreads = 1; nthreads < 20; nthreads *= 2) {
             for (int ntasks = 100000; ntasks <= 1000000; ntasks *= 10) {
                 task_system ts(nthreads);
                 std::vector<int> v(ntasks);
-                parallel_for::apply(0, ntasks, 1, &ts, [&](int i) {
-                  parallel_for::apply(0, 1, 1, &ts, [&](int j) { v[i] = i; });
+                parallel_for::apply(0, ntasks, batch_size, &ts, [&](int i) {
+                  parallel_for::apply(0, 1, batch_size, &ts, [&](int j) { v[i] = i; });
                 });
                 for (int i = 0; i < ntasks; i++) {
                     EXPECT_EQ(i, v[i]);
@@ -332,13 +333,14 @@ TEST(task_group, nested_parallel_for_unbalanced) {
                 }
             }
         }
-        // 1 task per batch
+        // 128 tasks per batch
+        const int batch_size = 128;
         for (int nthreads = 1; nthreads < 20; nthreads *= 2) {
             for (int ntasks = 100000; ntasks <= 1000000; ntasks *= 10) {
                 task_system ts(nthreads);
                 std::vector<int> v(ntasks);
-                parallel_for::apply(0, 1, 1, &ts, [&](int i) {
-                  parallel_for::apply(0, ntasks, 1, &ts, [&](int j) { v[j] = j; });
+                parallel_for::apply(0, 1, batch_size, &ts, [&](int i) {
+                  parallel_for::apply(0, ntasks, batch_size, &ts, [&](int j) { v[j] = j; });
                 });
                 for (int i = 0; i < ntasks; i++) {
                     EXPECT_EQ(i, v[i]);
