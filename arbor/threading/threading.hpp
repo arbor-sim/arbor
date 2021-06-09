@@ -366,7 +366,7 @@ public:
     }
 
     ~task_group() {
-        if (in_flight_&&running_) std::terminate();
+        if (running_) std::terminate();
     }
 };
 

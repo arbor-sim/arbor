@@ -135,6 +135,7 @@ task_system::~task_system() {
 }
 
 void task_system::async(task tsk, int priority) {
+    arb_assert(priority < (int)index_.size());
     auto i = index_[priority]++;
 
     for (unsigned n = 0; n != count_; n++) {
