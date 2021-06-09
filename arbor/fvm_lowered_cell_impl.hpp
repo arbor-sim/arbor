@@ -568,7 +568,7 @@ void fvm_lowered_cell_impl<Backend>::initialize(
         }
 
         auto minst = mech_instance(name);
-        minst.mech->instantiate(mech_id++, *state_, minst.overrides, layout);
+        state_->instantiate(*minst.mech, mech_id++, minst.overrides, layout);
         mechptr_by_name[name] = minst.mech.get();
 
         for (auto& pv: config.param_values) {

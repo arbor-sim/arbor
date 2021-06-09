@@ -14,5 +14,12 @@ fvm_value_type* backend::mechanism_field_data(arb::mechanism* mptr, const std::s
     return m? m->field_data(field): nullptr;
 }
 
+void kernel::multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {
+
+void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {
+    kernel::multiply_in_place(s, p, n);
+}
+
+
 } // namespace gpu
 } // namespace arb

@@ -67,7 +67,7 @@ struct backend {
     }
 
     static value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
+    static void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n);
 };
-
 } // namespace gpu
 } // namespace arb

@@ -9,6 +9,8 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 
+#include "../../backends/multi_event_stream_state.hpp"
+
 namespace arb {
 
 class mechanism;
@@ -17,6 +19,31 @@ using mechanism_ptr = std::unique_ptr<mechanism>;
 template <typename B> class concrete_mechanism;
 template <typename B>
 using concrete_mech_ptr = std::unique_ptr<concrete_mechanism<B>>;
+
+
+struct ion_state_view {
+    fvm_value_type* current_density;
+    fvm_value_type* reversal_potential;
+    fvm_value_type* internal_concentration;
+    fvm_value_type* external_concentration;
+    fvm_value_type* ionic_charge;
+};
+
+// Generated mechanism field, global and ion table lookup types.
+// First component is name, second is pointer to corresponing member in
+// the mechanism's parameter pack, or for field_default_table,
+// the scalar value used to initialize the field.
+using global_table_entry = std::pair<const char*, fvm_value_type>;
+using mechanism_global_table = std::vector<global_table_entry>;
+
+using state_table_entry = std::pair<const char*, std::pair<fvm_value_type*, fvm_value_type>>;
+using mechanism_state_table = std::vector<state_table_entry>;
+
+using field_table_entry = std::pair<const char*, std::pair<fvm_value_type*, fvm_value_type>>;
+using mechanism_field_table = std::vector<field_table_entry>;
+
+using ion_state_entry = std::pair<const char*, std::pair<ion_state_view, fvm_index_type*>>;
+using mechanism_ion_table = std::vector<ion_state_entry>;
 
 class mechanism {
 public:
@@ -47,26 +74,41 @@ public:
     // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string&, const std::vector<fvm_value_type>&) {}
 
-    // Peek into state variable
-    virtual fvm_value_type* field_data(const std::string&) { return nullptr; }
-
     // Simulation interfaces:
     virtual void initialize() {}
     virtual void update_state() {}
     virtual void update_current() {}
     virtual void deliver_events() {}
+
     virtual void post_event() {}
     virtual void update_ions() {}
+
+    // Peek into state variable
+    fvm_value_type* field_data(const std::string& var);
+
+    mechanism_field_table field_table();
+    mechanism_global_table global_table();
+    mechanism_state_table state_table();
+    mechanism_ion_table ion_table();
 
     virtual ~mechanism() = default;
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
 
-protected:
     arb_mechanism_type  mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
+    bool mult_in_place_;                             // perform multiplication in place?
+    size_type num_ions_ = 0;                         // Ion count
+
+    size_type width_padded_;
+
+
+    std::vector<arb_value_type>  globals_;
+    std::vector<arb_value_type*> parameters_;
+    std::vector<arb_value_type*> state_vars_;
+    std::vector<arb_ion_state>   ion_states_;
 };
 
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
@@ -97,30 +139,6 @@ struct mechanism_overrides {
     std::unordered_map<std::string, std::string> ion_rebind;
 };
 
-struct ion_state_view {
-    fvm_value_type* current_density;
-    fvm_value_type* reversal_potential;
-    fvm_value_type* internal_concentration;
-    fvm_value_type* external_concentration;
-    fvm_value_type* ionic_charge;
-};
-
-// Generated mechanism field, global and ion table lookup types.
-// First component is name, second is pointer to corresponing member in
-// the mechanism's parameter pack, or for field_default_table,
-// the scalar value used to initialize the field.
-using global_table_entry = std::pair<const char*, fvm_value_type>;
-using mechanism_global_table = std::vector<global_table_entry>;
-
-using state_table_entry = std::pair<const char*, std::pair<fvm_value_type*, fvm_value_type>>;
-using mechanism_state_table = std::vector<state_table_entry>;
-
-using field_table_entry = std::pair<const char*, std::pair<fvm_value_type*, fvm_value_type>>;
-using mechanism_field_table = std::vector<field_table_entry>;
-
-using ion_state_entry = std::pair<const char*, std::pair<ion_state_view, fvm_index_type*>>;
-using mechanism_ion_table = std::vector<ion_state_entry>;
-
 template <typename Backend>
 class concrete_mechanism: public mechanism {
 public:
@@ -129,20 +147,13 @@ public:
     using ::arb::mechanism::mechanism;
     using backend = Backend;
 
-    // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(unsigned id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) {}
-
     void initialize() override {
+        set_time_ptr();
         iface_.init_mechanism(&ppack_);
-    }
-
-    void deliver_events() override {
-        auto marked = event_stream_ptr_->marked_events();
-        ppack_.events.n_streams = marked.n;
-        ppack_.events.begin     = marked.begin_offset;
-        ppack_.events.end       = marked.end_offset;
-        ppack_.events.events    = (arb_deliverable_event_data*) marked.ev_data; // TODO(TH) bad: relies on rep. equality
-        iface_.apply_events(&ppack_);
+        if (!mult_in_place_) return;
+        for (arb_size_type idx = 0; idx < mech_.n_state_vars; ++idx) {
+            backend::multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
+        }
     }
 
     void update_current() override {
@@ -160,22 +171,23 @@ public:
         iface_.write_ions(&ppack_);
     }
 
-protected:
+    void deliver_events() override {
+        auto marked = event_stream_ptr_->marked_events();
+        ppack_.events.n_streams = marked.n;
+        ppack_.events.begin     = marked.begin_offset;
+        ppack_.events.end       = marked.end_offset;
+        ppack_.events.events    = (arb_deliverable_event_data*) marked.ev_data;
+        iface_.apply_events(&ppack_);
+    }
+
     using deliverable_event_stream = typename backend::deliverable_event_stream;
     using iarray = typename backend::iarray;
     using array  = typename backend::array;
 
      void set_time_ptr() { ppack_.vec_t = vec_t_ptr_->data(); }
 
-    virtual mechanism_field_table field_table() { return {}; }
-    virtual mechanism_global_table global_table() { return {}; }
-    virtual mechanism_state_table state_table() { return {}; }
-    virtual mechanism_ion_table ion_table() { return {}; }
-
     const array* vec_t_ptr_;                         // indirection for accessing time in mechanisms
     deliverable_event_stream* event_stream_ptr_;     // events to be processed
-    size_type num_ions_ = 0;                         // Ion count
-    bool mult_in_place_;                             // perform multiplication in place?
 
     // Bulk storage for index vectors and state and parameter variables.
     iarray indices_;

@@ -1,9 +1,7 @@
 #ifndef ARB_MECH_ABI
 #define ARB_MECH_ABI
 
-#include <stddef.h>
-#include <stdint.h>
-#include <math.h>
+#include <arbor/arb_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,11 +14,6 @@ extern "C" {
 
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000 * 10000) + (ARB_MECH_ABI_VERSION_MAJOR * 10000) + ARB_MECH_ABI_VERSION_PATCH)
 
-// FVM typedefs
-typedef double   arb_value_type;
-typedef float    arb_weight_type;
-typedef int      arb_index_type;
-typedef uint32_t arb_size_type;
 
 typedef const char* arb_mechanism_fingerprint;
 

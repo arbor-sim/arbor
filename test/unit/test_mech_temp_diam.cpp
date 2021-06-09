@@ -47,7 +47,7 @@ void run_celsius_test() {
         layout.cv.push_back(i);
     }
 
-    celsius_test->instantiate(0, *shared_state, overrides, layout);
+    shared_state->instantiate(*celsius_test, 0, overrides, layout);
     shared_state->reset();
 
     // expect 0 value in state 'c' after init:
@@ -98,7 +98,7 @@ void run_diam_test() {
             ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
 
 
-    celsius_test->instantiate(0, *shared_state, overrides, layout);
+    shared_state->instantiate(*celsius_test, 0, overrides, layout);
     shared_state->reset();
 
     // expect 0 value in state 'd' after init:

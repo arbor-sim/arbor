@@ -26,6 +26,7 @@ set(arbor_sources
     lif_cell_group.cpp
     mc_cell_group.cpp
     mechcat.cpp
+    mechanism.cpp
     memory/gpu_wrappers.cpp
     memory/util.cpp
     morph/embed_pwlin.cpp

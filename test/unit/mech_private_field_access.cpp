@@ -17,7 +17,7 @@ using namespace arb;
 
 // Multicore mechanisms:
 
-ACCESS_BIND(mechanism_field_table (concrete_mechanism<multicore::backend>::*)(), multicore_field_table_ptr, &concrete_mechanism<multicore::backend>::field_table);
+ACCESS_BIND(mechanism_field_table (mechanism::*)(), multicore_field_table_ptr, &mechanism::field_table);
 ACCESS_BIND(arb_mechanism_type  mechanism::*, mech_type_ptr,  &mechanism::mech_);
 ACCESS_BIND(arb_mechanism_ppack mechanism::*, mech_ppack_ptr, &mechanism::ppack_);
 

@@ -29,6 +29,7 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
     std::string fingerprint = "<placeholder>";
 
     out << fmt::format("#pragma once\n\n"
+                       "#include <cmath>\n"
                        "#include <{}mechanism_abi.h>\n\n",
                        arb_header_prefix());
 

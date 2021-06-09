@@ -52,30 +52,9 @@ mechanism_info fleeb_info = {
     "fleebprint"
 };
 
-// Backend classes:
-
 template <typename B>
 struct common_impl: concrete_mechanism<B> {
-    void instantiate(fvm_size_type id, typename B::shared_state& state, const mechanism_overrides& o, const mechanism_layout& l) override {
-        this->ppack_.width = l.cv.size();
-        // Write mechanism global values to shared state to test instatiation call and catalogue global
-        // variable overrides.
-        for (auto& kv: o.globals) {
-            state.overrides.insert(kv);
-        }
-
-        for (auto& ion: mech_ions) {
-            if (o.ion_rebind.count(ion)) {
-                ion_bindings_[ion] = state.ions.at(o.ion_rebind.at(ion));
-            } else {
-                ion_bindings_[ion] = state.ions.at(ion);
-            }
-        }
-    }
-
     void set_parameter(const std::string& key, const std::vector<fvm_value_type>& vs) override {}
-
-    fvm_value_type* field_data(const std::string& var) override { return nullptr; }
 
     void initialize() override {}
     void update_state() override {}
@@ -88,77 +67,81 @@ struct common_impl: concrete_mechanism<B> {
     std::unordered_map<std::string, std::string> ion_bindings_;
 };
 
+// Backend classes:
+struct test_backend {
+    using iarray = std::vector<fvm_index_type>;
+    using array  = std::vector<fvm_value_type>;
+
+    test_backend(const std::unordered_map<std::string, std::string>& ions_): shared_{ions_} {}
+
+    struct shared_state {
+        shared_state(const std::unordered_map<std::string, std::string>& ions_): ions{ions_} {}
+
+        template<typename B>
+        void instantiate(concrete_mechanism<B>& m_, fvm_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
+            common_impl<B>& m = dynamic_cast<common_impl<B>&>(m_);
+            m.ppack_.width = l.cv.size();
+            // Write mechanism global values to shared state to test instatiation call and catalogue global
+            // variable overrides.
+            for (auto& kv: o.globals) {
+                overrides.insert(kv);
+            }
+
+            for (auto& ion: m.mech_ions) {
+                if (o.ion_rebind.count(ion)) {
+                    m.ion_bindings_[ion] = ions.at(o.ion_rebind.at(ion));
+                } else {
+                    m.ion_bindings_[ion] = ions.at(ion);
+                }
+            }
+        }
+
+        std::unordered_map<std::string, fvm_value_type> overrides;
+        std::unordered_map<std::string, std::string> ions;
+    };
+
+    shared_state shared_;
+
+    struct deliverable_event_stream {
+        struct state {
+            void* ev_data;
+            int* begin_offset;
+            int* end_offset;
+            int n;
+        };
+        state& marked_events() { return state_; }
+        state state_;
+    };
+
+    static void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {}
+};
+
+struct foo_backend: test_backend {
+    foo_backend(): test_backend{{{ "a", "foo_ion_a" },
+                                 { "b", "foo_ion_b" },
+                                 { "c", "foo_ion_c" },
+                                 { "d", "foo_ion_d" },
+                                 { "e", "foo_ion_e" },
+                                 { "f", "foo_ion_f" }}} {}
+};
+
+struct bar_backend: test_backend {
+    bar_backend(): test_backend{{{ "a", "bar_ion_a" },
+                                 { "b", "bar_ion_b" },
+                                 { "c", "bar_ion_c" },
+                                 { "d", "bar_ion_d" },
+                                 { "e", "bar_ion_e" },
+                                 { "f", "bar_ion_f" }}} {}
+};
+
+using foo_mechanism = common_impl<foo_backend>;
+using bar_mechanism = common_impl<bar_backend>;
+
 template <typename B>
 std::string ion_binding(const std::unique_ptr<concrete_mechanism<B>>& mech, const char* ion) {
     const common_impl<B>& impl = dynamic_cast<const common_impl<B>&>(*mech.get());
     return impl.ion_bindings_.count(ion)? impl.ion_bindings_.at(ion): "";
 }
-
-
-struct foo_stream_state {
-    void* ev_data;
-    int* begin_offset;
-    int* end_offset;
-    int n;
-};
-
-struct foo_stream {
-    using state = foo_stream_state;
-    state& marked_events() { return state_; }
-    state state_;
-};
-
-struct foo_backend {
-    using iarray = std::vector<fvm_index_type>;
-    using array  = std::vector<fvm_value_type>;
-    using deliverable_event_stream = foo_stream;
-
-    struct shared_state {
-        std::unordered_map<std::string, fvm_value_type> overrides;
-        std::unordered_map<std::string, std::string> ions = {
-            { "a", "foo_ion_a" },
-            { "b", "foo_ion_b" },
-            { "c", "foo_ion_c" },
-            { "d", "foo_ion_d" },
-            { "e", "foo_ion_e" },
-            { "f", "foo_ion_f" }
-        };
-    };
-};
-
-using foo_mechanism = common_impl<foo_backend>;
-
-struct bar_stream_state {
-    void* ev_data;
-    int* begin_offset;
-    int* end_offset;
-    int n;
-};
-
-struct bar_stream {
-    using state = bar_stream_state;
-    state& marked_events() { return state_; }
-    state state_;
-};
-
-struct bar_backend {
-    using iarray = std::vector<fvm_index_type>;
-    using array  = std::vector<fvm_value_type>;
-    using deliverable_event_stream = bar_stream;
-    struct shared_state {
-        std::unordered_map<std::string, fvm_value_type> overrides;
-        std::unordered_map<std::string, std::string> ions = {
-            { "a", "bar_ion_a" },
-            { "b", "bar_ion_b" },
-            { "c", "bar_ion_c" },
-            { "d", "bar_ion_d" },
-            { "e", "bar_ion_e" },
-            { "f", "bar_ion_f" }
-        };
-    };
-};
-
-using bar_mechanism = common_impl<bar_backend>;
 
 // Fleeb implementations:
 
@@ -406,19 +389,19 @@ TEST(mechcat, instantiate) {
     // these tests for testing purposes.
 
     mechanism_layout layout = {{0u, 1u, 2u}, {1., 2., 1.}, {1u, 1u, 1u}};
-    bar_backend::shared_state bar_state;
+    bar_backend bar;
 
     auto cat = build_fake_catalogue();
 
     auto fleeb = cat.instance<bar_backend>("fleeb");
-    fleeb.mech->instantiate(0, bar_state, fleeb.overrides, layout);
-    EXPECT_TRUE(bar_state.overrides.empty());
+    bar.shared_.instantiate(*fleeb.mech, 0, fleeb.overrides, layout);
+    EXPECT_TRUE(bar.shared_.overrides.empty());
 
-    bar_state.overrides.clear();
+    bar.shared_.overrides.clear();
     auto fleeb2 = cat.instance<bar_backend>("fleeb2");
-    fleeb2.mech->instantiate(0, bar_state, fleeb2.overrides, layout);
-    EXPECT_EQ(2.0,  bar_state.overrides.at("plugh"));
-    EXPECT_EQ(11.0, bar_state.overrides.at("norf"));
+    bar.shared_.instantiate(*fleeb2.mech, 0, fleeb2.overrides, layout);
+    EXPECT_EQ(2.0,  bar.shared_.overrides.at("plugh"));
+    EXPECT_EQ(11.0, bar.shared_.overrides.at("norf"));
 
     // Check ion rebinding:
     // fleeb1 should have ions 'a' and 'b' swapped;
@@ -432,11 +415,11 @@ TEST(mechcat, instantiate) {
     EXPECT_EQ("bar_ion_d", ion_binding(fleeb.mech, "d"));
 
     auto fleeb3 = cat.instance<bar_backend>("fleeb3");
-    fleeb3.mech->instantiate(0, bar_state, fleeb3.overrides, layout);
+    bar.shared_.instantiate(*fleeb3.mech, 0, fleeb3.overrides, layout);
 
-    foo_backend::shared_state foo_state;
+    foo_backend foo;
     auto fleeb1 = cat.instance<foo_backend>("fleeb1");
-    fleeb1.mech->instantiate(0, foo_state, fleeb1.overrides, layout);
+    foo.shared_.instantiate(*fleeb1.mech, 0, fleeb1.overrides, layout);
 
     EXPECT_EQ("foo_ion_b", ion_binding(fleeb1.mech, "a"));
     EXPECT_EQ("foo_ion_a", ion_binding(fleeb1.mech, "b"));

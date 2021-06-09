@@ -67,19 +67,19 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
 
 // Access to mechanism-internal data:
 ACCESS_BIND(\
-    arb::mechanism_global_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
+    arb::mechanism_global_table (arb::mechanism::*)(), \
     private_global_table_ptr,\
-    &arb::concrete_mechanism<arb::multicore::backend>::global_table)
+    &arb::mechanism::global_table)
 
 ACCESS_BIND(\
-    arb::mechanism_field_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
+    arb::mechanism_field_table (arb::mechanism::*)(), \
     private_field_table_ptr,\
-    &arb::concrete_mechanism<arb::multicore::backend>::field_table)
+    &arb::mechanism::field_table)
 
 ACCESS_BIND(\
-    arb::mechanism_ion_table (arb::concrete_mechanism<arb::multicore::backend>::*)(), \
+    arb::mechanism_ion_table (arb::mechanism::*)(), \
     private_ion_table_ptr,\
-    &arb::concrete_mechanism<arb::multicore::backend>::ion_table)
+    &arb::mechanism::ion_table)
 
 using namespace arb;
 
@@ -677,8 +677,8 @@ TEST(fvm_lowered, ionic_concentrations) {
             ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
-    read_cai_mech->instantiate(0, *shared_state, overrides, layout);
-    write_cai_mech->instantiate(1, *shared_state, overrides, layout);
+    shared_state->instantiate(*read_cai_mech, 0, overrides, layout);
+    shared_state->instantiate(*write_cai_mech, 1, overrides, layout);
 
     shared_state->reset();
 

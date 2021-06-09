@@ -56,7 +56,7 @@ TEST(abi, multicore_initialisation) {
 
     arb::mechanism_overrides overrides;
 
-    mech.instantiate(42, shared_state, overrides, layout);
+    shared_state.instantiate(mech, 42, overrides, layout);
 
     {
         auto tb = mech.global_table();

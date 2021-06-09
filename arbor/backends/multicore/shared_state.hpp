@@ -19,9 +19,9 @@
 #include "matrix_state.hpp"
 #include "multi_event_stream.hpp"
 #include "threshold_watcher.hpp"
-
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"
+#include "partition_by_constraint.hpp"
 
 namespace arb {
 namespace multicore {
@@ -105,6 +105,12 @@ struct istim_state {
     istim_state() = default;
 };
 
+struct mech_storage {
+    array data_;
+    iarray indices_;
+    constraint_partition constraints_;
+};
+
 struct shared_state {
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
@@ -116,7 +122,7 @@ struct shared_state {
 
     iarray cv_to_intdom;      // Maps CV index to integration domain index.
     iarray cv_to_cell;        // Maps CV index to the first spike
-    gjarray  gap_junctions;   // Stores gap_junction info.
+    gjarray gap_junctions;   // Stores gap_junction info.
     array time;               // Maps intdom index to integration start time [ms].
     array time_to;            // Maps intdom index to integration stop time [ms].
     array dt_intdom;          // Maps  index to (stop time) - (start time) [ms].
@@ -135,6 +141,7 @@ struct shared_state {
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
+    std::unordered_map<unsigned, mech_storage> storage;
 
     shared_state() = default;
 
@@ -151,6 +158,8 @@ struct shared_state {
         const std::vector<fvm_index_type>& src_to_spike,
         unsigned align
     );
+
+    void instantiate(mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
     void add_ion(
         const std::string& ion_name,
