@@ -210,6 +210,8 @@ TEST(regloc, round_tripping) {
         "(radius-gt (tag 3) 1)",
         "(radius-ge (tag 4) 3)",
         "(intersect (cable 2 0 0.5) (region \"axon\"))",
+        "(complement (region \"axon\"))",
+        "(difference (region \"axon\") (region \"soma\"))",
     };
     for (auto l: region_literals) {
         EXPECT_EQ(l, round_trip_label<arb::region>(l));
@@ -228,6 +230,10 @@ TEST(regloc, round_tripping) {
         "(on-components 0.3 (segment 2))",
         "(join (terminal) (root))",
         "(sum (terminal) (root))",
+        "(boundary (tag 2))",
+        "(cboundary (join (tag 2) (region \"dend\")))",
+        "(segment-boundaries)",
+        "(support (distal (tag 2)))",
     };
     for (auto l: locset_literals) {
         EXPECT_EQ(l, round_trip_label<arb::locset>(l));

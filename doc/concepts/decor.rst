@@ -28,8 +28,8 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 
 Decorations are described by a **decor** object in Arbor. It provides facilities for
 
-  * setting properties defined over the whole cell;
-  * descriptions of dynamics applied to regions and locsets.
+* setting properties defined over the whole cell;
+* descriptions of dynamics applied to regions and locsets.
 
 .. _cablecell-paint:
 

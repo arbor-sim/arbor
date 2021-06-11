@@ -607,17 +607,7 @@ because it has two children: the dendrites attached to its distal end.
 Supported file formats
 ----------------------
 
-Arbor supports morphologies described using the SWC file format and the NeuroML file format.
-
-SWC
-~~~
-
-See :ref:`formatswc`
-
-NeuroML
-~~~~~~~
-
-See :ref:`formatneuroml`
+See the supported :ref:`file formats <format-overview>`.
 
 .. _morph-cv-policies:
 

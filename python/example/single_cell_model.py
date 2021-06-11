@@ -11,7 +11,7 @@ tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), ta
 labels = arbor.label_dict({'soma':   '(tag 1)',
                            'midpoint': '(location 0 0.5)'})
 
-# (3) Create cell and set properties
+# (3) Create and set up a decor object
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')

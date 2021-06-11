@@ -237,7 +237,7 @@ void register_cells(pybind11::module& m) {
         .def("__getitem__",
             [](label_dict_proxy& l, const char* name) {
                 if (!l.cache.count(name)) {
-                    throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
+                    throw pybind11::key_error(name);
                 }
                 return l.cache.at(name);
             })

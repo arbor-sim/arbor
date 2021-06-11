@@ -1,7 +1,12 @@
 .. _formatcablecell:
 
-Arbor Cable Cell format (ACC)
-=============================
+Arbor Cable Cell
+================
+
+.. csv-table::
+   :header: "Name", "File extension", "Read", "Write"
+
+   "Arbor Cable Cell", "``acc``", "✓", "✓"
 
 We define an s-expression format for describing :ref:`cable cells <cablecell>`.
 Cable cells are constructed from three components: a :ref:`label dictionary <labels>`,
