@@ -1453,46 +1453,94 @@ TEST(fvm_lowered, label_data) {
     {
         auto clg = cell_labels_and_gids(fvm_info.target_data, gids);
         std::vector<cell_size_type> expected_sizes = {2, 0, 0, 2, 0, 0, 2, 0, 0, 2};
-        std::vector<cell_tag_type> expected_labels = {"1_synapse", "4_synapses", "1_synapse", "4_synapses", "1_synapse", "4_synapses", "1_synapse", "4_synapses"};
-        std::vector<lid_range> expected_ranges = {{4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}, {4, 5}, {0, 4}};
+        std::vector<std::pair<cell_tag_type, lid_range>> expected_labeled_ranges, actual_labeled_ranges;
+        expected_labeled_ranges = {
+            {"1_synapse",  {4, 5}}, {"4_synapses", {0, 4}},
+            {"1_synapse",  {4, 5}}, {"4_synapses", {0, 4}},
+            {"1_synapse",  {4, 5}}, {"4_synapses", {0, 4}},
+            {"1_synapse",  {4, 5}}, {"4_synapses", {0, 4}}
+        };
 
         EXPECT_EQ(clg.gids, gids);
         EXPECT_EQ(clg.label_range.sizes(), expected_sizes);
-        EXPECT_EQ(clg.label_range.labels(), expected_labels);
-        EXPECT_EQ(clg.label_range.ranges(), expected_ranges);
+        EXPECT_EQ(clg.label_range.labels().size(), expected_labeled_ranges.size());
+        EXPECT_EQ(clg.label_range.ranges().size(), expected_labeled_ranges.size());
+
+        for (unsigned i = 0; i < expected_labeled_ranges.size(); ++i) {
+            actual_labeled_ranges.push_back({clg.label_range.labels()[i], clg.label_range.ranges()[i]});
+        }
+
+        std::vector<cell_size_type> size_partition;
+        auto part = util::make_partition(size_partition, expected_sizes);
+        for (const auto& r: part) {
+            util::sort(util::subrange_view(actual_labeled_ranges, r));
+        }
+        EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
     }
 
     // detectors
     {
         auto clg = cell_labels_and_gids(fvm_info.source_data, gids);
         std::vector<cell_size_type> expected_sizes = {1, 2, 2, 1, 2, 2, 1, 2, 2, 1};
-        std::vector<cell_tag_type> expected_labels = {"1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors",
-                                                      "1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors",
-                                                      "1_detector", "2_detectors", "3_detectors", "2_detectors", "3_detectors", "1_detector"};
-        std::vector<lid_range> expected_ranges = {{0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3},
-                                                  {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3},
-                                                  {0, 1}, {3, 5}, {0, 3}, {3, 5}, {0, 3}, {0, 1}};
+        std::vector<std::pair<cell_tag_type, lid_range>> expected_labeled_ranges, actual_labeled_ranges;
+        expected_labeled_ranges = {
+            {"1_detector",  {0, 1}},
+            {"2_detectors", {3, 5}}, {"3_detectors", {0, 3}},
+            {"2_detectors", {3, 5}}, {"3_detectors", {0, 3}},
+            {"1_detector",  {0, 1}},
+            {"2_detectors", {3, 5}}, {"3_detectors", {0, 3}},
+            {"2_detectors", {3, 5}}, {"3_detectors", {0, 3}},
+            {"1_detector",  {0, 1}},
+            {"2_detectors", {3, 5}}, {"3_detectors", {0, 3}},
+            {"2_detectors", {3, 5}}, {"3_detectors", {0, 3}},
+            {"1_detector",  {0, 1}}
+        };
 
         EXPECT_EQ(clg.gids, gids);
         EXPECT_EQ(clg.label_range.sizes(), expected_sizes);
-        EXPECT_EQ(clg.label_range.labels(), expected_labels);
-        EXPECT_EQ(clg.label_range.ranges(), expected_ranges);
+        EXPECT_EQ(clg.label_range.labels().size(), expected_labeled_ranges.size());
+        EXPECT_EQ(clg.label_range.ranges().size(), expected_labeled_ranges.size());
+
+        for (unsigned i = 0; i < expected_labeled_ranges.size(); ++i) {
+            actual_labeled_ranges.push_back({clg.label_range.labels()[i], clg.label_range.ranges()[i]});
+        }
+
+        std::vector<cell_size_type> size_partition;
+        auto part = util::make_partition(size_partition, expected_sizes);
+        for (const auto& r: part) {
+            util::sort(util::subrange_view(actual_labeled_ranges, r));
+        }
+        EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
     }
 
     // gap_junctions
     {
         auto clg = cell_labels_and_gids(fvm_info.gap_junction_data, gids);
         std::vector<cell_size_type> expected_sizes = {0, 2, 2, 0, 2, 2, 0, 2, 2, 0};
-        std::vector<cell_tag_type> expected_labels = {"1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions",
-                                                      "1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions",
-                                                      "1_gap_junction", "2_gap_junctions", "1_gap_junction", "2_gap_junctions"};
-        std::vector<lid_range> expected_ranges = {{2, 3}, {0, 2}, {2, 3}, {0, 2},
-                                                  {2, 3}, {0, 2}, {2, 3}, {0, 2},
-                                                  {2, 3}, {0, 2}, {2, 3}, {0, 2}};
+        std::vector<std::pair<cell_tag_type, lid_range>> expected_labeled_ranges, actual_labeled_ranges;
+        expected_labeled_ranges = {
+            {"1_gap_junction",  {2, 3}}, {"2_gap_junctions", {0, 2}},
+            {"1_gap_junction",  {2, 3}}, {"2_gap_junctions", {0, 2}},
+            {"1_gap_junction",  {2, 3}}, {"2_gap_junctions", {0, 2}},
+            {"1_gap_junction",  {2, 3}}, {"2_gap_junctions", {0, 2}},
+            {"1_gap_junction",  {2, 3}}, {"2_gap_junctions", {0, 2}},
+            {"1_gap_junction",  {2, 3}}, {"2_gap_junctions", {0, 2}},
+        };
 
         EXPECT_EQ(clg.gids, gids);
         EXPECT_EQ(clg.label_range.sizes(), expected_sizes);
-        EXPECT_EQ(clg.label_range.labels(), expected_labels);
-        EXPECT_EQ(clg.label_range.ranges(), expected_ranges);
+        EXPECT_EQ(clg.label_range.labels().size(), expected_labeled_ranges.size());
+        EXPECT_EQ(clg.label_range.ranges().size(), expected_labeled_ranges.size());
+
+        for (unsigned i = 0; i < expected_labeled_ranges.size(); ++i) {
+            actual_labeled_ranges.push_back({clg.label_range.labels()[i], clg.label_range.ranges()[i]});
+        }
+
+        std::vector<cell_size_type> size_partition;
+        auto part = util::make_partition(size_partition, expected_sizes);
+        for (const auto& r: part) {
+            util::sort(util::subrange_view(actual_labeled_ranges, r));
+        }
+        EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
     }
 }
