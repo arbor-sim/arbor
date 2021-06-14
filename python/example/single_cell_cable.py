@@ -17,17 +17,17 @@ class Cable(arbor.recipe):
         probes -- list of probes
 
         Vm -- membrane leak potential
-        length -- length of cable in micrometer
-        radius -- radius of cable in micrometer
+        length -- length of cable in μm
+        radius -- radius of cable in μm
         cm -- membrane capacitance in F/m^2
-        rL -- axial resistivity in Ohm*centimeter
-        g -- membrane conductivity in Siemens/cm^2
+        rL -- axial resistivity in Ω·cm
+        g -- membrane conductivity in S/cm^2
 
         stimulus_start -- start of stimulus in ms
         stimulus_duration -- duration of stimulus in ms
         stimulus_amplitude -- amplitude of stimulus in nA
 
-        cv_policy_max_extent -- maximum extent of control volume in micrometer
+        cv_policy_max_extent -- maximum extent of control volume in μm
         """
 
         # (4.1) The base C++ class constructor must be called first, to ensure that
@@ -61,6 +61,11 @@ class Cable(arbor.recipe):
         return arbor.cell_kind.cable
 
     def cell_description(self, gid):
+        """A high level description of the cell with global identifier gid.
+
+        For example the morphology, synapses and ion channels required
+        to build a multi-compartment neuron.
+        """
         assert gid == 0
 
         tree = arbor.segment_tree()
@@ -102,7 +107,7 @@ class Cable(arbor.recipe):
 
 def get_rm(g):
     """Return membrane resistivity in Ohm*m^2
-    g -- membrane conductivity in Siemens/m^2
+    g -- membrane conductivity in S/m^2
     """
     return 1/g
 
@@ -144,15 +149,15 @@ if __name__ == "__main__":
     parser.add_argument(
         '--Vm', help="membrane leak potential in mV", type=float, default=-65)
     parser.add_argument(
-        '--length', help="cable length in micrometer", type=float, default=1000)
+        '--length', help="cable length in μm", type=float, default=1000)
     parser.add_argument(
-        '--radius', help="cable radius in micrometer", type=float, default=1)
+        '--radius', help="cable radius in μm", type=float, default=1)
     parser.add_argument(
         '--cm', help="membrane capacitance in F/m^2", type=float, default=0.01)
     parser.add_argument(
-        '--rL', help="axial resistivity in Ohm*centimeter", type=float, default=90)
+        '--rL', help="axial resistivity in Ω·cm", type=float, default=90)
     parser.add_argument(
-        '--g', help="membrane conductivity in Siemens/cm^2", type=float, default=0.001)
+        '--g', help="membrane conductivity in S/cm^2", type=float, default=0.001)
 
     parser.add_argument('--stimulus_start',
                         help="start of stimulus in ms", type=float, default=10)
@@ -162,30 +167,38 @@ if __name__ == "__main__":
                         help="amplitude of stimulus in nA", type=float, default=1)
 
     parser.add_argument('--cv_policy_max_extent',
-                        help="maximum extent of control volume in micrometer", type=float, default=10)
+                        help="maximum extent of control volume in μm", type=float,
+                        default=10)
 
+    # parse the command line arguments
     args = parser.parse_args()
 
+    # set up membrane voltage probes equidistantly along the dendrites
     probes = [arbor.cable_probe_membrane_voltage(
         f'(location 0 {r})') for r in np.linspace(0, 1, 11)]
     recipe = Cable(probes, **vars(args))
 
+    # create a default execution context and a default domain decomposition
     context = arbor.context()
     domains = arbor.partition_load_balance(recipe, context)
 
+    # configure the simulation and handles for the probes
     sim = arbor.simulation(recipe, domains, context)
     dt = 0.001
     handles = [sim.sample((0, i), arbor.regular_schedule(dt))
                for i in range(len(probes))]
 
+    # run the simulation for 30 ms
     sim.run(tfinal=30, dt=dt)
 
+    # retrieve the sampled membrane voltages and convert to a pandas DataFrame
     data = [sim.samples(handle)[0][0] for handle in handles]
     data_dict = {str(i): d[:, 1] for i, d in enumerate(data)}
     data_dict["t"] = data[0][:, 0]
 
     df = pandas.DataFrame.from_dict(data_dict)
 
+    # plot all probes and save to file
     for i in range(len(probes)):
         plot = seaborn.lineplot(data=df, x="t", y=str(
             i), ci=None, legend="full", label=i)
@@ -202,7 +215,7 @@ if __name__ == "__main__":
     lambdam = get_lambdam(args.radius*1e-6, rm, args.rL*0.01)
     vcond_ideal = get_vcond(lambdam, taum)
 
-    # take the last at second probe
+    # take the last and second probe
     delta_t = (get_tmax(data[-1]) - get_tmax(data[1]))
 
     # 90% because we took the second probe
