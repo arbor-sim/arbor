@@ -3,7 +3,7 @@
 Cable cell probing and sampling
 ===============================
 
-Cable cell probe addresses are defined analagously to their counterparts in
+Cable cell probe addresses are defined analogously to their counterparts in
 the C++ API (see :ref:`cablecell-probes` for details). Sample data recorded
 by the Arbor simulation object is returned in the form of a NumPy array,
 with the first column holding sample times, and subsequent columns holding

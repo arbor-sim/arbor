@@ -129,7 +129,7 @@ Cable cell decoration
 
         Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
         Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the
-        placed items on the cable cell. For instance: the ``index`` returned when a synapse mechanism is ``place``d,
+        placed items on the cable cell. For instance: the ``index`` returned when a synapse mechanism is placed,
         can be used when creating a :py:class:`arbor.connection`
 
         :param str locations: description of the locset.
