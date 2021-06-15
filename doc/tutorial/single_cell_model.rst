@@ -48,7 +48,7 @@ Our *single-segment HH cell* has a simple morphology and dynamics, constructed a
     labels = arbor.label_dict({'soma':   '(tag 1)',
                                'midpoint': '(location 0 0.5)'})
 
-    # (3) Create cell and set properties
+    # (3) Create and set up a decor object
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')

@@ -1,11 +1,15 @@
 .. _formatasc:
 
-Neurlucida ASCII format
-~~~~~~~~~~~~~~~~~~~~~~~
+Neurolucida ASCII
+~~~~~~~~~~~~~~~~~
+
+.. csv-table::
+   :header: "Name", "File extension", "Read", "Write"
+
+   "Neurolucida", "``asc``", "✓", "✗"
 
 Arbor has support for reading cable cell morphologies described using the
-`Neurlucida ASCII file format <https://www.mbfbioscience.com/help/pdf/NL9.pdf>`_
-or ``.asc`` file format.
+`Neurolucida ASCII file format <https://www.mbfbioscience.com/help/pdf/NL9.pdf>`_.
 
 Because ASCII files contain both a morphology description and meta data, the
 loader returns both a morphology, and a label dictionary that describes regions

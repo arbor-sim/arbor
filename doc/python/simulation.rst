@@ -8,8 +8,8 @@ From recipe to simulation
 
 To build a simulation the following concepts are needed:
 
-    * an :py:class:`arbor.recipe` that describes the cells and connections in the model;
-    * an :py:class:`arbor.context` used to execute the simulation.
+* an :py:class:`arbor.recipe` that describes the cells and connections in the model;
+* an :py:class:`arbor.context` used to execute the simulation.
 
 The workflow to build a simulation is to first generate an
 :class:`arbor.domain_decomposition` based on the :py:class:`arbor.recipe` and :py:class:`arbor.context` describing the distribution of the model
@@ -50,16 +50,16 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     The **constructor** takes
 
-        * an :py:class:`arbor.recipe` that describes the model;
-        * an :py:class:`arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
-        * an :py:class:`arbor.context` which is used to execute the simulation.
+    * an :py:class:`arbor.recipe` that describes the model;
+    * an :py:class:`arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
+    * an :py:class:`arbor.context` which is used to execute the simulation.
 
     Simulations provide an interface for executing and interacting with the model:
 
-        * Specify what data (spikes, probe results) to record.
-        * **Advance the model state** by running the simulation up to some time point.
-        * Retrieve recorded data.
-        * Reset simulator state back to initial conditions.
+    * Specify what data (spikes, probe results) to record.
+    * **Advance the model state** by running the simulation up to some time point.
+    * Retrieve recorded data.
+    * Reset simulator state back to initial conditions.
 
     **Constructor:**
 
@@ -296,60 +296,61 @@ Definitions
 Procedure
 *********
 
-    There are three parts to the process of recording cell data over a simulation.
+There are three parts to the process of recording cell data over a simulation.
 
-    1. Describing what to measure.
+1. Describing what to measure.
 
-       The recipe object must provide a method :py:func:`recipe.get_probes` that returns a list of
-       probe addresses for the cell with a given ``gid``. The kth element of the list corresponds
-       to the :term:`probe id` ``(gid, k)``.
+   The recipe object must provide a method :py:func:`recipe.get_probes` that returns a list of
+   probe addresses for the cell with a given ``gid``. The kth element of the list corresponds
+   to the :term:`probe id` ``(gid, k)``.
 
-       Each probe address is an opaque object describing what to measure and where, and each cell kind
-       will have its own set of functions for generating valid address specifications. Possible cable
-       cell probes are described in the cable cell documentation: :ref:`pycablecell-probesample`.
+   Each probe address is an opaque object describing what to measure and where, and each cell kind
+   will have its own set of functions for generating valid address specifications. Possible cable
+   cell probes are described in the cable cell documentation: :ref:`pycablecell-probesample`.
 
-    2. Instructing the simulator to record data.
+2. Instructing the simulator to record data.
 
-       Recording is set up with the method :py:func:`simulation.sample`
-       as described above. It returns a handle that is used to retrieve the recorded data after
-       simulation.
+   Recording is set up with the method :py:func:`simulation.sample`
+   as described above. It returns a handle that is used to retrieve the recorded data after
+   simulation.
 
-    3. Retrieve recorded data.
+3. Retrieve recorded data.
 
-       The method :py:func:`simulation.samples` takes a handle and returns the recorded data as a list,
-       with one entry for each probe associated with the :term:`probe id` that was used in step 2 above. Each
-       entry will be a tuple ``(data, meta)`` where ``meta`` is the metadata associated with the
-       probe, and ``data`` contains all the data sampled on that probe over the course of the
-       simulation.
+   The method :py:func:`simulation.samples` takes a handle and returns the recorded data as a list,
+   with one entry for each probe associated with the :term:`probe id` that was used in step 2 above. Each
+   entry will be a tuple ``(data, meta)`` where ``meta`` is the metadata associated with the
+   probe, and ``data`` contains all the data sampled on that probe over the course of the
+   simulation.
 
-       The contents of ``data`` will depend upon the specifics of the probe, but note:
+   The contents of ``data`` will depend upon the specifics of the probe, but note:
 
-       i. The object type and structure of ``data`` is fully determined by the metadata.
+   i. The object type and structure of ``data`` is fully determined by the metadata.
 
-       ii. All currently implemented probes return data that is a NumPy array, with one
-           row per sample, first column being sample time, and the remaining columns containing
-           the corresponding data.
+   ii. All currently implemented probes return data that is a NumPy array, with one
+       row per sample, first column being sample time, and the remaining columns containing
+       the corresponding data.
 
-.. container:: example-code
+Example
+*******
 
-    .. code-block:: python
+.. code-block:: python
 
-        import arbor
+    import arbor
 
-        # [... define recipe, decomposition, context ... ]
-        # Initialize simulation:
+    # [... define recipe, decomposition, context ... ]
+    # Initialize simulation:
 
-        sim = arbor.simulation(recipe, decomp, context)
+    sim = arbor.simulation(recipe, decomp, context)
 
-        # Sample probe id (0, 0) (first probe id on cell 0) every 0.1 ms with exact sample timing:
+    # Sample probe id (0, 0) (first probe id on cell 0) every 0.1 ms with exact sample timing:
 
-        handle = sim.sample((0, 0), arbor.regular_schedule(0.1), arbor.sampling_policy.exact)
+    handle = sim.sample((0, 0), arbor.regular_schedule(0.1), arbor.sampling_policy.exact)
 
-        # Run simulation and retrieve sample data from the first probe associated with the handle.
+    # Run simulation and retrieve sample data from the first probe associated with the handle.
 
-        sim.run(tfinal=3, dt=0.1)
-        data, meta = sim.samples(handle)[0]
-        print(data)
+    sim.run(tfinal=3, dt=0.1)
+    data, meta = sim.samples(handle)[0]
+    print(data)
 
 >>> [[  0.         -50.        ]
 >>>  [  0.1        -55.14412111]

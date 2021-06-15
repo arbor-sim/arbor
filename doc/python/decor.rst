@@ -24,7 +24,6 @@ Cable cell decoration
         Overrides the default global values, and can be overridden by painting
         the values onto regions.
 
-        :param str region: description of the region.
         :param Vm: Initial membrane voltage [mV].
         :type Vm: float or None
         :param cm: Membrane capacitance [F/m²].
@@ -46,7 +45,7 @@ Cable cell decoration
         by default everywhere on the cell. Species concentrations and reversal
         potential can be overridden on specific regions using the paint interface,
         while the method for calculating reversal potential is global for all
-        CVs in the cell, and can't be overriden locally.
+        CVs in the cell, and can't be overridden locally.
 
         :param str ion: description of the ion species.
         :param float int_con: initial internal concentration [mM].
@@ -67,7 +66,7 @@ Cable cell decoration
             # The reversal potential is fixed, so we set the method to None.
             decor.set_ion('na', int_con=5.0, rev_pot=70, method=None)
 
-    Verious specialisations of the ``paint`` method are available for setting properties
+    Various specialisations of the ``paint`` method are available for setting properties
     and mechanisms that are applied to regions.
 
     .. method:: paint(region, Vm=None, cm=None, rL=None, tempK=None)
@@ -130,7 +129,7 @@ Cable cell decoration
 
         Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
         Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the
-        placed items on the cable cell. For instance: the ``index`` returned when a synapse mechanism is ``place``d,
+        placed items on the cable cell. For instance: the ``index`` returned when a synapse mechanism is placed,
         can be used when creating a :py:class:`arbor.connection`
 
         :param str locations: description of the locset.
