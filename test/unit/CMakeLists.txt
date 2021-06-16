@@ -235,7 +235,7 @@ if(ARB_WITH_HIP_CLANG)
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 endif()
 
-target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_FULL})
+target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

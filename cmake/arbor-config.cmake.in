@@ -49,7 +49,7 @@ set(ARB_ARCH @ARB_ARCH@)
 set(ARB_MODCC_FLAGS @ARB_MODCC_FLAGS@)
 set(ARB_CXX @CMAKE_CXX_COMPILER@)
 set(ARB_CXX_FLAGS @CMAKE_CXX_FLAGS@)
-set(ARB_CXX_FLAGS_TARGET @ARB_CXX_FLAGS_FULL@)
+set(ARB_CXX_FLAGS_TARGET @ARB_CXX_FLAGS_TARGET_FULL@)
 
 _append_property(arbor::arbor INTERFACE_LINK_LIBRARIES @arbor_add_import_libs@)
 _append_property(arbor::arborenv INTERFACE_LINK_LIBRARIES @arborenv_add_import_libs@)
