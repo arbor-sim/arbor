@@ -247,6 +247,9 @@ else(ARB_ARCH)
     set(ARB_CXX_FLAGS_TARGET_FULL "${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH}")
 endif()
 
+# Remove white space at beginning/end of the target-specific flags
+string(STRIP "${ARB_CXX_FLAGS_TARGET_FULL}" ARB_CXX_FLAGS_TARGET_FULL)
+
 target_compile_options(arbor-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
 
