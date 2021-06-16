@@ -42,6 +42,12 @@ set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
 
 option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
 
+# CXX Flags that are to be retained in installed target.
+# Usefule, for example, when a user wants to compile with target-specific
+# optimization flags.
+
+set(ARB_CXX_FLAGS "" CACHE STRING "Optional additional flags for compilation")
+
 #----------------------------------------------------------
 # Debug support
 #----------------------------------------------------------
@@ -230,11 +236,15 @@ set(arbor_supported_components)
 
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
-if(ARB_ARCH)
+if(ARB_ARCH STREQUAL "none")
+    set(ARB_CXX_FLAGS_FULL "${ARB_CXX_FLAGS}")
+else(ARB_ARCH)
     set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
-    target_compile_options(arbor-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
-    target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
+    set(ARB_CXX_FLAGS_FULL "${ARB_CXX_FLAGS} ${ARB_CXXOPT_ARCH}")
 endif()
+
+target_compile_options(arbor-private-deps INTERFACE ${ARB_CXX_FLAGS_FULL})
+target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXX_FLAGS_FULL})
 
 # Profiling and test features
 #-----------------------------

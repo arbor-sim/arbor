@@ -12,7 +12,7 @@ add_dependencies(tests py_unit)
 add_library(py_unit_lib $<TARGET_OBJECTS:pyarb_obj>)
 target_link_libraries(py_unit_lib PRIVATE arbor pybind11::module)
 
-target_compile_options(py_unit PRIVATE ${ARB_CXXOPT_ARCH})
+target_compile_options(py_unit PRIVATE ${ARB_CXX_FLAGS_FULL})
 target_include_directories(
     py_unit PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}"
