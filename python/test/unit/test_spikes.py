@@ -75,9 +75,10 @@ class Spikes(unittest.TestCase):
         sim.run(4, 0.01)
         sim.run(5, 0.01)
 
-        spikes = sim.spikes().tolist()
-        times = [t for s, t in spikes]
-        gids  = [s[0] for s, t in spikes]
+        spikes = sim.spikes()
+        times = spikes["time"].tolist()
+        gids = spikes["source"]["gid"].tolist()
+
         self.assertEqual([2, 1, 0, 0, 1, 2, 0, 1, 2, 0, 2, 1, 1], gids)
         self.assertEqual([0.2, 0.4, 0.8, 2., 2., 2., 2.1, 2.2, 2.8, 3., 3., 3.1, 4.5], times)
 
