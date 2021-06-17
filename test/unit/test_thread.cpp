@@ -192,48 +192,53 @@ TEST(task_group, parallel_for) {
 
 TEST(task_group, manual_nested_parallel_for) {
     // Check for deadlock or stack overflow
+    const int ntasks = 100000;
     {
         for (int nthreads = 1; nthreads < 20; nthreads *= 4) {
-            const int ntasks = 100000;
+            std::vector<int> v(ntasks);
             task_system ts(nthreads);
-            ftor_wait f(1);
 
-            auto nested_ftor = [&]() {
+            auto nested = [&](int j) {
               task_group g1(&ts);
-              g1.run(f);
+              g1.run([&](){v[j] = j;});
               g1.wait();
             };
 
             task_group g0(&ts);
             for (int i = 0; i < ntasks; i++) {
-                g0.run(nested_ftor);
+                g0.run([=](){nested(i);});
             }
             g0.wait();
+            for (int i = 0; i < ntasks; i++) {
+                EXPECT_EQ(i, v[i]);
+            }
         }
     }
     {
         for (int nthreads = 1; nthreads < 20; nthreads *= 4) {
-            const int ntasks = 100000;
+            std::vector<int> v(ntasks);
             task_system ts(nthreads);
-            ftor_wait f;
 
-            auto nested_ftor = [&]() {
+            auto double_nested = [&](int i) {
               task_group g2(&ts);
-              g2.run(f);
+              g2.run([&](){v[i] = i;});
               g2.wait();
             };
 
-            auto double_nested_ftor = [&]() {
+            auto nested = [&](int i) {
               task_group g1(&ts);
-              g1.run(nested_ftor);
+              g1.run([=](){double_nested(i);});
               g1.wait();
             };
 
             task_group g0(&ts);
             for (int i = 0; i < ntasks; i++) {
-                g0.run(double_nested_ftor);
+                g0.run([=](){nested(i);});
             }
             g0.wait();
+            for (int i = 0; i < ntasks; i++) {
+                EXPECT_EQ(i, v[i]);
+            }
         }
     }
 }
@@ -289,62 +294,55 @@ TEST(task_group, multi_nested_parallel_for) {
 
 TEST(task_group, nested_parallel_for_unbalanced) {
     // Top level parallel for has many more tasks than lower level
+    const int ntasks = 100000;
     {
         // Default batching
-        for (int nthreads = 1; nthreads < 20; nthreads *= 2) {
-            for (int ntasks = 100000; ntasks <= 1000000; ntasks *= 10) {
-                task_system ts(nthreads);
-                std::vector<int> v(ntasks);
-                parallel_for::apply(0, ntasks, &ts, [&](int i) {
-                    parallel_for::apply(0, 1, &ts, [&](int j) { v[i] = i; });
-                });
-                for (int i = 0; i < ntasks; i++) {
-                    EXPECT_EQ(i, v[i]);
-                }
+        for (int nthreads = 1; nthreads < 20; nthreads *= 4) {
+            task_system ts(nthreads);
+            std::vector<int> v(ntasks);
+            parallel_for::apply(0, ntasks, &ts, [&](int i) {
+                parallel_for::apply(0, 1, &ts, [&](int j) { v[i] = i; });
+            });
+            for (int i = 0; i < ntasks; i++) {
+                EXPECT_EQ(i, v[i]);
             }
         }
         // 128 tasks per batch
         const int batch_size = 128;
-        for (int nthreads = 1; nthreads < 20; nthreads *= 2) {
-            for (int ntasks = 100000; ntasks <= 1000000; ntasks *= 10) {
-                task_system ts(nthreads);
-                std::vector<int> v(ntasks);
-                parallel_for::apply(0, ntasks, batch_size, &ts, [&](int i) {
-                  parallel_for::apply(0, 1, batch_size, &ts, [&](int j) { v[i] = i; });
-                });
-                for (int i = 0; i < ntasks; i++) {
-                    EXPECT_EQ(i, v[i]);
-                }
+        for (int nthreads = 1; nthreads < 20; nthreads *= 4) {
+            task_system ts(nthreads);
+            std::vector<int> v(ntasks);
+            parallel_for::apply(0, ntasks, batch_size, &ts, [&](int i) {
+              parallel_for::apply(0, 1, batch_size, &ts, [&](int j) { v[i] = i; });
+            });
+            for (int i = 0; i < ntasks; i++) {
+                EXPECT_EQ(i, v[i]);
             }
         }
     }
     // lower level parallel for has many more tasks than top level
     {
         // Default batching
-        for (int nthreads = 1; nthreads < 20; nthreads *= 2) {
-            for (int ntasks = 100000; ntasks <= 1000000; ntasks *= 10) {
-                task_system ts(nthreads);
-                std::vector<int> v(ntasks);
-                parallel_for::apply(0, 1, &ts, [&](int i) {
-                    parallel_for::apply(0, ntasks, &ts, [&](int j) { v[j] = j; });
-                });
-                for (int i = 0; i < ntasks; i++) {
-                    EXPECT_EQ(i, v[i]);
-                }
+        for (int nthreads = 1; nthreads < 20; nthreads *= 4) {
+            task_system ts(nthreads);
+            std::vector<int> v(ntasks);
+            parallel_for::apply(0, 1, &ts, [&](int i) {
+                parallel_for::apply(0, ntasks, &ts, [&](int j) { v[j] = j; });
+            });
+            for (int i = 0; i < ntasks; i++) {
+                EXPECT_EQ(i, v[i]);
             }
         }
         // 128 tasks per batch
         const int batch_size = 128;
-        for (int nthreads = 1; nthreads < 20; nthreads *= 2) {
-            for (int ntasks = 100000; ntasks <= 1000000; ntasks *= 10) {
-                task_system ts(nthreads);
-                std::vector<int> v(ntasks);
-                parallel_for::apply(0, 1, batch_size, &ts, [&](int i) {
-                  parallel_for::apply(0, ntasks, batch_size, &ts, [&](int j) { v[j] = j; });
-                });
-                for (int i = 0; i < ntasks; i++) {
-                    EXPECT_EQ(i, v[i]);
-                }
+        for (int nthreads = 1; nthreads < 20; nthreads *= 4) {
+            task_system ts(nthreads);
+            std::vector<int> v(ntasks);
+            parallel_for::apply(0, 1, batch_size, &ts, [&](int i) {
+                parallel_for::apply(0, ntasks, batch_size, &ts, [&](int j) { v[j] = j; });
+            });
+            for (int i = 0; i < ntasks; i++) {
+                EXPECT_EQ(i, v[i]);
             }
         }
     }
@@ -352,37 +350,34 @@ TEST(task_group, nested_parallel_for_unbalanced) {
 
 TEST(task_group, multi_nested_parallel_for_unbalanced) {
     // Top level parallel for has many more tasks than lower level
-    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
-        for (int ntasks = 100000; ntasks <= 1000000; ntasks*=10) {
-            task_system ts(nthreads);
-            std::vector<int> v(ntasks);
-            parallel_for::apply(0, ntasks, &ts, [&](int i) {
-                parallel_for::apply(0, 1, &ts, [&](int j) {
-                    parallel_for::apply(0, 1, &ts, [&](int k) {
-                        v[i] = i;
-                    });
+    const int ntasks = 100000;
+    for (int nthreads = 1; nthreads < 20; nthreads*=4) {
+        task_system ts(nthreads);
+        std::vector<int> v(ntasks);
+        parallel_for::apply(0, ntasks, &ts, [&](int i) {
+            parallel_for::apply(0, 1, &ts, [&](int j) {
+                parallel_for::apply(0, 1, &ts, [&](int k) {
+                    v[i] = i;
                 });
             });
-            for (int i = 0; i < ntasks; i++) {
-                EXPECT_EQ(i, v[i]);
-            }
+        });
+        for (int i = 0; i < ntasks; i++) {
+            EXPECT_EQ(i, v[i]);
         }
     }
     // lower level parallel for has many more tasks than top level
-    for (int nthreads = 1; nthreads < 20; nthreads*=2) {
-        for (int ntasks = 100000; ntasks < 1000000; ntasks*=10) {
-            task_system ts(nthreads);
-            std::vector<int> v(ntasks);
-            parallel_for::apply(0, 1, &ts, [&](int i) {
-                parallel_for::apply(0, 1, &ts, [&](int j) {
-                    parallel_for::apply(0, ntasks, &ts, [&](int k) {
-                        v[k] = k;
-                    });
+    for (int nthreads = 1; nthreads < 20; nthreads*=4) {
+        task_system ts(nthreads);
+        std::vector<int> v(ntasks);
+        parallel_for::apply(0, 1, &ts, [&](int i) {
+            parallel_for::apply(0, 1, &ts, [&](int j) {
+                parallel_for::apply(0, ntasks, &ts, [&](int k) {
+                    v[k] = k;
                 });
             });
-            for (int i = 0; i < ntasks; i++) {
-                EXPECT_EQ(i, v[i]);
-            }
+        });
+        for (int i = 0; i < ntasks; i++) {
+            EXPECT_EQ(i, v[i]);
         }
     }
 }
