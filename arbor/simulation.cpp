@@ -225,21 +225,18 @@ simulation_state::simulation_state(
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
 
-    auto event_resolver = resolver();
+    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(std::move(target_resolution_map));
     for (const auto& group_info: decomp.groups) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = gid_local_info{lidx, grpidx};
 
-            // Resolve event_generator targets
+            // Resolve event_generator targets.
+            // Each event generator gets their own resolver state.
             auto event_gens = rec.event_generators(gid);
             for (auto& g: event_gens) {
-                g.resolve_label([target_resolution_map, event_resolver, gid](const cell_local_label_type& label) mutable {
-                    auto lid = event_resolver.resolve({gid, label}, target_resolution_map);
-                    if (!lid) {
-                        throw arb::bad_connection_set(gid, label.tag);
-                    }
-                    return lid.value();
+                g.resolve_label([target_resolution_map_ptr, event_resolver=resolver(target_resolution_map_ptr.get()), gid](const cell_local_label_type& label) mutable {
+                    return event_resolver.resolve({gid, label});
                 });
             }
 

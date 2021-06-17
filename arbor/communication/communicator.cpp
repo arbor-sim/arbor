@@ -97,20 +97,14 @@ communicator::communicator(const recipe& rec,
     util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
-    auto target_resolver = resolver();
+    auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
-        auto source_resolver = resolver();
+        auto source_resolver = resolver(&source_resolution_map);
         for (const auto& c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
-            auto src_lid = source_resolver.resolve(c.source, source_resolution_map);
-            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest}, target_resolution_map);
-            if (!src_lid) {
-                throw arb::bad_connection_set(c.source.gid, c.source.label.tag);
-            }
-            if (!tgt_lid) {
-                throw arb::bad_connection_set(cell.gid, c.dest.tag);
-            }
-            connections_[i] = {{c.source.gid, src_lid.value()}, tgt_lid.value(), c.weight, c.delay, cell.index_on_domain};
+            auto src_lid = source_resolver.resolve(c.source);
+            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+            connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
     }

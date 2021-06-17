@@ -4,6 +4,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/util/expected.hpp>
 
 #include "label_resolution.hpp"
 #include "util/partition.hpp"
@@ -11,6 +12,10 @@
 #include "util/span.hpp"
 
 namespace arb {
+
+resolution_error::resolution_error(const std::string& msg):
+    arb::arbor_exception(msg)
+{}
 
 // cell_label_range methods
 cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
@@ -65,8 +70,8 @@ cell_size_type label_resolution_map::range_set::size() const {
     return ranges_partition.back();
 }
 
-std::optional<cell_lid_type> label_resolution_map::range_set::at(unsigned idx) const {
-    if (size() < 1) return std::nullopt;
+lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
+    if (size() < 1) return util::unexpected(resolution_error("no valid lids"));
     auto part = util::partition_view(ranges_partition);
     // Index of the range containing idx.
     auto ridx = part.index(idx);
@@ -118,38 +123,48 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
         }
     }
 }
+// variant state methods
+lid_hopefully round_robin_state::update(const label_resolution_map::range_set& range_set) {
+    auto lid = range_set.at(state);
+    if (lid) state = (state+1) % range_set.size();
+    return lid;
+}
+
+lid_hopefully assert_univalent_state::update(const label_resolution_map::range_set& range_set) {
+    if (range_set.size() != 1) {
+        return util::unexpected(resolution_error("range is not univalent."));
+    }
+    // Get the lid of the only element.
+    return range_set.at(0);
+}
 
 // resolver methods
-std::optional<cell_lid_type> resolver::resolve(const cell_global_label_type& iden, const label_resolution_map& label_map) {
-    if (!label_map.count(iden.gid, iden.label.tag)) {
-        throw arb::bad_connection_label(iden.gid, iden.label.tag);
-    }
-    const auto& range_set = label_map.at(iden.gid, iden.label.tag);
-    if (!range_set.size()) return std::nullopt;
-
-    switch (iden.label.policy) {
+resolver::state_variant resolver::construct_state(lid_selection_policy pol) {
+    switch (pol) {
     case lid_selection_policy::round_robin:
-        {
-            // Get the state of the round_robin iterator.
-            auto& rr_state = state_map[iden.gid][iden.label.tag][iden.label.policy];
-            auto idx = std::get<round_robin_state>(rr_state).state;
-
-            // Update the state of the round_robin iterator.
-            rr_state = round_robin_state((idx+1) % range_set.size());
-
-            // Get the lid at the current index.
-            return range_set.at(idx);
-        }
+        return round_robin_state();
     case lid_selection_policy::assert_univalent:
-        {
-            if (range_set.size() != 1) {
-                throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
-            }
-            // Get the lid of the only element.
-            return range_set.at(0);
-        }
-    default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
+       return assert_univalent_state();
+    default: return assert_univalent_state();
     }
+}
+
+cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
+    if (!label_map_->count(iden.gid, iden.label.tag)) {
+        throw arb::bad_connection_label(iden.gid, iden.label.tag, "label does not exist.");
+    }
+    const auto& range_set = label_map_->at(iden.gid, iden.label.tag);
+
+    // Construct state if if doesn't exist
+    if (!state_map_[iden.gid][iden.label.tag].count(iden.label.policy)) {
+        state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(iden.label.policy);
+    }
+
+    auto lid = std::visit([range_set](auto& state) { return state.update(range_set); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
+    if (!lid) {
+        throw(arb::bad_connection_label(iden.gid, iden.label.tag, lid.error().what()));
+    }
+    return lid.value();
 }
 
 } // namespace arb

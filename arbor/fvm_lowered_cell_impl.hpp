@@ -654,7 +654,7 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
         }
     }
     label_resolution_map resolution_map({gap_junction_data, gids});
-    auto gj_resolver = resolver();
+    auto gj_resolver = resolver(&resolution_map);
     for (auto gid: gids) {
         auto gj_list = rec.gap_junctions_on(gid);
         for (const auto& g: gj_list) {
@@ -664,16 +664,8 @@ std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
             if (g.peer.label.policy != lid_selection_policy::assert_univalent) {
                 throw gj_unsupported_lid_selection_policy(g.peer.gid, g.peer.label.tag);
             }
-            auto local = gj_resolver.resolve({gid, g.local}, resolution_map);
-            auto peer = gj_resolver.resolve(g.peer, resolution_map);
-            if (!local) {
-                throw arb::bad_connection_set(gid, g.local.tag);
-            }
-            if (!peer) {
-                throw arb::bad_connection_set(g.peer.gid, g.peer.label.tag);
-            }
-            auto cv_local = gid_to_cvs[gid][local.value()];
-            auto cv_peer = gid_to_cvs[g.peer.gid][peer.value()];
+            auto cv_local = gid_to_cvs[gid][gj_resolver.resolve({gid, g.local})];
+            auto cv_peer = gid_to_cvs[g.peer.gid][gj_resolver.resolve(g.peer)];
             gj_vec.emplace_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
         }
     }

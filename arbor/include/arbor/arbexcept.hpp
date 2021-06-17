@@ -49,19 +49,7 @@ struct bad_connection_source_gid: arbor_exception {
 };
 
 struct bad_connection_label: arbor_exception {
-    bad_connection_label(cell_gid_type gid, cell_tag_type label);
-    cell_gid_type gid;
-    cell_tag_type label;
-};
-
-struct bad_connection_set: arbor_exception {
-    bad_connection_set(cell_gid_type gid, cell_tag_type label);
-    cell_gid_type gid;
-    cell_tag_type label;
-};
-
-struct bad_univalent_connection_label: arbor_exception {
-    bad_univalent_connection_label(cell_gid_type gid, cell_tag_type label);
+    bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg);
     cell_gid_type gid;
     cell_tag_type label;
 };

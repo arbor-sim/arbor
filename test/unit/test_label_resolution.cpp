@@ -170,50 +170,50 @@ TEST(test_label_resolution, policies) {
         EXPECT_EQ((vec{0u, 3u, 5u}), rset.ranges_partition);
 
         // Check lid resolution
-        auto lid_resolver = arb::resolver();
+        auto lid_resolver = arb::resolver(&res_map);
         // Non-existent gid or label
-        EXPECT_THROW(lid_resolver.resolve({9, "l9_0"}, res_map), arb::bad_connection_label);
-        EXPECT_THROW(lid_resolver.resolve({0, "l1_0"}, res_map), arb::bad_connection_label);
-        EXPECT_THROW(lid_resolver.resolve({1, "l1_0"}, res_map), arb::bad_connection_label);
+        EXPECT_THROW(lid_resolver.resolve({9, "l9_0"}), arb::bad_connection_label);
+        EXPECT_THROW(lid_resolver.resolve({0, "l1_0"}), arb::bad_connection_label);
+        EXPECT_THROW(lid_resolver.resolve({1, "l1_0"}), arb::bad_connection_label);
 
         // Univalent
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::assert_univalent}, res_map).value());
-        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::assert_univalent}, res_map).value());
-        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::assert_univalent}, res_map).value()); // Repeated request
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::assert_univalent}));
+        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::assert_univalent}));
+        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::assert_univalent})); // Repeated request
 
-        EXPECT_THROW(lid_resolver.resolve({2, "l2_0", lid_selection_policy::assert_univalent}, res_map), arb::bad_univalent_connection_label);
-        EXPECT_THROW(lid_resolver.resolve({3, "l3_1", lid_selection_policy::assert_univalent}, res_map), arb::bad_univalent_connection_label);
-        EXPECT_THROW(lid_resolver.resolve({4, "l4_1", lid_selection_policy::assert_univalent}, res_map), arb::bad_univalent_connection_label);
+        EXPECT_THROW(lid_resolver.resolve({2, "l2_0", lid_selection_policy::assert_univalent}), arb::bad_connection_label);
+        EXPECT_THROW(lid_resolver.resolve({3, "l3_1", lid_selection_policy::assert_univalent}), arb::bad_connection_label);
+        EXPECT_THROW(lid_resolver.resolve({4, "l4_1", lid_selection_policy::assert_univalent}), arb::bad_connection_label);
 
         // Round robin
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}));
 
-        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(1u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(2u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(1u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(2u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
 
-        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(5u, lid_resolver.resolve({4, "l4_0", lid_selection_policy::round_robin}));
 
-        EXPECT_EQ(8u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(9u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(10u, lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(12u, lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(13u, lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(8u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(9u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_EQ(8u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(9u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(10u, lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(12u, lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(13u, lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(8u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(9u,  lid_resolver.resolve({4, "l4_1", lid_selection_policy::round_robin}));
 
-        EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
 
         // Reset and default policy
-        lid_resolver = arb::resolver();
-        EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1"}, res_map).value());
-        EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1"}, res_map).value());
-        EXPECT_EQ(6u, lid_resolver.resolve({3, "l3_1"}, res_map).value());
-        EXPECT_EQ(7u, lid_resolver.resolve({3, "l3_1"}, res_map).value());
+        lid_resolver = arb::resolver(&res_map);
+        EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1"}));
+        EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1"}));
+        EXPECT_EQ(6u, lid_resolver.resolve({3, "l3_1"}));
+        EXPECT_EQ(7u, lid_resolver.resolve({3, "l3_1"}));
 
         // Test exception
         gids.push_back(5);
@@ -221,8 +221,9 @@ TEST(test_label_resolution, policies) {
         labels.emplace_back("l5_0");
         ranges.emplace_back(0, 0);
         res_map = label_resolution_map(cell_labels_and_gids({sizes, labels, ranges}, gids));
-        lid_resolver = arb::resolver();
-        EXPECT_FALSE(lid_resolver.resolve({5, "l5_0"}, res_map));
+
+        lid_resolver = arb::resolver(&res_map);
+        EXPECT_THROW(lid_resolver.resolve({5, "l5_0"}), arb::bad_connection_label);
 
         ranges.back() = {4, 2};
         EXPECT_THROW(label_resolution_map(cell_labels_and_gids({sizes, labels, ranges}, gids)), arb::arbor_internal_error);
@@ -278,39 +279,39 @@ TEST(test_label_resolution, policies) {
         EXPECT_EQ((vec{0u, 0u, 1u}), rset.ranges_partition);
 
         // Check lid resolution
-        auto lid_resolver = arb::resolver();
+        auto lid_resolver = arb::resolver(&res_map);
         // gid 0
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(1u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(2u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(1u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(2u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_1", lid_selection_policy::round_robin}));
 
-        EXPECT_THROW(lid_resolver.resolve({0, "l0_0", lid_selection_policy::assert_univalent}, res_map).value(), arb::bad_univalent_connection_label);
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(1u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(2u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_THROW(lid_resolver.resolve({0, "l0_0", lid_selection_policy::assert_univalent}), arb::bad_connection_label);
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(1u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(2u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(0u, lid_resolver.resolve({0, "l0_0", lid_selection_policy::round_robin}));
 
         // gid 2
-        EXPECT_THROW(lid_resolver.resolve({2, "l2_0", lid_selection_policy::assert_univalent}, res_map).value(), arb::bad_univalent_connection_label);
-        EXPECT_EQ(4u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(5u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(9u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(10u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(11u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(4u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(5u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_THROW(lid_resolver.resolve({2, "l2_0", lid_selection_policy::assert_univalent}), arb::bad_connection_label);
+        EXPECT_EQ(4u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(5u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(9u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(10u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(11u, lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(4u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
+        EXPECT_EQ(5u,  lid_resolver.resolve({2, "l2_0", lid_selection_policy::round_robin}));
 
-        EXPECT_THROW(lid_resolver.resolve({2, "l2_1", lid_selection_policy::assert_univalent}, res_map).value(), arb::bad_univalent_connection_label);
-        EXPECT_EQ(1u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(1u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}, res_map).value());
+        EXPECT_THROW(lid_resolver.resolve({2, "l2_1", lid_selection_policy::assert_univalent}), arb::bad_connection_label);
+        EXPECT_EQ(1u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(1u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(0u, lid_resolver.resolve({2, "l2_1", lid_selection_policy::round_robin}));
 
-        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::assert_univalent}, res_map).value());
-        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::round_robin}, res_map).value());
-        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::assert_univalent}, res_map).value());
+        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::assert_univalent}));
+        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::round_robin}));
+        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::round_robin}));
+        EXPECT_EQ(22u, lid_resolver.resolve({2, "l2_2", lid_selection_policy::assert_univalent}));
 
     }
 }

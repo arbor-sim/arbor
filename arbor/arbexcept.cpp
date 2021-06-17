@@ -27,19 +27,8 @@ bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid
     gid(gid), src_gid(src_gid), num_cells(num_cells)
 {}
 
-bad_connection_label::bad_connection_label(cell_gid_type gid, cell_tag_type label):
-    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" does not exist.", gid, label)),
-    gid(gid), label(label)
-{}
-
-bad_connection_set::bad_connection_set(cell_gid_type gid, cell_tag_type label):
-    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" has no valid lids.", gid, label)),
-    gid(gid), label(label)
-{}
-
-
-bad_univalent_connection_label::bad_univalent_connection_label(cell_gid_type gid, cell_tag_type label):
-    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\" is not univalent.", gid, label)),
+bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg):
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\": {}.", gid, label, msg)),
     gid(gid), label(label)
 {}
 
