@@ -285,8 +285,8 @@ namespace {
             cons.reserve(size_);
             for (auto sid: util::make_span(0, size_)) {
                 cell_connection con(
-                        {sid, "src"},       // source
-                        {"tgt"},     // destination
+                        {sid, {"src", arb::lid_selection_policy::round_robin}}, // source
+                        {"tgt", arb::lid_selection_policy::round_robin},        // destination
                         float(gid+sid), // weight
                         1.0f);          // delay
                 cons.push_back(con);

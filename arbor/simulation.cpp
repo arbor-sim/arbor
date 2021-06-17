@@ -235,9 +235,10 @@ simulation_state::simulation_state(
             // Each event generator gets their own resolver state.
             auto event_gens = rec.event_generators(gid);
             for (auto& g: event_gens) {
-                g.resolve_label([target_resolution_map_ptr, event_resolver=resolver(target_resolution_map_ptr.get()), gid](const cell_local_label_type& label) mutable {
-                    return event_resolver.resolve({gid, label});
-                });
+                g.resolve_label([target_resolution_map_ptr, event_resolver=resolver(target_resolution_map_ptr.get()), gid]
+                    (const cell_local_label_type& label) mutable {
+                        return event_resolver.resolve({gid, label});
+                    });
             }
 
             // Set up the event generators for cell gid.
