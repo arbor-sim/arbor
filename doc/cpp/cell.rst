@@ -101,7 +101,7 @@ cells and members of cell-local collections.
         * identify an item within a cell-local collection by the member
           :cpp:member:`index`.
 
-    An example is uniquely identifying a probe in the model.
+    An example is uniquely identifying a probe description in the model.
     Each probe has a cell id (:cpp:member:`gid`), and an index
     (:cpp:member:`index`) into the set of probes on the cell.
 

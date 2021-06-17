@@ -97,7 +97,7 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            arb::poisson_generator({"syn"},              // Target synapse index on cell `gid`
+            arb::poisson_generator({"syn"},               // Target synapse index on cell `gid`
                                    w_e,                   // Weight of events to deliver
                                    t0,                    // Events start being delivered from this time
                                    lambda_e,              // Expected frequency (kHz)

@@ -112,7 +112,7 @@ corresponding to a valid detector label on the cell and an optional selection po
 out of potentially many detectors grouped under the same label - remember, in this case the number of detectors labeled
 'detector' is 1).
 The :py:class:`arbor.cell_global_label` can be initialized with a ``(gid, label)`` tuple, in which case the selection
-policy is the default :py:attr:`arbor.selection_policy.round_robin`; or a ``(gid, label, policy)`` tuple.
+policy is the default :py:attr:`arbor.selection_policy.round_robin`; or a ``(gid, (label, policy))`` tuple.
 
 The **target** is a :py:class:`arbor.cell_local_label` object containing a cell index ``gid``, the target label
 corresponding to a valid synapse label on the cell and an optional selection policy (for choosing a single synapse

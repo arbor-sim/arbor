@@ -23,12 +23,12 @@ which helps make Arbor fast and easily distributable over many nodes.
 To better illustrate the content of a recipe, let's consider the following network of
 three cells:
 
-- ``Cell 0``: Is a single soma, with ``hh`` (Hodgkin-huxley) dynamics. In the middle
-  of the soma, a spike detector is attached labeled "detector_0", it generates a spiking
-  event when the voltage goes above 10 mV. In the same spot on the soma, a current clamp
-  is also attached, with the intention of triggering some spikes. All of the preceding info:
-  the morphology, dynamics, spike detector and current clamp are what is referred to in
-  Arbor as the **description** of the cell.
+- ``Cell 0``: Is a single soma, with ``hh`` (Hodgkin-huxley) dynamics. A spike detector
+  labelled "detector_0" is attached to the middle of the soma. The detector will generate a
+  spike event when the voltage goes above 10 mV. In the same spot on the soma, a current clamp
+  is also attached, with the intention of triggering some spikes. All of the preceding info —
+  the morphology, dynamics, spike detector and current clamp — constitute what is termed the
+  **description** of the cell.
   ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`,
   (because cable cells allow complex dynamics such as ``hh``). This is referred to as
   the **kind** of the cell.

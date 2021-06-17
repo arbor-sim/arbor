@@ -20,14 +20,14 @@ Interconnectivity
     .. attribute:: source
 
         The source end point of the connection (type: :class:`arbor.cell_global_label`, which can be initialized with a
-        (gid, label) or a (gid, label, policy) tuple. If the policy is not indicated, the default
-        :attr:`arbor.selection_policy.around_robin` is used).
+        (gid, label) or a (gid, (label, policy)) tuple. If the policy is not indicated, the default
+        :attr:`arbor.selection_policy.round_robin` is used).
 
     .. attribute:: dest
 
         The destination end point of the connection (type: :class:`arbor.cell_local_label` representing the label of the
         destination on the cell, which can be initialized with just a label, in which case the default
-        :attr:`arbor.selection_policy.around_robin` is used, or a (label, policy) tuple). The gid of the cell is
+        :attr:`arbor.selection_policy.round_robin` is used, or a (label, policy) tuple). The gid of the cell is
         implicitly known.
 
     .. attribute:: weight
@@ -80,13 +80,13 @@ Interconnectivity
 
         The gap junction site: the remote half of the gap junction connection (type: :class:`arbor.cell_global_label`,
         which can be initialized with a (gid, label) or a (gid, label, policy) tuple. If the policy is not indicated,
-        the default :attr:`arbor.selection_policy.around_robin` is used).
+        the default :attr:`arbor.selection_policy.round_robin` is used).
 
     .. attribute:: local
 
         The gap junction site: the local half of the gap junction connection (type: :class:`arbor.cell_local_label`
         representing the label of the destination on the cell, which can be initialized with just a label, in which case
-        the default :attr:`arbor.selection_policy.around_robin` is used, or a (label, policy) tuple). The gid of the
+        the default :attr:`arbor.selection_policy.round_robin` is used, or a (label, policy) tuple). The gid of the
         cell is implicitly known.
 
     .. attribute:: ggap

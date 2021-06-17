@@ -25,12 +25,6 @@ class recipe(arb.recipe):
     def num_cells(self):
         return 1
 
-    def num_targets(self, gid):
-        return 0
-
-    def num_sources(self, gid):
-        return 0
-
     def cell_kind(self, gid):
         return arb.cell_kind.cable
 

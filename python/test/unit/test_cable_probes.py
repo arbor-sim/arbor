@@ -41,12 +41,6 @@ class cc_recipe(A.recipe):
     def num_cells(self):
         return 1
 
-    def num_targets(self, gid):
-        return 2
-
-    def num_sources(self, gid):
-        return 0
-
     def cell_kind(self, gid):
         return A.cell_kind.cable
 

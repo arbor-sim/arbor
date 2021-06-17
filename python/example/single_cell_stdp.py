@@ -19,12 +19,6 @@ class single_recipe(arbor.recipe):
     def num_cells(self):
         return 1
 
-    def num_sources(self, gid):
-        return 1
-
-    def num_targets(self, gid):
-        return 2
-
     def cell_kind(self, gid):
         return arbor.cell_kind.cable
 

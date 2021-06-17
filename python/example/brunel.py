@@ -86,12 +86,6 @@ class brunel_recipe (arbor.recipe):
         sched = arbor.poisson_schedule(t0, self.lambda_, gid + self.seed_)
         return [arbor.event_generator("tgt", self.weight_ext_, sched)]
 
-    def num_targets(self, gid):
-        return 1
-
-    def num_sources(self, gid):
-        return 1
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Brunel model miniapp.')

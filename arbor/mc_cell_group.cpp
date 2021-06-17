@@ -15,6 +15,7 @@
 #include "cell_group.hpp"
 #include "event_binner.hpp"
 #include "fvm_lowered_cell.hpp"
+#include "label_resolution.hpp"
 #include "mc_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
@@ -48,13 +49,13 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
     auto fvm_info = lowered_->initialize(gids_, rec);
 
     // Propagate source and target ranges to the simulator object
-    cg_sources = fvm_info.source_data;
-    cg_targets = fvm_info.target_data;
+    cg_sources = std::move(fvm_info.source_data);
+    cg_targets = std::move(fvm_info.target_data);
 
     // Store consistent data from fvm_lowered_cell
-    target_handles_ = fvm_info.target_handles;
-    cell_to_intdom_ = fvm_info.cell_to_intdom;
-    probe_map_ = fvm_info.probe_map;
+    target_handles_ = std::move(fvm_info.target_handles);
+    cell_to_intdom_ = std::move(fvm_info.cell_to_intdom);
+    probe_map_ = std::move(fvm_info.probe_map);
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,

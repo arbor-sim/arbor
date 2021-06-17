@@ -18,6 +18,7 @@
 #include "event_binner.hpp"
 #include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
+#include "label_resolution.hpp"
 #include "sampler_map.hpp"
 
 namespace arb {

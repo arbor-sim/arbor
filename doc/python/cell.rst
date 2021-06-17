@@ -105,8 +105,9 @@ The types defined below are used as identifiers for cells and members of cell-lo
         * be associated with a unique cell, identified by the member :attr:`gid`;
         * identify an item within a cell-local collection by the member :attr:`index`.
 
-        An example is uniquely identifying a probe in the model.
-        Each probe has a cell (with :attr:`gid`), and an :attr:`index` into the set of probes on the cell.
+        An example is uniquely identifying a probe description in the model.
+        Each probe description has a cell (with :attr:`gid`), and an :attr:`index` into
+        the set of probe descriptions on the cell.
 
         Lexicographically ordered by :attr:`gid`, then :attr:`index`.
 

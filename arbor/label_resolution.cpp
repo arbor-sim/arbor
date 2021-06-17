@@ -128,24 +128,26 @@ std::optional<cell_lid_type> resolver::resolve(const cell_global_label_type& ide
     if (!range_set.size()) return std::nullopt;
 
     switch (iden.label.policy) {
-    case lid_selection_policy::round_robin: {
-        // Get the state of the round_robin iterator.
-        auto& rr_state = state_map[iden.gid][iden.label.tag][iden.label.policy];
-        auto idx = std::get<round_robin_state>(rr_state).state;
+    case lid_selection_policy::round_robin:
+        {
+            // Get the state of the round_robin iterator.
+            auto& rr_state = state_map[iden.gid][iden.label.tag][iden.label.policy];
+            auto idx = std::get<round_robin_state>(rr_state).state;
 
-        // Update the state of the round_robin iterator.
-        rr_state = round_robin_state((idx+1) % range_set.size());
+            // Update the state of the round_robin iterator.
+            rr_state = round_robin_state((idx+1) % range_set.size());
 
-        // Get the lid at the current index.
-        return range_set.at(idx);
-    }
-    case lid_selection_policy::assert_univalent: {
-        if (range_set.size() != 1) {
-            throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
+            // Get the lid at the current index.
+            return range_set.at(idx);
         }
-        // Get the lid of the only element.
-        return range_set.at(0);
-    }
+    case lid_selection_policy::assert_univalent:
+        {
+            if (range_set.size() != 1) {
+                throw arb::bad_univalent_connection_label(iden.gid, iden.label.tag);
+            }
+            // Get the lid of the only element.
+            return range_set.at(0);
+        }
     default: throw arb::bad_connection_label(iden.gid, iden.label.tag);
     }
 }

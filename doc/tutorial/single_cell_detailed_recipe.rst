@@ -153,7 +153,7 @@ examine the recipe in detail: how to create one, and why it is needed.
        def num_cells(self):
            return 1
 
-       # (4) Override the num_targets method
+       # (4) Override the cell_kind method
        def cell_kind(self, gid):
            return arbor.cell_kind.cable
 
@@ -244,17 +244,6 @@ an empty list.
 Step **(10)** overrides the :meth:`arbor.recipe.global_properties` method. It takes one argument: ``kind``.
 This method returns the default global properties of the model which apply to all cells in the network of
 that kind. We return ``self.the_props`` which we defined in step **(1)**.
-
-.. Note::
-
-   You may wonder why the methods:  :meth:`arbor.recipe.num_sources`, :meth:`arbor.recipe.num_targets`,
-   and :meth:`arbor.recipe.cell_kind` are required, since they can be inferred by examining the cell description.
-   The recipe was designed to allow building simulations efficiently in a distributed system with minimum
-   communication. Some parts of the model initialization require only the cell kind, or the number of
-   sources and targets, not the full cell description which can be quite expensive to build. Providing these
-   descriptions separately saves time and resources for the user.
-
-   More information on the recipe can be found :ref:`here <modelrecipe>`.
 
 Now we can instantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
 previous section:
