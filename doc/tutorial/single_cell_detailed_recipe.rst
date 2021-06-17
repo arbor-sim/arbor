@@ -48,7 +48,7 @@ Now it has to be explicitly created and registered in the recipe.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 84-86
+   :lines: 87-89
 
 The recipe
 **********
@@ -57,80 +57,20 @@ The :class:`arbor.single_cell_model` of the previous example created a :class:`a
 the hood, and abstracted away the details so we were unaware of its existence. In this example, we will
 examine the recipe in detail: how to create one, and why it is needed.
 
-.. code-block:: python
-
-   # (1) Create a class that inherits from arbor.recipe
-   class single_recipe (arbor.recipe):
-
-       # (2) Define the class constructor
-       def __init__(self, cell, probes):
-           # The base C++ class constructor must be called first, to ensure that
-           # all memory in the C++ class is initialized correctly.
-           arbor.recipe.__init__(self)
-           self.the_cell = cell
-           self.the_probes = probes
-
-           self.the_cat = arbor.default_catalogue()
-           self.the_cat.extend(arbor.allen_catalogue(), "")
-
-           self.the_props = arbor.cable_global_properties()
-           self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
-           self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-           self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-           self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
-
-           self.the_props.register(self.the_cat)
-
-       # (3) Override the num_cells method
-       def num_cells(self):
-           return 1
-
-       # (4) Override the num_sources method
-       def num_sources(self, gid):
-           return 1
-
-       # (5) Override the num_targets method
-       def num_targets(self, gid):
-           return 0
-
-       # (6) Override the num_targets method
-       def cell_kind(self, gid):
-           return arbor.cell_kind.cable
-
-       # (7) Override the cell_description method
-       def cell_description(self, gid):
-           return self.the_cell
-
-       # (8) Override the probes method
-       def probes(self, gid):
-           return self.the_probes
-
-       # (9) Override the connections_on method
-       def connections_on(self, gid):
-           return []
-
-       # (10) Override the gap_junction_on method
-       def gap_junction_on(self, gid):
-           return []
-
-       # (11) Override the event_generators method
-       def event_generators(self, gid):
-           return []
-
-       # (12) Overrode the global_properties method
-       def global_properties(self, gid):
-          return self.the_props
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 91-143
 
 Let's go through the recipe point by point.
 
-Step **(1)** creates a ``single_recipe`` class that inherits from :class:`arbor.recipe`. The base recipe
+Step **(6)** creates a ``single_recipe`` class that inherits from :class:`arbor.recipe`. The base recipe
 implements all the methods defined above with default values except :meth:`arbor.recipe.num_cells`,
 :meth:`arbor.recipe.cell_kind` and :meth:`arbor.recipe.cell_description` which always have to be implemented
 by the user. The :meth:`arbor.recipe.global_properties` also needs to be implemented for
 :class:`arbor.cell_kind.cable` cells. The inherited recipe can implement any number of additional methods and
 have any number of instance or class variables.
 
-Step **(2)** defines the class constructor. In this case, we pass a ``cell`` and a set of ``probes`` as
+Step **(6.1)** defines the class constructor. In this case, we pass a ``cell`` and a set of ``probes`` as
 arguments. These will be used to initialize the instance variables ``self.the_cell`` and ``self.the_probes``,
 which will be used in the overloaded ``cell_description`` and ``get_probes`` methods. Before variable
 initialization, we call the base C++ class constructor ``arbor.recipe.__init__(self)``. This ensures correct
@@ -150,56 +90,47 @@ what we did in the :ref:`previous example <tutorialsinglecellswc-gprop>`. One la
    The mechanism catalogue needs to live in the recipe as an instance variable. Its lifetime needs to extend
    to the entire duration of the simulation.
 
-Step **(3)** overrides the :meth:`arbor.recipe.num_cells` method. It takes no arguments. We simply return 1,
+Step **(6.2)** overrides the :meth:`arbor.recipe.num_cells` method. It takes no arguments. We simply return 1,
 as we are only simulating one cell in this example.
 
-Step **(4)** overrides the :meth:`arbor.recipe.num_sources` method. It takes one argument: ``gid``.
-Given this global ID of a cell, the method will return the number of spike *sources* on the cell. We have defined
-our cell with one spike detector, on one location on the morphology, so we return 1.
-
-Step **(5)** overrides the :meth:`arbor.recipe.num_targets` method. It takes one argument: ``gid``.
-Given the gid, this method returns the number of *targets* on the cell. These are typically synapses on the cell
-that are capable of receiving events from other cells. We have defined our cell with 0 synapses, so we return 0.
-
-Step **(6)** overrides the :meth:`arbor.recipe.cell_kind` method. It takes one argument: ``gid``.
+Step **(6.3)** overrides the :meth:`arbor.recipe.cell_kind` method. It takes one argument: ``gid``.
 Given the gid, this method returns the kind of the cell. Our defined cell is a
 :class:`arbor.cell_kind.cable`, so we simply return that.
 
-Step **(7)** overrides the :meth:`arbor.recipe.cell_description` method. It takes one argument: ``gid``.
+Step **(6.4)** overrides the :meth:`arbor.recipe.cell_description` method. It takes one argument: ``gid``.
 Given the gid, this method returns the cell description which is the cell object passed to the constructor
 of the recipe. We return ``self.the_cell``.
 
-Step **(8)** overrides the :meth:`arbor.recipe.get_probes` method. It takes one argument: ``gid``.
+Step **(6.5)** overrides the :meth:`arbor.recipe.get_probes` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the probes on the cell. The probes can be of many different kinds
 measuring different quantities on different locations of the cell. We pass these probes explicitly to the recipe
 and they are stored in ``self.the_probes``, so we return that variable.
 
-Step **(9)** overrides the :meth:`arbor.recipe.connections_on` method. It takes one argument: ``gid``.
+Step **(6.6)** overrides the :meth:`arbor.recipe.connections_on` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the connections ending on that cell. These are typically synapse
 connections from other cell *sources* to specific *targets* on the cell with id ``gid``. Since we are
 simulating a single cell, and self-connections are not possible, we return an empty list.
 
-Step **(10)** overrides the :meth:`arbor.recipe.gap_junctions_on` method. It takes one argument: ``gid``.
+Step **(6.7)** overrides the :meth:`arbor.recipe.gap_junctions_on` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the gap junctions on that cell. Gap junctions require 2 separate cells.
 Since we are simulating a single cell, we return an empty list.
 
-Step **(11)** overrides the :meth:`arbor.recipe.event_generators` method. It takes one argument: ``gid``.
+Step **(6.8)** overrides the :meth:`arbor.recipe.event_generators` method. It takes one argument: ``gid``.
 Given the gid, this method returns *event generators* on that cell. These generators trigger events (or
 spikes) on specific *targets* on the cell. They can be used to simulate spikes from other cells, to kick-start
 a simulation for example. Our cell uses a current clamp as a stimulus, and has no targets, so we return
 an empty list.
 
-Step **(12)** overrides the :meth:`arbor.recipe.global_properties` method. It takes one argument: ``kind``.
+Step **(6.9)** overrides the :meth:`arbor.recipe.global_properties` method. It takes one argument: ``kind``.
 This method returns the default global properties of the model which apply to all cells in the network of
 that kind. We return ``self.the_props`` which we defined in step **(1)**.
 
 .. Note::
 
-   You may wonder why the methods:  :meth:`arbor.recipe.num_sources`, :meth:`arbor.recipe.num_targets`,
-   and :meth:`arbor.recipe.cell_kind` are required, since they can be inferred by examining the cell description.
+   You may wonder why the method :meth:`arbor.recipe.cell_kind` is required, since it can be inferred by examining the cell description.
    The recipe was designed to allow building simulations efficiently in a distributed system with minimum
-   communication. Some parts of the model initialization require only the cell kind, or the number of
-   sources and targets, not the full cell description which can be quite expensive to build. Providing these
+   communication. Some parts of the model initialization require only the cell kind,
+   not the full cell description which can be quite expensive to build. Providing these
    descriptions separately saves time and resources for the user.
 
    More information on the recipe can be found :ref:`here <modelrecipe>`.
@@ -207,11 +138,9 @@ that kind. We return ``self.the_props`` which we defined in step **(1)**.
 Now we can instantiate a ``single_recipe`` object using the ``cell`` and ``probe`` we created in the
 previous section:
 
-.. code-block:: python
-
-   # Instantiate recipe
-   # Pass the probe in a list because that it what single_recipe expects.
-   recipe = single_recipe(cell, [probe])
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 145-147
 
 The execution context
 *********************

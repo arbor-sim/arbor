@@ -39,7 +39,7 @@ It returns `0` by default and models without cells are quite boring!
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 25-66
+   :lines: 25-62
 
 Step **(4)** describes the recipe that will reflect our single cell model.
 
@@ -53,21 +53,19 @@ extend with Arbor's own :meth:`arbor.default_catalogue`.
 
 Step **(4.2)** defines that this model has one cell.
 
-Step **(4.3)** defines that this model has one source.
-
-Step **(4.4)** returns :class:`arbor.cell_kind.cable`, the :class:`arbor.cell_kind`
+Step **(4.3)** returns :class:`arbor.cell_kind.cable`, the :class:`arbor.cell_kind`
 associated with the cable cell defined above. If you mix multiple cell kinds and
 descriptions in one recipe, make sure a particular ``gid`` returns matching cell kinds
 and descriptions.
 
-Step **(4.5)** returns the cell description passed in on class initialisation. If we
+Step **(4.4)** returns the cell description passed in on class initialisation. If we
 were modelling multiple cells of different kinds, we would need to make sure that the
 cell returned by :meth:`arbor.recipe.cell_description` has the same cell kind as
 returned by :meth:`arbor.recipe.cell_kind` for every :gen:`gid`.
 
-Step **(4.6)** returns the probes passed in at class initialisation.
+Step **(4.5)** returns the probes passed in at class initialisation.
 
-Step **(4.7)** returns the properties that will be applied to all cells of that kind in the model.
+Step **(4.6)** returns the properties that will be applied to all cells of that kind in the model.
 
 More methods can be overridden if your model requires that, see :class:`arbor.recipe` for options.
 
@@ -86,7 +84,7 @@ leave the details of this subject for another tutorial.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 68-71
+   :lines: 64-67
 
 Step **(6)** sets up a default context and domains.
 
@@ -95,7 +93,7 @@ The simulation
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 73-79
+   :lines: 69-75
 
 Step **(7)** instantiates the simulation and sets up the probe added in step 5. In the
 :class:`arbor.single_cell_model` version of this example, the probe frequency and
@@ -112,7 +110,7 @@ If we create the same analysis of the results we therefore expect the same resul
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 81-98
+   :lines: 77-94
 
 Step **(8)** plots the measured potentials during the runtime of the simulation.
 Retrieving the sampled quantities is a little different, these have to be accessed

@@ -18,8 +18,8 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')
-decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
-decor.place('"midpoint"', arbor.spike_detector(-10))
+decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), 'iclamp')
+decor.place('"midpoint"', arbor.spike_detector(-10), 'detector')
 cell = arbor.cable_cell(tree, labels, decor)
 
 # (4) Define a recipe for a single cell and set of probes upon it.
@@ -41,24 +41,20 @@ class single_recipe (arbor.recipe):
         # (4.2) Override the num_cells method
         return 1
 
-    def num_sources(self, gid):
-        # (4.3) Override the num_sources method
-        return 1
-
     def cell_kind(self, gid):
-        # (4.4) Override the cell_kind method
+        # (4.3) Override the cell_kind method
         return arbor.cell_kind.cable
 
     def cell_description(self, gid):
-        # (4.5) Override the cell_description method
+        # (4.4) Override the cell_description method
         return self.the_cell
 
     def probes(self, gid):
-        # (4.6) Override the probes method
+        # (4.5) Override the probes method
         return self.the_probes
 
     def global_properties(self, kind):
-        # (4.7) Override the global_properties method
+        # (4.6) Override the global_properties method
         return self.the_props
 
 # (5) Instantiate recipe with a voltage probe located on "midpoint".
