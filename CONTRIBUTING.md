@@ -8,8 +8,8 @@ There are many ways to contribute: writing tutorials or blog posts, improving th
 documentation, submitting bug reports and feature requests or writing code which can be
 incorporated into Arbor itself.
 
-The Arbor documentation has a [Contributing section](https://docs.arbor-sim.org/en/latest/contrib) where we have laid out how you
-can go about making your contribution.
+The Arbor documentation has a [Contributing section](https://docs.arbor-sim.org/en/latest/contrib)
+where we have laid out how you can go about making your contribution.
 
 ## Get in touch
 
@@ -18,4 +18,4 @@ You can reach out in the following ways:
 * [Discussions](https://github.com/arbor-sim/arbor/discussions). Any questions or remarks regarding using Arbor
 for your research are welcome.
 * [Slack](https://mcnest.slack.com). If you're interested in developing Arbor itself, you can visit our Slack.
-* [Email](mailto:arbor-sim@fz-juelich.de).
+* [Email](mailto:contact@arbor-sim.org).

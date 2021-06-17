@@ -7,7 +7,7 @@ Cable cell labels
 
 .. py:class:: label_dict
 
-   Stores labels and their associated expressions as key-value pairs.
+   Stores labels and their associated :ref:`expressions <labels-expressions>` as key-value pairs.
 
    .. method:: label_dict()
 
@@ -32,7 +32,7 @@ Cable cell labels
       The locset definitons in the dictionary.
 
 The ``arbor.label_dict`` type is used for creating and manipulating label dictionaries,
-which can be initialised with a dictionary that defines (label, expression)
+which can be initialised with a dictionary that defines (label, :ref:`expression <labels-expressions>`)
 pairs. For example, a dictionary that uses tags that correspond to SWC
 `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
 to label soma, axon, dendrite and apical dendrites is:
@@ -86,7 +86,7 @@ same type (region or locset):
     # Square brackets can also be used to get a label's definition.
     assert(d['soma'] == '(tag 1)')
 
-Expressions can refer to other regions and locsets in a label dictionary.
+:Ref:`Expressions <labels-expressions>` can refer to other regions and locsets in a label dictionary.
 In the example below, we define a region labeled *'tree'* that is the union
 of both the *'dend'* and *'apic'* regions.
 
@@ -102,7 +102,7 @@ of both the *'dend'* and *'apic'* regions.
             # equivalent to (join (tag 3) (tag 4))
             'tree': '(join (region "dend") (region "apic"))'})
 
-The order that labels are defined does not matter, so an expression can refer to a
+The order that labels are defined does not matter, so an :ref:`expression <labels-expressions>` can refer to a
 label that has not yet been defined:
 
 .. code-block:: python
@@ -147,7 +147,7 @@ two labels refer to one another:
     in the locsets and the cable segments in the regions.
 
 
-The type of an expression, locset or region, is inferred automatically when it is
+The type of an :ref:`expression <labels-expressions>`, locset or region, is inferred automatically when it is
 input into a label dictionary.
 Lists of the labels for regions and locsets are available as attributes:
 

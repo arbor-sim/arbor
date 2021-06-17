@@ -19,6 +19,7 @@ try:
     import test_cable_probes
     import test_morphology
     import test_catalogues
+    import test_spikes
     # add more if needed
 except ModuleNotFoundError:
     from test import options
@@ -30,6 +31,7 @@ except ModuleNotFoundError:
     from test.unit import test_schedules
     from test.unit import test_cable_probes
     from test.unit import test_morphology
+    from test.unit import test_spikes
     # add more if needed
 
 test_modules = [\
@@ -40,7 +42,8 @@ test_modules = [\
     test_identifiers,\
     test_schedules,\
     test_cable_probes,\
-    test_morphology\
+    test_morphology,\
+    test_spikes,\
 ] # add more if needed
 
 def suite():
