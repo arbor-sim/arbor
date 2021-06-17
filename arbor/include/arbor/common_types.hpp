@@ -80,7 +80,7 @@ struct cell_local_label_type {
     cell_tag_type tag;
     lid_selection_policy policy;
 
-    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::round_robin):
+    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent):
         tag(std::move(tag)), policy(policy) {}
 };
 

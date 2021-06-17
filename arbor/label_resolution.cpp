@@ -132,7 +132,7 @@ lid_hopefully round_robin_state::update(const label_resolution_map::range_set& r
 
 lid_hopefully assert_univalent_state::update(const label_resolution_map::range_set& range_set) {
     if (range_set.size() != 1) {
-        return util::unexpected(resolution_error("range is not univalent."));
+        return util::unexpected(resolution_error("range is not univalent"));
     }
     // Get the lid of the only element.
     return range_set.at(0);
@@ -151,7 +151,7 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol) {
 
 cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
     if (!label_map_->count(iden.gid, iden.label.tag)) {
-        throw arb::bad_connection_label(iden.gid, iden.label.tag, "label does not exist.");
+        throw arb::bad_connection_label(iden.gid, iden.label.tag, "label does not exist");
     }
     const auto& range_set = label_map_->at(iden.gid, iden.label.tag);
 

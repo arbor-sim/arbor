@@ -112,14 +112,14 @@ corresponding to a valid detector label on the cell and an optional selection po
 out of potentially many detectors grouped under the same label - remember, in this case the number of detectors labeled
 'detector' is 1).
 The :py:class:`arbor.cell_global_label` can be initialized with a ``(gid, label)`` tuple, in which case the selection
-policy is the default :py:attr:`arbor.selection_policy.round_robin`; or a ``(gid, (label, policy))`` tuple.
+policy is the default :py:attr:`arbor.selection_policy.univalent`; or a ``(gid, (label, policy))`` tuple.
 
 The **target** is a :py:class:`arbor.cell_local_label` object containing a cell index ``gid``, the target label
 corresponding to a valid synapse label on the cell and an optional selection policy (for choosing a single synapse
 out of potentially many synapses grouped under the same label - remember, in this case the number of synapses labeled
 'syn' is 1).
 The :py:class:`arbor.cell_local_label` can be initialized with a ``label`` string, in which case the selection
-policy is the default :py:attr:`arbor.selection_policy.round_robin`; or a ``(label, policy)`` tuple. The ``gid``
+policy is the default :py:attr:`arbor.selection_policy.univalent`; or a ``(label, policy)`` tuple. The ``gid``
 of the target cell doesn't need to be explicitly added to the connection, it is the argument to the
 :py:func:`arbor.recipe.connections_on` method.
 

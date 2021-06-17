@@ -208,12 +208,12 @@ TEST(test_label_resolution, policies) {
         EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
         EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
 
-        // Reset and default policy
+        // Reset
         lid_resolver = arb::resolver(&res_map);
-        EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1"}));
-        EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1"}));
-        EXPECT_EQ(6u, lid_resolver.resolve({3, "l3_1"}));
-        EXPECT_EQ(7u, lid_resolver.resolve({3, "l3_1"}));
+        EXPECT_EQ(4u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(5u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(6u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
+        EXPECT_EQ(7u, lid_resolver.resolve({3, "l3_1", lid_selection_policy::round_robin}));
 
         // Test exception
         gids.push_back(5);

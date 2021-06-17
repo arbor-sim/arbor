@@ -18,7 +18,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
       Iterate over the items of the group in a round-robin fashion.
 
-   .. attribute:: assert_univalent
+   .. attribute:: univalent
 
       Assert that only one item is available in the group. Throws an exception if the assertion
       fails.
@@ -34,7 +34,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
    Because each label can be mapped to any of the items in its group, a :attr:`selection_policy`
    is needed to select one of the items of the group. If the policy is not supplied, the default
-   :attr:`selection_policy.round_robin` is selected.
+   :attr:`selection_policy.univalent` is selected.
 
    :class:`cell_local_label` is used for selecting the target of a connection or the
    local site of a gap junction connection. The cell ``gid`` of the item is implicitly known in the
