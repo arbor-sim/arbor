@@ -32,12 +32,6 @@ class art_spiker_recipe(A.recipe):
     def num_cells(self):
         return 3
 
-    def num_targets(self, gid):
-        return 0
-
-    def num_sources(self, gid):
-        return 1
-
     def cell_kind(self, gid):
         return A.cell_kind.spike_source
 
@@ -54,7 +48,7 @@ class art_spiker_recipe(A.recipe):
         return []
 
     def cell_description(self, gid):
-        return A.spike_source_cell(A.explicit_schedule(self.trains[gid]))
+        return A.spike_source_cell("src", A.explicit_schedule(self.trains[gid]))
 
 
 class Spikes(unittest.TestCase):

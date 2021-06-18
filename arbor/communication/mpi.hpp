@@ -12,6 +12,7 @@
 
 #include "communication/gathered_vector.hpp"
 #include "profile/profiler_macro.hpp"
+#include "util/rangeutil.hpp"
 #include "util/partition.hpp"
 
 namespace arb {
@@ -142,6 +143,47 @@ std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
             comm);
 
     return buffer;
+}
+
+inline std::vector<std::string> gather_all(const std::vector<std::string>& values, MPI_Comm comm) {
+    using traits = mpi_traits<char>;
+    std::vector<int> counts_individual, counts_total, displs_individual, displs_total;
+
+    // vector of individual string sizes
+    std::vector<int> individual_sizes(values.size());
+    std::transform(values.begin(), values.end(), individual_sizes.begin(), [](const std::string& val){return int(val.size());});
+
+    counts_individual = gather_all(individual_sizes, comm);
+    counts_total      = gather_all(util::sum(individual_sizes, 0), comm);
+
+    util::make_partition(displs_total, counts_total);
+    std::vector<char> buffer(displs_total.back());
+
+    // Concatenate string data
+    std::string values_concat;
+    for (const auto& v: values) {
+        values_concat += v;
+    }
+
+    // Cast to ptr
+    // const_cast required for MPI implementations that don't use const* in
+    // their interfaces.
+    std::string::value_type* ptr = const_cast<std::string::value_type*>(values_concat.data());
+    MPI_OR_THROW(MPI_Allgatherv,
+                 ptr, counts_total[rank(comm)], traits::mpi_type(),  // send buffer
+                 buffer.data(), counts_total.data(), displs_total.data(), traits::mpi_type(), // receive buffer
+                 comm);
+
+    // Construct the vector of strings
+    std::vector<std::string> string_buffer;
+    string_buffer.reserve(counts_individual.size());
+
+    auto displs_individual_part = util::make_partition(displs_individual, counts_individual);
+    for (const auto& str_range: displs_individual_part) {
+        string_buffer.emplace_back(buffer.begin()+str_range.first, buffer.begin()+str_range.second);
+    }
+
+    return string_buffer;
 }
 
 /// Gather all of a distributed vector

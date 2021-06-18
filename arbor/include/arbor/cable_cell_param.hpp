@@ -247,7 +247,7 @@ struct cable_cell_parameter_set {
 // are to be applied to a morphology in a cable_cell.
 class decor {
     std::vector<std::pair<region, paintable>> paintings_;
-    std::vector<std::pair<locset, placeable>> placements_;
+    std::vector<std::tuple<locset, placeable, cell_tag_type>> placements_;
     cable_cell_parameter_set defaults_;
 
 public:
@@ -256,7 +256,7 @@ public:
     const auto& defaults()   const {return defaults_;   }
 
     void paint(region, paintable);
-    unsigned place(locset, placeable);
+    void place(locset, placeable, cell_tag_type);
     void set_default(defaultable);
 };
 

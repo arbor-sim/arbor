@@ -15,6 +15,7 @@
 #include "cell_group.hpp"
 #include "event_binner.hpp"
 #include "fvm_lowered_cell.hpp"
+#include "label_resolution.hpp"
 #include "mc_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
@@ -29,7 +30,11 @@ namespace arb {
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.intdom_index),(b.mech_id,b.mech_index,b.intdom_index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
 
-mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
+mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
+                             const recipe& rec,
+                             cell_label_range& cg_sources,
+                             cell_label_range& cg_targets,
+                             fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
     // Default to no binning of events
@@ -40,20 +45,25 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
         gid_index_map_[gids_[i]] = i;
     }
 
+    // Construct cell implementation, retrieving handles and maps.
+    auto fvm_info = lowered_->initialize(gids_, rec);
+
+    // Propagate source and target ranges to the simulator object
+    cg_sources = std::move(fvm_info.source_data);
+    cg_targets = std::move(fvm_info.target_data);
+
+    // Store consistent data from fvm_lowered_cell
+    target_handles_ = std::move(fvm_info.target_handles);
+    cell_to_intdom_ = std::move(fvm_info.cell_to_intdom);
+    probe_map_ = std::move(fvm_info.probe_map);
+
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-            util::transform_view(gids_, [&rec](cell_gid_type i) { return rec.num_targets(i); }));
-    std::size_t n_targets = target_handle_divisions_.back();
-
-    // Pre-allocate space to store handles.
-    target_handles_.reserve(n_targets);
-
-    // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
+        util::transform_view(gids_, [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
-        for (cell_lid_type lid = 0; lid<rec.num_sources(source_gid); ++lid) {
+        for (cell_lid_type lid = 0; lid<fvm_info.num_sources[source_gid]; ++lid) {
             spike_sources_.push_back({source_gid, lid});
         }
     }
@@ -582,5 +592,4 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
 
     return result;
 }
-
 } // namespace arb

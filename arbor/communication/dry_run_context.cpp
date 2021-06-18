@@ -4,8 +4,10 @@
 
 #include <arbor/spike.hpp>
 
-#include <distributed_context.hpp>
-#include <threading/threading.hpp>
+#include "distributed_context.hpp"
+#include "label_resolution.hpp"
+#include "threading/threading.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -24,7 +26,7 @@ struct dry_run_context_impl {
         gathered_spikes.reserve(local_size*num_ranks_);
 
         for (count_type i = 0; i < num_ranks_; i++) {
-            gathered_spikes.insert(gathered_spikes.end(), local_spikes.begin(), local_spikes.end());
+            util::append(gathered_spikes, local_spikes);
         }
 
         for (count_type i = 0; i < num_ranks_; i++) {
@@ -51,7 +53,7 @@ struct dry_run_context_impl {
         gathered_gids.reserve(local_size*num_ranks_);
 
         for (count_type i = 0; i < num_ranks_; i++) {
-            gathered_gids.insert(gathered_gids.end(), local_gids.begin(), local_gids.end());
+            util::append(gathered_gids, local_gids);
         }
 
         for (count_type i = 0; i < num_ranks_; i++) {
@@ -68,6 +70,25 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        cell_label_range global_ranges;
+        for (unsigned i = 0; i < num_ranks_; i++) {
+            global_ranges.append(local_ranges);
+        }
+        return global_ranges;
+    }
+
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
+        auto gids = gather_gids(local_labels_and_gids.gids);
+        return cell_labels_and_gids(global_ranges, gids.values());
+    }
+
+    template <typename T>
+    std::vector<T> gather(T value, int) const {
+        return std::vector<T>(num_ranks_, value);
+    }
+
     int id() const { return 0; }
 
     int size() const { return num_ranks_; }
@@ -80,11 +101,6 @@ struct dry_run_context_impl {
 
     template <typename T>
     T sum(T value) const { return value * num_ranks_; }
-
-    template <typename T>
-    std::vector<T> gather(T value, int) const {
-        return std::vector<T>(num_ranks_, value);
-    }
 
     void barrier() const {}
 

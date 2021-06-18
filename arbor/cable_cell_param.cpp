@@ -113,9 +113,8 @@ void decor::paint(region where, paintable what) {
     paintings_.push_back({std::move(where), std::move(what)});
 }
 
-unsigned decor::place(locset where, placeable what) {
-    placements_.push_back({std::move(where), std::move(what)});
-    return std::size(placements_)-1;
+void decor::place(locset where, placeable what, cell_tag_type label) {
+    placements_.push_back({std::move(where), std::move(what), std::move(label)});
 }
 
 void decor::set_default(defaultable what) {

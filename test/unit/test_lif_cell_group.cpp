@@ -41,17 +41,15 @@ public:
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
-        cell_member_type source{(gid - 1) % n_lif_cells_, 0};
-        cell_lid_type target{0};
-        cell_connection conn(source, target, weight_, delay_);
+        auto src_gid = (gid - 1) % n_lif_cells_;
+        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
         // If first LIF cell, then add
         // the connection from the last LIF cell as well
         if (gid == 1) {
-            cell_member_type source{n_lif_cells_, 0};
-            cell_lid_type target{0};
-            cell_connection conn(source, target, weight_, delay_);
+            auto src_gid = n_lif_cells_;
+            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
             connections.push_back(conn);
         }
 
@@ -62,17 +60,11 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{explicit_schedule({0.f})};
+            return spike_source_cell("src", explicit_schedule({0.f}));
         }
         // LIF cell.
-        return lif_cell();
-    }
-
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
+        auto cell = lif_cell("src", "tgt");
+        return cell;
     }
 
 private:
@@ -100,23 +92,15 @@ public:
             return {};
         }
         std::vector<cell_connection> connections;
-        cell_member_type source{gid - 1, 0};
-        cell_lid_type target{0};
-        cell_connection conn(source, target, weight_, delay_);
+        cell_connection conn({gid-1, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
         return connections;
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell();
-    }
-
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
+        auto cell = lif_cell("src", "tgt");
+        return cell;
     }
 
 private:
@@ -139,13 +123,7 @@ public:
         return {};
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell();
-    }
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
+        return lif_cell("src", "tgt");
     }
     std::vector<probe_info> get_probes(cell_gid_type gid) const override{
         return {arb::cable_probe_membrane_voltage{mlocation{0, 0}}};

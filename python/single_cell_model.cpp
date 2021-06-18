@@ -92,15 +92,7 @@ struct single_cell_recipe: arb::recipe {
         return arb::cell_kind::cable;
     }
 
-    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const override {
-        return cell_.detectors().size();
-    }
-
-    // synapses, connections and event generators
-
-    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const override {
-        return cell_.synapses().size();
-    }
+    // connections and event generators
 
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type) const override {
         return {}; // no connections on a single cell model
@@ -122,10 +114,6 @@ struct single_cell_recipe: arb::recipe {
     }
 
     // gap junctions
-
-    virtual arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid)  const override {
-        return 0; // No gap junctions on a single cell model.
-    }
 
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const override {
         return {}; // No gap junctions on a single cell model.
