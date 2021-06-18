@@ -241,15 +241,12 @@ set(arbor_supported_components)
 # Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
 # will include target-specific -march flags if ARB_ARCH is not "none".
 if(ARB_ARCH STREQUAL "none")
-    set(ARB_CXX_FLAGS_TARGET_FULL "${ARB_CXX_FLAGS_TARGET}")
-    separate_arguments(ARB_CXX_FLAGS_TARGET_FULL)
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET})
 else()
-    set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
-    set(ARB_CXX_FLAGS_TARGET_FULL "${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH}")
+    set_arch_target(ARB_CXXOPT_ARCH ${ARB_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
 endif()
-
-# Remove white space at beginning/end of the target-specific flags
-string(STRIP "${ARB_CXX_FLAGS_TARGET_FULL}" ARB_CXX_FLAGS_TARGET_FULL)
+separate_arguments(ARB_CXX_FLAGS_TARGET_FULL)
 
 target_compile_options(arbor-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})

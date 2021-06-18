@@ -118,14 +118,14 @@ function("make_catalogue")
   endforeach()
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
-  if(NOT ARB_CXX_FLAGS_TARGET_FULL STREQUAL "")
-      string (REPLACE ";" " " ARB_CXX_FLAGS_TARGET_FULL_SPLIT "${ARB_CXX_FLAGS_TARGET_FULL}")
-      set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXX_FLAGS_TARGET_FULL_SPLIT})
-  endif()
+  #if(NOT ARB_CXX_FLAGS_TARGET_FULL STREQUAL "")
+  #set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXX_FLAGS_TARGET_FULL})
+  #endif()
 
   if(${MK_CAT_STANDALONE})
     add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
     target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
+    target_compile_options(${MK_CAT_NAME}-catalogue PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL} )
     set_target_properties(${MK_CAT_NAME}-catalogue
       PROPERTIES
       SUFFIX ".so"
