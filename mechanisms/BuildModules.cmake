@@ -119,7 +119,8 @@ function("make_catalogue")
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
   if(NOT ARB_CXX_FLAGS_TARGET_FULL STREQUAL "")
-      set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXX_FLAGS_TARGET_FULL})
+      string (REPLACE ";" " " ARB_CXX_FLAGS_TARGET_FULL_SPLIT "${ARB_CXX_FLAGS_TARGET_FULL}")
+      set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXX_FLAGS_TARGET_FULL_SPLIT})
   endif()
 
   if(${MK_CAT_STANDALONE})

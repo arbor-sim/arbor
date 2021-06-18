@@ -242,6 +242,7 @@ set(arbor_supported_components)
 # will include target-specific -march flags if ARB_ARCH is not "none".
 if(ARB_ARCH STREQUAL "none")
     set(ARB_CXX_FLAGS_TARGET_FULL "${ARB_CXX_FLAGS_TARGET}")
+    separate_arguments(ARB_CXX_FLAGS_TARGET_FULL)
 else()
     set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
     set(ARB_CXX_FLAGS_TARGET_FULL "${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH}")
