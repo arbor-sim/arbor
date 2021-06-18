@@ -32,7 +32,7 @@ A recipe lets you define which sites are connected to which.
          on the cell.
       2. Declare the connection in the recipe *on the target cell*:  from a source identified using
          a :gen:`global_label`; a target identified using a :gen:`local_label` (:gen:`gid` of target is
-         implicitly known); a connection delay and a connection weight.
+         the argument of the recipe method); a connection delay and a connection weight.
 
    spike
    action potential

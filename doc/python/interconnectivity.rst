@@ -49,8 +49,8 @@ Interconnectivity
             import arbor
 
             def connections_on(gid):
-               # construct a connection from the "detector" source label on cell 2 (2,0)
-               # to the "syn" target label on cell gid (gid,1) with weight 0.01 and delay of 10 ms.
+               # construct a connection from the "detector" source label on cell 2
+               # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
                src  = arbor.cell_global_label(2, "detector")
                dest = arbor.cell_local_label("syn") # gid of the destination is is determined by the argument to `connections_on`
                w    = 0.01
