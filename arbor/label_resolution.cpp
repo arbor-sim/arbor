@@ -13,10 +13,6 @@
 
 namespace arb {
 
-resolution_error::resolution_error(const std::string& msg):
-    arb::arbor_exception(msg)
-{}
-
 // cell_label_range methods
 cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
                                    std::vector<cell_tag_type> label_vec,
@@ -71,7 +67,7 @@ cell_size_type label_resolution_map::range_set::size() const {
 }
 
 lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
-    if (size() < 1) return util::unexpected(resolution_error("no valid lids"));
+    if (size() < 1) return util::unexpected("no valid lids");
     auto part = util::partition_view(ranges_partition);
     // Index of the range containing idx.
     auto ridx = part.index(idx);
@@ -132,7 +128,7 @@ lid_hopefully round_robin_state::update(const label_resolution_map::range_set& r
 
 lid_hopefully assert_univalent_state::update(const label_resolution_map::range_set& range_set) {
     if (range_set.size() != 1) {
-        return util::unexpected(resolution_error("range is not univalent"));
+        return util::unexpected("range is not univalent");
     }
     // Get the lid of the only element.
     return range_set.at(0);
@@ -162,7 +158,7 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
 
     auto lid = std::visit([range_set](auto& state) { return state.update(range_set); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
     if (!lid) {
-        throw(arb::bad_connection_label(iden.gid, iden.label.tag, lid.error().what()));
+        throw arb::bad_connection_label(iden.gid, iden.label.tag, lid.error());
     }
     return lid.value();
 }

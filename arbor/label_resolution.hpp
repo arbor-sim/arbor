@@ -11,10 +11,7 @@
 
 namespace arb {
 
-struct resolution_error: arb::arbor_exception {
-    resolution_error(const std::string& msg);
-};
-using lid_hopefully = arb::util::expected<cell_lid_type , resolution_error>;
+using lid_hopefully = arb::util::expected<cell_lid_type, std::string>;
 
 // class containing the data required for {cell, label} to lid resolution.
 // `sizes` is a partitioning vector for associating a cell with a set of
