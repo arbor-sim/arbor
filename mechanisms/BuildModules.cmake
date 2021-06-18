@@ -58,7 +58,7 @@ function(build_modules)
 endfunction()
 
 function("make_catalogue")
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;CXX_FLAGS_TARGET;ARBOR;STANDALONE;VERBOSE" "MECHS" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE;VERBOSE" "CXX_FLAGS_TARGET;MECHS" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
 
   # Need to set ARB_WITH_EXTERNAL_MODCC *and* modcc
@@ -121,7 +121,7 @@ function("make_catalogue")
   if(${MK_CAT_STANDALONE})
     add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
     target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
-    target_compile_options(${MK_CAT_NAME}-catalogue PRIVATE ${MK_CAT_CXX_FLAGS_TARGET} )
+    target_compile_options(${MK_CAT_NAME}-catalogue PUBLIC ${MK_CAT_CXX_FLAGS_TARGET})
     set_target_properties(${MK_CAT_NAME}-catalogue
       PROPERTIES
       SUFFIX ".so"
