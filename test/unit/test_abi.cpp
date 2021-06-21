@@ -24,7 +24,7 @@ TEST(abi, multicore_initialisation) {
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
 
-    arb_mechanism_interface iface { arb_backend_kind::arb_backend_kind_cpu,
+    arb_mechanism_interface iface { arb_backend_kind_cpu,
                                     1,
                                     1,
                                     nullptr,
@@ -34,7 +34,7 @@ TEST(abi, multicore_initialisation) {
                                     nullptr,
                                     nullptr };
 
-    auto mech = arb::multicore::mechanism(type, iface);
+    auto mech = arb::mechanism(type, iface);
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
@@ -105,7 +105,7 @@ TEST(abi, gpu_initialisation) {
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
 
-    arb_mechanism_interface iface { arb_backend_kind::arb_backend_kind_cpu,
+    arb_mechanism_interface iface { arb_backend_kind_gpu,
                                     1,
                                     nullptr,
                                     nullptr,
@@ -114,7 +114,7 @@ TEST(abi, gpu_initialisation) {
                                     nullptr,
                                     nullptr };
 
-    auto mech = arb::multicore::mechanism(type, iface);
+    auto mech = arb::mechanism(type, iface);
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;

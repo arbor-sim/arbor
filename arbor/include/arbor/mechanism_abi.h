@@ -11,15 +11,21 @@ extern "C" {
 #define ARB_MECH_ABI_VERSION_MAJOR 0
 #define ARB_MECH_ABI_VERSION_MINOR 0
 #define ARB_MECH_ABI_VERSION_PATCH 1
-
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000 * 10000) + (ARB_MECH_ABI_VERSION_MAJOR * 10000) + ARB_MECH_ABI_VERSION_PATCH)
-
 
 typedef const char* arb_mechanism_fingerprint;
 
 // Selectors
-enum arb_mechanism_kind { arb_mechanism_kind_point, arb_mechanism_kind_density, arb_mechanism_kind_reversal_potential };
-enum arb_backend_kind   { arb_backend_kind_cpu, arb_backend_kind_gpu };
+typedef uint32_t arb_mechanism_kind;
+#define arb_mechanism_kind_nil 0
+#define arb_mechanism_kind_point 1
+#define arb_mechanism_kind_density 2
+#define arb_mechanism_kind_reversal_potential 3
+
+typedef uint32_t arb_backend_kind;
+#define arb_backend_kind_nil 0
+#define arb_backend_kind_cpu 1
+#define arb_backend_kind_gpu 2
 
 // Ion state variables; view into shared_state
 typedef struct arb_ion_state {

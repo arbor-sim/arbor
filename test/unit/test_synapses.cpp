@@ -80,10 +80,10 @@ TEST(synapses, syn_basic_state) {
 
     value_type temp_K = *neuron_parameter_defaults.temperature_K;
 
-    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn").mech);
+    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance(backend::kind, "expsyn").mech);
     ASSERT_TRUE(expsyn);
 
-    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn").mech);
+    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance(backend::kind, "exp2syn").mech);
     ASSERT_TRUE(exp2syn);
 
     std::vector<fvm_gap_junction> gj = {};

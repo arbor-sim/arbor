@@ -25,7 +25,7 @@ void run_celsius_test() {
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
     std::vector<fvm_gap_junction> gj = {};
-    auto instance = cat.instance<backend>("celsius_test");
+    auto instance = cat.instance(backend::kind, "celsius_test");
     auto& celsius_test = instance.mech;
 
     double temperature_K = 300.;
@@ -76,7 +76,7 @@ void run_diam_test() {
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
     std::vector<fvm_gap_junction> gj = {};
-    auto instance = cat.instance<backend>("diam_test");
+    auto instance = cat.instance(backend::kind, "diam_test");
     auto& celsius_test = instance.mech;
 
     std::vector<fvm_value_type> temp(ncv, 300.);

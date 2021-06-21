@@ -439,7 +439,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "}}\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,
-                       "arb_backend_kind::arb_backend_kind_cpu",
+                       "arb_backend_kind_cpu",
                        ss.str());
 
     EXIT(out);

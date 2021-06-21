@@ -419,8 +419,8 @@ void shared_state::instantiate(arb::mechanism& m_, unsigned id, const mechanism_
     // Set internal variables
     m.mult_in_place_    = !pos_data.multiplicity.empty();
     m.num_ions_         = m.mech_.n_ions;
-    m.vec_t_ptr_        = &time;
-    m.event_stream_ptr_ = &deliverable_events;
+    // m.vec_t_ptr_        = &time; FIXME(TH)
+    // m.event_stream_ptr_ = &deliverable_events; FIXME(TH)
     m.width_padded_     = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
 
     // Assign non-owning views onto shared state:

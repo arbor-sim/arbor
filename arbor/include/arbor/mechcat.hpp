@@ -81,31 +81,20 @@ public:
 
     // Clone the implementation associated with name (search derivation hierarchy starting from
     // most derived) and return together with any global overrides.
-    template <typename B>
     struct cat_instance {
-        std::unique_ptr<concrete_mechanism<B>> mech;
+        mechanism_ptr mech;
         mechanism_overrides overrides;
     };
 
-    template <typename B>
-    cat_instance<B> instance(const std::string& name) const {
-        auto mech = instance_impl(std::type_index(typeid(B)), name);
-
-        return cat_instance<B>{
-            std::unique_ptr<concrete_mechanism<B>>(dynamic_cast<concrete_mechanism<B>*>(mech.first.release())),
-            std::move(mech.second)
-        };
+    cat_instance instance(arb_backend_kind kind, const std::string& name) const {
+        auto mech = instance_impl(kind, name);
+        return { std::move(mech.first), std::move(mech.second) };
     }
 
-    // Associate a concrete (prototype) mechanism for a given back-end B with a (possibly derived)
-    // mechanism name.
-    template <typename B>
-    void register_implementation(const std::string& name, std::unique_ptr<concrete_mechanism<B>> proto) {
-        mechanism_ptr generic_proto = mechanism_ptr(proto.release());
-        register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
+    void register_implementation(const std::string& name, mechanism_ptr proto) {
+        auto be = proto->iface_.backend;
+        register_impl(be, name, std::move(proto));
     }
-
-    void register_implementation(const std::string& name, const arb_mechanism_type& mech, const arb_mechanism_interface* iface);
 
     // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
     void import(const mechanism_catalogue& other, const std::string& prefix);
@@ -118,8 +107,8 @@ public:
 private:
     std::unique_ptr<catalogue_state> state_;
 
-    std::pair<mechanism_ptr, mechanism_overrides> instance_impl(std::type_index, const std::string&) const;
-    void register_impl(std::type_index, const std::string&, mechanism_ptr);
+    std::pair<mechanism_ptr, mechanism_overrides> instance_impl(arb_backend_kind, const std::string&) const;
+    void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
 

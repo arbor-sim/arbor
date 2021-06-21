@@ -39,7 +39,7 @@ void run_test(std::string mech_name,
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
     std::vector<fvm_gap_junction> gj = {};
-    auto instance = cat.instance<backend>(mech_name);
+    auto instance = cat.instance(backend::kind, mech_name);
     auto& test = instance.mech;
 
     std::vector<fvm_value_type> temp(ncv, 300.);

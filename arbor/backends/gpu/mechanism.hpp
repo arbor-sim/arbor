@@ -19,15 +19,7 @@ namespace arb {
 namespace gpu {
 
 // Base class for all generated mechanisms for gpu back-end.
-class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
-public:
-    using concrete_mechanism<arb::gpu::backend>::concrete_mechanism;
-    // mechanism() = default;
-
-    mechanism_ptr clone() const override { return std::make_unique<mechanism>(mech_, iface_); }
-    void initialize() override;
-    void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override;
-
+class mechanism: public arb::mechanism {
 protected:
     fvm_size_type width_padded_ = 0;            // Width rounded up to multiple of pad/alignment.
 

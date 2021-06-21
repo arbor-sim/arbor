@@ -52,18 +52,8 @@ mechanism_info fleeb_info = {
     "fleebprint"
 };
 
-template <typename B>
-struct common_impl: concrete_mechanism<B> {
-    void set_parameter(const std::string& key, const std::vector<fvm_value_type>& vs) override {}
-
-    void initialize() override {}
-    void update_state() override {}
-    void update_current() override {}
-    void deliver_events() override {}
-    void update_ions() override {}
-
+struct test_mechanism: mechanism {
     std::vector<std::string> mech_ions;
-
     std::unordered_map<std::string, std::string> ion_bindings_;
 };
 
@@ -77,9 +67,8 @@ struct test_backend {
     struct shared_state {
         shared_state(const std::unordered_map<std::string, std::string>& ions_): ions{ions_} {}
 
-        template<typename B>
-        void instantiate(concrete_mechanism<B>& m_, fvm_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
-            common_impl<B>& m = dynamic_cast<common_impl<B>&>(m_);
+        void instantiate(mechanism& m_, fvm_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
+            test_mechanism& m = dynamic_cast<test_mechanism&>(m_);
             m.ppack_.width = l.cv.size();
             // Write mechanism global values to shared state to test instatiation call and catalogue global
             // variable overrides.
@@ -117,6 +106,7 @@ struct test_backend {
 };
 
 struct foo_backend: test_backend {
+    static constexpr arb_backend_kind kind = 42;
     foo_backend(): test_backend{{{ "a", "foo_ion_a" },
                                  { "b", "foo_ion_b" },
                                  { "c", "foo_ion_c" },
@@ -126,6 +116,7 @@ struct foo_backend: test_backend {
 };
 
 struct bar_backend: test_backend {
+    static constexpr arb_backend_kind kind = 23;
     bar_backend(): test_backend{{{ "a", "bar_ion_a" },
                                  { "b", "bar_ion_b" },
                                  { "c", "bar_ion_c" },
@@ -134,68 +125,53 @@ struct bar_backend: test_backend {
                                  { "f", "bar_ion_f" }}} {}
 };
 
-using foo_mechanism = common_impl<foo_backend>;
-using bar_mechanism = common_impl<bar_backend>;
-
-template <typename B>
-std::string ion_binding(const std::unique_ptr<concrete_mechanism<B>>& mech, const char* ion) {
-    const common_impl<B>& impl = dynamic_cast<const common_impl<B>&>(*mech.get());
-    return impl.ion_bindings_.count(ion)? impl.ion_bindings_.at(ion): "";
+std::string ion_binding(const mechanism& mech, const char* ion) {
+    const test_mechanism& tm = dynamic_cast<const test_mechanism&>(mech);
+    return tm.ion_bindings_.count(ion)? tm.ion_bindings_.at(ion): "";
 }
 
 // Fleeb implementations:
 
-struct fleeb_foo: foo_mechanism {
+struct fleeb_foo: test_mechanism {
     fleeb_foo() {
         this->mech_ions = {"a", "b", "c", "d"};
         mech_.fingerprint = "fleebprint";
         mech_.name        = "fleeb";
-        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
+        mech_.kind        = arb_mechanism_kind_density;
+        iface_.backend    = foo_backend::kind;
     }
-
-    mechanism_ptr clone() const override { return mechanism_ptr(new fleeb_foo()); }
 };
 
-struct special_fleeb_foo: foo_mechanism {
+struct special_fleeb_foo: test_mechanism {
     special_fleeb_foo() {
         this->mech_ions   = {"a", "b", "c", "d"};
         mech_.fingerprint = "fleebprint";
         mech_.name        = "special fleeb";
-        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
+        mech_.kind        = arb_mechanism_kind_density;
+        iface_.backend    = foo_backend::kind;
     }
-
-    mechanism_ptr clone() const override { return mechanism_ptr(new special_fleeb_foo()); }
 };
 
-struct fleeb_bar: bar_mechanism {
+struct fleeb_bar: test_mechanism {
     fleeb_bar() {
         this->mech_ions = {"a", "b", "c", "d"};
         mech_.fingerprint = "fleebprint";
         mech_.name        = "fleeb";
-        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
+        mech_.kind        = arb_mechanism_kind_density;
+        iface_.backend    = bar_backend::kind;
     }
-
-    mechanism_ptr clone() const override { return mechanism_ptr(new fleeb_bar()); }
 };
 
 // Burble implementation:
 
-struct burble_bar: bar_mechanism {
+struct burble_bar: test_mechanism {
     burble_bar() {
         mech_.fingerprint = "fnord";
         mech_.name        = "burble";
-        mech_.kind        = arb_mechanism_kind::arb_mechanism_kind_density;
+        mech_.kind        = arb_mechanism_kind_density;
+        iface_.backend    = bar_backend::kind;
     }
-
-    mechanism_ptr clone() const override { return mechanism_ptr(new burble_bar()); }
 };
-
-// Implementation register helper:
-
-template <typename B, typename M>
-std::unique_ptr<concrete_mechanism<B>> make_mech() {
-    return std::unique_ptr<concrete_mechanism<B>>(new M());
-}
 
 // Mechinfo equality test:
 
@@ -229,9 +205,9 @@ mechanism_catalogue build_fake_catalogue() {
 
     // Attach implementations:
 
-    cat.register_implementation<bar_backend>("fleeb", make_mech<bar_backend, fleeb_bar>());
-    cat.register_implementation<foo_backend>("fleeb", make_mech<foo_backend, fleeb_foo>());
-    cat.register_implementation<foo_backend>("special_fleeb", make_mech<foo_backend, special_fleeb_foo>());
+    cat.register_implementation("fleeb",         std::unique_ptr<mechanism>{new fleeb_bar});
+    cat.register_implementation("fleeb",         std::unique_ptr<mechanism>{new fleeb_foo});
+    cat.register_implementation("special_fleeb", std::unique_ptr<mechanism>{new special_fleeb_foo});
 
     return cat;
 }
@@ -244,7 +220,7 @@ TEST(mechcat, fingerprint) {
     EXPECT_EQ("burbleprint", cat.fingerprint("burble"));
     EXPECT_EQ("burbleprint", cat.fingerprint("bleeble"));
 
-    EXPECT_THROW(cat.register_implementation<bar_backend>("burble", make_mech<bar_backend, burble_bar>()),
+    EXPECT_THROW(cat.register_implementation("burble", std::unique_ptr<mechanism>{new burble_bar}),
         arb::fingerprint_mismatch);
 }
 
@@ -350,14 +326,14 @@ TEST(mechcat, remove) {
 TEST(mechcat, instance) {
     auto cat = build_fake_catalogue();
 
-    EXPECT_THROW(cat.instance<bar_backend>("burble"), arb::no_such_implementation);
+    EXPECT_THROW(cat.instance(bar_backend::kind, "burble"), arb::no_such_implementation);
 
     // All fleebs on the bar backend have the same implementation:
 
-    auto fleeb_bar_inst = cat.instance<bar_backend>("fleeb");
-    auto fleeb1_bar_inst = cat.instance<bar_backend>("fleeb1");
-    auto special_fleeb_bar_inst = cat.instance<bar_backend>("special_fleeb");
-    auto fleeb2_bar_inst = cat.instance<bar_backend>("fleeb2");
+    auto fleeb_bar_inst = cat.instance(bar_backend::kind, "fleeb");
+    auto fleeb1_bar_inst = cat.instance(bar_backend::kind, "fleeb1");
+    auto special_fleeb_bar_inst = cat.instance(bar_backend::kind, "special_fleeb");
+    auto fleeb2_bar_inst = cat.instance(bar_backend::kind, "fleeb2");
 
     EXPECT_EQ(typeid(fleeb_bar), typeid(*fleeb_bar_inst.mech.get()));
     EXPECT_EQ(typeid(fleeb_bar), typeid(*fleeb1_bar_inst.mech.get()));
@@ -369,10 +345,10 @@ TEST(mechcat, instance) {
     // special_fleeb and fleeb2 (deriving from special_fleeb) have a specialized
     // implementation:
 
-    auto fleeb_foo_inst = cat.instance<foo_backend>("fleeb");
-    auto fleeb1_foo_inst = cat.instance<foo_backend>("fleeb1");
-    auto special_fleeb_foo_inst = cat.instance<foo_backend>("special_fleeb");
-    auto fleeb2_foo_inst = cat.instance<foo_backend>("fleeb2");
+    auto fleeb_foo_inst = cat.instance(foo_backend::kind, "fleeb");
+    auto fleeb1_foo_inst = cat.instance(foo_backend::kind, "fleeb1");
+    auto special_fleeb_foo_inst = cat.instance(foo_backend::kind, "special_fleeb");
+    auto fleeb2_foo_inst = cat.instance(foo_backend::kind,"f leeb2");
 
     EXPECT_EQ(typeid(fleeb_foo), typeid(*fleeb_foo_inst.mech.get()));
     EXPECT_EQ(typeid(fleeb_foo), typeid(*fleeb1_foo_inst.mech.get()));
@@ -393,12 +369,12 @@ TEST(mechcat, instantiate) {
 
     auto cat = build_fake_catalogue();
 
-    auto fleeb = cat.instance<bar_backend>("fleeb");
+    auto fleeb = cat.instance(bar_backend::kind, "fleeb");
     bar.shared_.instantiate(*fleeb.mech, 0, fleeb.overrides, layout);
     EXPECT_TRUE(bar.shared_.overrides.empty());
 
     bar.shared_.overrides.clear();
-    auto fleeb2 = cat.instance<bar_backend>("fleeb2");
+    auto fleeb2 = cat.instance(bar_backend::kind, "fleeb2");
     bar.shared_.instantiate(*fleeb2.mech, 0, fleeb2.overrides, layout);
     EXPECT_EQ(2.0,  bar.shared_.overrides.at("plugh"));
     EXPECT_EQ(11.0, bar.shared_.overrides.at("norf"));
@@ -409,27 +385,27 @@ TEST(mechcat, instantiate) {
     // 'b' maps to the state 'c' ion, 'c' maps to the state 'a' ion,
     // and 'a' maps to the state 'b' ion.
 
-    EXPECT_EQ("bar_ion_a", ion_binding(fleeb.mech, "a"));
-    EXPECT_EQ("bar_ion_b", ion_binding(fleeb.mech, "b"));
-    EXPECT_EQ("bar_ion_c", ion_binding(fleeb.mech, "c"));
-    EXPECT_EQ("bar_ion_d", ion_binding(fleeb.mech, "d"));
+    EXPECT_EQ("bar_ion_a", ion_binding(*fleeb.mech, "a"));
+    EXPECT_EQ("bar_ion_b", ion_binding(*fleeb.mech, "b"));
+    EXPECT_EQ("bar_ion_c", ion_binding(*fleeb.mech, "c"));
+    EXPECT_EQ("bar_ion_d", ion_binding(*fleeb.mech, "d"));
 
-    auto fleeb3 = cat.instance<bar_backend>("fleeb3");
+    auto fleeb3 = cat.instance(bar_backend::kind, "fleeb3");
     bar.shared_.instantiate(*fleeb3.mech, 0, fleeb3.overrides, layout);
 
     foo_backend foo;
-    auto fleeb1 = cat.instance<foo_backend>("fleeb1");
+    auto fleeb1 = cat.instance(foo_backend::kind, "fleeb1");
     foo.shared_.instantiate(*fleeb1.mech, 0, fleeb1.overrides, layout);
 
-    EXPECT_EQ("foo_ion_b", ion_binding(fleeb1.mech, "a"));
-    EXPECT_EQ("foo_ion_a", ion_binding(fleeb1.mech, "b"));
-    EXPECT_EQ("foo_ion_c", ion_binding(fleeb1.mech, "c"));
-    EXPECT_EQ("foo_ion_d", ion_binding(fleeb1.mech, "d"));
+    EXPECT_EQ("foo_ion_b", ion_binding(*fleeb1.mech, "a"));
+    EXPECT_EQ("foo_ion_a", ion_binding(*fleeb1.mech, "b"));
+    EXPECT_EQ("foo_ion_c", ion_binding(*fleeb1.mech, "c"));
+    EXPECT_EQ("foo_ion_d", ion_binding(*fleeb1.mech, "d"));
 
-    EXPECT_EQ("bar_ion_c", ion_binding(fleeb3.mech, "a"));
-    EXPECT_EQ("bar_ion_a", ion_binding(fleeb3.mech, "b"));
-    EXPECT_EQ("bar_ion_b", ion_binding(fleeb3.mech, "c"));
-    EXPECT_EQ("bar_ion_d", ion_binding(fleeb3.mech, "d"));
+    EXPECT_EQ("bar_ion_c", ion_binding(*fleeb3.mech, "a"));
+    EXPECT_EQ("bar_ion_a", ion_binding(*fleeb3.mech, "b"));
+    EXPECT_EQ("bar_ion_b", ion_binding(*fleeb3.mech, "c"));
+    EXPECT_EQ("bar_ion_d", ion_binding(*fleeb3.mech, "d"));
 }
 
 TEST(mechcat, bad_ion_rename) {
@@ -473,14 +449,14 @@ TEST(mechcat, implicit_deriv) {
     EXPECT_THROW(cat["fleeb/fish"], invalid_ion_remap);
 
     // Implicitly derived mechanisms should inherit implementations.
-    auto fleeb2 = cat.instance<foo_backend>("fleeb2");
-    auto fleeb2_derived = cat.instance<foo_backend>("fleeb2/plugh=4.5");
+    auto fleeb2 = cat.instance(foo_backend::kind, "fleeb2");
+    auto fleeb2_derived = cat.instance(foo_backend::kind, "fleeb2/plugh=4.5");
     EXPECT_EQ("special fleeb", fleeb2.mech->internal_name());
     EXPECT_EQ("special fleeb", fleeb2_derived.mech->internal_name());
     EXPECT_EQ(4.5, fleeb2_derived.overrides.globals.at("plugh"));
 
     // Requesting an implicitly derived instance with improper parameters should throw.
-    EXPECT_THROW(cat.instance<foo_backend>("fleeb2/fidget=7"), no_such_parameter);
+    EXPECT_THROW(cat.instance(foo_backend::kind, "fleeb2/fidget=7"), no_such_parameter);
 
     // Testing for implicit derivation though should not throw.
     EXPECT_TRUE(cat.has("fleeb2/plugh=7"));
@@ -495,8 +471,8 @@ TEST(mechcat, copy) {
 
     EXPECT_EQ(cat["fleeb2"], cat2["fleeb2"]);
 
-    auto fleeb2_inst = cat.instance<foo_backend>("fleeb2");
-    auto fleeb2_inst2 = cat2.instance<foo_backend>("fleeb2");
+    auto fleeb2_inst = cat.instance(foo_backend::kind, "fleeb2");
+    auto fleeb2_inst2 = cat2.instance(foo_backend::kind, "fleeb2");
 
     EXPECT_EQ(typeid(*fleeb2_inst.mech.get()), typeid(*fleeb2_inst2.mech.get()));
 }
@@ -514,8 +490,8 @@ TEST(mechcat, import) {
 
     EXPECT_EQ(cat["fleeb2"], cat2["fake_fleeb2"]);
 
-    auto fleeb2_inst  = cat.instance<foo_backend>("fleeb2");
-    auto fleeb2_inst2 = cat2.instance<foo_backend>("fake_fleeb2");
+    auto fleeb2_inst  = cat.instance(foo_backend::kind, "fleeb2");
+    auto fleeb2_inst2 = cat2.instance(foo_backend::kind, "fake_fleeb2");
 
     EXPECT_EQ(typeid(*fleeb2_inst.mech.get()), typeid(*fleeb2_inst2.mech.get()));
 }

@@ -16,11 +16,6 @@ namespace arb {
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
-template <typename B> class concrete_mechanism;
-template <typename B>
-using concrete_mech_ptr = std::unique_ptr<concrete_mechanism<B>>;
-
-
 struct ion_state_view {
     fvm_value_type* current_density;
     fvm_value_type* reversal_potential;
@@ -69,19 +64,41 @@ public:
 
     // Cloning makes a new object of the derived concrete mechanism type, but does not
     // copy any state.
-    virtual mechanism_ptr clone() const = 0;
+    mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
     // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string&, const std::vector<fvm_value_type>&) {}
 
-    // Simulation interfaces:
-    virtual void initialize() {}
-    virtual void update_state() {}
-    virtual void update_current() {}
-    virtual void deliver_events() {}
+    void initialize() {
+        iface_.init_mechanism(&ppack_);
+        if (!mult_in_place_) return;
+        for (arb_size_type idx = 0; idx < mech_.n_state_vars; ++idx) {
+            // backend::multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
+        }
+    }
 
-    virtual void post_event() {}
-    virtual void update_ions() {}
+    void update_current() {
+        iface_.compute_currents(&ppack_);
+    }
+
+    void update_state() {
+        iface_.advance_state(&ppack_);
+    }
+
+    void update_ions() {
+        iface_.write_ions(&ppack_);
+    }
+
+    void deliver_events() {
+        // auto marked = event_stream_ptr_->marked_events();
+        // ppack_.events.n_streams = marked.n;
+        // ppack_.events.begin     = marked.begin_offset;
+        // ppack_.events.end       = marked.end_offset;
+        // ppack_.events.events    = (arb_deliverable_event_data*) marked.ev_data;
+        iface_.apply_events(&ppack_);
+    }
+
+    void post_event() {} // FIXME(TH)
 
     // Peek into state variable
     fvm_value_type* field_data(const std::string& var);
@@ -104,11 +121,12 @@ public:
 
     size_type width_padded_;
 
-
     std::vector<arb_value_type>  globals_;
     std::vector<arb_value_type*> parameters_;
     std::vector<arb_value_type*> state_vars_;
     std::vector<arb_ion_state>   ion_states_;
+
+    arb_value_type* time;
 };
 
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
@@ -137,61 +155,6 @@ struct mechanism_overrides {
     // Ion renaming: keys are ion dependency names as
     // reported by the mechanism info.
     std::unordered_map<std::string, std::string> ion_rebind;
-};
-
-template <typename Backend>
-class concrete_mechanism: public mechanism {
-public:
-    concrete_mechanism() = default;
-
-    using ::arb::mechanism::mechanism;
-    using backend = Backend;
-
-    void initialize() override {
-        set_time_ptr();
-        iface_.init_mechanism(&ppack_);
-        if (!mult_in_place_) return;
-        for (arb_size_type idx = 0; idx < mech_.n_state_vars; ++idx) {
-            backend::multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
-        }
-    }
-
-    void update_current() override {
-        set_time_ptr();
-        iface_.compute_currents(&ppack_);
-    }
-
-    void update_state() override {
-        set_time_ptr();
-        iface_.advance_state(&ppack_);
-    }
-
-    void update_ions() override {
-        set_time_ptr();
-        iface_.write_ions(&ppack_);
-    }
-
-    void deliver_events() override {
-        auto marked = event_stream_ptr_->marked_events();
-        ppack_.events.n_streams = marked.n;
-        ppack_.events.begin     = marked.begin_offset;
-        ppack_.events.end       = marked.end_offset;
-        ppack_.events.events    = (arb_deliverable_event_data*) marked.ev_data;
-        iface_.apply_events(&ppack_);
-    }
-
-    using deliverable_event_stream = typename backend::deliverable_event_stream;
-    using iarray = typename backend::iarray;
-    using array  = typename backend::array;
-
-     void set_time_ptr() { ppack_.vec_t = vec_t_ptr_->data(); }
-
-    const array* vec_t_ptr_;                         // indirection for accessing time in mechanisms
-    deliverable_event_stream* event_stream_ptr_;     // events to be processed
-
-    // Bulk storage for index vectors and state and parameter variables.
-    iarray indices_;
-    array data_;
 };
 
 } // namespace arb

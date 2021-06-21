@@ -667,8 +667,8 @@ TEST(fvm_lowered, ionic_concentrations) {
     ion_config.reset_econc.assign(ncv, 0.);
     ion_config.reset_iconc.assign(ncv, 2.3e-4);
 
-    auto read_cai  = cat.instance<backend>("read_cai_init");
-    auto write_cai = cat.instance<backend>("write_cai_breakpoint");
+    auto read_cai  = cat.instance(backend::kind, "read_cai_init");
+    auto write_cai = cat.instance(backend::kind, "write_cai_breakpoint");
 
     auto& read_cai_mech  = read_cai.mech;
     auto& write_cai_mech = write_cai.mech;

@@ -85,7 +85,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                                    "}};\n\n"),
                        class_name,
                        name,
-                       "arb_backend_kind::arb_backend_kind_gpu",
+                       "arb_backend_kind_gpu",
                        ss.str(),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"));
     EXIT(out);

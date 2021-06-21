@@ -57,9 +57,12 @@ struct namespace_declaration_close {
 // Enum representation:
 
 inline const char* module_kind_str(const Module& m) {
-    return m.kind()==moduleKind::density?
-        "arb_mechanism_kind::arb_mechanism_kind_density":
-        "arb_mechanism_kind::arb_mechanism_kind_point";
+    switch (m.kind()) {
+    case moduleKind::density: return "arb_mechanism_kind_density";            break;
+    case moduleKind::point:   return "arb_mechanism_kind_point";              break;
+    case moduleKind::revpot:  return "arb_mechanism_kind_reversal_potential"; break;
+    default: throw compiler_exception("Unknown module kind " + std::to_string((int)m.kind()));
+    }
 }
 
 // Check expression non-null and scoped, or else throw.
