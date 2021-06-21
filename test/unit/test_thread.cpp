@@ -96,7 +96,7 @@ TEST(notification_queue, test_copy) {
     notification_queue q;
 
     ftor f;
-    q.push(f, 0);
+    q.push({task(f), 0});
 
     // Copy into new ftor and move ftor into a task (std::function<void()>)
     EXPECT_EQ(1, nmove);
@@ -110,7 +110,7 @@ TEST(notification_queue, test_move) {
     ftor f;
 
     // Move into new ftor and move ftor into a task (std::function<void()>)
-    q.push(std::move(f), 1);
+    q.push({task(std::move(f)), 1});
     EXPECT_LE(nmove, 2);
     EXPECT_LE(ncopy, 1);
     reset();
