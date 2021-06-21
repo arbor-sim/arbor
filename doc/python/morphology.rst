@@ -315,84 +315,6 @@ Cable cell morphology
             :param int i: branch index
             :rtype: list
 
-.. py:function:: load_swc_arbor(filename)
-
-    Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
-    (See the morphology concepts :ref:`page <morph-formats>` for more details).
-
-    The samples in the SWC files are treated as the end points of segments, where a
-    sample and its parent form a segment.
-    The :py:attr:`tag <segment.tag>` of each segment is the
-    `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
-    of the distal sample.
-    The structure identifier of the first (root) sample is ignored, as it can only be the
-    proximal end of any segment.
-
-    .. note::
-        This method does not interpret the first sample, typically associated with the soma,
-        as a sphere. SWCs with single point somas are, unfortunately, reasonably common, for example
-        `SONATA <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_
-        model descriptions.
-
-        Such representations are unfortunate because simulation tools like Arbor and NEURON require
-        the use of cylinders or fustrums to describe morphologies, and it is not possible to
-        infer how branches attached to the soma should be connected.
-
-        The :func:`load_swc_allen` and :func:`load_swc_neuron` functions provide support for interpreting
-        such SWC files.
-
-
-    :param str filename: the name of the SWC file.
-    :rtype: morphology
-
-.. py:function:: load_swc_neuron(filename)
-
-    Loads the :class:`morphology` from an SWC file according to NEURON's SWC specifications.
-    Specifically:
-
-        * The first sample must be a soma sample.
-        * The soma is represented by a series of n≥1 unbranched, serially listed samples.
-        * The soma is constructed as a single cylinder with diameter equal to the piecewise average diameter of all the
-          segments forming the soma.
-        * A single-sample soma at is constructed as a cylinder with length=diameter.
-        * If a non-soma sample is to have a soma sample as its parent, it must have the most distal sample of the soma
-          as the parent.
-        * Every non-soma sample that has a soma sample as its parent, attaches to the created soma cylinder at its midpoint.
-        * If a non-soma sample has a soma sample as its parent, no segment is created between the sample and its parent,
-          instead that sample is the proximal point of a new segment, and there is a gap in the morphology (represented
-          electrically as a zero-resistance wire)
-        * To create a segment with a certain tag, that is to be attached to the soma, we need at least 2 samples with that
-          tag.
-
-    :param str filename: the name of the SWC file.
-    :rtype: morphology
-
-
-.. py:function:: load_swc_allen(filename, no_gaps=False)
-
-    Loads the :class:`morphology` from an SWC file according to the AllenDB and Sonata's SWC specifications.
-    Specifically:
-
-        * The first sample (the root) is treated as the centre of the soma.
-        * The morphology is translated such that the soma is centred at (0,0,0).
-        * The first sample has tag 1 (soma).
-        * All other samples have tags 2, 3 or 4 (axon, apic and dend respectively)
-
-    SONATA prescribes that there should be no gaps, however some models in AllenDB
-    have gaps between the start of sections and the soma. The ``no_gaps`` flag can be
-    used to enforce this requirement.
-
-    Arbor does not support modelling the soma as a sphere, so a cylinder with length
-    equal to the soma diameter is used. The cylinder is centred on the origin, and
-    aligned along the z axis.
-    Axons and apical dendrites are attached to the proximal end of the cylinder, and
-    dendrites to the distal end, with a gap between the start of each branch and the
-    end of the soma cylinder to which it is attached.
-
-    :param str filename: the name of the SWC file.
-    :param bool no_gaps: enforce that distance between soma centre and branches attached to soma is the soma radius.
-    :rtype: morphology
-
 .. py:class:: place_pwlin
 
     A :class:`place_pwlin` object allows the querying of the 3-d location of locations and cables
@@ -531,6 +453,21 @@ constitute part of the CV boundary point set.
 
     :param str domain: The region on which the policy is applied.
 
+.. py:function:: cv_policy_explicit(locset, domain='(all)')
+
+    Use the provided locset as control volume boundaries.
+
+    .. code-block:: Python
+
+        # Place CV boundaries midway every branch.
+        midbranch_cvp = arbor.cv_policy_explicit('(on-branches 0.5)')
+
+        # Place CV boundaries at 10 random positions on the soma.
+        random_soma_cvp = arbor.cv_policy_explicit('(uniform (tag 3) 0 9 0)','"soma"')
+
+    :param str locset: The locset on which CV boundaries are placed.
+    :param str domain: The region on which the policy is applied.
+
 .. py:function:: cv_policy_every_segment(domain='(all)')
 
     Use every sample point in the morphology definition as a CV boundary, optionally
@@ -556,6 +493,55 @@ constitute part of the CV boundary point set.
 
     :param float max_etent: The maximum length for generated CVs.
     :param str domain: The region on which the policy is applied.
+
+.. _pyswc:
+
+SWC
+---
+
+.. py:function:: load_swc_arbor(filename)
+
+    Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
+    (See the morphology concepts :ref:`page <morph-formats>` for more details).
+
+    The samples in the SWC files are treated as the end points of segments, where a
+    sample and its parent form a segment.
+    The :py:attr:`tag <segment.tag>` of each segment is the
+    `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
+    of the distal sample.
+    The structure identifier of the first (root) sample is ignored, as it can only be the
+    proximal end of any segment.
+
+    .. note::
+        This method does not interpret the first sample, typically associated with the soma,
+        as a sphere. SWC files with single point somas are common, for example
+        `SONATA <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_
+        model descriptions.
+
+        Such representations are challenging to consistently interpret in different
+        simulation tools because they require heuristics and, often undocumented, rules
+        for how to interpret the connectin of axons and dendrites to the soma.
+
+        The :func:`load_swc_neuron` function provides support for loading
+        SWC files according to the interpretation used by NEURON.
+
+
+    :param str filename: the name of the SWC file.
+    :rtype: morphology
+
+.. py:function:: load_swc_neuron(filename)
+
+    Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
+    interpretation of the SWC specification.
+    See :ref:`the SWC file documention <formatswc-neuron>` for more details.
+
+    :param str filename: the name of the SWC file.
+    :rtype: morphology
+
+.. _pyneuroml:
+
+NeuroML
+-------
 
 .. py:class:: neuroml_morph_data
 
@@ -609,6 +595,10 @@ constitute part of the CV boundary point set.
     An implementation limitation restricts valid segment id values to those which can be represented by an
     unsigned long long value.
 
+    The ``allow_spherical_root`` optional parameter below, if set to true, will instruct the parser to
+    interpret a zero-length constant radius root segment as denoting a spherical segment, and this will
+    in turn be represented in the resultant morphology by a cylinder of equivalent surface area.
+
    .. py:method:: neuroml(filename)
 
       Build a NeuroML document representation from the supplied file contents.
@@ -627,18 +617,57 @@ constitute part of the CV boundary point set.
 
       :rtype: list[str]
 
-   .. py:method:: morphology(morph_id)
+   .. py:method:: morphology(morph_id, allow_spherical_root=false)
 
       Returns a representation of the top-level morphology with the supplied morph_id if it could be found.
       Parse errors or an inconsistent representation will raise an exception.
 
       :param str morph_id: ID of the top-level morphology.
+      :param bool allow_spherical_root: Treat zero length root segments especially.
       :rtype: optional(neuroml_morph_data)
 
-   .. py:method:: cell_morphology(cell_id)
+   .. py:method:: cell_morphology(cell_id, allow_spherical_root=false)
 
       Returns a representation of the morphology associated with the cell with the supplied cell_id if it
       could be found. Parse errors or an inconsistent representation will raise an exception.
 
       :param str morph_id: ID of the cell.
+      :param bool allow_spherical_root: Treat zero length root segments especially.
       :rtype: optional(neuroml_morph_data)
+
+.. _pyasc:
+
+Neurolucida
+-----------
+
+.. py:class:: asc_morphology
+
+   The morphology and label dictionary meta-data loaded from a Neurolucida ASCII ``.asc`` file.
+
+   .. py:attribute:: morphology
+
+       The cable cell morphology.
+
+   .. py:attribute:: labels
+
+       The labeled regions and locations extracted from the meta data. The four canonical regions are labeled
+       ``'soma'``, ``'axon'``, ``'dend'`` and ``'apic'``.
+
+.. py:function:: load_asc(filename)
+
+   Loads the :class:`asc_morphology` from a :ref:`Neurolucida ASCII file <formatasc>`.
+
+   .. code-block:: Python
+
+       import arbor
+
+       # Load morphology and labels from file.
+       asc = arbor.load_asc('granule.asc')
+
+       # Construct a cable cell.
+       decor = arbor.decor()
+       cell = arbor.cable_cell(asc.morphology, asc.labels, decor)
+
+
+   :param str filename: the name of the input file.
+   :rtype: asc_morphology

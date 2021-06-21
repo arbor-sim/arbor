@@ -15,6 +15,7 @@
 #include "cell_group.hpp"
 #include "event_binner.hpp"
 #include "fvm_lowered_cell.hpp"
+#include "label_resolution.hpp"
 #include "mc_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
@@ -29,7 +30,11 @@ namespace arb {
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.intdom_index),(b.mech_id,b.mech_index,b.intdom_index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
 
-mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
+mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
+                             const recipe& rec,
+                             cell_label_range& cg_sources,
+                             cell_label_range& cg_targets,
+                             fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
     // Default to no binning of events
@@ -40,20 +45,25 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recip
         gid_index_map_[gids_[i]] = i;
     }
 
+    // Construct cell implementation, retrieving handles and maps.
+    auto fvm_info = lowered_->initialize(gids_, rec);
+
+    // Propagate source and target ranges to the simulator object
+    cg_sources = std::move(fvm_info.source_data);
+    cg_targets = std::move(fvm_info.target_data);
+
+    // Store consistent data from fvm_lowered_cell
+    target_handles_ = std::move(fvm_info.target_handles);
+    cell_to_intdom_ = std::move(fvm_info.cell_to_intdom);
+    probe_map_ = std::move(fvm_info.probe_map);
+
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-            util::transform_view(gids_, [&rec](cell_gid_type i) { return rec.num_targets(i); }));
-    std::size_t n_targets = target_handle_divisions_.back();
-
-    // Pre-allocate space to store handles.
-    target_handles_.reserve(n_targets);
-
-    // Construct cell implementation, retrieving handles and maps. 
-    lowered_->initialize(gids_, rec, cell_to_intdom_, target_handles_, probe_map_);
+        util::transform_view(gids_, [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
-        for (cell_lid_type lid = 0; lid<rec.num_sources(source_gid); ++lid) {
+        for (cell_lid_type lid = 0; lid<fvm_info.num_sources[source_gid]; ++lid) {
             spike_sources_.push_back({source_gid, lid});
         }
     }
@@ -242,6 +252,53 @@ void run_samples(
 }
 
 void run_samples(
+    const fvm_probe_interpolated_multi& p,
+    const sampler_call_info& sc,
+    const fvm_value_type* raw_times,
+    const fvm_value_type* raw_samples,
+    std::vector<sample_record>& sample_records,
+    fvm_probe_scratch& scratch)
+{
+    const sample_size_type n_raw_per_sample = p.raw_handles.size();
+    const sample_size_type n_interp_per_sample = n_raw_per_sample/2;
+    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+    arb_assert((unsigned)n_interp_per_sample==p.coef[0].size());
+    arb_assert((unsigned)n_interp_per_sample==p.coef[1].size());
+
+    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    sample_ranges.clear();
+    sample_records.clear();
+
+    auto& tmp = std::get<std::vector<double>>(scratch);
+    tmp.clear();
+    tmp.reserve(n_interp_per_sample*n_sample);
+
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_raw_per_sample+sc.begin_offset;
+        const auto* raw_a = raw_samples + offset;
+        const auto* raw_b = raw_a + n_interp_per_sample;
+        for (sample_size_type i = 0; i<n_interp_per_sample; ++i) {
+            tmp.push_back(raw_a[i]*p.coef[0][i]+raw_b[i]*p.coef[1][i]);
+        }
+    }
+
+    const double* tmp_ptr = tmp.data();
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        sample_ranges.push_back({tmp_ptr, tmp_ptr+n_interp_per_sample});
+        tmp_ptr += n_interp_per_sample;
+    }
+
+    const auto& csample_ranges = sample_ranges;
+    for (sample_size_type j = 0; j<n_sample; ++j) {
+        auto offset = j*n_interp_per_sample+sc.begin_offset;
+        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+    }
+
+    sc.sampler({sc.probe_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+}
+
+void run_samples(
     const fvm_probe_membrane_currents& p,
     const sampler_call_info& sc,
     const fvm_value_type* raw_times,
@@ -256,6 +313,8 @@ void run_samples(
     const auto n_cable = p.metadata.size();
     const auto n_cv = p.cv_parent_cond.size();
     const auto cables_by_cv = util::partition_view(p.cv_cables_divs);
+    const auto n_stim = p.stim_scale.size();
+    arb_assert(n_stim+n_cv==(unsigned)n_raw_per_sample);
 
     auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
@@ -291,6 +350,16 @@ void run_samples(
             }
         }
 
+        const double* stim = raw_samples+offset+n_cv;
+        for (auto i: util::make_span(n_stim)) {
+            double cv_stim_I = stim[i]*p.stim_scale[i];
+            unsigned cv = p.stim_cv[i];
+            arb_assert(cv<n_cv);
+
+            for (auto cable_i: util::make_span(cables_by_cv[cv])) {
+                tmp_base[cable_i] -= cv_stim_I*p.weight[cable_i];
+            }
+        }
         sample_ranges.push_back({tmp_base, tmp_base+n_cable});
     }
 
@@ -339,9 +408,9 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             auto curr_intdom = cell_to_intdom_[lid];
 
             for (auto e: lane) {
-                if (e.time>=ep.tfinal) break;
+                if (e.time>=ep.t1) break;
                 e.time = binners_[lid].bin(e.time, tstart);
-                auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+                auto h = target_handles_[target_handle_divisions_[lid]+e.target];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
                 count_staged++;
@@ -393,7 +462,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             // Ignore sampler_association_handle, just need the association itself.
             sampler_association& sa = sm_entry.second;
 
-            auto sample_times = util::make_range(sa.sched.events(tstart, ep.tfinal));
+            auto sample_times = util::make_range(sa.sched.events(tstart, ep.t1));
             if (sample_times.empty()) {
                 continue;
             }
@@ -452,7 +521,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.tfinal, dt, staged_events_, std::move(sample_events));
+    auto result = lowered_->integrate(ep.t1, dt, staged_events_, std::move(sample_events));
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values
@@ -523,5 +592,4 @@ std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type p
 
     return result;
 }
-
 } // namespace arb

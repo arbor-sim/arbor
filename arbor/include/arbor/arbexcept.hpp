@@ -42,41 +42,16 @@ struct bad_cell_description: arbor_exception {
     cell_kind kind;
 };
 
-struct bad_target_description: arbor_exception {
-    bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val);
-    cell_gid_type gid;
-    cell_size_type rec_val, cell_val;
-};
-
-struct bad_source_description: arbor_exception {
-    bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val);
-    cell_gid_type gid;
-    cell_size_type rec_val, cell_val;
-};
-
 struct bad_connection_source_gid: arbor_exception {
     bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells);
     cell_gid_type gid, src_gid;
     cell_size_type num_cells;
 };
 
-struct bad_connection_source_lid: arbor_exception {
-    bad_connection_source_lid(cell_gid_type gid, cell_lid_type src_lid, cell_size_type num_sources);
+struct bad_connection_label: arbor_exception {
+    bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg);
     cell_gid_type gid;
-    cell_lid_type src_lid;
-    cell_size_type num_sources;
-};
-
-struct bad_connection_target_gid: arbor_exception {
-    bad_connection_target_gid(cell_gid_type gid, cell_gid_type tgt_gid);
-    cell_gid_type gid, tgt_gid;
-};
-
-struct bad_connection_target_lid: arbor_exception {
-    bad_connection_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets);
-    cell_gid_type gid;
-    cell_lid_type tgt_lid;
-    cell_size_type num_targets;
+    cell_tag_type label;
 };
 
 struct bad_global_property: arbor_exception {
@@ -94,15 +69,10 @@ struct gj_kind_mismatch: arbor_exception {
     cell_gid_type gid_0, gid_1;
 };
 
-struct bad_gj_connection_gid: arbor_exception {
-    bad_gj_connection_gid(cell_gid_type gid, cell_gid_type site_0, cell_gid_type site_1);
-    cell_gid_type gid, site_0, site_1;
-};
-
-struct bad_gj_connection_lid: arbor_exception {
-    bad_gj_connection_lid(cell_gid_type gid, cell_member_type site);
+struct gj_unsupported_lid_selection_policy: arbor_exception {
+    gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label);
     cell_gid_type gid;
-    cell_member_type site;
+    cell_tag_type label;
 };
 
 // Domain decomposition errors:

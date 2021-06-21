@@ -48,12 +48,12 @@ Our *single-segment HH cell* has a simple morphology and dynamics, constructed a
     labels = arbor.label_dict({'soma':   '(tag 1)',
                                'midpoint': '(location 0 0.5)'})
 
-    # (3) Create cell and set properties
+    # (3) Create and set up a decor object
     decor = arbor.decor()
     decor.set_property(Vm=-40)
     decor.paint('"soma"', 'hh')
-    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
-    decor.place('"midpoint"', arbor.spike_detector(-10))
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), 'iclamp')
+    decor.place('"midpoint"', arbor.spike_detector(-10), 'detector')
 
     # (4) Create cell
     cell = arbor.cable_cell(tree, labels, decor)
@@ -112,7 +112,7 @@ an interface for recording outputs and running the simulation.
     m = arbor.single_cell_model(cell)
 
     # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-    m.probe('voltage', '"midpoint"', frequency=10000)
+    m.probe('voltage', '"midpoint"', frequency=10)
 
     # (7) Run simulation for 30 ms of simulated activity.
     m.run(tfinal=30)
@@ -123,7 +123,7 @@ with our single-compartment cell.
 Step **(6)** adds a :meth:`arbor.single_cell_model.probe`
 used to record variables from the model. Three pieces of information are
 provided: the type of quantity we want probed (voltage), the location where we want to
-probe ('"midpoint"'), and the frequency at which we want to sample (10kHz).
+probe ('"midpoint"'), and the frequency at which we want to sample (10 kHz).
 
 Step **(7)** runs the actual simulation for a duration of 30 ms.
 

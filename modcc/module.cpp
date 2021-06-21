@@ -206,9 +206,9 @@ bool Module::semantic() {
     }
 
     // All API methods are generated from statements in one of the special procedures
-    // defined in NMODL, e.g. the nrn_init() API call is based on the INITIAL block.
+    // defined in NMODL, e.g. the init() API call is based on the INITIAL block.
     // When creating an API method, the first task is to look up the source procedure,
-    // i.e. the INITIAL block for nrn_init(). This lambda takes care of this repetative
+    // i.e. the INITIAL block for init(). This lambda takes care of this repetative
     // lookup work, with error checking.
     auto make_empty_api_method = [this]
             (std::string const& name, std::string const& source_name)
@@ -229,10 +229,13 @@ bool Module::semantic() {
                   symbols_.find(name)->second->location());
             return std::make_pair(nullptr, source);
         }
-
+        std::vector<expression_ptr> args;
+        for (auto& a: source->args()) {
+            args.push_back(a->clone());
+        }
         symbols_[name] = make_symbol<APIMethod>(
                           loc, name,
-                          std::vector<expression_ptr>(), // no arguments
+                          std::move(args),
                           make_expression<BlockExpression>
                             (loc, expr_list_type(), false)
                          );
@@ -274,7 +277,7 @@ bool Module::semantic() {
         make_expression<BlockExpression>(Location{}, std::move(ion_assignments), false));
 
     //.........................................................................
-    // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
+    // init : based on the INITIAL block (i.e. the 'initial' procedure
     //.........................................................................
 
     // insert an empty INITIAL block if none was defined in the .mod file.
@@ -286,14 +289,14 @@ bool Module::semantic() {
                 procedureKind::initial
         );
     }
-    auto initial_api = make_empty_api_method("nrn_init", "initial");
+    auto initial_api = make_empty_api_method("init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
 
     auto& init_body = api_init->body()->statements();
 
     api_init->semantic(symbols_);
-    scope_ptr nrn_init_scope = api_init->scope();
+    scope_ptr init_scope = api_init->scope();
 
     for(auto& e : *proc_init->body()) {
         auto solve_expression = e->is_solve_statement();
@@ -314,14 +317,14 @@ bool Module::semantic() {
                     return false;
                 }
 
-                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->semantic(init_scope);
                 rewrite_body->accept(solver.get());
             } else if (solve_proc->kind() == procedureKind::kinetic &&
                        solve_expression->variant() == solverVariant::steadystate) {
                 solver = std::make_unique<SparseSolverVisitor>(solverVariant::steadystate);
                 auto rewrite_body = kinetic_rewrite(solve_proc->body());
 
-                rewrite_body->semantic(nrn_init_scope);
+                rewrite_body->semantic(init_scope);
                 rewrite_body->accept(solver.get());
             } else {
                 error("A SOLVE expression in an INITIAL block can only be used to solve a "
@@ -342,7 +345,7 @@ bool Module::semantic() {
 
                 solve_block = remove_unused_locals(solve_block->is_block());
 
-                // Copy body into nrn_init.
+                // Copy body into init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
                 }
@@ -361,11 +364,11 @@ bool Module::semantic() {
     // Look in the symbol table for a procedure with the name "breakpoint".
     // This symbol corresponds to the BREAKPOINT block in the .mod file
     // There are two APIMethods generated from BREAKPOINT.
-    // The first is nrn_state, which is the first case handled below.
-    // The second is nrn_current, which is handled after this block
-    auto state_api  = make_empty_api_method("nrn_state", "breakpoint");
+    // The first is advance_state, which is the first case handled below.
+    // The second is compute_currents, which is handled after this block
+    auto state_api  = make_empty_api_method("advance_state", "breakpoint");
     auto api_state  = state_api.first;
-    auto breakpoint = state_api.second; // implies we are building the `nrn_state()` method.
+    auto breakpoint = state_api.second; // implies we are building the `advance_state()` method.
 
     if(!breakpoint) {
         error("a BREAKPOINT block is required");
@@ -373,9 +376,9 @@ bool Module::semantic() {
     }
 
     api_state->semantic(symbols_);
-    scope_ptr nrn_state_scope = api_state->scope();
+    scope_ptr advance_state_scope = api_state->scope();
 
-    // Grab SOLVE statements, put them in `nrn_state` after translation.
+    // Grab SOLVE statements, put them in `advance_state` after translation.
     bool found_solve = false;
     std::set<std::string> solved_ids;
 
@@ -420,14 +423,14 @@ bool Module::semantic() {
                 solver = std::make_unique<SparseNonlinearSolverVisitor>();
             }
 
-            rewrite_body->semantic(nrn_state_scope);
+            rewrite_body->semantic(advance_state_scope);
             rewrite_body->accept(solver.get());
         }
         else if (deriv->kind()==procedureKind::linear) {
             solver = std::make_unique<LinearSolverVisitor>(state_vars);
             auto rewrite_body = linear_rewrite(deriv->body(), state_vars);
 
-            rewrite_body->semantic(nrn_state_scope);
+            rewrite_body->semantic(advance_state_scope);
             rewrite_body->accept(solver.get());
         }
         else {
@@ -452,12 +455,13 @@ bool Module::semantic() {
             }
 
             // May have now redundant local variables; remove these first.
-            solve_block->semantic(nrn_state_scope);
+            solve_block->semantic(advance_state_scope);
             solve_block = remove_unused_locals(solve_block->is_block());
 
-            // Copy body into nrn_state.
+            // Copy body into advance_state.
             for (auto& stmt: solve_block->is_block()->statements()) {
                 api_state->body()->statements().push_back(std::move(stmt));
+
             }
         }
         else {
@@ -478,10 +482,10 @@ bool Module::semantic() {
     api_state->semantic(symbols_);
 
     //..........................................................
-    // nrn_current : update contributions to currents
+    // compute_currents : update contributions to currents
     //..........................................................
-    NrnCurrentRewriter nrn_current_rewriter;
-    breakpoint->accept(&nrn_current_rewriter);
+    NrnCurrentRewriter compute_currents_rewriter;
+    breakpoint->accept(&compute_currents_rewriter);
 
     for (auto& s: breakpoint->body()->statements()) {
         if(s->is_assignment() && !state_vars.empty()) {
@@ -491,21 +495,22 @@ bool Module::semantic() {
         }
     }
 
-    auto nrn_current_block = nrn_current_rewriter.as_block();
-    if (!nrn_current_block) {
-        append_errors(nrn_current_rewriter.errors());
+    auto compute_currents_block = compute_currents_rewriter.as_block();
+    if (!compute_currents_block) {
+        append_errors(compute_currents_rewriter.errors());
         return false;
     }
 
-    symbols_["nrn_current"] =
+    symbols_["compute_currents"] =
         make_symbol<APIMethod>(
-                breakpoint->location(), "nrn_current",
+                breakpoint->location(), "compute_currents",
                 std::vector<expression_ptr>(),
-                constant_simplify(nrn_current_block));
-    symbols_["nrn_current"]->semantic(symbols_);
+                constant_simplify(compute_currents_block));
+    symbols_["compute_currents"]->semantic(symbols_);
 
     if (has_symbol("net_receive", symbolKind::procedure)) {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
+        net_rec_api.first->body(net_rec_api.second->body()->clone());
         if (net_rec_api.second) {
             for (auto &s: net_rec_api.second->body()->statements()) {
                 if (s->is_assignment()) {
@@ -535,6 +540,10 @@ bool Module::semantic() {
     linear_ = linear;
 
     post_events_ = has_symbol("post_event", symbolKind::procedure);
+    if (post_events_) {
+        auto post_events_api = make_empty_api_method("post_event_api", "post_event");
+        post_events_api.first->body(post_events_api.second->body()->clone());
+    }
 
     // Are we writing an ionic reversal potential? If so, change the moduleKind to
     // `revpot` and assert that the mechanism is 'pure': it has no state variables;

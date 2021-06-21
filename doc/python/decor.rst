@@ -24,7 +24,6 @@ Cable cell decoration
         Overrides the default global values, and can be overridden by painting
         the values onto regions.
 
-        :param str region: description of the region.
         :param Vm: Initial membrane voltage [mV].
         :type Vm: float or None
         :param cm: Membrane capacitance [F/m²].
@@ -46,7 +45,7 @@ Cable cell decoration
         by default everywhere on the cell. Species concentrations and reversal
         potential can be overridden on specific regions using the paint interface,
         while the method for calculating reversal potential is global for all
-        CVs in the cell, and can't be overriden locally.
+        CVs in the cell, and can't be overridden locally.
 
         :param str ion: description of the ion species.
         :param float int_con: initial internal concentration [mM].
@@ -67,7 +66,7 @@ Cable cell decoration
             # The reversal potential is fixed, so we set the method to None.
             decor.set_ion('na', int_con=5.0, rev_pot=70, method=None)
 
-    Verious specialisations of the ``paint`` method are available for setting properties
+    Various specialisations of the ``paint`` method are available for setting properties
     and mechanisms that are applied to regions.
 
     .. method:: paint(region, Vm=None, cm=None, rL=None, tempK=None)
@@ -120,63 +119,67 @@ Cable cell decoration
 
         Apply a mechanism with a region using the name of the mechanism.
         The mechanism will use the parameter values set in the mechanism catalogue.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`)
+        assigned to the placed items on the cable cell.
 
         :param str region: description of the region.
         :param str mechanism: the name of the mechanism.
 
-    .. method:: place(locations, const arb::mechanism_desc& d)
+    .. method:: place(locations, mech_name, label)
 
-        Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Place one instance of the synapse named ``mech_name`` to each location in ``locations`` and label the
+        group of synapses with ``label``. The label can be used to form connections to one of the synapses
+        in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
 
         :param str locations: description of the locset.
         :param str mechanism: the name of the mechanism.
-        :rtype: int
+        :param str label: the label of the group of synapses on the locset.
 
-    .. method:: place(locations, mechanism)
+    .. method:: place(locations, mechanism, label)
         :noindex:
 
-        Place one instance of synapse described by ``mechanism`` to each location in ``locations``.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Place one instance of the synapse described by ``mechanism`` to each location in ``locations`` and label the
+        group of synapses with ``label``. The label can be used to form connections to one of the synapses
+        in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
 
         :param str locations: description of the locset.
         :param mechanism: the mechanism.
         :type mechanism: :py:class:`mechanism`
-        :rtype: int
+        :param str label: the label of the group of synapses on the locset.
 
-    .. method:: place(locations, site)
+    .. method:: place(locations, site, label)
         :noindex:
 
-        Place one gap junction site at each location in ``locations``.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Place one gap junction site at each location in ``locations`` and label the group of gap junction sites with
+        ``label``. The label can be used to form connections to/from one of the gap junction sites in the
+        :py:class:`arbor.recipe` by creating a :py:class:`arbor.gap_junction_connection`.
 
         :param str locations: description of the locset.
         :param site: indicates a gap junction site..
         :type site: :py:class:`gap_junction_site`
-        :rtype: int
+        :param str label: the label of the group of gap junction sites on the locset.
 
-    .. method:: place(locations, stim)
+    .. method:: place(locations, stim, label)
         :noindex:
 
-        Add a current stimulus at each location in ``locations``.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Add a current stimulus at each location in ``locations`` and label the group of stimuli with ``label``.
 
         :param str locations: description of the locset.
         :param stim: the current stim.
-        :type stim: :py:class:`i_clamp`
-        :rtype: int
+        :type stim: :py:class:`iclamp`
+        :param str label: the label of the group of stimuli on the locset.
 
-    .. method:: place(locations, d)
+    .. method:: place(locations, d, label)
         :noindex:
 
-        Add a voltage spike detector at each location in ``locations``.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Add a voltage spike detector at each location in ``locations`` and label the group of detectors with ``label``.
+        The label can be used to form connections from one of the detectors in the :py:class:`arbor.recipe` by creating
+        a :py:class:`arbor.connection`.
 
         :param str locations: description of the locset.
         :param d: description of the detector.
         :type d: :py:class:`threshold_detector`
-        :rtype: int
+        :param str label: the label of the group of detectors on the locset.
 
     .. method:: discretization(policy)
 

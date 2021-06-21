@@ -6,13 +6,18 @@
 #include <arbor/schedule.hpp>
 
 #include "cell_group.hpp"
+#include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
 #include "spike_source_cell_group.hpp"
 #include "util/span.hpp"
 
 namespace arb {
 
-spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+spike_source_cell_group::spike_source_cell_group(
+    const std::vector<cell_gid_type>& gids,
+    const recipe& rec,
+    cell_label_range& cg_sources,
+    cell_label_range& cg_targets):
     gids_(gids)
 {
     for (auto gid: gids_) {
@@ -23,9 +28,12 @@ spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type
 
     time_sequences_.reserve(gids_.size());
     for (auto gid: gids_) {
+        cg_sources.add_cell();
+        cg_targets.add_cell();
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.push_back(std::move(cell.seq));
+            cg_sources.add_label(cell.source, {0, 1});
         }
         catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);
@@ -43,11 +51,10 @@ void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_s
     for (auto i: util::count_along(gids_)) {
         const auto gid = gids_[i];
 
-        for (auto t: util::make_range(time_sequences_[i].events(t_, ep.tfinal))) {
+        for (auto t: util::make_range(time_sequences_[i].events(ep.t0, ep.t1))) {
             spikes_.push_back({{gid, 0u}, t});
         }
     }
-    t_ = ep.tfinal;
 
     PL();
 };
@@ -56,8 +63,6 @@ void spike_source_cell_group::reset() {
     for (auto& s: time_sequences_) {
         s.reset();
     }
-    t_ = 0;
-
     clear_spikes();
 }
 

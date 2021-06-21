@@ -14,9 +14,16 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 
-#include "arborio/arbornml.hpp"
+#include <arbor/util/expected.hpp>
+#include <arborio/xml.hpp>
 
 namespace arborio {
+namespace xmlwrap {
+
+struct bad_property {
+    std::string error;
+    unsigned line = 0;
+};
 
 // `non_negative` represents the corresponding constraint in the schema, which
 // can mean any arbitrarily large non-negtative integer value.
@@ -101,14 +108,18 @@ struct xml_node: protected xml_base<xmlNode>  {
     bool has_prop(const char* name) const { return xmlHasProp(get(), (const xmlChar*)name); }
 
     template <typename T>
-    T prop(const char* name, std::optional<T> default_value = std::nullopt) const {
+    arb::util::expected<T, bad_property> prop(const char* name, std::optional<T> default_value = std::nullopt) const {
+        using arb::util::unexpected;
+
         xmlChar* c = xmlGetProp(get(), (const xmlChar*)(name));
         if (!c) {
-            return default_value? default_value.value(): throw parse_error("missing required attribute", get()->line);
+            if (default_value) return default_value.value();
+            else return unexpected(bad_property{"missing required attribute", get()->line});
         }
 
         T v;
-        return nl_from_cstr(v, reinterpret_cast<const char*>(c))? v: throw parse_error("attribute type error", get()->line);
+        if (nl_from_cstr(v, reinterpret_cast<const char*>(c))) return v;
+        else return unexpected(bad_property{"attribute type error", get()->line});
     }
 
     using base::get; // (unsafe access)
@@ -314,4 +325,5 @@ struct xml_error_scope {
     void* structured_context_;
 };
 
+} // namespace xmlwrap
 } // namespace arborio

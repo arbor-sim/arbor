@@ -17,11 +17,11 @@ void register_event_generators(pybind11::module& m) {
 
     event_generator
         .def(pybind11::init<>(
-            [](arb::cell_member_type target, double weight, const schedule_shim_base& sched) {
-                return event_generator_shim(target, weight, sched.schedule()); }),
+            [](arb::cell_local_label_type target, double weight, const schedule_shim_base& sched) {
+                return event_generator_shim(std::move(target), weight, sched.schedule()); }),
             "target"_a, "weight"_a, "sched"_a,
             "Construct an event generator with arguments:\n"
-            "  target: The target synapse (gid, local_id).\n"
+            "  target: The target synapse label and selection policy.\n"
             "  weight: The weight of events to deliver.\n"
             "  sched:  A schedule of the events.")
         .def_readwrite("target", &event_generator_shim::target,

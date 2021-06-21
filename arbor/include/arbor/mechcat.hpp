@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
@@ -27,8 +26,7 @@
 // after any modification to the catalogue.
 //
 // There is in addition a global default mechanism catalogue object that is
-// populated with any builtin mechanisms and mechanisms generated from
-// module files included with arbor.
+// populated with any mechanisms generated from module files included with arbor.
 //
 // When a mechanism name of the form "mech/param=value,..." is requested, if the
 // mechanism of that name does not already exist in the catalogue, it will be
@@ -130,6 +128,6 @@ const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
 
-const mechanism_catalogue& load_catalogue(const std::filesystem::path&);
+const mechanism_catalogue& load_catalogue(const std::string&);
 
 } // namespace arb

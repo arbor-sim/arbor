@@ -17,7 +17,7 @@ import pandas, seaborn
 import sys
 
 # Load a cell morphology from an swc file.
-# Example present here: morph.swc
+# Example present here: single_cell_detailed.swc
 if len(sys.argv) < 2:
     print("No SWC file passed to the program")
     sys.exit(0)
@@ -30,7 +30,7 @@ defs = {'soma': '(tag 1)',  # soma has tag 1 in swc files.
         'axon': '(tag 2)',  # axon has tag 2 in swc files.
         'dend': '(tag 3)',  # dendrites have tag 3 in swc files.
         'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
-        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 1.
+        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
         'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
 labels = arbor.label_dict(defs)
 
@@ -49,12 +49,12 @@ decor.paint('"dend"', 'pas')
 # Increase resistivity on dendrites.
 decor.paint('"dend"', rL=500)
 # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-decor.place('"root"', arbor.iclamp(10, 1, current=5))
-decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5))
-decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5))
-decor.place('"stim_site"', arbor.iclamp(8, 1, current=4))
+decor.place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
+decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
+decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
+decor.place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
 # Detect spikes at the soma with a voltage threshold of -10 mV.
-decor.place('"axon_end"', arbor.spike_detector(-10))
+decor.place('"axon_end"', arbor.spike_detector(-10), "detector")
 
 # Create the policy used to discretise the cell into CVs.
 # Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
@@ -72,9 +72,9 @@ print(cell.locations('"axon_end"'))
 m = arbor.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', where='"root"',  frequency=50000)
-m.probe('voltage', where='"stim_site"',  frequency=50000)
-m.probe('voltage', where='"axon_end"', frequency=50000)
+m.probe('voltage', where='"root"',  frequency=50)
+m.probe('voltage', where='"stim_site"',  frequency=50)
+m.probe('voltage', where='"axon_end"', frequency=50)
 
 # Simulate the cell for 15 ms.
 tfinal=15

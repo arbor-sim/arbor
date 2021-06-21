@@ -15,7 +15,7 @@ using io::popindent;
 using io::quote;
 
 void emit_common_defs(std::ostream&, const Module& module_);
-void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc);
+void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc, bool cv_loop = true);
 void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* proc);
 void emit_state_read_cu(std::ostream& out, LocalVariable* local);
 void emit_state_update_cu(std::ostream& out, Symbol* from,
@@ -68,22 +68,21 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n";
 
-    out <<
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+    out << "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism.hpp>\n"
+        << "#include <arbor/mechanism_ppack.hpp>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
     emit_common_defs(out, module_);
 
     out <<
-        "void " << class_name << "_nrn_init_(" << ppack_name << "&);\n"
-        "void " << class_name << "_nrn_state_(" << ppack_name << "&);\n"
-        "void " << class_name << "_nrn_current_(" << ppack_name << "&);\n"
+        "void " << class_name << "_init_(" << ppack_name << "&);\n"
+        "void " << class_name << "_advance_state_(" << ppack_name << "&);\n"
+        "void " << class_name << "_compute_currents_(" << ppack_name << "&);\n"
         "void " << class_name << "_write_ions_(" << ppack_name << "&);\n";
 
     net_receive && out <<
-        "void " << class_name << "_deliver_events_(int mech_id, "
+        "void " << class_name << "_apply_events_(int mech_id, "
         << ppack_name << "&, deliverable_event_stream_state events);\n";
 
     post_event && out <<
@@ -102,22 +101,22 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
         "::arb::mechanismKind kind() const override { return " << module_kind_str(module_) << "; }\n"
         "::arb::mechanism_ptr clone() const override { return ::arb::mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
-        "void nrn_init() override {\n" << indent <<
-        class_name << "_nrn_init_(pp_);\n" << popindent <<
+        "void init() override {\n" << indent <<
+        class_name << "_init_(pp_);\n" << popindent <<
         "}\n\n"
-        "void nrn_state() override {\n" << indent <<
-        class_name << "_nrn_state_(pp_);\n" << popindent <<
+        "void advance_state() override {\n" << indent <<
+        class_name << "_advance_state_(pp_);\n" << popindent <<
         "}\n\n"
-        "void nrn_current() override {\n" << indent <<
-        class_name << "_nrn_current_(pp_);\n" << popindent <<
+        "void compute_currents() override {\n" << indent <<
+        class_name << "_compute_currents_(pp_);\n" << popindent <<
         "}\n\n"
         "void write_ions() override {\n" << indent <<
         class_name << "_write_ions_(pp_);\n" << popindent <<
         "}\n\n";
 
     net_receive && out <<
-        "void deliver_events(deliverable_event_stream_state events) override {\n" << indent <<
-        class_name << "_deliver_events_(mechanism_id_, pp_, events);\n" << popindent <<
+        "void apply_events(deliverable_event_stream_state events) override {\n" << indent <<
+        class_name << "_apply_events_(mechanism_id_, pp_, events);\n" << popindent <<
         "}\n\n";
 
     post_event && out <<
@@ -128,7 +127,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     out << popindent <<
         "protected:\n" << indent <<
         "std::size_t object_sizeof() const override { return sizeof(*this); }\n"
-        "::arb::gpu::mechanism_ppack_base* ppack_ptr() override { return &pp_; }\n\n";
+        "::arb::mechanism_ppack* ppack_ptr() override { return &pp_; }\n\n";
 
     io::separator sep("\n", ",\n");
     if (!vars.scalars.empty()) {
@@ -224,16 +223,16 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     auto ns_components = namespace_components(opt.cpp_namespace);
     const bool is_point_proc = module_.kind() == moduleKind::point;
 
-    NetReceiveExpression* net_receive = find_net_receive(module_);
-    PostEventExpression*  post_event =  find_post_event(module_);
-    APIMethod* init_api = find_api_method(module_, "nrn_init");
-    APIMethod* state_api = find_api_method(module_, "nrn_state");
-    APIMethod* current_api = find_api_method(module_, "nrn_current");
+    APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
+    APIMethod* post_event_api = find_api_method(module_, "post_event_api");
+    APIMethod* init_api = find_api_method(module_, "init");
+    APIMethod* state_api = find_api_method(module_, "advance_state");
+    APIMethod* current_api = find_api_method(module_, "compute_currents");
     APIMethod* write_ions_api = find_api_method(module_, "write_ions");
 
-    assert_has_scope(init_api, "nrn_init");
-    assert_has_scope(state_api, "nrn_state");
-    assert_has_scope(current_api, "nrn_current");
+    assert_has_scope(init_api, "init");
+    assert_has_scope(state_api, "advance_state");
+    assert_has_scope(current_api, "compute_currents");
 
     io::pfxstringstream out;
 
@@ -243,17 +242,13 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/gpu_common.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+        "#include <arbor/mechanism.hpp>\n" <<
+        "#include <arbor/mechanism_ppack.hpp>\n";
 
     is_point_proc && out <<
         "#include <" << arb_private_header_prefix() << "backends/gpu/reduce_by_key.hpp>\n";
 
     out << "\n" << namespace_declaration_open(ns_components) << "\n";
-
-    out <<
-        "using value_type = ::arb::gpu::mechanism_ppack_base::value_type;\n"
-        "using index_type = ::arb::gpu::mechanism_ppack_base::index_type;\n"
-        "\n";
 
     emit_common_defs(out, module_);
 
@@ -274,7 +269,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "void " << e->name()
             << "(" << ppack_name << " params_, int tid_";
         for(auto& arg: e->args()) {
-            out << ", value_type " << arg->is_argument()->name();
+            out << ", ::arb::fvm_value_type " << arg->is_argument()->name();
         }
         out << ") {\n" << indent
             << cuprint(e->body())
@@ -291,7 +286,8 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         if (!e->body()->statements().empty()) {
             out << "__global__\n"
                 << "void " << e->name() << "(" << ppack_name << " params_) {\n" << indent
-                << "int n_ = params_.width_;\n";
+                << "int n_ = params_.width_;\n"
+                << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
             emit_api_body_cu(out, e, is_point_proc);
             out << popindent << "}\n\n";
         }
@@ -303,10 +299,10 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     emit_api_kernel(write_ions_api);
 
     // event delivery
-    if (net_receive) {
-        const std::string weight_arg = net_receive->args().empty() ? "weight" : net_receive->args().front()->is_argument()->name();
+    if (net_receive_api) {
+        const std::string weight_arg = net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name();
         out << "__global__\n"
-            << "void deliver_events(int mech_id_, " <<  ppack_name << " params_, "
+            << "void apply_events(int mech_id_, " <<  ppack_name << " params_, "
             << "deliverable_event_stream_state events) {\n" << indent
             << "auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
             << "auto const ncell_ = events.n;\n\n"
@@ -317,17 +313,17 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "for (auto p = begin; p<end; ++p) {\n" << indent
             << "if (p->mech_id==mech_id_) {\n" << indent
             << "auto tid_ = p->mech_index;\n"
-            << "auto " << weight_arg << " = p->weight;\n"
-            << cuprint(net_receive->body())
-            << popindent << "}\n"
+            << "auto " << weight_arg << " = p->weight;\n";
+            emit_api_body_cu(out, net_receive_api, is_point_proc, false);
+            out << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n";
     }
 
     // event delivery
-    if (post_event) {
-        const std::string time_arg = post_event->args().empty() ? "time" : post_event->args().front()->is_argument()->name();
+    if (post_event_api) {
+        const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
         out << "__global__\n"
             << "void post_event(" <<  ppack_name << " params_) {\n" << indent
             << "int n_ = params_.width_;\n"
@@ -338,9 +334,9 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
             << "auto offset_ = params_.n_detectors_ * cid_;\n"
             << "for (unsigned c = 0; c < params_.n_detectors_; c++) {\n" << indent
             << "auto " << time_arg << " = params_.time_since_spike_[offset_ + c];\n"
-            << "if (" <<  time_arg << " >= 0) {\n" << indent
-            << cuprint(post_event->body())
-            << popindent << "}\n"
+            << "if (" <<  time_arg << " >= 0) {\n" << indent;
+            emit_api_body_cu(out, post_event_api, is_point_proc, false);
+            out << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n"
             << popindent << "}\n";
@@ -368,17 +364,17 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     emit_api_wrapper(state_api);
     emit_api_wrapper(write_ions_api);
 
-    net_receive && out
-        << "void " << class_name << "_deliver_events_("
+    net_receive_api && out
+        << "void " << class_name << "_apply_events_("
         << "int mech_id, "
         << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
         << "auto n = events.n;\n"
         << "unsigned block_dim = 128;\n"
         << "unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-        << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
+        << "apply_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
         << popindent << "}\n\n";
 
-    post_event && out
+    post_event_api && out
         << "void " << class_name << "_post_event_("
         << ppack_name << "& p) {\n" << indent
         << "auto n = p.width_;\n"
@@ -402,17 +398,17 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
         "using deliverable_event_stream_state =\n"
         "    ::arb::multi_event_stream_state<::arb::deliverable_event_data>;\n\n";
 
-    out << "struct " << ppack_name << ": ::arb::gpu::mechanism_ppack_base {\n" << indent;
+    out << "struct " << ppack_name << ": ::arb::mechanism_ppack {\n" << indent;
 
     for (const auto& scalar: vars.scalars) {
-        out << "value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
+        out << "::arb::fvm_value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
     }
     for (const auto& array: vars.arrays) {
-        out << "value_type* " << array->name() << ";\n";
+        out << "::arb::fvm_value_type* " << array->name() << ";\n";
     }
     for (const auto& dep: ion_deps) {
-        out << "ion_state_view " << ion_state_field(dep.name) << ";\n";
-        out << "const index_type* " << ion_state_index(dep.name) << ";\n";
+        out << "::arb::ion_state_view " << ion_state_field(dep.name) << ";\n";
+        out << "::arb::fvm_index_type* " << ion_state_index(dep.name) << ";\n";
     }
 
     out << popindent << "};\n\n";
@@ -422,7 +418,7 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
+void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool cv_loop) {
     auto body = e->body();
     auto indexed_vars = indexed_locals(e->scope());
 
@@ -450,7 +446,6 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
     }
 
     if (!body->statements().empty()) {
-        out << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
         if (is_point_proc) {
             // The run length information is only required if this method will
             // update an indexed variable, like current or conductance.
@@ -462,7 +457,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
             }
         }
 
-        out << "if (tid_<n_) {\n" << indent;
+        cv_loop && out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
             out << "auto " << index_i_name(index.source_var)
@@ -478,7 +473,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
         for (auto& sym: indexed_vars) {
             emit_state_update_cu(out, sym, sym->external_variable(), is_point_proc);
         }
-        out << popindent << "}\n";
+        cv_loop && out << popindent << "}\n";
     }
 }
 
@@ -502,7 +497,7 @@ namespace {
 }
 
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
-    out << "value_type " << cuprint(local) << " = ";
+    out << "::arb::fvm_value_type " << cuprint(local) << " = ";
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());

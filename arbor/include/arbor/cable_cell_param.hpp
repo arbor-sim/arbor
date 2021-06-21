@@ -33,19 +33,53 @@ struct cable_cell_ion_data {
     std::optional<double> init_reversal_potential;
 };
 
-// Current clamp description for stimulus specification.
+// Clamp current is described by a sine wave with amplitude governed by a
+// piecewise linear envelope. A frequency of zero indicates that the current is
+// simply that given by the envelope.
+//
+// The envelope is given by a series of envelope_point values:
+// * The time points must be monotonically increasing.
+// * Onset and initial amplitude is given by the first point.
+// * The amplitude for time after the last time point is that of the last
+//   amplitude point; an explicit zero amplitude point must be provided if the
+//   envelope is intended to have finite support.
+//
+// Periodic envelopes are not supported, but may well be a feature worth
+// considering in the future.
+
 struct i_clamp {
-    using value_type = double;
+    struct envelope_point {
+        double t;         // [ms]
+        double amplitude; // [nA]
+    };
 
-    value_type delay = 0;      // [ms]
-    value_type duration = 0;   // [ms]
-    value_type amplitude = 0;  // [nA]
+    std::vector<envelope_point> envelope;
+    double frequency = 0; // [kHz] 0 => constant
+    double phase = 0;     // [rad]
 
+    // A default constructed i_clamp, with empty envelope, describes
+    // a trivial stimulus, providing no current at all.
     i_clamp() = default;
 
-    i_clamp(value_type delay, value_type duration, value_type amplitude):
-        delay(delay), duration(duration), amplitude(amplitude)
+    // The simple constructor describes a constant amplitude stimulus starting from t=0.
+    explicit i_clamp(double amplitude, double frequency = 0, double phase = 0):
+        envelope({{0., amplitude}}),
+        frequency(frequency),
+        phase(phase)
     {}
+
+    // Describe a stimulus by envelope and frequency.
+    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0, double phase = 0):
+        envelope(std::move(envelope)),
+        frequency(frequency),
+        phase(phase)
+    {}
+
+    // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
+    static i_clamp box(double onset, double duration, double amplitude, double frequency = 0, double phase = 0) {
+        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency, phase);
+    }
+
 };
 
 // Threshold detector description.
@@ -60,41 +94,34 @@ struct gap_junction_site {};
 // cell-wide default:
 
 struct init_membrane_potential {
-    init_membrane_potential() = delete;
-    double value; // [mV]
+    double value = NAN; // [mV]
 };
 
 struct temperature_K {
-    temperature_K() = delete;
-    double value; // [K]
+    double value = NAN; // [K]
 };
 
 struct axial_resistivity {
-    axial_resistivity() = delete;
-    double value; // [Ω·cm]
+    double value = NAN; // [Ω·cm]
 };
 
 struct membrane_capacitance {
-    membrane_capacitance() = delete;
-    double value; // [F/m²]
+    double value = NAN; // [F/m²]
 };
 
 struct init_int_concentration {
-    init_int_concentration() = delete;
-    std::string ion;
-    double value; // [mM]
+    std::string ion = "";
+    double value = NAN; // [mM]
 };
 
 struct init_ext_concentration {
-    init_ext_concentration() = delete;
-    std::string ion;
-    double value; // [mM]
+    std::string ion = "";
+    double value = NAN; // [mM]
 };
 
 struct init_reversal_potential {
-    init_reversal_potential() = delete;
-    std::string ion;
-    double value; // [mV]
+    std::string ion = "";
+    double value = NAN; // [mV]
 };
 
 // Mechanism description, viz. mechanism name and
@@ -160,25 +187,20 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
-struct initial_ion_data {
-    std::string ion;
-    cable_cell_ion_data initial;
-};
-
 struct ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
 };
 
 using paintable =
-    std::variant<mechanism_desc,
-                 init_membrane_potential,
+    std::variant<init_membrane_potential,
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
                  init_int_concentration,
                  init_ext_concentration,
-                 init_reversal_potential>;
+                 init_reversal_potential,
+                 mechanism_desc>;
 
 using placeable =
     std::variant<mechanism_desc,
@@ -191,7 +213,6 @@ using defaultable =
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
-                 initial_ion_data,
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
@@ -226,7 +247,7 @@ struct cable_cell_parameter_set {
 // are to be applied to a morphology in a cable_cell.
 class decor {
     std::vector<std::pair<region, paintable>> paintings_;
-    std::vector<std::pair<locset, placeable>> placements_;
+    std::vector<std::tuple<locset, placeable, cell_tag_type>> placements_;
     cable_cell_parameter_set defaults_;
 
 public:
@@ -235,7 +256,7 @@ public:
     const auto& defaults()   const {return defaults_;   }
 
     void paint(region, paintable);
-    unsigned place(locset, placeable);
+    void place(locset, placeable, cell_tag_type);
     void set_default(defaultable);
 };
 

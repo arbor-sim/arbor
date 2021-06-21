@@ -58,7 +58,7 @@ function(build_modules)
 endfunction()
 
 function("make_catalogue")
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE" "MECHS" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE;VERBOSE" "MECHS" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
 
   # Need to set ARB_WITH_EXTERNAL_MODCC *and* modcc
@@ -67,14 +67,17 @@ function("make_catalogue")
     set(external_modcc MODCC ${modcc})
   endif()
 
-  message("Catalogue name:       ${MK_CAT_NAME}")
-  message("Catalogue mechanisms: ${MK_CAT_MECHS}")
-  message("Catalogue sources:    ${MK_CAT_SOURCES}")
-  message("Catalogue output:     ${MK_CAT_OUT_DIR}")
-  message("Arbor source tree:    ${MK_CAT_ARBOR}")
-  message("Build as standalone:  ${MK_CAT_STANDALONE}")
-  message("Source directory:     ${PROJECT_SOURCE_DIR}")    
-  message("Arbor arch:           ${ARB_CXXOPT_ARCH}")    
+  if(MK_CAT_VERBOSE)
+    message("Catalogue name:       ${MK_CAT_NAME}")
+    message("Catalogue mechanisms: ${MK_CAT_MECHS}")
+    message("Catalogue sources:    ${MK_CAT_SOURCES}")
+    message("Catalogue output:     ${MK_CAT_OUT_DIR}")
+    message("Arbor source tree:    ${MK_CAT_ARBOR}")
+    message("Build as standalone:  ${MK_CAT_STANDALONE}")
+    message("Arbor arch:           ${ARB_CXXOPT_ARCH}")
+    message("Arbor cxx compiler:   ${ARB_CXX}")
+    message("Current cxx compiler: ${CMAKE_CXX_COMPILER}")
+  endif()
 
   file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
@@ -99,9 +102,9 @@ function("make_catalogue")
 
   add_custom_command(
     OUTPUT ${catalogue_${MK_CAT_NAME}_source}
-    COMMAND ${PROJECT_SOURCE_DIR}/mechanisms/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
+    COMMAND ${MK_CAT_ARBOR}/mechanisms/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
     COMMENT "Building catalogue ${MK_CAT_NAME}"
-    DEPENDS ${PROJECT_SOURCE_DIR}/mechanisms/generate_catalogue)
+    DEPENDS ${MK_CAT_ARBOR}/mechanisms/generate_catalogue)
 
   add_custom_target(${MK_CAT_NAME}_catalogue_cpp_target DEPENDS ${catalogue_${MK_CAT_NAME}_source})
   add_dependencies(build_catalogue_${MK_CAT_NAME}_mods ${MK_CAT_NAME}_catalogue_cpp_target)

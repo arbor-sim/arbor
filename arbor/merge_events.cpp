@@ -17,7 +17,7 @@ namespace impl {
 // A postsynaptic spike event that has delivery time set to
 // terminal_time, used as a sentinel in `tourney_tree`.
 
-static constexpr spike_event terminal_pse{cell_member_type{0,0}, terminal_time, 0};
+static constexpr spike_event terminal_pse{0, terminal_time, 0};
 
 
 // The tournament tree data structure is used to merge k sorted lists of events.

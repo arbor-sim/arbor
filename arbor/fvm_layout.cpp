@@ -24,7 +24,6 @@
 
 namespace arb {
 
-using util::append;
 using util::assign;
 using util::assign_by;
 using util::count_along;
@@ -208,7 +207,7 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
         }
 
         sort(cables);
-        append(geom.cv_cables, std::move(cables));
+        util::append(geom.cv_cables, std::move(cables));
         geom.cv_cables_divs.push_back(geom.cv_cables.size());
         ++cv_index;
     }
@@ -289,6 +288,7 @@ namespace impl {
 // Merge CV geometry lists in-place.
 
 cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
+    using util::append;
     using impl::tail;
     using impl::append_offset;
     using impl::append_divs;
@@ -322,6 +322,8 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 // Combine two fvm_cv_geometry groups in-place.
 
 fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
+    using util::append;
+
     append(dczn.geometry, right.geometry);
 
     append(dczn.face_conductance, right.face_conductance);
@@ -705,6 +707,7 @@ fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_d
 // Only target numbers need to be shifted.
 
 fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& right) {
+    using util::append;
     using impl::append_offset;
     using impl::append_divs;
 
@@ -749,6 +752,13 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             }
         }
     }
+
+    append(left.stimuli.cv, right.stimuli.cv);
+    append(left.stimuli.cv_unique, right.stimuli.cv_unique);
+    append(left.stimuli.frequency, right.stimuli.frequency);
+    append(left.stimuli.phase, right.stimuli.phase);
+    append(left.stimuli.envelope_time, right.stimuli.envelope_time);
+    append(left.stimuli.envelope_amplitude, right.stimuli.envelope_amplitude);
 
     left.n_target += right.n_target;
     left.post_events |= right.post_events;
@@ -1076,6 +1086,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     if (!cell.stimuli().empty()) {
         const auto& stimuli = cell.stimuli();
+        fvm_stimulus_config config;
 
         std::vector<size_type> stimuli_cv;
         assign_by(stimuli_cv, stimuli, [&D, cell_idx](auto& p) {
@@ -1085,19 +1096,40 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         assign(cv_order, count_along(stimuli));
         sort_by(cv_order, [&](size_type i) { return stimuli_cv[i]; });
 
-        fvm_mechanism_config config;
-        config.kind = mechanismKind::point;
-        // (param_values entries must be ordered by parameter name)
-        config.param_values = {{"amplitude", {}}, {"delay", {}}, {"duration", {}}};
+        std::size_t n = stimuli.size();
+        config.cv.reserve(n);
+        config.cv_unique.reserve(n);
+        config.frequency.reserve(n);
+        config.phase.reserve(n);
+        config.envelope_time.reserve(n);
+        config.envelope_amplitude.reserve(n);
 
         for (auto i: cv_order) {
-            config.cv.push_back(stimuli_cv[i]);
-            config.param_values[0].second.push_back(stimuli[i].item.amplitude);
-            config.param_values[1].second.push_back(stimuli[i].item.delay);
-            config.param_values[2].second.push_back(stimuli[i].item.duration);
+            const i_clamp& stim = stimuli[i].item;
+            auto cv = stimuli_cv[i];
+            double cv_area_scale = 1000./D.cv_area[cv]; // constant scales from nA/µm² to A/m².
+
+            config.cv.push_back(cv);
+            config.frequency.push_back(stim.frequency);
+            config.phase.push_back(stim.phase);
+
+            std::size_t envl_n = stim.envelope.size();
+            std::vector<double> envl_t, envl_a;
+            envl_t.reserve(envl_n);
+            envl_a.reserve(envl_n);
+
+            for (auto [t, a]: stim.envelope) {
+                envl_t.push_back(t);
+                envl_a.push_back(a*cv_area_scale);
+            }
+            config.envelope_time.push_back(std::move(envl_t));
+            config.envelope_amplitude.push_back(std::move(envl_a));
         }
 
-        M.mechanisms["_builtin_stimulus"] = std::move(config);
+        std::unique_copy(config.cv.begin(), config.cv.end(), std::back_inserter(config.cv_unique));
+        config.cv_unique.shrink_to_fit();
+
+        M.stimuli = std::move(config);
     }
 
     // Ions:
@@ -1135,7 +1167,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
 
         auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
-            return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.second*b.second; });
+            return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
         };
 
         for (auto i: count_along(config.cv)) {

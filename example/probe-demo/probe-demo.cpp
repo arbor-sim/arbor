@@ -16,7 +16,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
-#include <tinyopt/smolopt.h>
+#include <tinyopt/tinyopt.h>
 
 // Simulate a cell modelled as a simple cable with HH dynamics,
 // emitting the results of a user specified probe over time.
@@ -82,7 +82,6 @@ struct options {
     std::string value_name;
 };
 
-const char* argv0 = "";
 bool parse_options(options&, int& argc, char** argv);
 void vector_sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
 void scalar_sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
@@ -99,7 +98,6 @@ struct cable_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 0; }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
         return {probe_addr}; // (use default tag value 0)
@@ -122,14 +120,13 @@ struct cable_recipe: public arb::recipe {
 
         arb::decor decor;
         decor.paint(arb::reg::all(), "hh"); // HH mechanism over whole cell.
-        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{0., INFINITY, 1.}); // Inject a 1 nA current indefinitely.
+        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp"); // Inject a 1 nA current indefinitely.
 
         return arb::cable_cell(tree, {}, decor);
     }
 };
 
 int main(int argc, char** argv) {
-    argv0 = argv[0];
     try {
         options opt;
         if (!parse_options(opt, argc, argv)) {
@@ -152,7 +149,7 @@ int main(int argc, char** argv) {
         sim.run(opt.sim_end, opt.sim_dt);
     }
     catch (to::option_error& e) {
-        to::usage(argv0, "[OPTIONS]... PROBE\nTry '--help' for more information.", e.what());
+        to::usage_error(argv[0], "[OPTIONS]... PROBE\nTry '--help' for more information.", e.what());
         return 1;
     }
     catch (std::exception& e) {
@@ -199,7 +196,7 @@ bool parse_options(options& opt, int& argc, char** argv) {
     using std::get;
     using namespace to;
 
-    auto do_help = [&]() { usage(argv0, help_msg); };
+    auto do_help = [&]() { usage(argv[0], help_msg); };
 
     using L = arb::mlocation;
 

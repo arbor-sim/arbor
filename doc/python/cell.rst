@@ -9,21 +9,107 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
 .. module:: arbor
 
+.. class:: selection_policy
+
+   Enumeration used for selecting an individual item from a group of items sharing the
+   same label.
+
+   .. attribute:: round_robin
+
+      Iterate over the items of the group in a round-robin fashion.
+
+   .. attribute:: univalent
+
+      Assert that only one item is available in the group. Throws an exception if the assertion
+      fails.
+
+.. class:: cell_local_label
+
+   For local identification of an item on an unspecified cell.
+
+   A local string label :attr:`tag` is used to identify a group of items within a particular
+   cell-local collection. Each label is associated with a set of items distributed over various
+   locations on the cell. The exact number of items associated to a label can only be known when the
+   model is built and is therefore not directly available to the user.
+
+   Because each label can be mapped to any of the items in its group, a :attr:`selection_policy`
+   is needed to select one of the items of the group. If the policy is not supplied, the default
+   :attr:`selection_policy.univalent` is selected.
+
+   :class:`cell_local_label` is used for selecting the target of a connection or the
+   local site of a gap junction connection. The cell ``gid`` of the item is implicitly known in the
+   recipe.
+
+   .. attribute:: tag
+
+      Identifier of a group of items in a cell-local collection.
+
+   .. attribute:: selection_policy
+
+      Policy used for selecting a single item of the tagged group.
+
+   An example of a cell member construction reads as follows:
+
+   .. container:: example-code
+
+       .. code-block:: python
+
+           import arbor
+
+           # Create the policy
+           policy = arbor.selection_policy.univalent
+
+           # Create the local label referring to the group of items labeled "syn0".
+           # The group is expected to only contain 1 item.
+           local_label = arbor.cell_local_label("syn0", policy)
+
+.. class:: cell_global_label
+
+   For global identification of an item on a cell.
+   This is used for selecting the source of a connection or the peer site of a gap junction connection.
+   The :attr:`label` expects a :class:`cell_local_label` type.
+
+   .. attribute:: gid
+
+      Global identifier of the cell associated with the item.
+
+   .. attribute:: label
+
+      Identifier of a single item on the cell.
+
+   .. container:: example-code
+
+       .. code-block:: python
+
+           import arbor
+
+           # Create the policy
+           policy = arbor.selection_policy.univalent
+
+           # Creat the local label referring to the group of items labeled "syn0".
+           # The group is expected to only contain 1 item.
+           local_label = arbor.cell_local_label("syn0", policy)
+
+           # Create the global label referring to the group of items labeled "syn0"
+           # on cell 5
+           global_label = arbor.cell_global_label(5, local_label)
 .. class:: cell_member
 
     .. function:: cell_member(gid, index)
 
-        Construct a ``cell_member`` object with parameters :attr:`gid` and :attr:`index` for global identification of a cell-local item.
+        Construct a ``cell_member`` object with parameters :attr:`gid` and :attr:`index` for
+        global identification of a cell-local item.
 
         Items of type :class:`cell_member` must:
 
         * be associated with a unique cell, identified by the member :attr:`gid`;
         * identify an item within a cell-local collection by the member :attr:`index`.
 
-        An example is uniquely identifying a synapse in the model.
-        Each synapse has a post-synaptic cell (with :attr:`gid`), and an :attr:`index` into the set of synapses on the post-synaptic cell.
+        An example is uniquely identifying a probe description in the model.
+        Each probe description has a cell (with :attr:`gid`), and an :attr:`index` into
+        the set of probe descriptions on the cell.
 
-        Lexographically ordered by :attr:`gid`, then :attr:`index`.
+        Lexicographically ordered by :attr:`gid`, then :attr:`index`.
 
     .. attribute:: gid
 
@@ -83,70 +169,19 @@ Cell kinds
 ----------
 
 .. class:: lif_cell
+    :noindex:
 
-    A benchmarking cell (leaky integrate-and-fire), used by Arbor developers to test communication performance,
-    with neuronal parameters:
-
-    .. attribute:: tau_m
-
-        Membrane potential decaying constant [ms].
-
-    .. attribute:: V_th
-
-        Firing threshold [mV].
-
-    .. attribute:: C_m
-
-        Membrane capacitance [pF].
-
-    .. attribute:: E_L
-
-        Resting potential [mV].
-
-    .. attribute:: V_m
-
-        Initial value of the Membrane potential [mV].
-
-    .. attribute:: t_ref
-
-        Refractory period [ms].
-
-    .. attribute:: V_reset
-
-        Reset potential [mV].
+    See :ref:`pylifcell`.
 
 .. class:: spike_source_cell
+    :noindex:
 
-    A spike source cell, that generates a user-defined sequence of spikes
-    that act as inputs for other cells in the network.
-
-    .. function:: spike_source_cell(schedule)
-
-        Construct a spike source cell that generates spikes
-
-        - at regular intervals (using an :class:`arbor.regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
-        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
-
-        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
+    See :ref:`pyspikecell`.
 
 .. class:: benchmark_cell
+    :noindex:
 
-    A benchmarking cell, used by Arbor developers to test communication performance.
-
-    .. function:: benchmark_cell(schedule, realtime_ratio)
-
-        A benchmark cell generates spikes at a user-defined sequence of time points:
-
-        - at regular intervals (using an :class:`arbor.regular_schedule`)
-        - at a sequence of user-defined times (using an :class:`arbor.explicit_schedule`)
-        - at times defined by a Poisson sequence (using an :class:`arbor.poisson_schedule`)
-
-        and the time taken to integrate a cell can be tuned by setting the parameter ``realtime_ratio``.
-
-        :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
-
-        :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
+    See :ref:`pybenchcell`.
 
 .. class:: cable_cell
     :noindex:

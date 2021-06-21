@@ -21,10 +21,11 @@ setuptools.setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     project_urls={
         'Source': 'https://github.com/arbor-sim/arbor',
-        'Documentation': 'https://arbor.readthedocs.io',
+        'Documentation': 'https://docs.arbor-sim.org',
         'Bug Reports': 'https://github.com/arbor-sim/arbor/issues',
     },
     package_data={

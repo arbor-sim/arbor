@@ -35,16 +35,13 @@ struct test_recipe: public n_cable_cell_recipe {
         labels.set("soma", arb::reg::tagged(1));
 
         decor decorations;
-        decorations.place(mlocation{0, 0.5}, "expsyn");
-        decorations.place(mlocation{0, 0.5}, threshold_detector{-64});
-        decorations.place(mlocation{0, 0.5}, gap_junction_site{});
+        decorations.place(mlocation{0, 0.5}, "expsyn", "synapse");
+        decorations.place(mlocation{0, 0.5}, threshold_detector{-64}, "detector");
+        decorations.place(mlocation{0, 0.5}, gap_junction_site{}, "gapjunction");
         cable_cell c(st, labels, decorations);
 
         return c;
     }
-
-    cell_size_type num_sources(cell_gid_type) const override { return 1; }
-    cell_size_type num_targets(cell_gid_type) const override { return 1; }
 };
 
 using gid_vector = std::vector<cell_gid_type>;
@@ -75,9 +72,9 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
 
     constexpr time_type ev_delta_t = 0.2;
 
-    pse_vector cell_events;
+    cse_vector cell_events;
     for (unsigned i = 0; i<n; ++i) {
-        cell_events.push_back({{i, 0u}, i*ev_delta_t, 1.f});
+        cell_events.push_back({i, {{0u, i*ev_delta_t, 1.f}}});
     }
 
     sim.inject_events(cell_events);
@@ -107,12 +104,13 @@ struct test_recipe_gj: public test_recipe {
     explicit test_recipe_gj(int n, cell_gj_pairs gj_pairs):
         test_recipe(n), gj_pairs_(std::move(gj_pairs)) {}
 
-    cell_size_type num_gap_junction_sites(cell_gid_type) const override { return 1; }
-
     std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type i) const override {
         std::vector<gap_junction_connection> gjs;
         for (auto p: gj_pairs_) {
-            if (p.first == i || p.second == i) gjs.push_back({{p.first, 0u}, {p.second, 0u}, 0.});
+            if (p.first == i) gjs.push_back({{p.second, "gapjunction", lid_selection_policy::assert_univalent},
+                                             {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
+            if (p.second == i) gjs.push_back({{p.first, "gapjunction", lid_selection_policy::assert_univalent},
+                                                    {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
         }
         return gjs;
     }

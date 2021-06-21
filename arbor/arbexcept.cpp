@@ -22,34 +22,14 @@ bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     kind(kind)
 {}
 
-bad_target_description::bad_target_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
-    arbor_exception(pprintf("Model building error on cell {}: recipe::num_targets(gid={}) = {} is greater than the number of synapses on the cell = {}", gid, gid, rec_val, cell_val)),
-    gid(gid), rec_val(rec_val), cell_val(cell_val)
-{}
-
-bad_source_description::bad_source_description(cell_gid_type gid, cell_size_type rec_val, cell_size_type cell_val):
-    arbor_exception(pprintf("Model building error on cell {}: recipe::num_sources(gid={}) = {} is not equal to the number of detectors on the cell = {}", gid, gid, rec_val, cell_val)),
-    gid(gid), rec_val(rec_val), cell_val(cell_val)
-{}
-
 bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
     arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are only {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
     gid(gid), src_gid(src_gid), num_cells(num_cells)
 {}
 
-bad_connection_source_lid::bad_connection_source_lid(cell_gid_type gid, cell_lid_type src_lid, cell_size_type num_sources):
-    arbor_exception(pprintf("Model building error on cell {}: connection source index {} is out of range. Cell {} has {} sources, in the range [{}:{}].", gid, src_lid, gid, num_sources, 0, num_sources-1)),
-    gid(gid), src_lid(src_lid), num_sources(num_sources)
-{}
-
-bad_connection_target_gid::bad_connection_target_gid(cell_gid_type gid, cell_gid_type tgt_gid):
-    arbor_exception(pprintf("Model building error on cell {}: connection target gid {} has to match cell gid {}].", gid, tgt_gid, gid)),
-    gid(gid), tgt_gid(tgt_gid)
-{}
-
-bad_connection_target_lid::bad_connection_target_lid(cell_gid_type gid, cell_lid_type tgt_lid, cell_size_type num_targets):
-    arbor_exception(pprintf("Model building error on cell {}: connection target index {} is out of range. Cell {} has {} targets, in the range [{}:{}].", gid, tgt_lid, gid, num_targets, 0, num_targets-1)),
-    gid(gid), tgt_lid(tgt_lid), num_targets(num_targets)
+bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg):
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\": {}.", gid, label, msg)),
+    gid(gid), label(label)
 {}
 
 bad_global_property::bad_global_property(cell_kind kind):
@@ -68,17 +48,10 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
     gid_1(gid_1)
 {}
 
-bad_gj_connection_gid::bad_gj_connection_gid(cell_gid_type gid, cell_gid_type site_0, cell_gid_type site_1):
-    arbor_exception(pprintf("Model building error on cell {}: recipe::gap_junctions_on(gid={}) -> cell {} <-> cell{}: one of the sites must be on the cell with gid = {})", gid, gid, site_0, site_1, gid)),
+gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
+    arbor_exception(pprintf("Model building error on cell {}: gap junction site label \"{}\" must be univalent.", gid, label)),
     gid(gid),
-    site_0(site_0),
-    site_1(site_1)
-{}
-
-bad_gj_connection_lid::bad_gj_connection_lid(cell_gid_type gid, cell_member_type site):
-    arbor_exception(pprintf("Model building error on cell {}: gap junction index {} on cell {} does not exist)", gid, site.gid, site.index)),
-    gid(gid),
-    site(site)
+    label(label)
 {}
 
 gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):

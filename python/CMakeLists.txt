@@ -20,6 +20,7 @@ else()
 endif()
 
 set(pyarb_source
+    cable_cell_io.cpp
     cable_probes.cpp
     cells.cpp
     config.cpp
@@ -37,13 +38,13 @@ set(pyarb_source
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
-    spikes.cpp
 )
 
 # compile the pyarb sources into an object library that will be
 # use by both the Python wrapper target (pyarb) and for the
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
+set_target_properties(pyarb_obj PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_link_libraries(pyarb_obj PRIVATE arbor arborio pybind11::module)
 
 # The Python library. MODULE will make a Python-exclusive model.
@@ -81,12 +82,7 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 # Set the installation path
 
 # Ask Python where it keeps its system (platform) packages.
-
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "")
-else()
-    file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
-endif()
+file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -c

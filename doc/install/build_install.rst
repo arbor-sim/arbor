@@ -444,25 +444,60 @@ system with the executable in ``/usr/bin/python3.8``:
 
     cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
-By default the Python module will be installed in the directory returned by
-``${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('platlib'))"``.
-This returns the directory where the supplied or found ``PYTHON_EXECUTABLE`` looks for system packages.
-`See Python's sysconfig documentation <https://docs.python.org/3/library/sysconfig.html#installation-paths>`_.
-If CMake is run in a `venv` or Conda environment, this should pick up on the appropriate package directory.
-To install the module in a different location, set ``ARB_PYTHON_LIB_PATH`` to a custom path.
-For example, the CMake configuration for targeting Python 3.8 and install as a
-user site package might look like the following:
+
+By default the Python package will be installed in the appropriate sub-directory
+inside ``CMAKE_INSTALL_PREFIX``, determined by querying Python's sysconfig library.
+For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.9/site-packages/``.
+
+To install the module in a different location, independent of ``CMAKE_INSTALL_PREFIX``,
+use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is to be installed.
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON                                              \
-             -DARB_PYTHON_LIB_PATH=${HOME}/.local/lib/python3.8/site-packages/ \
-             -DPYTHON_EXECUTABLE=/usr/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=on -DARB_PYTHON_PATH_LIB=/custom/path
 
-On the target LINUX system, the Arbor package was installed in
-``/home/$USER/.local/lib/python3.8/site-packages``.
+If CMake is run in a `venv` or Conda environment, set ``CMAKE_INSTALL_PREFIX`` to the
+base path of the venv. The example below shows a workflow that creates a virtual
+environment, then installs Arbor inside the environment.
 
-The Arbor Python wrapper has optional support for the mpi4py, though
+.. code-block:: bash
+
+    # Set up your venv.
+    mkdir myenv
+    cd myenv/
+    python3 -m venv env
+    source env/bin/activate
+
+    # Install dependencies
+    pip install numpy
+
+    # Obtain arbor
+    git clone --recursive git@github.com:arbor-sim/arbor.git
+
+    # Determine the prefix path for your installation
+    # method 1: set it explicitly
+    export pyprefix=$(pwd)/env
+    # method 2: query python directly by instpecting the output of sysconfig.
+    # Note that the ending of the form lib/python3.x/site-packages must be dropped.
+    # E.g if the output was /home/xxx/myenv/env/lib/python3.9/site-packages, we
+    # want to set pyprefix=/home/xxx/myenv/env/
+    python -c "import sysconfig; print(sysconfig.get_path('platlib'))"
+
+    # Configure Arbor
+    mkdir build
+    cd build
+    cmake ../arbor -DARB_WITH_PYTHON=on       \       # enable python support.
+                   -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
+                   -DCMAKE_INSTALL_PREFIX="$pyprefix" # set custom installation path.
+
+    # Build and install
+    make -j4
+    make install
+
+    # Test it out!
+    python -c "import arbor; print(arbor.__config__)"
+
+The Arbor Python wrapper has optional support for mpi4py, though
 it is not required to use Arbor with Python and MPI.
 CMake will attempt to automatically detect ``mpi4py`` if configured
 with both ``-DARB_WITH_PYTHON=ON`` and MPI ``-DARB_WITH_MPI=ON``.
@@ -522,7 +557,6 @@ installation comprises:
 
 - The static libraries ``libarbor.a`` and ``libarborenv.a``.
 - Public header files.
-- The ``lmorpho`` l-system morphology generation utility
 - The ``modcc`` NMODL compiler if built.
 - The python module if built.
 - The HTML documentation if built.

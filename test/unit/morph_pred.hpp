@@ -10,6 +10,7 @@
 #include <arbor/morph/region.hpp>
 
 #include "util/span.hpp"
+#include "common.hpp"
 
 namespace testing {
 
@@ -85,6 +86,19 @@ inline ::testing::AssertionResult locset_eq(const arb::mprovider& p, arb::locset
     return mlocationlist_eq(thingify(a, p), thingify(b, p));
 }
 
+inline ::testing::AssertionResult point_almost_eq(arb::mpoint p, arb::mpoint q) {
+    // Compare almost equal in single precision.
+    auto result = almost_eq<float>(p.x, q.x);
+    if (!result) return result;
+
+    result = almost_eq<float>(p.y, q.y);
+    if (!result) return result;
+
+    result = almost_eq<float>(p.z, q.z);
+    if (!result) return result;
+
+    return almost_eq<float>(p.radius, q.radius);
+}
 
 } // namespace testing
 

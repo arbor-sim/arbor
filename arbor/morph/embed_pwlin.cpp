@@ -93,9 +93,9 @@ mcable_list data_cmp(const branch_pw_ratpoly<1, 0>& f, unsigned bid, double val,
     mcable_list L;
     const auto& pw = f.at(bid);
     for (const auto& piece: pw) {
-        auto extents = piece.first;
-        auto left_val = piece.second(0);
-        auto right_val = piece.second(1);
+        auto extents = piece.interval;
+        auto left_val = piece.element(0);
+        auto right_val = piece.element(1);
 
         if (!op(left_val, val) && !op(right_val, val)) {
             continue;
@@ -249,11 +249,18 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
         if (branch_length!=0) {
             for (auto& d: seg_pos) {
                 d /= branch_length;
+                all_segment_ends_.push_back({bid, d});
             }
         }
-
-        for (auto d: seg_pos) {
-            all_segment_ends_.push_back({bid, d});
+        else {
+            // In zero length branch, set all segment ends to be 0,
+            // except for last, which is 1. This ensures that the
+            // union of the cables corresponding to a branch cover
+            // the branch.
+            seg_pos.back() = 1;
+            for (auto d: seg_pos) {
+                all_segment_ends_.push_back({bid, d});
+            }
         }
 
         // Second pass over segments to store associated cables.
@@ -268,11 +275,11 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             segment_cables_[seg.id] = mcable{bid, pos0, pos1};
         }
 
-        double length_0 = parent==mnpos? 0: data_->length[parent].back().second[1];
+        double length_0 = parent==mnpos? 0: data_->length[parent].back().element[1];
         data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
 
-        double area_0 = parent==mnpos? 0: data_->area[parent].back().second[2];
-        double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().second[2];
+        double area_0 = parent==mnpos? 0: data_->area[parent].back().element[2];
+        double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().element[2];
 
         for (auto i: util::count_along(segments)) {
             auto prox = segments[i].prox;

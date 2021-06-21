@@ -16,6 +16,7 @@
 
 #include "backends/event.hpp"
 #include "io/sepval.hpp"
+#include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
@@ -43,7 +44,6 @@ inline unsigned min_alignment(unsigned align) {
 }
 
 using pad = util::padded_allocator<>;
-
 
 // ion_state methods:
 
@@ -85,6 +85,96 @@ void ion_state::reset() {
     std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
     std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+}
+
+// istim_state methods:
+
+istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
+    alignment(min_alignment(align)),
+    accu_to_cv_(stim.cv_unique.begin(), stim.cv_unique.end(), pad(alignment)),
+    frequency_(stim.frequency.begin(), stim.frequency.end(), pad(alignment)),
+    phase_(stim.phase.begin(), stim.phase.end(), pad(alignment))
+{
+    using util::assign;
+
+    // Translate instance-to-CV index from stim to istim_state index vectors.
+    assign(accu_index_, util::index_into(stim.cv, accu_to_cv_));
+    accu_stim_.resize(accu_to_cv_.size());
+
+    std::size_t n = accu_index_.size();
+    std::vector<fvm_value_type> envl_a, envl_t;
+    std::vector<fvm_index_type> edivs;
+
+    arb_assert(n==frequency_.size());
+    arb_assert(n==stim.envelope_time.size());
+    arb_assert(n==stim.envelope_amplitude.size());
+
+    edivs.reserve(n+1);
+    edivs.push_back(0);
+
+    for (auto i: util::make_span(n)) {
+        arb_assert(stim.envelope_time[i].size()==stim.envelope_amplitude[i].size());
+        arb_assert(util::is_sorted(stim.envelope_time[i]));
+
+        util::append(envl_a, stim.envelope_amplitude[i]);
+        util::append(envl_t, stim.envelope_time[i]);
+        edivs.push_back(fvm_index_type(envl_t.size()));
+    }
+
+    assign(envl_amplitudes_, envl_a);
+    assign(envl_times_, envl_t);
+    assign(envl_divs_, edivs);
+    envl_index_.assign(edivs.data(), edivs.data()+n);
+}
+
+void istim_state::zero_current() {
+    util::fill(accu_stim_, 0);
+}
+
+void istim_state::reset() {
+    zero_current();
+
+    std::size_t n = envl_index_.size();
+    std::copy(envl_divs_.data(), envl_divs_.data()+n, envl_index_.begin());
+}
+
+void istim_state::add_current(const array& time, const iarray& cv_to_intdom, array& current_density) {
+    constexpr double two_pi = 2*math::pi<double>;
+
+    // Consider vectorizing...
+    for (auto i: util::count_along(accu_index_)) {
+        // Advance index into envelope until either
+        // - the next envelope time is greater than simulation time, or
+        // - it is the last valid index for the envelope.
+
+        fvm_index_type ei_left = envl_divs_[i];
+        fvm_index_type ei_right = envl_divs_[i+1];
+
+        fvm_index_type ai = accu_index_[i];
+        fvm_index_type cv = accu_to_cv_[ai];
+        double t = time[cv_to_intdom[cv]];
+
+        if (ei_left==ei_right || t<envl_times_[ei_left]) continue;
+
+        fvm_index_type& ei = envl_index_[i];
+        while (ei+1<ei_right && envl_times_[ei+1]<=t) ++ei;
+
+        double J = envl_amplitudes_[ei]; // current density (A/m²)
+        if (ei+1<ei_right) {
+            // linearly interpolate:
+            arb_assert(envl_times_[ei]<=t && envl_times_[ei+1]>t);
+            double J1 = envl_amplitudes_[ei+1];
+            double u = (t-envl_times_[ei])/(envl_times_[ei+1]-envl_times_[ei]);
+            J = math::lerp(J, J1, u);
+        }
+
+        if (frequency_[i]) {
+            J *= std::sin(two_pi*frequency_[i]*t + phase_[i]);
+        }
+
+        accu_stim_[ai] += J;
+        current_density[cv] -= J;
+    }
 }
 
 // shared_state methods:
@@ -155,6 +245,10 @@ void shared_state::add_ion(
         std::forward_as_tuple(charge, ion_info, alignment));
 }
 
+void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
+    stim_data = istim_state(stims, alignment);
+}
+
 void shared_state::reset() {
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
     util::fill(current_density, 0);
@@ -166,6 +260,8 @@ void shared_state::reset() {
     for (auto& i: ion_data) {
         i.second.reset();
     }
+
+    stim_data.reset();
 }
 
 void shared_state::zero_currents() {
@@ -174,6 +270,7 @@ void shared_state::zero_currents() {
     for (auto& i: ion_data) {
         i.second.zero_current();
     }
+    stim_data.zero_current();
 }
 
 void shared_state::ions_init_concentration() {
@@ -228,6 +325,10 @@ void shared_state::add_gj_current() {
     }
 }
 
+void shared_state::add_stimulus_current() {
+     stim_data.add_current(time, cv_to_intdom, current_density);
+}
+
 std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
     return util::minmax_value(time);
 }
@@ -245,10 +346,11 @@ void shared_state::take_samples(
         auto begin = s.begin_marked(i);
         auto end = s.end_marked(i);
 
+        // Null handles are explicitly permitted, and always give a sample of zero.
         // (Note: probably not worth explicitly vectorizing this.)
         for (auto p = begin; p<end; ++p) {
             sample_time[p->offset] = time[i];
-            sample_value[p->offset] = *p->handle;
+            sample_value[p->offset] = p->handle? *p->handle: 0;
         }
     }
 }

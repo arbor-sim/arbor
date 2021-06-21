@@ -31,10 +31,6 @@ public:
 
     cell_kind get_cell_kind(cell_gid_type i) const override;
 
-    cell_size_type num_sources(cell_gid_type i) const override;
-
-    cell_size_type num_targets(cell_gid_type i) const override;
-
     std::vector<event_generator> event_generators(cell_gid_type i) const override;
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override;

@@ -14,14 +14,6 @@ cell_kind symmetric_recipe::get_cell_kind(cell_gid_type i) const {
     return tiled_recipe_->get_cell_kind(i % tiled_recipe_->num_cells());
 }
 
-cell_size_type symmetric_recipe::num_sources(cell_gid_type i) const {
-    return tiled_recipe_->num_sources(i % tiled_recipe_->num_cells());
-}
-
-cell_size_type symmetric_recipe::num_targets(cell_gid_type i) const {
-    return tiled_recipe_->num_targets(i % tiled_recipe_->num_cells());
-}
-
 // Only function that calls the underlying tile's function on the same gid.
 // This is because applying transformations to event generators is not straightforward.
 std::vector<event_generator> symmetric_recipe::event_generators(cell_gid_type i) const {
@@ -39,7 +31,6 @@ std::vector<cell_connection> symmetric_recipe::connections_on(cell_gid_type i) c
 
     for (unsigned j = 0; j < conns.size(); j++) {
         conns[j].source.gid = (conns[j].source.gid + offset) % n_global;
-        conns[j].dest.gid = (conns[j].dest.gid + offset) % n_global;
     }
     return conns;
 }

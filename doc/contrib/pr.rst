@@ -31,7 +31,7 @@ the workflow is as follows:
    `BSD 3-Clause "New" or "Revised" License <https://github.com/arbor-sim/arbor/blob/master/LICENSE>`_,
    as the Arbor project.
    If this is a problem for you, please contact us at
-   `arbor-sim@fz-juelich.de <mailto:arbor-sim@fz-juelich.de>`__.
+   `contact@arbor-sim.org <mailto:contact@arbor-sim.org>`__.
 5. A PR on Github is automatically built and tested by GitHub Actions CI pipelines.
    You can run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
@@ -58,7 +58,7 @@ Each pull request is reviewed according to these guidelines:
    positive review.
 -  GitHub Actions CI must produce a favourable result on your PR.
 -  An Arbor team member will (squash) merge the PR with the PR change
-   summery as commit message.
+   summary as commit message.
 -  Consider using Gitpod to review larger PRs, see under checks on the Github PR page.
 
 .. _contribpr-merge:

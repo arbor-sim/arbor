@@ -85,6 +85,7 @@ endforeach()
 
 set(unit_sources
     ../common_cells.cpp
+    test_asc.cpp
     test_any_cast.cpp
     test_any_ptr.cpp
     test_any_visitor.cpp
@@ -97,7 +98,6 @@ set(unit_sources
     test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
-    test_double_buffer.cpp
     test_event_binner.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
@@ -110,6 +110,7 @@ set(unit_sources
     test_index.cpp
     test_kinetic_linear.cpp
     test_lexcmp.cpp
+    test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp
     test_maputil.cpp
@@ -147,6 +148,7 @@ set(unit_sources
     test_scope_exit.cpp
     test_segment_tree.cpp
     test_simd.cpp
+    test_simulation.cpp
     test_span.cpp
     test_spike_source.cpp
     test_spikes.cpp
@@ -214,7 +216,8 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     OUTPUT "CAT_DUMMY_SOURCES"
     MECHS dummy
     ARBOR "${PROJECT_SOURCE_DIR}"
-    STANDALONE ON)
+    STANDALONE ON
+    VERBOSE OFF)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
   add_dependencies(unit dummy-catalogue)
 endif()
@@ -234,7 +237,7 @@ if(ARB_WITH_HIP_CLANG)
 endif()
 
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
-target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
+target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

@@ -3,19 +3,13 @@
 #include <arbor/fvm_types.hpp>
 
 #include "backends/threshold_crossing.hpp"
-#include "gpu_common.hpp"
+#include "math_cu.hpp"
 #include "stack_cu.hpp"
 
 namespace arb {
 namespace gpu {
 
 namespace kernel {
-
-template <typename T>
-__device__
-inline T lerp(T a, T b, T u) {
-    return std::fma(u, b, std::fma(-u, a, a));
-}
 
 /// kernel used to test for threshold crossing test code.
 /// params:
@@ -67,7 +61,7 @@ void test_thresholds_impl(
                 // The threshold has been passed, so estimate the time using
                 // linear interpolation
                 auto pos = (thresh - v_prev)/(v - v_prev);
-                crossing_time = lerp(t_before[intdom], t_after[intdom], pos);
+                crossing_time = gpu::lerp(t_before[intdom], t_after[intdom], pos);
 
                 if (record_time_since_spike) {
                     time_since_spike[spike_idx] = t_after[intdom] - crossing_time;

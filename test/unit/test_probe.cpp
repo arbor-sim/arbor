@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <cmath>
+#include <map>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -109,8 +110,8 @@ void run_v_i_probe_test(const context& ctx) {
 
     bs.decorations.set_default(cv_policy_fixed_per_branch(1));
 
-    i_clamp stim(0, 100, 0.3);
-    bs.decorations.place(mlocation{1, 1}, stim);
+    auto stim = i_clamp::box(0, 100, 0.3);
+    bs.decorations.place(mlocation{1, 1}, stim, "clamp");
 
     cable1d_recipe rec((cable_cell(bs)));
 
@@ -122,13 +123,10 @@ void run_v_i_probe_test(const context& ctx) {
     rec.add_probe(0, 20, cable_probe_membrane_voltage{loc1});
     rec.add_probe(0, 30, cable_probe_total_ion_current_density{loc2});
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_map;
-
     fvm_cell lcell(*ctx);
-    lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+    auto fvm_info = lcell.initialize({0}, rec);
 
+    const auto& probe_map = fvm_info.probe_map;
     EXPECT_EQ(3u, rec.get_probes(0).size());
     EXPECT_EQ(3u, probe_map.size());
 
@@ -142,17 +140,19 @@ void run_v_i_probe_test(const context& ctx) {
 
     // Voltage probes are interpolated, so expect fvm_probe_info
     // to wrap an fvm_probe_interpolated; ion current density is
-    // a scalar, so should wrap fvm_probe_scalar.
+    // implemented as an interpolated probe too, in order to account
+    // for stimulus contributions.
 
     ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 0}).front().info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 0}).front().info));
-    ASSERT_TRUE(std::get_if<fvm_probe_scalar>(&probe_map.data_on({0, 2}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 1}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, 2}).front().info));
 
     probe_handle p0a = get_probe_raw_handle({0, 0}, 0);
     probe_handle p0b = get_probe_raw_handle({0, 0}, 1);
     probe_handle p1a = get_probe_raw_handle({0, 1}, 0);
     probe_handle p1b = get_probe_raw_handle({0, 1}, 1);
-    probe_handle p2 = get_probe_raw_handle({0, 2});
+    probe_handle p2a = get_probe_raw_handle({0, 2}, 0);
+    probe_handle p2b = get_probe_raw_handle({0, 2}, 1);
 
     // Ball-and-stick cell with default discretization policy should
     // have three CVs, one for branch 0, one trivial one covering the
@@ -172,7 +172,7 @@ void run_v_i_probe_test(const context& ctx) {
 
     // Expect initial raw probe handle values to be the resting potential for
     // the voltage probes (cell membrane potential should be constant), and
-    // zero for the current probe.
+    // zero for the current probe (including stimulus component).
 
     fvm_value_type resting = voltage[0];
     EXPECT_NE(0.0, resting);
@@ -181,7 +181,8 @@ void run_v_i_probe_test(const context& ctx) {
     EXPECT_EQ(resting, deref(p0b));
     EXPECT_EQ(resting, deref(p1a));
     EXPECT_EQ(resting, deref(p1a));
-    EXPECT_EQ(0.0, deref(p2));
+    EXPECT_EQ(0.0, deref(p2a));
+    EXPECT_EQ(0.0, deref(p2b));
 
     // After an integration step, expect voltage probe values
     // to differ from resting, and for there to be a non-zero current.
@@ -192,7 +193,8 @@ void run_v_i_probe_test(const context& ctx) {
     EXPECT_NE(resting, deref(p0b));
     EXPECT_NE(resting, deref(p1a));
     EXPECT_NE(resting, deref(p1b));
-    EXPECT_NE(0.0, deref(p2));
+    EXPECT_NE(0.0, deref(p2a));
+    EXPECT_NE(0.0, deref(p2b));
 }
 
 template <typename Backend>
@@ -221,16 +223,12 @@ void run_v_cell_probe_test(const context& ctx) {
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, 0, cable_probe_membrane_voltage_cell{});
 
-        std::vector<target_handle> targets;
-        std::vector<fvm_index_type> cell_to_intdom;
-        probe_association_map probe_map;
-
         fvm_cell lcell(*ctx);
-        lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+        auto fvm_info = lcell.initialize({0}, rec);
 
-        ASSERT_EQ(1u, probe_map.size());
+        ASSERT_EQ(1u, fvm_info.probe_map.size());
 
-        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, 0}).front().info);
+        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, 0}).front().info);
         ASSERT_TRUE(h_ptr);
         auto& h = *h_ptr;
 
@@ -275,8 +273,8 @@ void run_expsyn_g_probe_test(const context& ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     auto bs = builder.make_cell();
-    bs.decorations.place(loc0, "expsyn");
-    bs.decorations.place(loc1, "expsyn");
+    bs.decorations.place(loc0, "expsyn", "syn0");
+    bs.decorations.place(loc1, "expsyn", "syn1");
     bs.decorations.set_default(cv_policy_fixed_per_branch(2));
 
     auto run_test = [&](bool coalesce_synapses) {
@@ -284,12 +282,10 @@ void run_expsyn_g_probe_test(const context& ctx) {
         rec.add_probe(0, 10, cable_probe_point_state{0u, "expsyn", "g"});
         rec.add_probe(0, 20, cable_probe_point_state{1u, "expsyn", "g"});
 
-        std::vector<target_handle> targets;
-        std::vector<fvm_index_type> cell_to_intdom;
-        probe_association_map probe_map;
-
         fvm_cell lcell(*ctx);
-        lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+        auto fvm_info = lcell.initialize({0}, rec);
+        const auto& probe_map = fvm_info.probe_map;
+        const auto& targets = fvm_info.target_handles;
 
         EXPECT_EQ(2u, rec.get_probes(0).size());
         EXPECT_EQ(2u, probe_map.size());
@@ -379,10 +375,11 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
     unsigned n_expsyn = 0;
     for (unsigned bid = 0; bid<3u; ++bid) {
         for (unsigned j = 0; j<10; ++j) {
+            auto idx = (bid*10+j)*2;
             mlocation expsyn_loc{bid, 0.1*j};
-            d.place(expsyn_loc, "expsyn");
+            d.place(expsyn_loc, "expsyn", "syn"+std::to_string(idx));
             expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            d.place(mlocation{bid, 0.1*j+0.05}, "exp2syn");
+            d.place(mlocation{bid, 0.1*j+0.05}, "exp2syn", "syn"+std::to_string(idx+1));
             ++n_expsyn;
         }
     }
@@ -395,12 +392,10 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
         rec.add_probe(0, 0, cable_probe_point_state_cell{"expsyn", "g"});
         rec.add_probe(1, 0, cable_probe_point_state_cell{"expsyn", "g"});
 
-        std::vector<target_handle> targets;
-        std::vector<fvm_index_type> cell_to_intdom;
-        probe_association_map probe_map;
-
         fvm_cell lcell(*ctx);
-        lcell.initialize({0, 1}, rec, cell_to_intdom, targets, probe_map);
+        auto fvm_info = lcell.initialize({0, 1}, rec);
+        const auto& probe_map = fvm_info.probe_map;
+        const auto& targets = fvm_info.target_handles;
 
         // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
         // integrate for a tiny time step.
@@ -553,12 +548,9 @@ void run_ion_density_probe_test(const context& ctx) {
     // Probe (0, 12): ca external on whole cell.
     rec.add_probe(0, 0, cable_probe_ion_ext_concentration_cell{"ca"});
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_map;
-
     fvm_cell lcell(*ctx);
-    lcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
+    auto fvm_info = lcell.initialize({0}, rec);
+    const auto& probe_map = fvm_info.probe_map;
 
     // Should be no sodium ion instantiated on CV 0, so probe (0, 6) should
     // have been silently discared. Similarly, write_ca2 is not instantiated on
@@ -731,12 +723,9 @@ void run_partial_density_probe_test(const context& ctx) {
         rec.add_probe(1, 0, cable_probe_density_state{mlocation{0, tp.pos}, "param_as_state", "s"});
     }
 
-    std::vector<target_handle> targets;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_map;
-
     fvm_cell lcell(*ctx);
-    lcell.initialize({0, 1}, rec, cell_to_intdom, targets, probe_map);
+    auto fvm_info = lcell.initialize({0, 1}, rec);
+    const auto& probe_map = fvm_info.probe_map;
 
     // There should be 10 probes on each cell, but only 10 in total in the probe map,
     // as only those probes that are in the mechanism support should have an entry.
@@ -770,7 +759,7 @@ void run_partial_density_probe_test(const context& ctx) {
 template <typename Backend>
 void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // On a passive cable in steady-state, the capacitive membrane current will be zero,
-    // and the axial currents should balance the ionic membrane currents in any CV.
+    // and the axial currents should balance the stimulus and ionic membrane currents in any CV.
     //
     // Membrane currents not associated with an ion are not visible, so we use a custom
     // mechanism 'ca_linear' that presents a passive, constant conductance membrane current
@@ -787,7 +776,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
     d.set_default(policy);
 
-    d.place(mlocation{0, 0}, i_clamp(0, INFINITY, 0.3));
+    d.place(mlocation{0, 0}, i_clamp(0.3), "clamp");
 
     // The time constant will be membrane capacitance / membrane conductance.
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
@@ -802,8 +791,8 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
 
     cable_cell cell(m, {}, d);
 
-    // Place axial current probes at CV boundaries and make a cell-wide probe for
-    // total ionic membrane current.
+    // Place axial current probes at CV boundaries and make cell-wide probes for
+    // total ionic membrane current and stimulus currents.
 
     mlocation_list cv_boundaries;
     util::assign(cv_boundaries,
@@ -818,8 +807,9 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
         rec.add_probe(0, 0, cable_probe_axial_current{loc});
     }
 
-    // Use tag 1 to indicate it's a whole-cell probe.
+    // Use tags 1 and 2 for the whole-cell probes.
     rec.add_probe(0, 1, cable_probe_total_ion_current_cell{});
+    rec.add_probe(0, 2, cable_probe_stimulus_current_cell{});
 
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
@@ -829,7 +819,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // Take a sample at 20 tau, and run sim for just a bit longer.
 
     std::vector<double> i_axial(n_axial_probe);
-    std::vector<double> i_memb;
+    std::vector<double> i_memb, i_stim;
 
     sim.add_sampler(all_probes, explicit_schedule({20*tau}),
         [&](probe_metadata pm, std::size_t n_sample, const sample_record* samples)
@@ -837,7 +827,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
             // Expect exactly one sample.
             ASSERT_EQ(1u, n_sample);
 
-            if (pm.tag==1) { // (whole cell probe)
+            if (pm.tag!=0) { // (whole cell probe)
                 const mcable_list* m = any_cast<const mcable_list*>(pm.meta);
                 ASSERT_NE(nullptr, m);
                 // Metadata should comprise one cable per CV.
@@ -847,8 +837,9 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
                 ASSERT_NE(nullptr, s);
                 ASSERT_EQ(s->first+n_cv, s->second);
 
+                auto* i_var = pm.tag==1? &i_memb: &i_stim;
                 for (const double* p = s->first; p!=s->second; ++p) {
-                    i_memb.push_back(*p);
+                    i_var->push_back(*p);
                 }
             }
             else { // axial current probe
@@ -881,7 +872,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
         double net_axial_flux = i<n_axial_probe? i_axial[i]: 0;
         net_axial_flux -= i>0? i_axial[i-1]: 0;
 
-        EXPECT_TRUE(testing::near_relative(net_axial_flux, -i_memb[i], 1e-6));
+        EXPECT_TRUE(testing::near_relative(net_axial_flux, -i_memb[i]-i_stim[i], 1e-6));
     }
 }
 
@@ -982,8 +973,8 @@ void run_v_sampled_probe_test(const context& ctx) {
     // samples at the same point on each cell will give the same value at
     // 0.3 ms, but different at 0.6 ms.
 
-    d0.place(mlocation{1, 1}, i_clamp(0, 0.5, 1.));
-    d1.place(mlocation{1, 1}, i_clamp(0, 1.0, 1.));
+    d0.place(mlocation{1, 1}, i_clamp::box(0, 0.5, 1.), "clamp0");
+    d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.), "clamp1");
     mlocation probe_loc{1, 0.2};
 
     std::vector<cable_cell> cells = {{bs.morph, bs.labels, d0}, {bs.morph, bs.labels, d1}};
@@ -1010,6 +1001,7 @@ void run_v_sampled_probe_test(const context& ctx) {
     EXPECT_NE(trace0[1].v, trace1[1].v);
 }
 
+
 template <typename Backend>
 void run_total_current_probe_test(const context& ctx) {
     // Model two passive Y-shaped cells with a similar but not identical
@@ -1032,7 +1024,7 @@ void run_total_current_probe_test(const context& ctx) {
     // to 0.01 F/m².
 
     const double tau = 0.1;     // [ms]
-    d0.place(mlocation{0, 0}, i_clamp(0, INFINITY, 0.3));
+    d0.place(mlocation{0, 0}, i_clamp(0.3), "clamp0");
 
     d0.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
     d0.set_default(membrane_capacitance{0.01}); // [F/m²]
@@ -1046,6 +1038,7 @@ void run_total_current_probe_test(const context& ctx) {
 
     trace_data<std::vector<double>, mcable_list> traces[2];
     trace_data<std::vector<double>, mcable_list> ion_traces[2];
+    trace_data<std::vector<double>, mcable_list> stim_traces[2];
 
     // Run the cells sampling at τ and 20τ for both total membrane
     // current and total membrane ionic current.
@@ -1053,7 +1046,6 @@ void run_total_current_probe_test(const context& ctx) {
     auto run_cells = [&](bool interior_forks) {
         auto flags = interior_forks? cv_policy_flag::interior_forks: cv_policy_flag::none;
         cv_policy policy = cv_policy_fixed_per_branch(n_cv_per_branch, flags);
-        //for (auto& c: cells) { c.discretization() = policy; }
         d0.set_default(policy);
         d1.set_default(policy);
         std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
@@ -1070,6 +1062,9 @@ void run_total_current_probe_test(const context& ctx) {
             ion_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells, i,
                     cable_probe_total_ion_current_cell{}, {tau, 20*tau}).at(0);
 
+            stim_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells, i,
+                    cable_probe_stimulus_current_cell{}, {tau, 20*tau}).at(0);
+
             ASSERT_EQ(2u, traces[i].size());
             ASSERT_EQ(2u, ion_traces[i].size());
 
@@ -1083,26 +1078,30 @@ void run_total_current_probe_test(const context& ctx) {
             // same support and same metadata.
 
             ASSERT_EQ((n_cv_per_branch+(int)interior_forks)*n_branch, traces[i].meta.size());
-            EXPECT_EQ(ion_traces[i].meta, traces[i].meta);
+            ASSERT_EQ(ion_traces[i].meta, traces[i].meta);
             EXPECT_EQ(ion_traces[i][0].v.size(), traces[i][0].v.size());
             EXPECT_EQ(ion_traces[i][1].v.size(), traces[i][1].v.size());
 
-            // Check total membrane currents are individually non-zero, but sum is, both
-            // at t=τ (j=0) and t=20τ (j=1).
+            // Check total membrane currents + stimulus currents are individually non-zero, but sum is,
+            // both at t=τ (j=0) and t=20τ (j=1).
+
+            ASSERT_EQ(ion_traces[i].meta, stim_traces[i].meta);
 
             for (unsigned j: {0u, 1u}) {
-                double max_abs_i_memb = 0;
-                double sum_i_memb = 0;
-                for (auto i_memb: traces[i][j].v) {
-                    EXPECT_NE(0.0, i_memb);
-                    max_abs_i_memb = std::max(max_abs_i_memb, std::abs(i_memb));
-                    sum_i_memb += i_memb;
+                double max_abs_current = 0;
+                double sum_current = 0;
+                for (auto k: util::count_along(traces[i].meta)) {
+                    double current = traces[i][j].v[k] + stim_traces[i][j].v[k];
+
+                    EXPECT_NE(0.0, current);
+                    max_abs_current = std::max(max_abs_current, std::abs(current));
+                    sum_current += current;
                 }
 
-                EXPECT_NEAR(0.0, sum_i_memb, 1e-6*max_abs_i_memb);
+                ASSERT_NEAR(0.0, sum_current, 1e-6*max_abs_current);
             }
 
-            // Confirm that total and ion currents differ at τ but are close at 20τ.
+            // Confirm that total (non-stim) and ion currents differ at τ but are close at 20τ.
 
             for (unsigned k = 0; k<traces[i].size(); ++k) {
                 const double rtol_large = 1e-3;
@@ -1134,6 +1133,52 @@ void run_total_current_probe_test(const context& ctx) {
     }
 }
 
+
+template <typename Backend>
+void run_stimulus_probe_test(const context& ctx) {
+    // Model two simple stick cable cells, 3 CVs each, and stimuli on cell 0, cv 1
+    // and cell 1, cv 2. Run both cells in the same cell group.
+
+    const double stim_until = 1.; // [ms]
+    auto m = make_stick_morphology();
+    cv_policy policy = cv_policy_fixed_per_branch(3);
+
+    decor d0, d1;
+    d0.set_default(policy);
+    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 10.), "clamp0");
+    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 20.), "clamp1");
+    double expected_stim0 = 30;
+
+    d1.set_default(policy);
+    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, 30.), "clamp0");
+    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.), "clamp1");
+    double expected_stim1 = 20;
+
+    std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
+
+    // Sample the cells during the stimulus, and after.
+
+    trace_data<std::vector<double>, mcable_list> traces[2];
+
+    for (unsigned i: {0u, 1u}) {
+        traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, 2.5*stim_until, cells, i,
+                cable_probe_stimulus_current_cell{}, {stim_until/2, 2*stim_until}).at(0);
+
+        ASSERT_EQ(3u, traces[i].meta.size());
+        for (unsigned cv: {0u, 1u, 2u}) {
+            ASSERT_EQ(2u, traces[i].size());
+        }
+    }
+
+    // Every sample in each trace should be zero _except_ the first sample for cell 0, cv 1
+    // and the first sample for cell 1, cv 2.
+
+    EXPECT_EQ((std::vector<double>{0, expected_stim0, 0}), traces[0][0]);
+    EXPECT_EQ((std::vector<double>{0, 0, expected_stim1}), traces[1][0]);
+    EXPECT_EQ((std::vector<double>(3)), traces[0][1]);
+    EXPECT_EQ((std::vector<double>(3)), traces[1][1]);
+}
+
 template <typename Backend>
 void run_exact_sampling_probe_test(const context& ctx) {
     // As the exact sampling implementation interacts with the event delivery
@@ -1154,13 +1199,13 @@ void run_exact_sampling_probe_test(const context& ctx) {
             std::vector<cable_cell_description> cd;
             cd.assign(4, builder.make_cell());
 
-            cd[0].decorations.place(mlocation{1, 0.1}, "expsyn");
-            cd[1].decorations.place(mlocation{1, 0.1}, "exp2syn");
-            cd[2].decorations.place(mlocation{1, 0.9}, "expsyn");
-            cd[3].decorations.place(mlocation{1, 0.9}, "exp2syn");
+            cd[0].decorations.place(mlocation{1, 0.1}, "expsyn", "syn");
+            cd[1].decorations.place(mlocation{1, 0.1}, "exp2syn", "syn");
+            cd[2].decorations.place(mlocation{1, 0.9}, "expsyn", "syn");
+            cd[3].decorations.place(mlocation{1, 0.9}, "exp2syn", "syn");
 
-            cd[1].decorations.place(mlocation{1, 0.2}, gap_junction_site{});
-            cd[3].decorations.place(mlocation{1, 0.2}, gap_junction_site{});
+            cd[1].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
+            cd[3].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
 
             for (auto& d: cd) cells_.push_back(d);
         }
@@ -1179,18 +1224,12 @@ void run_exact_sampling_probe_test(const context& ctx) {
             return {cable_probe_membrane_voltage{mlocation{1, 0.5}}};
         }
 
-        cell_size_type num_targets(cell_gid_type) const override { return 1; }
-
-        cell_size_type num_gap_junction_sites(cell_gid_type gid) const override {
-            return gid==1 || gid==3;
-        }
-
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
             case 1:
-                return {gap_junction_connection({gid, 0}, {3, 0}, 1.)};
+                return {gap_junction_connection({3, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 1.)};
             case 3:
-                return {gap_junction_connection({gid, 0}, {1, 0}, 1.)};
+                return {gap_junction_connection({1, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 1.)};
             default:
                 return {};
             }
@@ -1198,7 +1237,7 @@ void run_exact_sampling_probe_test(const context& ctx) {
 
         std::vector<event_generator> event_generators(cell_gid_type gid) const override {
             // Send a single event to cell i at 0.1*i milliseconds.
-            pse_vector spikes = {spike_event{{gid, 0}, 0.1*gid, 1.f}};
+            explicit_generator::lse_vector spikes = {{{"syn"}, 0.1*gid, 1.f}};
             return {explicit_generator(spikes)};
         }
 

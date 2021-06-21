@@ -19,10 +19,10 @@ Helper functions for checking cmake or environment variables, as well as configu
 
     Returns a dictionary to check which options the Arbor library was configured with at compile time:
 
-      * ``ARB_MPI_ENABLED``
-      * ``ARB_WITH_MPI4PY``
-      * ``ARB_GPU_ENABLED``
-      * ``ARB_VERSION``
+    * ``ARB_MPI_ENABLED``
+    * ``ARB_WITH_MPI4PY``
+    * ``ARB_GPU_ENABLED``
+    * ``ARB_VERSION``
 
     .. container:: example-code
 

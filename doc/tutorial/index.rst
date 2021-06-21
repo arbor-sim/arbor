@@ -11,7 +11,7 @@ Tutorials
     installed independently from Arbor.
 
     In an interactive Python interpreter, you can use ``help()`` on any class or function to get its
-    documentation. (Try, ``help(arbor.simulation``, for example).
+    documentation. (Try, ``help(arbor.simulation)``, for example).
 
 .. Todo::
     Add more in-depth tutorial-like pages building up examples here.
@@ -24,3 +24,6 @@ Tutorials
    single_cell_recipe
    single_cell_detailed
    single_cell_detailed_recipe
+   single_cell_cable
+   network_ring
+   mpi

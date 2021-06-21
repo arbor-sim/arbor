@@ -61,7 +61,7 @@ public:
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        decor.place(arb::mlocation{0, 0.5}, "expsyn");
+        decor.place(arb::mlocation{0, 0.5}, "expsyn", "syn");
 
         return arb::cable_cell(tree, labels, decor);
     }
@@ -75,12 +75,6 @@ public:
         arb::cable_cell_global_properties gprop;
         gprop.default_parameters = arb::neuron_parameter_defaults;
         return gprop;
-    }
-
-    // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        assert(gid==0); // There is only one cell in the model
-        return 1;
     }
 
     // Return two generators attached to the one cell.
@@ -103,15 +97,15 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            poisson_generator(cell_member_type{0,0}, // Target synapse (gid, local_id).
-                              w_e,                   // Weight of events to deliver
-                              t0,                    // Events start being delivered from this time
-                              lambda_e,              // Expected frequency (kHz)
-                              RNG(29562872)));       // Random number generator to use
+            arb::poisson_generator({"syn"},               // Target synapse index on cell `gid`
+                                   w_e,                   // Weight of events to deliver
+                                   t0,                    // Events start being delivered from this time
+                                   lambda_e,              // Expected frequency (kHz)
+                                   RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
-            poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i,  RNG(86543891)));
+            arb::poisson_generator({"syn"}, w_i, t0, lambda_i,  RNG(86543891)));
 
         return gens;
     }

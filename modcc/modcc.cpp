@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <tinyopt/smolopt.h>
+#include <tinyopt/tinyopt.h>
 
 #include "printer/cprinter.hpp"
 #include "printer/gpuprinter.hpp"
@@ -141,6 +141,7 @@ const char* usage_str =
         "-P|--profile           [Build with profiled kernels]\n"
         "-V|--verbose           [Toggle verbose mode]\n"
         "-A|--analyse           [Toggle analysis mode]\n"
+        "-T|--trace-codegen     [Leave trace marks in generated source]\n"
         "<filename>             [File to be compiled]\n";
 
 int main(int argc, char **argv) {
@@ -167,22 +168,23 @@ int main(int argc, char **argv) {
 
         to::option options[] = {
                 { opt.modfile,  to::mandatory},
-                { opt.outprefix,                     "-o", "--output" },
-                { to::set(opt.verbose),  to::flag,   "-V", "--verbose" },
-                { to::set(opt.analysis), to::flag,   "-A", "--analyse" },
-                { opt.modulename,                    "-m", "--module" },
-                { to::set(popt.profile), to::flag,   "-P", "--profile" },
-                { popt.cpp_namespace,                "-N", "--namespace" },
-                { to::action(enable_simd), to::flag, "-s", "--simd" },
-                { popt.simd,                         "-S", "--simd-abi" },
+                { opt.outprefix,                                         "-o", "--output" },
+                { to::set(opt.verbose),  to::flag,                       "-V", "--verbose" },
+                { to::set(opt.analysis), to::flag,                       "-A", "--analyse" },
+                { opt.modulename,                                        "-m", "--module" },
+                { to::set(popt.profile), to::flag,                       "-P", "--profile" },
+                { popt.cpp_namespace,                                    "-N", "--namespace" },
+                { to::action(enable_simd), to::flag,                     "-s", "--simd" },
+                { popt.simd,                                             "-S", "--simd-abi" },
+                { to::set(popt.trace_codegen), to::flag,                 "-T", "--trace-codegen"},
                 { {to::action(add_target, to::keywords(targetKindMap))}, "-t", "--target" },
-                { to::action(help), to::flag, to::exit,    "-h", "--help" }
+                { to::action(help), to::flag, to::exit,                  "-h", "--help" }
         };
 
         if (!to::run(options, argc, argv+1)) return 0;
     }
     catch (to::option_error& e) {
-        to::usage(argv[0], usage_str, e.what());
+        to::usage_error(argv[0], usage_str, e.what());
         return 1;
     }
 

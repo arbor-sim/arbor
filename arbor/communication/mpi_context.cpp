@@ -14,6 +14,7 @@
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 
@@ -38,6 +39,28 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        std::vector<cell_size_type> sizes;
+        std::vector<cell_tag_type> labels;
+        std::vector<lid_range> ranges;
+        sizes  = mpi::gather_all(local_ranges.sizes(), comm_);
+        labels = mpi::gather_all(local_ranges.labels(), comm_);
+        ranges = mpi::gather_all(local_ranges.ranges(), comm_);
+        return cell_label_range(sizes, labels, ranges);
+    }
+
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
+        auto global_gids = mpi::gather_all(local_labels_and_gids.gids, comm_);
+
+        return cell_labels_and_gids(global_ranges, global_gids);
+    }
+
+    template <typename T>
+    std::vector<T> gather(T value, int root) const {
+        return mpi::gather(value, root, comm_);
+    }
+
     std::string name() const { return "MPI"; }
     int id() const { return rank_; }
     int size() const { return size_; }
@@ -55,11 +78,6 @@ struct mpi_context_impl {
     template <typename T>
     T sum(T value) const {
         return mpi::reduce(value, MPI_SUM, comm_);
-    }
-
-    template <typename T>
-    std::vector<T> gather(T value, int root) const {
-        return mpi::gather(value, root, comm_);
     }
 
     void barrier() const {

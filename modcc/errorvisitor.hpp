@@ -10,16 +10,21 @@ public:
         : module_name_(m)
     {}
 
-    void visit(Expression *e)           override;
-    void visit(ProcedureExpression *e)  override;
-    void visit(FunctionExpression *e)   override;
-    void visit(UnaryExpression *e)      override;
-    void visit(BinaryExpression *e)     override;
-    void visit(CallExpression *e)       override;
+    void visit(Expression *e)            override;
+    void visit(ProcedureExpression *e)   override;
+    void visit(FunctionExpression *e)    override;
+    void visit(UnaryExpression *e)       override;
+    void visit(BinaryExpression *e)      override;
+    void visit(CallExpression *e)        override;
+    void visit(ReactionExpression *e)    override;
+    void visit(StoichExpression *e)      override;
+    void visit(StoichTermExpression *e)  override;
+    void visit(CompartmentExpression *e) override;
+    void visit(PDiffExpression *e)       override;
 
-    void visit(BlockExpression *e)      override;
-    void visit(InitialBlock *e)         override;
-    void visit(IfExpression *e)         override;
+    void visit(BlockExpression *e)       override;
+    void visit(InitialBlock *e)          override;
+    void visit(IfExpression *e)          override;
 
     int num_errors()   {return num_errors_;}
     int num_warnings() {return num_warnings_;}

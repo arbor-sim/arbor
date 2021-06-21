@@ -6,9 +6,9 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
+#include <arbor/s_expr.hpp>
 
 #include "util/maputil.hpp"
-#include "s_expr.hpp"
 
 namespace arb {
 
@@ -113,9 +113,8 @@ void decor::paint(region where, paintable what) {
     paintings_.push_back({std::move(where), std::move(what)});
 }
 
-unsigned decor::place(locset where, placeable what) {
-    placements_.push_back({std::move(where), std::move(what)});
-    return std::size(placements_)-1;
+void decor::place(locset where, placeable what, cell_tag_type label) {
+    placements_.push_back({std::move(where), std::move(what), std::move(label)});
 }
 
 void decor::set_default(defaultable what) {
@@ -133,9 +132,6 @@ void decor::set_default(defaultable what) {
                 }
                 else if constexpr (std::is_same_v<membrane_capacitance, T>) {
                     defaults_.membrane_capacitance = p.value;
-                }
-                else if constexpr (std::is_same_v<initial_ion_data, T>) {
-                    defaults_.ion_data[p.ion] = p.initial;
                 }
                 else if constexpr (std::is_same_v<init_int_concentration, T>) {
                     defaults_.ion_data[p.ion].init_int_concentration = p.value;

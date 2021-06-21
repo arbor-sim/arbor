@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-#include <tinyopt/smolopt.h>
+#include <tinyopt/tinyopt.h>
 
 #include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
@@ -57,7 +57,7 @@ struct cl_options {
     uint32_t seed = 42;
 
     // Parameters for spike output.
-    bool spike_file_output = false;
+    std::string spike_file_output = "";
 
     // Turn on/off profiling output for all ranks.
     bool profile_only_zero = false;
@@ -119,24 +119,18 @@ public:
         std::vector<cell_connection> connections;
         // Add incoming excitatory connections.
         for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
-            cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 0};
-            cell_connection conn(source, target, weight_exc_, delay_);
-            connections.push_back(conn);
+            connections.push_back({{cell_gid_type(i), "src"}, {"tgt"}, weight_exc_, delay_});
         }
 
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
-            cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 0};
-            cell_connection conn(source, target, weight_inh_, delay_);
-            connections.push_back(conn);
+            connections.push_back({{cell_gid_type(i), "src"}, {"tgt"}, weight_inh_, delay_});
         }
         return connections;
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell();
+        auto cell = lif_cell("src", "tgt");
         cell.tau_m = 10;
         cell.V_th = 10;
         cell.C_m = 20;
@@ -148,24 +142,10 @@ public:
     }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-
         std::mt19937_64 G;
         G.seed(gid + seed_);
-
         time_type t0 = 0;
-        cell_member_type target{gid, 0};
-
-        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
-        return gens;
-    }
-
-    cell_size_type num_sources(cell_gid_type) const override {
-         return 1;
-    }
-
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
+        return {poisson_generator({"tgt"}, weight_ext_, t0, lambda_, G)};
     }
 
 private:
@@ -234,8 +214,9 @@ int main(int argc, char** argv) {
         cl_options options = o.value();
 
         std::fstream spike_out;
-        if (options.spike_file_output && root) {
-            spike_out = sup::open_or_throw("./spikes.gdf", std::ios_base::out, false);
+        auto spike_file_output = options.spike_file_output;
+        if (spike_file_output != "" && root) {
+            spike_out = sup::open_or_throw(spike_file_output, std::ios_base::out, false);
         }
 
         meters.checkpoint("setup", context);
@@ -356,7 +337,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
                      "-w|--weight            [Weight of excitatory connections]\n"
                      "-d|--delay             [Delay of all connections]\n"
                      "-g|--rel-inh-w         [Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
-                     "-l|--lambda            [Expected number of spikes from a single poisson cell per ms]\n"
+                     "-l|--lambda            [Mean firing rate from a single poisson cell (kHz)]\n"
                      "-t|--tfinal            [Length of the simulation period (ms)]\n"
                      "-s|--dt                [Simulation time step (ms)]\n"
                      "-G|--group-size        [Number of cells per cell group]\n"
@@ -382,15 +363,15 @@ std::optional<cl_options> read_options(int argc, char** argv) {
             { opt.tfinal,            "-t", "--tfinal" },
             { opt.dt,                "-s", "--dt" },
             { opt.group_size,        "-G", "--group-size" },
-            { opt.seed,              "-s", "--seed" },
-            { to::set(opt.spike_file_output), to::flag, "-f", "--write-spikes" },
-            { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
+            { opt.seed,              "-S", "--seed" },
+            { opt.spike_file_output, "-f", "--write-spikes" },
+            // { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
             { to::set(opt.verbose),           to::flag, "-v", "--verbose" },
             { to::action(help),               to::flag, to::exit, "-h", "--help" }
     };
 
     if (!to::run(options, argc, argv+1)) return {};
-    if (argv[1]) throw to::option_error("unrecogonized argument", argv[1]);
+    if (argv[1]) throw to::option_error("unrecognized argument", argv[1]);
 
     if (opt.group_size < 1) {
         throw std::runtime_error("minimum of one cell per group");
@@ -423,5 +404,6 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  dt                                                         : " << options.dt << "\n";
     o << "  Group size                                                 : " << options.group_size << "\n";
     o << "  Seed                                                       : " << options.seed << "\n";
+    o << "  Spike file output                                          : " << options.spike_file_output << "\n";
     return o;
 }

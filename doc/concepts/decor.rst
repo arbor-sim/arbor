@@ -26,10 +26,10 @@ The choice of region or locset is reflected in the two broad classes of dynamics
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
 
-Decorations are described by a **decor** object in Arbor.
-Provides facility for
-* setting properties defined over the whole cell
-* descriptions of dynamics applied to regions and locsets
+Decorations are described by a **decor** object in Arbor. It provides facilities for
+
+* setting properties defined over the whole cell;
+* descriptions of dynamics applied to regions and locsets.
 
 .. _cablecell-paint:
 
@@ -100,7 +100,7 @@ specialised on specific regions.
         import arbor
 
         # Create an empty decor.
-        decor = arbor.decor
+        decor = arbor.decor()
 
         # Set cell-wide properties that will be applied by default to the entire cell.
         decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
@@ -177,9 +177,9 @@ can't be overridden at cell or region level.
    :widths: 15, 10, 10
 
    **Ion**,     **name**, **Valence**
-   *Calcium*,   ca,       1
+   *Calcium*,   ca,       2
    *Potassium*,  k,       1
-   *Sodium*,    na,       2
+   *Sodium*,    na,       1
 
 Each ion species has the following properties:
 
@@ -198,7 +198,7 @@ If no reversal potential mechanism is specified for an ion species, the initial
 reversal potential values are maintained for the course of a simulation.
 Otherwise, the mechanism does the work.
 
-but it is subject to some strict restrictions.
+Reversal potential mechanisms are density mechanisms subject to some strict restrictions.
 Specifically, a reversal potential mechanism described in NMODL:
 
 * May not maintain any STATE variables.
@@ -215,7 +215,7 @@ and ionic state.
     mechanism only, that calculates reversal potentials according to concentrations
     that the other mechanisms use and modify.
 
-If a reversal potential mechanism that writes to multiple ions,
+If a reversal potential mechanism writes to multiple ions,
 it must be given for either no ions, or all of the ions it writes.
 
 Arbor's default catalogue includes a *nernst* reversal potential, which is
@@ -261,21 +261,24 @@ Placed dynamics
 ---------------
 
 Placed dynamics are discrete countable items that affect or record the dynamics of a cell,
-and are assigned to specific locations.
+and are assigned to :term:`locsets <locset>`. Because locsets can contain multiple locations
+on the cell, and the exact number of these locations can not be known until the model is built,
+each placed dynamic is given a string label, used to refer to the group of items on the underlying
+locset.
 
 .. _cablecell-synapses:
 
 1. Connection sites
 ~~~~~~~~~~~~~~~~~~~
 
-Connections (synapses) are instances of NMODL POINT mechanisms. See also :ref:`modelconnections`.
+Connections (synapses) are instances of NMODL POINT mechanisms. See also :term:`connection`.
 
 .. _cablecell-gj-sites:
 
 2. Gap junction sites
 ~~~~~~~~~~~~~~~~~~~~~
 
-See :ref:`modelgapjunctions`.
+See :term:`gap junction`.
 
 .. _cablecell-threshold-detectors:
 
@@ -286,6 +289,38 @@ See :ref:`modelgapjunctions`.
 
 4. Stimuli
 ~~~~~~~~~~
+
+A current stimulus is a DC or sinusoidal current of fixed frequency with a time-varying amplitude
+governed by a piecewise-linear envelope.
+
+The stimulus is described by three parameters:
+a sequence of points (*t*\ :sub:`i`\ , *a*\ :sub:`i`\ ) describing the envelope, where the times
+*t*\ :sub:`i` are in milliseconds and the amplitudes *a*\ :sub:`i` are in nanoamperes;
+a frequency in kilohertz, where a value of zero denotes DC; and the phase in radians at time zero.
+
+The stimulus starts at the first timepoint *t*\ :sub:`0` with amplitude *a*\ :sub:`0`, and the amplitude
+is then interpolated linearly between successive points. The last envelope point
+(*t*\ :sub:`n`\ , *a*\ :sub:`n`\ ) describes a constant amplitude *a*\ :sub:`n` from
+the time *t*\ :sub:`n` onwards.
+
+Stimulus objects in the C++ and Python interfaces have simple constructors for describing
+constant stimuli and constant amplitude stimuli restricted to a fixed time interval.
+
+.. code-block:: Python
+
+    # Constant stimulus, amplitude 10 nA.
+    decor.place('(root)', arbor.iclamp(10), "iclamp0")
+
+    # Constant amplitude 10 nA stimulus at 20 Hz, with initial phase of π/4 radians.
+    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phasce=math.pi/4), "iclamp1")
+
+    # Stimulus at 1 kHz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
+    decor.place('(root)', arbor.iclamp(30, 40, 10, frequency=1), "iclamp2")
+
+    # Piecewise linear stimulus with amplitude ranging from 0 nA to 10 nA,
+    # starting at t = 30 ms and stopping at t = 50 ms.
+    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)], "iclamp3")
+
 
 .. _cablecell-probes:
 

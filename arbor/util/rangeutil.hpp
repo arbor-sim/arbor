@@ -431,6 +431,24 @@ auto foldl(BinOp f, Acc a, Seq&& seq) {
     return a;
 }
 
+// Copy elements from source sequence into destination sequence,
+// and fill the remaining elements of the destination sequence
+// with the given fill value.
+//
+// Assumes that the iterators for these sequences are at least
+// forward iterators.
+template <typename Source, typename Dest, typename Fill>
+void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
+    using std::begin;
+    using std::end;
+
+    auto dest_n = std::size(dest);
+    auto source_n = std::size(source);
+
+    auto n = source_n<dest_n? source_n: dest_n;
+    auto tail = std::copy_n(begin(source), n, begin(dest));
+    std::fill(tail, end(dest), fill);
+}
 
 } // namespace util
 } // namespace arb

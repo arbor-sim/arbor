@@ -30,7 +30,7 @@ namespace pyarb {
 // Stores the location and sampling frequency for a probe in a single cell model.
 struct probe_site {
     arb::mlocation site;  // Location of sample on morphology.
-    double frequency;     // Sampling frequency [Hz].
+    double frequency;     // Sampling frequency [kHz].
 };
 
 // Stores a single trace, which can be queried and viewed by the user at the end
@@ -92,15 +92,7 @@ struct single_cell_recipe: arb::recipe {
         return arb::cell_kind::cable;
     }
 
-    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const override {
-        return cell_.detectors().size();
-    }
-
-    // synapses, connections and event generators
-
-    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const override {
-        return cell_.synapses().size();
-    }
+    // connections and event generators
 
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type) const override {
         return {}; // no connections on a single cell model
@@ -122,10 +114,6 @@ struct single_cell_recipe: arb::recipe {
     }
 
     // gap junctions
-
-    virtual arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid)  const override {
-        return 0; // No gap junctions on a single cell model.
-    }
 
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const override {
         return {}; // No gap junctions on a single cell model.
@@ -194,7 +182,7 @@ public:
 
             traces_.push_back({"voltage", p.site, {}, {}});
 
-            auto sched = arb::regular_schedule(1000./p.frequency);
+            auto sched = arb::regular_schedule(1.0/p.frequency);
 
             // Now attach the sampler at probe site, with sampling schedule sched, writing to voltage
             sim_->add_sampler(arb::one_probe({0,i}), sched, trace_callback(traces_[i]));
@@ -252,7 +240,7 @@ void register_single_cell(pybind11::module& m) {
             "Sample a variable on the cell.\n"
             " what:      Name of the variable to record (currently only 'voltage').\n"
             " where:     Location on cell morphology at which to sample the variable.\n"
-            " frequency: The target frequency at which to sample [Hz].")
+            " frequency: The target frequency at which to sample [kHz].")
         .def("probe",
             [](single_cell_model& m, const char* what, const arb::mlocation& where, double frequency) {
                 m.probe(what, where, frequency);},
@@ -260,7 +248,7 @@ void register_single_cell(pybind11::module& m) {
             "Sample a variable on the cell.\n"
             " what:      Name of the variable to record (currently only 'voltage').\n"
             " where:     Location on cell morphology at which to sample the variable.\n"
-            " frequency: The target frequency at which to sample [Hz].")
+            " frequency: The target frequency at which to sample [kHz].")
         .def_property_readonly("spikes",
             [](const single_cell_model& m) {
                 return m.spike_times();}, "Holds spike times [ms] after a call to run().")

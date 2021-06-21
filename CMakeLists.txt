@@ -43,6 +43,14 @@ set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
 option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
 
 #----------------------------------------------------------
+# Debug support
+#----------------------------------------------------------
+
+# Print builtin catalogue configuration while building
+option(ARB_CAT_VERBOSE "Print catalogue build information" OFF)
+mark_as_advanced(ARB_CAT_VERBOSE)
+
+#----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
 
@@ -99,6 +107,11 @@ if(ARB_GPU STREQUAL "cuda")
     if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     endif()
+
+    # This fixes nvcc picking up a wrong host compiler for linking, causing issues
+    # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
+    # all calls to enable_language(CUDA)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 
     enable_language(CUDA)
 
@@ -161,7 +174,7 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # Interface library `arbor-private-deps` collects dependencies, options etc.
 # for the arbor library.
 add_library(arbor-private-deps INTERFACE)
-target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS} arbor-compiler-compat)
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS})
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.

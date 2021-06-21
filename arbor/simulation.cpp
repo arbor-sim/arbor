@@ -17,7 +17,6 @@
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
 #include "threading/threading.hpp"
-#include "util/double_buffer.hpp"
 #include "util/filter.hpp"
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
@@ -25,273 +24,6 @@
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
-
-class spike_double_buffer {
-    util::double_buffer<thread_private_spike_store> buffer_;
-
-public:
-    // Convenience functions that map the spike buffers onto the appropriate
-    // integration interval.
-    //
-    // To overlap communication and computation, integration intervals of
-    // size Delta/2 are used, where Delta is the minimum delay in the global
-    // system.
-    // From the frame of reference of the current integration period we
-    // define three intervals: previous, current and future
-    // Then we define the following :
-    //      current:  spikes generated in the current interval
-    //      previous: spikes generated in the preceding interval
-
-    spike_double_buffer(thread_private_spike_store l, thread_private_spike_store r):
-            buffer_(std::move(l), std::move(r)) {}
-
-    thread_private_spike_store& current()  { return buffer_.get(); }
-    thread_private_spike_store& previous() { return buffer_.other(); }
-    void exchange() { buffer_.exchange(); }
-};
-
-class simulation_state {
-public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
-
-    void reset();
-
-    time_type run(time_type tfinal, time_type dt);
-
-    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
-        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
-
-    void remove_sampler(sampler_association_handle);
-
-    void remove_all_samplers();
-
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type) const;
-
-    std::size_t num_spikes() const {
-        return communicator_.num_spikes();
-    }
-
-    void set_binning_policy(binning_kind policy, time_type bin_interval);
-
-    void inject_events(const pse_vector& events);
-
-    spike_export_function global_export_callback_;
-    spike_export_function local_export_callback_;
-
-private:
-    // Private helper function that sets up the event lanes for an epoch.
-    // See comments on implementation for more information.
-    void setup_events(time_type t_from, time_type time_to, std::size_t epoch_id);
-
-    std::vector<pse_vector>& event_lanes(std::size_t epoch_id) {
-        return event_lanes_[epoch_id%2];
-    }
-
-    // keep track of information about the current integration interval
-    epoch epoch_;
-
-    time_type t_ = 0.;
-    time_type min_delay_;
-    std::vector<cell_group_ptr> cell_groups_;
-
-    // one set of event_generators for each local cell
-    std::vector<std::vector<event_generator>> event_generators_;
-
-    std::unique_ptr<spike_double_buffer> local_spikes_;
-
-    // Hash table for looking up the the local index of a cell with a given gid
-    struct gid_local_info {
-        cell_size_type cell_index;
-        cell_size_type group_index;
-    };
-    std::unordered_map<cell_gid_type, gid_local_info> gid_to_local_;
-
-    communicator communicator_;
-
-    task_system_handle task_system_;
-
-    // Pending events to be delivered.
-    std::array<std::vector<pse_vector>, 2> event_lanes_;
-    std::vector<pse_vector> pending_events_;
-
-    // Sampler associations handles are managed by a helper class.
-    util::handle_set<sampler_association_handle> sassoc_handles_;
-
-    // Apply a functional to each cell group in parallel.
-    template <typename L>
-    void foreach_group(L&& fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
-            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
-    }
-
-    // Apply a functional to each cell group in parallel, supplying
-    // the cell group pointer reference and index.
-    template <typename L>
-    void foreach_group_index(L&& fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
-            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
-    }
-};
-
-simulation_state::simulation_state(
-        const recipe& rec,
-        const domain_decomposition& decomp,
-        execution_context ctx
-    ):
-    local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx.thread_pool),
-                                          thread_private_spike_store(ctx.thread_pool))),
-    communicator_(rec, decomp, ctx),
-    task_system_(ctx.thread_pool)
-{
-    const auto num_local_cells = communicator_.num_local_cells();
-
-    // Cache the minimum delay of the network
-    min_delay_ = communicator_.min_delay();
-
-    // Initialize empty buffers for pending events for each local cell
-    pending_events_.resize(num_local_cells);
-
-    event_generators_.resize(num_local_cells);
-    cell_size_type lidx = 0;
-    cell_size_type grpidx = 0;
-    for (const auto& group_info: decomp.groups) {
-        for (auto gid: group_info.gids) {
-            // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = gid_local_info{lidx, grpidx};
-
-            // Set up the event generators for cell gid.
-            event_generators_[lidx] = rec.event_generators(gid);
-            ++lidx;
-        }
-        ++grpidx;
-    }
-
-    // Generate the cell groups in parallel, with one task per cell group.
-    cell_groups_.resize(decomp.groups.size());
-    foreach_group_index(
-        [&](cell_group_ptr& group, int i) {
-            const auto& group_info = decomp.groups[i];
-            auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
-            group = factory(group_info.gids, rec);
-        });
-
-    // Create event lane buffers.
-    // There is one set for each epoch: current (0) and next (1).
-    // For each epoch there is one lane for each cell in the cell group.
-    event_lanes_[0].resize(num_local_cells);
-    event_lanes_[1].resize(num_local_cells);
-}
-
-void simulation_state::reset() {
-    t_ = 0.;
-
-    // Reset cell group state.
-    foreach_group(
-        [](cell_group_ptr& group) { group->reset(); });
-
-    // Clear all pending events in the event lanes.
-    for (auto& lanes: event_lanes_) {
-        for (auto& lane: lanes) {
-            lane.clear();
-        }
-    }
-
-    // Reset all event generators.
-    for (auto& lane: event_generators_) {
-        for (auto& gen: lane) {
-            gen.reset();
-        }
-    }
-
-    for (auto& lane: pending_events_) {
-        lane.clear();
-    }
-
-    communicator_.reset();
-
-    local_spikes_->current().clear();
-    local_spikes_->previous().clear();
-}
-
-time_type simulation_state::run(time_type tfinal, time_type dt) {
-    // Calculate the size of the largest possible time integration interval
-    // before communication of spikes is required.
-    // If spike exchange and cell update are serialized, this is the
-    // minimum delay of the network, however we use half this period
-    // to overlap communication and computation.
-    const time_type t_interval = min_delay_/2;
-
-    // task that updates cell state in parallel.
-    auto update_cells = [&] () {
-        foreach_group_index(
-            [&](cell_group_ptr& group, int i) {
-                auto queues = util::subrange_view(event_lanes(epoch_.id), communicator_.group_queue_range(i));
-                group->advance(epoch_, dt, queues);
-
-                PE(advance_spikes);
-                local_spikes_->current().insert(group->spikes());
-                group->clear_spikes();
-                PL();
-            });
-    };
-
-    // task that performs spike exchange with the spikes generated in
-    // the previous integration period, generating the postsynaptic
-    // events that must be delivered at the start of the next
-    // integration period at the latest.
-    auto exchange = [&] () {
-        PE(communication_exchange_gatherlocal);
-        auto local_spikes = local_spikes_->previous().gather();
-        PL();
-        auto global_spikes = communicator_.exchange(local_spikes);
-
-        PE(communication_spikeio);
-        if (local_export_callback_) {
-            local_export_callback_(local_spikes);
-        }
-        if (global_export_callback_) {
-            global_export_callback_(global_spikes.values());
-        }
-        PL();
-
-        PE(communication_walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_);
-        PL();
-
-        const auto t0 = epoch_.tfinal;
-        const auto t1 = std::min(tfinal, t0+t_interval);
-        setup_events(t0, t1, epoch_.id);
-    };
-
-    time_type tuntil = std::min(t_+t_interval, tfinal);
-    epoch_ = epoch(0, tuntil);
-    setup_events(t_, tuntil, 1);
-    while (t_<tfinal) {
-        local_spikes_->exchange();
-
-        // empty the spike buffers for the current integration period.
-        // these buffers will store the new spikes generated in update_cells.
-        local_spikes_->current().clear();
-
-        // run the tasks, overlapping if the threading model and number of
-        // available threads permits it.
-        threading::task_group g(task_system_.get());
-        g.run(exchange);
-        g.run(update_cells);
-        g.wait();
-
-        t_ = tuntil;
-
-        tuntil = std::min(t_+t_interval, tfinal);
-        epoch_.advance(tuntil);
-    }
-
-    // Run the exchange one last time to ensure that all spikes are output to file.
-    local_spikes_->exchange();
-    exchange();
-
-    return t_;
-}
 
 template <typename Seq, typename Value, typename Less = std::less<>>
 auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
@@ -302,16 +34,8 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
         util::make_range(it, seq.end()));
 }
 
-// Populate the event lanes for epoch+1 (i.e event_lanes_[epoch+1)]
-// Update each lane in parallel, if supported by the threading backend.
-// On completion event_lanes[epoch+1] will contain sorted lists of events with
-// delivery times due in or after epoch+1. The events will be taken from the
-// following sources:
-//      event_lanes[epoch]: take all events ≥ t_from
-//      event_generators  : take all events < t_to
-//      pending_events    : take all events
-
-// merge_cell_events() is a separate function for unit testing purposes.
+// Create a new cell event_lane vector from sorted pending events, previous event_lane events,
+// and events from event generators for the given interval.
 void merge_cell_events(
     time_type t_from,
     time_type t_to,
@@ -362,20 +86,359 @@ void merge_cell_events(
     PL();
 }
 
-void simulation_state::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
-    const auto n = communicator_.num_local_cells();
-    threading::parallel_for::apply(0, n, task_system_.get(),
-        [&](cell_size_type i) {
-            PE(communication_enqueue_sort);
-            util::sort(pending_events_[i]);
-            PL();
 
-            event_span pending = util::range_pointer_view(pending_events_[i]);
-            event_span old_events = util::range_pointer_view(event_lanes(epoch)[i]);
+class simulation_state {
+public:
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
 
-            merge_cell_events(t_from, t_to, old_events, pending, event_generators_[i], event_lanes(epoch+1)[i]);
-            pending_events_[i].clear();
+    void reset();
+
+    time_type run(time_type tfinal, time_type dt);
+
+    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
+        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
+
+    void remove_sampler(sampler_association_handle);
+
+    void remove_all_samplers();
+
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type) const;
+
+    std::size_t num_spikes() const {
+        return communicator_.num_spikes();
+    }
+
+    void set_binning_policy(binning_kind policy, time_type bin_interval);
+
+    void inject_events(const cse_vector& events);
+
+    spike_export_function global_export_callback_;
+    spike_export_function local_export_callback_;
+
+private:
+    // Record last computed epoch (integration interval).
+    epoch epoch_;
+
+    // Maximum epoch duration.
+    time_type t_interval_ = 0;
+
+    std::vector<cell_group_ptr> cell_groups_;
+
+    // One set of event_generators for each local cell
+    std::vector<std::vector<event_generator>> event_generators_;
+
+    // Hash table for looking up the the local index of a cell with a given gid
+    struct gid_local_info {
+        cell_size_type cell_index;
+        cell_size_type group_index;
+    };
+    std::unordered_map<cell_gid_type, gid_local_info> gid_to_local_;
+
+    communicator communicator_;
+
+    task_system_handle task_system_;
+
+    // Pending events to be delivered.
+    std::vector<pse_vector> pending_events_;
+    std::array<std::vector<pse_vector>, 2> event_lanes_;
+
+    std::vector<pse_vector>& event_lanes(std::ptrdiff_t epoch_id) {
+        return event_lanes_[epoch_id&1];
+    }
+
+    // Spikes generated by local cell groups.
+    std::array<thread_private_spike_store, 2> local_spikes_;
+
+    thread_private_spike_store& local_spikes(std::ptrdiff_t epoch_id) {
+        return local_spikes_[epoch_id&1];
+    }
+
+    // Sampler associations handles are managed by a helper class.
+    util::handle_set<sampler_association_handle> sassoc_handles_;
+
+    // Apply a functional to each cell group in parallel.
+    template <typename L>
+    void foreach_group(L&& fn) {
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
+            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
+    }
+
+    // Apply a functional to each cell group in parallel, supplying
+    // the cell group pointer reference and index.
+    template <typename L>
+    void foreach_group_index(L&& fn) {
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
+            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
+    }
+
+    // Apply a functional to each local cell in parallel.
+    template <typename L>
+    void foreach_cell(L&& fn) {
+        threading::parallel_for::apply(0, communicator_.num_local_cells(), task_system_.get(), fn);
+    }
+};
+
+simulation_state::simulation_state(
+        const recipe& rec,
+        const domain_decomposition& decomp,
+        execution_context ctx
+    ):
+    task_system_(ctx.thread_pool),
+    local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
+{
+    // Generate the cell groups in parallel, with one task per cell group.
+    cell_groups_.resize(decomp.groups.size());
+    std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
+    std::vector<cell_labels_and_gids> cg_targets(cell_groups_.size());
+    foreach_group_index(
+        [&](cell_group_ptr& group, int i) {
+          const auto& group_info = decomp.groups[i];
+          cell_label_range sources, targets;
+          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
+          group = factory(group_info.gids, rec, sources, targets);
+
+          cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
+          cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
+        });
+
+    cell_labels_and_gids local_sources, local_targets;
+    for(const auto& i: util::make_span(cell_groups_.size())) {
+        local_sources.append(cg_sources.at(i));
+        local_targets.append(cg_targets.at(i));
+    }
+    auto global_sources = ctx.distributed->gather_cell_labels_and_gids(local_sources);
+
+    auto source_resolution_map = label_resolution_map(std::move(global_sources));
+    auto target_resolution_map = label_resolution_map(std::move(local_targets));
+
+    communicator_ = arb::communicator(rec, decomp, source_resolution_map, target_resolution_map, ctx);
+
+    const auto num_local_cells = communicator_.num_local_cells();
+
+    // Use half minimum delay of the network for max integration interval.
+    t_interval_ = communicator_.min_delay()/2;
+
+    // Initialize empty buffers for pending events for each local cell
+    pending_events_.resize(num_local_cells);
+
+    event_generators_.resize(num_local_cells);
+    cell_size_type lidx = 0;
+    cell_size_type grpidx = 0;
+
+    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(std::move(target_resolution_map));
+    for (const auto& group_info: decomp.groups) {
+        for (auto gid: group_info.gids) {
+            // Store mapping of gid to local cell index.
+            gid_to_local_[gid] = gid_local_info{lidx, grpidx};
+
+            // Resolve event_generator targets.
+            // Each event generator gets their own resolver state.
+            auto event_gens = rec.event_generators(gid);
+            for (auto& g: event_gens) {
+                g.resolve_label([target_resolution_map_ptr, event_resolver=resolver(target_resolution_map_ptr.get()), gid]
+                    (const cell_local_label_type& label) mutable {
+                        return event_resolver.resolve({gid, label});
+                    });
+            }
+
+            // Set up the event generators for cell gid.
+            event_generators_[lidx] = event_gens;
+
+            ++lidx;
+        }
+        ++grpidx;
+    }
+
+    // Create event lane buffers.
+    // One buffer is consumed by cell group updates while the other is filled with events for
+    // the following epoch. In each buffer there is one lane for each local cell.
+    event_lanes_[0].resize(num_local_cells);
+    event_lanes_[1].resize(num_local_cells);
+
+    epoch_.reset();
+}
+
+void simulation_state::reset() {
+    epoch_ = epoch();
+
+    // Reset cell group state.
+    foreach_group([](cell_group_ptr& group) { group->reset(); });
+
+    // Clear all pending events in the event lanes.
+    for (auto& lanes: event_lanes_) {
+        for (auto& lane: lanes) {
+            lane.clear();
+        }
+    }
+
+    // Reset all event generators.
+    for (auto& lane: event_generators_) {
+        for (auto& gen: lane) {
+            gen.reset();
+        }
+    }
+
+    for (auto& lane: pending_events_) {
+        lane.clear();
+    }
+
+    communicator_.reset();
+
+    for (auto& spikes: local_spikes_) {
+        spikes.clear();
+    }
+
+    epoch_.reset();
+}
+
+time_type simulation_state::run(time_type tfinal, time_type dt) {
+    // Progress simulation to time tfinal, through a series of integration epochs
+    // of length at most t_interval_. t_interval_ is chosen to be no more than
+    // than half the network minimum delay.
+    //
+    // There are three simulation tasks that can be run partially in parallel:
+    //
+    // 1. Update:
+    //    Ask each cell group to update their state to the end of the integration epoch.
+    //    Generated spikes are stored in local_spikes_ for this epoch.
+    //
+    // 2. Exchange:
+    //    Consume local spikes held in local_spikes_ from a previous update, and collect
+    //    such spikes from across all ranks.
+    //    Translate spikes to local postsynaptic spike events, to be appended to pending_events_.
+    //
+    // 3. Enqueue events:
+    //    Take events from pending_events_, together with any event-generator events for the
+    //    next epoch and any left over events from the last epoch, and collate them into
+    //    the per-cell event_lanes for the next epoch.
+    //
+    // Writing U(k) for Update on kth epoch; D(k) for Exchange of spikes generated in the kth epoch;
+    // and E(k) for Enqueue of the events required for the kth epoch, there are the following
+    // dependencies:
+    //
+    //     * E(k) precedes U(k).
+    //     * U(k) precedes D(k).
+    //     * U(k) precedes U(k+1).
+    //     * D(k) precedes E(k+2).
+    //     * D(k) precedes D(k+1).
+    //
+    // In the schedule implemented below, U(k) and D(k-1) or U(k) and E(k+1) can be run
+    // in parallel, while D and E operations must be serialized (D writes to pending_events_,
+    // while E consumes and clears it). The local spike collection and the per-cell event
+    // lanes are double buffered.
+    //
+    // Required state on run() invocation with epoch_.id==k:
+    //     * For k≥0,  U(k) and D(k) have completed.
+    //
+    // Requires state at end of run(), with epoch_.id==k:
+    //     * U(k) and D(k) have completed.
+
+    if (tfinal<=epoch_.t1) return epoch_.t1;
+
+    // Compute following epoch, with max time tfinal.
+    auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
+        epoch next = e;
+        next.advance_to(std::min(next.t1+interval, tfinal));
+        return next;
+    };
+
+    // Update task: advance cell groups to end of current epoch and store spikes in local_spikes_.
+    auto update = [this, dt](epoch current) {
+        local_spikes(current.id).clear();
+        foreach_group_index(
+            [&](cell_group_ptr& group, int i) {
+                auto queues = util::subrange_view(event_lanes(current.id), communicator_.group_queue_range(i));
+                group->advance(current, dt, queues);
+
+                PE(advance_spikes);
+                local_spikes(current.id).insert(group->spikes());
+                group->clear_spikes();
+                PL();
             });
+    };
+
+    // Exchange task: gather previous locally generated spikes, distribute across all ranks, and deliver
+    // post-synaptic spike events to per-cell pending event vectors.
+    auto exchange = [this](epoch prev) {
+        // Collate locally generated spikes.
+        PE(communication_exchange_gatherlocal);
+        auto all_local_spikes = local_spikes(prev.id).gather();
+        PL();
+        // Gather generated spikes across all ranks.
+        auto global_spikes = communicator_.exchange(all_local_spikes);
+
+        // Present spikes to user-supplied callbacks.
+        PE(communication_spikeio);
+        if (local_export_callback_) {
+            local_export_callback_(all_local_spikes);
+        }
+        if (global_export_callback_) {
+            global_export_callback_(global_spikes.values());
+        }
+        PL();
+
+        // Append events formed from global spikes to per-cell pending event queues.
+        PE(communication_walkspikes);
+        communicator_.make_event_queues(global_spikes, pending_events_);
+        PL();
+    };
+
+    // Enqueue task: build event_lanes for next epoch from pending events, event-generator events for the
+    // next epoch, and with any unprocessed events from the current event_lanes.
+    auto enqueue = [this](epoch next) {
+        foreach_cell(
+            [&](cell_size_type i) {
+                PE(communication_enqueue_sort);
+                util::sort(pending_events_[i]);
+                PL();
+
+                event_span pending = util::range_pointer_view(pending_events_[i]);
+                event_span old_events = util::range_pointer_view(event_lanes(next.id-1)[i]);
+
+                merge_cell_events(next.t0, next.t1, old_events, pending, event_generators_[i], event_lanes(next.id)[i]);
+                pending_events_[i].clear();
+            });
+    };
+
+    threading::task_group g(task_system_.get());
+
+    epoch prev = epoch_;
+    epoch current = next_epoch(prev, t_interval_);
+    epoch next = next_epoch(current, t_interval_);
+
+    if (next.empty()) {
+        enqueue(current);
+        update(current);
+        exchange(current);
+    }
+    else {
+        enqueue(current);
+
+        g.run([&]() { enqueue(next); });
+        g.run([&]() { update(current); });
+        g.wait();
+
+        for (;;) {
+            prev = current;
+            current = next;
+            next = next_epoch(next, t_interval_);
+            if (next.empty()) break;
+
+            g.run([&]() { exchange(prev); enqueue(next); });
+            g.run([&]() { update(current); });
+            g.wait();
+        }
+
+        g.run([&]() { exchange(prev); });
+        g.run([&]() { update(current); });
+        g.wait();
+
+        exchange(current);
+    }
+
+    // Record current epoch for next run() invocation.
+    epoch_ = current;
+    return current.t1;
 }
 
 sampler_association_handle simulation_state::add_sampler(
@@ -420,16 +483,18 @@ void simulation_state::set_binning_policy(binning_kind policy, time_type bin_int
         [&](cell_group_ptr& group) { group->set_binning_policy(policy, bin_interval); });
 }
 
-void simulation_state::inject_events(const pse_vector& events) {
+void simulation_state::inject_events(const cse_vector& events) {
     // Push all events that are to be delivered to local cells into the
     // pending event list for the event's target cell.
-    for (auto& e: events) {
-        if (e.time<t_) {
-            throw bad_event_time(e.time, t_);
-        }
-        // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
-        if (auto lidx = util::value_by_key(gid_to_local_, e.target.gid)) {
-            pending_events_[lidx->cell_index].push_back(e);
+    for (auto& [gid, pse_vector]: events) {
+        for (auto& e: pse_vector) {
+            if (e.time < epoch_.t1) {
+                throw bad_event_time(e.time, epoch_.t1);
+            }
+            // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
+            if (auto lidx = util::value_by_key(gid_to_local_, gid)) {
+                pending_events_[lidx->cell_index].push_back(e);
+            }
         }
     }
 }
@@ -489,7 +554,7 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
     impl_->local_export_callback_ = std::move(export_callback);
 }
 
-void simulation::inject_events(const pse_vector& events) {
+void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
 

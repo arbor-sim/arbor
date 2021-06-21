@@ -22,9 +22,11 @@ using namespace arb;
 #ifndef USE_BACKEND
 using backend = multicore::backend;
 #define SPIKES_TEST_CLASS spikes
+#define GPU_ID -1
 #else
 using backend = USE_BACKEND;
 #define SPIKES_TEST_CLASS spikes_gpu
+#define GPU_ID 0
 #endif
 
 TEST(SPIKES_TEST_CLASS, threshold_watcher) {
@@ -211,7 +213,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     dict.set("mid", arb::ls::on_branches(0.5));
 
     arb::proc_allocation resources;
-    resources.gpu_id = arbenv::default_gpu();
+    resources.gpu_id = GPU_ID;
     auto context = arb::make_context(resources);
 
     std::vector<arb::spike> spikes;
@@ -219,9 +221,9 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     for (unsigned i = 0; i < 8; i++) {
         arb::decor decor;
         decor.set_default(arb::cv_policy_every_segment());
-        decor.place("\"mid\"", arb::threshold_detector{10});
-        decor.place("\"mid\"", arb::i_clamp(0.01+i*dt, duration, 0.5));
-        decor.place("\"mid\"", arb::mechanism_desc("hh"));
+        decor.place("\"mid\"", arb::threshold_detector{10}, "detector");
+        decor.place("\"mid\"", arb::i_clamp::box(0.01+i*dt, duration, 0.5), "clamp");
+        decor.place("\"mid\"", arb::mechanism_desc("expsyn"), "synapse");
 
         arb::cable_cell cell(morpho, dict, decor);
         cable1d_recipe rec({cell});

@@ -98,6 +98,12 @@ tmp = [
     [[Segment((0.0, 0.0, 1.0), (-3.0, 0.0, 0.7), 2)]],]
 swc_morph = representation.make_morph(tmp)
 
+tmp = [
+    [[Segment((-12.0, 0.0, 6.0), (0.0, 0.0, 6.0), 1), Segment((0.0, 0.0, 2.0), (50.0, 0.0, 2.0), 3)]],
+    [[Segment((50.0, 0.0, 2.0), (85.35533905932738, 35.35533905932737, 0.5), 3)]],
+    [[Segment((50.0, 0.0, 1.0), (85.35533905932738, -35.35533905932737, 1.0), 3)]],]
+tutorial_network_ring_morph = representation.make_morph(tmp)
+
 
 ############# locsets (label_morph)
 
@@ -164,3 +170,13 @@ tut_reg_dend = {'type': 'region', 'value': [(0, 0.3324708796524168, 1.0), (1, 0.
 tut_reg_last = {'type': 'region', 'value': [(3, 0.0, 1.0), (4, 0.0, 1.0)]}
 tut_reg_rad_gt = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (5, 0.0, 0.21875)]}
 tut_reg_custom = {'type': 'region', 'value': [(0, 0.0, 0.3324708796524168), (3, 0.0, 1.0), (4, 0.0, 1.0), (5, 0.0, 0.21875)]}
+
+############# locsets (tutorial_network_ring_morph)
+
+tut_network_ring_ls_synapse_site  = {'type': 'locset', 'value': [(1, 0.5)]}
+tut_network_ring_ls_root  = {'type': 'locset', 'value': [(0, 0.0)]}
+
+############# regions (tutorial_network_ring_morph)
+
+tut_network_ring_reg_soma = {'type': 'region', 'value': [(0, 0.0, 0.1935483870967742)]}
+tut_network_ring_reg_dend = {'type': 'region', 'value': [(0, 0.1935483870967742, 1.0), (1, 0.0, 1.0), (2, 0.0, 1.0)]}

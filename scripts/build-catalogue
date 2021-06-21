@@ -43,7 +43,7 @@ def parse_arguments():
                         metavar='source',
                         type=str,
                         default=Path(__file__).parents[1].resolve(),
-                        help='Path to arbor sources; defaults to parent of this script\'s directory')
+                        help='Path to arbor sources; defaults to parent of this script\'s directory.')
 
     parser.add_argument('modpfx',
                         metavar='modpfx',
@@ -54,10 +54,13 @@ def parse_arguments():
                         action='store_true',
                         help='Verbose.')
 
+    parser.add_argument('-q', '--quiet',
+                        action='store_true',
+                        help='Less output.')
 
     parser.add_argument('-h', '--help',
                         action='help',
-                        help='display this help and exit')
+                        help='Display this help and exit.')
 
     return vars(parser.parse_args())
 
@@ -66,14 +69,18 @@ pwd     = Path.cwd()
 name    = args['name']
 mod_dir = pwd / Path(args['modpfx'])
 mods    = [ f[:-4] for f in os.listdir(mod_dir) if f.endswith('.mod') ]
-verbose = args['verbose']
+verbose = args['verbose'] and not args['quiet']
+quiet   = args['quiet']
 arb     = args['source']
 
-cmake = """
+cmake = f"""
 cmake_minimum_required(VERSION 3.9)
-project({catalogue}-cat LANGUAGES CXX)
+project({name}-cat LANGUAGES CXX)
 
 find_package(arbor REQUIRED)
+
+set(CMAKE_CXX_COMPILER ${{ARB_CXX}})
+set(CMAKE_CXX_FLAGS    ${{ARB_CXX_FLAGS}})
 
 include(BuildModules.cmake)
 
@@ -81,31 +88,31 @@ set(ARB_WITH_EXTERNAL_MODCC true)
 find_program(modcc NAMES modcc)
 
 make_catalogue(
-  NAME {catalogue}
+  NAME {name}
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
-  OUTPUT "CAT_{catalogue}_SOURCES"
-  MECHS {mods}
-  ARBOR {arb})
+  OUTPUT "CAT_{name.upper()}_SOURCES"
+  MECHS {' '.join(mods)}
+  ARBOR {arb}
+  STANDALONE ON
+  VERBOSE {"ON" if verbose else "OFF"})
 """
 
-print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
-for m in mods:
-    print(" *", m)
+if not quiet:
+    print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
+    for m in mods:
+        print(" *", m)
 
 with TemporaryDirectory() as tmp:
-    print(f"Setting up temporary build directory: {tmp}")
     tmp = Path(tmp)
     shutil.copytree(mod_dir, tmp / 'mod')
     os.mkdir(tmp / 'build')
     os.chdir(tmp / 'build')
     with open(tmp / 'CMakeLists.txt', 'w') as fd:
-        fd.write(cmake.format(catalogue=name, mods=' '.join(mods), arb=arb))
+        fd.write(cmake)
     shutil.copy2(f'{arb}/mechanisms/BuildModules.cmake', tmp)
     shutil.copy2(f'{arb}/mechanisms/generate_catalogue', tmp)
-    print("Configuring...")
     sp.run('cmake ..', shell=True, check=True, capture_output=not verbose)
-    print("Building...")
-    sp.run('make',     shell=True, capture_output=not verbose)
-    print("Cleaning-up...")
+    sp.run('make',     shell=True, check=True, capture_output=not verbose)
     shutil.copy2(f'{name}-catalogue.so', pwd)
-    print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
+    if not quiet:
+        print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')

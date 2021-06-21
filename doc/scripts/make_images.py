@@ -18,8 +18,13 @@ def translate_all(points, f, xshift):
 
 # Draw one or more morphologies, side by side.
 # Each morphology can be drawn as segments or branches.
-def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20):
+def morph_image(morphs, methods, filename, **kwargs):
     assert(len(morphs)==len(methods))
+
+    lab_sc = kwargs.get('lab_sc',2)
+    sc = kwargs.get('sc',20)
+    draw_labels = kwargs.get('draw_labels',True)
+    colors = kwargs.get('colors',True)
     tag_colors = tag_colors_colorscheme if colors else tag_colors_bwscheme
 
     print('generating:', filename)
@@ -81,11 +86,12 @@ def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20)
                             lines.add(dwg.polygon(points=line, fill=tag_colors[seg.tag]))
 
                             pos = translate(seg.location(0.5), sc, offset)
-                            if drawnumbers:
+                            if draw_labels:
                                 points.add(dwg.circle(center=pos,
                                                     stroke='black',
-                                                    r=sc*0.55,
-                                                    fill='white'))
+                                                    r=sc*0.55*lab_sc,
+                                                    fill='white',
+                                                    stroke_width=sc/20*lab_sc))
                                 # The svg alignment_baseline attribute:
                                 #   - works on Chrome/Chromium
                                 #   - doesn't work on Firefox
@@ -94,7 +100,8 @@ def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20)
                                 numbers.add(dwg.text(str(segid),
                                                     insert=label_pos,
                                                     stroke='black',
-                                                    fill='black'))
+                                                    fill='black',
+                                                    font_size=sc*0.55*lab_sc))
                         segid += 1
 
             elif method=='branches':
@@ -102,12 +109,13 @@ def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20)
                     lines.add(dwg.polygon(points=translate_all(line, sc, offset),
                                           fill=branchfillcolor))
 
-                if drawnumbers:
+                if draw_labels:
                     pos = translate(branch.location(0.5), sc, offset)
                     points.add(dwg.circle(center=pos,
                                         stroke=bcolor,
-                                        r=sc*0.55,
-                                        fill=bcolor))
+                                        r=sc*0.55*lab_sc,
+                                        fill=bcolor,
+                                        stroke_width=sc/20*lab_sc))
                     # The svg alignment_baseline attribute:
                     #   - works on Chrome/Chromium
                     #   - doesn't work on Firefox
@@ -116,7 +124,8 @@ def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20)
                     numbers.add(dwg.text(str(i),
                                         insert=label_pos,
                                         stroke='white',
-                                        fill='white'))
+                                        fill='white',
+                                        font_size=sc*0.55*lab_sc))
         offset = maxx - minx + sc
 
 
@@ -138,7 +147,12 @@ def morph_image(morphs, methods, filename, drawnumbers=True, colors=True, sc=20)
 # ordering don't have collocated distal-proximal locations respectively.
 # Handling this case would make rendering regions more complex, but would
 # not bee too hard to support.
-def label_image(morphology, labels, filename, drawroot=True, sc=20):
+def label_image(morphology, labels, filename, **kwargs):
+
+    loc_sc = kwargs.get('loc_sc',2)
+    sc = kwargs.get('sc',20)
+    drawroot = kwargs.get('drawroot',True)
+
     morph = morphology
     print('generating:', filename)
     dwg = svgwrite.Drawing(filename=filename, debug=True)
@@ -193,7 +207,7 @@ def label_image(morphology, labels, filename, drawroot=True, sc=20):
         # Draw the root
         root = translate(morph[0].location(0), sc, offset)
         if drawroot:
-            points.add(dwg.circle(center=root, stroke='red', r=sc/2.5, fill='white'))
+            points.add(dwg.circle(center=root, stroke='red', r=sc/2.5*loc_sc, fill='white', stroke_width=sc/10*loc_sc))
 
         if lab['type'] == 'locset':
             for loc in lab['value']:
@@ -201,7 +215,7 @@ def label_image(morphology, labels, filename, drawroot=True, sc=20):
                 pos = loc[1]
 
                 loc = translate(morph[bid].location(pos), sc, offset)
-                points.add(dwg.circle(center=loc, stroke='black', r=sc/3, fill='white'))
+                points.add(dwg.circle(center=loc, stroke='black', r=sc/3*loc_sc, fill='white', stroke_width=sc/10*loc_sc))
 
         if lab['type'] == 'region':
             for cab in lab['value']:
@@ -235,26 +249,26 @@ def label_image(morphology, labels, filename, drawroot=True, sc=20):
 
 def generate(path=''):
 
-    morph_image([inputs.branch_morph2], ['segments'], path+'/term_segments.svg', False, False)
-    morph_image([inputs.branch_morph2], ['branches'], path+'/term_branch.svg', False, False)
-    label_image(inputs.branch_morph2, [inputs.reg_cable_0_28], path+'/term_cable.svg', False)
+    morph_image([inputs.branch_morph2], ['segments'], path+'/term_segments.svg', colors=False, draw_labels=False)
+    morph_image([inputs.branch_morph2], ['branches'], path+'/term_branch.svg', colors=False, draw_labels=False)
+    label_image(inputs.branch_morph2, [inputs.reg_cable_0_28], path+'/term_cable.svg', drawroot=False)
 
     morph_image([inputs.label_morph],    ['branches'], path+'/label_branch.svg')
 
     morph_image([inputs.label_morph],    ['segments'], path+'/label_seg.svg')
     morph_image([inputs.detached_morph], ['segments'], path+'/detached_seg.svg')
-    morph_image([inputs.stacked_morph],  ['segments'], path+'/stacked_seg.svg')
-    morph_image([inputs.swc_morph],      ['segments'], path+'/swc_morph.svg')
+    morph_image([inputs.stacked_morph],  ['segments'], path+'/stacked_seg.svg',lab_sc=1.2)
+    morph_image([inputs.swc_morph],      ['segments'], path+'/swc_morph.svg',lab_sc=1.5)
 
     morph_image([inputs.label_morph, inputs.label_morph], ['segments', 'branches'], path+'/label_morph.svg')
     morph_image([inputs.detached_morph, inputs.detached_morph], ['segments', 'branches'], path+'/detached_morph.svg')
     morph_image([inputs.stacked_morph, inputs.stacked_morph], ['segments', 'branches'], path+'/stacked_morph.svg')
-    morph_image([inputs.sphere_morph, inputs.sphere_morph], ['segments', 'branches'], path+'/sphere_morph.svg')
-    morph_image([inputs.branch_morph1, inputs.branch_morph1], ['segments', 'branches'], path+'/branch_morph1.svg')
-    morph_image([inputs.branch_morph2, inputs.branch_morph2], ['segments', 'branches'], path+'/branch_morph2.svg')
-    morph_image([inputs.branch_morph3, inputs.branch_morph3], ['segments', 'branches'], path+'/branch_morph3.svg')
-    morph_image([inputs.branch_morph4, inputs.branch_morph4], ['segments', 'branches'], path+'/branch_morph4.svg')
-    morph_image([inputs.yshaped_morph, inputs.yshaped_morph], ['segments', 'branches'], path+'/yshaped_morph.svg')
+    morph_image([inputs.sphere_morph, inputs.sphere_morph], ['segments', 'branches'], path+'/sphere_morph.svg',lab_sc=1.5)
+    morph_image([inputs.branch_morph1, inputs.branch_morph1], ['segments', 'branches'], path+'/branch_morph1.svg',lab_sc=1)
+    morph_image([inputs.branch_morph2, inputs.branch_morph2], ['segments', 'branches'], path+'/branch_morph2.svg',lab_sc=1)
+    morph_image([inputs.branch_morph3, inputs.branch_morph3], ['segments', 'branches'], path+'/branch_morph3.svg',lab_sc=1)
+    morph_image([inputs.branch_morph4, inputs.branch_morph4], ['segments', 'branches'], path+'/branch_morph4.svg',lab_sc=1)
+    morph_image([inputs.yshaped_morph, inputs.yshaped_morph], ['segments', 'branches'], path+'/yshaped_morph.svg',lab_sc=1.5)
     morph_image([inputs.ysoma_morph1,  inputs.ysoma_morph1],  ['segments', 'branches'], path+'/ysoma_morph1.svg')
     morph_image([inputs.ysoma_morph2,  inputs.ysoma_morph2],  ['segments', 'branches'], path+'/ysoma_morph2.svg')
     morph_image([inputs.ysoma_morph3,  inputs.ysoma_morph3],  ['segments', 'branches'], path+'/ysoma_morph3.svg')
@@ -294,12 +308,13 @@ def generate(path=''):
     ####################### Tutorial examples
 
     morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph.svg')
+    morph_image([inputs.tutorial_network_ring_morph], ['segments'], path+'/tutorial_network_ring_morph.svg',lab_sc=6)
 
     ####################### locsets
 
     label_image(inputs.tutorial_morph, [inputs.tut_ls_root, inputs.tut_ls_terminal], path+'/tutorial_root_term.svg')
     label_image(inputs.tutorial_morph, [inputs.tut_ls_custom_terminal, inputs.tut_ls_axon_terminal], path+'/tutorial_custom_axon_term.svg')
-
+    label_image(inputs.tutorial_network_ring_morph, [inputs.tut_network_ring_ls_synapse_site], path+'/tutorial_network_ring_synapse_site.svg', loc_sc=6)
 
     ####################### regions
     label_image(inputs.tutorial_morph, [inputs.tut_reg_soma, inputs.tut_reg_axon, inputs.tut_reg_dend, inputs.tut_reg_last], path+'/tutorial_tag.svg')

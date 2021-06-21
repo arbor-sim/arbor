@@ -27,8 +27,9 @@ class cc_recipe(A.recipe):
 
         dec = A.decor()
 
-        dec.place('(location 0 0.08)', "expsyn")
-        dec.place('(location 0 0.09)', "exp2syn")
+        dec.place('(location 0 0.08)', "expsyn", "syn0")
+        dec.place('(location 0 0.09)', "exp2syn", "syn1")
+        dec.place('(location 0 0.1)', A.iclamp(20.), "iclamp")
         dec.paint('(all)', "hh")
 
         self.cell = A.cable_cell(st, A.label_dict(), dec)
@@ -39,12 +40,6 @@ class cc_recipe(A.recipe):
 
     def num_cells(self):
         return 1
-
-    def num_targets(self, gid):
-        return 2
-
-    def num_sources(self, gid):
-        return 0
 
     def cell_kind(self, gid):
         return A.cell_kind.cable
@@ -89,6 +84,8 @@ class cc_recipe(A.recipe):
             A.cable_probe_ion_ext_concentration(where='(location 0 0.14)', ion='na'),
             # probe id (0, 15)
             A.cable_probe_ion_ext_concentration_cell(ion='na'),
+            # probe id (0, 15)
+            A.cable_probe_stimulus_current_cell()
         ]
 
     def cell_description(self, gid):
@@ -169,6 +166,10 @@ class CableProbes(unittest.TestCase):
         self.assertEqual(A.location(0, 0.14), m[0])
 
         m = sim.probe_metadata((0, 15))
+        self.assertEqual(1, len(m))
+        self.assertEqual(all_cv_cables, m[0])
+
+        m = sim.probe_metadata((0, 16))
         self.assertEqual(1, len(m))
         self.assertEqual(all_cv_cables, m[0])
 

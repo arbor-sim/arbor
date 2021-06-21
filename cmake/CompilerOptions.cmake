@@ -1,13 +1,10 @@
-# Compiler-aware compiler options
+include(CheckCXXSourceCompiles)
+include(CheckCXXSourceRuns)
+include(CMakePushCheckState)
 
+# Compiler-aware compiler options
 set(CXXOPT_DEBUG "-g")
 set(CXXOPT_CXX11 "-std=c++11")
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-    # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
-    string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
-
 
 if(${ARBDEV_COLOR})
     set(colorflags
@@ -16,23 +13,6 @@ if(${ARBDEV_COLOR})
         $<IF:$<CXX_COMPILER_ID:GNU>,-fdiagnostics-color=always,>)
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${colorflags}>")
 endif()
-
-# A library to collect compiler-specific linking adjustments.
-
-add_library(arbor-compiler-compat INTERFACE)
-# TODO Remove when upgrading GCC.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
-    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
-  endif()
-endif()
-# TODO Remove when upgrading Clang
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    target_link_libraries(arbor-compiler-compat INTERFACE stdc++fs)
-  endif()
-endif()
-install(TARGETS arbor-compiler-compat EXPORT arbor-targets)
 
 # Warning options: disable specific spurious warnings as required.
 
@@ -97,6 +77,12 @@ set(CXXOPT_WALL
 
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-maybe-uninitialized,>
 
+    # * Disable comments that point out that an ABI bug has been patched, which
+    #   could lead to bugs when linking against code compiled an older compiler,
+    #   because there is nothing to fix on our side.
+
+    $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-psabi,>
+
     # Intel:
     #
     # Disable warning for unused template parameter
@@ -126,7 +112,9 @@ function(set_arch_target optvar arch)
 
         # Use -mcpu for all supported targets _except_ for x86, where it should be -march.
 
-        if(target_model MATCHES "x86|i[3456]86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
+        if("${target}" MATCHES "aarch64-apple-darwin")
+            set(arch_opt "-mcpu=${arch}")
+        elseif(target_model MATCHES "x86|i[3456]86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
             set(arch_opt "-march=${arch}")
         else()
             set(arch_opt "-mcpu=${arch}")

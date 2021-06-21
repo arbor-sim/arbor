@@ -3,10 +3,15 @@
 Interconnectivity
 #################
 
+.. currentmodule:: arbor
+
 .. class:: connection
 
-    Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and post-synaptic respectively),
-    a connection weight and a delay time.
+    Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and
+    post-synaptic respectively), a connection weight and a delay time.
+
+    The :attr:`dest` does not include the gid of a cell, this is because a :class:`arbor.connection` is bound to the
+    destination cell which means that the gid is implicitly known.
 
     .. function:: connection(source, destination, weight, delay)
 
@@ -14,11 +19,16 @@ Interconnectivity
 
     .. attribute:: source
 
-        The source end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
+        The source end point of the connection (type: :class:`arbor.cell_global_label`, which can be initialized with a
+        (gid, label) or a (gid, (label, policy)) tuple. If the policy is not indicated, the default
+        :attr:`arbor.selection_policy.univalent` is used).
 
     .. attribute:: dest
 
-        The destination end point of the connection (type: :class:`arbor.cell_member`, which can be initialized with a (gid, index) tuple).
+        The destination end point of the connection (type: :class:`arbor.cell_local_label` representing the label of the
+        destination on the cell, which can be initialized with just a label, in which case the default
+        :attr:`arbor.selection_policy.univalent` is used, or a (label, policy) tuple). The gid of the cell is
+        implicitly known.
 
     .. attribute:: weight
 
@@ -38,29 +48,46 @@ Interconnectivity
 
             import arbor
 
-            # construct a connection between cells (0,0) and (1,0) with weight 0.01 and delay of 10 ms.
-            src  = arbor.cell_member(0,0)
-            dest = arbor.cell_member(1,0)
-            w    = 0.01
-            d    = 10
-            con  = arbor.connection(src, dest, w, d)
+            def connections_on(gid):
+               # construct a connection from the "detector" source label on cell 2
+               # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
+               src  = arbor.cell_global_label(2, "detector")
+               dest = arbor.cell_local_label("syn") # gid of the destination is is determined by the argument to `connections_on`
+               w    = 0.01
+               d    = 10
+               return [arbor.connection(src, dest, w, d)]
 
 .. class:: gap_junction_connection
 
     Describes a gap junction between two gap junction sites.
-    Gap junction sites are represented by :class:`arbor.cell_member`.
 
-    .. function::gap_junction_connection(local, peer, ggap)
+    The :attr:`local` site does not include the gid of a cell, this is because a :class:`arbor.gap_junction_connection`
+    is bound to the destination cell which means that the gid is implicitly known.
 
-        Construct a gap junction connection between :attr:`local` and :attr:`peer` with conductance :attr:`ggap`.
+    .. note::
 
-    .. attribute:: local
+       A bidirectional gap-junction between two cells ``c0`` and ``c1`` requires two
+       :class:`gap_junction_connection` objects to be constructed: one where ``c0`` is the
+       :attr:`local` site, and ``c1`` is the :attr:`peer` site; and another where ``c1`` is the
+       :attr:`local` site, and ``c0`` is the :attr:`peer` site. If :attr:`ggap` is equal
+       in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
 
-        The gap junction site: one half of the gap junction connection.
+    .. function::gap_junction_connection(peer, local, ggap)
+
+        Construct a gap junction connection between :attr:`peer` and :attr:`local` with conductance :attr:`ggap`.
 
     .. attribute:: peer
 
-        The gap junction site: other half of the gap junction connection.
+        The gap junction site: the remote half of the gap junction connection (type: :class:`arbor.cell_global_label`,
+        which can be initialized with a (gid, label) or a (gid, label, policy) tuple. If the policy is not indicated,
+        the default :attr:`arbor.selection_policy.univalent` is used).
+
+    .. attribute:: local
+
+        The gap junction site: the local half of the gap junction connection (type: :class:`arbor.cell_local_label`
+        representing the label of the destination on the cell, which can be initialized with just a label, in which case
+        the default :attr:`arbor.selection_policy.univalent` is used, or a (label, policy) tuple). The gid of the
+        cell is implicitly known.
 
     .. attribute:: ggap
 
@@ -68,7 +95,8 @@ Interconnectivity
 
 .. class:: spike_detector
 
-    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an :ref:`arbor.connection`.
+    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an
+    :class:`arbor.connection`.
 
     .. attribute:: threshold
 

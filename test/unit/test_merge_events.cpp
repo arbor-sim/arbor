@@ -54,9 +54,9 @@ TEST(merge_events, empty)
 TEST(merge_events, no_overlap)
 {
     pse_vector lc = {
-        {{0, 0}, 1, 1},
-        {{0, 0}, 2, 1},
-        {{0, 0}, 3, 3},
+        {0, 1, 1},
+        {0, 2, 1},
+        {0, 3, 3},
     };
     // Check that the inputs satisfy the precondition that lc is sorted.
     EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
@@ -64,25 +64,25 @@ TEST(merge_events, no_overlap)
     // These events should be removed from lf by merge_events, and replaced
     // with events to be delivered after t=10
     pse_vector lf = {
-        {{0, 0}, 1, 1},
-        {{0, 0}, 2, 1},
-        {{0, 0}, 3, 3},
+        {0, 1, 1},
+        {0, 2, 1},
+        {0, 3, 3},
     };
 
     pse_vector events = {
-        {{0, 0}, 12, 1},
-        {{0, 0}, 11, 2},
-        {{8, 0}, 10, 4},
-        {{0, 0}, 11, 1},
+        {0, 12, 1},
+        {0, 11, 2},
+        {0, 10, 4},
+        {0, 11, 1},
     };
 
     merge_events(10, terminal_time, lc, events, empty_gens, lf);
 
     pse_vector expected = {
-        {{8, 0}, 10, 4},
-        {{0, 0}, 11, 1},
-        {{0, 0}, 11, 2},
-        {{0, 0}, 12, 1},
+        {0, 10, 4},
+        {0, 11, 1},
+        {0, 11, 2},
+        {0, 12, 1},
     };
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
@@ -95,11 +95,11 @@ TEST(merge_events, no_overlap)
 TEST(merge_events, overlap)
 {
     pse_vector lc = {
-        {{0, 0}, 1, 1},
-        {{0, 0}, 2, 1},
+        {0, 1, 1},
+        {0, 2, 1},
         // The current epoch ends at t=10, so all events from here down are expected in lf.
-        {{8, 0}, 10, 2},
-        {{0, 0}, 11, 3},
+        {0, 10, 2},
+        {0, 11, 3},
     };
     EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
 
@@ -107,23 +107,23 @@ TEST(merge_events, overlap)
 
     pse_vector events = {
         // events are in reverse order: they should be sorted in the output of merge_events.
-        {{0, 0}, 12, 1},
-        {{0, 0}, 11, 2},
-        {{0, 0}, 11, 1},
-        {{8, 0}, 10, 3},
-        {{7, 0}, 10, 8},
+        {0, 12, 1},
+        {0, 11, 2},
+        {0, 11, 1},
+        {1, 10, 3},
+        {0, 10, 8},
     };
 
     merge_events(10, terminal_time, lc, events, empty_gens, lf);
 
     pse_vector expected = {
-        {{7, 0}, 10, 8}, // from events
-        {{8, 0}, 10, 2}, // from lc
-        {{8, 0}, 10, 3}, // from events
-        {{0, 0}, 11, 1}, // from events
-        {{0, 0}, 11, 2}, // from events
-        {{0, 0}, 11, 3}, // from lc
-        {{0, 0}, 12, 1}, // from events
+        {0, 10, 2}, // from lc
+        {0, 10, 8}, // from events
+        {1, 10, 3}, // from events
+        {0, 11, 1}, // from events
+        {0, 11, 2}, // from events
+        {0, 11, 3}, // from lc
+        {0, 12, 1}, // from events
     };
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
@@ -137,42 +137,42 @@ TEST(merge_events, X)
     const time_type t1 = 20;
 
     pse_vector lc = {
-        {{0, 0}, 1, 1},
-        {{0, 0}, 5, 1},
+        {0, 1, 1},
+        {0, 5, 1},
         // The current epoch ends at t=10, so all events from here down are expected in lf.
-        {{8, 0}, 10, 2},
-        {{0, 0}, 11, 3},
-        {{8, 0}, 20, 2},
-        {{0, 0}, 21, 3},
+        {0, 10, 2},
+        {0, 11, 3},
+        {0, 20, 2},
+        {0, 21, 3},
     };
     EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
 
     pse_vector lf;
 
     pse_vector events = {
-        {{0, 0}, 12, 1},
-        {{1, 0}, 15, 2},
-        {{2, 0}, 22, 3},
-        {{3, 0}, 26, 4},
+        {0, 12, 1},
+        {0, 15, 2},
+        {0, 22, 3},
+        {0, 26, 4},
     };
 
-    std::vector<event_generator> generators = {
-        regular_generator(cell_member_type{4,2}, 42.f, t0, 5)
-    };
+    auto gen = regular_generator({"l0"}, 42.f, t0, 5);
+    gen.resolve_label([](const cell_local_label_type&) {return 2;});
+    std::vector<event_generator> generators = {gen};
 
     merge_events(t0, t1, lc, events, generators, lf);
 
     pse_vector expected = {
-        {{4, 2}, 10, 42}, // from generator
-        {{8, 0}, 10, 2},  // from lc
-        {{0, 0}, 11, 3},  // from lc
-        {{0, 0}, 12, 1},  // from events
-        {{1, 0}, 15, 2},  // from events
-        {{4, 2}, 15, 42}, // from generator
-        {{8, 0}, 20, 2},  // from lc
-        {{0, 0}, 21, 3},  // from lc
-        {{2, 0}, 22, 3},  // from events
-        {{3, 0}, 26, 4},  // from events
+        {0, 10, 2},  // from lc
+        {2, 10, 42}, // from generator
+        {0, 11, 3},  // from lc
+        {0, 12, 1},  // from events
+        {0, 15, 2},  // from events
+        {2, 15, 42}, // from generator
+        {0, 20, 2},  // from lc
+        {0, 21, 3},  // from lc
+        {0, 22, 3},  // from events
+        {0, 26, 4},  // from events
     };
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
@@ -182,24 +182,33 @@ TEST(merge_events, X)
 // Test the tournament tree for merging two small sequences 
 TEST(merge_events, tourney_seq)
 {
-    pse_vector evs1 = {
-        {{0, 0}, 1, 1},
-        {{0, 0}, 2, 2},
-        {{0, 0}, 3, 3},
-        {{0, 0}, 4, 4},
-        {{0, 0}, 5, 5},
+    explicit_generator::lse_vector evs1 = {
+        {{"l0"}, 1, 1},
+        {{"l0"}, 2, 2},
+        {{"l0"}, 3, 3},
+        {{"l0"}, 4, 4},
+        {{"l0"}, 5, 5},
     };
 
-    pse_vector evs2 = {
-        {{0, 0}, 1.5, 1},
-        {{0, 0}, 2.5, 2},
-        {{0, 0}, 3.5, 3},
-        {{0, 0}, 4.5, 4},
-        {{0, 0}, 5.5, 5},
+    explicit_generator::lse_vector evs2 = {
+        {{"l0"}, 1.5, 1},
+        {{"l0"}, 2.5, 2},
+        {{"l0"}, 3.5, 3},
+        {{"l0"}, 4.5, 4},
+        {{"l0"}, 5.5, 5},
     };
+
+    pse_vector expected;
+
+    auto gen_pse = [](const auto& item) {return spike_event{0, item.time, item.weight};};
+    std::transform(evs1.begin(), evs1.end(), std::back_inserter(expected), gen_pse);
+    std::transform(evs2.begin(), evs2.end(), std::back_inserter(expected), gen_pse);
+    util::sort(expected);
 
     event_generator g1 = explicit_generator(evs1);
     event_generator g2 = explicit_generator(evs2);
+    g1.resolve_label([](const cell_local_label_type&) {return 0;});
+    g2.resolve_label([](const cell_local_label_type&) {return 0;});
 
     std::vector<event_span> spans;
     spans.emplace_back(g1.events(0, terminal_time));
@@ -213,10 +222,6 @@ TEST(merge_events, tourney_seq)
     }
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
-    auto expected = evs1;
-    util::append(expected, evs2);
-    util::sort(expected);
-
     EXPECT_EQ(expected, lf);
 }
 
@@ -234,13 +239,15 @@ TEST(merge_events, tourney_poisson)
 
     std::vector<event_generator> generators;
     for (auto i=0u; i<ngen; ++i) {
-        cell_member_type tgt{0, i};
+        cell_lid_type lid = i;
+        cell_tag_type label = "tgt"+std::to_string(i);
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.
         rndgen G(i%(ngen-1));
-        generators.emplace_back(
-                poisson_generator(tgt, weight, t0, lambda, G));
+        auto gen = poisson_generator(label, weight, t0, lambda, G);
+        gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
+        generators.push_back(std::move(gen));
     }
 
     // manually generate the expected output

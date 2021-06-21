@@ -6,11 +6,9 @@ set(arbor_sources
     backends/multicore/fvm.cpp
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
-    backends/multicore/stimulus.cpp
     communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
-    builtin_mechanisms.cpp
     cable_cell.cpp
     cable_cell_param.cpp
     cell_group_factory.cpp
@@ -25,6 +23,7 @@ set(arbor_sources
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
+    label_resolution.cpp
     lif_cell_group.cpp
     mc_cell_group.cpp
     mechcat.cpp
@@ -69,7 +68,6 @@ if(ARB_WITH_GPU)
         backends/gpu/mechanism.cpp
         backends/gpu/mechanism.cu
         backends/gpu/shared_state.cpp
-        backends/gpu/stimulus.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
         backends/gpu/matrix_assemble.cu

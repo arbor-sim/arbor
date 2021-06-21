@@ -22,15 +22,15 @@ We start by building the cell. This will be a :ref:`cable cell <cablecell>` with
 geometry and dynamics which can be constructed from 3 components:
 
 1. A **morphology** defining the geometry of the cell.
-2. A **label dictionary** storing labeled expressions which define regions and locations of
+2. A **label dictionary** storing labelled expressions which define regions and locations of
    interest on the cell.
-3. A **decor** defining various properties and dynamics on these labeled regions and locations.
-   The decor also includes hints about how the cell is to be modeled under the hood, by
+3. A **decor** defining various properties and dynamics on these  regions and locations.
+   The decor also includes hints about how the cell is to be modelled under the hood, by
    splitting it into discrete control volumes (CV).
 
 Next, we construct a :class:`arbor.single_cell_model`. This model takes care of a lot of details
 behind the scenes: it sets up a recipe (more on recipes :ref:`here <modelrecipe>`), creates
-a simulation object, manages the hardware etc. These details become more important when modeling
+a simulation object, manages the hardware etc. These details become more important when modelling
 a network of cells, but can be abstracted away when working with single cell networks.
 
 The single cell model has 4 main functions:
@@ -47,7 +47,7 @@ The cell
 
 Before creating the actual cell object, we have to create its components.
 
-The morpholohgy
+The morphology
 ^^^^^^^^^^^^^^^
 We begin by constructing the following morphology:
 
@@ -92,7 +92,7 @@ This can be done by manually building a segment tree:
 
 The same morphology can be represented using an SWC file (interpreted according
 to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
-``morph.swc``.
+``single_cell_detailed.swc``.
 
 .. code-block:: python
 
@@ -122,7 +122,7 @@ to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
 
     More information on SWC loaders can be found :ref:`here <morph-formats>`.
 
-The morphology can then be loaded from ``morph.swc`` in the following way:
+The morphology can then be loaded from ``single_cell_detailed.swc`` in the following way:
 
 .. code-block:: python
 
@@ -130,14 +130,14 @@ The morphology can then be loaded from ``morph.swc`` in the following way:
 
     # Read the morphology from an SWC file
 
-    morph = arbor.load_swc_arbor("morph.swc")
+    morph = arbor.load_swc_arbor("single_cell_detailed.swc")
 
 The label dictionary
 ^^^^^^^^^^^^^^^^^^^^
 
 Next, we can define **region** and **location** expressions and give them labels.
 The regions and locations are defined using an Arbor-specific DSL, and the labels
-can be stored in a :class:`arbor.lable_dict`.
+can be stored in a :class:`arbor.label_dict`.
 
 .. Note::
 
@@ -157,7 +157,7 @@ defined as follows:
 
 .. code-block:: python
 
-    #Create a label dictionary
+    # Create a label dictionary
 
     labels = arbor.label_dict()
 
@@ -254,7 +254,7 @@ This will generate the following 2 locsets when applied to the previously define
 The decorations
 ^^^^^^^^^^^^^^^
 
-With the key regions and location expressions identified and labeled, we can start to
+With the key regions and location expressions identified and labelled, we can start to
 define certain features, properties and dynamics on the cell. This is done through a
 :class:`arbor.decor` object, which stores a mapping of these "decorations" to certain
 region or location expressions.
@@ -291,7 +291,7 @@ by the density mechanisms that we will be adding shortly.
 For both ions we set the default initial concentration and external concentration measures in mM;
 and we set the default initial reversal potential in mV. For the *na* ion, we additionally indicate
 the the progression on the reversal potential during the simulation will be dictated by the
-`nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
+`Nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
 
 It happens, however, that we want the temperature of the "custom" region defined in the label
 dictionary earlier to be colder, and the initial voltage of the "soma" region to be higher.
@@ -323,16 +323,25 @@ constructed in order to change the default values of its 'gbar' parameter.
 
 The decor object is also used to *place* stimuli and spike detectors on the cell using :meth:`arbor.decor.place`.
 We place 3 current clamps of 2 nA on the "root" locset defined earlier, starting at time = 10, 30, 50 ms and
-lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV:
+lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV.
+Every placement gets a label. The labels of detectors and synapses are used to form connection from and to them
+in the recipe.
 
 .. code-block:: python
 
    # Place stimuli and spike detectors on certain locsets
 
-   decor.place('"root"', arbor.iclamp(10, 1, current=2))
-   decor.place('"root"', arbor.iclamp(30, 1, current=2))
-   decor.place('"root"', arbor.iclamp(50, 1, current=2))
-   decor.place('"axon_terminal"', arbor.spike_detector(-10))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
+   decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
+   decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
+   decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
+
+.. Note::
+
+   The number of individual locations in the ``'axon_terminal'`` locset depends on the underlying morphology and the
+   number of axon branches in the morphology. The number of detectors that get added on the cell is equal to the number
+   of locations in the locset, and the label ``'detector'`` refers to all of them. If we want to refer to a single
+   detector from the group (to form a network connection for example), we need a :py:class:`arbor.selection_policy`.
 
 Finally, there's one last property that impacts the behavior of a model: the discretisation.
 Cells in Arbor are simulated as discrete components called control volumes (CV). The size of
@@ -360,7 +369,7 @@ to be a single CV, and the rest of the morphology to be comprised of CVs with a 
 The model
 *********
 
-We begin by constructing a :class:`arbor.single_cell_model` of the cell we just created.
+We begin by constructing an :class:`arbor.single_cell_model` of the cell we just created.
 
 .. code-block:: python
 
@@ -444,9 +453,9 @@ We can indicate the location we would like to probe using labels from the :class
 .. code-block:: python
 
    # Add voltage probes on the "custom_terminal" locset
-   # which sample the voltage at 50000 Hz
+   # which sample the voltage at 50 kHz
 
-   model.probe('voltage', where='"custom_terminal"',  frequency=50000)
+   model.probe('voltage', where='"custom_terminal"', frequency=50)
 
 The simulation
 ^^^^^^^^^^^^^^
