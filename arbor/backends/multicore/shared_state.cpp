@@ -12,6 +12,7 @@
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/math.hpp>
+#include <arbor/mechanism.hpp>
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
@@ -25,7 +26,6 @@
 #include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
-#include "mechanism.hpp"
 
 namespace arb {
 namespace multicore {
@@ -221,6 +221,8 @@ shared_state::shared_state(
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     deliverable_events(n_intdom)
 {
+    time_ptr = time.data();
+
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
@@ -412,16 +414,13 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
 // * For indices in the padded tail of node_index_, set index to last valid CV index.
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-void shared_state::instantiate(arb::mechanism& m_, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
-    arb::multicore::mechanism& m = dynamic_cast<arb::multicore::mechanism&>(m_);
-
+void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     util::padded_allocator<> pad(alignment);
     // Set internal variables
-    m.mult_in_place_    = !pos_data.multiplicity.empty();
-    m.num_ions_         = m.mech_.n_ions;
-    // m.vec_t_ptr_        = &time; FIXME(TH)
-    // m.event_stream_ptr_ = &deliverable_events; FIXME(TH)
-    m.width_padded_     = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
+    m.mult_in_place_ = !pos_data.multiplicity.empty();
+    m.num_ions_      = m.mech_.n_ions;
+    m.width_padded_  = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
+    m.time_ptr_ptr   = &time_ptr;
 
     // Assign non-owning views onto shared state:
     m.ppack_.width            = pos_data.cv.size();
@@ -437,7 +436,7 @@ void shared_state::instantiate(arb::mechanism& m_, unsigned id, const mechanism_
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
-
+    m.ppack_.vec_t            = nullptr;
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];

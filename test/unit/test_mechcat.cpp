@@ -140,6 +140,8 @@ struct fleeb_foo: test_mechanism {
         mech_.kind        = arb_mechanism_kind_density;
         iface_.backend    = foo_backend::kind;
     }
+
+    virtual mechanism_ptr clone() const override { return std::make_unique<fleeb_foo>(); }
 };
 
 struct special_fleeb_foo: test_mechanism {
@@ -150,6 +152,8 @@ struct special_fleeb_foo: test_mechanism {
         mech_.kind        = arb_mechanism_kind_density;
         iface_.backend    = foo_backend::kind;
     }
+
+    virtual mechanism_ptr clone() const override { return std::make_unique<special_fleeb_foo>(); }
 };
 
 struct fleeb_bar: test_mechanism {
@@ -160,6 +164,8 @@ struct fleeb_bar: test_mechanism {
         mech_.kind        = arb_mechanism_kind_density;
         iface_.backend    = bar_backend::kind;
     }
+
+    virtual mechanism_ptr clone() const override { return std::make_unique<fleeb_bar>(); }
 };
 
 // Burble implementation:
@@ -171,6 +177,8 @@ struct burble_bar: test_mechanism {
         mech_.kind        = arb_mechanism_kind_density;
         iface_.backend    = bar_backend::kind;
     }
+
+        virtual mechanism_ptr clone() const override { return std::make_unique<burble_bar>(); }
 };
 
 // Mechinfo equality test:
@@ -348,7 +356,7 @@ TEST(mechcat, instance) {
     auto fleeb_foo_inst = cat.instance(foo_backend::kind, "fleeb");
     auto fleeb1_foo_inst = cat.instance(foo_backend::kind, "fleeb1");
     auto special_fleeb_foo_inst = cat.instance(foo_backend::kind, "special_fleeb");
-    auto fleeb2_foo_inst = cat.instance(foo_backend::kind,"f leeb2");
+    auto fleeb2_foo_inst = cat.instance(foo_backend::kind,"fleeb2");
 
     EXPECT_EQ(typeid(fleeb_foo), typeid(*fleeb_foo_inst.mech.get()));
     EXPECT_EQ(typeid(fleeb_foo), typeid(*fleeb1_foo_inst.mech.get()));

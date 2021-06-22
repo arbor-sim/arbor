@@ -4,10 +4,9 @@
 #include "../test/gtest.h"
 
 #include <arbor/mechanism_abi.h>
+#include <arbor/mechanism.hpp>
 
-#include <backends/multicore/mechanism.hpp>
-
-
+#include "backends/multicore/shared_state.hpp"
 
 using namespace std::string_literals;
 

@@ -4,7 +4,6 @@ set(arbor_sources
     arbexcept.cpp
     assert.cpp
     backends/multicore/fvm.cpp
-    backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
     communication/communicator.cpp
     communication/dry_run_context.cpp

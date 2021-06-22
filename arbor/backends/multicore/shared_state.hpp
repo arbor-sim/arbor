@@ -200,6 +200,8 @@ struct shared_state {
         array& sample_value);
 
     void reset();
+
+    arb_value_type* time_ptr;
 };
 
 // For debugging only:

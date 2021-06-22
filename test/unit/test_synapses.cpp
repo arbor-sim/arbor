@@ -10,7 +10,6 @@
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
-#include "backends/multicore/mechanism.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
@@ -80,10 +79,10 @@ TEST(synapses, syn_basic_state) {
 
     value_type temp_K = *neuron_parameter_defaults.temperature_K;
 
-    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance(backend::kind, "expsyn").mech);
+    auto expsyn = unique_cast<mechanism>(global_default_catalogue().instance(backend::kind, "expsyn").mech);
     ASSERT_TRUE(expsyn);
 
-    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance(backend::kind, "exp2syn").mech);
+    auto exp2syn = unique_cast<mechanism>(global_default_catalogue().instance(backend::kind, "exp2syn").mech);
     ASSERT_TRUE(exp2syn);
 
     std::vector<fvm_gap_junction> gj = {};
@@ -161,8 +160,8 @@ TEST(synapses, syn_basic_state) {
     state.deliverable_events.init(events);
     state.deliverable_events.mark_until_after(state.time);
 
-    expsyn->deliver_events();
-    exp2syn->deliver_events();
+    expsyn->deliver_events(state.deliverable_events.marked_events());
+    exp2syn->deliver_events(state.deliverable_events.marked_events());
 
     using fvec = std::vector<fvm_value_type>;
 

@@ -19,10 +19,10 @@
 #include <arbor/util/pp_util.hpp>
 #include <arbor/version.hpp>
 #include <arborenv/gpu_env.hpp>
+#include <arbor/mechanism.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multicore/fvm.hpp"
-#include "backends/multicore/mechanism.hpp"
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
 #include "backends/gpu/mechanism.hpp"

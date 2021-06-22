@@ -10,6 +10,7 @@
 #include <arbor/mechanism_abi.h>
 
 #include "../../backends/multi_event_stream_state.hpp"
+#include "../../backends/event.hpp"
 
 namespace arb {
 
@@ -64,41 +65,25 @@ public:
 
     // Cloning makes a new object of the derived concrete mechanism type, but does not
     // copy any state.
-    mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
+    virtual mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
     // Non-global parameters can be set post-instantiation:
-    virtual void set_parameter(const std::string&, const std::vector<fvm_value_type>&) {}
+    void set_parameter(const std::string&, const std::vector<arb_value_type>&);
 
-    void initialize() {
-        iface_.init_mechanism(&ppack_);
-        if (!mult_in_place_) return;
-        for (arb_size_type idx = 0; idx < mech_.n_state_vars; ++idx) {
-            // backend::multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
-        }
-    }
-
-    void update_current() {
-        iface_.compute_currents(&ppack_);
-    }
-
-    void update_state() {
-        iface_.advance_state(&ppack_);
-    }
-
-    void update_ions() {
-        iface_.write_ions(&ppack_);
-    }
-
-    void deliver_events() {
-        // auto marked = event_stream_ptr_->marked_events();
-        // ppack_.events.n_streams = marked.n;
-        // ppack_.events.begin     = marked.begin_offset;
-        // ppack_.events.end       = marked.end_offset;
-        // ppack_.events.events    = (arb_deliverable_event_data*) marked.ev_data;
+    // Forward to interface methods
+    void initialize();
+    void update_current() { ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); }
+    void update_state()   { ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_); }
+    void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
+    void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
+    void deliver_events(const multi_event_stream_state<deliverable_event_data>& state) {
+        ppack_.vec_t            = *time_ptr_ptr;
+        ppack_.events.n_streams = state.n;
+        ppack_.events.begin     = state.begin_offset;
+        ppack_.events.end       = state.end_offset;
+        ppack_.events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH)
         iface_.apply_events(&ppack_);
     }
-
-    void post_event() {} // FIXME(TH)
 
     // Peek into state variable
     fvm_value_type* field_data(const std::string& var);
@@ -126,7 +111,7 @@ public:
     std::vector<arb_value_type*> state_vars_;
     std::vector<arb_ion_state>   ion_states_;
 
-    arb_value_type* time;
+   arb_value_type** time_ptr_ptr;
 };
 
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,

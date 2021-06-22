@@ -243,7 +243,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->zero_currents();
         PL();
         for (auto& m: mechanisms_) {
-            m->deliver_events();
+            m->deliver_events(state_->deliverable_events.marked_events());
             m->update_current();
         }
 
@@ -313,6 +313,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         std::swap(state_->time_to, state_->time);
+        state_->time_ptr = state_->time.data();
 
         // Check for non-physical solutions:
 

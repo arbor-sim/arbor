@@ -11,11 +11,11 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/mechanism_abi.h>
+#include <arbor/mechanism.hpp>
 #include <arbor/util/expected.hpp>
 
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
-#include "backends/multicore/mechanism.hpp"
 #include "backends/gpu/mechanism.hpp"
 
 /* Notes on implementation:

@@ -1,7 +1,7 @@
 #include <arbor/version.hpp>
 
+#include <arbor/mechanism.hpp>
 #include "backends/multicore/fvm.hpp"
-#include "backends/multicore/mechanism.hpp"
 #include "util/maputil.hpp"
 
 #ifdef ARB_GPU_ENABLED
@@ -17,12 +17,12 @@ using namespace arb;
 
 // Multicore mechanisms:
 
-ACCESS_BIND(mechanism_field_table (mechanism::*)(), multicore_field_table_ptr, &mechanism::field_table);
+ACCESS_BIND(mechanism_field_table (mechanism::*)(), field_table_ptr, &mechanism::field_table);
 ACCESS_BIND(arb_mechanism_type  mechanism::*, mech_type_ptr,  &mechanism::mech_);
 ACCESS_BIND(arb_mechanism_ppack mechanism::*, mech_ppack_ptr, &mechanism::ppack_);
 
-std::vector<fvm_value_type> mechanism_field(multicore::mechanism* m, const std::string& key) {
-    auto opt_ptr = util::value_by_key((m->*multicore_field_table_ptr)(), key);
+std::vector<fvm_value_type> mc_mechanism_field(mechanism* m, const std::string& key) {
+    auto opt_ptr = util::value_by_key((m->*field_table_ptr)(), key);
     if (!opt_ptr) throw std::logic_error("internal error: no such field in mechanism");
 
     const fvm_value_type* field_data = opt_ptr.value().first;
@@ -50,12 +50,12 @@ std::vector<fvm_value_type> mechanism_field(gpu::mechanism* m, const std::string
 // Generic access:
 
 std::vector<fvm_value_type> mechanism_field(mechanism* m, const std::string& key) {
-    if (auto p = dynamic_cast<multicore::mechanism*>(m)) {
-        return mechanism_field(p, key);
+    if (m->iface_.backend == arb_backend_kind_cpu) {
+        return mc_mechanism_field(m, key);
     }
 
 #ifdef ARB_GPU_ENABLED
-    if (auto p = dynamic_cast<gpu::mechanism*>(m)) {
+    if (m->iface_.backend == arb_backend_kind_gpu) {
         return mechanism_field(p, key);
     }
 #endif

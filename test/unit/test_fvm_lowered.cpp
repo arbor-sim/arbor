@@ -21,7 +21,6 @@
 #include <arborenv/concurrency.hpp>
 
 #include "backends/multicore/fvm.hpp"
-#include "backends/multicore/mechanism.hpp"
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
@@ -527,10 +526,9 @@ TEST(fvm_lowered, derived_mechs) {
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
             EXPECT_EQ("test_kin1"s, mech->internal_name());
 
-            auto cmech = dynamic_cast<multicore::mechanism*>(mech.get());
-            ASSERT_TRUE(cmech);
+            ASSERT_TRUE(mech);
 
-            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"s);
+            auto opt_tau_ptr = util::value_by_key((mech.get()->*private_global_table_ptr)(), "tau"s);
             ASSERT_TRUE(opt_tau_ptr);
             tau_values.push_back(opt_tau_ptr.value());
         }
@@ -604,7 +602,7 @@ TEST(fvm_lowered, read_valence) {
         // test_ca_read_valence initialization should write ca ion valence
         // to state variable 'record_zca':
 
-        auto mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca_read_valence"));
+        auto mech_ptr = find_mechanism(fvcell, "test_ca_read_valence");
         auto opt_record_z_ptr = util::value_by_key((mech_ptr->*private_field_table_ptr)(), "record_z"s);
 
         ASSERT_TRUE(opt_record_z_ptr);
@@ -629,7 +627,7 @@ TEST(fvm_lowered, read_valence) {
         fvm_cell fvcell(context);
         fvcell.initialize({0}, rec, cell_to_intdom, targets, probe_map);
 
-        auto cr_mech_ptr = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, 0));
+        auto cr_mech_ptr = find_mechanism(fvcell, 0);
         auto cr_opt_record_z_ptr = util::value_by_key((cr_mech_ptr->*private_field_table_ptr)(), "record_z"s);
 
         ASSERT_TRUE(cr_opt_record_z_ptr);
@@ -885,7 +883,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     std::vector<double> expected_init_iconc = {0.75*con_int, 1.*con_int, 0};
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_init_iconc, ion_init_iconc));
 
-    auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
+    auto test_ca = find_mechanism(fvcell, "test_ca");
 
     auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"s);
     ASSERT_TRUE(opt_cai_ptr);
