@@ -146,7 +146,7 @@ TEST(matrix, zero_diagonal_assembled)
     // Capacitances.
     vvec Cm = {1, 1, 1, 1, 1, 2, 3};
 
-    // Intial voltage of zero; currents alone determine rhs.
+    // Initial voltage of zero; currents alone determine rhs.
     array v(7, 0.0);
     vvec area(7, 1.0);
 

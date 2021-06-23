@@ -525,9 +525,9 @@ void register_cells(pybind11::module& m) {
                 if (rev_pot) dec.paint(region, arb::init_reversal_potential{name, *rev_pot});
             },
             "region"_a, "ion_name"_a,
-            pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
-            pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
-            pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
+            pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
+            pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
+            pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",
