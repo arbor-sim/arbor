@@ -81,7 +81,7 @@ public:
         ppack_.events.n_streams = state.n;
         ppack_.events.begin     = state.begin_offset;
         ppack_.events.end       = state.end_offset;
-        ppack_.events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH)
+        ppack_.events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
         iface_.apply_events(&ppack_);
     }
 

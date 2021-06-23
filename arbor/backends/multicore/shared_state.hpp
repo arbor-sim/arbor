@@ -105,13 +105,13 @@ struct istim_state {
     istim_state() = default;
 };
 
-struct mech_storage {
-    array data_;
-    iarray indices_;
-    constraint_partition constraints_;
-};
-
 struct shared_state {
+    struct mech_storage {
+        array data_;
+        iarray indices_;
+        constraint_partition constraints_;
+    };
+
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
 
@@ -137,6 +137,8 @@ struct shared_state {
 
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
+
+    arb_value_type* time_ptr;
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
@@ -200,8 +202,6 @@ struct shared_state {
         array& sample_value);
 
     void reset();
-
-    arb_value_type* time_ptr;
 };
 
 // For debugging only:
