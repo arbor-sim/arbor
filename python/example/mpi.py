@@ -92,12 +92,6 @@ class ring_recipe (arbor.recipe):
         d = 5
         return [arbor.connection((src,0), (gid,0), w, d)]
 
-    def num_targets(self, gid):
-        return 1
-
-    def num_sources(self, gid):
-        return 1
-
     # (9) Attach a generator to the first cell in the ring.
     def event_generators(self, gid):
         if gid==0:

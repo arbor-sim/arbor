@@ -50,8 +50,8 @@ struct cable_cell_impl {
     // The decorations on the cell.
     decor decorations;
 
-    // The lid ranges of placements.
-    std::vector<lid_range> placed_lid_ranges;
+    // The placeable label to lid_range map
+    dynamic_typed_map<constant_type<std::unordered_multimap<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
@@ -79,7 +79,7 @@ struct cable_cell_impl {
     }
 
     template <typename Item>
-    lid_range place(const locset& ls, const Item& item) {
+    void place(const locset& ls, const Item& item, const cell_tag_type& label) {
         auto& mm = get_location_map(item);
         cell_lid_type& lid = placed_count.get<Item>();
         cell_lid_type first = lid;
@@ -88,7 +88,9 @@ struct cable_cell_impl {
             placed<Item> p{l, lid++, item};
             mm.push_back(p);
         }
-        return lid_range(first, lid);
+        auto range = lid_range(first, lid);
+        auto& lid_ranges = labeled_lid_ranges.get<Item>();
+        lid_ranges.insert(std::make_pair(label, range));
     }
 
     template <typename T>
@@ -134,13 +136,6 @@ struct cable_cell_impl {
     mextent concrete_region(const region& r) const {
         return thingify(r, provider);
     }
-
-    lid_range placed_lid_range(unsigned id) const {
-        if (id>=placed_lid_ranges.size()) {
-            throw cable_cell_error(util::pprintf("invalid placement identifier {}", id));
-        }
-        return placed_lid_ranges[id];
-    }
 };
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
@@ -151,15 +146,12 @@ impl_ptr make_impl(cable_cell_impl* c) {
 void cable_cell_impl::init(const decor& d) {
     for (const auto& p: d.paintings()) {
         auto& where = p.first;
-        std::visit([this, &where] (auto&& what) {this->paint(where, what);},
-                   p.second);
+        std::visit([this, &where] (auto&& what) {this->paint(where, what);}, p.second);
     }
     for (const auto& p: d.placements()) {
-        auto& where = p.first;
-        auto lids =
-            std::visit([this, &where] (auto&& what) {return this->place(where, what);},
-                       p.second);
-        placed_lid_ranges.push_back(lids);
+        auto& where = std::get<0>(p);
+        auto& label = std::get<2>(p);
+        std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label);}, std::get<1>(p));
     }
 }
 
@@ -213,8 +205,16 @@ const cable_cell_parameter_set& cable_cell::default_parameters() const {
     return impl_->decorations.defaults();
 }
 
-lid_range cable_cell::placed_lid_range(unsigned id) const {
-    return impl_->placed_lid_range(id);
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::detector_ranges() const {
+    return impl_->labeled_lid_ranges.get<threshold_detector>();
+}
+
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::synapse_ranges() const {
+    return impl_->labeled_lid_ranges.get<mechanism_desc>();
+}
+
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::gap_junction_ranges() const {
+    return impl_->labeled_lid_ranges.get<gap_junction_site>();
 }
 
 } // namespace arb

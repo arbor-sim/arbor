@@ -36,12 +36,6 @@ class cc2_recipe(A.recipe):
     def num_cells(self):
         return 2
 
-    def num_targets(self, gid):
-        return 0
-
-    def num_sources(self, gid):
-        return 0
-
     def cell_kind(self, gid):
         return A.cell_kind.cable
 
@@ -93,12 +87,6 @@ class lif2_recipe(A.recipe):
 
     def num_cells(self):
         return 2
-
-    def num_targets(self, gid):
-        return 0
-
-    def num_sources(self, gid):
-        return 0
 
     def cell_kind(self, gid):
         return A.cell_kind.lif

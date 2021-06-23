@@ -93,9 +93,10 @@ Density mechanisms are associated with a cable cell object with:
 .. cpp:function:: void cable_cell::paint(const region&, mechanism_desc)
 
 Point mechanisms, which are associated with connection end points on a
-cable cell, are attached to a cell with:
+cable cell, are placed on a set of locations given by a locset. The group
+of generated items requires a label. They are attached to a cell with:
 
-.. cpp:function:: void cable_cell::place(const locset&, mechanism_desc)
+.. cpp:function:: void cable_cell::place(const locset&, mechanism_desc, cell_tag_type label)
 
 .. todo::
 

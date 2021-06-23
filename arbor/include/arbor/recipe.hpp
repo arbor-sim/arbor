@@ -41,24 +41,24 @@ struct cell_connection {
     // Connection end-points are represented by pairs
     // (cell index, source/target index on cell).
 
-    cell_member_type source;
-    cell_lid_type dest;
+    cell_global_label_type source;
+    cell_local_label_type dest;
 
     float weight;
     float delay;
 
-    cell_connection(cell_member_type src, cell_lid_type dst, float w, float d):
-        source(src), dest(dst), weight(w), delay(d)
-    {}
+    cell_connection(cell_global_label_type src, cell_local_label_type dst, float w, float d):
+        source(std::move(src)), dest(std::move(dst)), weight(w), delay(d) {}
 };
 
 struct gap_junction_connection {
-    cell_member_type peer;
-    cell_lid_type local;
+    cell_global_label_type peer;
+    cell_local_label_type local;
+
     double ggap;
 
-    gap_junction_connection(cell_member_type peer, cell_lid_type local, double g):
-        peer(peer), local(local), ggap(g) {}
+    gap_junction_connection(cell_global_label_type peer, cell_local_label_type local, double g):
+        peer(std::move(peer)), local(std::move(local)), ggap(g) {}
 };
 
 class recipe {
@@ -69,11 +69,6 @@ public:
     virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
 
-    virtual cell_size_type num_sources(cell_gid_type) const { return 0; }
-    virtual cell_size_type num_targets(cell_gid_type) const { return 0; }
-    virtual cell_size_type num_gap_junction_sites(cell_gid_type gid)  const {
-        return gap_junctions_on(gid).size();
-    }
     virtual std::vector<event_generator> event_generators(cell_gid_type) const {
         return {};
     }

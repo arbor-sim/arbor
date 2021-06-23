@@ -1,5 +1,7 @@
 .. _cppinterconnectivity:
 
+.. cpp:namespace:: arb
+
 Interconnectivity
 #################
 
@@ -13,13 +15,16 @@ Interconnectivity
     :cpp:class:`cell_connection` is bound to the destination cell which means that the gid
     is implicitly known.
 
-    .. cpp:member:: cell_member_type source
+    .. cpp:member:: cell_global_label_type source
 
-        Source end point, represented by the pair (cell gid, source index on the cell)
+        Source end point, represented by a :cpp:type:`cell_global_label_type` which packages
+        a cell gid, label of a group of sources on the cell, and source selection policy.
 
-    .. cpp:member:: cell_lid_type dest
+    .. cpp:member:: cell_local_label_type dest
 
-        Destination target index on the cell, target cell's gid is implicitly known.
+        Destination end point on the cell, represented by a :cpp:type:`cell_local_label_type`
+        which packages a label of a group of targets on the cell and a selection policy.
+        The target cell's gid is implicitly known.
 
     .. cpp:member:: float weight
 
@@ -47,13 +52,16 @@ Interconnectivity
        :cpp:member:`local` site, and ``c0`` is the :cpp:member:`peer` site. If :cpp:member:`ggap` is equal
        in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
 
-    .. cpp:member:: cell_member_type peer
+    .. cpp:member:: cell_global_label_type peer
 
-        Peer gap junction site, represented by the pair (cell gid, gap junction site index on the cell)
+        Peer gap junction site, represented by a :cpp:type:`cell_local_label_type` which packages a cell gid,
+        a label of a group of gap junction sites on the cell, and a site selection policy.
 
-    .. cpp:member:: cell_lid_type local
+    .. cpp:member:: cell_local_label_type local
 
-        Local gap junction site index on the cell, the gid of the local site's cell is implicitly known.
+        Local gap junction site on the cell, represented by a :cpp:type:`cell_local_label_type`
+        which packages a label of a group of gap junction sites on the cell and a selection policy.
+        The gid of the local site's cell is implicitly known.
 
     .. cpp:member:: float ggap
 

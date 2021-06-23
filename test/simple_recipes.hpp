@@ -116,14 +116,6 @@ public:
     cell_size_type num_cells() const override { return cells_.size(); }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
 
-    cell_size_type num_sources(cell_gid_type i) const override {
-        return cells_.at(i).detectors().size();
-    }
-
-    cell_size_type num_targets(cell_gid_type i) const override {
-        return util::sum_by(cells_.at(i).synapses(), [](auto& syn) {return syn.second.size();});
-    }
-
     util::unique_any get_cell_description(cell_gid_type i) const override {
         return util::make_unique_any<cable_cell>(cells_[i]);
     }
