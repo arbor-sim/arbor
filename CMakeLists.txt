@@ -42,6 +42,13 @@ set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
 
 option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
 
+# Optional additional CXX Flags used for all code that will run on the target
+# CPU architecture. Recorded in installed target, for downstream dependencies
+# to use.
+# Useful, for example, when a user wants to compile with target-specific
+# optimization flags.
+set(ARB_CXX_FLAGS_TARGET "" CACHE STRING "Optional additional flags for compilation")
+
 #----------------------------------------------------------
 # Debug support
 #----------------------------------------------------------
@@ -230,11 +237,19 @@ set(arbor_supported_components)
 
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
-if(ARB_ARCH)
-    set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
-    target_compile_options(arbor-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
-    target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXXOPT_ARCH})
+
+# Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
+# will include target-specific -march flags if ARB_ARCH is not "none".
+if(ARB_ARCH STREQUAL "none")
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET})
+else()
+    set_arch_target(ARB_CXXOPT_ARCH ${ARB_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
 endif()
+separate_arguments(ARB_CXX_FLAGS_TARGET_FULL)
+
+target_compile_options(arbor-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
+target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
 
 # Profiling and test features
 #-----------------------------

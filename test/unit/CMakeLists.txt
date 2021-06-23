@@ -215,6 +215,7 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
     OUTPUT "CAT_DUMMY_SOURCES"
     MECHS dummy
+    CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     ARBOR "${PROJECT_SOURCE_DIR}"
     STANDALONE ON
     VERBOSE OFF)
@@ -236,7 +237,7 @@ if(ARB_WITH_HIP_CLANG)
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 endif()
 
-target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
+target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
