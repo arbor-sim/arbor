@@ -31,7 +31,6 @@ jobs:
           CIBW_SKIP: "cp35-*"
           CIBW_ARCH_LINUX: x86_64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          arch: x86_64
           # CIBW_TEST_COMMAND: TODO
 
       - name: Build wheels macos
@@ -45,7 +44,6 @@ jobs:
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_ARCHS_MACOS: x86_64 universal2
-          arch: x86_64
           # CIBW_TEST_COMMAND: TODO
 
       # this action runs auditwheel automatically with the following args:
