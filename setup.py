@@ -25,7 +25,7 @@ class CL_opt:
             CL_opt.instance = {'mpi': False,
                                'gpu': 'none',
                                'vec': False,
-                               'arch': 'native',
+                               'arch': None,
                                'neuroml': True,
                                'bundled': True}
 
@@ -91,7 +91,7 @@ class install_command(install):
         #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
-        opt['arch'] = "native" if self.arch is None else self.arch
+        opt['arch'] = self.arch
         #   neuroml : compile with neuroml support for morphologies.
         opt['neuroml'] = self.neuroml is not None
         #   bundled : use bundled/git-submoduled 3rd party libraries.
@@ -126,7 +126,7 @@ if WHEEL_INSTALLED:
             #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
             opt['vec']  = self.vec is not None
             #   arch : target CPU micro-architecture (string).
-            opt['arch'] = "native" if self.arch is None else self.arch
+            opt['arch'] = self.arch
             #   neuroml : compile with neuroml support for morphologies.
             opt['neuroml'] = self.neuroml is not None
             #   bundled : use bundled/git-submoduled 3rd party libraries.
