@@ -25,7 +25,6 @@
 #include "backends/multicore/fvm.hpp"
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
-#include "backends/gpu/mechanism.hpp"
 #endif
 #include "fvm_lowered_cell_impl.hpp"
 #include "memory/gpu_wrappers.hpp"

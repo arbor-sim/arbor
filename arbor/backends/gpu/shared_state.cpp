@@ -209,8 +209,25 @@ shared_state::shared_state(
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
 }
 
+namespace {
 template<typename T>
-memory::host_view<T> std_view(const std::vector<T>& v) { return memory::host_view<T>{v.data(), v.size()}; }
+memory::const_host_view<T> std_view(const std::vector<T>& v) { return memory::const_host_view<T>{v.data(), v.size()}; }
+
+template<typename T>
+void append_chunk(const std::vector<T>& in, T*& out, T*& ptr, size_t n) {
+    memory::copy(std_view(in), memory::device_view<T>(ptr, n));
+    out = ptr;
+    ptr += n;
+};
+  
+template<typename T>
+void append_const(T in, T*& out, T*& ptr, size_t n) {
+    memory::fill(memory::device_view<T>(ptr, n), in);
+    out = ptr;
+    ptr += n;
+};
+  
+}
 
 void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     using util::make_range;
@@ -262,18 +279,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width==0) return;
 
-    auto append_chunk = [n=width](const auto& in, auto& out, auto& ptr) {
-        memory::copy(std_view(in), memory::device_view<arb_value_type>(ptr, n));
-        out = ptr;
-        ptr += n;
-    };
-
-    auto append_const = [n=width](auto in, auto& out, auto& ptr) {
-        memory::fill(memory::device_view<arb_value_type>(ptr, n), in);
-        out = ptr;
-        ptr += n;
-    };
-
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
@@ -281,13 +286,13 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         store.data_ = array(count, NAN);
         auto base_ptr = store.data_.data();
         // First sub-array of data_ is used for weight_
-        append_chunk(pos_data.weight, m.ppack_.weight, base_ptr);
+        append_chunk(pos_data.weight, m.ppack_.weight, base_ptr, width);
         // Set fields
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            append_const(m.mech_.parameters[idx].default_value, m.parameters_[idx], base_ptr);
+            append_const(m.mech_.parameters[idx].default_value, m.parameters_[idx], base_ptr, width);
         }
         for (auto idx: make_span(m.mech_.n_state_vars)) {
-            append_const(m.mech_.state_vars[idx].default_value, m.state_vars_[idx], base_ptr);
+            append_const(m.mech_.state_vars[idx].default_value, m.state_vars_[idx], base_ptr, width);
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width_padded alignment
         for (auto idx: make_span(m.mech_.n_globals)) m.globals_[idx] = m.mech_.globals[idx].default_value;
@@ -314,7 +319,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         store.indices_ = iarray(count*width_padded);
         auto base_ptr  = store.indices_.data();
         // Setup node indices
-        append_chunk(pos_data.cv, m.ppack_.node_index, base_ptr);
+        append_chunk(pos_data.cv, m.ppack_.node_index, base_ptr, width);
         // Create ion indices
         for (auto idx: make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
@@ -327,10 +332,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             auto ni = memory::on_host(oion->node_index_);
             auto indices = util::index_into(pos_data.cv, ni);
             std::vector<arb_index_type> mech_ion_index(indices.begin(), indices.end());
-            append_chunk(mech_ion_index, index_ptr, base_ptr);
+            append_chunk(mech_ion_index, index_ptr, base_ptr, width);
         }
 
-        if (m.mult_in_place_) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, base_ptr);
+        if (m.mult_in_place_) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, base_ptr, width);
     }
 
     // Shift data to GPU, set up pointers
