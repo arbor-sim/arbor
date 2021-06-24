@@ -48,9 +48,11 @@ void mechanism::set_parameter(const std::string& key, const std::vector<arb_valu
         case arb_backend_kind_cpu:
             copy_extend(values, util::range_n(field_ptr, width_padded_), values.back());
             break;
+#ifdef ARB_HAVE_GPU	    
         case arb_backend_kind_gpu:
             memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(field_ptr, ppack_.width));
             break;
+#endif	    
         default:
             throw arbor_internal_error(util::pprintf("Unknown backend ID '{}'", iface_.backend));
     }
