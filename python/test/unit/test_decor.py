@@ -24,7 +24,7 @@ class DecorClasses(unittest.TestCase):
         self.assertEqual(0, clamp.frequency)
         self.assertEqual([(0, 10)], clamp.envelope)
 
-        clamp = A.iclamp(10, 20);
+        clamp = A.iclamp(10, frequency=20);
         self.assertEqual(20, clamp.frequency)
         self.assertEqual([(0, 10)], clamp.envelope)
 
@@ -33,7 +33,7 @@ class DecorClasses(unittest.TestCase):
         self.assertEqual(0, clamp.frequency)
         self.assertEqual([(100, 3), (120, 3), (120, 0)], clamp.envelope)
 
-        clamp = A.iclamp(100, 20, 3, 7);
+        clamp = A.iclamp(100, 20, 3, frequency=7);
         self.assertEqual(7, clamp.frequency)
         self.assertEqual([(100, 3), (120, 3), (120, 0)], clamp.envelope)
 
@@ -43,7 +43,7 @@ class DecorClasses(unittest.TestCase):
         self.assertEqual(0, clamp.frequency)
         self.assertEqual(envelope, clamp.envelope)
 
-        clamp = A.iclamp(envelope, 7);
+        clamp = A.iclamp(envelope, frequency=7);
         self.assertEqual(7, clamp.frequency)
         self.assertEqual(envelope, clamp.envelope)
 
