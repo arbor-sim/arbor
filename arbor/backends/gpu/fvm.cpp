@@ -14,7 +14,7 @@ fvm_value_type* backend::mechanism_field_data(arb::mechanism* m, const std::stri
 
 void multiply_in_place_(fvm_value_type* s, const fvm_index_type* p, int n);
 
-void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {
+void backend::multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {
     multiply_in_place_(s, p, n);
 }
 

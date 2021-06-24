@@ -230,6 +230,7 @@ void append_const(T in, T*& out, T*& ptr, size_t n) {
 }
 
 void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+    assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
     using util::ptr_by_key;
@@ -245,6 +246,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     auto width_padded = math::round_up(pos_data.cv.size(), alignment);
 
     // Assign non-owning views onto shared state:
+    m.ppack_ = {0};
     m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
