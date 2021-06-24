@@ -221,9 +221,9 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     for (unsigned i = 0; i < 8; i++) {
         arb::decor decor;
         decor.set_default(arb::cv_policy_every_segment());
-        decor.place("\"mid\"", arb::threshold_detector{10});
-        decor.place("\"mid\"", arb::i_clamp::box(0.01+i*dt, duration, 0.5));
-        decor.place("\"mid\"", arb::mechanism_desc("hh"));
+        decor.place("\"mid\"", arb::threshold_detector{10}, "detector");
+        decor.place("\"mid\"", arb::i_clamp::box(0.01+i*dt, duration, 0.5), "clamp");
+        decor.place("\"mid\"", arb::mechanism_desc("expsyn"), "synapse");
 
         arb::cable_cell cell(morpho, dict, decor);
         cable1d_recipe rec({cell});

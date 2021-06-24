@@ -2,8 +2,11 @@
 
 #include <random>
 #include <vector>
+#include <any>
 
+#include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/lif_cell.hpp>
@@ -22,10 +25,8 @@ struct play_spikes: public recipe {
 
     cell_size_type num_cells() const override { return spike_times_.size(); }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::spike_source; }
-    cell_size_type num_sources(cell_gid_type) const override { return 1; }
-    cell_size_type num_targets(cell_gid_type) const override { return 0; }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return spike_source_cell{spike_times_.at(gid)};
+        return spike_source_cell("src", spike_times_.at(gid));
     }
 
     std::vector<schedule> spike_times_;
@@ -33,6 +34,25 @@ struct play_spikes: public recipe {
 
 static auto n_thread_context(unsigned n_thread) {
     return make_context(proc_allocation(std::max((int)n_thread, 1), -1));
+}
+
+struct null_recipe: arb::recipe {
+    arb::cable_cell_global_properties properties;
+    null_recipe() { properties.default_parameters = arb::neuron_parameter_defaults; }
+    arb::cell_size_type num_cells() const override { return 1; }
+    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
+    arb::util::unique_any get_cell_description(arb::cell_gid_type) const override { return {arb::cable_cell{}}; }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override { return {}; }
+    std::any get_global_properties(arb::cell_kind) const override { return properties; }
+};
+
+// Test that cell models with empty morpologies build and run without error.
+TEST(simulation, null) {
+    auto r = null_recipe{};
+    auto c = arb::make_context();
+    auto d = arb::partition_load_balance(r, c);
+    auto s = arb::simulation(r, d, c);
+    s.run(0.05, 0.01);
 }
 
 TEST(simulation, spike_global_callback) {
@@ -81,11 +101,9 @@ struct lif_chain: public recipe {
     cell_size_type num_cells() const override { return n_; }
 
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::lif; }
-    cell_size_type num_sources(cell_gid_type) const override { return 1; }
-    cell_size_type num_targets(cell_gid_type) const override { return 1; }
     util::unique_any get_cell_description(cell_gid_type) const override {
         // A hair-trigger LIF cell with tiny time constant and no refractory period.
-        lif_cell lif;
+        lif_cell lif("src", "tgt");
         lif.tau_m = 0.01;           // time constant (ms)
         lif.t_ref = 0;              // refactory period (ms)
         lif.V_th = lif.E_L + 0.001; // threshold voltage 1 µV higher than resting
@@ -94,7 +112,7 @@ struct lif_chain: public recipe {
 
     std::vector<cell_connection> connections_on(cell_gid_type target) const override {
         if (target) {
-            return {cell_connection({target-1, 0}, 0, weight_, delay_)};
+            return {cell_connection({target-1, "src"}, {"tgt"}, weight_, delay_)};
         }
         else {
             return {};
@@ -106,7 +124,7 @@ struct lif_chain: public recipe {
             return {};
         }
         else {
-            return {schedule_generator(0, weight_, triggers_)};
+            return {schedule_generator({"tgt"}, weight_, triggers_)};
         }
     }
 

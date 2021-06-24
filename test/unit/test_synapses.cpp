@@ -31,9 +31,9 @@ TEST(synapses, add_to_cell) {
 
     auto description = make_cell_soma_only(false);
 
-    description.decorations.place(mlocation{0, 0.1}, "expsyn");
-    description.decorations.place(mlocation{0, 0.2}, "exp2syn");
-    description.decorations.place(mlocation{0, 0.3}, "expsyn");
+    description.decorations.place(mlocation{0, 0.1}, "expsyn", "synapse0");
+    description.decorations.place(mlocation{0, 0.2}, "exp2syn", "synapse1");
+    description.decorations.place(mlocation{0, 0.3}, "expsyn", "synapse2");
 
     cable_cell cell(description);
 
@@ -52,7 +52,7 @@ TEST(synapses, add_to_cell) {
     EXPECT_EQ("exp2syn", syns["exp2syn"][0].item.name());
 
     // adding a synapse to an invalid branch location should throw.
-    description.decorations.place(mlocation{1, 0.3}, "expsyn");
+    description.decorations.place(mlocation{1, 0.3}, "expsyn", "synapse3");
     EXPECT_THROW((cell=description), std::runtime_error);
 }
 

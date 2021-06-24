@@ -22,6 +22,7 @@ set(arbor_sources
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
+    label_resolution.cpp
     lif_cell_group.cpp
     mc_cell_group.cpp
     mechcat.cpp

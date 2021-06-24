@@ -10,12 +10,13 @@
 
 #include "cell_group.hpp"
 #include "epoch.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 
 class spike_source_cell_group: public cell_group {
 public:
-    spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec);
+    spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
     cell_kind get_cell_kind() const override;
 

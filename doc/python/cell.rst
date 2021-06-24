@@ -9,19 +9,105 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
 .. module:: arbor
 
+.. class:: selection_policy
+
+   Enumeration used for selecting an individual item from a group of items sharing the
+   same label.
+
+   .. attribute:: round_robin
+
+      Iterate over the items of the group in a round-robin fashion.
+
+   .. attribute:: univalent
+
+      Assert that only one item is available in the group. Throws an exception if the assertion
+      fails.
+
+.. class:: cell_local_label
+
+   For local identification of an item on an unspecified cell.
+
+   A local string label :attr:`tag` is used to identify a group of items within a particular
+   cell-local collection. Each label is associated with a set of items distributed over various
+   locations on the cell. The exact number of items associated to a label can only be known when the
+   model is built and is therefore not directly available to the user.
+
+   Because each label can be mapped to any of the items in its group, a :attr:`selection_policy`
+   is needed to select one of the items of the group. If the policy is not supplied, the default
+   :attr:`selection_policy.univalent` is selected.
+
+   :class:`cell_local_label` is used for selecting the target of a connection or the
+   local site of a gap junction connection. The cell ``gid`` of the item is implicitly known in the
+   recipe.
+
+   .. attribute:: tag
+
+      Identifier of a group of items in a cell-local collection.
+
+   .. attribute:: selection_policy
+
+      Policy used for selecting a single item of the tagged group.
+
+   An example of a cell member construction reads as follows:
+
+   .. container:: example-code
+
+       .. code-block:: python
+
+           import arbor
+
+           # Create the policy
+           policy = arbor.selection_policy.univalent
+
+           # Create the local label referring to the group of items labeled "syn0".
+           # The group is expected to only contain 1 item.
+           local_label = arbor.cell_local_label("syn0", policy)
+
+.. class:: cell_global_label
+
+   For global identification of an item on a cell.
+   This is used for selecting the source of a connection or the peer site of a gap junction connection.
+   The :attr:`label` expects a :class:`cell_local_label` type.
+
+   .. attribute:: gid
+
+      Global identifier of the cell associated with the item.
+
+   .. attribute:: label
+
+      Identifier of a single item on the cell.
+
+   .. container:: example-code
+
+       .. code-block:: python
+
+           import arbor
+
+           # Create the policy
+           policy = arbor.selection_policy.univalent
+
+           # Creat the local label referring to the group of items labeled "syn0".
+           # The group is expected to only contain 1 item.
+           local_label = arbor.cell_local_label("syn0", policy)
+
+           # Create the global label referring to the group of items labeled "syn0"
+           # on cell 5
+           global_label = arbor.cell_global_label(5, local_label)
 .. class:: cell_member
 
     .. function:: cell_member(gid, index)
 
-        Construct a ``cell_member`` object with parameters :attr:`gid` and :attr:`index` for global identification of a cell-local item.
+        Construct a ``cell_member`` object with parameters :attr:`gid` and :attr:`index` for
+        global identification of a cell-local item.
 
         Items of type :class:`cell_member` must:
 
         * be associated with a unique cell, identified by the member :attr:`gid`;
         * identify an item within a cell-local collection by the member :attr:`index`.
 
-        An example is uniquely identifying a synapse in the model.
-        Each synapse has a post-synaptic cell (with :attr:`gid`), and an :attr:`index` into the set of synapses on the post-synaptic cell.
+        An example is uniquely identifying a probe description in the model.
+        Each probe description has a cell (with :attr:`gid`), and an :attr:`index` into
+        the set of probe descriptions on the cell.
 
         Lexicographically ordered by :attr:`gid`, then :attr:`index`.
 

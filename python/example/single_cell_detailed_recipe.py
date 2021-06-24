@@ -64,10 +64,10 @@ decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
 
 # Place stimuli and spike detectors.
 
-decor.place('"root"', arbor.iclamp(10, 1, current=2))
-decor.place('"root"', arbor.iclamp(30, 1, current=2))
-decor.place('"root"', arbor.iclamp(50, 1, current=2))
-decor.place('"axon_terminal"', arbor.spike_detector(-10))
+decor.place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
+decor.place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")
+decor.place('"root"', arbor.iclamp(50, 1, current=2), "iclamp2")
+decor.place('"axon_terminal"', arbor.spike_detector(-10), "detector")
 
 # Set cv_policy
 
@@ -108,12 +108,6 @@ class single_recipe (arbor.recipe):
 
     def num_cells(self):
         return 1
-
-    def num_sources(self, gid):
-        return 1
-
-    def num_targets(self, gid):
-        return 0
 
     def cell_kind(self, gid):
         return arbor.cell_kind.cable

@@ -193,17 +193,34 @@ struct probe_association_map {
     }
 };
 
+struct fvm_initialization_data {
+    // Map from gid to integration domain id
+    std::vector<fvm_index_type> cell_to_intdom;
+
+    // Handles for accessing lowered cell.
+    std::vector<target_handle> target_handles;
+
+    // Maps probe ids to probe handles and tags.
+    probe_association_map probe_map;
+
+    // Structs required for {gid, label} to lid resolution
+    cell_label_range source_data;
+    cell_label_range target_data;
+    cell_label_range gap_junction_data;
+
+    // Maps storing number of sources/targets per cell.
+    std::unordered_map<cell_gid_type, fvm_size_type> num_sources;
+    std::unordered_map<cell_gid_type, fvm_size_type> num_targets;
+};
+
 // Common base class for FVM implementation on host or gpu back-end.
 
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual void initialize(
+    virtual fvm_initialization_data initialize(
         const std::vector<cell_gid_type>& gids,
-        const recipe& rec,
-        std::vector<fvm_index_type>& cell_to_intdom,
-        std::vector<target_handle>& target_handles,
-        probe_association_map& probe_map) = 0;
+        const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(
         fvm_value_type tfinal,

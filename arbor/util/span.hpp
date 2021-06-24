@@ -22,24 +22,24 @@ namespace util {
 template <typename I>
 using span = range<counter<I>>;
 
-template <typename I, typename J>
+template <typename I, typename J, typename = std::enable_if_t<std::is_integral<std::common_type_t<I, J>>::value>>
 span<std::common_type_t<I, J>> make_span(I left, J right) {
     return span<std::common_type_t<I, J>>(left, right);
 }
 
 template <typename I, typename J>
 span<std::common_type_t<I, J>> make_span(std::pair<I, J> interval) {
-    return span<std::common_type_t<I, J>>(interval.first, interval.second);
+    return make_span(interval.first, interval.second);
 }
 
 template <typename I>
 span<I> make_span(I right) {
-    return span<I>(I{}, right);
+    return make_span(I{}, right);
 }
 
 template <typename Seq>
 auto count_along(const Seq& s) {
-    return util::make_span(std::size(s));
+    return make_span(std::size(s));
 }
 
 } // namespace util

@@ -30,6 +30,7 @@ jobs:
           CIBW_BUILD: "cp3?-manylinux_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_ARCHS_LINUX: x86_64
           # CIBW_TEST_COMMAND: TODO
 
       - name: Build wheels macos

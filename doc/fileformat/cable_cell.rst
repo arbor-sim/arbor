@@ -201,18 +201,22 @@ The various properties and dynamics of the decor are described as follows:
    This expression sets the membrane capacitance of the region tagged ``1`` to 0.02 F/m².
 
 
-.. label:: (place ls:locset prop:placeable)
+.. label:: (place ls:locset prop:placeable label:string)
 
-   This places the property ``prop`` on locset ``ls``.
-   For example:
+   This places the property ``prop`` on locset ``ls`` and labels the group of items on the
+   locset with ``label``. For example:
 
    .. code:: lisp
 
-      (place (locset "mylocset") (threshold-detector 10))
+      (place (locset "mylocset") (threshold-detector 10) "mydetectors")
 
-   This expression places a 10 mV threshold detector on the locset labeled ``mylocset``.
-   (The definition of ``mylocset`` should be provided in a label dictionary associated
-   with the decor).
+   This expression places 10 mV threshold detectors on the locset labeled ``mylocset``,
+   and labels the detectors "mydetectors". The definition of ``mylocset`` should be provided
+   in a label dictionary associated with the decor.
+
+   The number of detectors placed depends on the number of locations in the "mylocset" locset.
+   The placed detectors can be referred to (in the recipe for example) using the label
+   "mydetectors".
 
 .. label:: (default prop:defaultable)
 
@@ -241,8 +245,8 @@ Any number of paint, place and default expressions can be used to create a decor
         (paint (region "soma") (membrane-potential -50.000000))
         (paint (all) (mechanism "pas"))
         (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
-        (place (locset "root") (mechanism "expsyn"))
-        (place (terminal) (gap-junction-site)))
+        (place (locset "root") (mechanism "expsyn") "root_synapse")
+        (place (terminal) (gap-junction-site) "terminal_gj"))
 
 Morphology
 ----------
@@ -334,8 +338,8 @@ expressions.
           (paint (region "my_soma") (temperature-kelvin 270))
           (paint (region "my_region") (membrane-potential -50.000000))
           (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
-          (place (locset "root") (mechanism "expsyn"))
-          (place (location 1 0.2) (gap-junction-site)))
+          (place (locset "root") (mechanism "expsyn") "root_synapse")
+          (place (location 1 0.2) (gap-junction-site) "terminal_gj"))
         (morphology
           (branch 0 -1
             (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
@@ -401,7 +405,7 @@ Decoration
      (meta-data (version "0.1-dev"))
      (decor
        (default (membrane-potential -55.000000))
-       (place (locset "root") (mechanism "expsyn"))
+       (place (locset "root") (mechanism "expsyn") "root_synapse")
        (paint (region "my_soma") (temperature-kelvin 270))))
 
 Morphology
@@ -430,7 +434,7 @@ Cable-cell
          (locset-def "root" (root)))
        (decor
          (default (membrane-potential -55.000000))
-         (place (locset "root") (mechanism "expsyn"))
+         (place (locset "root") (mechanism "expsyn") "root_synapse")
          (paint (region "my_soma") (temperature-kelvin 270)))
        (morphology
           (branch 0 -1

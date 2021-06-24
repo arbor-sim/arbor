@@ -69,8 +69,8 @@ typedef struct arb_constraint_partition {
 
 // Parameter Pack
 typedef struct arb_mechanism_ppack {
-    arb_index_type width;                           // Number of CVs
-    arb_index_type n_detectors;                     // Number of spike detectors
+    arb_index_type  width;                           // Number of CVs
+    arb_index_type  n_detectors;                     // Number of spike detectors
     arb_index_type* vec_ci;
     arb_index_type* vec_di;
     const arb_value_type* vec_t;
@@ -84,7 +84,7 @@ typedef struct arb_mechanism_ppack {
     arb_index_type* node_index;
     arb_index_type* multiplicity;
     arb_value_type* weight;
-    arb_size_type mechanism_id;
+    arb_size_type   mechanism_id;
 
     arb_deliverable_event_stream events;            // Events during the last period
     arb_constraint_partition     index_constraints; // Index restrictions, not initialised for all backend.

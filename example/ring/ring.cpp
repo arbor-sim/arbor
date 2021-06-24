@@ -84,20 +84,12 @@ public:
         return cell_kind::cable;
     }
 
-    // Each cell has one spike detector (at the soma).
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
-    }
-
-    // The cell has one target synapse, which will be connected to cell gid-1.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        return 1;
-    }
-
     // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        return {arb::cell_connection({src, 0}, 0, event_weight_, min_delay_)};
+        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_));
+        return cons;
     }
 
     // Return one event generator on gid 0. This generates a single event that will
@@ -105,7 +97,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{0, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({{{"primary_syn"}, 1.0, event_weight_}}));
         }
         return gens;
     }
@@ -274,7 +266,7 @@ ring_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];

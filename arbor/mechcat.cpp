@@ -16,7 +16,6 @@
 
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
-#include "backends/gpu/mechanism.hpp"
 
 /* Notes on implementation:
  *

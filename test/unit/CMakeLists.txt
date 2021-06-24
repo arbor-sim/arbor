@@ -111,6 +111,7 @@ set(unit_sources
     test_index.cpp
     test_kinetic_linear.cpp
     test_lexcmp.cpp
+    test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp
     test_maputil.cpp
@@ -216,6 +217,7 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     OUTPUT "CAT_DUMMY_SOURCES"
     MECHS dummy
     PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
+    CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     STANDALONE ON
     VERBOSE ON)
   target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
@@ -248,7 +250,7 @@ if(ARB_WITH_HIP_CLANG)
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
 endif()
 
-target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
+target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

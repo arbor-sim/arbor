@@ -28,7 +28,7 @@ Utility wrappers and containers
 .. cpp:function:: template <typename T> any_cast(...)
 
     Equivalent to ``std::any_cast`` for ``std::any`` arguments, ``any_cast``
-    also performs analagous casting for the :cpp:class:`unique_any` and
+    also performs analogous casting for the :cpp:class:`unique_any` and
     :cpp:class:`any_ptr` utility classes.
 
     See :ref:`cppcablecell`.

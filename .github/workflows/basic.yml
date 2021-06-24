@@ -201,3 +201,4 @@ jobs:
             python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
             python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
             python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
+            python python/example/single_cell_cable.py

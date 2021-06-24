@@ -277,8 +277,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        auto count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
-        store.data_ = array(count, NAN);
+        auto count    = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
+        store.data_   = array(count, NAN);
         auto base_ptr = store.data_.data();
         // First sub-array of data_ is used for weight_
         append_chunk(pos_data.weight, m.ppack_.weight, base_ptr);

@@ -86,6 +86,7 @@ make_catalogue(
   OUTPUT "CAT_{name.upper()}_SOURCES"
   MECHS {' '.join(mods)}
   PREFIX @ARB_INSTALL_DATADIR@
+  CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   STANDALONE ON
   VERBOSE {"ON" if verbose else "OFF"})
 """
