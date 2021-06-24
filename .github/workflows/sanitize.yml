@@ -113,10 +113,10 @@ jobs:
             mpirun -n 4 -oversubscribe build/bin/ring
             mpirun -n 4 -oversubscribe build/bin/single-cell
       - name: Run python tests
-        run: python python/test/unit/runner.py
+        run: python python/test/unit/runner.py -v2
       - if:   ${{ matrix.mpi == 'ON' }}
         name: Run python+MPI tests
-        run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py
+        run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py -v2
       - name: Run Python examples
         run: |
             python python/example/network_ring.py

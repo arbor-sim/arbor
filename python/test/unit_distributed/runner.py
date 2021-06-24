@@ -21,6 +21,7 @@ try:
     import test_contexts_arbmpi
     import test_contexts_mpi4py
     import test_domain_decompositions
+    import simulator
     # add more if needed
 except ModuleNotFoundError:
     from test import options
