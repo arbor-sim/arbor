@@ -315,7 +315,7 @@ Mechanism catalogues
             import arbor
 
             cat = arbor.default_catalogue()
-            cat.extend(arbor.dbbs_catalogue(), "")
+            cat.extend(arbor.allen_catalogue(), "")
 
         :param other: reference to other catalogue.
         :type other: :class:`mechanism_catalogue`
