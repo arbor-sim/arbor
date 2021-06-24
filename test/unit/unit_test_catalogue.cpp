@@ -51,9 +51,8 @@ c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(
 #else
 #define ADD_MECH(c, x)\
 c.add(#x, get_mech_info(make_testing_##x()));                       \
-c.register_implementation(#x, std::make_unique<arb::mechanism>{make_testing_##x(), *make_testing_##x##_interface_multicore()}); \
-c.register_implementation(#x, std::make_unique<arb::mechanism>{make_testing_##x(), *make_testing_##x##_interface_gpu()}
-);
+c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore())); \
+c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_gpu()));
 #endif
 
 using namespace arb;

@@ -16,6 +16,7 @@
 
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
+#include "util/span.hpp"
 
 /* Notes on implementation:
  *

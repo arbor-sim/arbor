@@ -6,7 +6,6 @@
 
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
-#include "backends/gpu/mechanism.hpp"
 #include "memory/gpu_wrappers.hpp"
 #endif
 
@@ -33,16 +32,15 @@ std::vector<fvm_value_type> mc_mechanism_field(mechanism* m, const std::string& 
 // GPU mechanisms:
 
 #ifdef ARB_GPU_ENABLED
-ACCESS_BIND(mechanism_field_table (concrete_mechanism<gpu::backend>::*)(), gpu_field_table_ptr, &concrete_mechanism<gpu::backend>::field_table)
 
-std::vector<fvm_value_type> mechanism_field(gpu::mechanism* m, const std::string& key) {
-    auto opt_ptr = util::value_by_key((m->*gpu_field_table_ptr)(), key);
+std::vector<fvm_value_type> gpu_mechanism_field(mechanism* m, const std::string& key) {
+    auto opt_ptr = util::value_by_key((m->*field_table_ptr)(), key);
     if (!opt_ptr) throw std::logic_error("internal error: no such field in mechanism");
 
     const fvm_value_type* field_data = opt_ptr.value().first;
-    std::vector<fvm_value_type> values(m->size());
+    std::vector<fvm_value_type> values(m->ppack_.width);
 
-    memory::gpu_memcpy_d2h(values.data(), field_data, sizeof(fvm_value_type)*m->size());
+    memory::gpu_memcpy_d2h(values.data(), field_data, sizeof(fvm_value_type)*m->ppack_.width);
     return values;
 }
 #endif
@@ -56,7 +54,7 @@ std::vector<fvm_value_type> mechanism_field(mechanism* m, const std::string& key
 
 #ifdef ARB_GPU_ENABLED
     if (m->iface_.backend == arb_backend_kind_gpu) {
-        return mechanism_field(p, key);
+        return gpu_mechanism_field(m, key);
     }
 #endif
 

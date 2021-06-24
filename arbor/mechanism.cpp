@@ -10,6 +10,7 @@
 #include "util/strprintf.hpp"
 
 #include "backends/multicore/fvm.hpp"
+#include "backends/gpu/fvm.hpp"
 
 namespace arb {
 
@@ -19,15 +20,23 @@ using util::ptr_by_key;
 using util::value_by_key;
 
 void mechanism::initialize() {
-    iface_.init_mechanism(&ppack_);
-    if (!mult_in_place_) return;
-    if (iface_.backend == arb_backend_kind_cpu) {
-        for (arb_size_type idx = 0; idx < mech_.n_state_vars; ++idx) {
-            arb::multicore::backend::multiply_in_place(ppack_.state_vars[idx], ppack_.multiplicity, ppack_.width);
-        }
-        return;
+  iface_.init_mechanism(&ppack_);
+  if (!mult_in_place_) return;
+  switch (iface_.backend) {
+  case arb_backend_kind_cpu:
+    for (auto& v: state_vars_) {
+      arb::multicore::backend::multiply_in_place(v, ppack_.multiplicity, ppack_.width);
     }
-    throw arbor_internal_error("Unknown backend");
+    break;
+#ifdef ARB_HAVE_GPU
+  case arb_backend_kind_gpu:
+    for (auto& v: state_vars_) {
+      arb::gpu::backend::multiply_in_place(v, ppack_.multiplicity, ppack_.width);
+    }
+    break;
+#endif
+  default: throw arbor_internal_error(util::pprintf("Unknown backend ID {}", iface_.backend));
+  }
 }
 
 void mechanism::set_parameter(const std::string& key, const std::vector<arb_value_type>& values) {
@@ -39,9 +48,11 @@ void mechanism::set_parameter(const std::string& key, const std::vector<arb_valu
         case arb_backend_kind_cpu:
             copy_extend(values, util::range_n(field_ptr, width_padded_), values.back());
             break;
+#ifdef ARB_HAVE_GPU	    
         case arb_backend_kind_gpu:
             memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(field_ptr, ppack_.width));
             break;
+#endif	    
         default:
             throw arbor_internal_error(util::pprintf("Unknown backend ID '{}'", iface_.backend));
     }

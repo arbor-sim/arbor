@@ -11,14 +11,13 @@ void multiply_in_place_(fvm_value_type* s, const fvm_index_type* p, int n) {
         s[tid_] *= p[tid_];
     }
 }
+}
 
 void multiply_in_place_(fvm_value_type* s, const fvm_index_type* p, int n) {
         unsigned block_dim = 128;
         unsigned grid_dim = gpu::impl::block_count(n, block_dim);
 
-        multiply_in_place_<<<grid_dim, block_dim>>>(s, p, n);
+        kernel::multiply_in_place_<<<grid_dim, block_dim>>>(s, p, n);
 }
-
-} // namespace kernel
 } // namespace gpu
 } // namespace arb
