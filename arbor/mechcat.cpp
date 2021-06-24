@@ -605,34 +605,4 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
     return *((const mechanism_catalogue*)get_catalogue());
 }
 
-mechanism_info get_mech_info(const arb_mechanism_type& mech_) {
-    mechanism_info info;
-    info.post_events = mech_.has_post_events;
-    info.linear      = mech_.is_linear;
-    info.fingerprint = mech_.fingerprint;
-    for (auto idx: util::make_span(mech_.n_globals)) {
-        const auto& v = mech_.globals[idx];
-        info.globals[v.name] = { mechanism_field_spec::field_kind::global, v.unit, v.default_value, v.range_low, v.range_high };
-    }
-    for (auto idx: util::make_span(mech_.n_parameters)) {
-        const auto& v = mech_.parameters[idx];
-        info.parameters[v.name] = { mechanism_field_spec::field_kind::parameter, v.unit, v.default_value, v.range_low, v.range_high };
-    }
-    for (auto idx: util::make_span(mech_.n_state_vars)) {
-        const auto& v = mech_.state_vars[idx];
-        info.state[v.name] = { mechanism_field_spec::field_kind::state, v.unit, v.default_value, v.range_low, v.range_high };
-    }
-    for (auto idx: util::make_span(mech_.n_ions)) {
-        const auto& v = mech_.ions[idx];
-        info.ions[v.name] = { v.write_int_concentration,
-                              v.write_ext_concentration,
-                              v.read_rev_potential,
-                              v.write_rev_potential,
-                              v.read_valence,
-                              v.verify_valence,
-                              v.expected_valence };
-    }
-    return info;
-}
-
 } // namespace arb

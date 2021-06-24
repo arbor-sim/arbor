@@ -122,5 +122,4 @@ const mechanism_catalogue& global_bbp_catalogue();
 
 const mechanism_catalogue& load_catalogue(const std::string&);
 
-mechanism_info get_mech_info(const arb_mechanism_type& mech_);
 } // namespace arb

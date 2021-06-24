@@ -69,7 +69,7 @@ typedef struct arb_constraint_partition {
 
 // Parameter Pack
 typedef struct arb_mechanism_ppack {
-    arb_index_type  width;                           // Number of CVs
+    arb_size_type  width;                           // Number of CVs
     arb_index_type  n_detectors;                     // Number of spike detectors
     arb_index_type* vec_ci;
     arb_index_type* vec_di;

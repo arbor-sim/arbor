@@ -229,7 +229,16 @@ void append_const(T in, T*& out, T*& ptr, size_t n) {
   
 }
 
-void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
+    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
+    auto field_ptr = m.field_data(key);
+    if (!field_ptr) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+    if (!m.ppack_.width) return;
+    assert (m.iface_.backend);
+    memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(field_ptr, m.ppack_.width));
+}
+
+void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;

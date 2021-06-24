@@ -34,7 +34,7 @@ using namespace arb;
 
 using field_kind = mechanism_field_spec::field_kind;
 
-mechanism_info burble_info = {
+mechanism_info burble_info{
     {{"quux",  {field_kind::global, "nA", 2.3,   0, 10.}},
      {"xyzzy", {field_kind::global, "mV", 5.1, -20, 20.}}},
     {},
@@ -43,7 +43,7 @@ mechanism_info burble_info = {
     "burbleprint"
 };
 
-mechanism_info fleeb_info = {
+mechanism_info fleeb_info{
     {{"plugh", {field_kind::global, "C",   2.3,  0, 10.}},
      {"norf",  {field_kind::global, "mGy", 0.1,  0, 5000.}}},
     {},

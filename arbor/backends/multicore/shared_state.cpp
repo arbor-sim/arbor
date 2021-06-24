@@ -396,6 +396,15 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     return out;
 }
 
+void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
+    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
+    auto field_ptr = m.field_data(key);
+    if (!field_ptr) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+    if (!m.ppack_.width) return;
+    copy_extend(values, util::range_n(field_ptr, m.width_padded_), values.back());
+}
+
+
 // ion_state methods:
 
 // The derived class (typically generated code from modcc) holds pointers that need

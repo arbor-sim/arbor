@@ -143,7 +143,7 @@ extern "C" {
         module_includes = indent(0,
             ['#include "{}{}.hpp"'.format(modpfx, m) for m in modules]),
         add_modules = indent(4,
-            [f'cat.add("{mod}", get_mech_info(make_arb_{catalogue}_catalogue_{mod}()));' for mod in modules]),
+            [f'cat.add("{mod}", make_arb_{catalogue}_catalogue_{mod}());' for mod in modules]),
         register_modules = indent(4,
             [f'cat.register_implementation("{mod}", std::make_unique<mechanism>(make_arb_{catalogue}_catalogue_{mod}(), *make_arb_{catalogue}_catalogue_{mod}_interface_{be}()));' for mod in modules for be in backends])
         ))

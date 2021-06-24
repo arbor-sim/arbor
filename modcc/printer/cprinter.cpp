@@ -365,7 +365,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
         out << fmt::format(FMT_COMPILE("static void post_event(arb_mechanism_ppack* pp) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    for (int i_ = 0; i_ < {0}width; ++i_) {{\n"
+                                       "    for (arb_size_type i_ = 0; i_ < {0}width; ++i_) {{\n"
                                        "        auto node_index_i_ = {0}node_index[i_];\n"
                                        "        auto cid_          = {0}vec_ci[node_index_i_];\n"
                                        "        auto offset_       = {0}n_detectors * cid_;\n"
@@ -589,7 +589,7 @@ void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppac
     std::list<index_prop> indices = gather_indexed_vars(indexed_vars, "i_");
     if (!body->statements().empty()) {
         ppack_iface && out << "PPACK_IFACE_BLOCK;\n";
-        cv_loop && out << fmt::format("for (int i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx)
+        cv_loop && out << fmt::format("for (arb_size_type i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx)
                         << indent;
         for (auto index: indices) {
             out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "];\n";
@@ -1026,7 +1026,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
                 emit_simd_state_read(out, sym, simd_expr_constraint::other);
             }
 
-            out << fmt::format("for (auto i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
+            out << fmt::format("for (arb_size_type i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
                                pp_var_pfx)
                 << indent
                 << simdprint(body, scalars)
