@@ -89,7 +89,7 @@ This will produce a catalogue loadable at runtime by calling ``load_catalogue``
 with a filename in both C++ and Python. The steps are
 
 1. Prepare a directory containing your NMODL files (.mod suffixes required)
-2. Call ``build-catalogue`` from the ``scripts`` directory
+2. Call ``build-catalogue`` installed by arbor
 
    .. code-block :: bash
 

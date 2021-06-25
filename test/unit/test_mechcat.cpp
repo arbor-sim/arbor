@@ -52,41 +52,41 @@ mechanism_info fleeb_info{
     "fleebprint"
 };
 
-struct test_mechanism: mechanism {
-    std::vector<std::string> mech_ions;
-    std::unordered_map<std::string, std::string> ion_bindings_;
-};
-
 // Backend classes:
 struct test_backend {
     using iarray = std::vector<fvm_index_type>;
     using array  = std::vector<fvm_value_type>;
 
-    test_backend(const std::unordered_map<std::string, std::string>& ions_): shared_{ions_} {}
+    test_backend(const std::unordered_map<std::string, arb_ion_state>& ions_): shared_{ions_} {}
 
     struct shared_state {
-        shared_state(const std::unordered_map<std::string, std::string>& ions_): ions{ions_} {}
+        shared_state(const std::unordered_map<std::string, arb_ion_state>& ions_): ions{ions_} {}
 
-        void instantiate(mechanism& m_, fvm_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
-            test_mechanism& m = dynamic_cast<test_mechanism&>(m_);
+        void instantiate(mechanism& m, fvm_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
+            m.ppack_ = {0};
             m.ppack_.width = l.cv.size();
-            // Write mechanism global values to shared state to test instatiation call and catalogue global
-            // variable overrides.
-            for (auto& kv: o.globals) {
-                overrides.insert(kv);
-            }
+            m.ppack_.mechanism_id = id;
 
-            for (auto& ion: m.mech_ions) {
+            // Write mechanism global values to shared state to test instantiation call and catalogue global
+            // variable overrides.
+            for (auto& kv: o.globals) overrides.insert(kv);
+
+            ASSERT_EQ(storage.count(id), 0);
+            storage[id].resize(m.mech_.n_ions);
+            m.ppack_.ion_states = storage[id].data();
+            for (arb_size_type idx = 0; idx < m.mech_.n_ions; ++idx) {
+                auto ion = m.mech_.ions[idx].name;
                 if (o.ion_rebind.count(ion)) {
-                    m.ion_bindings_[ion] = ions.at(o.ion_rebind.at(ion));
+                    m.ppack_.ion_states[idx].current_density = ions.at(o.ion_rebind.at(ion)).current_density;
                 } else {
-                    m.ion_bindings_[ion] = ions.at(ion);
+                    m.ppack_.ion_states[idx] = ions.at(ion);
                 }
             }
         }
 
         std::unordered_map<std::string, fvm_value_type> overrides;
-        std::unordered_map<std::string, std::string> ions;
+        std::unordered_map<std::string, arb_ion_state> ions;
+        std::unordered_map<arb_size_type, std::vector<arb_ion_state>> storage;
     };
 
     shared_state shared_;
@@ -107,79 +107,85 @@ struct test_backend {
 
 struct foo_backend: test_backend {
     static constexpr arb_backend_kind kind = 42;
-    foo_backend(): test_backend{{{ "a", "foo_ion_a" },
-                                 { "b", "foo_ion_b" },
-                                 { "c", "foo_ion_c" },
-                                 { "d", "foo_ion_d" },
-                                 { "e", "foo_ion_e" },
-                                 { "f", "foo_ion_f" }}} {}
+    foo_backend(): test_backend{{{ "a", arb_ion_state{(arb_value_type*)0x1, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "b", arb_ion_state{(arb_value_type*)0x2, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "c", arb_ion_state{(arb_value_type*)0x3, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "d", arb_ion_state{(arb_value_type*)0x4, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "e", arb_ion_state{(arb_value_type*)0x5, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "f", arb_ion_state{(arb_value_type*)0x6, nullptr, nullptr, nullptr, nullptr, nullptr}}}} {}
 };
 
 struct bar_backend: test_backend {
     static constexpr arb_backend_kind kind = 23;
-    bar_backend(): test_backend{{{ "a", "bar_ion_a" },
-                                 { "b", "bar_ion_b" },
-                                 { "c", "bar_ion_c" },
-                                 { "d", "bar_ion_d" },
-                                 { "e", "bar_ion_e" },
-                                 { "f", "bar_ion_f" }}} {}
+    bar_backend(): test_backend{{{ "a", arb_ion_state{(arb_value_type*)0x7, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "b", arb_ion_state{(arb_value_type*)0x8, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "c", arb_ion_state{(arb_value_type*)0x8, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "d", arb_ion_state{(arb_value_type*)0x9, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "e", arb_ion_state{(arb_value_type*)0xa, nullptr, nullptr, nullptr, nullptr, nullptr}},
+                                 { "f", arb_ion_state{(arb_value_type*)0xb, nullptr, nullptr, nullptr, nullptr, nullptr}}}} {}
 };
-
-std::string ion_binding(const mechanism& mech, const char* ion) {
-    const test_mechanism& tm = dynamic_cast<const test_mechanism&>(mech);
-    return tm.ion_bindings_.count(ion)? tm.ion_bindings_.at(ion): "";
-}
 
 // Fleeb implementations:
 
-struct fleeb_foo: test_mechanism {
-    fleeb_foo() {
-        this->mech_ions = {"a", "b", "c", "d"};
-        mech_.fingerprint = "fleebprint";
-        mech_.name        = "fleeb";
-        mech_.kind        = arb_mechanism_kind_density;
-        iface_.backend    = foo_backend::kind;
-    }
+static arb_ion_info ion_list[] {{"a"}, {"b"}, {"c"}, {"d"}, {"e"}, {"f"}};
 
-    virtual mechanism_ptr clone() const override { return std::make_unique<fleeb_foo>(); }
-};
+mechanism_ptr mk_fleeb_foo() {
+    arb_mechanism_type m = {0};
+    m.fingerprint = "fleebprint";
+    m.name        = "fleeb";
+    m.kind        = arb_mechanism_kind_density;
+    m.n_ions      = 6;
+    m.ions        = ion_list;
 
-struct special_fleeb_foo: test_mechanism {
-    special_fleeb_foo() {
-        this->mech_ions   = {"a", "b", "c", "d"};
-        mech_.fingerprint = "fleebprint";
-        mech_.name        = "special fleeb";
-        mech_.kind        = arb_mechanism_kind_density;
-        iface_.backend    = foo_backend::kind;
-    }
+    arb_mechanism_interface i = {0};
+    i.backend    = foo_backend::kind;
 
-    virtual mechanism_ptr clone() const override { return std::make_unique<special_fleeb_foo>(); }
-};
+    return std::make_unique<mechanism>(m, i);
+}
 
-struct fleeb_bar: test_mechanism {
-    fleeb_bar() {
-        this->mech_ions = {"a", "b", "c", "d"};
-        mech_.fingerprint = "fleebprint";
-        mech_.name        = "fleeb";
-        mech_.kind        = arb_mechanism_kind_density;
-        iface_.backend    = bar_backend::kind;
-    }
+mechanism_ptr mk_special_fleeb_foo() {
+    arb_mechanism_type m = {0};
+    m.fingerprint = "fleebprint";
+    m.name        = "special fleeb";
+    m.kind        = arb_mechanism_kind_density;
+    m.n_ions      = 6;
+    m.ions        = ion_list;
 
-    virtual mechanism_ptr clone() const override { return std::make_unique<fleeb_bar>(); }
-};
+    arb_mechanism_interface i = {0};
+    i.backend    = foo_backend::kind;
+
+    return std::make_unique<mechanism>(m, i);
+}
+
+mechanism_ptr mk_fleeb_bar() {
+    arb_mechanism_type m = {0};
+    m.fingerprint = "fleebprint";
+    m.name        = "fleeb";
+    m.kind        = arb_mechanism_kind_density;
+    m.n_ions      = 6;
+    m.ions        = ion_list;
+
+    arb_mechanism_interface i = {0};
+    i.backend    = bar_backend::kind;
+
+    return std::make_unique<mechanism>(m, i);
+}
 
 // Burble implementation:
 
-struct burble_bar: test_mechanism {
-    burble_bar() {
-        mech_.fingerprint = "fnord";
-        mech_.name        = "burble";
-        mech_.kind        = arb_mechanism_kind_density;
-        iface_.backend    = bar_backend::kind;
-    }
+mechanism_ptr mk_burble_bar() {
+    arb_mechanism_type m = {0};
+    m.fingerprint = "fnord";
+    m.name        = "burble";
+    m.kind        = arb_mechanism_kind_density;
+    m.n_ions      = 6;
+    m.ions        = ion_list;
 
-        virtual mechanism_ptr clone() const override { return std::make_unique<burble_bar>(); }
-};
+    arb_mechanism_interface i = {0};
+    i.backend    = bar_backend::kind;
+
+    return std::make_unique<mechanism>(m, i);
+}
 
 // Mechinfo equality test:
 
@@ -213,9 +219,9 @@ mechanism_catalogue build_fake_catalogue() {
 
     // Attach implementations:
 
-    cat.register_implementation("fleeb",         std::unique_ptr<mechanism>{new fleeb_bar});
-    cat.register_implementation("fleeb",         std::unique_ptr<mechanism>{new fleeb_foo});
-    cat.register_implementation("special_fleeb", std::unique_ptr<mechanism>{new special_fleeb_foo});
+    cat.register_implementation("fleeb",         mk_fleeb_bar());
+    cat.register_implementation("fleeb",         mk_fleeb_foo());
+    cat.register_implementation("special_fleeb", mk_special_fleeb_foo());
 
     return cat;
 }
@@ -228,7 +234,7 @@ TEST(mechcat, fingerprint) {
     EXPECT_EQ("burbleprint", cat.fingerprint("burble"));
     EXPECT_EQ("burbleprint", cat.fingerprint("bleeble"));
 
-    EXPECT_THROW(cat.register_implementation("burble", std::unique_ptr<mechanism>{new burble_bar}),
+    EXPECT_THROW(cat.register_implementation("burble", std::unique_ptr<mechanism>{mk_burble_bar()}),
         arb::fingerprint_mismatch);
 }
 
@@ -331,6 +337,29 @@ TEST(mechcat, remove) {
     EXPECT_FALSE(cat.has("fleeb2")); // fleeb2 derived from special_fleeb.
 }
 
+bool cmp_mechs(const mechanism& a, const mechanism& b) {
+    return
+        (a.iface_.backend == b.iface_.backend) &&
+        (a.iface_.partition_width == b.iface_.partition_width) &&
+        (a.iface_.alignment == b.iface_.alignment) &&
+        (a.iface_.init_mechanism == b.iface_.init_mechanism) &&
+        (a.iface_.compute_currents == b.iface_.compute_currents) &&
+        (a.iface_.apply_events == b.iface_.apply_events) &&
+        (a.iface_.advance_state == b.iface_.advance_state) &&
+        (a.iface_.write_ions == b.iface_.write_ions) &&
+        (a.iface_.post_event == b.iface_.post_event) &&
+        (a.mech_.abi_version == b.mech_.abi_version) &&
+        (std::string{a.mech_.fingerprint} == std::string{b.mech_.fingerprint}) &&
+        (std::string{a.mech_.name} == std::string{b.mech_.name}) &&
+        (a.mech_.kind == b.mech_.kind) &&
+        (a.mech_.is_linear == b.mech_.is_linear) &&
+        (a.mech_.has_post_events == b.mech_.has_post_events) &&
+        (a.mech_.globals == b.mech_.globals) && (a.mech_.n_globals == b.mech_.n_globals) &&
+        (a.mech_.state_vars == b.mech_.state_vars) && (a.mech_.n_state_vars == b.mech_.n_state_vars) &&
+        (a.mech_.parameters == b.mech_.parameters) && (a.mech_.n_parameters == b.mech_.n_parameters) &&
+        (a.mech_.ions == b.mech_.ions) && (a.mech_.n_ions == b.mech_.n_ions);
+}
+
 TEST(mechcat, instance) {
     auto cat = build_fake_catalogue();
 
@@ -343,10 +372,11 @@ TEST(mechcat, instance) {
     auto special_fleeb_bar_inst = cat.instance(bar_backend::kind, "special_fleeb");
     auto fleeb2_bar_inst = cat.instance(bar_backend::kind, "fleeb2");
 
-    EXPECT_EQ(typeid(fleeb_bar), typeid(*fleeb_bar_inst.mech.get()));
-    EXPECT_EQ(typeid(fleeb_bar), typeid(*fleeb1_bar_inst.mech.get()));
-    EXPECT_EQ(typeid(fleeb_bar), typeid(*special_fleeb_bar_inst.mech.get()));
-    EXPECT_EQ(typeid(fleeb_bar), typeid(*fleeb2_bar_inst.mech.get()));
+    auto fleeb_bar = mk_fleeb_bar();
+    EXPECT_TRUE(cmp_mechs(*fleeb_bar, *fleeb_bar_inst.mech));
+    EXPECT_TRUE(cmp_mechs(*fleeb_bar, *fleeb1_bar_inst.mech));
+    EXPECT_TRUE(cmp_mechs(*fleeb_bar, *special_fleeb_bar_inst.mech));
+    EXPECT_TRUE(cmp_mechs(*fleeb_bar, *fleeb2_bar_inst.mech));
 
     EXPECT_EQ("fleeb"s, fleeb2_bar_inst.mech->internal_name());
 
@@ -358,10 +388,12 @@ TEST(mechcat, instance) {
     auto special_fleeb_foo_inst = cat.instance(foo_backend::kind, "special_fleeb");
     auto fleeb2_foo_inst = cat.instance(foo_backend::kind,"fleeb2");
 
-    EXPECT_EQ(typeid(fleeb_foo), typeid(*fleeb_foo_inst.mech.get()));
-    EXPECT_EQ(typeid(fleeb_foo), typeid(*fleeb1_foo_inst.mech.get()));
-    EXPECT_EQ(typeid(special_fleeb_foo), typeid(*special_fleeb_foo_inst.mech.get()));
-    EXPECT_EQ(typeid(special_fleeb_foo), typeid(*fleeb2_foo_inst.mech.get()));
+    auto fleeb_foo = mk_fleeb_foo();
+    auto special_fleeb_foo = mk_special_fleeb_foo();
+    EXPECT_TRUE(cmp_mechs(*fleeb_foo,  *fleeb_foo_inst.mech));
+    EXPECT_TRUE(cmp_mechs(*fleeb_foo,  *fleeb1_foo_inst.mech));
+    EXPECT_TRUE(cmp_mechs(*special_fleeb_foo, *special_fleeb_foo_inst.mech));
+    EXPECT_TRUE(cmp_mechs(*special_fleeb_foo, *fleeb2_foo_inst.mech));
 
     EXPECT_EQ("fleeb"s, fleeb1_foo_inst.mech->internal_name());
     EXPECT_EQ("special fleeb"s, fleeb2_foo_inst.mech->internal_name());
@@ -377,43 +409,61 @@ TEST(mechcat, instantiate) {
 
     auto cat = build_fake_catalogue();
 
-    auto fleeb = cat.instance(bar_backend::kind, "fleeb");
+    // Check ion rebinding:
+    // fleeb1 should have ions 'a' and 'b' swapped;
+    auto fleeb = cat.instance(bar_backend::kind, "fleeb/a=b,b=a");
     bar.shared_.instantiate(*fleeb.mech, 0, fleeb.overrides, layout);
     EXPECT_TRUE(bar.shared_.overrides.empty());
 
-    bar.shared_.overrides.clear();
-    auto fleeb2 = cat.instance(bar_backend::kind, "fleeb2");
-    bar.shared_.instantiate(*fleeb2.mech, 0, fleeb2.overrides, layout);
-    EXPECT_EQ(2.0,  bar.shared_.overrides.at("plugh"));
-    EXPECT_EQ(11.0, bar.shared_.overrides.at("norf"));
 
-    // Check ion rebinding:
-    // fleeb1 should have ions 'a' and 'b' swapped;
+    EXPECT_EQ(bar.shared_.ions.at("b").current_density, fleeb.mech->ppack_.ion_states[0].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("a").current_density, fleeb.mech->ppack_.ion_states[1].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("c").current_density, fleeb.mech->ppack_.ion_states[2].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("d").current_density, fleeb.mech->ppack_.ion_states[3].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("e").current_density, fleeb.mech->ppack_.ion_states[4].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("f").current_density, fleeb.mech->ppack_.ion_states[5].current_density);
+
+    bar.shared_.overrides.clear();
+
     // fleeb2 should swap 'b' and 'c' relative to fleeb1, so that
     // 'b' maps to the state 'c' ion, 'c' maps to the state 'a' ion,
     // and 'a' maps to the state 'b' ion.
 
-    EXPECT_EQ("bar_ion_a", ion_binding(*fleeb.mech, "a"));
-    EXPECT_EQ("bar_ion_b", ion_binding(*fleeb.mech, "b"));
-    EXPECT_EQ("bar_ion_c", ion_binding(*fleeb.mech, "c"));
-    EXPECT_EQ("bar_ion_d", ion_binding(*fleeb.mech, "d"));
+    auto fleeb2 = cat.instance(bar_backend::kind, "fleeb2/a=b,b=c,c=a");
+    bar.shared_.instantiate(*fleeb2.mech, 1, fleeb2.overrides, layout);
 
+    EXPECT_EQ(bar.shared_.ions.at("b").current_density, fleeb2.mech->ppack_.ion_states[0].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("c").current_density, fleeb2.mech->ppack_.ion_states[1].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("a").current_density, fleeb2.mech->ppack_.ion_states[2].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("d").current_density, fleeb2.mech->ppack_.ion_states[3].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("e").current_density, fleeb2.mech->ppack_.ion_states[4].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("f").current_density, fleeb2.mech->ppack_.ion_states[5].current_density);
+
+    EXPECT_EQ(2.0,  bar.shared_.overrides.at("plugh"));
+    EXPECT_EQ(11.0, bar.shared_.overrides.at("norf"));
+
+    // fleeb3 has a global ion binding
     auto fleeb3 = cat.instance(bar_backend::kind, "fleeb3");
-    bar.shared_.instantiate(*fleeb3.mech, 0, fleeb3.overrides, layout);
+    bar.shared_.instantiate(*fleeb3.mech, 3, fleeb3.overrides, layout);
+
+    EXPECT_EQ(bar.shared_.ions.at("c").current_density, fleeb3.mech->ppack_.ion_states[0].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("a").current_density, fleeb3.mech->ppack_.ion_states[1].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("b").current_density, fleeb3.mech->ppack_.ion_states[2].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("d").current_density, fleeb3.mech->ppack_.ion_states[3].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("e").current_density, fleeb3.mech->ppack_.ion_states[4].current_density);
+    EXPECT_EQ(bar.shared_.ions.at("f").current_density, fleeb3.mech->ppack_.ion_states[5].current_density);
 
     foo_backend foo;
+    // fleeb1 has a global ion binding
     auto fleeb1 = cat.instance(foo_backend::kind, "fleeb1");
-    foo.shared_.instantiate(*fleeb1.mech, 0, fleeb1.overrides, layout);
+    foo.shared_.instantiate(*fleeb1.mech, 4, fleeb1.overrides, layout);
 
-    EXPECT_EQ("foo_ion_b", ion_binding(*fleeb1.mech, "a"));
-    EXPECT_EQ("foo_ion_a", ion_binding(*fleeb1.mech, "b"));
-    EXPECT_EQ("foo_ion_c", ion_binding(*fleeb1.mech, "c"));
-    EXPECT_EQ("foo_ion_d", ion_binding(*fleeb1.mech, "d"));
-
-    EXPECT_EQ("bar_ion_c", ion_binding(*fleeb3.mech, "a"));
-    EXPECT_EQ("bar_ion_a", ion_binding(*fleeb3.mech, "b"));
-    EXPECT_EQ("bar_ion_b", ion_binding(*fleeb3.mech, "c"));
-    EXPECT_EQ("bar_ion_d", ion_binding(*fleeb3.mech, "d"));
+    EXPECT_EQ(foo.shared_.ions.at("b").current_density, fleeb1.mech->ppack_.ion_states[0].current_density);
+    EXPECT_EQ(foo.shared_.ions.at("a").current_density, fleeb1.mech->ppack_.ion_states[1].current_density);
+    EXPECT_EQ(foo.shared_.ions.at("c").current_density, fleeb1.mech->ppack_.ion_states[2].current_density);
+    EXPECT_EQ(foo.shared_.ions.at("d").current_density, fleeb1.mech->ppack_.ion_states[3].current_density);
+    EXPECT_EQ(foo.shared_.ions.at("e").current_density, fleeb1.mech->ppack_.ion_states[4].current_density);
+    EXPECT_EQ(foo.shared_.ions.at("f").current_density, fleeb1.mech->ppack_.ion_states[5].current_density);
 }
 
 TEST(mechcat, bad_ion_rename) {

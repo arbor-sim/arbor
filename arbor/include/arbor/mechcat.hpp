@@ -17,11 +17,8 @@
 // 2. A further hierarchy of 'derived' mechanisms, that allow specialization of
 //    global parameters, ion bindings, and implementations.
 //
-// 3. A map taking mechanism names x back-end class -> mechanism implementation
+// 3. A map taking mechanism names x back-end kind -> mechanism implementation
 //    prototype object.
-//
-// Implementations for a backend `B` are represented by a pointer to a 
-// `concrete_mechanism<B>` object.
 //
 // References to mechanism_info and mechanism_fingerprint objects are invalidated
 // after any modification to the catalogue.

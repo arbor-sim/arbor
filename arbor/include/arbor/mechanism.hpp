@@ -9,9 +9,6 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 
-#include "../../backends/multi_event_stream_state.hpp"
-#include "../../backends/event.hpp"
-
 namespace arb {
 
 class mechanism;
@@ -63,9 +60,8 @@ public:
     // Does the implementation require padding and alignment of shared data structures?
     unsigned data_alignment() const { return iface_.alignment; }
 
-    // Cloning makes a new object of the derived concrete mechanism type, but does not
-    // copy any state.
-    virtual mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
+    // Make a new object of the derived mechanism type, but does not copy any state.
+    mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
     // Non-global parameters can be set post-instantiation:
     void set_parameter(const std::string&, const std::vector<arb_value_type>&);
@@ -76,12 +72,9 @@ public:
     void update_state()   { ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_); }
     void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
     void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
-    void deliver_events(const multi_event_stream_state<deliverable_event_data>& state) {
-        ppack_.vec_t            = *time_ptr_ptr;
-        ppack_.events.n_streams = state.n;
-        ppack_.events.begin     = state.begin_offset;
-        ppack_.events.end       = state.end_offset;
-        ppack_.events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
+    void deliver_events(arb_deliverable_event_stream& stream) {
+        ppack_.vec_t  = *time_ptr_ptr;
+        ppack_.events = stream;
         iface_.apply_events(&ppack_);
     }
 
@@ -113,12 +106,6 @@ public:
 
    arb_value_type** time_ptr_ptr;
 };
-
-// Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
-// likely via an intermediate class that captures common behaviour for that backend.
-//
-// `concrete_mechanism` provides the `instantiate` method, which takes the backend-specific shared state,
-// together with a layout derived from the discretization, and any global parameter overrides.
 
 struct mechanism_layout {
     // Maps in-instance index to CV index.

@@ -160,8 +160,15 @@ TEST(synapses, syn_basic_state) {
     state.deliverable_events.init(events);
     state.deliverable_events.mark_until_after(state.time);
 
-    expsyn->deliver_events(state.deliverable_events.marked_events());
-    exp2syn->deliver_events(state.deliverable_events.marked_events());
+    auto marked = state.deliverable_events.marked_events();
+    arb_deliverable_event_stream evts;
+    evts.n_streams = marked.n;
+    evts.begin     = marked.begin_offset;
+    evts.end       = marked.end_offset;
+    evts.events    = (arb_deliverable_event_data*) marked.ev_data; // FIXME(TH): This relies on bit-castability
+
+    expsyn->deliver_events(evts);
+    exp2syn->deliver_events(evts);
 
     using fvec = std::vector<fvm_value_type>;
 

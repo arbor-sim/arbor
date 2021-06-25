@@ -242,7 +242,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->zero_currents();
         PL();
         for (auto& m: mechanisms_) {
-            m->deliver_events(state_->deliverable_events.marked_events());
+            auto state = state_->deliverable_events.marked_events();
+            arb_deliverable_event_stream events;
+            events.n_streams = state.n;
+            events.begin     = state.begin_offset;
+            events.end       = state.end_offset;
+            events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
+            m->deliver_events(events);
             m->update_current();
         }
 

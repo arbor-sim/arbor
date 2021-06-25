@@ -147,7 +147,7 @@ range<U, V> make_range(const std::pair<U, V>& iterators) {
 
 // From pointer and length
 template <typename T>
-range<T*, T*> range_n(T* t, size_t n) {
+range<T, T> range_n(T t, size_t n) {
     return {t, t + n};
 }
 
