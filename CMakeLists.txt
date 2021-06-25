@@ -255,6 +255,7 @@ separate_arguments(ARB_CXX_FLAGS_TARGET_FULL)
 
 target_compile_options(arbor-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_options(arborenv-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
+target_compile_options(arborio-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
 
 # Profiling and test features
 #-----------------------------
