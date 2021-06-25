@@ -425,13 +425,14 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
 
 void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     util::padded_allocator<> pad(alignment);
+
     // Set internal variables
-    m.mult_in_place_ = !pos_data.multiplicity.empty();
     m.num_ions_      = m.mech_.n_ions;
     m.width_padded_  = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
     m.time_ptr_ptr   = &time_ptr;
 
     // Assign non-owning views onto shared state:
+    m.ppack_ = {0};
     m.ppack_.width            = pos_data.cv.size();
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
@@ -446,6 +447,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
     m.ppack_.vec_t            = nullptr;
+
+    auto mult_in_place = !pos_data.multiplicity.empty();
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
@@ -517,7 +520,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // Make index bulk storage
     {
         // Allocate bulk storage
-        auto count     = (m.mult_in_place_ ? 1 : 0) + m.mech_.n_ions + 1;
+        auto count     = (mult_in_place ? 1 : 0) + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*m.width_padded_, 0, pad);
         auto base_ptr  = store.indices_.data();
         // Setup node indices
@@ -548,7 +551,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             auto ion_index = util::range_n(index_ptr, m.width_padded_);
             arb_assert(compatible_index_constraints(node_index, ion_index, m.iface_.partition_width));
         }
-        if (m.mult_in_place_) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, 0, base_ptr);
+        if (mult_in_place) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, 0, base_ptr);
     }
 }
 

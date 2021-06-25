@@ -21,13 +21,6 @@ using util::value_by_key;
 
 void mechanism::initialize() {
   iface_.init_mechanism(&ppack_);
-  if (!mult_in_place_) return;
-  switch (iface_.backend) {
-  case arb_backend_kind_cpu:
-    for (auto& v: state_vars_) {
-      arb::multicore::backend::multiply_in_place(v, ppack_.multiplicity, ppack_.width);
-    }
-    break;
 #ifdef ARB_HAVE_GPU
   case arb_backend_kind_gpu:
     for (auto& v: state_vars_) {
@@ -35,8 +28,6 @@ void mechanism::initialize() {
     }
     break;
 #endif
-  default: throw arbor_internal_error(util::pprintf("Unknown backend ID {}", iface_.backend));
-  }
 }
 
 arb_value_type* mechanism::field_data(const std::string& var) {

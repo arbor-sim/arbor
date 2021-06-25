@@ -276,7 +276,28 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     };
 
 
-    emit_api_wrapper(init_api,        "width");
+    {
+        auto api_name = init_api->name();
+        auto n = std::count_if(vars.arrays.begin(), vars.arrays.end(),
+                               [] (const auto& v) { return v->is_state(); });
+
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p) {{"), class_name, api_name);
+        if(!init_api->body()->statements().empty()) {
+            out << fmt::format(FMT_COMPILE("\n"
+                                           "    auto n = p->{0};\n"
+                                           "    unsigned block_dim = 128;\n"
+                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
+                                           "    {1}<<<grid_dim, block_dim>>>(*p);\n"
+                                           "    if (!{2}multiplicity)"
+                                           "    multiply<<grid_dim, block_dim>(pp->state_vars, {2}multiplicity, {3});\n"),
+                               "width",
+                               api_name,
+                               pp_var_pfx,
+                               n);
+        }
+        out << "}\n\n";
+    }
+
     emit_api_wrapper(current_api,     "width");
     emit_api_wrapper(state_api,       "width");
     emit_api_wrapper(write_ions_api,  "width");

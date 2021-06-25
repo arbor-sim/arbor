@@ -323,6 +323,18 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         << "// interface methods\n";
     out << "static void init(arb_mechanism_ppack* pp) {\n" << indent;
     emit_body(init_api);
+    if (init_api && init_api->body() && !init_api->body()->statements().empty()) {
+        auto n = std::count_if(vars.arrays.begin(), vars.arrays.end(),
+                               [] (const auto& v) { return v->is_state(); });
+        out << fmt::format(FMT_COMPILE("if (!{0}multiplicity) return;\n"
+                                       "for (arb_size_type ix = 0; ix < {1}; ++ix) {{\n"
+                                       "    for (arb_size_type iy = 0; iy < {0}width; ++iy) {{\n"
+                                       "        pp->state_vars[ix][iy] *= {0}multiplicity[iy];\n"
+                                       "    }}\n"
+                                       "}}\n"),
+                           pp_var_pfx,
+                           n);
+    }
     out << popindent << "}\n\n";
 
     out << "static void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
