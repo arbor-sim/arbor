@@ -38,8 +38,8 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
-Version 0.5
-    |z05|
+Version 0.5.2
+    |z052|
 
     .. code-block:: latex
 
@@ -90,6 +90,9 @@ Introductory paper
 
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
+
+.. |z052| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5031633.svg
+    :target: https://doi.org/10.5281/zenodo.5031633
 
 .. |z05| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4428108.svg
     :target: https://doi.org/10.5281/zenodo.4428108
