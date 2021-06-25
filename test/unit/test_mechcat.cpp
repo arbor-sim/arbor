@@ -71,7 +71,7 @@ struct test_backend {
             // variable overrides.
             for (auto& kv: o.globals) overrides.insert(kv);
 
-            ASSERT_EQ(storage.count(id), 0);
+            ASSERT_EQ(storage.count(id), 0ul);
             storage[id].resize(m.mech_.n_ions);
             m.ppack_.ion_states = storage[id].data();
             for (arb_size_type idx = 0; idx < m.mech_.n_ions; ++idx) {
