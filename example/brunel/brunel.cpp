@@ -119,18 +119,18 @@ public:
         std::vector<cell_connection> connections;
         // Add incoming excitatory connections.
         for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
-            connections.push_back({{cell_gid_type(i), 0}, 0, weight_exc_, delay_});
+            connections.push_back({{cell_gid_type(i), "src"}, {"tgt"}, weight_exc_, delay_});
         }
 
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
-            connections.push_back({{cell_gid_type(i), 0}, 0, weight_inh_, delay_});
+            connections.push_back({{cell_gid_type(i), "src"}, {"tgt"}, weight_inh_, delay_});
         }
         return connections;
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell();
+        auto cell = lif_cell("src", "tgt");
         cell.tau_m = 10;
         cell.V_th = 10;
         cell.C_m = 20;
@@ -145,15 +145,7 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
         time_type t0 = 0;
-        return {poisson_generator(0, weight_ext_, t0, lambda_, G)};
-    }
-
-    cell_size_type num_sources(cell_gid_type) const override {
-         return 1;
-    }
-
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
+        return {poisson_generator({"tgt"}, weight_ext_, t0, lambda_, G)};
     }
 
 private:

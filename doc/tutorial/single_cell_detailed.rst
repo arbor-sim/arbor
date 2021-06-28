@@ -323,16 +323,25 @@ constructed in order to change the default values of its 'gbar' parameter.
 
 The decor object is also used to *place* stimuli and spike detectors on the cell using :meth:`arbor.decor.place`.
 We place 3 current clamps of 2 nA on the "root" locset defined earlier, starting at time = 10, 30, 50 ms and
-lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV:
+lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV.
+Every placement gets a label. The labels of detectors and synapses are used to form connection from and to them
+in the recipe.
 
 .. code-block:: python
 
    # Place stimuli and spike detectors on certain locsets
 
-   decor.place('"root"', arbor.iclamp(10, 1, current=2))
-   decor.place('"root"', arbor.iclamp(30, 1, current=2))
-   decor.place('"root"', arbor.iclamp(50, 1, current=2))
-   decor.place('"axon_terminal"', arbor.spike_detector(-10))
+   decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
+   decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
+   decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
+   decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
+
+.. Note::
+
+   The number of individual locations in the ``'axon_terminal'`` locset depends on the underlying morphology and the
+   number of axon branches in the morphology. The number of detectors that get added on the cell is equal to the number
+   of locations in the locset, and the label ``'detector'`` refers to all of them. If we want to refer to a single
+   detector from the group (to form a network connection for example), we need a :py:class:`arbor.selection_policy`.
 
 Finally, there's one last property that impacts the behavior of a model: the discretisation.
 Cells in Arbor are simulated as discrete components called control volumes (CV). The size of

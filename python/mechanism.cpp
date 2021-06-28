@@ -135,7 +135,7 @@ void register_mechanisms(pybind11::module& m) {
                     return c[name];
                 }
                 catch (...) {
-                    throw std::runtime_error(util::pprintf("\nKeyError: '{}'", name));
+                    throw pybind11::key_error(name);
                 }
             })
         .def("extend", &arb::mechanism_catalogue::import,

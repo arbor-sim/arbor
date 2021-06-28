@@ -82,10 +82,10 @@ TEST(piecewise, assign) {
 
     ASSERT_EQ(4u, p.size());
 
-    EXPECT_EQ(10, p[0].second);
-    EXPECT_EQ( 8, p[1].second);
-    EXPECT_EQ( 9, p[2].second);
-    EXPECT_EQ( 4, p[3].second);
+    EXPECT_EQ(10, p[0].element);
+    EXPECT_EQ( 8, p[1].element);
+    EXPECT_EQ( 9, p[2].element);
+    EXPECT_EQ( 4, p[3].element);
 
     using dp = std::pair<double, double>;
     EXPECT_EQ(dp(1.0, 1.5), p.interval(0));
@@ -168,13 +168,13 @@ TEST(piecewise, access) {
     p.assign(v, x);
 
     for (unsigned i = 0; i<4; ++i) {
-        EXPECT_EQ(v[i], p[i].first.first);
-        EXPECT_EQ(v[i+1], p[i].first.second);
+        EXPECT_EQ(v[i], p[i].interval.first);
+        EXPECT_EQ(v[i+1], p[i].interval.second);
 
         EXPECT_EQ(v[i], p.interval(i).first);
         EXPECT_EQ(v[i+1], p.interval(i).second);
 
-        EXPECT_EQ(x[i], p[i].second);
+        EXPECT_EQ(x[i], p[i].element);
         EXPECT_EQ(x[i], p.element(i));
     }
 
@@ -240,21 +240,21 @@ TEST(piecewise, equal_range) {
 
         auto er1 = p.equal_range(1.0);
         ASSERT_EQ(1, er1.second-er1.first);
-        EXPECT_EQ(10, er1.first->second);
+        EXPECT_EQ(10, er1.first->element);
 
         auto er2 = p.equal_range(2.0);
         ASSERT_EQ(2, er2.second-er2.first);
         auto iter = er2.first;
-        EXPECT_EQ(10, iter++->second);
-        EXPECT_EQ(9, iter->second);
+        EXPECT_EQ(10, iter++->element);
+        EXPECT_EQ(9, iter->element);
 
         auto er3_5 = p.equal_range(3.5);
         ASSERT_EQ(1, er3_5.second-er3_5.first);
-        EXPECT_EQ(8, er3_5.first->second);
+        EXPECT_EQ(8, er3_5.first->element);
 
         auto er4 = p.equal_range(4.0);
         ASSERT_EQ(1, er4.second-er4.first);
-        EXPECT_EQ(8, er4.first->second);
+        EXPECT_EQ(8, er4.first->element);
 
         auto er5 = p.equal_range(5.0);
         ASSERT_EQ(er5.first, er5.second);
@@ -269,22 +269,22 @@ TEST(piecewise, equal_range) {
         auto er1 = p.equal_range(1.0);
         ASSERT_EQ(2, er1.second-er1.first);
         auto iter = er1.first;
-        EXPECT_EQ(10, iter++->second);
-        EXPECT_EQ(11, iter++->second);
+        EXPECT_EQ(10, iter++->element);
+        EXPECT_EQ(11, iter++->element);
 
         auto er2 = p.equal_range(2.0);
         ASSERT_EQ(4, er2.second-er2.first);
         iter = er2.first;
-        EXPECT_EQ(11, iter++->second);
-        EXPECT_EQ(12, iter++->second);
-        EXPECT_EQ(13, iter++->second);
-        EXPECT_EQ(14, iter++->second);
+        EXPECT_EQ(11, iter++->element);
+        EXPECT_EQ(12, iter++->element);
+        EXPECT_EQ(13, iter++->element);
+        EXPECT_EQ(14, iter++->element);
 
         auto er3 = p.equal_range(3.0);
         ASSERT_EQ(2, er3.second-er3.first);
         iter = er3.first;
-        EXPECT_EQ(14, iter++->second);
-        EXPECT_EQ(15, iter++->second);
+        EXPECT_EQ(14, iter++->element);
+        EXPECT_EQ(15, iter++->element);
 
         auto er5 = p.equal_range(5.0);
         ASSERT_EQ(er5.first, er5.second);
@@ -304,12 +304,12 @@ TEST(piecewise, push) {
     q.push_back(3.1, 4.3, 5);
     EXPECT_EQ(dp(1.1, 3.1), q.interval(0));
     EXPECT_EQ(dp(3.1, 4.3), q.interval(1));
-    EXPECT_EQ(4, q[0].second);
-    EXPECT_EQ(5, q[1].second);
+    EXPECT_EQ(4, q[0].element);
+    EXPECT_EQ(5, q[1].element);
 
     q.push_back(7.2, 6);
     EXPECT_EQ(dp(4.3, 7.2), q.interval(2));
-    EXPECT_EQ(6, q[2].second);
+    EXPECT_EQ(6, q[2].element);
 
     // Supplied left side doesn't match current right.
     EXPECT_THROW(q.push_back(7.4, 9.1, 7), std::runtime_error);
@@ -340,7 +340,7 @@ TEST(piecewise, zip) {
     p03.assign((double [3]){0., 1.5, 3.}, (int [2]){10, 11});
 
     pw_elements<int> p14;
-    p14.assign((double [5]){1, 2.25, 3., 3.5, 4.}, (int [4]){3, 4, 5, 6});
+    p14.assign((double [5]){1, 2.25, 3.25, 3.5, 4.}, (int [4]){3, 4, 5, 6});
 
     using ii = std::pair<int, int>;
     pw_elements<ii> p03_14 = zip(p03, p14);
@@ -367,27 +367,102 @@ TEST(piecewise, zip) {
     EXPECT_EQ((std::vector<double>{1., 1.5, 2.25, 3.}), zip(p14, v03).vertices());
 
     auto project = [](double l, double r, pw_element<void>, const pw_element<int>& b) -> double {
-        double b_width = b.first.second-b.first.first;
-        return b.second*(r-l)/b_width;
+        double b_width = b.interval.second-b.interval.first;
+        return b.element*(r-l)/b_width;
     };
 
     pw_elements<void> vxx; // elements cover bounds of p14
     vxx.assign((double [6]){0.2, 1.7, 1.95, 2.325, 2.45, 4.9});
 
     pw_elements<double> pxx = zip(vxx, p14, project);
-    double p14_sum = util::sum(util::transform_view(p14, [](auto v) { return v.second; }));
-    double pxx_sum = util::sum(util::transform_view(pxx, [](auto v) { return v.second; }));
+    double p14_sum = util::sum(util::transform_view(p14, [](auto v) { return v.element; }));
+    double pxx_sum = util::sum(util::transform_view(pxx, [](auto v) { return v.element; }));
     EXPECT_DOUBLE_EQ(p14_sum, pxx_sum);
 
 }
 
-TEST(piecewise, zip_void) {
-    pw_elements<> p03;
-    p03.assign((double [3]){0., 1.5, 3.});
+TEST(piecewise, zip_zero_length_elements) {
+    pw_elements<int> p03a;
+    p03a.assign((double [5]){0, 0, 1.5, 3, 3}, (int [4]){10, 11, 12, 13});
 
-    pw_elements<> p14;
-    p14.assign((double [5]){1, 2.25, 3., 3.5, 4.});
+    pw_elements<int> p03b;
+    p03b.assign((double [7]){0, 0, 0, 1, 3, 3, 3.}, (int [6]){20, 21, 22, 23, 24, 25});
 
-    EXPECT_EQ((std::vector<double>{1., 1.5, 2.25, 3.}), zip(p03, p14).vertices());
-    EXPECT_EQ((std::vector<double>{1., 1.5, 2.25, 3.}), zip(p14, p03).vertices());
+    pw_elements<int> p33;
+    p33.assign((double [3]){3, 3, 3}, (int [2]){30, 31});
+
+    pw_elements<int> p14;
+    p14.assign((double [3]){1, 2, 4}, (int [2]){40, 41});
+
+    auto flip = [](auto& pairs) { for (auto& [l, r]: pairs) std::swap(l, r); };
+    using ii = std::pair<int, int>;
+
+    {
+        pw_elements<ii> zz = zip(p03a, p03b);
+        EXPECT_EQ(0., zz.bounds().first);
+        EXPECT_EQ(3., zz.bounds().second);
+
+        std::vector<double> expected_vertices = {0, 0, 0, 1, 1.5, 3, 3, 3};
+        std::vector<ii> expected_elements = {ii(10, 20), ii(11, 21), ii(11,22), ii(11,23), ii(12, 23), ii(13,24), ii(13,25)};
+
+        EXPECT_EQ(expected_vertices, zz.vertices());
+        EXPECT_EQ(expected_elements, zz.elements());
+
+        pw_elements<ii> yy = zip(p03b, p03a);
+        flip(expected_elements);
+
+        EXPECT_EQ(expected_vertices, yy.vertices());
+        EXPECT_EQ(expected_elements, yy.elements());
+    }
+
+    {
+        pw_elements<ii> zz = zip(p03a, p33);
+        EXPECT_EQ(3., zz.bounds().first);
+        EXPECT_EQ(3., zz.bounds().second);
+
+        std::vector<double> expected_vertices = {3, 3, 3};
+        std::vector<ii> expected_elements = {ii(12, 30), ii(13, 31)};
+
+        EXPECT_EQ(expected_vertices, zz.vertices());
+        EXPECT_EQ(expected_elements, zz.elements());
+
+        pw_elements<ii> yy = zip(p33, p03a);
+        flip(expected_elements);
+
+        EXPECT_EQ(expected_vertices, yy.vertices());
+        EXPECT_EQ(expected_elements, yy.elements());
+
+    }
+
+    {
+        pw_elements<ii> zz = zip(p03a, p14);
+        EXPECT_EQ(1., zz.bounds().first);
+        EXPECT_EQ(3., zz.bounds().second);
+
+        std::vector<double> expected_vertices = {1, 1.5, 2, 3, 3};
+        std::vector<ii> expected_elements = {ii(11, 40), ii(12, 40), ii(12, 41), ii(13, 41)};
+
+        EXPECT_EQ(expected_vertices, zz.vertices());
+        EXPECT_EQ(expected_elements, zz.elements());
+
+        pw_elements<ii> yy = zip(p14, p03a);
+        flip(expected_elements);
+
+        EXPECT_EQ(expected_vertices, yy.vertices());
+        EXPECT_EQ(expected_elements, yy.elements());
+    }
+
+    {
+        // Check void version too!
+        pw_elements<> v03a(p03a), v03b(p03b);
+        pw_elements<> zz = zip(v03a, v03b);
+        EXPECT_EQ(0., zz.bounds().first);
+        EXPECT_EQ(3., zz.bounds().second);
+
+        std::vector<double> expected_vertices = {0, 0, 0, 1, 1.5, 3, 3, 3};
+        EXPECT_EQ(expected_vertices, zz.vertices());
+
+        pw_elements<> yy = zip(v03b, v03a);
+        EXPECT_EQ(expected_vertices, yy.vertices());
+    }
 }

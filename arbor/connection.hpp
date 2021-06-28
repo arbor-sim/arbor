@@ -10,11 +10,11 @@ namespace arb {
 class connection {
 public:
     connection() = default;
-    connection( cell_member_type src,
-                cell_lid_type dest,
-                float w,
-                float d,
-                cell_gid_type didx=cell_gid_type(-1)):
+    connection(cell_member_type src,
+               cell_lid_type dest,
+               float w,
+               float d,
+               cell_gid_type didx=cell_gid_type(-1)):
         source_(src),
         destination_(dest),
         weight_(w),

@@ -23,8 +23,10 @@
 namespace arb {
 
 communicator::communicator(const recipe& rec,
-                          const domain_decomposition& dom_dec,
-                          execution_context& ctx)
+                           const domain_decomposition& dom_dec,
+                           const label_resolution_map& source_resolution_map,
+                           const label_resolution_map& target_resolution_map,
+                           execution_context& ctx)
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -78,17 +80,9 @@ communicator::communicator(const recipe& rec,
     std::vector<cell_size_type> src_counts(num_domains_);
 
     for (const auto& cell: gid_infos) {
-        auto num_targets = rec.num_targets(cell.gid);
         for (auto c: cell.conns) {
-            auto num_sources = rec.num_sources(c.source.gid);
             if (c.source.gid >= num_total_cells) {
                 throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
-            }
-            if (c.source.index >= num_sources) {
-                throw arb::bad_connection_source_lid(cell.gid, c.source.index, num_sources);
-            }
-            if (c.dest >= num_targets) {
-                throw arb::bad_connection_target_lid(cell.gid, c.dest, num_targets);
             }
             const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
@@ -103,10 +97,14 @@ communicator::communicator(const recipe& rec,
     util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
+    auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
-        for (auto c: cell.conns) {
+        auto source_resolver = resolver(&source_resolution_map);
+        for (const auto& c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
-            connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+            auto src_lid = source_resolver.resolve(c.source);
+            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+            connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
     }

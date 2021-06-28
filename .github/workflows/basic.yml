@@ -184,10 +184,13 @@ jobs:
             mpirun -n 4 -oversubscribe build/bin/ring
             mpirun -n 4 -oversubscribe build/bin/single-cell
       - name: Run python tests
-        run: python python/test/unit/runner.py
+        run: |
+          cd build
+          python ../python/test/unit/runner.py -v2
+          cd -
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
-        run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py
+        run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py -v2
       - name: Run Python examples
         run: |
             python python/example/network_ring.py
@@ -198,3 +201,4 @@ jobs:
             python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
             python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
             python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
+            python python/example/single_cell_cable.py

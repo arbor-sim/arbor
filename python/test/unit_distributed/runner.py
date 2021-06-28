@@ -21,6 +21,7 @@ try:
     import test_contexts_arbmpi
     import test_contexts_mpi4py
     import test_domain_decompositions
+    import test_simulator
     # add more if needed
 except ModuleNotFoundError:
     from test import options
@@ -72,7 +73,9 @@ if __name__ == "__main__":
         sys.stdout = open(os.devnull, 'w')
         runner = unittest.TextTestRunner(stream=sys.stdout)
 
-    runner.run(suite())
+    result = runner.run(suite())
 
     if not arb.mpi_is_finalized():
        arb.mpi_finalize()
+
+    sys.exit(not(result.wasSuccessful()))

@@ -48,6 +48,34 @@ mechanism that is to be painted or placed on the cable cell.
         # by comma-separated list of parameter after the base mechanism name.
         rev = arbor.mechanism('nernst/F=96485,x=ca')
 
+    Mechanisms can be painted to a region. Different mechanisms can be painted on top of each other.
+
+    .. code-block:: Python
+
+        import arbor
+
+        # Create pas mechanism with default parameter values (set in NOMDL file).
+        m1 = arbor.mechanism('pas')
+
+        # Create default mechainsm with custom conductance (range).
+        m2 = arbor.mechanism('pas', {'g', 0.1})
+
+        # Create a new pas mechanism with that changes reversal potential (global).
+        m3 = arbor.mechanism('pas/e=-45')
+
+        # Create an instance of the same mechanism, that also sets conductance (range).
+        m4 = arbor.mechanism('pas/e=-45', {'g', 0.1})
+
+        # This is an equivalent to m4, using set method to specify range parameters.
+        m5 = arbor.mechanism('pas/e=-45')
+        m5.set('g', 0.1)
+
+        # Decorate the 'soma' with (multiple) mechanisms
+        decor.paint('"soma"', m1)
+        decor.paint('"soma"', m2) # Error: can't place the same mechanism on overlapping regions
+        decor.paint('"soma"', m3) # This is ok: m3 is a new, derived mechanism by virtue of
+                                  # having a different name, i.e. 'pas/e=-45' vs. 'pas'.
+
     .. method:: mechanism(name, params)
 
         constructor for mechanism with *name* and range parameter overrides *params*,
@@ -83,34 +111,7 @@ mechanism that is to be painted or placed on the cable cell.
     .. py:attribute:: values
         :type: dict
 
-        A dictionary of key-value pairs for the parameters.
-
-    .. code-block:: Python
-
-        import arbor
-
-        # Create pas mechanism with default parameter values (set in NOMDL file).
-        m1 = arbor.mechanism('pas')
-
-        # Create default mechainsm with custom conductance (range).
-        m2 = arbor.mechanism('pas', {'g', 0.1})
-
-        # Create a new pas mechanism with that changes reversal potential (global).
-        m3 = arbor.mechanism('pas/e=-45')
-
-        # Create an instance of the same mechanism, that also sets conductance (range).
-        m4 = arbor.mechanism('pas/e=-45', {'g', 0.1})
-
-        # This is an equivalent to m4, using set method to specify range parameters.
-        m5 = arbor.mechanism('pas/e=-45')
-        m5.set('g', 0.1)
-
-        # Decorate the 'soma' on a cable_cell.
-
-        cell.paint('"soma"', m1)
-        cell.paint('"soma"', m2) # Error: can't place the same mechanism on overlapping regions
-        cell.paint('"soma"', m3) # This would be ok: m3 is a new, derived mechanism by virtue of
-                                 # having a different name, i.e. 'pas/e=-45' vs. 'pas'.
+       A dictionary of key-value pairs for the parameters.
 
 
 .. py:class:: mechanism_info
@@ -303,6 +304,23 @@ Mechanism catalogues
               print(name)
 
         :return: :class:`py_mech_cat_iterator`
+
+
+    .. py:method:: extend(other, prefix)
+
+        Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.
+
+        .. code-block:: Python
+
+            import arbor
+
+            cat = arbor.default_catalogue()
+            cat.extend(arbor.allen_catalogue(), "")
+
+        :param other: reference to other catalogue.
+        :type other: :class:`mechanism_catalogue`
+        :param prefix: prefix for mechanism names in ``other``
+        :type prefix: str
 
     .. py:method:: derive(name, parent, globals={}, ions={})
 

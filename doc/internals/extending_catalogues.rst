@@ -27,6 +27,7 @@ catalogues (*default*, *bbp*, and *allen*). The required steps are as follows
        NAME <catalogue-name>                             # Name of your catalogue
        SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/<directory>" # Directory name (added above)
        OUTPUT "<output-name>"                            # Variable name to output to
+       CXX_FLAGS_TARGET "<compiler flags>"               # Target-specific flags for C++ compiler
        MECHS <names>)                                    # Space separated list of mechanism
                                                          # names w/o .mod suffix.
 

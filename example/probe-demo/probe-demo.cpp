@@ -98,7 +98,6 @@ struct cable_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 0; }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
         return {probe_addr}; // (use default tag value 0)
@@ -121,7 +120,7 @@ struct cable_recipe: public arb::recipe {
 
         arb::decor decor;
         decor.paint(arb::reg::all(), "hh"); // HH mechanism over whole cell.
-        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}); // Inject a 1 nA current indefinitely.
+        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp"); // Inject a 1 nA current indefinitely.
 
         return arb::cable_cell(tree, {}, decor);
     }

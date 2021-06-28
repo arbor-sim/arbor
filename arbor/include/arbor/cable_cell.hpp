@@ -21,16 +21,6 @@
 
 namespace arb {
 
-// Pair of indexes that describe range of local indices.
-// Returned by cable_cell::place() calls, so that the caller can
-// refer to targets, detectors, etc on the cell.
-struct lid_range {
-    cell_lid_type begin;
-    cell_lid_type end;
-    lid_range(cell_lid_type b, cell_lid_type e):
-        begin(b), end(e) {}
-};
-
 // `cable_sample_range` is simply a pair of `const double*` pointers describing the sequence
 // of double values associated with the cell-wide sample.
 
@@ -299,9 +289,10 @@ public:
     // The default parameter and ion settings on the cell.
     const cable_cell_parameter_set& default_parameters() const;
 
-    // The range of lids assigned to the items with placement index idx, where
-    // the placement index is the value returned by calling decor::place().
-    lid_range placed_lid_range(unsigned idx) const;
+    // The labeled lid_ranges of sources, targets and gap_junctions on the cell;
+    const std::unordered_multimap<cell_tag_type, lid_range>& detector_ranges() const;
+    const std::unordered_multimap<cell_tag_type, lid_range>& synapse_ranges() const;
+    const std::unordered_multimap<cell_tag_type, lid_range>& gap_junction_ranges() const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
