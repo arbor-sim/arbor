@@ -82,7 +82,7 @@ arb::cv_policy make_cv_policy_single(const std::string& reg) {
 }
 
 arb::cv_policy make_cv_policy_explicit(const std::string& locset, const std::string& reg) {
-    return arb::cv_policy_explicit(locset, reg);
+    return arb::cv_policy_explicit(arborio::parse_locset_expression(locset).unwrap(), arborio::parse_region_expression(reg).unwrap());
 }
 
 arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
