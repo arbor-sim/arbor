@@ -49,19 +49,17 @@ class hetero_recipe (arb.recipe):
         return self.ncells
 
     def cell_description(self, gid):
-        return []
+        tree = arb.segment_tree()
+        tree.append(arb.mnpos, arb.mpoint(-3, 0, 0, 3), arb.mpoint(3, 0, 0, 3), tag=1)
+        decor = arb.decor()
+        decor.place('(location 0 0.5)', arb.gap_junction_site(), "gj")
+        return arb.cable_cell(tree, arb.label_dict(), decor)
 
     def cell_kind(self, gid):
         if (gid%2):
             return arb.cell_kind.spike_source
         else:
             return arb.cell_kind.cable
-
-    def num_sources(self, gid):
-        return 0
-
-    def num_targets(self, gid):
-        return 0
 
     def connections_on(self, gid):
         return []
@@ -79,22 +77,22 @@ class gj_switch:
         return getattr(self, 'case_' + str(arg), lambda: default)()
 
     def case_1(self):
-        return [arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), 0, 0.1)]
+        return [arb.gap_junction_connection((7 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_2(self):
-        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), 0, 0.1),
-                arb.gap_junction_connection(arb.cell_member(9 + self.shift_, 0), 0, 0.1)]
+        return [arb.gap_junction_connection((6 + self.shift_, "gj"), "gj", 0.1),
+                arb.gap_junction_connection((9 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_6(self):
-        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), 0, 0.1),
-                arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), 0, 0.1)]
+        return [arb.gap_junction_connection((2 + self.shift_, "gj"), "gj", 0.1),
+                arb.gap_junction_connection((7 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_7(self):
-        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), 0, 0.1),
-                arb.gap_junction_connection(arb.cell_member(1 + self.shift_, 0), 0, 0.1)]
+        return [arb.gap_junction_connection((6 + self.shift_, "gj"), "gj", 0.1),
+                arb.gap_junction_connection((1 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_9(self):
-        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), 0, 0.1)]
+        return [arb.gap_junction_connection((2 + self.shift_, "gj"), "gj", 0.1)]
 
 class gj_symmetric (arb.recipe):
     def __init__(self, num_ranks):
@@ -127,7 +125,11 @@ class gj_non_symmetric (arb.recipe):
         return self.size*self.groups
 
     def cell_description(self, gid):
-        return []
+        tree = arb.segment_tree()
+        tree.append(arb.mnpos, arb.mpoint(-3, 0, 0, 3), arb.mpoint(3, 0, 0, 3), tag=1)
+        decor = arb.decor()
+        decor.place('(location 0 0.5)', arb.gap_junction_site(), "gj")
+        return arb.cable_cell(tree, arb.label_dict(), decor)
 
     def cell_kind(self, gid):
         return arb.cell_kind.cable
@@ -137,9 +139,9 @@ class gj_non_symmetric (arb.recipe):
         id = gid%self.size
 
         if (id == group and group != (self.groups - 1)):
-            return [arb.gap_junction_connection(arb.cell_member(gid + self.size, 0), 0, 0.1)]
+            return [arb.gap_junction_connection((gid + self.size, "gj"), "gj", 0.1)]
         elif (id == group - 1):
-            return [arb.gap_junction_connection(arb.cell_member(gid - self.size, 0), 0, 0.1)]
+            return [arb.gap_junction_connection((gid - self.size, "gj"), "gj", 0.1)]
         else:
             return []
 

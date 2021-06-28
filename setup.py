@@ -25,7 +25,7 @@ class CL_opt:
             CL_opt.instance = {'mpi': False,
                                'gpu': 'none',
                                'vec': False,
-                               'arch': 'native',
+                               'arch': 'none',
                                'neuroml': True,
                                'bundled': True}
 
@@ -91,7 +91,7 @@ class install_command(install):
         #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
         opt['vec']  = self.vec is not None
         #   arch : target CPU micro-architecture (string).
-        opt['arch'] = "native" if self.arch is None else self.arch
+        opt['arch'] = 'none' if self.arch is None else self.arch
         #   neuroml : compile with neuroml support for morphologies.
         opt['neuroml'] = self.neuroml is not None
         #   bundled : use bundled/git-submoduled 3rd party libraries.
@@ -126,7 +126,7 @@ if WHEEL_INSTALLED:
             #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
             opt['vec']  = self.vec is not None
             #   arch : target CPU micro-architecture (string).
-            opt['arch'] = "native" if self.arch is None else self.arch
+            opt['arch'] = 'none' if self.arch is None else self.arch
             #   neuroml : compile with neuroml support for morphologies.
             opt['neuroml'] = self.neuroml is not None
             #   bundled : use bundled/git-submoduled 3rd party libraries.
@@ -233,8 +233,7 @@ setuptools.setup(
     ],
     project_urls={
         'Source': 'https://github.com/arbor-sim/arbor',
-        'Documentation': 'https://arbor.readthedocs.io',
+        'Documentation': 'https://docs.arbor-sim.org',
         'Bug Reports': 'https://github.com/arbor-sim/arbor/issues',
     },
 )
-

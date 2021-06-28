@@ -58,7 +58,7 @@ function(build_modules)
 endfunction()
 
 function("make_catalogue")
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE;VERBOSE" "MECHS" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;ARBOR;STANDALONE;VERBOSE" "CXX_FLAGS_TARGET;MECHS" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
 
   # Need to set ARB_WITH_EXTERNAL_MODCC *and* modcc
@@ -74,7 +74,7 @@ function("make_catalogue")
     message("Catalogue output:     ${MK_CAT_OUT_DIR}")
     message("Arbor source tree:    ${MK_CAT_ARBOR}")
     message("Build as standalone:  ${MK_CAT_STANDALONE}")
-    message("Arbor arch:           ${ARB_CXXOPT_ARCH}")
+    message("Arbor cxx flags:      ${MK_CAT_CXX_FLAGS_TARGET}")
     message("Arbor cxx compiler:   ${ARB_CXX}")
     message("Current cxx compiler: ${CMAKE_CXX_COMPILER}")
   endif()
@@ -118,11 +118,10 @@ function("make_catalogue")
   endforeach()
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
-  set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} COMPILE_FLAGS ${ARB_CXXOPT_ARCH})
-
   if(${MK_CAT_STANDALONE})
     add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
     target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
+    target_compile_options(${MK_CAT_NAME}-catalogue PUBLIC ${MK_CAT_CXX_FLAGS_TARGET})
     set_target_properties(${MK_CAT_NAME}-catalogue
       PROPERTIES
       SUFFIX ".so"

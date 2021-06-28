@@ -6,16 +6,19 @@
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 
-#include "cell_group.hpp"
-#include "profile/profiler_macro.hpp"
 #include "benchmark_cell_group.hpp"
+#include "cell_group.hpp"
+#include "label_resolution.hpp"
+#include "profile/profiler_macro.hpp"
 
 #include "util/span.hpp"
 
 namespace arb {
 
 benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gids,
-                                           const recipe& rec):
+                                           const recipe& rec,
+                                           cell_label_range& cg_sources,
+                                           cell_label_range& cg_targets):
     gids_(gids)
 {
     for (auto gid: gids_) {
@@ -27,6 +30,13 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
     cells_.reserve(gids_.size());
     for (auto gid: gids_) {
         cells_.push_back(util::any_cast<benchmark_cell>(rec.get_cell_description(gid)));
+    }
+
+    for (const auto& c: cells_) {
+        cg_sources.add_cell();
+        cg_targets.add_cell();
+        cg_sources.add_label(c.source, {0, 1});
+        cg_targets.add_label(c.target, {0, 1});
     }
 
     reset();

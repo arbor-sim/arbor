@@ -285,7 +285,7 @@ void register_morphology(py::module& m) {
         },
         "filename"_a,
         "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
-        "See the documentation https://arbor.readthedocs.io/en/latest/fileformat/swc.html\n"
+        "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
         "for a detailed description of the interpretation.");
 
     // arb::morphology

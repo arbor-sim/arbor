@@ -33,7 +33,6 @@ struct lfp_demo_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_targets(cell_gid_type) const override { return 1; }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type) const override {
         // Four probes:
@@ -95,7 +94,7 @@ private:
 
         // Add exponential synapse at centre of soma.
         synapse_location_ = ls::on_components(0.5, reg::tagged(1));
-        dec.place(synapse_location_, mechanism_desc("expsyn").set("e", 0).set("tau", 2));
+        dec.place(synapse_location_, mechanism_desc("expsyn").set("e", 0).set("tau", 2), "syn");
 
         cell_ = cable_cell(tree, {}, dec);
     }
@@ -187,7 +186,7 @@ int main(int argc, char** argv) {
     auto context = arb::make_context();
 
     // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
-    auto events = arb::poisson_generator(0, .005, 0., 0.1, std::minstd_rand{});
+    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
     lfp_demo_recipe R(events);
 
     const double t_stop = 100;    // [ms]

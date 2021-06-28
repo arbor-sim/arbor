@@ -7,6 +7,7 @@
 #include <arbor/util/pp_util.hpp>
 
 #include "communication/gathered_vector.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 
@@ -63,6 +64,18 @@ public:
         return impl_->gather_gids(local_gids);
     }
 
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        return impl_->gather_cell_label_range(local_ranges);
+    }
+
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        return impl_->gather_cell_labels_and_gids(local_labels_and_gids);
+    }
+
+    std::vector<std::string> gather(std::string value, int root) const {
+        return impl_->gather(value, root);
+    }
+
     int id() const {
         return impl_->id();
     }
@@ -81,23 +94,24 @@ public:
 
     ARB_PP_FOREACH(ARB_PUBLIC_COLLECTIVES_, ARB_COLLECTIVE_TYPES_);
 
-    std::vector<std::string> gather(std::string value, int root) const {
-        return impl_->gather(value, root);
-    }
-
 private:
     struct interface {
         virtual gathered_vector<arb::spike>
             gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
             gather_gids(const gid_vector& local_gids) const = 0;
+        virtual cell_label_range
+            gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
+        virtual cell_labels_and_gids
+            gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const = 0;
+        virtual std::vector<std::string>
+            gather(std::string value, int root) const = 0;
         virtual int id() const = 0;
         virtual int size() const = 0;
         virtual void barrier() const = 0;
         virtual std::string name() const = 0;
 
         ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
-        virtual std::vector<std::string> gather(std::string value, int root) const = 0;
 
         virtual ~interface() {}
     };
@@ -111,9 +125,21 @@ private:
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
         }
-        virtual gathered_vector<cell_gid_type>
+        gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const override {
             return wrapped.gather_gids(local_gids);
+        }
+        cell_label_range
+        gather_cell_label_range(const cell_label_range& local_ranges) const override {
+            return wrapped.gather_cell_label_range(local_ranges);
+        }
+        cell_labels_and_gids
+        gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const override {
+            return wrapped.gather_cell_labels_and_gids(local_labels_and_gids);
+        }
+        std::vector<std::string>
+        gather(std::string value, int root) const override {
+            return wrapped.gather(value, root);
         }
         int id() const override {
             return wrapped.id();
@@ -129,10 +155,6 @@ private:
         }
 
         ARB_PP_FOREACH(ARB_WRAP_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
-
-        std::vector<std::string> gather(std::string value, int root) const override {
-            return wrapped.gather(value, root);
-        }
 
         Impl wrapped;
     };
@@ -157,6 +179,18 @@ struct local_context {
                 {0u, static_cast<count_type>(local_gids.size())}
         );
     }
+    cell_label_range
+    gather_cell_label_range(const cell_label_range& local_ranges) const {
+        return local_ranges;
+    }
+    cell_labels_and_gids
+    gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        return local_labels_and_gids;
+    }
+    template <typename T>
+    std::vector<T> gather(T value, int) const {
+        return {std::move(value)};
+    }
 
     int id() const { return 0; }
 
@@ -170,9 +204,6 @@ struct local_context {
 
     template <typename T>
     T sum(T value) const { return value; }
-
-    template <typename T>
-    std::vector<T> gather(T value, int) const { return {std::move(value)}; }
 
     void barrier() const {}
 

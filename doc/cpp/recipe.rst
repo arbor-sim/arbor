@@ -74,8 +74,8 @@ Recipe
     .. cpp:function:: virtual std::vector<cell_connection> connections_on(cell_gid_type gid) const
 
         Returns a list of all the **incoming** connections for `gid` .
-        Each connection ``con`` should have a valid synapse id ``con.dest`` on the post-synaptic target `gid`,
-        and a valid source id ``con.source.index`` on the pre-synaptic source ``con.source.gid``.
+        Each connection ``con`` should have a valid synapse label ``con.dest`` on the post-synaptic target `gid`,
+        and a valid source label ``con.source.label`` on the pre-synaptic source ``con.source.gid``.
         See :cpp:type:`cell_connection`.
 
         By default returns an empty list.
@@ -83,8 +83,8 @@ Recipe
     .. cpp:function:: virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const
 
         Returns a list of all the gap junctions connected to `gid`.
-        Each gap junction ``gj`` should have a valid gap junction site id ``gj.local`` on ``gid``,
-        and a valid gap junction site id ``gj.peer.index`` on ``gj.peer.gid``.
+        Each gap junction ``gj`` should have a valid gap junction site label ``gj.local`` on ``gid``,
+        and a valid gap junction site label ``gj.peer.label`` on ``gj.peer.gid``.
         See :cpp:type:`gap_junction_connection`.
 
         By default returns an empty list.
@@ -94,28 +94,6 @@ Recipe
         Returns a list of all the event generators that are attached to `gid`.
 
         By default returns an empty list.
-
-    .. cpp:function:: virtual cell_size_type num_sources(cell_gid_type gid) const
-
-        Returns the number of spike sources on `gid`. This corresponds to the number
-        of spike detectors on a multi-compartment cell. Typically there is one detector
-        at the soma of the cell, however it is possible to attache multiple detectors
-        at arbitrary locations.
-
-        By default returns 0.
-
-    .. cpp:function:: virtual cell_size_type num_targets(cell_gid_type gid) const
-
-        The number of post-synaptic sites on `gid`, which corresponds to the number
-        of synapses.
-
-        By default returns 0.
-
-    .. cpp:function:: virtual cell_size_type num_gap_junction_sites(cell_gid_type gid) const
-
-        Returns the number of gap junction sites on `gid`.
-
-        By default returns 0.
 
     .. cpp:function:: virtual std::vector<probe_info> get_probes(cell_gid_type gid) const
 

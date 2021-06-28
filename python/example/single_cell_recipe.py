@@ -17,8 +17,8 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')
-decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8))
-decor.place('"midpoint"', arbor.spike_detector(-10))
+decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
 cell = arbor.cable_cell(tree, labels, decor)
 
 # (4) Define a recipe for a single cell and set of probes upon it.
@@ -37,9 +37,6 @@ class single_recipe (arbor.recipe):
         self.the_props.register(self.the_cat)
 
     def num_cells(self):
-        return 1
-
-    def num_sources(self, gid):
         return 1
 
     def cell_kind(self, gid):
