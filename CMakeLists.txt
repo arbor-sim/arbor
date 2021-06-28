@@ -250,7 +250,9 @@ endif()
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
 # libraries that link against them.
-list(APPEND ARB_CXX_FLAGS_TARGET_FULL "-fvisibility=hidden")
+list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+            "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:-fvisibility=hidden>"
+            "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CUDA>>:-Xcompiler=-fvisibility=hidden>")
 separate_arguments(ARB_CXX_FLAGS_TARGET_FULL)
 
 target_compile_options(arbor-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FULL})
