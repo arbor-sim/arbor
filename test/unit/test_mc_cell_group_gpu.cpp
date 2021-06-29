@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
-#include <arbor/string_literals.hpp>
+#include <arborio/label_parse.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include "epoch.hpp"
@@ -13,7 +13,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
-using namespace arb::literals;
+using namespace arborio::literals;
 
 namespace {
     fvm_lowered_cell_ptr lowered_cell() {
