@@ -120,7 +120,7 @@ const mechanism_catalogue& global_${catalogue}_catalogue() {
 
 #ifdef STANDALONE
 extern "C" {
-    __attribute__ ((visibility ("default"))) const void* get_catalogue() {
+    [[gnu::visibility("default")]] const void* get_catalogue() {
         static auto cat = arb::build_${catalogue}_catalogue();
         return (void*)&cat;
     }
