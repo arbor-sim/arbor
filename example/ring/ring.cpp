@@ -11,6 +11,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>

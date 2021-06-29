@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphexcept.hpp>
@@ -215,7 +214,8 @@ std::ostream& operator<<(std::ostream& o, const all_& t) {
 
 // Region comprising points up to `distance` distal to a point in `start`.
 
-struct distal_interval_ {
+struct distal_interval_: region_tag {
+    distal_interval_(const locset& ls, double d): start{ls}, distance{d} {}
     locset start;
     double distance; //um
 };
@@ -289,7 +289,8 @@ std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
 
 // Region comprising points up to `distance` proximal to a point in `end`.
 
-struct proximal_interval_ {
+struct proximal_interval_: region_tag {
+    proximal_interval_(const locset& ls, double d): end{ls}, distance{d} {}
     locset end;
     double distance; //um
 };
@@ -361,7 +362,8 @@ mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
 }
 
 // Region with all segments with radius less than r
-struct radius_lt_ {
+struct radius_lt_: region_tag {
+    radius_lt_(const region& rg, double d): reg{rg}, val{d} {}
     region reg;
     double val; //um
 };
@@ -379,7 +381,8 @@ std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
 }
 
 // Region with all segments with radius less than r
-struct radius_le_ {
+struct radius_le_: region_tag {
+    radius_le_(const region& rg, double d): reg{rg}, val{d} {}
     region reg;
     double val; //um
 };
@@ -397,7 +400,8 @@ std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
 }
 
 // Region with all segments with radius greater than r
-struct radius_gt_ {
+struct radius_gt_: region_tag {
+    radius_gt_(const region& rg, double d): reg{rg}, val{d} {}
     region reg;
     double val; //um
 };
@@ -415,7 +419,8 @@ std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
 }
 
 // Region with all segments with radius greater than or equal to r
-struct radius_ge_ {
+struct radius_ge_: region_tag {
+    radius_ge_(const region& rg, double d): reg{rg}, val{d} {}
     region reg;
     double val; //um
 };
@@ -445,7 +450,8 @@ mextent projection_cmp(const mprovider& p, double v, comp_op op) {
 }
 
 // Region with all segments with projection less than val
-struct projection_lt_{
+struct projection_lt_: region_tag {
+    projection_lt_(double d): val{d} {}
     double val; //um
 };
 
@@ -462,7 +468,8 @@ std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
 }
 
 // Region with all segments with projection less than or equal to val
-struct projection_le_{
+struct projection_le_: region_tag {
+    projection_le_(double d): val{d} {}
     double val; //um
 };
 
@@ -479,7 +486,8 @@ std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
 }
 
 // Region with all segments with projection greater than val
-struct projection_gt_ {
+struct projection_gt_: region_tag {
+    projection_gt_(double d): val{d} {}
     double val; //um
 };
 
@@ -496,7 +504,8 @@ std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
 }
 
 // Region with all segments with projection greater than val
-struct projection_ge_ {
+struct projection_ge_: region_tag {
+    projection_ge_(double d): val{d} {}
     double val; //um
 };
 
@@ -559,7 +568,8 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
 
 // Adds all cover points to a region.
 // Ensures that all valid representations of all fork points in the region are included.
-struct super_ {
+struct super_: region_tag {
+    explicit super_(const region& rg): reg{rg} {}
     region reg;
 };
 
@@ -744,17 +754,6 @@ region::region() {
 }
 
 // Implicit constructors/converters.
-
-region::region(const std::string& desc) {
-    if (auto r=parse_region_expression(desc)) {
-        *this = *r;
-    }
-    else {
-        throw r.error();
-    }
-}
-
-region::region(const char* label): region(std::string(label)) {}
 
 region::region(mcable c) {
     *this = reg::cable(c.branch, c.prox_pos, c.dist_pos);

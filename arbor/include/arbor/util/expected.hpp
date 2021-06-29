@@ -288,7 +288,6 @@ struct expected {
         if (*this) return std::get<0>(data_);
         throw bad_expected_access(error());
     }
-
     T&& value() && {
         if (*this) return std::get<0>(std::move(data_));
         throw bad_expected_access(error());
@@ -296,6 +295,23 @@ struct expected {
     const T&& value() const&& {
         if (*this) return std::get<0>(std::move(data_));
         throw bad_expected_access(error());
+    }
+
+    T& unwrap() & {
+        if (*this) return std::get<0>(data_);
+        throw error();
+    }
+    const T& unwrap() const& {
+        if (*this) return std::get<0>(data_);
+        throw error();
+    }
+    T&& unwrap() && {
+        if (*this) return std::get<0>(std::move(data_));
+        throw error();
+    }
+    const T&& unwrap() const&& {
+        if (*this) return std::get<0>(std::move(data_));
+        throw error();
     }
 
     const E& error() const& { return std::get<1>(data_).value(); }
@@ -505,7 +521,5 @@ template <typename T1, typename E1, typename T2, typename E2,
 inline bool operator!=(const expected<T1, E1>& a, const expected<T2, E2>& b) {
     return a? !b || !std::is_void_v<T2> || !std::is_void_v<T1>: b || a.error()!=b.error();
 }
-
-
 } // namespace util
 } // namespace arb

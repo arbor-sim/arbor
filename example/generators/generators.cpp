@@ -14,6 +14,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -30,6 +32,8 @@ using arb::cell_size_type;
 using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
+
+using namespace arborio::literals;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const arb::trace_data<double>& trace);
@@ -56,7 +60,7 @@ public:
         labels.set("soma", arb::reg::tagged(1));
 
         arb::decor decor;
-        decor.paint("\"soma\"", "pas");
+        decor.paint("soma"_lab, "pas");
 
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both

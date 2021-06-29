@@ -5,15 +5,20 @@
 
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
-#include <arbor/morph/label_parse.hpp>
+#include <arbor/cv_policy.hpp>
+
 #include <arbor/s_expr.hpp>
 
+#include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/label_parse.hpp>
 
 #include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;
+using namespace arborio;
+using namespace arborio::literals;
 using namespace std::string_literals;
 
 TEST(s_expr, atoms) {
@@ -174,6 +179,15 @@ std::string round_trip_label(const char* in) {
     }
 }
 
+std::string round_trip_cv(const char* in) {
+    if (auto x = parse_cv_policy_expression(in)) {
+        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
         return util::pprintf("{}", std::any_cast<arb::region>(*x));
@@ -190,6 +204,44 @@ std::string round_trip_locset(const char* in) {
     else {
         return x.error().what();
     }
+}
+
+
+TEST(cv_policies, round_tripping) {
+    auto literals = {"(every-segment (tag 42))",
+                     "(fixed-per-branch 23 (segment 0) 1)",
+                     "(max-extent 23.1 (segment 0) 1)",
+                     "(single (segment 0))",
+                     "(explicit (terminal) (segment 0))",
+                     "(join (every-segment (tag 42)) (single (segment 0)))",
+                     "(replace (every-segment (tag 42)) (single (segment 0)))",
+    };
+    for (const auto& literal: literals) {
+        EXPECT_EQ(literal, round_trip_cv(literal));
+    }
+}
+
+TEST(cv_policies, literals) {
+    EXPECT_NO_THROW("(every-segment (tag 42))"_cvp);
+    EXPECT_NO_THROW("(fixed-per-branch 23 (segment 0) 1)"_cvp);
+    EXPECT_NO_THROW("(max-extent 23.1 (segment 0) 1)"_cvp);
+    EXPECT_NO_THROW("(single (segment 0))"_cvp);
+    EXPECT_NO_THROW("(explicit (terminal) (segment 0))"_cvp);
+    EXPECT_NO_THROW("(join (every-segment (tag 42)) (single (segment 0)))"_cvp);
+    EXPECT_NO_THROW("(replace (every-segment (tag 42)) (single (segment 0)))"_cvp);
+}
+
+TEST(cv_policies, bad) {
+    auto check = [](const std::string& s) {
+        auto cv = parse_cv_policy_expression(s);
+        if (!cv.has_value()) throw cv.error();
+        return cv.value();
+    };
+
+    EXPECT_THROW(check("(every-segment (tag 42) 1)"), cv_policy_parse_error); // extra arg
+    EXPECT_THROW(check("(every-segment (terminal))"), cv_policy_parse_error); // locset instead of region
+    EXPECT_THROW(check("(every-segment"), cv_policy_parse_error);             // missing paren
+    EXPECT_THROW(check("(tag 42)"), cv_policy_parse_error);                   // not a cv_policy
 }
 
 TEST(regloc, round_tripping) {
@@ -361,9 +413,6 @@ std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
 }
 std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
     return o << "(ion-reversal-potential-method \"" << p.ion << "\" " << p.method << ')';
-}
-std::ostream& operator<<(std::ostream& o, const cv_policy&) {
-    return o;
 }
 std::ostream& operator<<(std::ostream& o, const branch& b) {
     o << "(branch " << std::to_string(std::get<0>(b)) << " " << std::to_string(std::get<1>(b));
