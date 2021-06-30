@@ -96,7 +96,8 @@ class ring_recipe (arbor.recipe):
     def event_generators(self, gid):
         if gid==0:
             sched = arbor.explicit_schedule([1])
-            return [arbor.event_generator('syn', 0.1, sched)]
+            weight = 0.1
+            return [arbor.event_generator('syn', weight, sched)]
         return []
 
     # (10) Place a probe at the root of each cell.

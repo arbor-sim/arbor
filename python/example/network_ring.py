@@ -94,7 +94,7 @@ class ring_recipe (arbor.recipe):
     def event_generators(self, gid):
         if gid==0:
             sched = arbor.explicit_schedule([1])
-            weight = 0.01
+            weight = 0.1
             return [arbor.event_generator('syn', weight, sched)]
         return []
 
