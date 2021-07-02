@@ -169,6 +169,8 @@ struct shared_state {
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
 
+    const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
+
     void add_ion(
         const std::string& ion_name,
         int charge,

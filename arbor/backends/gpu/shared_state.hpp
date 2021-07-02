@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <iosfwd>
 #include <unordered_map>
 #include <utility>
@@ -111,6 +112,8 @@ struct shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
+    static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
+
     fvm_size_type n_intdom = 0;   // Number of distinct integration domains.
     fvm_size_type n_detector = 0; // Max number of detectors on all cells.
     fvm_size_type n_cv = 0;       // Total number of CVs.
@@ -154,13 +157,16 @@ struct shared_state {
         const std::vector<fvm_value_type>& temperature_K,
         const std::vector<fvm_value_type>& diam,
         const std::vector<fvm_index_type>& src_to_spike,
-        unsigned align
+        unsigned // align parameter ignored
     );
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(arb::mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+
+    // Note: returned pointer points to device memory.
+    const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
 
     void add_ion(
         const std::string& ion_name,

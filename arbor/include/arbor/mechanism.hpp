@@ -5,9 +5,10 @@
 #include <vector>
 #include <unordered_map>
 
-#include <arbor/mechinfo.hpp>
+#include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
+#include <arbor/mechinfo.hpp>
 
 namespace arb {
 

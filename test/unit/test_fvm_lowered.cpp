@@ -65,22 +65,6 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
     return index<(int)mechs.size()? mechs[index].get(): nullptr;
 }
 
-// Access to mechanism-internal data:
-ACCESS_BIND(\
-    arb::mechanism_global_table (arb::mechanism::*)(), \
-    private_global_table_ptr,\
-    &arb::mechanism::global_table)
-
-ACCESS_BIND(\
-    arb::mechanism_field_table (arb::mechanism::*)(), \
-    private_field_table_ptr,\
-    &arb::mechanism::field_table)
-
-ACCESS_BIND(\
-    arb::mechanism_ion_table (arb::mechanism::*)(), \
-    private_ion_table_ptr,\
-    &arb::mechanism::ion_table)
-
 using namespace arb;
 
 class gap_recipe_0: public recipe {
@@ -504,13 +488,10 @@ TEST(fvm_lowered, derived_mechs) {
         using fvec = std::vector<fvm_value_type>;
         fvec tau_values;
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
+            ASSERT_TRUE(mech);
             EXPECT_EQ("test_kin1"s, mech->internal_name());
 
-            ASSERT_TRUE(mech);
-
-            auto opt_tau_ptr = util::value_by_key((mech.get()->*private_global_table_ptr)(), "tau"s);
-            ASSERT_TRUE(opt_tau_ptr);
-            tau_values.push_back(opt_tau_ptr.value());
+            tau_values.push_back(mechanism_global(mech, "tau"));
         }
         util::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
@@ -576,14 +557,11 @@ TEST(fvm_lowered, read_valence) {
         fvcell.initialize({0}, rec);
 
         // test_ca_read_valence initialization should write ca ion valence
-        // to state variable 'record_zca':
+        // to state variable 'record_z':
 
         auto mech_ptr = find_mechanism(fvcell, "test_ca_read_valence");
-        auto opt_record_z_ptr = util::value_by_key((mech_ptr->*private_field_table_ptr)(), "record_z"s);
-
-        ASSERT_TRUE(opt_record_z_ptr);
-        auto& record_z = opt_record_z_ptr.value().first;
-        ASSERT_EQ(2.0, record_z[0]);
+        auto record_z = mechanism_field(mech_ptr, "record_z");
+        ASSERT_EQ(2.0, record_z.at(0));
     }
 
     {
@@ -604,11 +582,8 @@ TEST(fvm_lowered, read_valence) {
         fvcell.initialize({0}, rec);
 
         auto cr_mech_ptr = find_mechanism(fvcell, 0);
-        auto cr_opt_record_z_ptr = util::value_by_key((cr_mech_ptr->*private_field_table_ptr)(), "record_z"s);
-
-        ASSERT_TRUE(cr_opt_record_z_ptr);
-        auto& cr_record_z = cr_opt_record_z_ptr.value().first;
-        ASSERT_EQ(7.0, cr_record_z[0]);
+        auto cr_record_z = mechanism_field(cr_mech_ptr, "record_z");
+        ASSERT_EQ(7.0, cr_record_z.at(0));
     }
 }
 
@@ -848,14 +823,8 @@ TEST(fvm_lowered, weighted_write_ion) {
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_init_iconc, ion_init_iconc));
 
     auto test_ca = find_mechanism(fvcell, "test_ca");
-
-    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"s);
-    ASSERT_TRUE(opt_cai_ptr);
-    auto& test_ca_cai = opt_cai_ptr.value().first;
-
-    auto opt_ca_index_ptr = util::value_by_key((test_ca->*private_ion_table_ptr)(), "ca"s);
-    ASSERT_TRUE(opt_ca_index_ptr);
-    auto& test_ca_ca_index = opt_ca_index_ptr.value().second;
+    auto test_ca_cai = mechanism_field(test_ca, "cai");
+    auto test_ca_ca_index = mechanism_ion_index(test_ca, "ca");
 
     double cai_contrib[3] = {200., 0., 300.};
     double test_ca_weight[3] = {0.25, 0., 1.};

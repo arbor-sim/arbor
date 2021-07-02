@@ -1,8 +1,7 @@
 #pragma once
 
-#include <arbor/common_types.hpp>
-
 #include <arbor/arb_types.h>
+#include <arbor/common_types.hpp>
 
 namespace arb {
 
@@ -19,7 +18,6 @@ struct fvm_gap_junction {
 
     fvm_gap_junction() {}
     fvm_gap_junction(std::pair<index_type, index_type> l, value_type w): loc(l), weight(w) {}
-
 };
 
 } // namespace arb

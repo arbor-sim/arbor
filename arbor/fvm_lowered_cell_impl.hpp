@@ -748,7 +748,7 @@ struct probe_resolution_data {
         mechanism* m = util::value_by_key(mech_instance_by_name, name).value_or(nullptr);
         if (!m) return nullptr;
 
-        const fvm_value_type* data = Backend::mechanism_field_data(m, state_var);
+        const fvm_value_type* data = state->mechanism_state_data(*m, state_var);
         if (!data) throw cable_cell_error("no state variable '"+state_var+"' in mechanism '"+name+"'");
 
         return data;
