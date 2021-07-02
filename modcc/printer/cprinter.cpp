@@ -354,12 +354,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent << "}\n\n";
 
     if (net_receive_api) {
-        out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp) {{\n"
+        out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* events) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto ncell = {0}events.n_streams;\n"
+                                       "    auto ncell = events->n_streams;\n"
                                        "    for (arb_size_type c = 0; c<ncell; ++c) {{\n"
-                                       "        auto begin  = {0}events.events + {0}events.begin[c];\n"
-                                       "        auto end    = {0}events.events + {0}events.end[c];\n"
+                                       "        auto begin  = events->events + events->begin[c];\n"
+                                       "        auto end    = events->events + events->end[c];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            auto i_     = p->mech_index;\n"
                                        "            auto {1} = p->weight;\n"
@@ -370,7 +370,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         emit_api_body(out, net_receive_api, false, false);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     } else {
-        out << "static void apply_events(arb_mechanism_ppack*) {}\n\n";
+        out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
     }
 
     if(post_event_api) {

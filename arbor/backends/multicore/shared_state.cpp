@@ -426,9 +426,10 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
 void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     util::padded_allocator<> pad(alignment);
 
+    if ((m.iface_.partition_width == 0)
+        || (m.iface_.partition_width & (m.iface_.partition_width - 1))) throw bad_alignment(m.iface_.partition_width);
+
     // Set internal variables
-    m.num_ions_      = m.mech_.n_ions;
-    m.width_padded_  = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
     m.time_ptr_ptr   = &time_ptr;
 
     // Assign non-owning views onto shared state:
@@ -453,10 +454,12 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
+    auto width_padded  = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
+
     // Allocate view pointers (except globals!)
-    m.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = m.state_vars_.data();
-    m.parameters_.resize(m.mech_.n_parameters); m.ppack_.parameters = m.parameters_.data();
-    m.ion_states_.resize(m.mech_.n_ions);       m.ppack_.ion_states = m.ion_states_.data();
+    store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
+    store.parameters_.resize(m.mech_.n_parameters); m.ppack_.parameters = store.parameters_.data();
+    store.ion_states_.resize(m.mech_.n_ions);       m.ppack_.ion_states = store.ion_states_.data();
 
     // Set ion views
     for (auto idx: make_span(m.mech_.n_ions)) {
@@ -470,13 +473,13 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (m.ppack_.width==0) return;
 
-    auto append_chunk = [n=m.width_padded_](const auto& in, auto& out, auto pad, auto& ptr) {
+    auto append_chunk = [n=width_padded](const auto& in, auto& out, auto pad, auto& ptr) {
         copy_extend(in, util::range_n(ptr, n), pad);
         out = ptr;
         ptr += n;
     };
 
-    auto append_const = [n=m.width_padded_](auto in, auto& out, auto& ptr) {
+    auto append_const = [n=width_padded](auto in, auto& out, auto& ptr) {
         std::fill(ptr, ptr + n, in);
         out = ptr;
         ptr += n;
@@ -485,7 +488,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // Initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        auto count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*m.width_padded_ + m.mech_.n_globals;
+        auto count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
         auto base_ptr = store.data_.data();
         // First sub-array of data_ is used for weight_
@@ -514,18 +517,18 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             }
             if (!found) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism global '{}'", k));
         }
-        m.globals_ = std::vector<arb_value_type>(m.ppack_.globals, m.ppack_.globals + m.mech_.n_globals);
+        store.globals_ = std::vector<arb_value_type>(m.ppack_.globals, m.ppack_.globals + m.mech_.n_globals);
     }
 
     // Make index bulk storage
     {
         // Allocate bulk storage
         auto count     = (mult_in_place ? 1 : 0) + m.mech_.n_ions + 1;
-        store.indices_ = iarray(count*m.width_padded_, 0, pad);
+        store.indices_ = iarray(count*width_padded, 0, pad);
         auto base_ptr  = store.indices_.data();
         // Setup node indices
         append_chunk(pos_data.cv, m.ppack_.node_index, pos_data.cv.back(), base_ptr);
-        auto node_index = util::range_n(m.ppack_.node_index, m.width_padded_);
+        auto node_index = util::range_n(m.ppack_.node_index, width_padded);
         // Make SIMD index constraints and set the view
         store.constraints_ = make_constraint_partition(node_index, m.ppack_.width, m.iface_.partition_width);
         m.ppack_.index_constraints.contiguous    = store.constraints_.contiguous.data();
@@ -548,7 +551,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             auto indices = util::index_into(node_index, oion->node_index_);
             append_chunk(indices, index_ptr, util::back(indices), base_ptr);
             // Check SIMD constraints
-            auto ion_index = util::range_n(index_ptr, m.width_padded_);
+            auto ion_index = util::range_n(index_ptr, width_padded);
             arb_assert(compatible_index_constraints(node_index, ion_index, m.iface_.partition_width));
         }
         if (mult_in_place) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, 0, base_ptr);

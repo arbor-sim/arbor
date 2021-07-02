@@ -104,6 +104,7 @@ typedef struct arb_mechanism_ppack {
  * by the library. Plugins should never allocate memory on their own.
  */
 typedef void (*arb_mechanism_method)(arb_mechanism_ppack*); // Convenience for extension methods
+typedef void (*arb_mechanism_method_events)(arb_mechanism_ppack*, arb_deliverable_event_stream*);
 
 typedef struct arb_mechanism_interface {
     arb_backend_kind   backend;               // GPU, CPU, ...
@@ -135,7 +136,7 @@ typedef struct arb_mechanism_interface {
      * - `deliverable_events` is setup correctly externally, is read-only for apply events
      * - called during each integration time step, right after resetting currents
      */
-    arb_mechanism_method apply_events;
+    arb_mechanism_method_events apply_events;
     /* 4. advanced_state
      * - called during each integration time step, after solving Hines matrices
      * - perform integration on state variables, often given as an ODE

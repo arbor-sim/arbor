@@ -245,9 +245,9 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     using util::ptr_by_key;
     using util::value_by_key;
 
+    auto mult_in_place = !pos_data.multiplicity.empty();
+
     // Set internal variables
-    m.mult_in_place_ = !pos_data.multiplicity.empty();
-    m.num_ions_      = m.mech_.n_ions;
     m.time_ptr_ptr   = &time_ptr;
 
     auto alignment    = std::max(array::alignment(), iarray::alignment());
@@ -269,14 +269,14 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
-    // Allocate view pointers
-    m.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
-    m.parameters_ = std::vector<arb_value_type*>(m.mech_.n_parameters);
-    m.ion_states_ = std::vector<arb_ion_state>(m.mech_.n_ions);
-    m.globals_    = std::vector<arb_value_type>(m.mech_.n_globals);
-
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
+
+    // Allocate view pointers
+    store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
+    store.parameters_ = std::vector<arb_value_type*>(m.mech_.n_parameters);
+    store.ion_states_ = std::vector<arb_ion_state>(m.mech_.n_ions);
+    store.globals_    = std::vector<arb_value_type>(m.mech_.n_globals);
 
     // Set ion views
     for (auto idx: make_span(m.mech_.n_ions)) {
@@ -284,7 +284,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        m.ion_states_[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data(), nullptr };
+        store.ion_states_[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data(), nullptr };
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -300,25 +300,25 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         append_chunk(pos_data.weight, m.ppack_.weight, base_ptr, width);
         // Set fields
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            append_const(m.mech_.parameters[idx].default_value, m.parameters_[idx], base_ptr, width);
+            append_const(m.mech_.parameters[idx].default_value, store.parameters_[idx], base_ptr, width);
         }
         for (auto idx: make_span(m.mech_.n_state_vars)) {
-            append_const(m.mech_.state_vars[idx].default_value, m.state_vars_[idx], base_ptr, width);
+            append_const(m.mech_.state_vars[idx].default_value, store.state_vars_[idx], base_ptr, width);
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width_padded alignment
-        for (auto idx: make_span(m.mech_.n_globals)) m.globals_[idx] = m.mech_.globals[idx].default_value;
+        for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
             for (auto idx: make_span(m.mech_.n_globals)) {
                 if (m.mech_.globals[idx].name == k) {
-                    m.globals_[idx] = v;
+                    store.globals_[idx] = v;
                     found = true;
                     break;
                 }
             }
             if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
         }
-        memory::copy(std_view(m.globals_), memory::device_view<arb_value_type>(base_ptr, m.mech_.n_globals));
+        memory::copy(std_view(store.globals_), memory::device_view<arb_value_type>(base_ptr, m.mech_.n_globals));
         m.ppack_.globals = base_ptr;
         base_ptr += m.mech_.n_globals;
     }
@@ -326,7 +326,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
-        auto count     = (m.mult_in_place_ ? 1 : 0) + m.mech_.n_ions + 1;
+        auto count     = (mult_in_place ? 1 : 0) + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*width_padded);
         auto base_ptr  = store.indices_.data();
         // Setup node indices
@@ -334,7 +334,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         // Create ion indices
         for (auto idx: make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
-            auto& index_ptr = m.ion_states_[idx].index;
+            auto& index_ptr = store.ion_states_[idx].index;
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
             ion_state* oion = ptr_by_key(ion_data, ion_binding);
@@ -346,18 +346,18 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             append_chunk(mech_ion_index, index_ptr, base_ptr, width);
         }
 
-        if (m.mult_in_place_) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, base_ptr, width);
+        if (mult_in_place) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, base_ptr, width);
     }
 
     // Shift data to GPU, set up pointers
-    store.parameters_d_ = memory::device_vector<arb_value_type*>(m.parameters_.size());
-    memory::copy(std_view(m.parameters_), store.parameters_d_);
+    store.parameters_d_ = memory::device_vector<arb_value_type*>(store.parameters_.size());
+    memory::copy(std_view(store.parameters_), store.parameters_d_);
     m.ppack_.parameters = store.parameters_d_.data();
-    store.state_vars_d_ = memory::device_vector<arb_value_type*>(m.state_vars_.size());
-    memory::copy(std_view(m.state_vars_), store.state_vars_d_);
+    store.state_vars_d_ = memory::device_vector<arb_value_type*>(store.state_vars_.size());
+    memory::copy(std_view(store.state_vars_), store.state_vars_d_);
     m.ppack_.state_vars = store.state_vars_d_.data();
-    store.ion_states_d_ = memory::device_vector<arb_ion_state>(m.ion_states_.size());
-    memory::copy(std_view(m.ion_states_), store.ion_states_d_);
+    store.ion_states_d_ = memory::device_vector<arb_ion_state>(store.ion_states_.size());
+    memory::copy(std_view(store.ion_states_), store.ion_states_d_);
     m.ppack_.ion_states = store.ion_states_d_.data();
 }
 

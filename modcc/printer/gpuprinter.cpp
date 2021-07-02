@@ -60,7 +60,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                        "void {0}_advance_state_(arb_mechanism_ppack*);\n"
                        "void {0}_compute_currents_(arb_mechanism_ppack*);\n"
                        "void {0}_write_ions_(arb_mechanism_ppack*);\n"
-                       "void {0}_apply_events_(arb_mechanism_ppack*);\n"
+                       "void {0}_apply_events_(arb_mechanism_ppack*, arb_deliverable_event_stream*);\n"
                        "void {0}_post_event_(arb_mechanism_ppack*);\n\n",
                        class_name)
         << namespace_declaration_close(ns_components)
@@ -228,12 +228,12 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     // event delivery
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("__global__\n"
-                                       "void apply_events(arb_mechanism_ppack params_) {{\n"
+                                       "void apply_events(arb_mechanism_ppack params_, arb_deliverable_event_stream* events) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    if(tid_<{1}events.n_streams) {{\n"
-                                       "        auto begin = {1}events.events + {1}events.begin[tid_];\n"
-                                       "        auto end   = {1}events.events + {1}events.end[tid_];\n"
+                                       "    if(tid_<events->n_streams) {{\n"
+                                       "        auto begin = events->events + events->begin[tid_];\n"
+                                       "        auto end   = events->events + events->end[tid_];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            if (p->mech_id=={1}mechanism_id) {{\n"
                                        "                auto tid_ = p->mech_index;\n"
@@ -319,7 +319,17 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         emit_empty_wrapper("post_event");
     }
     if (net_receive_api) {
-        emit_api_wrapper(net_receive_api, "events.n_streams", "apply_events");
+        auto api_name = "apply_events";
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* events) {{"), class_name, api_name);
+        if(!net_receive_api->body()->statements().empty()) {
+            out << fmt::format(FMT_COMPILE("\n"
+                                           "    auto n = events->n_streams;\n"
+                                           "    unsigned block_dim = 128;\n"
+                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
+                                           "    {}<<<grid_dim, block_dim>>>(*p);\n"),
+                               api_name);
+        }
+        out << "}\n\n";
     } else {
         emit_empty_wrapper("apply_events");
     }

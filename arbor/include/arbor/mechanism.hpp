@@ -22,29 +22,16 @@ struct ion_state_view {
     fvm_value_type* ionic_charge;
 };
 
-// Generated mechanism field, global and ion table lookup types.
-// First component is name, second is pointer to corresponing member in
-// the mechanism's parameter pack, or for field_default_table,
-// the scalar value used to initialize the field.
-using global_table_entry = std::pair<const char*, fvm_value_type>;
-using mechanism_global_table = std::vector<global_table_entry>;
-
-using state_table_entry = std::pair<const char*, std::pair<fvm_value_type*, fvm_value_type>>;
-using mechanism_state_table = std::vector<state_table_entry>;
-
-using field_table_entry = std::pair<const char*, std::pair<fvm_value_type*, fvm_value_type>>;
-using mechanism_field_table = std::vector<field_table_entry>;
-
-using ion_state_entry = std::pair<const char*, std::pair<ion_state_view, fvm_index_type*>>;
-using mechanism_ion_table = std::vector<ion_state_entry>;
-
 class mechanism {
 public:
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type  = fvm_size_type;
 
-    mechanism(const arb_mechanism_type m, const arb_mechanism_interface& i): mech_{m}, iface_{i} {}
+    mechanism(const arb_mechanism_type m,
+              const arb_mechanism_interface& i): mech_{m}, iface_{i} {
+        if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
+    }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
     ~mechanism() = default;
@@ -74,19 +61,7 @@ public:
     void update_state()   { ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_); }
     void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
     void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
-    void deliver_events(arb_deliverable_event_stream& stream) {
-        ppack_.vec_t  = *time_ptr_ptr;
-        ppack_.events = stream;
-        iface_.apply_events(&ppack_);
-    }
-
-    // Peek into state variable
-    fvm_value_type* field_data(const std::string& var);
-
-    mechanism_field_table field_table();
-    mechanism_global_table global_table();
-    mechanism_state_table state_table();
-    mechanism_ion_table ion_table();
+    void deliver_events(arb_deliverable_event_stream& stream) { ppack_.vec_t  = *time_ptr_ptr; iface_.apply_events(&ppack_, &stream); }
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
@@ -94,17 +69,7 @@ public:
     arb_mechanism_type  mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
-    bool mult_in_place_;                             // perform multiplication in place?
-    size_type num_ions_ = 0;                         // Ion count
-
-    size_type width_padded_;
-
-    std::vector<arb_value_type>  globals_;
-    std::vector<arb_value_type*> parameters_;
-    std::vector<arb_value_type*> state_vars_;
-    std::vector<arb_ion_state>   ion_states_;
-
-   arb_value_type** time_ptr_ptr;
+    arb_value_type** time_ptr_ptr;
 };
 
 struct mechanism_layout {

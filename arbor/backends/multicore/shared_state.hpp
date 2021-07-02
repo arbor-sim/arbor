@@ -110,6 +110,10 @@ struct shared_state {
         array data_;
         iarray indices_;
         constraint_partition constraints_;
+        std::vector<arb_value_type>  globals_;
+        std::vector<arb_value_type*> parameters_;
+        std::vector<arb_value_type*> state_vars_;
+        std::vector<arb_ion_state>   ion_states_;
     };
 
     unsigned alignment = 1;   // Alignment and padding multiple.

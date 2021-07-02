@@ -102,7 +102,10 @@ struct shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
-
+        std::vector<arb_value_type>  globals_;
+        std::vector<arb_value_type*> parameters_;
+        std::vector<arb_value_type*> state_vars_;
+        std::vector<arb_ion_state>   ion_states_;
         memory::device_vector<arb_value_type*> parameters_d_;
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
