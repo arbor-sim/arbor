@@ -50,10 +50,10 @@ def make_cable_cell(gid):
     decor.paint('"dend"', 'pas')
 
     # (4) Attach a single synapse.
-    decor.place('"synapse_site"', 'expsyn')
+    decor.place('"synapse_site"', 'expsyn', 'syn')
 
     # Attach a spike detector with threshold of -10 mV.
-    decor.place('"root"', arbor.spike_detector(-10))
+    decor.place('"root"', arbor.spike_detector(-10), 'detector')
 
     cell = arbor.cable_cell(tree, labels, decor)
 
@@ -90,13 +90,14 @@ class ring_recipe (arbor.recipe):
         src = (gid-1)%self.ncells
         w = 0.01
         d = 5
-        return [arbor.connection((src,0), (gid,0), w, d)]
+        return [arbor.connection((src,'detector'), 'syn', w, d)]
 
     # (9) Attach a generator to the first cell in the ring.
     def event_generators(self, gid):
         if gid==0:
             sched = arbor.explicit_schedule([1])
-            return [arbor.event_generator((0,0), 0.1, sched)]
+            weight = 0.1
+            return [arbor.event_generator('syn', weight, sched)]
         return []
 
     # (10) Place a probe at the root of each cell.
@@ -133,7 +134,7 @@ sim.run(ncells*5)
 print('Simulation finished')
 
 # (17) Plot the recorded voltages over time.
-print("Storing results ...")
+print('Storing results ...')
 df_list = []
 for gid in range(ncells):
     if len(sim.samples(handles[gid])):
