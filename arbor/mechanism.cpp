@@ -19,17 +19,6 @@ using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
 
-void mechanism::initialize() {
-  iface_.init_mechanism(&ppack_);
-#ifdef ARB_HAVE_GPU
-  case arb_backend_kind_gpu:
-    for (auto& v: state_vars_) {
-      arb::gpu::backend::multiply_in_place(v, ppack_.multiplicity, ppack_.width);
-    }
-    break;
-#endif
-}
-
 arb_value_type* mechanism::field_data(const std::string& var) {
     for (auto idx: make_span(mech_.n_parameters)) {
         if (var == mech_.parameters[idx].name) return parameters_[idx];

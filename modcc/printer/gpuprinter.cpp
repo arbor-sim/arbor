@@ -137,6 +137,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                    "auto* {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
                                    "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
                                    "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
+                                   "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
                                    "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"
                                    "auto& {0}events            __attribute__((unused)) = params_.events;\\\n"
                                    "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"
@@ -208,6 +209,18 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
     };
 
     emit_api_kernel(init_api);
+    if (init_api && !init_api->body()->statements().empty()) {
+        out << fmt::format(FMT_COMPILE("__global__\n"
+                                       "void multiply(arb_mechanism_ppack params_) {{\n"
+                                       "    PPACK_IFACE_BLOCK;\n"
+                                       "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
+                                       "    auto idx_ = blockIdx.y;"
+                                       "    if(tid_<{0}width) {{\n"
+                                       "        {0}state_vars[idx_][tid_] *= {0}multiplicity[tid_];\n"
+                                       "    }}\n"
+                                       "}}\n\n"),
+                           pp_var_pfx);
+    }
     emit_api_kernel(state_api);
     emit_api_kernel(current_api);
     emit_api_kernel(write_ions_api);
@@ -288,11 +301,10 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
                                            "    {1}<<<grid_dim, block_dim>>>(*p);\n"
-                                           "    if (!{2}multiplicity)"
-                                           "    multiply<<grid_dim, block_dim>(pp->state_vars, {2}multiplicity, {3});\n"),
+                                           "    if (!p->multiplicity) return;\n"
+                                           "    multiply<<<{{grid_dim, {2}}}, block_dim>>>(*p);\n"),
                                "width",
                                api_name,
-                               pp_var_pfx,
                                n);
         }
         out << "}\n\n";
