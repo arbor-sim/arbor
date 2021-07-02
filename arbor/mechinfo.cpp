@@ -31,12 +31,4 @@ mechanism_info::mechanism_info(const arb_mechanism_type& m) {
     }
 }
 
-mechanism_info::mechanism_info(const std::unordered_map<std::string, mechanism_field_spec>& g,
-                               const std::unordered_map<std::string, mechanism_field_spec>& p,
-                               const std::unordered_map<std::string, mechanism_field_spec>& s,
-                               const std::unordered_map<std::string, ion_dependency>& i,
-                               const mechanism_fingerprint& f,
-                               bool l,
-                               bool q): globals{g}, parameters{p}, state{s}, ions{i}, fingerprint{f}, linear{l}, post_events{q} {}
-
 }

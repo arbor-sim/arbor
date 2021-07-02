@@ -61,15 +61,17 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                            lo, hi);
     };
 
-    auto fmt_ion = [](const auto& i) { return fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {}}}"),
-                                                          i.name,
-                                                          i.writes_concentration_int() ? "true" : "false",
-                                                          i.writes_concentration_ext() ? "true" : "false",
-                                                          i.writes_rev_potential() ? "true" : "false",
-                                                          i.uses_rev_potential() ? "true" : "false",
-                                                          i.uses_valence() ? "true" : "false",
-                                                          i.verifies_valence() ? "true" : "false",
-                                                          i.expected_valence); };
+    auto fmt_ion = [](const auto& i) {
+        return fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {} }}"),
+                           i.name,
+                           i.writes_concentration_int(),
+                           i.writes_concentration_ext(),
+                           i.writes_rev_potential(),
+                           i.uses_rev_potential(),
+                           i.uses_valence(),
+                           i.verifies_valence(),
+                           i.expected_valence);
+    };
 
 
     out << fmt::format("extern \"C\" {{\n"

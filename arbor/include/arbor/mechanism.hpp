@@ -47,6 +47,7 @@ public:
     mechanism(const arb_mechanism_type m, const arb_mechanism_interface& i): mech_{m}, iface_{i} {}
     mechanism() = default;
     mechanism(const mechanism&) = delete;
+    ~mechanism() = default;
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
     const mechanism_fingerprint fingerprint() const { return mech_.fingerprint; };
@@ -60,7 +61,8 @@ public:
     // Does the implementation require padding and alignment of shared data structures?
     unsigned data_alignment() const { return iface_.alignment; }
 
-    // Make a new object of the derived mechanism type, but does not copy any state.
+    // Make a new object of the mechanism type, but does not copy any state, so
+    // the result must be instantiated.
     mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
     // Non-global parameters can be set post-instantiation:
@@ -85,8 +87,6 @@ public:
     mechanism_global_table global_table();
     mechanism_state_table state_table();
     mechanism_ion_table ion_table();
-
-    virtual ~mechanism() = default;
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
@@ -121,7 +121,7 @@ struct mechanism_layout {
 
 struct mechanism_overrides {
     // Global scalar parameters (any value down-conversion to fvm_value_type is the
-    // responsibility of the concrete mechanism).
+    // responsibility of the mechanism).
     std::unordered_map<std::string, double> globals;
 
     // Ion renaming: keys are ion dependency names as
