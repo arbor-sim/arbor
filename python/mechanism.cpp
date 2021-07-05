@@ -95,7 +95,7 @@ void register_mechanisms(pybind11::module& m) {
         .def_readonly("ions", &arb::mechanism_info::ions,
             "Ion dependencies.")
         .def_readonly("linear", &arb::mechanism_info::linear,
-            "True if a synapse mechanism has linear current contributions so that multiple instances on the same compartment can be coalesed.")
+            "True if a synapse mechanism has linear current contributions so that multiple instances on the same compartment can be coalesced.")
         .def("__repr__",
                 [](const arb::mechanism_info& inf) {
                     return util::pprintf("(arbor.mechanism_info)"); })
@@ -105,28 +105,62 @@ void register_mechanisms(pybind11::module& m) {
 
     pybind11::class_<arb::mechanism_catalogue> cat(m, "catalogue");
 
-    struct py_mech_cat_iterator {
-        py_mech_cat_iterator(const arb::mechanism_catalogue &cat, pybind11::object ref) : names(cat.mechanism_names()), ref(ref), idx{0} { }
-        std::vector<std::string> names;
-        pybind11::object ref; // keep a reference to cat lest it dies while we iterate
-        size_t idx = 0;
+    struct mech_cat_iter_state {
+        mech_cat_iter_state(const arb::mechanism_catalogue &cat_, pybind11::object ref_): names(cat_.mechanism_names()), ref(ref_), cat(cat_) { }
+        std::vector<std::string> names;      // cache the names else these will be allocated multiple times
+        pybind11::object ref;                // keep a reference to cat lest it dies while we iterate
+        const arb::mechanism_catalogue& cat; // to query the C++ object
+        size_t idx = 0;                      // where we are in the sequence
         std::string next() {
             if (idx == names.size()) throw pybind11::stop_iteration();
             return names[idx++];
         }
     };
 
-    pybind11::class_<py_mech_cat_iterator>(cat, "MechCatIterator")
-        .def("__iter__", [](py_mech_cat_iterator &it) -> py_mech_cat_iterator& { return it; })
-        .def("__next__", &py_mech_cat_iterator::next);
+    struct py_mech_cat_key_iterator {
+        py_mech_cat_key_iterator(const arb::mechanism_catalogue &cat_, pybind11::object ref_): state{cat_, ref_} { }
+        mech_cat_iter_state state;
+        std::string next() { return state.next(); }
+    };
+    struct py_mech_cat_item_iterator {
+        py_mech_cat_item_iterator(const arb::mechanism_catalogue &cat_, pybind11::object ref_): state{cat_, ref_} { }
+        mech_cat_iter_state state;
+        std::tuple<std::string, arb::mechanism_info> next() { auto name = state.next(); return {name, state.cat[name]}; }
+    };
+    struct py_mech_cat_value_iterator {
+        py_mech_cat_value_iterator(const arb::mechanism_catalogue &cat_, pybind11::object ref_): state{cat_, ref_} { }
+        mech_cat_iter_state state;
+        arb::mechanism_info next() { state.cat[state.next()]; }
+    };
+
+    pybind11::class_<py_mech_cat_key_iterator>(m, "MechCatKeyIterator")
+        .def("__iter__", [](py_mech_cat_key_iterator &it) -> py_mech_cat_key_iterator& { return it; })
+        .def("__next__", &py_mech_cat_key_iterator::next);
+
+    pybind11::class_<py_mech_cat_value_iterator>(m, "MechCatValueIterator")
+        .def("__iter__", [](py_mech_cat_value_iterator &it) -> py_mech_cat_value_iterator& { return it; })
+        .def("__next__", &py_mech_cat_value_iterator::next);
+
+    pybind11::class_<py_mech_cat_item_iterator>(m, "MechCatItemIterator")
+        .def("__iter__", [](py_mech_cat_item_iterator &it) -> py_mech_cat_item_iterator& { return it; })
+        .def("__next__", &py_mech_cat_item_iterator::next);
 
     cat
         .def(pybind11::init<const arb::mechanism_catalogue&>())
         .def("__contains__", &arb::mechanism_catalogue::has,
              "name"_a, "Is 'name' in the catalogue?")
         .def("__iter__",
-             [](pybind11::object cat) { return py_mech_cat_iterator(cat.cast<const arb::mechanism_catalogue &>(), cat); },
+             [](pybind11::object cat) { return py_mech_cat_key_iterator(cat.cast<const arb::mechanism_catalogue &>(), cat); },
              "Return an iterator over all mechanism names in this catalogues.")
+        .def("keys",
+             [](pybind11::object cat) { return py_mech_cat_key_iterator(cat.cast<const arb::mechanism_catalogue &>(), cat); },
+             "Return an iterator over all mechanism names in this catalogues.")
+        .def("values",
+             [](pybind11::object cat) { return py_mech_cat_value_iterator(cat.cast<const arb::mechanism_catalogue &>(), cat); },
+             "Return an iterator over all mechanism info values in this catalogues.")
+        .def("items",
+             [](pybind11::object cat) { return py_mech_cat_item_iterator(cat.cast<const arb::mechanism_catalogue &>(), cat); },
+             "Return an iterator over all (name, mechanism) tuples  in this catalogues.")
         .def("is_derived", &arb::mechanism_catalogue::is_derived,
                 "name"_a, "Is 'name' a derived mechanism or can it be implicitly derived?")
         .def("__getitem__",
