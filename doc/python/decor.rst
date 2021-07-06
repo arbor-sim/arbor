@@ -1,4 +1,4 @@
-.. pycablecell-decor:
+.. _pycablecell-decor:
 
 Cable cell decoration
 =====================

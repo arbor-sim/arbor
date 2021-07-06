@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -16,6 +18,8 @@
 #include <arborio/swcio.hpp>
 
 #include <tinyopt/tinyopt.h>
+
+using namespace arborio::literals;
 
 struct options {
     std::string swc_file;
@@ -64,8 +68,8 @@ struct single_recipe: public arb::recipe {
         arb::decor decor;
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        decor.paint("\"soma\"", "hh");
-        decor.paint("\"dend\"", "pas");
+        decor.paint("soma"_lab, "hh");
+        decor.paint("dend"_lab, "pas");
 
         // Add synapse to last branch.
 

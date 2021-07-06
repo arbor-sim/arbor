@@ -3,10 +3,11 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
-#include <arbor/string_literals.hpp>
+
+#include <arborio/label_parse.hpp>
 
 using namespace arb;
-using namespace arb::literals;
+using namespace arborio::literals;
 
 TEST(cable_cell, lid_ranges) {
 
@@ -21,7 +22,7 @@ TEST(cable_cell, lid_ranges) {
     arb::morphology morph(tree);
 
     label_dict dict;
-    dict.set("term", locset("(terminal)"));
+    dict.set("term", "(terminal)"_ls);
 
     decor decorations;
 

@@ -32,7 +32,6 @@ set(arbor_sources
     memory/util.cpp
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
-    morph/label_parse.cpp
     morph/locset.cpp
     morph/morphexcept.cpp
     morph/morphology.cpp

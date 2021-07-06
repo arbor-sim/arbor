@@ -23,7 +23,8 @@ public:
     explicit region(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
-    template <typename Impl>
+   template <typename Impl,
+              typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(const Impl& impl):
         impl_(new wrap<Impl>(impl)) {}
 
@@ -47,7 +48,8 @@ public:
         return *this;
     }
 
-    template <typename Impl>
+    template <typename Impl,
+              typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     region& operator=(const Impl& other) {
         impl_ = new wrap<Impl>(other);
         return *this;
@@ -57,10 +59,6 @@ public:
     region(mcable);
     region(mextent);
     region(mcable_list);
-
-    // Implicitly convert string to named region expression.
-    region(const std::string& label);
-    region(const char* label);
 
     friend mextent thingify(const region& r, const mprovider& m) {
         return r.impl_->thingify(m);

@@ -5,6 +5,8 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/recipe.hpp>
@@ -134,7 +136,7 @@ void register_probe_meta_maps(pyarb_global_ptr g) {
 // (Probe tag value is implicitly left at zero.)
 
 arb::probe_info cable_probe_membrane_voltage(const char* where) {
-    return arb::cable_probe_membrane_voltage{arb::locset(where)};
+    return arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap()};
 }
 
 arb::probe_info cable_probe_membrane_voltage_cell() {
@@ -142,11 +144,11 @@ arb::probe_info cable_probe_membrane_voltage_cell() {
 }
 
 arb::probe_info cable_probe_axial_current(const char* where) {
-    return arb::cable_probe_axial_current{arb::locset(where)};
+    return arb::cable_probe_axial_current{arborio::parse_locset_expression(where).unwrap()};
 }
 
 arb::probe_info cable_probe_total_ion_current_density(const char* where) {
-    return arb::cable_probe_total_ion_current_density{arb::locset(where)};
+    return arb::cable_probe_total_ion_current_density{arborio::parse_locset_expression(where).unwrap()};
 }
 
 arb::probe_info cable_probe_total_ion_current_cell() {
@@ -162,7 +164,7 @@ arb::probe_info cable_probe_stimulus_current_cell() {
 }
 
 arb::probe_info cable_probe_density_state(const char* where, const char* mechanism, const char* state) {
-    return arb::cable_probe_density_state{arb::locset(where), mechanism, state};
+    return arb::cable_probe_density_state{arborio::parse_locset_expression(where).unwrap(), mechanism, state};
 };
 
 arb::probe_info cable_probe_density_state_cell(const char* mechanism, const char* state) {
@@ -178,7 +180,7 @@ arb::probe_info cable_probe_point_state_cell(const char* mechanism, const char* 
 }
 
 arb::probe_info cable_probe_ion_current_density(const char* where, const char* ion) {
-    return arb::cable_probe_ion_current_density{arb::locset(where), ion};
+    return arb::cable_probe_ion_current_density{arborio::parse_locset_expression(where).unwrap(), ion};
 }
 
 arb::probe_info cable_probe_ion_current_cell(const char* ion) {
@@ -186,7 +188,7 @@ arb::probe_info cable_probe_ion_current_cell(const char* ion) {
 }
 
 arb::probe_info cable_probe_ion_int_concentration(const char* where, const char* ion) {
-    return arb::cable_probe_ion_int_concentration{arb::locset(where), ion};
+    return arb::cable_probe_ion_int_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
 }
 
 arb::probe_info cable_probe_ion_int_concentration_cell(const char* ion) {
@@ -194,7 +196,7 @@ arb::probe_info cable_probe_ion_int_concentration_cell(const char* ion) {
 }
 
 arb::probe_info cable_probe_ion_ext_concentration(const char* where, const char* ion) {
-    return arb::cable_probe_ion_ext_concentration{arb::locset(where), ion};
+    return arb::cable_probe_ion_ext_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
 }
 
 arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion) {
