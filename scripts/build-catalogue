@@ -92,6 +92,7 @@ make_catalogue(
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
   OUTPUT "CAT_{name.upper()}_SOURCES"
   MECHS {' '.join(mods)}
+  CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   ARBOR {arb}
   STANDALONE ON
   VERBOSE {"ON" if verbose else "OFF"})

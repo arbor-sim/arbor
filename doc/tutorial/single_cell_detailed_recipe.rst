@@ -155,9 +155,9 @@ The details of the execution context can be customized by the user. We may speci
 in the thread pool; determine the id of the GPU to be used; or create our own MPI communicator. However,
 the ideal settings can usually be inferred from the system, and Arbor can do that with a simple command.
 
-.. code-block:: python
-
-   context = arbor.context()
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 149-151
 
 The domain decomposition
 ************************
@@ -174,18 +174,18 @@ context, creates the :class:`arbor.domain_decomposition` object for us.
 Our example is a simple one, with just one cell. We don't need any sophisticated partitioning algorithms, so
 we can use the load balancer, which does a good job distributing simple networks.
 
-.. code-block:: python
-
-   domains = arbor.partition_load_balance(recipe, context)
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 153-155
 
 The simulation
 **************
 
 Finally we have the 3 components needed to create a :class:`arbor.simulation` object.
 
-.. code-block:: python
-
-   sim = arbor.simulation(recipe, domains, context)
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 157-159
 
 Before we run the simulation, however, we need to register what results we expect once execution is over.
 This was handled by the :class:`arbor.single_cell_model` object in the previous example.
@@ -193,15 +193,9 @@ This was handled by the :class:`arbor.single_cell_model` object in the previous 
 We would like to get a list of the spikes on the cell during the runtime of the simulation, and we would like
 to plot the voltage registered by the probe on the "custom_terminal" locset.
 
-.. code-block:: python
-
-   # Instruct the simulation to record the spikes
-   sim.record(arbor.spike_recording.all)
-
-   # Instruct the simulation to sample the probe (0, 0)
-   # at a regular schedule with period = 0.02 ms (50 kHz)
-   probe_id = arbor.cell_member(0,0)
-   handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 161-166
 
 The lines handling probe sampling warrant a second look. First, we declared ``probe_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
@@ -217,10 +211,9 @@ The execution
 
 We can now run the simulation we just instantiated for a duration of 100 ms with a time step of 0.025 ms.
 
-.. code-block:: python
-
-   sim.run(tfinal=100, dt=0.025)
-
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 168-170
 
 The results
 ***********
@@ -230,26 +223,15 @@ to sample the probe.
 
 We can print the times of the spikes:
 
-.. code-block:: python
-
-   spikes = sim.spikes()
-
-   # Print the number of spikes.
-   print(len(spikes), 'spikes recorded:')
-
-   # Print the spike times.
-   for s in spikes:
-       print(s)
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 172-177
 
 The probe results, again, warrant some more explanation:
 
-.. code-block:: python
-
-   data = []
-   meta = []
-   for d, m in sim.samples(handle):
-      data.append(d)
-      meta.append(m)
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 179-183
 
 ``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
 of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
@@ -260,12 +242,9 @@ to be 2.
 
 We plot the results using pandas and seaborn as we did in the previous example, and expect the same results:
 
-.. code-block:: python
-
-   df = pandas.DataFrame()
-   for i in range(len(data)):
-       df = df.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i])}))
-   seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_detailed_recipe_result.svg')
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 185-188
 
 The following plot is generated. Identical to the plot of the previous example.
 

@@ -27,9 +27,9 @@ class cc_recipe(A.recipe):
 
         dec = A.decor()
 
-        dec.place('(location 0 0.08)', "expsyn")
-        dec.place('(location 0 0.09)', "exp2syn")
-        dec.place('(location 0 0.1)', A.iclamp(20.))
+        dec.place('(location 0 0.08)', "expsyn", "syn0")
+        dec.place('(location 0 0.09)', "exp2syn", "syn1")
+        dec.place('(location 0 0.1)', A.iclamp(20.), "iclamp")
         dec.paint('(all)', "hh")
 
         self.cell = A.cable_cell(st, A.label_dict(), dec)
@@ -40,12 +40,6 @@ class cc_recipe(A.recipe):
 
     def num_cells(self):
         return 1
-
-    def num_targets(self, gid):
-        return 2
-
-    def num_sources(self, gid):
-        return 0
 
     def cell_kind(self, gid):
         return A.cell_kind.cable

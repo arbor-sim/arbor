@@ -9,8 +9,7 @@ They are typically used as stimuli in a network of more complex cells.
 A spike source cell:
 
 * has its morphology is automatically modelled as a single :term:`compartment <control volume>`;
-* has one built-in **source**, which does not need to
-  be explicitly added in the cell description;
+* has one built-in **source**, which needs to be given a label to be used when forming connections from the cell;
 * has no **targets**;
 * does not support adding additional **sources** or **targets**;
 * does not support **gap junctions**;

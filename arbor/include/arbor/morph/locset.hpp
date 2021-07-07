@@ -25,7 +25,8 @@ public:
     explicit locset(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
-    template <typename Impl>
+    template <typename Impl,
+              typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     explicit locset(const Impl& impl):
         impl_(new wrap<Impl>(impl)) {}
 
@@ -47,10 +48,6 @@ public:
     // Implicity convert mlocation and mlocation_lists to locsets.
     locset(mlocation other);
     locset(mlocation_list other);
-
-    // Implicitly convert string to named locset expression.
-    locset(const std::string& label);
-    locset(const char* label);
 
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
@@ -164,7 +161,7 @@ locset on_branches(double pos);
 // s.t. dist(h, L) = r * max {dist(h, t) | t is a distal point in C}.
 locset on_components(double relpos, region reg);
 
-// Support of a locset (x s.t. x in locset).
+// Set of locations in the locset with duplicates removed, i.e. the support of the input multiset
 locset support(locset);
 
 } // namespace ls

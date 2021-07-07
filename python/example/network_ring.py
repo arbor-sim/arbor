@@ -49,10 +49,17 @@ def make_cable_cell(gid):
     decor.paint('"dend"', 'pas')
 
     # (4) Attach a single synapse.
+<<<<<<< HEAD
     decor.place('"synapse_site"', 'expsyn', "syn")
 
     # Attach a spike detector with threshold of -10 mV.
     decor.place('"root"', arbor.spike_detector(-10), "detector")
+=======
+    decor.place('"synapse_site"', 'expsyn', 'syn')
+
+    # Attach a spike detector with threshold of -10 mV.
+    decor.place('"root"', arbor.spike_detector(-10), 'detector')
+>>>>>>> arborgh/master
 
     cell = arbor.cable_cell(tree, labels, decor)
 
@@ -89,6 +96,7 @@ class ring_recipe (arbor.recipe):
         src = (gid-1)%self.ncells
         w = 0.01
         d = 5
+<<<<<<< HEAD
         return [arbor.connection((src,"detector"), "syn", w, d)]
 
     def num_targets(self, gid):
@@ -96,12 +104,20 @@ class ring_recipe (arbor.recipe):
 
     def num_sources(self, gid):
         return 1
+=======
+        return [arbor.connection((src,'detector'), 'syn', w, d)]
+>>>>>>> arborgh/master
 
     # (9) Attach a generator to the first cell in the ring.
     def event_generators(self, gid):
         if gid==0:
             sched = arbor.explicit_schedule([1])
+<<<<<<< HEAD
             return [arbor.event_generator("syn", 0.1, sched)]
+=======
+            weight = 0.1
+            return [arbor.event_generator('syn', weight, sched)]
+>>>>>>> arborgh/master
         return []
 
     # (10) Place a probe at the root of each cell.

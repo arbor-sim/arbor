@@ -12,6 +12,7 @@
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/version.hpp>
 
+#include <arborio/label_parse.hpp>
 #include <arborio/swcio.hpp>
 #include <arborio/neurolucida.hpp>
 

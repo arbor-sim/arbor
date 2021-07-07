@@ -86,9 +86,7 @@ class Cable(arbor.recipe):
         decor.paint('"cable"',
                     arbor.mechanism(f'pas/e={self.Vm}', {'g': self.g}))
 
-        decor.place('"start"', arbor.iclamp(args.stimulus_start,
-                                            args.stimulus_duration,
-                                            args.stimulus_amplitude))
+        decor.place('"start"', arbor.iclamp(args.stimulus_start, args.stimulus_duration, args.stimulus_amplitude), "iclamp")
 
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)

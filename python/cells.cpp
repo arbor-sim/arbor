@@ -11,11 +11,14 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <arborio/cv_policy_parse.hpp>
+#include <arborio/label_parse.hpp>
+
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/cv_policy.hpp>
 #include <arbor/morph/label_dict.hpp>
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -75,23 +78,23 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
 //
 
 arb::cv_policy make_cv_policy_single(const std::string& reg) {
-    return arb::cv_policy_single(reg);
+    return arb::cv_policy_single(arborio::parse_region_expression(reg).unwrap());
 }
 
 arb::cv_policy make_cv_policy_explicit(const std::string& locset, const std::string& reg) {
-    return arb::cv_policy_explicit(locset, reg);
+    return arb::cv_policy_explicit(arborio::parse_locset_expression(locset).unwrap(), arborio::parse_region_expression(reg).unwrap());
 }
 
 arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
-    return arb::cv_policy_every_segment(reg);
+    return arb::cv_policy_every_segment(arborio::parse_region_expression(reg).unwrap());
 }
 
 arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std::string& reg) {
-    return arb::cv_policy_fixed_per_branch(cv_per_branch, reg);
+    return arb::cv_policy_fixed_per_branch(cv_per_branch, arborio::parse_region_expression(reg).unwrap());
 }
 
 arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
-    return arb::cv_policy_max_extent(cv_length, reg);
+    return arb::cv_policy_max_extent(cv_length, arborio::parse_region_expression(reg).unwrap());
 }
 
 // Helper for finding a mechanism description in a Python object.
@@ -138,17 +141,23 @@ void register_cells(pybind11::module& m) {
 
     spike_source_cell
         .def(pybind11::init<>(
-            [](const regular_schedule_shim& sched){
-                return arb::spike_source_cell{sched.schedule()};}),
-            "schedule"_a, "Construct a spike source cell that generates spikes at regular intervals.")
+            [](arb::cell_tag_type source_label, const regular_schedule_shim& sched){
+                return arb::spike_source_cell{std::move(source_label), sched.schedule()};}),
+            "source_label"_a, "schedule"_a,
+            "Construct a spike source cell with a single source labeled 'source_label'.\n"
+            "The cell generates spikes on 'source_label' at regular intervals.")
         .def(pybind11::init<>(
-            [](const explicit_schedule_shim& sched){
-                return arb::spike_source_cell{sched.schedule()};}),
-            "schedule"_a, "Construct a spike source cell that generates spikes at a sequence of user-defined times.")
+            [](arb::cell_tag_type source_label, const explicit_schedule_shim& sched){
+                return arb::spike_source_cell{std::move(source_label), sched.schedule()};}),
+            "source_label"_a, "schedule"_a,
+            "Construct a spike source cell with a single source labeled 'source_label'.\n"
+            "The cell generates spikes on 'source_label' at a sequence of user-defined times.")
         .def(pybind11::init<>(
-            [](const poisson_schedule_shim& sched){
-                return arb::spike_source_cell{sched.schedule()};}),
-            "schedule"_a, "Construct a spike source cell that generates spikes at times defined by a Poisson sequence.")
+            [](arb::cell_tag_type source_label, const poisson_schedule_shim& sched){
+                return arb::spike_source_cell{std::move(source_label), sched.schedule()};}),
+            "source_label"_a, "schedule"_a,
+            "Construct a spike source cell with a single source labeled 'source_label'.\n"
+            "The cell generates spikes on 'source_label' at times defined by a Poisson sequence.")
         .def("__repr__", [](const arb::spike_source_cell&){return "<arbor.spike_source_cell>";})
         .def("__str__",  [](const arb::spike_source_cell&){return "<arbor.spike_source_cell>";});
 
@@ -163,20 +172,23 @@ void register_cells(pybind11::module& m) {
 
     benchmark_cell
         .def(pybind11::init<>(
-            [](const regular_schedule_shim& sched, double ratio){
-                return arb::benchmark_cell{sched.schedule(), ratio};}),
-            "schedule"_a, "realtime_ratio"_a=1.0,
-            "Construct a benchmark cell that generates spikes at regular intervals.")
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const regular_schedule_shim& sched, double ratio){
+                return arb::benchmark_cell{std::move(source_label), std::move(target_label), sched.schedule(), ratio};}),
+            "source_label"_a, "target_label"_a,"schedule"_a, "realtime_ratio"_a=1.0,
+            "Construct a benchmark cell that generates spikes on 'source_label' at regular intervals.\n"
+            "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def(pybind11::init<>(
-            [](const explicit_schedule_shim& sched, double ratio){
-                return arb::benchmark_cell{sched.schedule(), ratio};}),
-            "schedule"_a, "realtime_ratio"_a=1.0,
-            "Construct a benchmark cell that generates spikes at a sequence of user-defined times.")
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const explicit_schedule_shim& sched, double ratio){
+                return arb::benchmark_cell{std::move(source_label), std::move(target_label),sched.schedule(), ratio};}),
+            "source_label"_a, "target_label"_a, "schedule"_a, "realtime_ratio"_a=1.0,
+            "Construct a benchmark cell that generates spikes on 'source_label' at a sequence of user-defined times.\n"
+            "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def(pybind11::init<>(
-            [](const poisson_schedule_shim& sched, double ratio){
-                return arb::benchmark_cell{sched.schedule(), ratio};}),
-            "schedule"_a, "realtime_ratio"_a=1.0,
-            "Construct a benchmark cell that generates spikes at times defined by a Poisson sequence.")
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label, const poisson_schedule_shim& sched, double ratio){
+                return arb::benchmark_cell{std::move(source_label), std::move(target_label), sched.schedule(), ratio};}),
+            "source_label"_a, "target_label"_a, "schedule"_a, "realtime_ratio"_a=1.0,
+            "Construct a benchmark cell that generates spikeson 'source_label' at times defined by a Poisson sequence.\n"
+            "The cell has one source labeled 'source_label', and one target labeled 'target_label'.")
         .def("__repr__", [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";})
         .def("__str__",  [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";});
 
@@ -186,7 +198,11 @@ void register_cells(pybind11::module& m) {
         "A leaky integrate-and-fire cell.");
 
     lif_cell
-        .def(pybind11::init<>())
+        .def(pybind11::init<>(
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label){
+                return arb::lif_cell(std::move(source_label), std::move(target_label));}),
+            "source_label"_a, "target_label"_a,
+            "Construct a lif cell with one source labeled 'source_label', and one target labeled 'target_label'.")
         .def_readwrite("tau_m", &arb::lif_cell::tau_m,
             "Membrane potential decaying constant [ms].")
         .def_readwrite("V_th", &arb::lif_cell::V_th,
@@ -201,6 +217,10 @@ void register_cells(pybind11::module& m) {
             "Refractory period [ms].")
         .def_readwrite("V_reset", &arb::lif_cell::V_reset,
             "Reset potential [mV].")
+        .def_readwrite("source", &arb::lif_cell::source,
+            "Label of the single build-in source on the cell.")
+        .def_readwrite("target", &arb::lif_cell::target,
+            "Label of the single build-in target on the cell.")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
@@ -247,13 +267,22 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
+        .def(pybind11::init([](const std::string& s) { return arborio::parse_cv_policy_expression(s).unwrap(); }))
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
         .def(pybind11::self + pybind11::self)
         .def(pybind11::self | pybind11::self)
-        .def("__repr__", [](const arb::cv_policy& p) {return "(cv-policy)";})
-        .def("__str__",  [](const arb::cv_policy& p) {return "(cv-policy)";});
+        .def("__repr__", [](const arb::cv_policy& p) {
+            std::stringstream ss;
+            ss << p;
+            return ss.str();
+        })
+        .def("__str__", [](const arb::cv_policy& p) {
+            std::stringstream ss;
+            ss << p;
+            return ss.str();
+        });
 
     m.def("cv_policy_explicit",
           &make_cv_policy_explicit,
@@ -471,13 +500,13 @@ void register_cells(pybind11::module& m) {
         // Paint mechanisms.
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::mechanism_desc& d) {
-                dec.paint(region, d);
+                dec.paint(arborio::parse_region_expression(region).unwrap(), d);
             },
             "region"_a, "mechanism"_a,
             "Associate a mechanism with a region.")
         .def("paint",
             [](arb::decor& dec, const char* region, const char* mech_name) {
-                dec.paint(region, arb::mechanism_desc(mech_name));
+                dec.paint(arborio::parse_region_expression(region).unwrap(), arb::mechanism_desc(mech_name));
             },
             "region"_a, "mechanism"_a,
             "Associate a mechanism with a region.")
@@ -488,10 +517,11 @@ void register_cells(pybind11::module& m) {
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
-                if (Vm) dec.paint(region, arb::init_membrane_potential{*Vm});
-                if (cm) dec.paint(region, arb::membrane_capacitance{*cm});
-                if (rL) dec.paint(region, arb::axial_resistivity{*rL});
-                if (tempK) dec.paint(region, arb::temperature_K{*tempK});
+                auto r = arborio::parse_region_expression(region).unwrap();
+                if (Vm) dec.paint(r, arb::init_membrane_potential{*Vm});
+                if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
+                if (rL) dec.paint(r, arb::axial_resistivity{*rL});
+                if (tempK) dec.paint(r, arb::temperature_K{*tempK});
             },
             pybind11::arg_v("region", "the region label or description."),
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
@@ -503,52 +533,57 @@ void register_cells(pybind11::module& m) {
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
                optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
-                if (int_con) dec.paint(region, arb::init_int_concentration{name, *int_con});
-                if (ext_con) dec.paint(region, arb::init_ext_concentration{name, *ext_con});
-                if (rev_pot) dec.paint(region, arb::init_reversal_potential{name, *rev_pot});
+                auto r = arborio::parse_region_expression(region).unwrap();
+                if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
+                if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
+                if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
             },
             "region"_a, "ion_name"_a,
-            pybind11::arg_v("int_con", pybind11::none(), "Intial internal concentration [mM]"),
-            pybind11::arg_v("ext_con", pybind11::none(), "Intial external concentration [mM]"),
-            pybind11::arg_v("rev_pot", pybind11::none(), "Intial reversal potential [mV]"),
+            pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
+            pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
+            pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d) -> int {
-                return dec.place(locset, d); },
-            "locations"_a, "mechanism"_a,
-            "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
+            [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), d, label_name); },
+            "locations"_a, "mechanism"_a, "label"_a,
+            "Place one instance of the synapse described by 'mechanism' on each location in 'locations'. "
+            "The group of synapses has the label 'label', used for forming connections between cells.")
         .def("place",
-            [](arb::decor& dec, const char* locset, const char* mech_name) -> int {
-                return dec.place(locset, mech_name);
+            [](arb::decor& dec, const char* locset, const char* mech_name, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mech_name, label_name);
             },
-            "locations"_a, "mechanism"_a,
-            "Place one instance of synapse described by 'mechanism' to each location in 'locations'.")
+            "locations"_a, "mechanism"_a, "label"_a,
+            "Place one instance of the synapse described by 'mechanism' on each location in 'locations'."
+            "The group of synapses has the label 'label', used for forming connections between cells.")
         // Place gap junctions.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site) -> int {
-                return dec.place(locset, site);
+            [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), site, label_name);
             },
-            "locations"_a, "gapjunction"_a,
-            "Place one gap junction site at each location in 'locations'.")
+            "locations"_a, "gapjunction"_a, "label"_a,
+            "Place one gap junction site labeled 'label' on each location in 'locations'."
+            "The group of gap junctions has the label 'label', used for forming connections between cells.")
         // Place current clamp stimulus.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) -> int {
-                return dec.place(locset, stim);
+            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim, label_name);
             },
-            "locations"_a, "iclamp"_a,
-            "Add a current stimulus at each location in locations.")
+            "locations"_a, "iclamp"_a, "label"_a,
+            "Add a current stimulus at each location in locations."
+            "The group of current stimuli has the label 'label'.")
         // Place spike detector.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::threshold_detector& d) -> int {
-                return dec.place(locset, d);
+            [](arb::decor& dec, const char* locset, const arb::threshold_detector& d, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), d, label_name);
             },
-            "locations"_a, "detector"_a,
-            "Add a voltage spike detector at each location in locations.")
+            "locations"_a, "detector"_a, "label"_a,
+            "Add a voltage spike detector at each location in locations."
+            "The group of spike detectors has the label 'label', used for forming connections between cells.")
         .def("discretization",
             [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
             pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"));
-
 
     // arb::cable_cell
 
@@ -571,20 +606,12 @@ void register_cells(pybind11::module& m) {
             "The number of unbranched cable sections in the morphology.")
         // Get locations associated with a locset label.
         .def("locations",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(label);},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arb::ls::named(label));},
             "label"_a, "The locations of the cell morphology for a locset label.")
         // Get cables associated with a region label.
         .def("cables",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_region(label).cables();},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arb::reg::named(label)).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
-        // Get lid range associated with a placement.
-        .def("placed_lid_range",
-            [](arb::cable_cell& c, int idx) -> pybind11::tuple {
-                auto range = c.placed_lid_range(idx);
-                return pybind11::make_tuple(range.begin, range.end);
-            },
-            "index"_a,
-            "The range of lids assigned to the items from a placement, for the lids assigned to synapses.")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});

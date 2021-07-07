@@ -23,6 +23,7 @@ set(arbor_sources
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
+    label_resolution.cpp
     lif_cell_group.cpp
     mc_cell_group.cpp
     mechcat.cpp
@@ -30,7 +31,6 @@ set(arbor_sources
     memory/util.cpp
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
-    morph/label_parse.cpp
     morph/locset.cpp
     morph/morphexcept.cpp
     morph/morphology.cpp

@@ -1,8 +1,9 @@
-#include <arbor/string_literals.hpp>
+#include <arborio/label_parse.hpp>
 #include "arbor/morph/morphology.hpp"
 #include "common_cells.hpp"
 
 namespace arb {
+using namespace arborio::literals;
 
 // Generate a segment tree from a sequence of points and parent index.
 arb::segment_tree segments_from_points(
@@ -132,7 +133,7 @@ msize_t soma_cell_builder::add_branch(
     return bid;
 }
 
-cable_cell_description  soma_cell_builder::make_cell() const {
+cable_cell_description soma_cell_builder::make_cell() const {
     // Test that a valid tree was generated, that is, every branch has
     // either 0 children, or at least 2 children.
     for (auto i: branch_distal_id) {
@@ -175,13 +176,12 @@ cable_cell_description  soma_cell_builder::make_cell() const {
  */
 
 cable_cell_description make_cell_soma_only(bool with_stim) {
-    using namespace arb::literals;
     soma_cell_builder builder(18.8/2.0);
 
     auto c = builder.make_cell();
     c.decorations.paint("soma"_lab, "hh");
     if (with_stim) {
-        c.decorations.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1});
+        c.decorations.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1}, "cc");
     }
 
     return {c.morph, c.labels, c.decorations};
@@ -209,7 +209,6 @@ cable_cell_description make_cell_soma_only(bool with_stim) {
  */
 
 cable_cell_description make_cell_ball_and_stick(bool with_stim) {
-    using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
@@ -217,7 +216,7 @@ cable_cell_description make_cell_ball_and_stick(bool with_stim) {
     c.decorations.paint("soma"_lab, "hh");
     c.decorations.paint("dend"_lab, "pas");
     if (with_stim) {
-        c.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
+        c.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "cc");
     }
 
     return {c.morph, c.labels, c.decorations};
@@ -246,7 +245,6 @@ cable_cell_description make_cell_ball_and_stick(bool with_stim) {
  */
 
 cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
-    using namespace arb::literals;
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
@@ -256,8 +254,8 @@ cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
     c.decorations.paint("soma"_lab, "hh");
     c.decorations.paint("dend"_lab, "pas");
     if (with_stim) {
-        c.decorations.place(builder.location({2,1}), i_clamp{5.,  80., 0.45});
-        c.decorations.place(builder.location({3,1}), i_clamp{40., 10.,-0.2});
+        c.decorations.place(builder.location({2,1}), i_clamp{5.,  80., 0.45}, "cc0");
+        c.decorations.place(builder.location({3,1}), i_clamp{40., 10.,-0.2}, "cc1");
     }
 
     return {c.morph, c.labels, c.decorations};

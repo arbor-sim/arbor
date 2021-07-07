@@ -11,6 +11,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/cable_cell.hpp>
@@ -34,6 +36,8 @@
 #include <mpi.h>
 #include <arborenv/with_mpi.hpp>
 #endif
+
+using namespace arborio::literals;
 
 struct run_params {
     std::string name = "default";
@@ -89,16 +93,6 @@ public:
         return gprop;
     }
 
-    // Each cell has one spike detector (at the soma).
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
-    }
-
-    // The cell has one target synapse
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        return 1;
-    }
-
     // Each cell has one incoming connection, from any cell in the network spanning all ranks:
     // src gid in {0, ..., num_cells_*num_tiles_ - 1}.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
@@ -108,7 +102,7 @@ public:
         auto src = source_distribution(src_gen);
         if (src>=gid) ++src;
 
-        return {arb::cell_connection({src, 0}, 0, event_weight_, min_delay_)};
+        return {arb::cell_connection({src, "detector"}, {"synapse"}, event_weight_, min_delay_)};
     }
 
     // Return an event generator on every 20th gid. This function needs to generate events
@@ -117,7 +111,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (gid%20 == 0) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{0, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({{{"synapse"}, 1.0, event_weight_}}));
         }
         return gens;
     }
@@ -280,7 +274,7 @@ run_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];

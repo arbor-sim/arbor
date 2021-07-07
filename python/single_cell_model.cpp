@@ -7,6 +7,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/cable_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
@@ -92,15 +94,7 @@ struct single_cell_recipe: arb::recipe {
         return arb::cell_kind::cable;
     }
 
-    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const override {
-        return cell_.detectors().size();
-    }
-
-    // synapses, connections and event generators
-
-    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const override {
-        return cell_.synapses().size();
-    }
+    // connections and event generators
 
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type) const override {
         return {}; // no connections on a single cell model
@@ -122,10 +116,6 @@ struct single_cell_recipe: arb::recipe {
     }
 
     // gap junctions
-
-    virtual arb::cell_size_type num_gap_junction_sites(arb::cell_gid_type gid)  const override {
-        return 0; // No gap junctions on a single cell model.
-    }
 
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const override {
         return {}; // No gap junctions on a single cell model.
@@ -247,7 +237,7 @@ void register_single_cell(pybind11::module& m) {
              "Run model from t=0 to t=tfinal ms.")
         .def("probe",
             [](single_cell_model& m, const char* what, const char* where, double frequency) {
-                m.probe(what, where, frequency);},
+                m.probe(what, arborio::parse_locset_expression(where).unwrap(), frequency);},
             "what"_a, "where"_a, "frequency"_a,
             "Sample a variable on the cell.\n"
             " what:      Name of the variable to record (currently only 'voltage').\n"

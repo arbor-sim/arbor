@@ -18,6 +18,7 @@
 #include "event_binner.hpp"
 #include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
+#include "label_resolution.hpp"
 #include "sampler_map.hpp"
 
 namespace arb {
@@ -26,7 +27,11 @@ class mc_cell_group: public cell_group {
 public:
     mc_cell_group() = default;
 
-    mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
+    mc_cell_group(const std::vector<cell_gid_type>& gids,
+                  const recipe& rec,
+                  cell_label_range& cg_sources,
+                  cell_label_range& cg_targets,
+                  fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable;

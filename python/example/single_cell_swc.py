@@ -49,12 +49,12 @@ decor.paint('"dend"', 'pas')
 # Increase resistivity on dendrites.
 decor.paint('"dend"', rL=500)
 # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-decor.place('"root"', arbor.iclamp(10, 1, current=5))
-decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5))
-decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5))
-decor.place('"stim_site"', arbor.iclamp(8, 1, current=4))
+decor.place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
+decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
+decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
+decor.place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
 # Detect spikes at the soma with a voltage threshold of -10 mV.
-decor.place('"axon_end"', arbor.spike_detector(-10))
+decor.place('"axon_end"', arbor.spike_detector(-10), "detector")
 
 # Create the policy used to discretise the cell into CVs.
 # Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
@@ -66,7 +66,7 @@ decor.discretization(policy)
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(morpho, labels, decor)
 
-print(cell.locations('"axon_end"'))
+print(cell.locations('axon_end'))
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)

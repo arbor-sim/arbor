@@ -2,13 +2,14 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <arbor/morph/label_parse.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
 
+#include <arborio/label_parse.hpp>
 #include <arborio/cableio.hpp>
 
+#include "parse_helpers.hpp"
 #include "parse_s_expr.hpp"
 
 namespace arborio {
@@ -32,7 +33,6 @@ cableio_version_error::cableio_version_error(const std::string& version):
     arb::arbor_exception("Unsupported cable-cell format version `" + version + "`")
 {}
 
-struct nil_tag {};
 
 // Define s-expr makers for various types
 s_expr mksexp(const init_membrane_potential& p) {
@@ -86,7 +86,9 @@ s_expr mksexp(const msegment& seg) {
 }
 // This can be removed once cv_policy is removed from the decor.
 s_expr mksexp(const cv_policy& c) {
-    return s_expr();
+    std::stringstream s;
+    s << c;
+    return parse_s_expr(s.str());
 }
 s_expr mksexp(const decor& d) {
     auto round_trip = [](auto& x) {
@@ -105,7 +107,7 @@ s_expr mksexp(const decor& d) {
     }
     for (const auto& p: d.placements()) {
         decorations.push_back(std::visit([&](auto& x)
-            { return slist("place"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
+            { return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(std::get<2>(p))); }, std::get<1>(p)));
     }
     return {"decor"_symbol, slist_range(decorations)};
 }
@@ -179,36 +181,6 @@ std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
 
 // Anonymous namespace containing helper functions and types for parsing s-expr
 namespace {
-// Test whether a value wrapped in std::any can be converted to a target type
-template <typename T>
-bool match(const std::type_info& info) {
-    return info == typeid(T);
-}
-template <>
-bool match<double>(const std::type_info& info) {
-    return info == typeid(double) || info == typeid(int);
-}
-
-// Convert a value wrapped in a std::any to target type.
-template <typename T>
-T eval_cast(std::any arg) {
-    return std::move(std::any_cast<T&>(arg));
-}
-template <>
-double eval_cast<double>(std::any arg) {
-    if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
-    return std::any_cast<double>(arg);
-}
-
-// Convert a value wrapped in a std::any to an optional std::variant type
-template <typename T, std::size_t I=0>
-std::optional<T> eval_cast_variant(const std::any& a) {
-    if constexpr (I<std::variant_size_v<T>) {
-        using var_type = std::variant_alternative_t<I, T>;
-        return match<var_type>(a.type())? eval_cast<var_type>(a): eval_cast_variant<T, I+1>(a);
-    }
-    return std::nullopt;
-}
 
 // Useful tuple aliases
 using envelope_tuple = std::tuple<double,double>;
@@ -252,10 +224,10 @@ arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std:
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
 // Define makers for placeable pairs, paintable pairs, defaultables and decors
-using place_pair = std::pair<arb::locset, arb::placeable>;
+using place_tuple = std::tuple<arb::locset, arb::placeable, std::string>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
-place_pair make_place(locset where, placeable what) {
-    return place_pair{where, what};
+place_tuple make_place(locset where, placeable what, std::string name) {
+    return place_tuple{where, what, name};
 }
 paint_pair make_paint(region where, paintable what) {
     return paint_pair{where, what};
@@ -263,11 +235,11 @@ paint_pair make_paint(region where, paintable what) {
 defaultable make_default(defaultable what) {
     return what;
 }
-decor make_decor(const std::vector<std::variant<place_pair, paint_pair, defaultable>>& args) {
+decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, defaultable>>& args) {
     decor d;
     for(const auto& a: args) {
         auto decor_visitor = arb::util::overload(
-            [&](const place_pair & p) { d.place(p.first, p.second); },
+            [&](const place_tuple & p) { d.place(std::get<0>(p), std::get<1>(p), std::get<2>(p)); },
             [&](const paint_pair & p) { d.paint(p.first, p.second); },
             [&](const defaultable & p){ d.set_default(p); });
         std::visit(decor_visitor, a);
@@ -357,142 +329,6 @@ template <typename T>
 cable_cell_component make_component(const meta_data& m, const T& d) {
     return cable_cell_component{m, d};
 }
-
-// Evaluator: member of make_call, make_arg_vec_call, make_mech_call, make_branch_call, make_unordered_call
-struct evaluator {
-    using any_vec = std::vector<std::any>;
-    using eval_fn = std::function<std::any(any_vec)>;
-    using args_fn = std::function<bool(const any_vec&)>;
-
-    eval_fn eval;
-    args_fn match_args;
-    const char* message;
-
-    evaluator(eval_fn f, args_fn a, const char* m):
-        eval(std::move(f)),
-        match_args(std::move(a)),
-        message(m)
-    {}
-
-    std::any operator()(any_vec args) {
-        return eval(std::move(args));
-    }
-};
-
-// Test whether a list of arguments passed as a std::vector<std::any> can be converted
-// to the types in Args.
-//
-// For example, the following would return true:
-//
-//  call_match<int, int, string>(vector<any(4), any(12), any(string("hello"))>)
-template <typename... Args>
-struct call_match {
-    template <std::size_t I, typename T, typename Q, typename... Rest>
-    bool match_args_impl(const std::vector<std::any>& args) const {
-        return match<T>(args[I].type()) && match_args_impl<I+1, Q, Rest...>(args);
-    }
-
-    template <std::size_t I, typename T>
-    bool match_args_impl(const std::vector<std::any>& args) const {
-        return match<T>(args[I].type());
-    }
-
-    template <std::size_t I>
-    bool match_args_impl(const std::vector<std::any>& args) const {
-        return true;
-    }
-
-    bool operator()(const std::vector<std::any>& args) const {
-        const auto nargs_in = args.size();
-        const auto nargs_ex = sizeof...(Args);
-        return nargs_in==nargs_ex? match_args_impl<0, Args...>(args): false;
-    }
-};
-// Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
-// The arguments are expanded and converted to the correct types, as specified by Args.
-template <typename... Args>
-struct call_eval {
-    using ftype = std::function<std::any(Args...)>;
-    ftype f;
-    call_eval(ftype f): f(std::move(f)) {}
-
-    template<std::size_t... I>
-    std::any expand_args_then_eval(const std::vector<std::any>& args, std::index_sequence<I...>) {
-        return f(eval_cast<Args>(std::move(args[I]))...);
-    }
-
-    std::any operator()(const std::vector<std::any>& args) {
-        return expand_args_then_eval(std::move(args), std::make_index_sequence<sizeof...(Args)>());
-    }
-};
-// Wrap call_match and call_eval in an evaluator
-template <typename... Args>
-struct make_call {
-    evaluator state;
-
-    template <typename F>
-    make_call(F&& f, const char* msg="call"):
-        state(call_eval<Args...>(std::forward<F>(f)), call_match<Args...>(), msg)
-    {}
-    operator evaluator() const {
-        return state;
-    }
-};
-
-// Test whether a list of arguments passed as a std::vector<std::any> can be converted
-// to a std::vector<std::variant<Args...>>.
-//
-// For example, the following would return true:
-//
-//  call_match<int, string>(vector<any(4), any(12), any(string("hello"))>)
-template <typename... Args>
-struct arg_vec_match {
-    template <typename T, typename Q, typename... Rest>
-    bool match_args_impl(const std::any& arg) const {
-        return match<T>(arg.type()) || match_args_impl<Q, Rest...>(arg);
-    }
-
-    template <typename T>
-    bool match_args_impl(const std::any& arg) const {
-        return match<T>(arg.type());
-    }
-
-    bool operator()(const std::vector<std::any>& args) const {
-        for (const auto& a: args) {
-            if (!match_args_impl<Args...>(a)) return false;
-        }
-        return true;
-    }
-};
-// Evaluate a call to a function where the arguments are provided as a std::vector<std::any>.
-// The arguments are converted to std::variant<Args...> and passed to the function as a std::vector.
-template <typename... Args>
-struct arg_vec_eval {
-    using ftype = std::function<std::any(std::vector<std::variant<Args...>>)>;
-    ftype f;
-    arg_vec_eval(ftype f): f(std::move(f)) {}
-
-    std::any operator()(const std::vector<std::any>& args) {
-        std::vector<std::variant<Args...>> vars;
-        for (const auto& a: args) {
-            vars.push_back(eval_cast_variant<std::variant<Args...>>(a).value());
-        }
-        return f(vars);
-    }
-};
-// Wrap arg_vec_match and arg_vec_eval in an evaluator
-template <typename... Args>
-struct make_arg_vec_call {
-    evaluator state;
-
-    template <typename F>
-    make_arg_vec_call(F&& f, const char* msg="argument vector"):
-        state(arg_vec_eval<Args...>(std::forward<F>(f)), arg_vec_match<Args...>(), msg)
-    {}
-    operator evaluator() const {
-        return state;
-    }
-};
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
 // to a string followed by any number of std::pair<std::string, double>
@@ -654,26 +490,9 @@ parse_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map
 
 parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_vec& vec) {
     if (e.is_atom()) {
-        auto& t = e.atom();
-        switch (t.kind) {
-        case tok::integer:
-            return {std::stoi(t.spelling)};
-        case tok::real:
-            return {std::stod(t.spelling)};
-        case tok::nil:
-            return {nil_tag()};
-        case tok::string:
-            return std::any{std::string(t.spelling)};
-            // An arbitrary symbol in a region/locset expression is an error, and is
-            // often a result of not quoting a label correctly.
-        case tok::symbol:
-            return util::unexpected(cableio_parse_error("Unexpected symbol "+e.atom().spelling, location(e)));
-        case tok::error:
-            return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
-        default:
-            return util::unexpected(cableio_parse_error("Unexpected term "+e.atom().spelling, location(e)));
-        }
+        return eval_atom<cableio_parse_error>(e);
     }
+
     if (e.head().is_atom()) {
         // If this is not a symbol, parse as a tuple
         if (e.head().atom().kind != tok::symbol) {
@@ -769,28 +588,28 @@ eval_map named_evals{
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
                                       "(name:string (param:string val:real))")},
 
-    {"place", make_call<locset, gap_junction_site>(make_place, "'place' with 2 arguments (locset gap-junction-site)")},
-    {"place", make_call<locset, i_clamp>(make_place, "'place' with 2 arguments (locset current-clamp)")},
-    {"place", make_call<locset, threshold_detector>(make_place, "'place' with 2 arguments (locset threshold-detector)")},
-    {"place", make_call<locset, mechanism_desc>(make_place, "'place' with 2 arguments (locset mechanism)")},
+    {"place", make_call<locset, gap_junction_site, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:gap-junction-site name:string)")},
+    {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
+    {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
+    {"place", make_call<locset, mechanism_desc, std::string>(make_place, "'place' with 3 arguments (ls:locset mech:mechanism name:string)")},
 
-    {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with 2 arguments (region membrane-potential)")},
-    {"paint", make_call<region, temperature_K>(make_paint, "'paint' with 2 arguments (region temperature-kelvin)")},
-    {"paint", make_call<region, membrane_capacitance>(make_paint, "'paint' with 2 arguments (region membrane-capacitance)")},
-    {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with 2 arguments (region axial-resistivity)")},
-    {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (region ion-internal-concentration)")},
-    {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with 2 arguments (region ion-external-concentration)")},
-    {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (region ion-reversal-potential)")},
-    {"paint", make_call<region, mechanism_desc>(make_paint, "'paint' with 2 arguments (region mechanism)")},
+    {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with 2 arguments (reg:region v:membrane-potential)")},
+    {"paint", make_call<region, temperature_K>(make_paint, "'paint' with 2 arguments (reg:region v:temperature-kelvin)")},
+    {"paint", make_call<region, membrane_capacitance>(make_paint, "'paint' with 2 arguments (reg:region v:membrane-capacitance)")},
+    {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with 2 arguments (reg:region v:axial-resistivity)")},
+    {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-internal-concentration)")},
+    {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-external-concentration)")},
+    {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (reg:region v:ion-reversal-potential)")},
+    {"paint", make_call<region, mechanism_desc>(make_paint, "'paint' with 2 arguments (reg:region v:mechanism)")},
 
-    {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (membrane-potential)")},
-    {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (temperature-kelvin)")},
-    {"default", make_call<membrane_capacitance>(make_default, "'default' with 1 argument (membrane-capacitance)")},
-    {"default", make_call<axial_resistivity>(make_default, "'default' with 1 argument (axial-resistivity)")},
-    {"default", make_call<init_int_concentration>(make_default, "'default' with 1 argument (ion-internal-concentration)")},
-    {"default", make_call<init_ext_concentration>(make_default, "'default' with 1 argument (ion-external-concentration)")},
-    {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (ion-reversal-potential)")},
-    {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (ion-reversal-potential-method)")},
+    {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (v:membrane-potential)")},
+    {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (v:temperature-kelvin)")},
+    {"default", make_call<membrane_capacitance>(make_default, "'default' with 1 argument (v:membrane-capacitance)")},
+    {"default", make_call<axial_resistivity>(make_default, "'default' with 1 argument (v:axial-resistivity)")},
+    {"default", make_call<init_int_concentration>(make_default, "'default' with 1 argument (v:ion-internal-concentration)")},
+    {"default", make_call<init_ext_concentration>(make_default, "'default' with 1 argument (v:ion-external-concentration)")},
+    {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (v:ion-reversal-potential)")},
+    {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (v:ion-reversal-potential-method)")},
 
     {"locset-def", make_call<std::string, locset>(make_locset_pair,
                        "'locset-def' with 2 arguments (name:string ls:locset)")},
@@ -804,7 +623,7 @@ eval_map named_evals{
     {"branch",  make_branch_call(
                     "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
-    {"decor", make_arg_vec_call<place_pair, paint_pair, defaultable>(make_decor,
+    {"decor", make_arg_vec_call<place_tuple, paint_pair, defaultable>(make_decor,
                   "'decor' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
                        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},

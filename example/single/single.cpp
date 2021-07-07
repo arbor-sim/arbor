@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -16,6 +18,8 @@
 #include <arborio/swcio.hpp>
 
 #include <tinyopt/tinyopt.h>
+
+using namespace arborio::literals;
 
 struct options {
     std::string swc_file;
@@ -36,7 +40,6 @@ struct single_recipe: public arb::recipe {
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
-    arb::cell_size_type num_targets(arb::cell_gid_type) const override { return 1; }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
         arb::mlocation mid_soma = {0, 0.5};
@@ -65,14 +68,14 @@ struct single_recipe: public arb::recipe {
         arb::decor decor;
 
         // Add HH mechanism to soma, passive channels to dendrites.
-        decor.paint("\"soma\"", "hh");
-        decor.paint("\"dend\"", "pas");
+        decor.paint("soma"_lab, "hh");
+        decor.paint("dend"_lab, "pas");
 
         // Add synapse to last branch.
 
         arb::cell_lid_type last_branch = morpho.num_branches()-1;
         arb::mlocation end_last_branch = { last_branch, 1. };
-        decor.place(end_last_branch, "exp2syn");
+        decor.place(end_last_branch, "exp2syn", "synapse");
 
         return arb::cable_cell(morpho, dict, decor);
     }

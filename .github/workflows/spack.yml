@@ -1,0 +1,20 @@
+name: Spack
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+            path: arbor
+      - name: Build Arbor's Spack package against the develop branch
+        run: arbor/scripts/build_spack_package.sh arbor develop

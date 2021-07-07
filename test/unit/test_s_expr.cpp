@@ -5,15 +5,20 @@
 
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
-#include <arbor/morph/label_parse.hpp>
+#include <arbor/cv_policy.hpp>
+
 #include <arbor/s_expr.hpp>
 
+#include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/label_parse.hpp>
 
 #include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
 
 using namespace arb;
+using namespace arborio;
+using namespace arborio::literals;
 using namespace std::string_literals;
 
 TEST(s_expr, atoms) {
@@ -174,6 +179,15 @@ std::string round_trip_label(const char* in) {
     }
 }
 
+std::string round_trip_cv(const char* in) {
+    if (auto x = parse_cv_policy_expression(in)) {
+        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
         return util::pprintf("{}", std::any_cast<arb::region>(*x));
@@ -190,6 +204,44 @@ std::string round_trip_locset(const char* in) {
     else {
         return x.error().what();
     }
+}
+
+
+TEST(cv_policies, round_tripping) {
+    auto literals = {"(every-segment (tag 42))",
+                     "(fixed-per-branch 23 (segment 0) 1)",
+                     "(max-extent 23.1 (segment 0) 1)",
+                     "(single (segment 0))",
+                     "(explicit (terminal) (segment 0))",
+                     "(join (every-segment (tag 42)) (single (segment 0)))",
+                     "(replace (every-segment (tag 42)) (single (segment 0)))",
+    };
+    for (const auto& literal: literals) {
+        EXPECT_EQ(literal, round_trip_cv(literal));
+    }
+}
+
+TEST(cv_policies, literals) {
+    EXPECT_NO_THROW("(every-segment (tag 42))"_cvp);
+    EXPECT_NO_THROW("(fixed-per-branch 23 (segment 0) 1)"_cvp);
+    EXPECT_NO_THROW("(max-extent 23.1 (segment 0) 1)"_cvp);
+    EXPECT_NO_THROW("(single (segment 0))"_cvp);
+    EXPECT_NO_THROW("(explicit (terminal) (segment 0))"_cvp);
+    EXPECT_NO_THROW("(join (every-segment (tag 42)) (single (segment 0)))"_cvp);
+    EXPECT_NO_THROW("(replace (every-segment (tag 42)) (single (segment 0)))"_cvp);
+}
+
+TEST(cv_policies, bad) {
+    auto check = [](const std::string& s) {
+        auto cv = parse_cv_policy_expression(s);
+        if (!cv.has_value()) throw cv.error();
+        return cv.value();
+    };
+
+    EXPECT_THROW(check("(every-segment (tag 42) 1)"), cv_policy_parse_error); // extra arg
+    EXPECT_THROW(check("(every-segment (terminal))"), cv_policy_parse_error); // locset instead of region
+    EXPECT_THROW(check("(every-segment"), cv_policy_parse_error);             // missing paren
+    EXPECT_THROW(check("(tag 42)"), cv_policy_parse_error);                   // not a cv_policy
 }
 
 TEST(regloc, round_tripping) {
@@ -313,7 +365,7 @@ std::optional<T> eval_cast_variant(const std::any& a) {
 }
 
 using branch = std::tuple<int, int, std::vector<arb::msegment>>;
-using place_pair = std::pair<arb::locset, arb::placeable>;
+using place_tuple = std::tuple<arb::locset, arb::placeable, std::string>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
@@ -362,9 +414,6 @@ std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
 std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
     return o << "(ion-reversal-potential-method \"" << p.ion << "\" " << p.method << ')';
 }
-std::ostream& operator<<(std::ostream& o, const cv_policy&) {
-    return o;
-}
 std::ostream& operator<<(std::ostream& o, const branch& b) {
     o << "(branch " << std::to_string(std::get<0>(b)) << " " << std::to_string(std::get<1>(b));
     for (auto s: std::get<2>(b)) {
@@ -377,10 +426,10 @@ std::ostream& operator<<(std::ostream& o, const paint_pair& p) {
     std::visit([&](auto&& x) {o << x;}, p.second);
     return o << ")";
 }
-std::ostream& operator<<(std::ostream& o, const place_pair& p) {
-    o << "(place " << p.first << " ";
-    std::visit([&](auto&& x) {o << x;}, p.second);
-    return o << ")";
+std::ostream& operator<<(std::ostream& o, const place_tuple& p) {
+    o << "(place " << std::get<0>(p) << " ";
+    std::visit([&](auto&& x) {o << x;}, std::get<1>(p));
+    return o << " \"" << std::get<2>(p) << "\")";
 }
 std::ostream& operator<<(std::ostream& o, const defaultable& p) {
     o << "(default ";
@@ -530,16 +579,16 @@ TEST(decor_expressions, round_tripping) {
         "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))"
     };
     auto decorate_place_literals = {
-        "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0.5 0.25))",
-        "(place (terminal) (threshold-detector -10))",
-        "(place (root) (gap-junction-site))",
-        "(place (locset \"my!ls\") (mechanism \"expsyn\"))"};
+        "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0.5 0.25) \"clamp\")",
+        "(place (terminal) (threshold-detector -10) \"detector\")",
+        "(place (root) (gap-junction-site) \"gap_junction\")",
+        "(place (locset \"my!ls\") (mechanism \"expsyn\") \"synapse\")"};
 
     for (auto l: decorate_paint_literals) {
         EXPECT_EQ(l, round_trip<paint_pair>(l));
     }
     for (auto l: decorate_place_literals) {
-        EXPECT_EQ(l, round_trip<place_pair>(l));
+        EXPECT_EQ(l, round_trip<place_tuple>(l));
     }
     for (auto l: decorate_default_literals) {
         EXPECT_EQ(l, round_trip<defaultable>(l));
@@ -606,14 +655,17 @@ TEST(decor, round_tripping) {
                                 "      (ion-internal-concentration \"ca\" 0.500000))\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
-                                "      (gap-junction-site))\n"
+                                "      (gap-junction-site)\n"
+                                "      \"gap-junction\")\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
-                                "      (threshold-detector 10.000000))\n"
+                                "      (threshold-detector 10.000000)\n"
+                                "      \"detector\")\n"
                                 "    (place \n"
                                 "      (location 0 0.5)\n"
                                 "      (mechanism \"expsyn\" \n"
-                                "        (\"tau\" 1.500000)))))";
+                                "        (\"tau\" 1.500000))\n"
+                                "      \"synapse\")))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str.c_str()));
 }
@@ -821,7 +873,8 @@ TEST(cable_cell, round_tripping) {
                                 "            (10.000000 0.500000)\n"
                                 "            (110.000000 0.500000)\n"
                                 "            (110.000000 0.000000))\n"
-                                "          0.000000 0.000000)))))";
+                                "          0.000000 0.000000)\n"
+                                "        \"iclamp\"))))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str.c_str()));
 
@@ -845,8 +898,9 @@ TEST(cable_cell_literals, errors) {
                      "(paint (tag 1) (mechanims hh))",       // invalid painting
                      "(paint (terminal) (membrance-capacitance 0.2))", // can't paint a locset
                      "(paint (tag 3))",                      // too few arguments
-                     "(place (locset) (gap-junction-site))", // invalid locset
-                     "(place (gap-junction-site) (location 0 1))",      // swapped argument order
+                     "(place (locset) (gap-junction-site) \"gj\")",        // invalid locset
+                     "(place (gap-junction-site) (location 0 1), \"gj\")", // swapped argument order
+                     "(place (location 0 1) (mechanism \"expsyn\"))",      // missing label
                      "(region-def my_region (tag 3))",       // unquoted region name
                      "(locset-def \"my_ls\" (tag 3))",       // invalid locset
                      "(locset-def \"my_ls\")",               // too few arguments
@@ -890,7 +944,7 @@ TEST(doc_expressions, parse) {
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
                      "(current-clamp (envelope (0 10) (50 10) (50 0)) 40 0.25)",
                      "(paint (tag 1) (membrane-capacitance 0.02))",
-                     "(place (locset \"mylocset\") (threshold-detector 10))",
+                     "(place (locset \"mylocset\") (threshold-detector 10) \"mydetectors\")",
                      "(default (membrane-potential -65))",
                      "(segment 3 (point 0 0 0 5) (point 0 0 10 2) 1)"})
     {
@@ -910,8 +964,8 @@ TEST(doc_expressions, parse) {
                      "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
                      "  (paint (all) (mechanism \"pas\"))\n"
                      "  (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "  (place (locset \"root\") (mechanism \"expsyn\"))\n"
-                     "  (place (terminal) (gap-junction-site)))",
+                     "  (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
+                     "  (place (terminal) (gap-junction-site) \"terminal_gj\"))",
                      "(morphology\n"
                      "  (branch 0 -1\n"
                      "    (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
@@ -942,8 +996,8 @@ TEST(doc_expressions, parse) {
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
                      "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
                      "    (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "    (place (locset \"root\") (mechanism \"expsyn\"))\n"
-                     "    (place (location 1 0.2) (gap-junction-site)))\n"
+                     "    (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
+                     "    (place (location 1 0.2) (gap-junction-site) \"terminal_gj\"))\n"
                      "  (morphology\n"
                      "    (branch 0 -1\n"
                      "      (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
@@ -980,7 +1034,7 @@ TEST(doc_expressions, parse) {
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
                             "  (decor\n"
                             "    (default (membrane-potential -55.000000))\n"
-                            "    (place (locset \"root\") (mechanism \"expsyn\"))\n"
+                            "    (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
                             "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
                             "(arbor-component\n"
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
@@ -997,7 +1051,7 @@ TEST(doc_expressions, parse) {
                             "      (locset-def \"root\" (root)))\n"
                             "    (decor\n"
                             "      (default (membrane-potential -55.000000))\n"
-                            "      (place (locset \"root\") (mechanism \"expsyn\"))\n"
+                            "      (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
                             "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
                             "    (morphology\n"
                             "       (branch 0 -1\n"

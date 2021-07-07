@@ -16,8 +16,8 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', 'hh')
-decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), 'iclamp')
-decor.place('"midpoint"', arbor.spike_detector(-10), 'detector')
+decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
 
 # (4) Create cell and the single cell model based on it
 cell = arbor.cable_cell(tree, labels, decor)

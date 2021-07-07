@@ -2,10 +2,11 @@
 #include <string>
 #include <vector>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
-
 #include "arbor/cable_cell_param.hpp"
 #include "arbor/morph/morphology.hpp"
 #include "arbor/morph/segment_tree.hpp"
@@ -22,6 +23,7 @@
 
 using namespace std::string_literals;
 using namespace arb;
+using namespace arborio::literals;
 
 using util::make_span;
 using util::count_along;
@@ -54,9 +56,9 @@ namespace {
             builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
             auto description = builder.make_cell();
-            description.decorations.paint("\"soma\"", "hh");
-            description.decorations.paint("\"dend\"", "pas");
-            description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3});
+            description.decorations.paint("soma"_lab, "hh");
+            description.decorations.paint("dend"_lab, "pas");
+            description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "clamp");
 
             s.builders.push_back(std::move(builder));
             descriptions.push_back(description);
@@ -97,8 +99,8 @@ namespace {
             auto b3 = b.add_branch(1, 180, 0.35, 0.35, 4, "dend");
             auto desc = b.make_cell();
 
-            desc.decorations.paint("\"soma\"", "hh");
-            desc.decorations.paint("\"dend\"", "pas");
+            desc.decorations.paint("soma"_lab, "hh");
+            desc.decorations.paint("dend"_lab, "pas");
 
             using ::arb::reg::branch;
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
@@ -108,8 +110,8 @@ namespace {
             desc.decorations.paint(c2, membrane_capacitance{0.013});
             desc.decorations.paint(c3, membrane_capacitance{0.018});
 
-            desc.decorations.place(b.location({2,1}), i_clamp{5.,  80., 0.45});
-            desc.decorations.place(b.location({3,1}), i_clamp{40., 10.,-0.2});
+            desc.decorations.place(b.location({2,1}), i_clamp{5.,  80., 0.45}, "clamo0");
+            desc.decorations.place(b.location({3,1}), i_clamp{40., 10.,-0.2}, "clamp1");
 
             desc.decorations.set_default(axial_resistivity{90});
 
@@ -133,10 +135,10 @@ TEST(fvm_layout, mech_index) {
     auto& builders = system.builders;
 
     // Add four synapses of two varieties across the cells.
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn");
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn");
-    descriptions[1].decorations.place(builders[1].location({2, 0.4}), "exp2syn");
-    descriptions[1].decorations.place(builders[1].location({3, 0.4}), "expsyn");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn", "syn0");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn", "syn1");
+    descriptions[1].decorations.place(builders[1].location({2, 0.4}), "exp2syn", "syn3");
+    descriptions[1].decorations.place(builders[1].location({3, 0.4}), "expsyn", "syn4");
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
@@ -253,10 +255,10 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         auto desc = builder.make_cell();
 
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.5}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.9}), "expsyn");
+        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), "expsyn", "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), "expsyn", "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -270,10 +272,10 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.5}), "exp2syn");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.9}), "exp2syn");
+        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), "exp2syn", "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), "exp2syn", "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -290,10 +292,10 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         auto desc = builder.make_cell();
 
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.5}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.9}), "expsyn");
+        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), "expsyn", "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), "expsyn", "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -307,10 +309,10 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.5}), "exp2syn");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.9}), "exp2syn");
+        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), "exp2syn", "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), "exp2syn", "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -328,10 +330,10 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn");
+        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -345,10 +347,10 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0.1, 0.2));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0.1, 0.2));
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2), "syn1");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0.1, 0.2), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0.1, 0.2), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -368,14 +370,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2));
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3), "syn0");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2), "syn4");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2), "syn5");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2), "syn6");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2), "syn7");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -396,16 +398,16 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 4, 1));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  5, 1));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 1, 3));
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1));
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2));
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 4, 1), "syn1");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn2");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  5, 1), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 1, 3), "syn4");
+        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn5");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2), "syn6");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1), "syn7");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1), "syn8");
+        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2), "syn9");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
@@ -445,14 +447,14 @@ TEST(fvm_layout, synapse_targets) {
         return mechanism_desc(name).set("e", syn_e.at(idx));
     };
 
-    descriptions[0].decorations.place(builders[0].location({1, 0.9}), syn_desc("expsyn", 0));
-    descriptions[0].decorations.place(builders[0].location({0, 0.5}), syn_desc("expsyn", 1));
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), syn_desc("expsyn", 2));
+    descriptions[0].decorations.place(builders[0].location({1, 0.9}), syn_desc("expsyn", 0), "syn0");
+    descriptions[0].decorations.place(builders[0].location({0, 0.5}), syn_desc("expsyn", 1), "syn1");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), syn_desc("expsyn", 2), "syn2");
 
-    descriptions[1].decorations.place(builders[1].location({2, 0.4}), syn_desc("exp2syn", 3));
-    descriptions[1].decorations.place(builders[1].location({1, 0.4}), syn_desc("exp2syn", 4));
-    descriptions[1].decorations.place(builders[1].location({3, 0.4}), syn_desc("expsyn", 5));
-    descriptions[1].decorations.place(builders[1].location({3, 0.7}), syn_desc("exp2syn", 6));
+    descriptions[1].decorations.place(builders[1].location({2, 0.4}), syn_desc("exp2syn", 3), "syn3");
+    descriptions[1].decorations.place(builders[1].location({1, 0.4}), syn_desc("exp2syn", 4), "syn4");
+    descriptions[1].decorations.place(builders[1].location({3, 0.4}), syn_desc("expsyn", 5), "syn5");
+    descriptions[1].decorations.place(builders[1].location({3, 0.7}), syn_desc("exp2syn", 6), "syn6");
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
@@ -563,10 +565,10 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gl"] = seg3_gl;
 
     auto desc = builder.make_cell();
-    desc.decorations.paint("\"soma\"", std::move(hh_0));
-    desc.decorations.paint("\"reg1\"", std::move(hh_1));
-    desc.decorations.paint("\"reg2\"", std::move(hh_2));
-    desc.decorations.paint("\"reg3\"", std::move(hh_3));
+    desc.decorations.paint("soma"_lab, std::move(hh_0));
+    desc.decorations.paint("reg1"_lab, std::move(hh_1));
+    desc.decorations.paint("reg2"_lab, std::move(hh_2));
+    desc.decorations.paint("reg3"_lab, std::move(hh_3));
 
     std::vector<cable_cell> cells{desc};
 
@@ -712,7 +714,7 @@ TEST(fvm_layout, density_norm_area_partial) {
 
 TEST(fvm_layout, valence_verify) {
     auto desc = soma_cell_builder(6).make_cell();
-    desc.decorations.paint("\"soma\"", "test_cl_valence");
+    desc.decorations.paint("soma"_lab, "test_cl_valence");
     std::vector<cable_cell> cells{desc};
 
     cable_cell_global_properties gprop;
@@ -841,9 +843,9 @@ TEST(fvm_layout, revpot) {
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
     auto desc = builder.make_cell();
-    desc.decorations.paint("\"soma\"", "read_eX/c");
-    desc.decorations.paint("\"soma\"", "read_eX/a");
-    desc.decorations.paint("\"dend\"", "read_eX/a");
+    desc.decorations.paint("soma"_lab, "read_eX/c");
+    desc.decorations.paint("soma"_lab, "read_eX/a");
+    desc.decorations.paint("dend"_lab, "read_eX/a");
 
     std::vector<cable_cell_description> descriptions{desc, desc};
 
