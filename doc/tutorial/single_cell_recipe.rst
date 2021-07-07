@@ -21,31 +21,9 @@ The cell
 Let's copy the cell description from the :ref:`previous example <tutorialsinglecell-cell>`,
 where construction of the cell is explained in detail.
 
-<<<<<<< HEAD
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
    :lines: 4,8-23
-=======
-.. code-block:: python
-
-    import arbor
-
-    # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
-    tree = arbor.segment_tree()
-    tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
-
-    # (2) Define the soma and its midpoint
-    labels = arbor.label_dict({'soma':   '(tag 1)',
-                              'midpoint': '(location 0 0.5)'})
-
-    # (3) Create cell and set properties
-    decor = arbor.decor()
-    decor.set_property(Vm=-40)
-    decor.paint('"soma"', 'hh')
-    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), 'iclamp')
-    decor.place('"midpoint"', arbor.spike_detector(-10), 'detector')
-    cell = arbor.cable_cell(tree, labels, decor)
->>>>>>> arborgh/master
 
 The recipe
 ----------
@@ -59,52 +37,9 @@ and overrides and implements some of :class:`arbor.recipe` methods. Not all meth
 have to be overridden, but some will always have to be, such as :meth:`arbor.recipe.num_cells`.
 It returns `0` by default and models without cells are quite boring!
 
-<<<<<<< HEAD
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
    :lines: 25-62
-=======
-.. code-block:: python
-
-    # (4) Define a recipe for a single cell and set of probes upon it.
-    # This constitutes the corresponding generic recipe version of
-    # `single_cell_model.py`.
-
-    class single_recipe (arbor.recipe):
-        def __init__(self, cell, probes):
-            # (4.1) The base C++ class constructor must be called first, to ensure that
-            # all memory in the C++ class is initialized correctly.
-            arbor.recipe.__init__(self)
-            self.the_cell = cell
-            self.the_probes = probes
-            self.the_props = arbor.neuron_cable_properties()
-            self.the_cat = arbor.default_catalogue()
-            self.the_props.register(self.the_cat)
-
-        def num_cells(self):
-            # (4.2) Override the num_cells method
-            return 1
-
-        def cell_kind(self, gid):
-            # (4.3) Override the cell_kind method
-            return arbor.cell_kind.cable
-
-        def cell_description(self, gid):
-            # (4.4) Override the cell_description method
-            return self.the_cell
-
-        def probes(self, gid):
-            # (4.5) Override the probes method
-            return self.the_probes
-
-        def global_properties(self, kind):
-            # (4.6) Override the global_properties method
-            return self.the_props
-
-    # (5) Instantiate recipe with a voltage probe located on "midpoint".
-
-    recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
->>>>>>> arborgh/master
 
 Step **(4)** describes the recipe that will reflect our single cell model.
 

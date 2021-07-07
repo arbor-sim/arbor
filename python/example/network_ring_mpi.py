@@ -109,7 +109,7 @@ class ring_recipe (arbor.recipe):
         return self.props
 
 # (11) Instantiate recipe
-ncells = 50
+ncells = 500
 recipe = ring_recipe(ncells)
 
 # (12) Create an MPI communicator, and use it to create a hardware context
