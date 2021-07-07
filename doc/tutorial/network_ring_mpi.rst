@@ -74,8 +74,6 @@ length. The effect is that we collect the results generated on this particular n
 instances of our script, and we can't access the results between nodes, we have to write the results to disk and
 analyse them later. We query :py:attr:`arbor.context.rank` to generate a unique filename for the result.
 
-.. code-block:: python
-
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
    :lines: 137-147
