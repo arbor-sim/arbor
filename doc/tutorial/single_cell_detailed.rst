@@ -24,7 +24,7 @@ The cell
 ********
 
 We start by building the cell. This will be a :ref:`cable cell <cablecell>` with complex
-geometry and dynamics which is be constructed from 3 components:
+geometry and dynamics which is constructed from 3 components:
 
 1. A **morphology** defining the geometry of the cell.
 2. A **label dictionary** storing labelled expressions which define regions and locations of

@@ -28,11 +28,12 @@ where construction of the cell is explained in detail.
 The recipe
 ----------
 
-The :class:`arbor.single_cell_model` of the previous example creates a :class:`arbor.recipe` under
-the hood, and abstracts away a few details that you may want control over in more complex simulations.
-Let's go into which we need to go into so we were unaware of its existence.
+In the :ref:`previous example <tutorialsinglecell-cell>`, the :class:`arbor.single_cell_model` creates
+a :class:`arbor.recipe` under the hood, and abstracts away a few details that you may want control over
+in more complex simulations. Let's go into those abstractions and create an analogous :class:`arbor.recipe`
+manually.
 
-Creating an analogous recipe starts with creating a class that inherits from :class:`arbor.recipe`
+Creating a recipe starts with creating a class that inherits from :class:`arbor.recipe`
 and overrides and implements some of :class:`arbor.recipe` methods. Not all methods
 have to be overridden, but some will always have to be, such as :meth:`arbor.recipe.num_cells`.
 It returns `0` by default and models without cells are quite boring!

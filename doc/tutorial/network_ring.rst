@@ -16,7 +16,7 @@ In this example, a small *network* of cells, arranged in a ring, will be created
 The cell
 ********
 
-Step **(1)** shows how a function that returns a simple cell with a dendrite is created.
+Step **(1)** shows a function that creates a simple cell with a dendrite.
 We construct the following :term:`morphology` and label the soma and dendrite:
 
 .. figure:: ../gen-images/tutorial_network_ring_morph.svg
