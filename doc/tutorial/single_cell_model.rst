@@ -95,7 +95,7 @@ The single cell model has 4 main functions:
 3. It **runs** the simulation.
 4. It collects **spikes** from spike detectors and voltage **traces** from registered probes.
 
-Right now, we'll only be setting a probe and run the simulation.
+Right now, we'll only set a probe and run the simulation.
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python
