@@ -396,32 +396,6 @@ std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     return out;
 }
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
-
-    arb_value_type* data = nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
-        if (key==m.mech_.parameters[i].name) {
-            data = m.ppack_.parameters[i];
-            break;
-        }
-    }
-    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
-
-    if (!m.ppack_.width) return;
-    auto width_padded = math::round_up(m.ppack_.width, alignment);
-    copy_extend(values, util::range_n(data, width_padded), values.back());
-}
-
-const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            return m.ppack_.state_vars[i];
-        }
-    }
-    return nullptr;
-}
-
 namespace {
 template <typename T>
 struct chunk_writer {
@@ -444,6 +418,39 @@ struct chunk_writer {
         return p;
     }
 };
+
+template <typename V>
+std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
+    // Width has to accommodate mechanism alignment and SIMD width.
+    std::size_t m = std::lcm(mech.data_alignment(), mech.iface_.partition_width*sizeof(V))/sizeof(V);
+    return math::round_up(width, m);
+}
+} // anonymous namespace
+
+void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
+    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
+
+    arb_value_type* data = nullptr;
+    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
+        if (key==m.mech_.parameters[i].name) {
+            data = m.ppack_.parameters[i];
+            break;
+        }
+    }
+    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+
+    if (!m.ppack_.width) return;
+    auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);
+    copy_extend(values, util::range_n(data, width_padded), values.back());
+}
+
+const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
+    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
+        if (key==m.mech_.state_vars[i].name) {
+            return m.ppack_.state_vars[i];
+        }
+    }
+    return nullptr;
 }
 
 // The derived class (typically generated code from modcc) holds pointers that need
@@ -463,10 +470,14 @@ struct chunk_writer {
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
 void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
-    util::padded_allocator<> pad(alignment);
+    // Mechanism indices and data require:
+    // * an alignment that is a multiple of the mechansim data_alignment();
+    // * a size which is a multiple of partition_width() for SIMD access.
+    //
+    // We used the padded_allocator to allocate arrays with the correct alignment, and allocate
+    // sizes that are multiples of a width padded to account for SIMD access and per-vector alignment.
 
-    if ((m.iface_.partition_width == 0)
-        || (m.iface_.partition_width & (m.iface_.partition_width - 1))) throw bad_alignment(m.iface_.partition_width);
+    util::padded_allocator<> pad(m.data_alignment());
 
     // Set internal variables
     m.time_ptr_ptr   = &time_ptr;
@@ -493,8 +504,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
-    std::size_t width_padded = math::round_up(pos_data.cv.size(), alignment);     // Extend width to account for requisite SIMD padding.
-
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
     store.parameters_.resize(m.mech_.n_parameters); m.ppack_.parameters = store.parameters_.data();
@@ -515,9 +524,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // Initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
+        std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
-        chunk_writer writer(store.data_.data(), width_padded);
+        chunk_writer writer(store.data_.data(), value_width_padded);
 
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append(pos_data.weight, 0);
@@ -551,13 +561,14 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // Make index bulk storage
     {
         // Allocate bulk storage
+        std::size_t index_width_padded = extend_width<arb_index_type>(m, pos_data.cv.size());
         std::size_t count = mult_in_place + m.mech_.n_ions + 1;
-        store.indices_ = iarray(count*width_padded, 0, pad);
-        chunk_writer writer(store.indices_.data(), width_padded);
+        store.indices_ = iarray(count*index_width_padded, 0, pad);
+        chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
         m.ppack_.node_index = writer.append(pos_data.cv, pos_data.cv.back());
 
-        auto node_index = util::range_n(m.ppack_.node_index, width_padded);
+        auto node_index = util::range_n(m.ppack_.node_index, index_width_padded);
         // Make SIMD index constraints and set the view
         store.constraints_ = make_constraint_partition(node_index, m.ppack_.width, m.iface_.partition_width);
         m.ppack_.index_constraints.contiguous    = store.constraints_.contiguous.data();
@@ -579,7 +590,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             auto indices = util::index_into(node_index, oion->node_index_);
             m.ppack_.ion_states[idx].index = writer.append(indices, util::back(indices));
             // Check SIMD constraints
-            arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, width_padded), m.iface_.partition_width));
+            arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, index_width_padded), m.iface_.partition_width));
         }
         if (mult_in_place) m.ppack_.multiplicity = writer.append(pos_data.multiplicity, 0);
     }

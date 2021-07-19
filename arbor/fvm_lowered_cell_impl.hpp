@@ -499,7 +499,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     }
 
     // Create shared cell state.
-    // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
+    // Shared state vectors should accommodate each mechanism's data alignment requests.
 
     unsigned data_alignment = util::max_value(
         util::transform_view(keys(mech_data.mechanisms),

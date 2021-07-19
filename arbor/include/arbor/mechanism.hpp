@@ -46,7 +46,7 @@ public:
     // Density or point mechanism?
     arb_mechanism_kind kind() const { return mech_.kind; };
 
-    // Does the implementation require padding and alignment of shared data structures?
+    // Minimum expected alignment of allocated vectors and shared state data.
     unsigned data_alignment() const { return iface_.alignment; }
 
     // Make a new object of the mechanism type, but does not copy any state, so
