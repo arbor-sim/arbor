@@ -240,6 +240,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"
             "using simd_index = S::simd<arb_index_type, vector_length_, " << abi << ">;\n"
             "using simd_mask  = S::simd_mask<arb_value_type, vector_length_, "<< abi << ">;\n"
+            "static constexpr unsigned min_align_ = std::max(simd_value::min_align, simd_index::min_align);\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
             "    simd_value ones = simd_cast<simd_value>(1.0);\n"
@@ -249,7 +250,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "}\n"
             "\n";
     } else {
-        out << "static constexpr unsigned simd_width_ = 0;\n\n";
+       out << "static constexpr unsigned simd_width_ = 1;\n"
+              "static constexpr unsigned min_align_ = std::max(alignof(arb_value_type), alignof(arb_index_type));\n\n";
     }
 
     // Make implementations
@@ -438,14 +440,14 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "  arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
                                    "    static arb_mechanism_interface result;\n"
                                    "    result.partition_width = {3}simd_width_;\n"
-                                   "    result.backend={2};\n"
-                                   "    result.alignment=1;\n"
-                                   "    result.init_mechanism={3}init;\n"
-                                   "    result.compute_currents={3}compute_currents;\n"
-                                   "    result.apply_events={3}apply_events;\n"
-                                   "    result.advance_state={3}advance_state;\n"
-                                   "    result.write_ions={3}write_ions;\n"
-                                   "    result.post_event={3}post_event;\n"
+                                   "    result.backend = {2};\n"
+                                   "    result.alignment = {3}min_align_;\n"
+                                   "    result.init_mechanism = {3}init;\n"
+                                   "    result.compute_currents = {3}compute_currents;\n"
+                                   "    result.apply_events = {3}apply_events;\n"
+                                   "    result.advance_state = {3}advance_state;\n"
+                                   "    result.write_ions = {3}write_ions;\n"
+                                   "    result.post_event = {3}post_event;\n"
                                    "    return &result;\n"
                                    "  }}"
                                    "}}\n\n"),

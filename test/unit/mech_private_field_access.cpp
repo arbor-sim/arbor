@@ -1,8 +1,9 @@
+#include <cstddef>
+
 #include <arbor/version.hpp>
-
 #include <arbor/mechanism.hpp>
-#include "backends/multicore/fvm.hpp"
 
+#include "backends/multicore/fvm.hpp"
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
 #include "memory/gpu_wrappers.hpp"
@@ -44,6 +45,12 @@ std::vector<arb_value_type> mc_mechanism_field(const mechanism* m, const std::st
     return std::vector<arb_value_type>(p, p+m->ppack_.width);
 }
 
+void mc_write_mechanism_field(const arb::mechanism* m, const std::string& key, const std::vector<arb::arb_value_type>& values) {
+    auto p = *field_lookup(m, key);
+    std::size_t n = std::min(values.size(), std::size_t(m->ppack_.width));
+    std::copy_n(values.data(), n, p);
+}
+
 std::vector<arb_index_type> mc_mechanism_ion_index(const mechanism* m, const std::string& ion) {
     auto istate = *ion_lookup(m, ion);
     return std::vector<arb_index_type>(istate.index, istate.index+m->ppack_.width);
@@ -59,10 +66,20 @@ std::vector<arb_value_type> gpu_mechanism_field(mechanism* m, const std::string&
     auto p_ptr = field_lookup(m, key);
     arb_value_type* p;
     memory::gpu_memcpy_d2h(p_ptr, &p, sizeof(p));
-    std::vector<arb_value_type> vec(m->ppack_.width);
-    memory::gpu_memcpy_d2h(p, vec.data(), sizeof(arb_value_type)*m->ppack_.width);
-    return vec;
+
+    std::size_t n = std::min(values.size(), std::size_t(m->ppack_.width));
+    memory::gpu_memcpy_h2d(vec.data(), p, sizeof(arb_value_type)*n);
 }
+
+void gpu_write_mechanism_field(const arb::mechanism* m, const std::string& key, const std::vector<arb::arb_value_type>& values) {
+    auto p_ptr = field_lookup(m, key);
+    arb_value_type* p;
+    memory::gpu_memcpy_d2h(p_ptr, &p, sizeof(p));
+
+    std::size_t n = std::min(values.size(), m->ppack_.width);
+    std::copy_n(values.data(), n, p);
+}
+
 
 std::vector<arb_index_type> gpu_mechanism_ion_index(const mechanism* m, const std::string& ion) {
     auto istate_ptr = ion_lookup(m, ion);
@@ -92,6 +109,20 @@ std::vector<arb_value_type> mechanism_field(const mechanism* m, const std::strin
 #ifdef ARB_GPU_ENABLED
     if (m->iface_.backend == arb_backend_kind_gpu) {
         return gpu_mechanism_field(m, key);
+    }
+#endif
+
+    throw std::logic_error("internal error: mechanism instantiated on unknown backend");
+}
+
+void write_mechanism_field(const arb::mechanism* m, const std::string& key, const std::vector<arb::arb_value_type>& values) {
+    if (m->iface_.backend == arb_backend_kind_cpu) {
+        return mc_write_mechanism_field(m, key, values);
+    }
+
+#ifdef ARB_GPU_ENABLED
+    if (m->iface_.backend == arb_backend_kind_gpu) {
+        return gpu_write_mechanism_field(m, key, values);
     }
 #endif
 

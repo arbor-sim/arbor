@@ -25,13 +25,14 @@
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
-#include "mech_private_field_access.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
+#include "util/span.hpp"
 #include "util/transform.hpp"
 
 #include "common.hpp"
+#include "mech_private_field_access.hpp"
 #include "unit_test_catalogue.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -823,18 +824,19 @@ TEST(fvm_lowered, weighted_write_ion) {
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_init_iconc, ion_init_iconc));
 
     auto test_ca = find_mechanism(fvcell, "test_ca");
-    auto test_ca_cai = mechanism_field(test_ca, "cai");
     auto test_ca_ca_index = mechanism_ion_index(test_ca, "ca");
 
     double cai_contrib[3] = {200., 0., 300.};
     double test_ca_weight[3] = {0.25, 0., 1.};
 
-    for (int i = 0; i<2; ++i) {
-        test_ca_cai[i] = cai_contrib[test_ca_ca_index[i]];
+    std::vector<double> test_ca_cai;
+    for (auto i: util::count_along(test_ca_ca_index)) {
+        test_ca_cai.push_back(cai_contrib[test_ca_ca_index[i]]);
     }
+    write_mechanism_field(test_ca, "cai", test_ca_cai);
 
     std::vector<double> expected_iconc(3);
-    for (int i = 0; i<3; ++i) {
+    for (auto i: util::count_along(expected_iconc)) {
         expected_iconc[i] = test_ca_weight[i]*cai_contrib[i] + ion_init_iconc[i];
     }
 
