@@ -65,7 +65,7 @@ arb_value_type mc_mechanism_global(const mechanism* m, const std::string& key) {
 std::vector<arb_value_type> gpu_mechanism_field(const mechanism* m, const std::string& key) {
     auto p_ptr = field_lookup(m, key);
     arb_value_type* p;
-    memory::gpu_memcpy_d2h(p_ptr, &p, sizeof(p));
+    memory::gpu_memcpy_d2h(&p, p_ptr, sizeof(p));
 
     std::size_t n = m->ppack_.width;
     std::vector<arb_value_type> values(n);
@@ -76,7 +76,7 @@ std::vector<arb_value_type> gpu_mechanism_field(const mechanism* m, const std::s
 void gpu_write_mechanism_field(const arb::mechanism* m, const std::string& key, const std::vector<arb::arb_value_type>& values) {
     auto p_ptr = field_lookup(m, key);
     arb_value_type* p;
-    memory::gpu_memcpy_d2h(p_ptr, &p, sizeof(p));
+    memory::gpu_memcpy_d2h(&p, p_ptr, sizeof(p));
 
     std::size_t n = std::min(values.size(), std::size_t(m->ppack_.width));
     memory::gpu_memcpy_h2d(const_cast<arb_value_type*>(values.data()), p, sizeof(arb_value_type)*n);
@@ -85,9 +85,9 @@ void gpu_write_mechanism_field(const arb::mechanism* m, const std::string& key, 
 std::vector<arb_index_type> gpu_mechanism_ion_index(const mechanism* m, const std::string& ion) {
     auto istate_ptr = ion_lookup(m, ion);
     arb_ion_state istate;
-    memory::gpu_memcpy_d2h(istate_ptr, &istate, sizeof(istate));
+    memory::gpu_memcpy_d2h(&istate, istate_ptr, sizeof(istate));
     std::vector<arb_index_type> vec(m->ppack_.width);
-    memory::gpu_memcpy_d2h(istate.index, vec.data(), sizeof(arb_index_type)*m->ppack_.width);
+    memory::gpu_memcpy_d2h(vec.data(), istate.index, sizeof(arb_index_type)*m->ppack_.width);
     return vec;
 }
 

@@ -99,14 +99,14 @@ namespace {
 template <typename T>
 T deref(const T* device_ptr) {
     T r;
-    arb::memory::gpu_memcpy_d2h(&r, device_ptr, sizeof(r));
+    arb::memory::gpu_memcpy_d2h(&r, device_ptr, sizeof(T));
     return r;
 }
 
 template <typename T>
 std::vector<T> vec_n(const T* device_ptr, std::size_t n) {
     std::vector<T> r(n);
-    arb::memory::gpu_memcpy_d2h(r.data(), device_ptr, n*sizeof(r));
+    arb::memory::gpu_memcpy_d2h(r.data(), device_ptr, n*sizeof(T));
     return r;
 }
 }
