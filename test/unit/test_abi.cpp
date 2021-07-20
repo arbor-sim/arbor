@@ -9,7 +9,7 @@
 
 #include "backends/multicore/shared_state.hpp"
 #ifdef ARB_GPU_ENABLED
-#include "backends/multicore/shared_state.hpp"
+#include "backends/gpu/shared_state.hpp"
 #include "memory/gpu_wrappers.hpp"
 #endif
 
@@ -99,14 +99,14 @@ namespace {
 template <typename T>
 T deref(const T* device_ptr) {
     T r;
-    memory::gpu_memcpy_d2h(&r, device_ptr, sizeof(r));
+    arb::memory::gpu_memcpy_d2h(&r, device_ptr, sizeof(r));
     return r;
 }
 
 template <typename T>
 std::vector<T> vec_n(const T* device_ptr, std::size_t n) {
     std::vector<T> r(n);
-    memory::gpu_memcpy_d2h(r.data(), device_ptr, n*sizeof(r));
+    arb::memory::gpu_memcpy_d2h(r.data(), device_ptr, n*sizeof(r));
     return r;
 }
 }
@@ -120,11 +120,13 @@ TEST(abi, gpu_initialisation) {
     std::vector<arb_field_info> params  = {{ "P0", "lm", -123.0,     0.0, 2000.0}};
 
     arb_mechanism_type type{};
+    type.abi_version = ARB_MECH_ABI_VERSION;
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
 
     arb_mechanism_interface iface { arb_backend_kind_gpu,
+                                    1,
                                     1,
                                     nullptr,
                                     nullptr,
@@ -168,7 +170,7 @@ TEST(abi, gpu_initialisation) {
 
         for (auto i = 0ul; i < states.size(); ++i) {
             std::vector<arb_value_type> expected(ncv, states[i].default_value);
-            std::vector<arb_value_type> values = vec_n(state_var_ptrs[i], n);
+            std::vector<arb_value_type> values = vec_n(state_var_ptrs[i], ncv);
 
             EXPECT_EQ(expected, values);
         }
@@ -179,7 +181,7 @@ TEST(abi, gpu_initialisation) {
         auto param_ptrs = vec_n(mech.ppack_.parameters, params.size());
         for (auto i = 0ul; i < params.size(); ++i) {
             std::vector<arb_value_type> expected(ncv, params[i].default_value);
-            std::vector<arb_value_type> values = vec_n(param_ptrs[i], n);
+            std::vector<arb_value_type> values = vec_n(param_ptrs[i], ncv);
 
             EXPECT_EQ(expected, values);
         }

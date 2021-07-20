@@ -220,15 +220,15 @@ struct chunk_writer {
     chunk_writer(T* data, std::size_t stride): end(data), stride(stride) {}
 
     template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
-    T* append(const Seq& seq) {
-        arb_assert(std::size(seq)==width);
-        return append_freely(seq);
+    T* append(Seq&& seq) {
+        arb_assert(std::size(seq)==stride);
+        return append_freely(std::forward<Seq>(seq));
     }
 
     template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
-    T* append_freely(const Seq& seq) {
+    T* append_freely(Seq&& seq) {
         std::size_t n = std::size(seq);
-        memory::copy(memory::host_view<T>(std::data(seq), n), memory::device_view<T>(end, n));
+        memory::copy(memory::host_view<T>(const_cast<T*>(std::data(seq)), n), memory::device_view<T>(end, n));
         auto p = end;
         end += n;
         return p;
@@ -245,7 +245,7 @@ struct chunk_writer {
 
 void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
-    const auto& store = storage.at(m.id);
+    const auto& store = storage.at(m.mechanism_id());
 
     arb_value_type* data = nullptr;
     for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
@@ -261,10 +261,10 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
 }
 
 const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    const auto& store = storage.at(m.id);
+    const auto& store = storage.at(m.mechanism_id());
 
     for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (field==m.mech_.state_vars[i].name) {
+        if (key==m.mech_.state_vars[i].name) {
             return store.state_vars_[i];
         }
     }
@@ -336,7 +336,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             store.parameters_[idx] = writer.fill(m.mech_.parameters[idx].default_value);
         }
         for (auto idx: make_span(m.mech_.n_state_vars)) {
-            store.state_vars_[idx] = writer.fill(m.mech_.state_vars_[idx].default_value);
+            store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
         for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
@@ -377,7 +377,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             store.ion_states_[idx].index = writer.append(mech_ion_index);
         }
 
-        if (mult_in_place) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, base_ptr, width);
+        m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
     }
 
     // Shift data to GPU, set up pointers
@@ -387,7 +387,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     store.state_vars_d_ = memory::on_gpu(store.state_vars_);
     m.ppack_.state_vars = store.state_vars_d_.data();
 
-    store.ion_states_d = memory::on_gpu(store.ion_states_);
+    store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
 }
 

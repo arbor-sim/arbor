@@ -75,12 +75,12 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                                    "    result.backend={2};\n"
                                    "    result.partition_width=1;\n"
                                    "    result.alignment=1;\n"
-                                   "    result.init_mechanism=(arb_mechanism_method){3}{0}_init_;\n"
-                                   "    result.compute_currents=(arb_mechanism_method){3}{0}_compute_currents_;\n"
-                                   "    result.apply_events=(arb_mechanism_method){3}{0}_apply_events_;\n"
-                                   "    result.advance_state=(arb_mechanism_method){3}{0}_advance_state_;\n"
-                                   "    result.write_ions=(arb_mechanism_method){3}{0}_write_ions_;\n"
-                                   "    result.post_event=(arb_mechanism_method){3}{0}_post_event_;\n"
+                                   "    result.init_mechanism={3}{0}_init_;\n"
+                                   "    result.compute_currents={3}{0}_compute_currents_;\n"
+                                   "    result.apply_events={3}{0}_apply_events_;\n"
+                                   "    result.advance_state={3}{0}_advance_state_;\n"
+                                   "    result.write_ions={3}{0}_write_ions_;\n"
+                                   "    result.post_event={3}{0}_post_event_;\n"
                                    "    return &result;\n"
                                    "  }}\n"
                                    "}};\n\n"),
@@ -327,12 +327,13 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                            "    auto n = events->n_streams;\n"
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {}<<<grid_dim, block_dim>>>(*p);\n"),
+                                           "    {}<<<grid_dim, block_dim>>>(*p, events);\n"),
                                api_name);
         }
         out << "}\n\n";
     } else {
-        emit_empty_wrapper("apply_events");
+        auto api_name = "apply_events";
+        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* events) {{}}\n\n"), class_name, api_name);
     }
     out << namespace_declaration_close(ns_components);
     return out.str();
