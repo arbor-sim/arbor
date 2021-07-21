@@ -10,10 +10,12 @@
 #include "backends/gpu/shared_state.hpp"
 #include "backends/multi_event_stream_state.hpp"
 #include "memory/copy.hpp"
+#include "memory/gpu_wrappers.hpp"
 #include "memory/wrappers.hpp"
 #include "util/index_into.hpp"
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
+#include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
@@ -210,32 +212,63 @@ shared_state::shared_state(
 }
 
 namespace {
-template<typename T>
-memory::const_host_view<T> std_view(const std::vector<T>& v) { return memory::const_host_view<T>{v.data(), v.size()}; }
+template <typename T>
+struct chunk_writer {
+    T* end; // device ptr
+    const std::size_t stride;
 
-template<typename T>
-void append_chunk(const std::vector<T>& in, T*& out, T*& ptr, size_t n) {
-    memory::copy(std_view(in), memory::device_view<T>(ptr, n));
-    out = ptr;
-    ptr += n;
+    chunk_writer(T* data, std::size_t stride): end(data), stride(stride) {}
+
+    template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
+    T* append(Seq&& seq) {
+        arb_assert(std::size(seq)==stride);
+        return append_freely(std::forward<Seq>(seq));
+    }
+
+    template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
+    T* append_freely(Seq&& seq) {
+        std::size_t n = std::size(seq);
+        memory::copy(memory::host_view<T>(const_cast<T*>(std::data(seq)), n), memory::device_view<T>(end, n));
+        auto p = end;
+        end += n;
+        return p;
+    }
+
+    T* fill(T value) {
+        memory::fill(memory::device_view<T>(end, stride), value);
+        auto p = end;
+        end += stride;
+        return p;
+    }
 };
-  
-template<typename T>
-void append_const(T in, T*& out, T*& ptr, size_t n) {
-    memory::fill(memory::device_view<T>(ptr, n), in);
-    out = ptr;
-    ptr += n;
-};
-  
 }
 
 void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
-    auto field_ptr = m.field_data(key);
-    if (!field_ptr) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+    const auto& store = storage.at(m.mechanism_id());
+
+    arb_value_type* data = nullptr;
+    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
+        if (key==m.mech_.parameters[i].name) {
+            data = store.parameters_[i];
+            break;
+        }
+    }
+    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+
     if (!m.ppack_.width) return;
-    assert (m.iface_.backend);
-    memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(field_ptr, m.ppack_.width));
+    memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(data, m.ppack_.width));
+}
+
+const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
+    const auto& store = storage.at(m.mechanism_id());
+
+    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
+        if (key==m.mech_.state_vars[i].name) {
+            return store.state_vars_[i];
+        }
+    }
+    return nullptr;
 }
 
 void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
@@ -245,12 +278,11 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     using util::ptr_by_key;
     using util::value_by_key;
 
-    auto mult_in_place = !pos_data.multiplicity.empty();
+    bool mult_in_place = !pos_data.multiplicity.empty();
 
     // Set internal variables
     m.time_ptr_ptr   = &time_ptr;
 
-    auto alignment    = std::max(array::alignment(), iarray::alignment());
     auto width        = pos_data.cv.size();
     auto width_padded = math::round_up(pos_data.cv.size(), alignment);
 
@@ -293,19 +325,20 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        auto count    = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
         store.data_   = array(count, NAN);
-        auto base_ptr = store.data_.data();
+        chunk_writer writer(store.data_.data(), width);
+
         // First sub-array of data_ is used for weight_
-        append_chunk(pos_data.weight, m.ppack_.weight, base_ptr, width);
+        m.ppack_.weight = writer.append(pos_data.weight);
         // Set fields
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            append_const(m.mech_.parameters[idx].default_value, store.parameters_[idx], base_ptr, width);
+            store.parameters_[idx] = writer.fill(m.mech_.parameters[idx].default_value);
         }
         for (auto idx: make_span(m.mech_.n_state_vars)) {
-            append_const(m.mech_.state_vars[idx].default_value, store.state_vars_[idx], base_ptr, width);
+            store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
-        // Assign global scalar parameters. NB: Last chunk, since it breaks the width_padded alignment
+        // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
         for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
@@ -318,23 +351,21 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             }
             if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
         }
-        memory::copy(std_view(store.globals_), memory::device_view<arb_value_type>(base_ptr, m.mech_.n_globals));
-        m.ppack_.globals = base_ptr;
-        base_ptr += m.mech_.n_globals;
+        m.ppack_.globals = writer.append_freely(store.globals_);
     }
 
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
-        auto count     = (mult_in_place ? 1 : 0) + m.mech_.n_ions + 1;
+        std::size_t count = mult_in_place + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*width_padded);
-        auto base_ptr  = store.indices_.data();
+        chunk_writer writer(store.indices_.data(), width);
+
         // Setup node indices
-        append_chunk(pos_data.cv, m.ppack_.node_index, base_ptr, width);
+        m.ppack_.node_index = writer.append(pos_data.cv);
         // Create ion indices
         for (auto idx: make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
-            auto& index_ptr = store.ion_states_[idx].index;
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
             ion_state* oion = ptr_by_key(ion_data, ion_binding);
@@ -343,21 +374,20 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             auto ni = memory::on_host(oion->node_index_);
             auto indices = util::index_into(pos_data.cv, ni);
             std::vector<arb_index_type> mech_ion_index(indices.begin(), indices.end());
-            append_chunk(mech_ion_index, index_ptr, base_ptr, width);
+            store.ion_states_[idx].index = writer.append(mech_ion_index);
         }
 
-        if (mult_in_place) append_chunk(pos_data.multiplicity, m.ppack_.multiplicity, base_ptr, width);
+        m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
     }
 
     // Shift data to GPU, set up pointers
-    store.parameters_d_ = memory::device_vector<arb_value_type*>(store.parameters_.size());
-    memory::copy(std_view(store.parameters_), store.parameters_d_);
+    store.parameters_d_ = memory::on_gpu(store.parameters_);
     m.ppack_.parameters = store.parameters_d_.data();
-    store.state_vars_d_ = memory::device_vector<arb_value_type*>(store.state_vars_.size());
-    memory::copy(std_view(store.state_vars_), store.state_vars_d_);
+
+    store.state_vars_d_ = memory::on_gpu(store.state_vars_);
     m.ppack_.state_vars = store.state_vars_d_.data();
-    store.ion_states_d_ = memory::device_vector<arb_ion_state>(store.ion_states_.size());
-    memory::copy(std_view(store.ion_states_), store.ion_states_d_);
+
+    store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
 }
 

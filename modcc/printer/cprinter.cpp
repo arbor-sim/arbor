@@ -133,7 +133,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     bool with_simd = opt.simd.abi!=simd_spec::none;
 
     options_trace_codegen = opt.trace_codegen;
-    
+
     // init_api, state_api, current_api methods are mandatory:
 
     assert_has_scope(init_api, "init");
@@ -240,6 +240,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"
             "using simd_index = S::simd<arb_index_type, vector_length_, " << abi << ">;\n"
             "using simd_mask  = S::simd_mask<arb_value_type, vector_length_, "<< abi << ">;\n"
+            "static constexpr unsigned min_align_ = std::max(simd_value::min_align, simd_index::min_align);\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
             "    simd_value ones = simd_cast<simd_value>(1.0);\n"
@@ -249,7 +250,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
             "}\n"
             "\n";
     } else {
-        out << "static constexpr unsigned simd_width_ = 0;\n\n";
+       out << "static constexpr unsigned simd_width_ = 1;\n"
+              "static constexpr unsigned min_align_ = std::max(alignof(arb_value_type), alignof(arb_index_type));\n\n";
     }
 
     // Make implementations
@@ -354,12 +356,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent << "}\n\n";
 
     if (net_receive_api) {
-        out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* events) {{\n"
+        out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto ncell = events->n_streams;\n"
+                                       "    auto ncell = stream_ptr->n_streams;\n"
                                        "    for (arb_size_type c = 0; c<ncell; ++c) {{\n"
-                                       "        auto begin  = events->events + events->begin[c];\n"
-                                       "        auto end    = events->events + events->end[c];\n"
+                                       "        auto begin  = stream_ptr->events + stream_ptr->begin[c];\n"
+                                       "        auto end    = stream_ptr->events + stream_ptr->end[c];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            auto i_     = p->mech_index;\n"
                                        "            auto {1} = p->weight;\n"
@@ -438,14 +440,14 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "  arb_mechanism_interface* make_{0}_{1}_interface_multicore() {{\n"
                                    "    static arb_mechanism_interface result;\n"
                                    "    result.partition_width = {3}simd_width_;\n"
-                                   "    result.backend={2};\n"
-                                   "    result.alignment=1;\n"
-                                   "    result.init_mechanism=(arb_mechanism_method){3}init;\n"
-                                   "    result.compute_currents=(arb_mechanism_method){3}compute_currents;\n"
-                                   "    result.apply_events=(arb_mechanism_method){3}apply_events;\n"
-                                   "    result.advance_state=(arb_mechanism_method){3}advance_state;\n"
-                                   "    result.write_ions=(arb_mechanism_method){3}write_ions;\n"
-                                   "    result.post_event=(arb_mechanism_method){3}post_event;\n"
+                                   "    result.backend = {2};\n"
+                                   "    result.alignment = {3}min_align_;\n"
+                                   "    result.init_mechanism = {3}init;\n"
+                                   "    result.compute_currents = {3}compute_currents;\n"
+                                   "    result.apply_events = {3}apply_events;\n"
+                                   "    result.advance_state = {3}advance_state;\n"
+                                   "    result.write_ions = {3}write_ions;\n"
+                                   "    result.post_event = {3}post_event;\n"
                                    "    return &result;\n"
                                    "  }}"
                                    "}}\n\n"),
@@ -511,7 +513,7 @@ static std::string index_i_name(const std::string& index_var) {
 }
 
 void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
-    out << "static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, int i_";
+    out << "[[maybe_unused]] static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, int i_";
     for (auto& arg: e->args()) {
         out << ", arb_value_type " << arg->is_argument()->name();
     }
@@ -738,7 +740,7 @@ void SimdPrinter::visit(BlockExpression* block) {
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
-    out << "static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(arb_mechanism_ppack* pp, arb_index_type i_";
+    out << "[[maybe_unused]] static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(arb_mechanism_ppack* pp, arb_index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
@@ -748,7 +750,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
 
 void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
     ENTER(out);
-    out << "static void " << qualified << (qualified.empty()? "": "::") << e->name()
+    out << "[[maybe_unused]] static void " << qualified << (qualified.empty()? "": "::") << e->name()
     << "(arb_mechanism_ppack* pp, arb_index_type i_, simd_mask mask_input_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();

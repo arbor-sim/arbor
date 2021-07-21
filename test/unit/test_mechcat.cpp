@@ -101,8 +101,6 @@ struct test_backend {
         state& marked_events() { return state_; }
         state state_;
     };
-
-    static void multiply_in_place(fvm_value_type* s, const fvm_index_type* p, int n) {}
 };
 
 struct foo_backend: test_backend {
@@ -130,7 +128,7 @@ struct bar_backend: test_backend {
 static arb_ion_info ion_list[] {{"a"}, {"b"}, {"c"}, {"d"}, {"e"}, {"f"}};
 
 mechanism_ptr mk_fleeb_foo() {
-    arb_mechanism_type m = {0};
+    arb_mechanism_type m = {ARB_MECH_ABI_VERSION};
     m.fingerprint = "fleebprint";
     m.name        = "fleeb";
     m.kind        = arb_mechanism_kind_density;
@@ -144,7 +142,7 @@ mechanism_ptr mk_fleeb_foo() {
 }
 
 mechanism_ptr mk_special_fleeb_foo() {
-    arb_mechanism_type m = {0};
+    arb_mechanism_type m = {ARB_MECH_ABI_VERSION};
     m.fingerprint = "fleebprint";
     m.name        = "special fleeb";
     m.kind        = arb_mechanism_kind_density;
@@ -158,7 +156,7 @@ mechanism_ptr mk_special_fleeb_foo() {
 }
 
 mechanism_ptr mk_fleeb_bar() {
-    arb_mechanism_type m = {0};
+    arb_mechanism_type m = {ARB_MECH_ABI_VERSION};
     m.fingerprint = "fleebprint";
     m.name        = "fleeb";
     m.kind        = arb_mechanism_kind_density;
@@ -174,7 +172,7 @@ mechanism_ptr mk_fleeb_bar() {
 // Burble implementation:
 
 mechanism_ptr mk_burble_bar() {
-    arb_mechanism_type m = {0};
+    arb_mechanism_type m = {ARB_MECH_ABI_VERSION};
     m.fingerprint = "fnord";
     m.name        = "burble";
     m.kind        = arb_mechanism_kind_density;

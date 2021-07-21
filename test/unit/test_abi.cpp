@@ -5,8 +5,13 @@
 
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechanism.hpp>
+#include <arbor/version.hpp>
 
 #include "backends/multicore/shared_state.hpp"
+#ifdef ARB_GPU_ENABLED
+#include "backends/gpu/shared_state.hpp"
+#include "memory/gpu_wrappers.hpp"
+#endif
 
 using namespace std::string_literals;
 
@@ -19,6 +24,7 @@ TEST(abi, multicore_initialisation) {
     std::vector<arb_field_info> params  = {{ "P0", "lm", -123.0,     0.0, 2000.0}};
 
     arb_mechanism_type type{};
+    type.abi_version = ARB_MECH_ABI_VERSION;
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
@@ -53,44 +59,58 @@ TEST(abi, multicore_initialisation) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    arb::mechanism_overrides overrides;
-
-    shared_state.instantiate(mech, 42, overrides, layout);
+    shared_state.instantiate(mech, 42, {}, layout);
 
     {
-        auto tb = mech.global_table();
-        EXPECT_EQ(tb.size(), globals.size());
-        for (auto idx = 0ul; idx < globals.size(); ++idx) {
-            const auto [k, v] = tb[idx];
-            EXPECT_EQ(k, globals[idx].name);
-            EXPECT_EQ(v, globals[idx].default_value);
-            EXPECT_EQ(mech.field_data(globals[idx].name), nullptr);
+        ASSERT_EQ(globals.size(), mech.mech_.n_globals);
+        for (auto i = 0ul; i < globals.size(); ++i) {
+            EXPECT_EQ(globals[i].default_value, mech.ppack_.globals[i]);
         }
     }
 
     {
-        auto tb = mech.state_table();
-        EXPECT_EQ(tb.size(), states.size());
-        for (auto idx = 0ul; idx < states.size(); ++idx) {
-            const auto& [k, v]  = tb[idx];
-            const auto& [vs, d] = v;
-            EXPECT_EQ(k, states[idx].name);
-            EXPECT_EQ(d, states[idx].default_value);
-            for (auto cv = 0ul; cv < ncv; ++cv) EXPECT_EQ(d, vs[cv]);
-            EXPECT_EQ(mech.field_data(states[idx].name), vs);
+        ASSERT_EQ(states.size(), mech.mech_.n_state_vars);
+        for (auto i = 0ul; i < states.size(); ++i) {
+            const auto* var_data = mech.ppack_.state_vars[i];
+
+            std::vector<arb_value_type> expected(ncv, states[i].default_value);
+            std::vector<arb_value_type> values(var_data, var_data+ncv);
+
+            EXPECT_EQ(expected, values);
         }
     }
 
     {
-        for (auto idx = 0ul; idx < params.size(); ++idx) {
-            const auto& vs = mech.field_data(params[idx].name);
-            for (auto cv = 0ul; cv < ncv; ++cv) EXPECT_EQ(vs[cv], params[idx].default_value);
+        ASSERT_EQ(params.size(), mech.mech_.n_parameters);
+        for (auto i = 0ul; i < params.size(); ++i) {
+            const auto* param_data = mech.ppack_.parameters[i];
+
+            std::vector<arb_value_type> expected(ncv, params[i].default_value);
+            std::vector<arb_value_type> values(param_data, param_data+ncv);
+
+            EXPECT_EQ(expected, values);
         }
     }
 }
 
-
 #ifdef ARB_GPU_ENABLED
+
+namespace {
+template <typename T>
+T deref(const T* device_ptr) {
+    T r;
+    arb::memory::gpu_memcpy_d2h(&r, device_ptr, sizeof(T));
+    return r;
+}
+
+template <typename T>
+std::vector<T> vec_n(const T* device_ptr, std::size_t n) {
+    std::vector<T> r(n);
+    arb::memory::gpu_memcpy_d2h(r.data(), device_ptr, n*sizeof(T));
+    return r;
+}
+}
+
 TEST(abi, gpu_initialisation) {
     std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
                                            { "G1", "lb",  456.0,     0.0, 2000.0},
@@ -100,11 +120,13 @@ TEST(abi, gpu_initialisation) {
     std::vector<arb_field_info> params  = {{ "P0", "lm", -123.0,     0.0, 2000.0}};
 
     arb_mechanism_type type{};
+    type.abi_version = ARB_MECH_ABI_VERSION;
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
 
     arb_mechanism_interface iface { arb_backend_kind_gpu,
+                                    1,
                                     1,
                                     nullptr,
                                     nullptr,
@@ -124,47 +146,44 @@ TEST(abi, gpu_initialisation) {
     std::vector<arb::fvm_gap_junction> gj = {};
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell, 0,
-                                              cv_to_intdom, cv_to_intdom,
-                                              gj, vinit, temp, diam, src_to_spike,
-                                              mech.data_alignment());
+    arb::gpu::shared_state shared_state(ncell, ncell, 0,
+                                        cv_to_intdom, cv_to_intdom,
+                                        gj, vinit, temp, diam, src_to_spike,
+                                        1);
 
     arb::mechanism_layout layout;
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    arb::mechanism_overrides overrides;
-
-    mech.instantiate(42, shared_state, overrides, layout);
+    shared_state.instantiate(mech, 42, {}, layout);
 
     {
-        auto tb = mech.global_table();
-        EXPECT_EQ(tb.size(), globals.size());
-        for (auto idx = 0ul; idx < globals.size(); ++idx) {
-            const auto [k, v] = tb[idx];
-            EXPECT_EQ(k, globals[idx].name);
-            EXPECT_EQ(v, globals[idx].default_value);
-            EXPECT_EQ(mech.field_data(globals[idx].name), nullptr);
+        ASSERT_EQ(globals.size(), mech.mech_.n_globals);
+        for (auto i = 0ul; i < globals.size(); ++i) {
+            EXPECT_EQ(globals[i].default_value, deref(mech.ppack_.globals+i));
         }
     }
 
     {
-        auto tb = mech.state_table();
-        EXPECT_EQ(tb.size(), states.size());
-        for (auto idx = 0ul; idx < states.size(); ++idx) {
-            const auto& [k, v]  = tb[idx];
-            const auto& [vs, d] = v;
-            EXPECT_EQ(k, states[idx].name);
-            EXPECT_EQ(d, states[idx].default_value);
-            for (auto cv = 0; cv < ncv; ++cv) EXPECT_EQ(d, vs[cv]);
-            EXPECT_EQ(mech.field_data(states[idx].name), vs);
+        ASSERT_EQ(states.size(), mech.mech_.n_state_vars);
+        auto state_var_ptrs = vec_n(mech.ppack_.state_vars, states.size());
+
+        for (auto i = 0ul; i < states.size(); ++i) {
+            std::vector<arb_value_type> expected(ncv, states[i].default_value);
+            std::vector<arb_value_type> values = vec_n(state_var_ptrs[i], ncv);
+
+            EXPECT_EQ(expected, values);
         }
     }
 
     {
-        for (auto idx = 0ul; idx < params.size(); ++idx) {
-            const auto& vs = mech.field_data(params[idx].name);
-            for (auto cv = 0ul; cv < ncv; ++cv) EXPECT_EQ(vs[cv], params[idx].default_value);
+        ASSERT_EQ(params.size(), mech.mech_.n_parameters);
+        auto param_ptrs = vec_n(mech.ppack_.parameters, params.size());
+        for (auto i = 0ul; i < params.size(); ++i) {
+            std::vector<arb_value_type> expected(ncv, params[i].default_value);
+            std::vector<arb_value_type> values = vec_n(param_ptrs[i], ncv);
+
+            EXPECT_EQ(expected, values);
         }
     }
 }
