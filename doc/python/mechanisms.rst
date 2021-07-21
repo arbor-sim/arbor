@@ -305,6 +305,23 @@ Mechanism catalogues
 
         :return: :class:`py_mech_cat_iterator`
 
+
+    .. py:method:: extend(other, prefix)
+
+        Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.
+
+        .. code-block:: Python
+
+            import arbor
+
+            cat = arbor.default_catalogue()
+            cat.extend(arbor.allen_catalogue(), "")
+
+        :param other: reference to other catalogue.
+        :type other: :class:`mechanism_catalogue`
+        :param prefix: prefix for mechanism names in ``other``
+        :type prefix: str
+
     .. py:method:: derive(name, parent, globals={}, ions={})
 
         Derive a new mechanism with *name* from the mechanism *parent*.

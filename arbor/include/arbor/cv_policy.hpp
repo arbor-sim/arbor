@@ -65,6 +65,7 @@ struct cv_policy_base {
     virtual region domain() const = 0;
     virtual std::unique_ptr<cv_policy_base> clone() const = 0;
     virtual ~cv_policy_base() {}
+    virtual std::ostream& print(std::ostream&) = 0;
 };
 
 using cv_policy_base_ptr = std::unique_ptr<cv_policy_base>;
@@ -93,6 +94,10 @@ struct cv_policy {
         return policy_ptr->domain();
     }
 
+    friend std::ostream& operator<<(std::ostream& o, const cv_policy& p) {
+        return p.policy_ptr->print(o);
+    }
+
 private:
     cv_policy_base_ptr policy_ptr;
 };
@@ -117,6 +122,10 @@ struct cv_policy_explicit: cv_policy_base {
     cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
     region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(explicit " << locs_ << ' ' << domain_ << ')';
+        return os;
+    }
 
 private:
     locset locs_;
@@ -130,6 +139,10 @@ struct cv_policy_single: cv_policy_base {
     cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
     region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(single " << domain_ << ')';
+        return os;
+    }
 
 private:
     region domain_;
@@ -145,6 +158,10 @@ struct cv_policy_max_extent: cv_policy_base {
     cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
     region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(max-extent " << max_extent_ << ' ' << domain_ << ' ' << flags_ << ')';
+        return os;
+    }
 
 private:
     double max_extent_;
@@ -162,6 +179,10 @@ struct cv_policy_fixed_per_branch: cv_policy_base {
     cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
     region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(fixed-per-branch " << cv_per_branch_ << ' ' << domain_ << ' ' << flags_ << ')';
+        return os;
+    }
 
 private:
     unsigned cv_per_branch_;
@@ -176,6 +197,10 @@ struct cv_policy_every_segment: cv_policy_base {
     cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;
     region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(every-segment " << domain_ << ')';
+        return os;
+    }
 
 private:
     region domain_;

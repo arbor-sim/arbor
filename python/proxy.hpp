@@ -2,8 +2,9 @@
 
 #include <any>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/morph/label_dict.hpp>
-#include <arbor/morph/label_parse.hpp>
 
 #include "strprintf.hpp"
 
@@ -54,7 +55,7 @@ struct label_dict_proxy {
         //  * the description is well-formed, but describes neither a region or locset.
         try{
             // Evaluate the s-expression to build a region/locset.
-            auto result = arb::parse_label_expression(desc);
+            auto result = arborio::parse_label_expression(desc);
             if (!result) { // an error parsing / evaluating description.
                 throw result.error();
             }

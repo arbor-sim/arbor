@@ -5,6 +5,8 @@
 
 #include "../gtest.h"
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/fvm_types.hpp>
@@ -38,6 +40,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace std::string_literals;
+using namespace arborio::literals;
 
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
@@ -549,7 +552,7 @@ TEST(fvm_lowered, read_valence) {
 
         soma_cell_builder builder(6);
         auto cell = builder.make_cell();
-        cell.decorations.paint("\"soma\"", "test_ca_read_valence");
+        cell.decorations.paint("soma"_lab, "test_ca_read_valence");
         cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
 
@@ -569,7 +572,7 @@ TEST(fvm_lowered, read_valence) {
         // Check ion renaming.
         soma_cell_builder builder(6);
         auto cell = builder.make_cell();
-        cell.decorations.paint("\"soma\"", "cr_read_valence");
+        cell.decorations.paint("soma"_lab, "cr_read_valence");
         cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
@@ -654,7 +657,6 @@ TEST(fvm_lowered, ionic_concentrations) {
 }
 
 TEST(fvm_lowered, ionic_currents) {
-    using namespace arb::literals;
     arb::proc_allocation resources;
     if (auto nt = arbenv::get_env_num_threads()) {
         resources.num_threads = nt;

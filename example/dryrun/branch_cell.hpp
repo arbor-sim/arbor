@@ -5,16 +5,17 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/morph/segment_tree.hpp>
-#include <arbor/string_literals.hpp>
 
 #include <string>
 #include <sup/json_params.hpp>
 
-using namespace arb::literals;
+using namespace arborio::literals;
 
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
