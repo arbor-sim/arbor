@@ -18,7 +18,6 @@
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/mechanism.hpp>
-#include <arbor/string_literals.hpp>
 #include <arbor/util/any_ptr.hpp>
 
 #include <arborenv/concurrency.hpp>
