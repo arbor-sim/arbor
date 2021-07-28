@@ -816,16 +816,16 @@ static int width(const svint64_t& v) {
     return svlen_s64(v);
 };
 
-template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0> 
-static int min_align(const S& v) {
-    return typename detail::simd_traits<typename sve_type_to_impl<S>::type>::min_align;
+template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0>
+static constexpr int min_align(const S& v) {
+    return detail::simd_traits<typename detail::sve_type_to_impl<S>::type>::min_align;
 };
 
-template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0> 
+template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0>
 static int width() { S v; return width(v); }
 
-template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0> 
-static int min_align() { S v; return min_align(v); }
+template <typename S, typename std::enable_if_t<detail::is_sve<S>::value, int> = 0>
+static constexpr int min_align() { S v; return min_align(v); }
 
 namespace detail {
 
