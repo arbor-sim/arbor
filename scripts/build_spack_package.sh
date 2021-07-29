@@ -7,7 +7,7 @@ set -Eeuo pipefail
 if [[ "$#" -ne 2 ]]; then
     echo "Builds the in-repo Spack package of Arbor against the latest Spack release or a given Spack branch"
     echo "usage: build_spack_package.sh arbor_source_directory latest_release|develop"
-	exit 1
+    exit 1
 fi
 
 trap cleanup SIGINT SIGTERM ERR EXIT
@@ -34,17 +34,17 @@ SPACK_VERSION=$2 # latest_release or develop
 SPACK_BRANCH=develop # only used for develop
 
 case $SPACK_VERSION in
-	"develop")
-		git clone --depth 1 --branch $SPACK_BRANCH $SPACK_REPO $SPACK_DIR
-		;;
-	"latest_release")
-		wget "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep browser_download_url |  cut -d '"' -f 4)"
-		tar xfz spack*.tar.gz
-		ln -s spack*/ $SPACK_DIR
-		;;
-	*)
-		echo "SPACK_VERSION" must be \"latest_release\" or \"develop\"
-		exit 1
+    "develop")
+        git clone --depth 1 --branch $SPACK_BRANCH $SPACK_REPO $SPACK_DIR
+        ;;
+    "latest_release")
+        wget "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep browser_download_url |  cut -d '"' -f 4)"
+        tar xfz spack*.tar.gz
+        ln -s spack*/ $SPACK_DIR
+        ;;
+    *)
+        echo "SPACK_VERSION" must be \"latest_release\" or \"develop\"
+        exit 1
 esac
 source $SPACK_DIR/share/spack/setup-env.sh
 spack repo create $SPACK_CUSTOM_REPO
