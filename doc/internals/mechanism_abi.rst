@@ -282,7 +282,7 @@ needed.
   Note that values in :c:member:`arb_mechanism_ppack.diam_um` cover _all_ CV's regardless whether they
   are covered by the current mechanisms. Reading or writing to those values
   is considered undefined behaviour. The same holds for all other fields of
-  ``ppack``.
+  :c:struct:`arb_mechanism_ppack`.
 
 User Data
 '''''''''
