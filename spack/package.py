@@ -39,6 +39,7 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on('nlohmann-json')
     depends_on('cuda@10:', when='+cuda')
     depends_on('libxml2', when='+neuroml')
+    depends_on('fmt')
 
     # mpi
     depends_on('mpi', when='+mpi')
