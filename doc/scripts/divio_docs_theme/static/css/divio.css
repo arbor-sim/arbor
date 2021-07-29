@@ -3843,9 +3843,9 @@ div[class^='highlight'] pre {
   padding: 0 12px;
   display: block; }
 
-.c {
+/* .c {
   color: #999988;
-  font-style: italic; }
+  font-style: italic; } */
 
 .err {
   color: #a61717;
