@@ -523,7 +523,9 @@ mechanism_catalogue::mechanism_catalogue(const mechanism_catalogue& other):
 {}
 
 mechanism_catalogue& mechanism_catalogue::operator=(const mechanism_catalogue& other) {
-    state_.reset(new catalogue_state(*other.state_));
+    if (this != &other) {
+        state_.reset(new catalogue_state(*other.state_));
+    }
     return *this;
 }
 
