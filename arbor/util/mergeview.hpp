@@ -135,7 +135,7 @@ public:
         return *this;
     }
 
-    merge_iterator& operator++(int) {
+    merge_iterator operator++(int) {
         auto me = *this;
         ++*this;
         return me;
