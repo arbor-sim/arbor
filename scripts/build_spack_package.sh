@@ -54,4 +54,7 @@ spack repo add $SPACK_CUSTOM_REPO
 
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
-spack dev-build arbor@with-package-from-repo
+
+ARBOR_VERSION=$(cat "$ARBOR_DIR/VERSION")
+GIT_HASH=$(git log -1 --pretty=format:'%H')
+spack dev-build arbor@${ARBOR_VERSION}-${GIT_HASH}
