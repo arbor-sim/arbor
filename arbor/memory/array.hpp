@@ -247,10 +247,6 @@ public:
     using base::size;
 
     using base::alignment;
-
-private:
-
-    coordinator_type coordinator_;
 };
 
 } // namespace memory
