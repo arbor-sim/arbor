@@ -130,7 +130,7 @@ void register_mechanisms(pybind11::module& m) {
     struct py_mech_cat_value_iterator {
         py_mech_cat_value_iterator(const arb::mechanism_catalogue &cat_, pybind11::object ref_): state{cat_, ref_} { }
         mech_cat_iter_state state;
-        arb::mechanism_info next() { state.cat[state.next()]; }
+        arb::mechanism_info next() { return state.cat[state.next()]; }
     };
 
     pybind11::class_<py_mech_cat_key_iterator>(m, "MechCatKeyIterator")

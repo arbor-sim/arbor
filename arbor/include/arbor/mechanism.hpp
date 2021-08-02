@@ -30,7 +30,7 @@ public:
     using size_type  = fvm_size_type;
 
     mechanism(const arb_mechanism_type m,
-              const arb_mechanism_interface& i): mech_{m}, iface_{i} {
+              const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
     }
     mechanism() = default;
@@ -70,7 +70,7 @@ public:
     arb_mechanism_type  mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
-    arb_value_type** time_ptr_ptr;
+    arb_value_type** time_ptr_ptr = nullptr;
 };
 
 struct mechanism_layout {

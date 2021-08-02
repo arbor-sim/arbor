@@ -280,7 +280,7 @@ private:
     token string() {
         using namespace std::string_literals;
         if (*stream_ != '"') {
-            s_expr_lexer_error(
+            throw s_expr_lexer_error(
                 "Lexer attempting to read string without opening \"", loc());
         }
 
