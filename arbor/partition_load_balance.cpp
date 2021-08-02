@@ -188,7 +188,7 @@ domain_decomposition partition_load_balance(
                 group_elements.push_back(cell.id);
             } else {
                 if (group_elements.size() + super_cells[cell.id].size() > group_size && !group_elements.empty()) {
-                    groups.push_back({k, group_elements, backend});
+                    groups.push_back({k, std::move(group_elements), backend});
                     group_elements.clear();
                 }
                 for (auto gid: super_cells[cell.id]) {
