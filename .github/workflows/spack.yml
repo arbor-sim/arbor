@@ -3,6 +3,8 @@ name: Spack
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build:
@@ -16,5 +18,13 @@ jobs:
         uses: actions/checkout@v2
         with:
             path: arbor
+
+      - name: Spack cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.spack-ci
+          key: cache-${{ github.sha }}
+          restore-keys: cache-
+
       - name: Build Arbor's Spack package against the develop branch
         run: arbor/scripts/build_spack_package.sh arbor develop
