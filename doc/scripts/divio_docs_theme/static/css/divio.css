@@ -3717,46 +3717,64 @@ code, .rst-content tt, .rst-content code {
 code.code-large, .rst-content tt.code-large {
   font-size: 90%; }
 
-.wy-plain-list-disc, .rst-content section ul, .rst-content .toctree-wrapper ul, article ul {
+.wy-plain-list-disc, .rst-content section ul, .rst-content .toctree-wrapper ul {
   list-style: disc;
   line-height: 24px;
   margin-bottom: 24px; }
 
-.wy-plain-list-disc li, .rst-content section ul li, .rst-content .toctree-wrapper ul li, article ul li {
+.wy-plain-list-disc li, .rst-content section ul li, .rst-content .toctree-wrapper ul li {
   list-style: disc;
   margin-left: 24px; }
 
-.wy-plain-list-disc li p:last-child, .rst-content section ul li p:last-child, .rst-content .toctree-wrapper ul li p:last-child, article ul li p:last-child {
+.wy-plain-list-disc li p:last-child, .rst-content section ul li p:last-child, .rst-content .toctree-wrapper ul li p:last-child {
   margin-bottom: 0; }
 
-.wy-plain-list-disc li ul, .rst-content section ul li ul, .rst-content .toctree-wrapper ul li ul, article ul li ul {
+.wy-plain-list-disc li ul, .rst-content section ul li ul, .rst-content .toctree-wrapper ul li ul {
   margin-bottom: 0; }
 
-.wy-plain-list-disc li li, .rst-content section ul li li, .rst-content .toctree-wrapper ul li li, article ul li li {
+.wy-plain-list-disc li li, .rst-content section ul li li, .rst-content .toctree-wrapper ul li li {
   list-style: circle; }
 
-.wy-plain-list-disc li li li, .rst-content section ul li li li, .rst-content .toctree-wrapper ul li li li, article ul li li li {
+.wy-plain-list-disc li li li, .rst-content section ul li li li, .rst-content .toctree-wrapper ul li li li {
   list-style: square; }
 
-.wy-plain-list-disc li ol li, .rst-content section ul li ol li, .rst-content .toctree-wrapper ul li ol li, article ul li ol li {
+.wy-plain-list-disc li ol li, .rst-content section ul li ol li, .rst-content .toctree-wrapper ul li ol li {
   list-style: decimal; }
 
-.wy-plain-list-decimal, .rst-content section ol, .rst-content ol.arabic, article ol {
+.wy-plain-list-decimal, .rst-content section ol, .rst-content ol.arabic {
   list-style: decimal;
   line-height: 24px;
   margin-bottom: 24px; }
 
-.wy-plain-list-decimal li, .rst-content section ol li, .rst-content ol.arabic li, article ol li {
+.wy-plain-list-decimal li, .rst-content section ol li, .rst-content ol.arabic li {
   list-style: decimal;
   margin-left: 24px; }
 
-.wy-plain-list-decimal li p:last-child, .rst-content section ol li p:last-child, .rst-content ol.arabic li p:last-child, article ol li p:last-child {
+.wy-plain-list-decimal li p:last-child, .rst-content section ol li p:last-child, .rst-content ol.arabic li p:last-child {
   margin-bottom: 0; }
 
-.wy-plain-list-decimal li ul, .rst-content section ol li ul, .rst-content ol.arabic li ul, article ol li ul {
+.wy-plain-list-decimal li ul, .rst-content section ol li ul, .rst-content ol.arabic li ul {
   margin-bottom: 0; }
 
-.wy-plain-list-decimal li ul li, .rst-content section ol li ul li, .rst-content ol.arabic li ul li, article ol li ul li {
+.wy-plain-list-decimal li ul li, .rst-content section ol li ul li, .rst-content ol.arabic li ul li {
+  list-style: disc; }
+
+.wy-plain-list-disc, .rst-content section ul, .rst-content ul {
+  list-style: disc;
+  line-height: 24px;
+  margin-bottom: 24px; }
+
+.wy-plain-list-disc li, .rst-content section ul li, .rst-content ul li {
+  list-style: disc;
+  margin-left: 24px; }
+
+.wy-plain-list-disc li p:last-child, .rst-content section ul li p:last-child, .rst-content ul li p:last-child {
+  margin-bottom: 0; }
+
+.wy-plain-list-disc li ul, .rst-content section ul li ul, .rst-content ul li ul {
+  margin-bottom: 0; }
+
+.wy-plain-list-disc li ul li, .rst-content section ul li ul li, .rst-content ul li ul li {
   list-style: disc; }
 
 .codeblock-example {
@@ -3825,9 +3843,9 @@ div[class^='highlight'] pre {
   padding: 0 12px;
   display: block; }
 
-.c {
+/* .c {
   color: #999988;
-  font-style: italic; }
+  font-style: italic; } */
 
 .err {
   color: #a61717;

@@ -1,3 +1,5 @@
+.. _simd:
+
 SIMD Classes
 ============
 
