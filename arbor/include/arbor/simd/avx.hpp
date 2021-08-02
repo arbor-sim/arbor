@@ -333,10 +333,10 @@ struct avx_double4: implbase<avx_double4> {
     }
 
     static void mask_set_element(__m256d& u, int i, bool b) {
-        char data[256];
-        _mm256_storeu_pd((double*)data, u);
-        ((int64*)data)[i] = -(int64)b;
-        u = _mm256_loadu_pd((double*)data);
+        int64_t data[4];
+        _mm256_storeu_epi64(data, _mm256_castpd_si256(u));
+        data[i] = -(int64_t)b;
+        u = _mm256_castsi256_pd(_mm256_loadu_epi64(data));
     }
 
     static void mask_copy_to(const __m256d& m, bool* y) {
