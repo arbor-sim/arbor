@@ -50,7 +50,7 @@ struct fvm_probe_scalar {
 
 struct fvm_probe_interpolated {
     probe_handle raw_handles[2] = {nullptr, nullptr};
-    double coef[2];
+    double coef[2] = {};
     mlocation metadata;
 
     util::any_ptr get_metadata_ptr() const { return &metadata; }

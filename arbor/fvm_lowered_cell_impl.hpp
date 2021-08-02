@@ -108,7 +108,7 @@ private:
     value_type check_voltage_mV_ = 0;
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
-    bool post_events_;
+    bool post_events_ = false;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;

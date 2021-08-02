@@ -21,11 +21,11 @@ struct target_handle {
 };
 
 struct deliverable_event {
-    time_type time;
-    float weight;
+    time_type time = 0;
+    float weight = 0;
     target_handle handle;
 
-    deliverable_event() {}
+    deliverable_event() = default;
     deliverable_event(time_type time, target_handle handle, float weight):
         time(time), weight(weight), handle(handle) {}
 };
