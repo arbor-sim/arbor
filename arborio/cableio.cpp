@@ -583,11 +583,11 @@ eval_map named_evals{
                                "'threshold-detector' with 1 argument (threshold:real)")},
     {"gap-junction-site", make_call<>(make_gap_junction_site,
                               "'gap-junction-site' with 0 arguments")},
-    {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(make_ion_reversal_potential_method,
-                                                                                  "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
+    {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(
+            make_ion_reversal_potential_method,
+            "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
-                                      "(name:string (param:string val:real))")},
-
+                                 "(name:string (param:string val:real))")},
     {"place", make_call<locset, gap_junction_site, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:gap-junction-site name:string)")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
     {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
