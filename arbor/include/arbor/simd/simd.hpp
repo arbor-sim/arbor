@@ -481,8 +481,6 @@ namespace detail {
             using IndexImpl = typename Index::simd_base;
             switch (pi.constraint) {
             case index_constraint::none:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
-                break;
             case index_constraint::independent:
                 value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
@@ -507,8 +505,6 @@ namespace detail {
             using IndexImpl = typename Index::simd_base;
             switch (pi.constraint) {
             case index_constraint::none:
-                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
-                break;
             case index_constraint::independent:
                 value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index.value_);
                 break;
