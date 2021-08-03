@@ -333,10 +333,11 @@ struct avx_double4: implbase<avx_double4> {
     }
 
     static void mask_set_element(__m256d& u, int i, bool b) {
-        int64_t data[4];
-        _mm256_storeu_epi64(data, _mm256_castpd_si256(u));
-        data[i] = -(int64_t)b;
-        u = _mm256_castsi256_pd(_mm256_loadu_epi64(data));
+        double data[4];
+        int64 msk = -(int64)b;
+        _mm256_storeu_pd(data, u);
+        std::memcpy(data + i, &msk, sizeof(msk)); // memcpy *must* be used for type punning, generates a single mov.
+        u = _mm256_loadu_pd(data);
     }
 
     static void mask_copy_to(const __m256d& m, bool* y) {
