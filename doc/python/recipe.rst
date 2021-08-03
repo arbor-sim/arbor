@@ -118,7 +118,7 @@ Event generator and schedules
 
     .. attribute:: weight
 
-        The weight of events to deliver.
+        The weight of events to deliver; [μS] (point process), [S/cm2] (distributed).
 
 .. class:: regular_schedule
 

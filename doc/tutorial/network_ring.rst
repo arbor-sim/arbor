@@ -44,7 +44,12 @@ These locations will form the endpoints of the connections between the cells.
 
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
 The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
-Note that mechanisms can be initialized with their name; ``'expsyn'`` is short for ``arbor.mechanism('expsyn')``.
+
+.. Note::
+   Mechanisms can be initialized with their name; ``'expsyn'`` is short for ``arbor.mechanism('expsyn')``.
+   Mechanisms typically have some parameters, which can be queried (see :py:class:`arbor.mechanism_info`) and set
+   (see :py:class:`arbor.mechanism`). In particular, the ``e`` parameter of ``expsyn`` defaults to ``0``, which makes it,
+   given the typical resting potential of cell membranes of ``-70 mV``, an excitatory synapse.
 
 Step **(4)** places a spike detector at the ``'root'``. The detector is given the label ``'detector'``, which is later used to form
 :py:class:`arbor.connection` objects originating *from* the cell.
@@ -72,7 +77,7 @@ are connecting the cells **(8)**, returning a configurable number of cells **(6)
 (``make_cable_cell()`` returns the cell above).
 
 Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
-previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.1 μS and a delay of 5 ms.
+previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 μS and a delay of 5 ms.
 The first two arguments to :py:class:`arbor.connection` are the **source** and **target** of the connection.
 
 The **source** is a :py:class:`arbor.cell_global_label` object containing a cell index ``gid``, the source label
@@ -119,7 +124,7 @@ In addition to having the timestamps of spikes, we want to extract the voltage a
 
 Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as
 attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the
-desired schedule (here: a recording frequency of 10 kHz). Note that the probe id is a separate index from those of
+desired schedule (here: a recording frequency of 10 kHz, or a ``dt`` of 0.1 ms). Note that the probe id is a separate index from those of
 :term:`connection` endpoints; probe ids correspond to the index of the list produced by
 :py:func:`arbor.recipe.probes` on cell ``gid``.
 
