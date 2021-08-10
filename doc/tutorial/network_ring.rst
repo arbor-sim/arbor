@@ -77,7 +77,8 @@ are connecting the cells **(8)**, returning a configurable number of cells **(6)
 (``make_cable_cell()`` returns the cell above).
 
 Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
-previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 μS and a delay of 5 ms.
+previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 (inducing a conductance of 0.01 μS
+in the target mechanism ``expsyn``) and a delay of 5 ms.
 The first two arguments to :py:class:`arbor.connection` are the **source** and **target** of the connection.
 
 The **source** is a :py:class:`arbor.cell_global_label` object containing a cell index ``gid``, the source label

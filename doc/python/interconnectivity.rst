@@ -35,8 +35,7 @@ Interconnectivity
         The weight delivered to the target synapse. It is up to the target mechanism to interpret this quantity.
         For Arbor-supplied point processes, such as the ``expsyn`` synapse, a weight of ``1`` corresponds to an
         increase in conductivity in the target mechanism of ``1`` μS (micro-Siemens).
-        For Arbor-supplied distributed processes, ``weight = 1`` induces ``1`` [S/cm2].
-        
+
     .. attribute:: delay
 
         The delay time of the connection [ms]. Must be positive.
