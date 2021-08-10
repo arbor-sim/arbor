@@ -118,7 +118,10 @@ Event generator and schedules
 
     .. attribute:: weight
 
-        The weight of events to deliver; [μS] (point process), [S/cm2] (distributed).
+        The weight delivered to the target synapse.
+        The weight has a dimension specific to the type of the synapse target. For Arbor-supplied point processes,
+        such as the ``expsyn`` synapse, the unit is μS (micro-Siemens). For Arbor-supplied distributed processes,
+        the unit is [S/cm2]. In general, the unit is up to the mechanism.
 
 .. class:: regular_schedule
 
