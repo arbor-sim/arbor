@@ -32,9 +32,9 @@ Interconnectivity
 
     .. attribute:: weight
 
-        The weight delivered to the target synapse.
-        The weight is dimensionless, and its interpretation is specific to the type of the synapse target.
-        For example, the expsyn synapse interprets it as a conductance with units μS (micro-Siemens).
+        The weight delivered to the target synapse. It is up to the target mechanism to interpret this quantity.
+        For Arbor-supplied point processes, such as the ``expsyn`` synapse, a weight of ``1`` corresponds to an
+        increase in conductivity in the target mechanism of ``1`` μS (micro-Siemens).
 
     .. attribute:: delay
 

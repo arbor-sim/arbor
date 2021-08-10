@@ -118,7 +118,9 @@ Event generator and schedules
 
     .. attribute:: weight
 
-        The weight of events to deliver.
+        The weight delivered to the target synapse. It is up to the target mechanism to interpret this quantity.
+        For Arbor-supplied point processes, such as the ``expsyn`` synapse, a weight of ``1`` corresponds to an
+        increase in conductivity in the target mechanism of ``1`` μS (micro-Siemens).
 
 .. class:: regular_schedule
 
