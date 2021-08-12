@@ -427,7 +427,7 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 }
 } // anonymous namespace
 
-void shared_state::set_field(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
+void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
 
     arb_value_type* data = nullptr;

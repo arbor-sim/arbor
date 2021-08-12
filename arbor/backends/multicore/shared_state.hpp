@@ -167,7 +167,7 @@ struct shared_state {
 
     void instantiate(mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
-    void set_field(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+    void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 

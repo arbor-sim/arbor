@@ -163,7 +163,7 @@ struct shared_state {
     // Setup a mechanism and tie its backing store to this object
     void instantiate(arb::mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
-    void set_field(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+    void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
 
     // Note: returned pointer points to device memory.
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
