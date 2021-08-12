@@ -255,13 +255,6 @@ void shared_state::set_field(mechanism& m, const std::string& key, const std::ve
         }
     }
 
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            data = store.state_vars_[i];
-            break;
-        }
-    }
-
     if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
 
     if (!m.ppack_.width) return;
