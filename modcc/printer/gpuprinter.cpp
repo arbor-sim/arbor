@@ -144,23 +144,27 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                    "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"
                                    "auto& {0}index_constraints __attribute__((unused)) = params_.index_constraints;\\\n"),
                        pp_var_pfx);
+
+    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);
+    const auto& assigned_ids = module_.assigned_block().parameters;
+
     auto global = 0;
-    for (const auto& scalar: vars.scalars) {
-        out << fmt::format("auto {}{} __attribute__((unused)) = params_.globals[{}];\\\n", pp_var_pfx, scalar->name(), global);
+    for (const auto& scalar: global_ids) {
+        out << fmt::format("auto {}{} __attribute__((unused)) = params_.globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
     auto param = 0, state = 0;
-    for (const auto& array: vars.arrays) {
-        if (array->is_state()) {
-            out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array->name(), state);
-            state++;
-        }
+    for (const auto& array: state_ids) {
+        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        state++;
     }
-    for (const auto& array: vars.arrays) {
-        if (!array->is_state()) {
-            out << fmt::format("auto* {}{} __attribute__((unused)) = params_.parameters[{}];\\\n", pp_var_pfx, array->name(), param);
-            param++;
-        }
+    for (const auto& array: assigned_ids) {
+        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        state++;
+    }
+    for (const auto& array: param_ids) {
+        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.parameters[{}];\\\n", pp_var_pfx, array.name(), param);
+        param++;
     }
     auto idx = 0;
     for (const auto& ion: module_.ion_deps()) {

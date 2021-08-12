@@ -263,6 +263,8 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         }
     };
 
+    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);
+    const auto& assigned_ids = module_.assigned_block().parameters;
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
                                    "[[maybe_unused]] auto  {0}n_detectors       = pp->n_detectors;\\\n"
@@ -284,22 +286,22 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"),
                        pp_var_pfx);
     auto global = 0;
-    for (const auto& scalar: vars.scalars) {
-        out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar->name(), global);
+    for (const auto& scalar: global_ids) {
+        out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
     auto param = 0, state = 0;
-    for (const auto& array: vars.arrays) {
-        if (array->is_state()) {
-            out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array->name(), state);
-            state++;
-        }
+    for (const auto& array: state_ids) {
+        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        state++;
     }
-    for (const auto& array: vars.arrays) {
-        if (!array->is_state()) {
-            out << fmt::format("[[maybe_unused]] auto* {}{} = pp->parameters[{}];\\\n", pp_var_pfx, array->name(), param);
-            param++;
-        }
+    for (const auto& array: assigned_ids) {
+        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        state++;
+    }
+    for (const auto& array: param_ids) {
+        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->parameters[{}];\\\n", pp_var_pfx, array.name(), param);
+        param++;
     }
     auto idx = 0;
     for (const auto& ion: module_.ion_deps()) {

@@ -54,6 +54,9 @@ public:
     // Retrieve list of state variable ids.
     StateBlock const&  state_block()  const {return state_block_;}
 
+    // Retrieve list of assigned variable ids.
+    AssignedBlock const& assigned_block() const {return assigned_block_;}
+
     // Retrieve list of parameter variable ids.
     ParameterBlock const&  parameter_block()  const {return parameter_block_;}
 

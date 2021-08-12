@@ -61,7 +61,7 @@ void run_test(std::string mech_name,
     shared_state->instantiate(*test, 0, overrides, layout);
 
     for (auto a: assigned_variables) {
-        shared_state->set_parameter(*test, a.first, std::vector<fvm_value_type>(ncv,a.second));
+        shared_state->set_field(*test, a.first, std::vector<fvm_value_type>(ncv,a.second));
     }
 
     shared_state->reset();

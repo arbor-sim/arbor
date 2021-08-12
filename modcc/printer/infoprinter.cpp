@@ -36,6 +36,7 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                        arb_header_prefix());
 
     const auto& [state_ids, global_ids, param_ids] = public_variable_ids(m);
+    const auto& assigned_ids = m.assigned_block().parameters;
     auto fmt_var = [&](const auto& id) {
         auto lo  = id.has_range() ? id.range.first  : lowest;
         auto hi  = id.has_range() ? id.range.second : max;
@@ -58,25 +59,10 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
     {
         io::separator sep("", ",\n                                           ");
         out << "    static arb_field_info state_vars[] = { ";
-        for (const auto& id: state_ids) out << sep << fmt_var(id);
-        // Tack on ASSIGNED RANGE variables not seen so far
-        size_t n = state_ids.size();
-        const auto& arrays = local_module_variables(m).arrays;
-        for (const auto& array: arrays) {
-            auto name = array->name();
-            auto state = std::find_if(state_ids.begin(), state_ids.end(), [&](const auto& id) { return id.name() == name; });
-            auto param = std::find_if(param_ids.begin(), param_ids.end(), [&](const auto& id) { return id.name() == name; });
-            // Not emitted so far
-            if ((state == state_ids.end()) && (param == param_ids.end())) {
-                out << sep << fmt::format(FMT_COMPILE("{{ \"{}\", \"1\", {}, {}, {} }}"),
-                                          name,
-                                          std::isnan(array->value()) ? "NAN" : std::to_string(array->value()),
-                                          lowest, max);
-                ++n;
-            }
-        }
+        for (const auto& id: state_ids)    out << sep << fmt_var(id);
+        for (const auto& id: assigned_ids) out << sep << fmt_var(id);
         out << fmt::format(" }};\n"
-                           "    static arb_size_type n_state_vars = {};\n", n);
+                           "    static arb_size_type n_state_vars = {};\n", assigned_ids.size() + state_ids.size());
     }
     {
         io::separator sep("", ",\n                                           ");

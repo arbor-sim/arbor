@@ -589,7 +589,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         mechptr_by_name[name] = minst.mech.get();
 
         for (auto& pv: config.param_values) {
-            state_->set_parameter(*minst.mech, pv.first, pv.second);
+            state_->set_field(*minst.mech, pv.first, pv.second);
         }
 
         if (config.kind==arb_mechanism_kind_reversal_potential) {

@@ -105,6 +105,9 @@ struct module_variables_t {
     std::vector<VariableExpression*> arrays;
 };
 
+
+
+
 // Scalar and array variables with local linkage.
 
 module_variables_t local_module_variables(const Module&);

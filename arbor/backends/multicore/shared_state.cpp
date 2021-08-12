@@ -427,8 +427,8 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 }
 } // anonymous namespace
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
+void shared_state::set_field(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
+    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
 
     arb_value_type* data = nullptr;
     for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
@@ -437,7 +437,15 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
             break;
         }
     }
-    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+
+    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
+        if (key==m.mech_.state_vars[i].name) {
+            data = m.ppack_.state_vars[i];
+            break;
+        }
+    }
+
+    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism field '{}'", key));
 
     if (!m.ppack_.width) return;
     auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);

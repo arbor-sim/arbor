@@ -243,7 +243,7 @@ struct chunk_writer {
 };
 }
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
+void shared_state::set_field(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
     const auto& store = storage.at(m.mechanism_id());
 
@@ -254,6 +254,14 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
             break;
         }
     }
+
+    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
+        if (key==m.mech_.state_vars[i].name) {
+            data = store.state_vars_[i];
+            break;
+        }
+    }
+
     if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
 
     if (!m.ppack_.width) return;
