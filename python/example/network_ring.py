@@ -137,5 +137,5 @@ for gid in range(ncells):
     samples, meta = sim.samples(handles[gid])[0]
     df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
-df = pandas.concat(df_list)
+df = pandas.concat(df_list,ignore_index=True)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None).savefig('network_ring_result.svg')

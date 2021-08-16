@@ -118,8 +118,8 @@ for s in model.spikes:
 
 # (10) Plot the voltages
 
-df = pandas.DataFrame()
+df_list = []
 for t in model.traces:
-    df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), 'Variable': t.variable}))
-
+    df_list.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), 'Variable': t.variable}))
+df = pandas.concat(df_list,ignore_index=True)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_detailed_result.svg')

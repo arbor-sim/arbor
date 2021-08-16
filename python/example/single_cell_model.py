@@ -4,8 +4,6 @@
 import arbor
 import pandas, seaborn # You may have to pip install these.
 
-print(arbor.__config__)
-
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
 tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
@@ -41,11 +39,11 @@ if len(m.spikes)>0:
 else:
     print('no spikes')
 
-# (8) Plot the recorded voltages over time.
+# (9) Plot the recorded voltages over time.
 print("Plotting results ...")
 seaborn.set_theme() # Apply some styling to the plot
 df = pandas.DataFrame({'t/ms': m.traces[0].time, 'U/mV': m.traces[0].value})
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",ci=None).savefig('single_cell_model_result.svg')
 
-# (9) Optionally, you can store your results for later processing.
+# (10) Optionally, you can store your results for later processing.
 df.to_csv('single_cell_model_result.csv', float_format='%g')
