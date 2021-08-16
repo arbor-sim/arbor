@@ -22,7 +22,7 @@ jobs:
       - name: Spack cache
         uses: actions/cache@v2
         with:
-          path: ~/.spack-ci
+          path: ~/.spack-cache
           key: cache-${{ github.sha }}
           restore-keys: cache-
 
