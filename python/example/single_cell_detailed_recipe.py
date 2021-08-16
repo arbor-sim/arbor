@@ -182,7 +182,8 @@ for d, m in sim.samples(handle):
     data.append(d)
     meta.append(m)
 
-df = pandas.DataFrame()
+df_list = []
 for i in range(len(data)):
-    df = df.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
+    df_list.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
+df = pandas.concat(df_list,ignore_index=True)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_recipe_result.svg')

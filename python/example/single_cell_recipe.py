@@ -87,7 +87,7 @@ else:
     print('no spikes')
 
 print("Plotting results ...")
-seaborn.set_theme() # Apply some styling to the plot
+
 df = pandas.DataFrame({'t/ms': data[:, 0], 'U/mV': data[:, 1]})
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig('single_cell_recipe_result.svg')
 
