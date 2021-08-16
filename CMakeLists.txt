@@ -260,6 +260,19 @@ else()
     set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
 endif()
 
+execute_process(
+    COMMAND sh "-c" "gcc -march=${ARB_ARCH} -dM -E - < /dev/null | grep 'AVX' | wc -l"
+    OUTPUT_VARIABLE GCC_AVX_PRESENT
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(
+    COMMAND sh "-c" "gcc -march=${ARB_ARCH} -dM -E - < /dev/null | grep 'x86_64' | wc -l"
+    OUTPUT_VARIABLE GCC_TARGET_ARCH_IS_X86_64
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if(GCC_AVX_PRESENT EQUAL 0 AND (NOT GCC_TARGET_ARCH_IS_X86_64 EQUAL 0))
+  message(FATAL_ERROR "You are trying to build Arbor with vector optimizations for a platform that does not support AVX. This is not supported. Upgrade your CPU.")
+endif()
+
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
 # libraries that link against them.
