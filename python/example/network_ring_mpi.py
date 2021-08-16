@@ -143,5 +143,5 @@ for gid in range(ncells):
         df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
 if len(df_list):
-    df = pandas.concat(df_list)
+    df = pandas.concat(df_list,ignore_index=True)
     df.to_csv(f"result_mpi_{context.rank}.csv", float_format='%g')
