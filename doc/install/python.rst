@@ -81,7 +81,7 @@ The following optional flags can be used to configure the installation:
 * ``--gpu``: Enable GPU support for NVIDIA GPUs with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require cudaruntime).
   Enable GPU support for AMD GPUs with hipcc using ``hip``. By default set to ``none``, which disables gpu support.
 * ``--vec``: Enable vectorization. This requires choosing an appropriate architecture using ``--arch``.
-  Note that on x86-64 platforms compilation will fail if you enable vectorization, but the CPU or ``--arch`` does not support any form of AVX.
+  See :ref:`install-architecture` for details.
 * ``--arch``: CPU micro-architecture to target. The advised default is ``native``.
   See `here <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of options.
 
@@ -134,10 +134,9 @@ The following optional flags can be used to configure the installation:
     it with the flags you need.
 
 .. Note::
-    Detailed instructions on how to install using CMake are in the
-    :ref:`Python configuration <install-python>` section of the
-    :ref:`installation guide <in_build_install>`.
-    CMake is recommended if you need more control over Arbors compilation, plan to use Arbor with C++,
+    Detailed instructions on how to install using CMake are in the 
+    :ref:`Python configuration <install-python>` section of the :ref:`installation guide <in_build_install>`.
+    CMake is recommended if you need more control over compilation and installation, plan to use Arbor with C++,
     or if you are integrating with package managers such as Spack and EasyBuild.
 
 Dependencies

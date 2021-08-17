@@ -456,7 +456,7 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     cmake .. -DARB_WITH_PYTHON=on -DARB_PYTHON_PATH_LIB=/custom/path
 
 .. note::
-    The location of libraries under a prefix in only guaranteed to be standard for Pythons global library location.
+    The location of libraries under a prefix in only guaranteed to be standard for Python's global library location.
     Therefore, correct installation of the Python package to any other location using ``CMAKE_INSTALL_PREFIX``,
     such as user directory (e.g. `~/.local`), a Python or Conda virtual environment, may result in installation to a wrong path.
     
@@ -483,7 +483,8 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     # Obtain arbor
     git clone --recursive git@github.com:arbor-sim/arbor.git
 
-    # Get the user site-package directory
+    # Manually set the prefix under which the python package will be installed.
+    # In this case, the first directory found by querying Python's list of site-package directories.
     pyprefix=`python3 -c 'import site; print(site.getsitepackages()[0])'`
 
     # Setup CMake
@@ -491,7 +492,7 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     cd build
     cmake ../arbor -DARB_WITH_PYTHON=on       \       # enable python support.
                    -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
-                   -DCMAKE_INSTALL_PREFIX="$pyprefix" # set custom installation path.
+                   -DARB_PYTHON_LIB_PATH="$pyprefix"  # set Python installation path.
 
     # Build and install
     make -j4
