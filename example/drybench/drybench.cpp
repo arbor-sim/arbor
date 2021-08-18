@@ -128,19 +128,6 @@ public:
         return conns;
     }
 
-    /*
-    // Return an event generator on every 20th gid. This function needs to generate events
-    // for ALL cells on ALL ranks. This is because the symmetric recipe can not easily
-    // translate the src gid of an event generator
-    std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-        if (gid%20 == 0) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{{gid, 0}, 0.1, 1.0}}));
-        }
-        return gens;
-    }
-    */
-
 private:
     bench_params params_;
     cell_size_type num_cells_;
