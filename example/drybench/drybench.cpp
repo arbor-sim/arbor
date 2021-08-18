@@ -90,8 +90,6 @@ public:
             num_cells_(params.num_cells),
             num_tiles_(params.num_ranks)
     {}
-        //auto tile = std::make_unique<tile_desc>(params.num_cells_per_rank,
-                //params.num_ranks, params.cell, params.min_delay);
 
     cell_size_type num_cells() const override {
         return num_cells_;
