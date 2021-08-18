@@ -20,6 +20,10 @@ template <typename T>
 bool match(const std::type_info& info) { return info == typeid(T); }
 template <> inline
 bool match<double>(const std::type_info& info) { return info == typeid(double) || info == typeid(int); }
+template <> inline
+bool match<arb::region>(const std::type_info& info) { return info == typeid(nil_tag) || info == typeid(arb::region); }
+template <> inline
+bool match<arb::locset>(const std::type_info& info) { return info == typeid(nil_tag) || info == typeid(arb::locset); }
 
 // Convert a value wrapped in a std::any to target type.
 template <typename T>
@@ -31,7 +35,6 @@ double eval_cast<double>(std::any arg) {
     if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
     return std::any_cast<double>(arg);
 }
-
 template <> inline
 arb::region eval_cast<arb::region>(std::any arg) {
     if (arg.type()==typeid(arb::region)) return std::any_cast<arb::region>(arg);

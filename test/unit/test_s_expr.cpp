@@ -307,6 +307,14 @@ TEST(regloc, comments) {
               round_trip_region(multi_line));
 }
 
+TEST(regloc, join) {
+    EXPECT_TRUE(arborio::parse_region_expression("(join nil nil)").has_value());
+    EXPECT_TRUE(arborio::parse_region_expression("(join () ())").has_value());
+    EXPECT_TRUE(arborio::parse_region_expression("(join nil (segment 1))").has_value());
+    EXPECT_TRUE(arborio::parse_region_expression("(join (segment 0) (segment 1))").has_value());
+    EXPECT_TRUE(arborio::parse_region_expression("(join nil (segment 0) (segment 1))").has_value());
+}
+
 TEST(regloc, errors) {
     for (auto expr: {"axon",         // unquoted region name
                      "(tag 1.2)",    // invalid argument in an otherwise valid region expression

@@ -17,7 +17,6 @@ label_parse_error::label_parse_error(const std::string& msg, const arb::src_loca
     arb::arbor_exception(concat("error in label description: ", msg," at :", loc.line, ":", loc.column))
 {}
 
-
 namespace {
 
 std::unordered_multimap<std::string, evaluator> eval_map {
