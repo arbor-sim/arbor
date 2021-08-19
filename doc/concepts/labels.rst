@@ -206,7 +206,6 @@ Locset expressions
 
     The empty locset.
 
-
 .. figure:: ../gen-images/label_branch.svg
   :width: 800
   :align: center
