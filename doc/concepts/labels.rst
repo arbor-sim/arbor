@@ -202,6 +202,11 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
 Locset expressions
 ~~~~~~~~~~~~~~~~~~
 
+.. label:: (locset-nil)
+
+    The empty locset.
+
+
 .. figure:: ../gen-images/label_branch.svg
   :width: 800
   :align: center
@@ -351,7 +356,7 @@ Locset expressions
 Region expressions
 ~~~~~~~~~~~~~~~~~~
 
-.. label:: (nil)
+.. label:: (region-nil)
 
     An empty region.
 
@@ -363,7 +368,7 @@ Region expressions
       :width: 600
       :align: center
 
-      The trivial region definitions ``(nil)`` (left) and ``(all)`` (right).
+      The trivial region definitions ``(region-nil)`` (left) and ``(all)`` (right).
 
 .. label:: (tag tag_id:integer)
 

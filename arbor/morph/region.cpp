@@ -41,7 +41,7 @@ mextent thingify_(const nil_& x, const mprovider&) {
 }
 
 std::ostream& operator<<(std::ostream& o, const nil_& x) {
-    return o << "nil";
+    return o << "(region-nil)";
 }
 
 

@@ -251,6 +251,7 @@ TEST(regloc, round_tripping) {
         "(cable 2 0.1 0.4)",
         "(region \"foo\")",
         "(all)",
+        "(region-nil)",
         "(tag 42)",
         "(distal-interval (location 3 0))",
         "(distal-interval (location 3 0) 3.2)",
@@ -273,6 +274,7 @@ TEST(regloc, round_tripping) {
     auto locset_literals = {
         "(root)",
         "(locset \"cat man do\")",
+        "(locset-nil)",
         "(location 3 0.2)",
         "(terminal)",
         "(distal (tag 2))",
@@ -307,12 +309,37 @@ TEST(regloc, comments) {
               round_trip_region(multi_line));
 }
 
-TEST(regloc, join) {
-    EXPECT_TRUE(arborio::parse_region_expression("(join nil nil)").has_value());
-    EXPECT_TRUE(arborio::parse_region_expression("(join () ())").has_value());
-    EXPECT_TRUE(arborio::parse_region_expression("(join nil (segment 1))").has_value());
-    EXPECT_TRUE(arborio::parse_region_expression("(join (segment 0) (segment 1))").has_value());
-    EXPECT_TRUE(arborio::parse_region_expression("(join nil (segment 0) (segment 1))").has_value());
+TEST(regloc, reg_fold_expressions) {
+    std::vector<std::string>
+        args{"(region-nil) (region-nil)",
+             "(region-nil) (segment 1)",
+             "(segment 0) (segment 1)",
+             "(region-nil) (segment 0) (segment 1)"},
+        funs{"join",
+             "intersect"};
+    for (const auto& fun: funs) {
+        for (const auto& arg: args) {
+            const auto expr = "(" + fun + " " + arg + ")";
+            EXPECT_TRUE(arborio::parse_region_expression(expr).has_value());
+        }
+    }
+}
+
+TEST(regloc, loc_fold_expressions) {
+    std::vector<std::string>
+        args{"(locset-nil) (locset-nil)",
+             "(locset-nil) (locset-nil) (locset-nil)",
+             "(locset-nil) (terminal)",
+             "(root) (terminal)",
+             "(locset-nil) (root) (terminal)"},
+        funs{"sum",
+             "join"};
+    for (const auto& fun: funs) {
+        for (const auto& arg: args) {
+            const auto expr = "(" + fun + " " + arg + ")";
+            EXPECT_TRUE(arborio::parse_locset_expression(expr).has_value());
+        }
+    }
 }
 
 TEST(regloc, errors) {

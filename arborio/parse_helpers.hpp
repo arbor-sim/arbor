@@ -3,6 +3,7 @@
 #include <any>
 #include <string>
 #include <sstream>
+#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -13,17 +14,15 @@
 namespace arborio {
 using namespace arb;
 
-struct nil_tag {};
-
 // Check typeinfo against expected types
 template <typename T>
 bool match(const std::type_info& info) { return info == typeid(T); }
 template <> inline
 bool match<double>(const std::type_info& info) { return info == typeid(double) || info == typeid(int); }
 template <> inline
-bool match<arb::region>(const std::type_info& info) { return info == typeid(nil_tag) || info == typeid(arb::region); }
+bool match<arb::locset>(const std::type_info& info) { return info == typeid(arb::locset); }
 template <> inline
-bool match<arb::locset>(const std::type_info& info) { return info == typeid(nil_tag) || info == typeid(arb::locset); }
+bool match<arb::region>(const std::type_info& info) { return info == typeid(arb::region); }
 
 // Convert a value wrapped in a std::any to target type.
 template <typename T>
@@ -34,17 +33,6 @@ template <> inline
 double eval_cast<double>(std::any arg) {
     if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
     return std::any_cast<double>(arg);
-}
-template <> inline
-arb::region eval_cast<arb::region>(std::any arg) {
-    if (arg.type()==typeid(arb::region)) return std::any_cast<arb::region>(arg);
-    return arb::reg::nil();
-}
-
-template <> inline
-arb::locset eval_cast<arb::locset>(std::any arg) {
-    if (arg.type()==typeid(arb::locset)) return std::any_cast<arb::locset>(arg);
-    return arb::ls::nil();
 }
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
@@ -259,8 +247,6 @@ util::expected<std::any, E> eval_atom(const s_expr& e) {
             return {std::stoi(t.spelling)};
         case tok::real:
             return {std::stod(t.spelling)};
-        case tok::nil:
-            return {nil_tag()};
         case tok::string:
             return {std::string(t.spelling)};
         case tok::symbol:
