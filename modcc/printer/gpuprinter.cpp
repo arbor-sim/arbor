@@ -303,7 +303,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
                                            "    {1}<<<grid_dim, block_dim>>>(*p);\n"
                                            "    if (!p->multiplicity) return;\n"
-                                           "    multiply<<<{{grid_dim, {2}}}, block_dim>>>(*p);\n"),
+                                           "    multiply<<<dim3{{grid_dim, {2}}}, block_dim>>>(*p);\n"),
                                "width",
                                api_name,
                                n);
