@@ -161,28 +161,10 @@ jobs:
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
       - if:   ${{ matrix.config.mpi == 'OFF' }}
         name: Run examples
-        run: |
-            build/bin/bench
-            build/bin/brunel
-            build/bin/dryrun
-            build/bin/gap_junctions
-            build/bin/generators
-            build/bin/lfp
-            build/bin/probe-demo v
-            build/bin/ring
-            build/bin/single-cell
+        run: scripts/run_cpp_examples.sh
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run examples with MPI
-        run: |
-            mpirun -n 4 -oversubscribe build/bin/bench
-            mpirun -n 4 -oversubscribe build/bin/brunel
-            mpirun -n 4 -oversubscribe build/bin/dryrun
-            mpirun -n 4 -oversubscribe build/bin/gap_junctions
-            mpirun -n 4 -oversubscribe build/bin/generators
-            mpirun -n 4 -oversubscribe build/bin/lfp
-            mpirun -n 4 -oversubscribe build/bin/probe-demo v
-            mpirun -n 4 -oversubscribe build/bin/ring
-            mpirun -n 4 -oversubscribe build/bin/single-cell
+        run: scripts/run_cpp_examples.sh "mpirun -n 4 -oversubscribe"
       - name: Run python tests
         run: |
           cd build
@@ -192,13 +174,4 @@ jobs:
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py -v2
       - name: Run Python examples
-        run: |
-            python python/example/network_ring.py
-            python python/example/single_cell_model.py
-            python python/example/single_cell_recipe.py
-            python python/example/single_cell_stdp.py
-            python python/example/brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123
-            python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
-            python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
-            python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
-            python python/example/single_cell_cable.py
+        run: scripts/run_python_examples.sh
