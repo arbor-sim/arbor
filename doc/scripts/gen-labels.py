@@ -163,7 +163,7 @@ fn = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "../c
 swc_morph = arbor.load_swc_arbor(fn)
 
 regions  = {
-            'empty': '(nil)',
+            'empty': '(region-nil)',
             'all': '(all)',
             'tag1': '(tag 1)',
             'tag2': '(tag 2)',

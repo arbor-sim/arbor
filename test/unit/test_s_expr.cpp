@@ -309,7 +309,49 @@ TEST(regloc, comments) {
               round_trip_region(multi_line));
 }
 
+TEST(regloc, reg_nil) {
+    auto check = [](const std::string& s) {
+        auto res = parse_region_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
+    std::vector<std::string>
+        args{"(nil)",
+             "()",
+             "nil",
+             "(join () (segment 1)",
+             "(intersect (segment 1) nil"};
+    for (const auto& arg: args) {
+        EXPECT_THROW(check(arg), arborio::label_parse_error);
+    }
+}
+
+TEST(regloc, loc_nil) {
+    auto check = [](const std::string& s) {
+        auto res = parse_locset_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
+    std::vector<std::string>
+        args{"(nil)",
+             "()",
+             "nil",
+             "(join () (root)",
+             "(intersect (terminal) nil"};
+    for (const auto& arg: args) {
+        EXPECT_THROW(check(arg), arborio::label_parse_error);
+    }
+}
+
 TEST(regloc, reg_fold_expressions) {
+    auto check = [](const std::string& s) {
+        auto res = parse_region_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
     std::vector<std::string>
         args{"(region-nil) (region-nil)",
              "(region-nil) (segment 1)",
@@ -319,13 +361,19 @@ TEST(regloc, reg_fold_expressions) {
              "intersect"};
     for (const auto& fun: funs) {
         for (const auto& arg: args) {
-            const auto expr = "(" + fun + " " + arg + ")";
-            EXPECT_TRUE(arborio::parse_region_expression(expr).has_value());
+
+            EXPECT_TRUE(check("(" + fun + " " + arg + ")"));
         }
     }
 }
 
 TEST(regloc, loc_fold_expressions) {
+    auto check = [](const std::string& s) {
+        auto res = parse_locset_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
     std::vector<std::string>
         args{"(locset-nil) (locset-nil)",
              "(locset-nil) (locset-nil) (locset-nil)",
@@ -336,8 +384,7 @@ TEST(regloc, loc_fold_expressions) {
              "join"};
     for (const auto& fun: funs) {
         for (const auto& arg: args) {
-            const auto expr = "(" + fun + " " + arg + ")";
-            EXPECT_TRUE(arborio::parse_locset_expression(expr).has_value());
+            EXPECT_TRUE(check("(" + fun + " " + arg + ")"));
         }
     }
 }
