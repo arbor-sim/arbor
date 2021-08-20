@@ -858,14 +858,17 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
 
-        std::vector<double> param_dflt;
         fvm_mechanism_config config;
-        config.kind = arb_mechanism_kind_density;
+        if (info.kind != arb_mechanism_kind_density) {
+            throw cable_cell_error("Expected density mechanism, got "+ name);
+        }
+        config.kind = info.kind;
 
         std::vector<std::string> param_names;
         assign(param_names, util::keys(info.parameters));
         sort(param_names);
 
+        std::vector<double> param_dflt;
         std::size_t n_param = param_names.size();
         param_dflt.reserve(n_param);
         config.param_values.reserve(n_param);
@@ -963,6 +966,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
 
+        if (info.kind != arb_mechanism_kind_point) {
+            throw cable_cell_error("Expected point mechanism, got "+ name);
+        }
+
         post_events |= info.post_events;
         std::size_t n_param = info.parameters.size();
         std::size_t n_inst = entry.second.size();
@@ -1044,7 +1051,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
-        config.kind = arb_mechanism_kind_point;
+        config.kind = info.kind;
         for (auto& kv: info.parameters) {
             config.param_values.emplace_back(kv.first, std::vector<value_type>{});
             if (!coalesce) {
@@ -1248,7 +1255,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 }
                 else {
                     fvm_mechanism_config config;
-                    config.kind = arb_mechanism_kind_reversal_potential;
+                    if (info.kind != arb_mechanism_kind_reversal_potential) {
+                        throw cable_cell_error("Expected reversal potential mechanism for ion " + ion + ", got "+ revpot.name());
+                    }
+                    config.kind = info.kind;
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 

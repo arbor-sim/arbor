@@ -129,6 +129,65 @@ namespace {
     }
 } // namespace
 
+TEST(fvm_layout, compatible_mechanisms) {
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    {
+        auto system = two_cell_system();
+
+        // place a density mechanism instead of a point mechanism
+        system.descriptions[0].decorations.place(system.builders[0].location({1, 0.4}), "hh", "syn0");
+
+        auto cells = system.cells();
+        check_two_cell_system(cells);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+    }
+    {
+        auto system = two_cell_system();
+
+        // paint a point mechanism instead of a density mechanism
+        system.descriptions[1].decorations.paint(system.builders[1].cable(mcable{0}), "expsyn");
+
+        auto cells = system.cells();
+        check_two_cell_system(cells);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+    }
+    {
+        auto system = two_cell_system();
+
+        // Set a density mechanism instead of a reversal potential mechanism
+        gprop.default_parameters.reversal_potential_method["na"] = "pas";
+
+        // Paint a mechanism that uses "na"
+        system.descriptions[1].decorations.paint(system.builders[1].cable(mcable{0}), "hh");
+
+        auto cells = system.cells();
+        check_two_cell_system(cells);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+    }
+    {
+        auto system = two_cell_system();
+
+        // Set a density mechanism instead of a reversal potential mechanism
+        // Paint a mechanism that uses "na"
+        system.descriptions[1].decorations.set_default(ion_reversal_potential_method{"na", "nernst/na"});
+        system.descriptions[1].decorations.paint(system.builders[1].cable(mcable{0}), "hh");
+
+        auto cells = system.cells();
+        check_two_cell_system(cells);
+        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+    }
+}
+
 TEST(fvm_layout, mech_index) {
     auto system = two_cell_system();
     auto& descriptions = system.descriptions;
