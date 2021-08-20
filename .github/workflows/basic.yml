@@ -18,7 +18,7 @@ jobs:
             os:    "ubuntu-18.04",
             cc:    "gcc-8",
             cxx:   "g++-8",
-            py:    "3.6",
+            py:    "3.7",
             cmake: "3.12.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -28,7 +28,7 @@ jobs:
             os:    "ubuntu-18.04",
             cc:    "clang-8",
             cxx:   "clang++-8",
-            py:    "3.6",
+            py:    "3.7",
             cmake: "3.12.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -38,7 +38,7 @@ jobs:
             os:    "macos-10.15",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.6",
+            py:    "3.7",
             cmake: "3.12.x",
             mpi:   "ON",
             simd:  "OFF"
