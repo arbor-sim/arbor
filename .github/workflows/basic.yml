@@ -178,4 +178,4 @@ jobs:
       - name: Run Python examples
         run: scripts/run_python_examples.sh
       - name: Build a catalogue
-        run: build/build-catalogue default mechanisms/default
+        run: build/build-catalogue -v default mechanisms/default
