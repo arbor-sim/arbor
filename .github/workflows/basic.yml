@@ -92,7 +92,7 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
         # Needed for build-catalogue to work
-        CMAKE_PREFIX_PATH: ~/local
+        CMAKE_PREFIX_PATH: ${{ github.workspace }}/local
     steps:
       - name: Get clang/gcc 8
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
