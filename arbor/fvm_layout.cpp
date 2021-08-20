@@ -1217,6 +1217,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         {
             const mechanism_desc& revpot = *maybe_revpot;
             mechanism_info info = catalogue[revpot.name()];
+            if (info.kind != arb_mechanism_kind_reversal_potential) {
+                throw cable_cell_error("Expected reversal potential mechanism for ion " + ion + ", got "+ revpot.name());
+            }
+
             verify_mechanism(info, revpot);
             revpot_specified.insert(ion);
 
@@ -1255,9 +1259,6 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 }
                 else {
                     fvm_mechanism_config config;
-                    if (info.kind != arb_mechanism_kind_reversal_potential) {
-                        throw cable_cell_error("Expected reversal potential mechanism for ion " + ion + ", got "+ revpot.name());
-                    }
                     config.kind = info.kind;
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);

@@ -161,10 +161,7 @@ TEST(fvm_layout, compatible_mechanisms) {
         auto system = two_cell_system();
 
         // Set a density mechanism instead of a reversal potential mechanism
-        gprop.default_parameters.reversal_potential_method["na"] = "pas";
-
-        // Paint a mechanism that uses "na"
-        system.descriptions[1].decorations.paint(system.builders[1].cable(mcable{0}), "hh");
+        system.descriptions[1].decorations.set_default(ion_reversal_potential_method{"na", "expsyn"});
 
         auto cells = system.cells();
         check_two_cell_system(cells);
@@ -176,9 +173,7 @@ TEST(fvm_layout, compatible_mechanisms) {
         auto system = two_cell_system();
 
         // Set a density mechanism instead of a reversal potential mechanism
-        // Paint a mechanism that uses "na"
-        system.descriptions[1].decorations.set_default(ion_reversal_potential_method{"na", "nernst/na"});
-        system.descriptions[1].decorations.paint(system.builders[1].cable(mcable{0}), "hh");
+        gprop.default_parameters.reversal_potential_method["na"] = "pas";
 
         auto cells = system.cells();
         check_two_cell_system(cells);
