@@ -251,6 +251,7 @@ TEST(regloc, round_tripping) {
         "(cable 2 0.1 0.4)",
         "(region \"foo\")",
         "(all)",
+        "(region-nil)",
         "(tag 42)",
         "(distal-interval (location 3 0))",
         "(distal-interval (location 3 0) 3.2)",
@@ -273,6 +274,7 @@ TEST(regloc, round_tripping) {
     auto locset_literals = {
         "(root)",
         "(locset \"cat man do\")",
+        "(locset-nil)",
         "(location 3 0.2)",
         "(terminal)",
         "(distal (tag 2))",
@@ -305,6 +307,86 @@ TEST(regloc, comments) {
         "    0.5) ; end of string";
     EXPECT_EQ("(radius-lt (join (tag 3) (tag 4)) 0.5)",
               round_trip_region(multi_line));
+}
+
+TEST(regloc, reg_nil) {
+    auto check = [](const std::string& s) {
+        auto res = parse_region_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
+    std::vector<std::string>
+        args{"(nil)",
+             "()",
+             "nil",
+             "(join () (segment 1)",
+             "(intersect (segment 1) nil"};
+    for (const auto& arg: args) {
+        EXPECT_THROW(check(arg), arborio::label_parse_error);
+    }
+}
+
+TEST(regloc, loc_nil) {
+    auto check = [](const std::string& s) {
+        auto res = parse_locset_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
+    std::vector<std::string>
+        args{"(nil)",
+             "()",
+             "nil",
+             "(join () (root)",
+             "(intersect (terminal) nil"};
+    for (const auto& arg: args) {
+        EXPECT_THROW(check(arg), arborio::label_parse_error);
+    }
+}
+
+TEST(regloc, reg_fold_expressions) {
+    auto check = [](const std::string& s) {
+        auto res = parse_region_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
+    std::vector<std::string>
+        args{"(region-nil) (region-nil)",
+             "(region-nil) (segment 1)",
+             "(segment 0) (segment 1)",
+             "(region-nil) (segment 0) (segment 1)"},
+        funs{"join",
+             "intersect"};
+    for (const auto& fun: funs) {
+        for (const auto& arg: args) {
+
+            EXPECT_TRUE(check("(" + fun + " " + arg + ")"));
+        }
+    }
+}
+
+TEST(regloc, loc_fold_expressions) {
+    auto check = [](const std::string& s) {
+        auto res = parse_locset_expression(s);
+        if (!res.has_value()) throw res.error();
+        return true;
+    };
+
+    std::vector<std::string>
+        args{"(locset-nil) (locset-nil)",
+             "(locset-nil) (locset-nil) (locset-nil)",
+             "(locset-nil) (terminal)",
+             "(root) (terminal)",
+             "(locset-nil) (root) (terminal)"},
+        funs{"sum",
+             "join"};
+    for (const auto& fun: funs) {
+        for (const auto& arg: args) {
+            EXPECT_TRUE(check("(" + fun + " " + arg + ")"));
+        }
+    }
 }
 
 TEST(regloc, errors) {

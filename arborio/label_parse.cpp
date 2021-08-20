@@ -22,8 +22,8 @@ namespace {
 
 std::unordered_multimap<std::string, evaluator> eval_map {
     // Functions that return regions
-    {"nil", make_call<>(arb::reg::nil,
-                "'nil' with 0 arguments")},
+    {"region-nil", make_call<>(arb::reg::nil,
+                "'region-nil' with 0 arguments")},
     {"all", make_call<>(arb::reg::all,
                 "'all' with 0 arguments")},
     {"tag", make_call<int>(arb::reg::tagged,
@@ -74,9 +74,10 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                       "'intersect' with at least 2 arguments: (region region [...region])")},
 
     // Functions that return locsets
+    {"locset-nil", make_call<>(arb::ls::nil,
+                "'locset-nil' with 0 arguments")},
     {"root", make_call<>(arb::ls::root,
                  "'root' with 0 arguments")},
-
     {"location", make_call<int, double>([](int bid, double pos){return arb::ls::location(arb::msize_t(bid), pos);},
                      "'location' with 2 arguments: (branch_id:integer position:real)")},
     {"terminal", make_call<>(arb::ls::terminal,
@@ -138,7 +139,6 @@ std::string eval_description(const char* name, const std::vector<std::any>& args
         if (t==typeid(double))      return "real";
         if (t==typeid(arb::region)) return "region";
         if (t==typeid(arb::locset)) return "locset";
-        if (t==typeid(nil_tag))     return "()";
         return "unknown";
     };
 
@@ -185,7 +185,6 @@ parse_label_hopefully<std::any> eval(const s_expr& e) {
         // Find all candidate functions that match the name of the function.
         auto& name = e.head().atom().spelling;
         auto matches = eval_map.equal_range(name);
-
         // Search for a candidate that matches the argument list.
         for (auto i=matches.first; i!=matches.second; ++i) {
             if (i->second.match_args(*args)) { // found a match: evaluate and return.
