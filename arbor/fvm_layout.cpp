@@ -838,6 +838,16 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
     };
 
+    // Mechanism kind as string, for error messages.
+    auto mech_kind_to_string = [](arb_mechanism_kind t) {
+        switch (t) {
+            case arb_mechanism_kind_density: return "density mechanism kind";
+            case arb_mechanism_kind_point:   return "point mechanism kind";
+            case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
+            default: return "unknown mechanism kind";
+        }
+    };
+
     // Track ion usage of mechanisms so that ions are only instantiated where required.
     std::unordered_map<std::string, std::vector<index_type>> ion_support;
     auto update_ion_support = [&ion_support](const mechanism_info& info, const std::vector<index_type>& cvs) {
@@ -860,7 +870,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         fvm_mechanism_config config;
         if (info.kind != arb_mechanism_kind_density) {
-            throw cable_cell_error("Expected density mechanism, got "+ name);
+            throw cable_cell_error("expected density mechanism, got " +name +" which has " +mech_kind_to_string(info.kind));
         }
         config.kind = info.kind;
 
@@ -967,7 +977,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         mechanism_info info = catalogue[name];
 
         if (info.kind != arb_mechanism_kind_point) {
-            throw cable_cell_error("Expected point mechanism, got "+ name);
+            throw cable_cell_error("expected point mechanism, got " +name +" which has " +mech_kind_to_string(info.kind));
         }
 
         post_events |= info.post_events;
@@ -1218,7 +1228,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             const mechanism_desc& revpot = *maybe_revpot;
             mechanism_info info = catalogue[revpot.name()];
             if (info.kind != arb_mechanism_kind_reversal_potential) {
-                throw cable_cell_error("Expected reversal potential mechanism for ion " + ion + ", got "+ revpot.name());
+                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +mech_kind_to_string(info.kind));
             }
 
             verify_mechanism(info, revpot);

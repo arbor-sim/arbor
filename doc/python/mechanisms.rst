@@ -138,6 +138,11 @@ mechanism that is to be painted or placed on the cable cell.
         print(mech.parameters['tau'].default)
         # 2.0
 
+    .. py:attribute:: kind
+        :type: string
+
+        String representation of the kind of the mechanism: density, point or reversal potential.
+
     .. py:attribute:: globals
         :type: dict[str, mechanism_field]
 
@@ -162,6 +167,11 @@ mechanism that is to be painted or placed on the cable cell.
         :type: bool
 
         True if a synapse mechanism has linear current contributions so that multiple instances on the same :term:`control volume` can be coalesced.
+
+    .. py:attribute:: post_events
+        :type: bool
+
+        True if a synapse mechanism has a `POST_EVENT` procedure defined.
 
 
 .. py:class:: ion_dependency

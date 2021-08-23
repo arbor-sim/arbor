@@ -96,6 +96,17 @@ void register_mechanisms(pybind11::module& m) {
             "Ion dependencies.")
         .def_readonly("linear", &arb::mechanism_info::linear,
             "True if a synapse mechanism has linear current contributions so that multiple instances on the same compartment can be coalesced.")
+        .def_readonly("post_events", &arb::mechanism_info::post_events,
+            "True if a synapse mechanism has a `POST_EVENT` procedure defined.")
+        .def_property_readonly("kind",
+                [](const arb::mechanism_info& info) {
+                    switch (info.kind) {
+                        case arb_mechanism_kind_density: return "Density mechanism";
+                        case arb_mechanism_kind_point:   return "Point mechanism";
+                        case arb_mechanism_kind_reversal_potential: return "Reversal potential mechanism";
+                        default: return "Unknown mechanism kind";
+                    };
+                }, "String representation of the kind of the mechanism.")
         .def("__repr__",
                 [](const arb::mechanism_info& inf) {
                     return util::pprintf("(arbor.mechanism_info)"); })
