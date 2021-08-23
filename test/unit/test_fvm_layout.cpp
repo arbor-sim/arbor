@@ -129,58 +129,29 @@ namespace {
     }
 } // namespace
 
+template<typename P>
+void check_compatible_mechanism_failure(cable_cell_global_properties gprop, P painter) {
+    auto system = two_cell_system();
+
+    painter(system);
+
+    auto cells = system.cells();
+    check_two_cell_system(cells);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+}
+
 TEST(fvm_layout, compatible_mechanisms) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    {
-        auto system = two_cell_system();
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.place(sys.builders[0].location({1, 0.4}), "hh", "syn0"); });
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[1].decorations.paint(sys.builders[1].cable(mcable{0}), "expsyn"); });
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.set_default(ion_reversal_potential_method{"na", "expsyn"}); });
 
-        // place a density mechanism instead of a point mechanism
-        system.descriptions[0].decorations.place(system.builders[0].location({1, 0.4}), "hh", "syn0");
-
-        auto cells = system.cells();
-        check_two_cell_system(cells);
-        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-
-        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
-    }
-    {
-        auto system = two_cell_system();
-
-        // paint a point mechanism instead of a density mechanism
-        system.descriptions[1].decorations.paint(system.builders[1].cable(mcable{0}), "expsyn");
-
-        auto cells = system.cells();
-        check_two_cell_system(cells);
-        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-
-        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
-    }
-    {
-        auto system = two_cell_system();
-
-        // Set a density mechanism instead of a reversal potential mechanism
-        system.descriptions[1].decorations.set_default(ion_reversal_potential_method{"na", "expsyn"});
-
-        auto cells = system.cells();
-        check_two_cell_system(cells);
-        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-
-        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
-    }
-    {
-        auto system = two_cell_system();
-
-        // Set a density mechanism instead of a reversal potential mechanism
-        gprop.default_parameters.reversal_potential_method["na"] = "pas";
-
-        auto cells = system.cells();
-        check_two_cell_system(cells);
-        fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-
-        EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
-    }
+    gprop.default_parameters.reversal_potential_method["na"] = "pas";
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {});
 }
 
 TEST(fvm_layout, mech_index) {

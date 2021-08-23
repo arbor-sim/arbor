@@ -27,6 +27,15 @@ typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_cpu 1
 #define arb_backend_kind_gpu 2
 
+inline const char* arb_mechsnism_kind_str(const arb_mechanism_kind& mech) {
+    switch (mech) {
+        case arb_mechanism_kind_density: return "density mechanism kind";
+        case arb_mechanism_kind_point:   return "point mechanism kind";
+        case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
+        default: return "unknown mechanism kind";
+    }
+}
+
 // Ion state variables; view into shared_state
 typedef struct arb_ion_state {
     arb_value_type* current_density;
