@@ -1164,7 +1164,7 @@ void run_stimulus_probe_test(const context& ctx) {
                 cable_probe_stimulus_current_cell{}, {stim_until/2, 2*stim_until}).at(0);
 
         ASSERT_EQ(3u, traces[i].meta.size());
-        for (unsigned cv: {0u, 1u, 2u}) {
+        for ([[maybe_unused]] unsigned cv: {0u, 1u, 2u}) {
             ASSERT_EQ(2u, traces[i].size());
         }
     }
