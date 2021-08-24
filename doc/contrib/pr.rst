@@ -30,6 +30,7 @@ the workflow is as follows:
 4. We will accept contributions licensed with the same
    `BSD 3-Clause "New" or "Revised" License <https://github.com/arbor-sim/arbor/blob/master/LICENSE>`_,
    as the Arbor project.
+   If not specified otherwise, we accept your contribution under this license.
    If this is a problem for you, please contact us at
    `contact@arbor-sim.org <mailto:contact@arbor-sim.org>`__.
 5. A PR on Github is automatically built and tested by GitHub Actions CI pipelines.
