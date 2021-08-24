@@ -61,11 +61,10 @@ public:
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
 
-    std::vector<fvm_gap_junction> fvm_gap_junctions(
+    std::unordered_map<cell_member_type, fvm_index_type> fvm_build_gap_junction_data(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const cell_label_range& gj_data,
-        const recipe& rec,
+        const cable_cell_global_properties& gprop,
         const fvm_cv_discretization& D);
 
     // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
@@ -473,11 +472,11 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Discretize and build gap junction info.
 
-    auto gj_vector = fvm_gap_junctions(cells, gids, fvm_info.gap_junction_data, rec, D);
+    auto lid_to_cv = fvm_build_gap_junction_data(cells, gids, rec, D);
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, D, context_);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, rec, D, context_);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
@@ -638,55 +637,24 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     return fvm_info;
 }
 
-struct gap_junction_resolution_data {
-    struct gj_connection {
-        std::pair<cell_member_type, cell_member_type> loc;
-        fvm_value_type weight;
-        gj_connection(cell_member_type local , cell_member_type peer, fvm_value_type weight): loc(local, peer), weight(weight) {};
-    };
-    std::vector<gj_connection> conns;
-    std::unordered_map<cell_member_type, fvm_index_type> cv_map;
-};
-
-
 // Get vector of gap_junctions
 template <typename Backend>
-gap_junction_resolution_data fvm_lowered_cell_impl<Backend>::fvm_build_gap_junction_data(
+std::unordered_map<cell_member_type, fvm_index_type> fvm_lowered_cell_impl<Backend>::fvm_build_gap_junction_data(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const cell_label_range& gap_junction_data,
         const cable_cell_global_properties& gprop,
-        const recipe& rec, const fvm_cv_discretization& D) {
+        const fvm_cv_discretization& D) {
 
-    gap_junction_resolution_data gj_data;
-    label_resolution_map resolution_map({gap_junction_data, gids});
-    auto gj_resolver = resolver(&resolution_map);
-    for (auto gid: gids) {
-        auto gj_list = rec.gap_junctions_on(gid);
-        for (const auto& g: gj_list) {
-            if (g.local.policy != lid_selection_policy::assert_univalent) {
-                throw gj_unsupported_lid_selection_policy(gid, g.local.tag);
-            }
-            if (g.peer.label.policy != lid_selection_policy::assert_univalent) {
-                throw gj_unsupported_lid_selection_policy(g.peer.gid, g.peer.label.tag);
-            }
-            auto local = cell_member_type{gid, gj_resolver.resolve({gid, g.local})};
-            auto peer = cell_member_type{g.peer.gid, gj_resolver.resolve(g.peer)};
-            gj_data.conns.emplace_back(local, peer, g.ggap);
-        }
-
+    std::unordered_map<cell_member_type, fvm_index_type> cv_map;
         const mechanism_catalogue& catalogue = *gprop.catalogue;
-        for (auto cell_idx: util::make_span(0, D.n_cell())) {
-            if (rec.gap_junctions_on(gids[cell_idx]).empty()) continue;
-            for (const auto& mech : cells[cell_idx].mechanisms()) {
-                if (catalogue[mech.first].kind != arb_mechanism_kind_gap_junction) continue;
+        for (auto cell_idx: util::make_span(0, cells.size())) {
+            for (const auto& mech : cells[cell_idx].junctions()) {
                 for (const auto& gj: mech.second) {
-                    gj_data.cv_map.insert({cell_member_type{gids[cell_idx], gj.lid}, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)});
+                    cv_map.insert({cell_member_type{gids[cell_idx], gj.lid}, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)});
                 }
             }
         }
-    }
-    return gj_data;
+    return cv_map;
 }
 
 template <typename Backend>
