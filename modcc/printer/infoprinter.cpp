@@ -28,107 +28,60 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
 
     std::string fingerprint = "<placeholder>";
 
+    const auto lowest = std::to_string(std::numeric_limits<double>::lowest());
+    const auto max    = std::to_string(std::numeric_limits<double>::max());
     out << fmt::format("#pragma once\n\n"
                        "#include <cmath>\n"
                        "#include <{}mechanism_abi.h>\n\n",
                        arb_header_prefix());
 
-    auto vars = local_module_variables(m);
-    auto ion_deps = m.ion_deps();
-
-
-    std::unordered_map<std::string, Id> name2id;
-    for (const auto& id: m.parameter_block().parameters) name2id[id.name()] = id;
-    for (const auto& id: m.state_block().state_variables) name2id[id.name()] = id;
-
-    auto fmt_var = [&](const auto& v) {
-        auto kv = name2id.find(v->name());
-        auto lo = std::numeric_limits<double>::lowest();
-        auto hi = std::numeric_limits<double>::max();
-        std::string unit = "";
-        if (kv != name2id.end()) {
-            auto id = kv->second;
-            unit = id.unit_string();
-            if (id.has_range()) {
-                auto lo = id.range.first;
-                auto hi = id.range.second;
-            }
-        }
-        return fmt::format("{{ \"{}\", \"{}\", {}, {}, {} }}",
-                           v->name(),
-                           unit,
-                           std::isnan(v->value()) ? "NAN" : std::to_string(v->value()),
-                           lo, hi);
+    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(m);
+    const auto& assigned_ids = m.assigned_block().parameters;
+    auto fmt_var = [&](const auto& id) {
+        auto lo  = id.has_range() ? id.range.first  : lowest;
+        auto hi  = id.has_range() ? id.range.second : max;
+        auto val = id.has_value() ? id.value        : "NAN";
+        return fmt::format(FMT_COMPILE("{{ \"{}\", \"{}\", {}, {}, {} }}"), id.name(), id.unit_string(), val, lo, hi);
     };
-
-    auto fmt_ion = [](const auto& i) {
-        return fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {} }}"),
-                           i.name,
-                           i.writes_concentration_int(),
-                           i.writes_concentration_ext(),
-                           i.writes_rev_potential(),
-                           i.uses_rev_potential(),
-                           i.uses_valence(),
-                           i.verifies_valence(),
-                           i.expected_valence);
-    };
-
 
     out << fmt::format("extern \"C\" {{\n"
-                       "  arb_mechanism_type make_{0}_{1}() {{\n",
+                       "  arb_mechanism_type make_{0}_{1}() {{\n"
+                       "    // Tables\n",
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name);
-
-    out << "    // Tables\n";
     {
-        auto n = 0ul;
         io::separator sep("", ",\n                                        ");
         out << "    static arb_field_info globals[] = { ";
-        for (const auto& var: vars.scalars) {
-            out << sep << fmt_var(var);
-            ++n;
-        }
-        out << " };\n"
-            << "    static arb_size_type n_globals = " << n << ";\n";
+        for (const auto& var: global_ids) out << sep << fmt_var(var);
+        out << fmt::format(" }};\n"
+                           "    static arb_size_type n_globals = {};\n", global_ids.size());
     }
-
     {
-        auto n = 0ul;
         io::separator sep("", ",\n                                           ");
         out << "    static arb_field_info state_vars[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(var->is_state()) {
-                out << sep << fmt_var(var);
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "    static arb_size_type n_state_vars = " << n << ";\n";
+        for (const auto& id: state_ids)    out << sep << fmt_var(id);
+        for (const auto& id: assigned_ids) out << sep << fmt_var(id);
+        out << fmt::format(" }};\n"
+                           "    static arb_size_type n_state_vars = {};\n", assigned_ids.size() + state_ids.size());
     }
     {
-        auto n = 0ul;
         io::separator sep("", ",\n                                           ");
         out << "    static arb_field_info parameters[] = { ";
-        for (const auto& var: vars.arrays) {
-            if(!var->is_state()) {
-                out << sep << fmt_var(var);
-                ++n;
-            }
-        }
-        out << " };\n"
-            << "    static arb_size_type n_parameters = " << n << ";\n";
+        for (const auto& id: param_ids) out << sep << fmt_var(id);
+        out << fmt::format(" }};\n"
+                           "    static arb_size_type n_parameters = {};\n", param_ids.size());
     }
-
     {
         io::separator sep("", ",\n");
         out << "    static arb_ion_info ions[] = { ";
-        auto n = 0ul;
-        for (const auto& var: ion_deps) {
-            out << sep << fmt_ion(var);
-            ++n;
-        }
-        out << " };\n"
-            << "    static arb_size_type n_ions = " << n << ";\n";
+        for (const auto& ion: m.ion_deps()) out << sep
+                                                << fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {} }}"),
+                                                               ion.name,
+                                                               ion.writes_concentration_int(), ion.writes_concentration_ext(),
+                                                               ion.writes_rev_potential(), ion.uses_rev_potential(),
+                                                               ion.uses_valence(), ion.verifies_valence(), ion.expected_valence);
+        out << fmt::format(" }};\n"
+                           "    static arb_size_type n_ions = {};\n", m.ion_deps().size());
     }
 
     out << fmt::format(FMT_COMPILE("\n"

@@ -254,6 +254,7 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
             break;
         }
     }
+
     if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
 
     if (!m.ppack_.width) return;
