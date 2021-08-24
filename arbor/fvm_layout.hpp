@@ -242,6 +242,9 @@ struct fvm_mechanism_config {
     // For each instance index i, there are multiplicity[i] consecutive entries.
     std::vector<index_type> target;
 
+    // Gap junction peer CV index (gap junction mechanisms only)
+    std::vector<index_type> peer_cv;
+
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
 };

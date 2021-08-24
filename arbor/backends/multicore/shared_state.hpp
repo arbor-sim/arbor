@@ -126,7 +126,7 @@ struct shared_state {
 
     iarray cv_to_intdom;      // Maps CV index to integration domain index.
     iarray cv_to_cell;        // Maps CV index to the first spike
-    gjarray gap_junctions;   // Stores gap_junction info.
+    gjarray gap_junctions;    // Stores gap_junction info.
     array time;               // Maps intdom index to integration start time [ms].
     array time_to;            // Maps intdom index to integration stop time [ms].
     array dt_intdom;          // Maps  index to (stop time) - (start time) [ms].

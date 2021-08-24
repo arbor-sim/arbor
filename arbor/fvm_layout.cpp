@@ -854,7 +854,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     // Density mechanisms:
 
-    for (const auto& entry: cell.region_assignments().get<mechanism_desc>()) {
+    for (const auto& entry: cell.region_assignments().get<density>()) {
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
 
@@ -885,9 +885,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         param_maps.resize(n_param);
 
         for (auto& on_cable: entry.second) {
-            verify_mechanism(info, on_cable.second);
+            const auto& mech = on_cable.second.mech;
+            verify_mechanism(info, mech);
             mcable cable = on_cable.first;
-            const auto& set_params = on_cable.second.values();
+            const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
@@ -995,10 +996,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         arb_assert(ix==n_param);
 
         std::size_t offset = 0;
-        for (const placed<mechanism_desc>& pm: entry.second) {
-            verify_mechanism(info, pm.item);
+        for (const placed<synapse>& pm: entry.second) {
+            const auto& mech = pm.item.mech;
+            verify_mechanism(info, mech);
 
-            synapse_instance in;
+            synapse_instance in{};
 
             in.param_values_offset = offset;
             offset += n_param;
@@ -1007,7 +1009,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             double* in_param = all_param_values.data()+in.param_values_offset;
             std::copy(default_param_value.begin(), default_param_value.end(), in_param);
 
-            for (const auto& kv: pm.item.values()) {
+            for (const auto& kv: mech.values()) {
                 in_param[param_index.at(kv.first)] = kv.second;
             }
 
@@ -1088,6 +1090,41 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         M.mechanisms[name] = std::move(config);
     }
     M.post_events = post_events;
+
+    // Gap junctions:
+
+    for (const auto& entry: cell.junctions()) {
+        const std::string& name = entry.first;
+        mechanism_info info = catalogue[name];
+        std::vector<double> param_dflt;
+        fvm_mechanism_config config;
+        config.kind = info.kind;
+
+        std::vector<std::string> param_names;
+        assign(param_names, util::keys(info.parameters));
+
+        std::size_t n_param = param_names.size();
+        param_dflt.reserve(n_param);
+        config.param_values.reserve(n_param);
+
+        for (std::size_t i = 0; i<n_param; ++i) {
+            const auto& p = param_names[i];
+            config.param_values.emplace_back(p, std::vector<value_type>{});
+            param_dflt.push_back(info.parameters.at(p).default_value);
+        }
+
+        for (const placed<junction>& pm: entry.second) {
+            const auto& mech = pm.item.mech;
+            verify_mechanism(info, mech);
+            const auto& set_params = mech.values();
+            for (std::size_t i = 0; i<n_param; ++i) {
+                config.param_values[i].second.push_back(value_by_key(set_params, param_names[i]).value_or(param_dflt[i]));
+            }
+            config.cv.push_back(D.geometry.location_cv(cell_idx, pm.loc, cv_prefer::cv_nonempty));
+        }
+    }
+
+
 
     // Stimuli:
 

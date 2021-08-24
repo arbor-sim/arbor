@@ -5,6 +5,7 @@
 #include <optional>
 #include <unordered_map>
 #include <string>
+#include <utility>
 #include <variant>
 
 #include <arbor/arbexcept.hpp>
@@ -86,9 +87,6 @@ struct i_clamp {
 struct threshold_detector {
     double threshold;
 };
-
-// Tag type for dispatching cable_cell::place() calls that add gap junction sites.
-struct gap_junction_site {};
 
 // Setter types for painting physical and ion parameters or setting
 // cell-wide default:
@@ -187,6 +185,37 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
+// Tagged mechanism types for dispatching cable_cell::place() and cable_cell::paint() calls
+struct junction {
+    mechanism_desc mech;
+    junction(mechanism_desc m): mech(std::move(m)) {}
+    junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
+struct synapse {
+    mechanism_desc mech;
+    synapse(mechanism_desc m): mech(std::move(m)) {}
+    synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
+struct density {
+    mechanism_desc mech;
+    density(mechanism_desc m): mech(std::move(m)) {}
+    density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
 struct ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
@@ -200,13 +229,13 @@ using paintable =
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
-                 mechanism_desc>;
+                 density>;
 
 using placeable =
-    std::variant<mechanism_desc,
-                 i_clamp,
+    std::variant<i_clamp,
                  threshold_detector,
-                 gap_junction_site>;
+                 synapse,
+                 junction>;
 
 using defaultable =
     std::variant<init_membrane_potential,

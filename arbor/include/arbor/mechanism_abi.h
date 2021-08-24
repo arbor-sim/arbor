@@ -21,6 +21,7 @@ typedef uint32_t arb_mechanism_kind;
 #define arb_mechanism_kind_point 1
 #define arb_mechanism_kind_density 2
 #define arb_mechanism_kind_reversal_potential 3
+#define arb_mechanism_kind_gap_junction 4
 
 typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_nil 0
