@@ -245,6 +245,9 @@ struct fvm_mechanism_config {
     // Gap junction peer CV index (gap junction mechanisms only)
     std::vector<index_type> peer_cv;
 
+    // Gap junction weight (gap junction mechanisms only)
+    std::vector<value_type> local_weight;
+
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
 };
@@ -312,6 +315,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
+    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
+    const cell_label_range& gj_data,
     const recipe& rec,
     const fvm_cv_discretization& D,
     const arb::execution_context& ctx={});

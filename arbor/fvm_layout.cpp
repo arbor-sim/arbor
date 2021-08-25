@@ -768,18 +768,39 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
     return left;
 }
+struct resolved_gj_connection {
+    cell_lid_type local;
+    cell_member_type peer;
+    arb_value_type weight;
+};
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, const std::vector<arb::gap_junction_connection>& gj_conns,
+    const cable_cell& cell, cell_gid_type gid,
+    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
+    const std::vector<resolved_gj_connection>& gj_conns,
     const fvm_cv_discretization& D, fvm_size_type cell_idx);
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
     const std::vector<cable_cell>& cells, const std::vector<cell_gid_type> gids,
-    const recipe& rec, const fvm_cv_discretization& D, const execution_context& ctx)
+    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
+    const cell_label_range& gj_data, const recipe& rec,
+    const fvm_cv_discretization& D, const execution_context& ctx)
 {
+    // Construct and resolve all gj_connections, this is not thread safe
+    std::unordered_map<cell_gid_type, std::vector<resolved_gj_connection>> gj_conns;
+    label_resolution_map resolution_map({gj_data, gids});
+    auto gj_resolver = resolver(&resolution_map);
+    for (const auto& gid: gids) {
+        for (const auto& conn: rec.gap_junctions_on(gid)) {
+            auto local = gj_resolver.resolve({gid, conn.local});
+            auto peer = cell_member_type{conn.peer.gid, gj_resolver.resolve(conn.peer)};
+            gj_conns[gid].push_back({local, peer, conn.ggap});
+        }
+    }
+
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], rec.gap_junctions_on(gids[i]), D, i);});
+          [&] (int i) { auto gid = gids[i]; cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], gid, lid_to_cv, gj_conns[gid], D, i);});
 
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {
@@ -790,9 +811,14 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
 // Construct FVM mechanism data for a single cell.
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, const std::vector<arb::gap_junction_connection>& gj_conns,
-    const fvm_cv_discretization& D, fvm_size_type cell_idx)
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const cable_cell& cell,
+    cell_gid_type gid,
+    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
+    const std::vector<resolved_gj_connection>& gj_conns,
+    const fvm_cv_discretization& D,
+    fvm_size_type cell_idx)
 {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -1098,27 +1124,26 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     struct junction_desc {
         std::string name;
-        std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
+        std::vector<value_type> param_values;
     };
 
+    // First, gather gap_junction mechanism descriptions per lid
+    // and create empty fvm_mechanism_config
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: cell.junctions()) {
-        junction_desc jd;
-        jd.name = name;
-
-        mechanism_info info = catalogue[name];
-        std::vector<double> param_dflt;
+        fvm_mechanism_config config;
+        config.kind = arb_mechanism_kind_gap_junction;
 
         std::vector<std::string> param_names;
+        std::vector<double> param_dflt;
+
+        mechanism_info info = catalogue[name];
         assign(param_names, util::keys(info.parameters));
-
         std::size_t n_param = param_names.size();
-        param_dflt.reserve(n_param);
-        jd.param_values.reserve(n_param);
 
-        for (std::size_t i = 0; i<n_param; ++i) {
-            const auto& p = param_names[i];
-            jd.param_values.emplace_back(p, std::vector<value_type>{});
+        param_dflt.reserve(n_param);
+        for (const auto& p: param_names) {
+            config.param_values.emplace_back(p, std::vector<value_type>{});
             param_dflt.push_back(info.parameters.at(p).default_value);
         }
 
@@ -1126,42 +1151,32 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             const auto& mech = pm.item.mech;
             verify_mechanism(info, mech);
             const auto& set_params = mech.values();
+
+            junction_desc per_lid;
+            per_lid.name = name;
             for (std::size_t i = 0; i<n_param; ++i) {
-                jd.param_values[i].second.push_back(value_by_key(set_params, param_names[i]).value_or(param_dflt[i]));
+                per_lid.param_values[i] = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
             }
+            lid_junction_desc.insert({pm.lid, std::move(per_lid)});
         }
+        M.mechanisms[name] = std::move(config);
     }
 
-    /*for (const auto& entry: cell.junctions()) {
-        const std::string& name = entry.first;
-        mechanism_info info = catalogue[name];
-        std::vector<double> param_dflt;
-        fvm_mechanism_config config;
-        config.kind = info.kind;
+    // Sort gj_conns by local cv
+    util::sort(gj_conns, [lid_to_cv](const auto& lhs, const auto& rhs) {lid_to_cv[lhs.local] < lid_to_cv[rhs.local];});
 
-        std::vector<std::string> param_names;
-        assign(param_names, util::keys(info.parameters));
+    // Then iterate over the gj_connections on the cell, and create the fvm_mechanism_config
+    for (const auto& conn: gj_conns) {
+        auto local_junction_desc = lid_junction_desc[conn.local];
+        auto& config = M.mechanisms[local_junction_desc.name];
 
-        std::size_t n_param = param_names.size();
-        param_dflt.reserve(n_param);
-        config.param_values.reserve(n_param);
-
-        for (std::size_t i = 0; i<n_param; ++i) {
-            const auto& p = param_names[i];
-            config.param_values.emplace_back(p, std::vector<value_type>{});
-            param_dflt.push_back(info.parameters.at(p).default_value);
+        config.cv.push_back(lid_to_cv.at({gid, conn.local}));
+        config.peer_cv.push_back(lid_to_cv.at(conn.peer));
+        config.local_weight.push_back(conn.weight);
+        for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
+            config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
-
-        for (const placed<junction>& pm: entry.second) {
-            const auto& mech = pm.item.mech;
-            verify_mechanism(info, mech);
-            const auto& set_params = mech.values();
-            for (std::size_t i = 0; i<n_param; ++i) {
-                config.param_values[i].second.push_back(value_by_key(set_params, param_names[i]).value_or(param_dflt[i]));
-            }
-            config.cv.push_back(D.geometry.location_cv(cell_idx, pm.loc, cv_prefer::cv_nonempty));
-        }
-    }*/
+    }
 
     // Stimuli:
 

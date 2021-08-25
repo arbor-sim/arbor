@@ -476,7 +476,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, rec, D, context_);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, lid_to_cv, fvm_info.gap_junction_data, rec, D, context_);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
