@@ -64,7 +64,6 @@ public:
     std::unordered_map<cell_member_type, fvm_index_type> fvm_build_gap_junction_data(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const cable_cell_global_properties& gprop,
         const fvm_cv_discretization& D);
 
     // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
@@ -252,7 +251,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Add current contribution from gap_junctions
-        state_->add_gj_current();
+//        state_->add_gj_current();
 
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
@@ -472,11 +471,17 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Discretize and build gap junction info.
 
-    auto lid_to_cv = fvm_build_gap_junction_data(cells, gids, rec, D);
+    auto lid_to_cv = fvm_build_gap_junction_data(cells, gids, D);
+    for (const auto& [lid, cv]: lid_to_cv) {
+        std::cout << lid << " -> " << cv << std::endl;
+    }
+    std::cout << std::endl;
 
     // Discretize mechanism data.
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, lid_to_cv, fvm_info.gap_junction_data, rec, D, context_);
+
+    std::cout << "done" << std::endl << std::endl;
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
@@ -505,7 +510,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     state_ = std::make_unique<shared_state>(
-                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell), gj_vector,
+                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
@@ -642,11 +647,9 @@ template <typename Backend>
 std::unordered_map<cell_member_type, fvm_index_type> fvm_lowered_cell_impl<Backend>::fvm_build_gap_junction_data(
         const std::vector<cable_cell>& cells,
         const std::vector<cell_gid_type>& gids,
-        const cable_cell_global_properties& gprop,
         const fvm_cv_discretization& D) {
 
     std::unordered_map<cell_member_type, fvm_index_type> cv_map;
-        const mechanism_catalogue& catalogue = *gprop.catalogue;
         for (auto cell_idx: util::make_span(0, cells.size())) {
             for (const auto& mech : cells[cell_idx].junctions()) {
                 for (const auto& gj: mech.second) {

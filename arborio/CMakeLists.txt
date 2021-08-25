@@ -2,8 +2,8 @@ set(arborio-sources
     asc_lexer.cpp
     neurolucida.cpp
     swcio.cpp
-    cableio.cpp
-    cv_policy_parse.cpp
+#    cableio.cpp
+#    cv_policy_parse.cpp
     label_parse.cpp
 )
 if(ARB_WITH_NEUROML)

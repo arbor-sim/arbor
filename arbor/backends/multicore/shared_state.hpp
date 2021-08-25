@@ -122,11 +122,11 @@ struct shared_state {
     fvm_size_type n_intdom = 0; // Number of integration domains.
     fvm_size_type n_detector = 0; // Max number of detectors on all cells.
     fvm_size_type n_cv = 0;   // Total number of CVs.
-    fvm_size_type n_gj = 0;   // Total number of GJs.
+//    fvm_size_type n_gj = 0;   // Total number of GJs.
 
     iarray cv_to_intdom;      // Maps CV index to integration domain index.
     iarray cv_to_cell;        // Maps CV index to the first spike
-    gjarray gap_junctions;    // Stores gap_junction info.
+//    gjarray gap_junctions;    // Stores gap_junction info.
     array time;               // Maps intdom index to integration start time [ms].
     array time_to;            // Maps intdom index to integration stop time [ms].
     array dt_intdom;          // Maps  index to (stop time) - (start time) [ms].
@@ -157,7 +157,7 @@ struct shared_state {
         fvm_size_type n_detector,
         const std::vector<fvm_index_type>& cv_to_intdom_vec,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
-        const std::vector<fvm_gap_junction>& gj_vec,
+//        const std::vector<fvm_gap_junction>& gj_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,
         const std::vector<fvm_value_type>& temperature_K,
         const std::vector<fvm_value_type>& diam,
@@ -191,7 +191,7 @@ struct shared_state {
     void set_dt();
 
     // Update gap_junction state
-    void add_gj_current();
+//    void add_gj_current();
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();

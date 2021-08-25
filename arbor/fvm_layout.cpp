@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <optional>
 #include <set>
 #include <stdexcept>
@@ -777,11 +778,11 @@ struct resolved_gj_connection {
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
     const cable_cell& cell, cell_gid_type gid,
     const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
-    const std::vector<resolved_gj_connection>& gj_conns,
+    std::vector<resolved_gj_connection> gj_conns,
     const fvm_cv_discretization& D, fvm_size_type cell_idx);
 
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells, const std::vector<cell_gid_type> gids,
+    const std::vector<cable_cell>& cells, const std::vector<cell_gid_type>& gids,
     const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
     const cell_label_range& gj_data, const recipe& rec,
     const fvm_cv_discretization& D, const execution_context& ctx)
@@ -797,6 +798,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             gj_conns[gid].push_back({local, peer, conn.ggap});
         }
     }
+
+    for (const auto& [gid, v]: gj_conns) {
+        for (const auto& i: v) {
+            std::cout << "" << gid << ":" << i.local << " -> " << i.peer << " - " << i.weight << std::endl;
+        }
+    }
+    std::cout << std::endl;
 
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
@@ -816,7 +824,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     cell_gid_type gid,
     const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
-    const std::vector<resolved_gj_connection>& gj_conns,
+    std::vector<resolved_gj_connection> gj_conns,
     const fvm_cv_discretization& D,
     fvm_size_type cell_idx)
 {
@@ -1155,7 +1163,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             junction_desc per_lid;
             per_lid.name = name;
             for (std::size_t i = 0; i<n_param; ++i) {
-                per_lid.param_values[i] = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
+                per_lid.param_values.push_back(value_by_key(set_params, param_names[i]).value_or(param_dflt[i]));
             }
             lid_junction_desc.insert({pm.lid, std::move(per_lid)});
         }
@@ -1163,21 +1171,52 @@ fvm_mechanism_data fvm_build_mechanism_data(
     }
 
     // Sort gj_conns by local cv
-    util::sort(gj_conns, [lid_to_cv](const auto& lhs, const auto& rhs) {lid_to_cv[lhs.local] < lid_to_cv[rhs.local];});
+    util::sort(gj_conns, [lid_to_cv, gid](const auto& lhs, const auto& rhs) {return lid_to_cv.at({gid, lhs.local}) < lid_to_cv.at({gid, rhs.local});});
 
     // Then iterate over the gj_connections on the cell, and create the fvm_mechanism_config
     for (const auto& conn: gj_conns) {
         auto local_junction_desc = lid_junction_desc[conn.local];
         auto& config = M.mechanisms[local_junction_desc.name];
 
-        config.cv.push_back(lid_to_cv.at({gid, conn.local}));
+        auto cv_local = lid_to_cv.at({gid, conn.local});
+        config.cv.push_back(cv_local);
         config.peer_cv.push_back(lid_to_cv.at(conn.peer));
-        config.local_weight.push_back(conn.weight);
+        config.local_weight.push_back(conn.weight* 1e3 / D.cv_area[cv_local]);
         for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
     }
+    {
+        auto& config = M.mechanisms["expsyn"];
+        std::cout << "cell " << gid << std::endl;
+        std::cout << "local cv: {";
+        for (const auto& cv: config.cv) {
+            std::cout << cv << " ";
+        }
+        std::cout << "}" << std::endl;
 
+        std::cout << "peer cv:  {";
+        for (const auto& cv: config.peer_cv) {
+            std::cout << cv << " ";
+        }
+        std::cout << "}" << std::endl;
+
+        std::cout << "weight:   {";
+        for (const auto& lw: config.local_weight) {
+            std::cout << lw << " ";
+        }
+        std::cout << "}" << std::endl;
+
+        std::cout << "params:   {" << std::endl;
+        for (const auto& pv: config.param_values) {
+            std::cout << "\t" << pv.first << " {";
+            for (const auto& v: pv.second) {
+                std::cout << v << " ";
+            }
+            std::cout << "}" << std::endl;
+        }
+        std::cout << "}" << std::endl;
+    }
     // Stimuli:
 
     if (!cell.stimuli().empty()) {
