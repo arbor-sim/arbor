@@ -18,7 +18,7 @@ the workflow is as follows:
 
    -  You can use labels to categorize your PR. For very large PRs, it
       is likely the reviewer will have many questions and comments. It
-      can be helpful to reach out on our Slack, Discussions or by email
+      can be helpful to reach out on Gitter, Github Discussions or by email
       beforehand if you’ve big things planned for Arbor!
    -  Commit logical units with clear commit messages.
    -  Add a change summary to the PR message. If you remembered to commit
