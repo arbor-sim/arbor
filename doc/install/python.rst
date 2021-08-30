@@ -25,7 +25,7 @@ The easiest way to get Arbor is with
     You will need to have some development packages installed in order to build Arbor this way.
 
     * Ubuntu/Debian: `git cmake gcc python3-dev python3-pip libxml2-dev`
-    * Fedora/CentOS/OpenSuse: `git cmake gcc python3-devel python3-pip libxml2-devel`
+    * Fedora/CentOS/OpenSuse: `git cmake gcc-c++ python3-devel python3-pip libxml2-devel`
     * MacOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3 libxml2`
     * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
 
