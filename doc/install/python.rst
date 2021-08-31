@@ -80,7 +80,7 @@ The following optional flags can be used to configure the installation:
 * ``--mpi``: Enable MPI support (requires MPI library).
 * ``--gpu``: Enable GPU support for NVIDIA GPUs with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require cudaruntime).
   Enable GPU support for AMD GPUs with hipcc using ``hip``. By default set to ``none``, which disables gpu support.
-* ``--vec``: Enable vectorization. This requires choosing an appropriate architecture using ``--arch``.
+* ``--vec``: Enable vectorization. The ``--arch`` argument, documented below, may also have to be set appropriately to generated vectorized code.
   See :ref:`install-architecture` for details.
 * ``--arch``: CPU micro-architecture to target. The advised default is ``native``.
   See `here <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of options.
