@@ -9,6 +9,9 @@ echo "=== loading environment"
 source /users/bcumming/a64fx/env.sh
 spack load git gcc@11.1.0 cmake ninja
 
+cd "$base_path"
+git submodule init
+git submodule update
 build_path="$base_path/build"
 echo "=== building: $build_path"
 mkdir "$build_path"
