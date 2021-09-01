@@ -444,7 +444,6 @@ system with the executable in ``/usr/bin/python3.8``:
 
     cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
 
-
 By default the Python package will be installed in the appropriate sub-directory
 inside ``CMAKE_INSTALL_PREFIX``, determined by querying Python's sysconfig library.
 For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.9/site-packages/``.
@@ -456,11 +455,21 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
 
     cmake .. -DARB_WITH_PYTHON=on -DARB_PYTHON_PATH_LIB=/custom/path
 
-If CMake is run in a `venv` or Conda environment, set ``CMAKE_INSTALL_PREFIX`` to the
-base path of the venv. The example below shows a workflow that creates a virtual
-environment, then installs Arbor inside the environment.
+.. note::
+    The location of libraries under a prefix in only guaranteed to be standard for Python's global library location.
+    Therefore, correct installation of the Python package to any other location using ``CMAKE_INSTALL_PREFIX``,
+    such as user directory (e.g. `~/.local`), a Python or Conda virtual environment, may result in installation to a wrong path.
+    
+    ``python3 -m site --user-site`` (for user installations) or a path from ``python3 -c 'import site; print(site.getsitepackages())'``
+    (for virtual environment installation) can be used in combination with ``ARB_PYTHON_LIB_PATH``.
+
+    In addition, installation via ``pip`` or ``python setup.py`` is guaranteed to find the right path. Please refer to the
+    :ref:`Python installation instruction <in_python_custom>`.
+
 
 .. code-block:: bash
+
+    # A demonstration using ARB_PYTHON_LIB_PATH
 
     # Set up your venv.
     mkdir myenv
@@ -469,26 +478,21 @@ environment, then installs Arbor inside the environment.
     source env/bin/activate
 
     # Install dependencies
-    pip install numpy
+    pip3 install numpy
 
     # Obtain arbor
     git clone --recursive git@github.com:arbor-sim/arbor.git
 
-    # Determine the prefix path for your installation
-    # method 1: set it explicitly
-    export pyprefix=$(pwd)/env
-    # method 2: query python directly by instpecting the output of sysconfig.
-    # Note that the ending of the form lib/python3.x/site-packages must be dropped.
-    # E.g if the output was /home/xxx/myenv/env/lib/python3.9/site-packages, we
-    # want to set pyprefix=/home/xxx/myenv/env/
-    python -c "import sysconfig; print(sysconfig.get_path('platlib'))"
+    # Manually set the prefix under which the python package will be installed.
+    # In this case, the first directory found by querying Python's list of site-package directories.
+    pyprefix=`python3 -c 'import site; print(site.getsitepackages()[0])'`
 
-    # Configure Arbor
+    # Setup CMake
     mkdir build
     cd build
     cmake ../arbor -DARB_WITH_PYTHON=on       \       # enable python support.
                    -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
-                   -DCMAKE_INSTALL_PREFIX="$pyprefix" # set custom installation path.
+                   -DARB_PYTHON_LIB_PATH="$pyprefix"  # set Python installation path.
 
     # Build and install
     make -j4
@@ -496,6 +500,7 @@ environment, then installs Arbor inside the environment.
 
     # Test it out!
     python -c "import arbor; print(arbor.__config__)"
+
 
 The Arbor Python wrapper has optional support for mpi4py, though
 it is not required to use Arbor with Python and MPI.
