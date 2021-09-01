@@ -152,6 +152,6 @@ You can reach out in the following ways:
 -  `Discussions <https://github.com/arbor-sim/arbor/discussions>`__. Any
    questions or remarks regarding using Arbor for your research are
    welcome.
--  `Slack <https://mcnest.slack.com>`__. If you’re interested in
-   developing Arbor itself, you can visit our Slack.
+-  `Gitter <https://gitter.im/arbor-sim/community>`__. If you’re interested in
+   developing Arbor itself, get in touch on Gitter.
 -  `Email <mailto:contact@arbor-sim.org>`__.
