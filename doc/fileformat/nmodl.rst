@@ -48,7 +48,7 @@ Ions
   they need to be passed as arguments.
 * If ``Xi`` or ``Xo`` (internal and external concentrations) are written in the
   NMODL mechanism they need to be declared as ``STATE`` variables and their initial
-  values have to be set in the mechanism.
+  values have to be set in the ``INITIAL`` block in the mechanism.
 
 Special variables
 -----------------
@@ -109,3 +109,35 @@ Arbor-specific features
     POST_EVENT(t) {
        g = g + (0.1*t)
     }
+
+Nernst
+------
+Many mechanisms make use of the reversal potential of an ion (``eX`` of ion ``X``). 
+A popular equation for determining(changing) the reversal potential during the 
+simulation is the `Nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
+Both Arbor and NEURON make use of ``nernst``. Arbor implements it as a mechanism and 
+NEURON implements it as a built-in method. However, the conditions for using the 
+``nernst`` equation to change the reversal potentials of an ion differ between the 
+two simulators.
+ 
+1. In Arbor, the reversal potential of an ion remains equal to its initial value (which 
+has to be set by the user) over the entire course of the simulation, unless another 
+mechanism which alters that reversal potential is explictly added to the model 
+(see :ref:`cppcablecell-revpot` for details).
+
+2. In NEURON, there is a rule which is evaluated under the hood to determine whether or 
+not the reversal potential of an ion remains constant or is calculated using ``nernst``.
+The rule is documented `here <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_
+and can be summarized as follows: 
+
+  If the internal or external concentration of an ion is **written**, and its reversal 
+  potential is **read but not written**, then the nernst equation is used **continuously** 
+  during the simulation to update the reversal potential of the ion. 
+  And if the internal or external concentration of an ion is **read**, and its reversal
+  potential is **read but not written**, then the nernst equation is used **once** at the 
+  beginning of the simulation to caluclate the reversal potential of the ion, and then 
+  remains constant. 
+  Otherwise, the reversal potential is set by the user and remains constant.
+
+Modelers are encouraged to verify the expected behavior of the reversal potentials of ions 
+as it can lead to vastly different model behavior.
