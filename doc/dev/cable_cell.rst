@@ -1,4 +1,4 @@
-.. _tour_cable_cell:
+.. _cable_cell:
 
 How the Cable Cell is Made
 ==========================
@@ -98,12 +98,12 @@ Now we are in a state to simulate a cell group by calling
 ``simulation::run(t_end, dt)``.
 
 The integration in Arbor proceeds in *epochs* with a length less than half a
-time constant `T_min`, which is the maximum time over which cell groups can
-evolve independently. The epoch length is derived as the minimum over all
-axonal/synaptic delays. This works since we know that an event at time `t` can
-have an effect at time `t + T_min` at the soonest. The factor of one half stems
-from double-buffering to overlap communication and computation. So, Arbor
-collects all events in an epoch and transmits them in bulk, see
+time constant :math:`T_{min}`, which is the maximum time over which cell groups
+can evolve independently. The epoch length is derived as the minimum over all
+axonal/synaptic delays. This works since we know that an event at time :math:`t`
+can have an effect at time :math:`t + T_{min}` at the soonest. The factor of one
+half stems from double-buffering to overlap communication and computation. So,
+Arbor collects all events in an epoch and transmits them in bulk, see
 :ref:`Communication <mpi_comm>` for details.
 
 Integration in Arbor is then split into three parts:
