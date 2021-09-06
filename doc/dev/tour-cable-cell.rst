@@ -5,7 +5,7 @@ How the Cable Cell is Made
 
 This is a short tour through the inner workings of a cable cell intended for new
 Arbor developers. Cable cells are not the sole cell type supported in Arbor, but
-both the most common and complex kind.
+both the most common and most complex kind.
 
 This is the introduction from which more detailled descripions will branch out.
 As such, we will start with a simple cable cell simulation and how the user input
@@ -63,8 +63,8 @@ As you can see, data is produced on request by feeding the recipe a
 ``cell_gid_type``. Finally, we need to have a ``morphology`` and a ``decor`` to
 generate a ``cable_cell``. Please refer to the documentation on how to construct
 these objects. For now, it is sufficient to note that a ``cable_cell`` is a
-description of a cell, consist of a cell geometry and a mapping of
-sub-geometries to properties, not an object that can be simulated. At this point
+description of a cell, consisting of a cell geometry and a mapping of
+sub-geometries to properties, rather an object that can be simulated. At this point
 ion channels are described by a structure ``(name, [(parameter, value)])``.
 
 Lowered Cells, Shared State, and the Discretisation
@@ -97,12 +97,14 @@ Main Integration Loop
 Now we are in a state to simulate a cell group by calling
 ``simulation::run(t_end, dt)``.
 
-The integration in Arbor proceeds in intervals of a time constant `T_min`,
-which is the maximum time over which cell groups can evolve independently.
-It is derived as the minimum over all axonal/synaptic delays. This works since
-we know that an event at time `t` can have an effect at time `t + T_min` at the
-soonest. So, Arbor collects all events in `[t, t + T_min]` and transmits them in
-bulk, see :ref:`Communication <mpi_comm>` for details.
+The integration in Arbor proceeds in *epochs* with a length less than half a
+time constant `T_min`, which is the maximum time over which cell groups can
+evolve independently. The epoch length is derived as the minimum over all
+axonal/synaptic delays. This works since we know that an event at time `t` can
+have an effect at time `t + T_min` at the soonest. The factor of one half stems
+from double-buffering to overlap communication and computation. So, Arbor
+collects all events in an epoch and transmits them in bulk, see
+:ref:`Communication <mpi_comm>` for details.
 
 Integration in Arbor is then split into three parts:
 
