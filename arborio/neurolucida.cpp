@@ -287,7 +287,9 @@ parse_hopefully<arb::mpoint> parse_point(asc::lexer& L) {
     PARSE_DOUBLE(L, p.x);
     PARSE_DOUBLE(L, p.y);
     PARSE_DOUBLE(L, p.z);
-    PARSE_DOUBLE(L, p.radius);
+    double diameter;
+    PARSE_DOUBLE(L, diameter);
+    p.radius = diameter/2.0;
 
     // check and consume closing paren
     EXPECT_TOKEN(L, tok::rparen);

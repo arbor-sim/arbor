@@ -61,13 +61,13 @@ TEST(asc, only_cell_body) {
 
         auto& segs1 = m.morphology.branch_segments(0);
         EXPECT_EQ(segs1.size(), 1u);
-        EXPECT_EQ(segs1[0].prox, (arb::mpoint{0., 0., 1., 2.}));
-        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0.,-2., 1., 2.}));
+        EXPECT_EQ(segs1[0].prox, (arb::mpoint{0., 0., 1., 1.}));
+        EXPECT_EQ(segs1[0].dist, (arb::mpoint{0.,-1., 1., 1.}));
 
         auto& segs2 = m.morphology.branch_segments(1);
         EXPECT_EQ(segs2.size(), 1u);
-        EXPECT_EQ(segs2[0].prox, (arb::mpoint{0., 0., 1., 2.}));
-        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 2., 1., 2.}));
+        EXPECT_EQ(segs2[0].prox, (arb::mpoint{0., 0., 1., 1.}));
+        EXPECT_EQ(segs2[0].dist, (arb::mpoint{0., 1., 1., 1.}));
     }
 
 
@@ -138,35 +138,35 @@ TEST(asc, sub_tree_meta) {
 // Soma composed of 2 branches, and stick and fork dendrite composed of 3 branches.
 const char *asc_ball_and_y_dendrite =
 "((CellBody)\
- (0 0 0 2)\
+ (0 0 0 4)\
 )\
 ((Dendrite)\
- (0 2 0 1)\
- (0 5 0 1)\
+ (0 2 0 2)\
+ (0 5 0 2)\
  (\
-  (-5 5 0 1)\
+  (-5 5 0 2)\
   |\
-  (6 5 0 1)\
+  (6 5 0 2)\
  )\
  )";
 
 // Soma composed of 2 branches, and a dendrite with a bit more interesting branching.
 const char *asc_ball_and_fancy_dendrite=
 "((CellBody)\
- (0 0 0 2)\
+ (0 0 0 4)\
 )\
 ((Dendrite)\
- (0 2 0 1)\
- (0 5 0 1)\
+ (0 2 0 2)\
+ (0 5 0 2)\
  (\
-  (-5 5 0 1)\
+  (-5 5 0 2)\
   (\
-   (-5 5 0 1)\
+   (-5 5 0 2)\
    |\
-   (6 5 0 1)\
+   (6 5 0 2)\
   )\
   |\
-  (6 5 0 1)\
+  (6 5 0 2)\
  )\
  )";
 
@@ -174,24 +174,24 @@ const char *asc_ball_and_fancy_dendrite=
 // composed of 3 branches each.
 const char* asc_ball_and_y_dendrite_and_y_axon =
 "((CellBody)\
- (0 0 0 2)\
+ (0 0 0 4)\
 )\
 ((Dendrite)\
- (0 2 0 1)\
- (0 5 0 1)\
+ (0 2 0 2)\
+ (0 5 0 2)\
  (\
-  (-5 5 0 1)\
+  (-5 5 0 2)\
   |\
-  (6 5 0 1)\
+  (6 5 0 2)\
  )\
 )\
 ((Axon)\
- (0 -2 0 1)\
- (0 -5 0 1)\
+ (0 -2 0 2)\
+ (0 -5 0 2)\
  (\
-  (-5 -5 0 1)\
+  (-5 -5 0 2)\
   |\
-  (6 -5 0 1)\
+  (6 -5 0 2)\
  )\
 )";
 
