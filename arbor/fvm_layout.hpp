@@ -291,6 +291,23 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
+struct resolved_gj_connection {
+    cell_lid_type local;
+    cell_member_type peer;
+    arb_value_type weight;
+};
+using resolved_gj_connection_map = std::unordered_map<cell_gid_type, std::vector<resolved_gj_connection>>;
+resolved_gj_connection_map fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const recipe& rec);
+
+using fvm_gap_junction_cvs = std::unordered_map<cell_member_type, fvm_index_type>;
+fvm_gap_junction_cvs fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D);
+
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
@@ -315,9 +332,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
-    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
-    const cell_label_range& gj_data,
-    const recipe& rec,
+    const fvm_gap_junction_cvs& gj_cvs,
+    resolved_gj_connection_map& gj_conns,
     const fvm_cv_discretization& D,
     const arb::execution_context& ctx={});
 

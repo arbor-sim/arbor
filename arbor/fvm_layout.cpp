@@ -769,23 +769,27 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
     return left;
 }
-struct resolved_gj_connection {
-    cell_lid_type local;
-    cell_member_type peer;
-    arb_value_type weight;
-};
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, cell_gid_type gid,
-    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
-    std::vector<resolved_gj_connection> gj_conns,
-    const fvm_cv_discretization& D, fvm_size_type cell_idx);
+fvm_gap_junction_cvs fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D) {
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells, const std::vector<cell_gid_type>& gids,
-    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
-    const cell_label_range& gj_data, const recipe& rec,
-    const fvm_cv_discretization& D, const execution_context& ctx)
+    std::unordered_map<cell_member_type, fvm_index_type> gj_cvs;
+    for (auto cell_idx: util::make_span(0, cells.size())) {
+        for (const auto& mech : cells[cell_idx].junctions()) {
+            for (const auto& gj: mech.second) {
+                gj_cvs.insert({cell_member_type{gids[cell_idx], gj.lid}, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)});
+            }
+        }
+    }
+    return gj_cvs;
+}
+
+resolved_gj_connection_map fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const recipe& rec)
 {
     // Construct and resolve all gj_connections, this is not thread safe
     std::unordered_map<cell_gid_type, std::vector<resolved_gj_connection>> gj_conns;
@@ -805,10 +809,31 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
     }
     std::cout << std::endl;
+    return gj_conns;
+}
 
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const cable_cell& cell, cell_gid_type gid,
+    const fvm_gap_junction_cvs& gj_cvs,
+    std::vector<resolved_gj_connection>& gj_conns,
+    const fvm_cv_discretization& D,
+    fvm_size_type cell_idx);
+
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_gap_junction_cvs& gj_cvs,
+    resolved_gj_connection_map& gj_conns,
+    const fvm_cv_discretization& D,
+    const execution_context& ctx)
+{
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { auto gid = gids[i]; cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], gid, lid_to_cv, gj_conns[gid], D, i);});
+    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
+        auto gid = gids[i];
+        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gid, gj_cvs, gj_conns.at(gid), D, i);
+    });
 
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {
@@ -821,10 +846,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
-    const cable_cell& cell,
-    cell_gid_type gid,
-    const std::unordered_map<cell_member_type, fvm_index_type>& lid_to_cv,
-    std::vector<resolved_gj_connection> gj_conns,
+    const cable_cell& cell, cell_gid_type gid,
+    const fvm_gap_junction_cvs& gj_cvs,
+    std::vector<resolved_gj_connection>& gj_conns,
     const fvm_cv_discretization& D,
     fvm_size_type cell_idx)
 {
@@ -1170,17 +1194,18 @@ fvm_mechanism_data fvm_build_mechanism_data(
         M.mechanisms[name] = std::move(config);
     }
 
-    // Sort gj_conns by local cv
-    util::sort(gj_conns, [lid_to_cv, gid](const auto& lhs, const auto& rhs) {return lid_to_cv.at({gid, lhs.local}) < lid_to_cv.at({gid, rhs.local});});
+    // Sort gj_conns by local cv because to ensure that local CVs are monotonically increasing
+    util::sort(gj_conns, [gj_cvs, gid](const auto& lhs, const auto& rhs) {
+        return gj_cvs.at({gid, lhs.local}) < gj_cvs.at({gid, rhs.local});});
 
     // Then iterate over the gj_connections on the cell, and create the fvm_mechanism_config
     for (const auto& conn: gj_conns) {
         auto local_junction_desc = lid_junction_desc[conn.local];
         auto& config = M.mechanisms[local_junction_desc.name];
 
-        auto cv_local = lid_to_cv.at({gid, conn.local});
+        auto cv_local = gj_cvs.at({gid, conn.local});
         config.cv.push_back(cv_local);
-        config.peer_cv.push_back(lid_to_cv.at(conn.peer));
+        config.peer_cv.push_back(gj_cvs.at(conn.peer));
         config.local_weight.push_back(conn.weight* 1e3 / D.cv_area[cv_local]);
         for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);

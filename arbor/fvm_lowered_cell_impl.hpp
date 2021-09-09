@@ -61,11 +61,6 @@ public:
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
 
-    std::unordered_map<cell_member_type, fvm_index_type> fvm_build_gap_junction_data(
-        const std::vector<cable_cell>& cells,
-        const std::vector<cell_gid_type>& gids,
-        const fvm_cv_discretization& D);
-
     // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
     // Fills cell_to_intdom map; returns number of intdoms
     fvm_size_type fvm_intdom(
@@ -471,15 +466,17 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Discretize and build gap junction info.
 
-    auto lid_to_cv = fvm_build_gap_junction_data(cells, gids, D);
-    for (const auto& [lid, cv]: lid_to_cv) {
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, rec);
+
+    for (const auto& [lid, cv]: gj_cvs) {
         std::cout << lid << " -> " << cv << std::endl;
     }
     std::cout << std::endl;
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, lid_to_cv, fvm_info.gap_junction_data, rec, D, context_);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_cvs, gj_conns, D, context_);
 
     std::cout << "done" << std::endl << std::endl;
 
@@ -640,24 +637,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     reset();
 
     return fvm_info;
-}
-
-// Get vector of gap_junctions
-template <typename Backend>
-std::unordered_map<cell_member_type, fvm_index_type> fvm_lowered_cell_impl<Backend>::fvm_build_gap_junction_data(
-        const std::vector<cable_cell>& cells,
-        const std::vector<cell_gid_type>& gids,
-        const fvm_cv_discretization& D) {
-
-    std::unordered_map<cell_member_type, fvm_index_type> cv_map;
-        for (auto cell_idx: util::make_span(0, cells.size())) {
-            for (const auto& mech : cells[cell_idx].junctions()) {
-                for (const auto& gj: mech.second) {
-                    cv_map.insert({cell_member_type{gids[cell_idx], gj.lid}, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)});
-                }
-            }
-        }
-    return cv_map;
 }
 
 template <typename Backend>
