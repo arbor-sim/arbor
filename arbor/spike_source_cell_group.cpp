@@ -74,9 +74,7 @@ void spike_source_cell_group::clear_spikes() {
     spikes_.clear();
 }
 
-void spike_source_cell_group::add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) {
-    throw std::logic_error("A spike_source_cell group doen't support sampling of internal state!");
-}
+void spike_source_cell_group::add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) {}
 
 } // namespace arb
 
