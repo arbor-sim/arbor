@@ -943,7 +943,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
 
         update_ion_support(info, config.cv);
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
 
     // Synapses:
