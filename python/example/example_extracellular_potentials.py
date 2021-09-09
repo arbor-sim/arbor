@@ -20,6 +20,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.collections import PolyCollection
 import pandas as pd
 
+
 class Recipe (arbor.recipe):
     def __init__(self, cell):
         super().__init__()
@@ -56,6 +57,7 @@ class Recipe (arbor.recipe):
             arbor.cable_probe_stimulus_current_cell()
         ]
 
+
 # define morphology (needed for arbor.place_pwlin)
 morphology = arbor.load_swc_arbor('single_cell_detailed.swc')
 
@@ -78,7 +80,8 @@ decor.set_property(
 )
 
 # set passive mechanism all over
-pas = arbor.mechanism('pas/e=-65')  # passive mech w. leak reversal potential (mV)
+# passive mech w. leak reversal potential (mV)
+pas = arbor.mechanism('pas/e=-65')
 pas.set('g', 0.0001)  # leak conductivity (S/cm2)
 decor.paint('(all)', pas)
 
@@ -129,15 +132,15 @@ I_c_samples, I_c_meta = sim.samples(c_handle)[0]
 
 # drop recorded V_m values and corresponding meta data of
 # zero-sized CVs (branch-point potentials)
-inds = np.array([m.dist!=m.prox for m in V_m_meta])
+inds = np.array([m.dist != m.prox for m in V_m_meta])
 V_m_samples = V_m_samples[:, np.r_[True, inds]]
 V_m_meta = np.array(V_m_meta)[inds].tolist()
 
 
 # note: the cables comprising the metadata for each probe
 # should be the same, as well as the reported sample times.
-assert V_m_meta==I_m_meta
-assert (V_m_samples[:, 0]==I_m_samples[:, 0]).all()
+assert V_m_meta == I_m_meta
+assert (V_m_samples[:, 0] == I_m_samples[:, 0]).all()
 
 # prep recorded data for plotting
 time = V_m_samples[:, 0]
@@ -172,13 +175,14 @@ cell_geometry = lfpykit.CellGeometry(
 
 # membrane voltages, transmemrbane current and corresponding times
 cell_geometry.V_m = V_m  # mV
-cell_geometry.I_m = I_m + I_c  # nA, sum stimulation and transmembrane current to mimic sinusoid synapse
+# nA, sum stimulation and transmembrane current to mimic sinusoid synapse
+cell_geometry.I_m = I_m + I_c
 cell_geometry.time = time  # ms
 
 # locations where extracellular potential is predicted
 dx = 1
 dz = 1
-axis = np.round([x.min()-10, x.max()+10, y.min()-10, y.max()+10])
+axis = np.round([x.min() - 10, x.max() + 10, y.min() - 10, y.max() + 10])
 # axis = np.round(axis)
 X, Y = np.meshgrid(np.linspace(axis[0], axis[1], int(np.diff(axis[:2]) // dx) + 1),
                    np.linspace(axis[2], axis[3], int(np.diff(axis[2:]) // dz) + 1))
@@ -195,7 +199,8 @@ M_tmp = lsp.get_transformation_matrix()
 M = np.zeros((lsp.x.size, I_m.shape[0]))
 for i in range(I_m.shape[0]):
     inds = CV_ind == i
-    M[:, i] = M_tmp[:, inds] @ (cell_geometry.area[inds] / cell_geometry.area[inds].sum())
+    M[:, i] = M_tmp[:, inds] @ (cell_geometry.area[inds] /
+                                cell_geometry.area[inds].sum())
 
 # Extracellular potential using segment information at last time step
 # in x,y-plane coordinates
@@ -259,6 +264,7 @@ def create_polygon(x, y, d):
 
     return list(zip(x, y))
 
+
 def colorbar(fig, ax, im,
              width=0.01,
              height=1.0,
@@ -284,9 +290,9 @@ fig, ax = plt.subplots(1, 1, figsize=(12, 4))
 
 # plot pcolormesh plot of V_e
 im_V_e = ax.pcolormesh(X, Y, V_e.reshape(X.shape),
-                        shading='auto', cmap='RdBu',
-                        vmin=-abs(V_e).max() / 2, vmax=abs(V_e).max() / 2,
-                        zorder=0)
+                       shading='auto', cmap='RdBu',
+                       vmin=-abs(V_e).max() / 2, vmax=abs(V_e).max() / 2,
+                       zorder=0)
 cb = colorbar(fig, ax, im_V_e, height=0.45, voffset=0.55)
 cb.set_label('$V_e$ (mV)')
 
@@ -296,7 +302,8 @@ colors = [plt.cm.viridis(norm(v)) for v in cell_geometry.V_m[:, -1]]
 zips = []
 for i in range(I_m.shape[0]):
     inds = CV_ind == i
-    zips.append(create_polygon(x[inds, ].flatten(), y[inds, ].flatten(), d[inds, ].flatten()))
+    zips.append(create_polygon(x[inds, ].flatten(),
+                y[inds, ].flatten(), d[inds, ].flatten()))
 polycol = PolyCollection(zips,
                          edgecolors='k',
                          facecolors=colors,
@@ -324,4 +331,5 @@ fig.savefig('example_extracellular_potentials.svg', bbox_inches='tight')
 # the diameter and direction varies with position due to the fact
 # that each CV may  be composed of multiple segments.
 #
-# The parameter `nseg = 3` above can be changed above to affect the number of CVs per branch.
+# The parameter `nseg = 3` above can be changed above to affect the number
+# of CVs per branch.
