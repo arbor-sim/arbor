@@ -12,6 +12,7 @@
 # Its morphology is defined in the file `single_cell_detailed.swc`
 
 # import modules
+import sys
 import numpy as np
 import arbor
 import lfpykit
@@ -58,8 +59,16 @@ class Recipe (arbor.recipe):
         ]
 
 
+# Read the SWC filename from input
+# Example from docs: single_cell_detailed.swc
+if len(sys.argv) < 2:
+    print("No SWC file passed to the program")
+    sys.exit(0)
+
+filename = sys.argv[1]
+
 # define morphology (needed for arbor.place_pwlin)
-morphology = arbor.load_swc_arbor('single_cell_detailed.swc')
+morphology = arbor.load_swc_arbor(filename)
 
 # number of CVs per branch
 nseg = 3

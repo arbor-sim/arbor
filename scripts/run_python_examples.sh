@@ -20,5 +20,5 @@ $PREFIX python python/example/brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -
 $PREFIX python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
-$PREFIX python python/example/single_cell_extracellular_potentials.py
+$PREFIX python python/example/single_cell_extracellular_potentials.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_cable.py
