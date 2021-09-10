@@ -6,6 +6,8 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
+#include "io/trace.hpp"
+
 #include "util/piecewise.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -14,118 +16,72 @@
 
 namespace arb {
 
+// Each integrable or interpolated quantity is represented by
+// a sequence of spans covering each branch, where a span is itself
+// a piecewise polynomial or rational function.
+//
+// The piecewise functions are represented by util::pw_elements<util::rat_element<p, q>>
+// objects. util::rat_element describes an order (p, q) rational function in terms of
+// the values of that function at p+q+1 equally spaced points along the elemnt, including
+// the two endpoints.
+
 using util::rat_element;
+using util::pw_elements;
+
+// Represents piecewise rational function over a subset of a branch.
+// When the function represents an integral, the integral between two points
+// in the domain of a pw_ratpoly can be computed by taking the difference
+// in the interpolated value at the two points.
 
 template <unsigned p, unsigned q>
 using pw_ratpoly = util::pw_elements<rat_element<p, q>>;
 
-template <unsigned p, unsigned q>
-using branch_pw_ratpoly = std::vector<pw_ratpoly<p, q>>;
-
-// Special case handling required for degenerate branches of length zero:
-template <typename Elem>
-static bool is_degenerate(const util::pw_elements<Elem>& pw) {
-    return  pw.bounds().second==0;
-}
+// One branch can be convered by more than one pw_ratpoly. When the function
+// represents an integral, the integral between two points that do not lie
+// in the same domain of a pw_ratpoly must be summed by considering the
+// contribution of each pw_ratpoly element separately. Multiple pw_ratpoly
+// elements over the same branch are required to avoid cases of loss of precision
+// and singularities.
 
 template <unsigned p, unsigned q>
-double interpolate(const branch_pw_ratpoly<p, q>& f, unsigned bid, double pos) {
-    const auto& pw = f.at(bid);
-    if (is_degenerate(pw)) pos = 0;
-
-    auto [bounds, element] = pw(pos);
-
-    if (bounds.first==bounds.second) return element[0];
-    else {
-        double x = (pos-bounds.first)/(bounds.second-bounds.first);
-        return element(x);
-    }
-}
-
-// Length, area, and ixa are polynomial or rational polynomial functions of branch position,
-// continuos and monotonically increasing with respect to distance from root.
-//
-// Integration wrt a piecewise constant function is performed by taking the difference between
-// interpolated values at the end points of each constant interval.
-
-template <unsigned p, unsigned q>
-double integrate(const branch_pw_ratpoly<p, q>& f, unsigned bid, const pw_constant_fn& g) {
-    double accum = 0;
-    for (msize_t i = 0; i<g.size(); ++i) {
-        std::pair<double, double> interval = g.interval(i);
-        accum += g.element(i)*(interpolate(f, bid, interval.second)-interpolate(f, bid, interval.first));
-    }
-    return accum;
-}
-
-// Performance note: when integrating over a cable within a branch, the code effectively
-// performs a linear search for the starting interval. This can be replaced with a binary
-// search for a small increase in code complexity.
-
-template <unsigned p, unsigned q>
-double integrate(const branch_pw_ratpoly<p, q>& f, mcable c, const pw_constant_fn& g) {
-    msize_t bid = c.branch;
-    double accum = 0;
-
-    for (msize_t i = 0; i<g.size(); ++i) {
-        std::pair<double, double> interval = g.interval(i);
-
-        if (interval.second<c.prox_pos) {
-            continue;
-        }
-        else if (interval.first>=c.dist_pos) {
-            break;
-        }
-        else {
-            interval.first = std::max(interval.first, c.prox_pos);
-            interval.second = std::min(interval.second, c.dist_pos);
-
-            if (interval.first<interval.second) {
-                accum += g.element(i)*(interpolate(f, bid, interval.second)-interpolate(f, bid, interval.first));
-            }
-        }
-    }
-    return accum;
-}
-
-template <typename operation>
-mcable_list data_cmp(const branch_pw_ratpoly<1, 0>& f, unsigned bid, double val, operation op) {
-    mcable_list L;
-    const auto& pw = f.at(bid);
-    for (const auto& piece: pw) {
-        auto extents = piece.interval;
-        auto left_val = piece.element(0);
-        auto right_val = piece.element(1);
-
-        if (!op(left_val, val) && !op(right_val, val)) {
-            continue;
-        }
-        if (op(left_val, val) && op(right_val, val)) {
-            L.push_back({bid, extents.first, extents.second});
-            continue;
-        }
-
-        auto cable_loc = (val - left_val)/(right_val - left_val);
-        auto edge = math::lerp(extents.first, extents.second, cable_loc);
-
-        if (op(left_val, val)) {
-            L.push_back({bid, extents.first, edge});
-            continue;
-        }
-        if (!op(left_val, val)) {
-            L.push_back({bid, edge, extents.second});
-            continue;
-        }
-    }
-    return L;
-}
+using branch_pw_spans = util::pw_elements<pw_ratpoly<p, q>>;
 
 struct embed_pwlin_data {
-    branch_pw_ratpoly<1, 0> length; // [µm]
-    branch_pw_ratpoly<1, 0> directed_projection; // [µm]
-    branch_pw_ratpoly<1, 0> radius; // [µm]
-    branch_pw_ratpoly<2, 0> area; // [µm²]
-    branch_pw_ratpoly<1, 1> ixa;  // [1/µm]
+    // Vectors below are all indexed by branch index.
+
+    // Length and directed projection are piecewise linear, continuous, and
+    // monotonically increasing. They are represented by a single piecewise
+    // linear function per branch.
+
+    std::vector<pw_ratpoly<1, 0>> length; // [µm]
+    std::vector<pw_ratpoly<1, 0>> directed_projection; // [µm]
+
+    // Radius is piecewise linear, but not necessarily continuous. Where the
+    // morphology describes different radii at the same point, the interpolated
+    // radius is regarded as being right-continuous, and corresponds to the
+    // value described by the last segment added that covers the point.
+
+    std::vector<pw_ratpoly<1, 0>> radius; // [µm]
+
+    // Morphological surface area between points on a branch is given as
+    // the difference between the interpolated value of a piecewise quadratic
+    // function over the branch. The function is monotonically increasing,
+    // but not necessarily continuous. Where the value jumps, the function
+    // is interpreted as being right-continuous.
+
+    std::vector<pw_ratpoly<2, 0>> area; // [µm²]
+
+    // Integrated inverse cross-sectional area (ixa) between points on a branch
+    // is used to compute the conductance between points on the morphology.
+    // It is represented by an order (1, 1) rational function (i.e. a linear
+    // function divided by a linear function).
+    //
+    // Because a small radius can lead to very large (or infinite, if the
+    // radius is zero) values, one branch may be covered by multiple
+    // piecewise functions, and computing ixa may require summing the
+    // contributions from more than one.
+
+    std::vector<branch_pw_spans<1, 1>> ixa;  // [1/µm]
 
     explicit embed_pwlin_data(msize_t n_branch):
         length(n_branch),
@@ -136,24 +92,88 @@ struct embed_pwlin_data {
     {}
 };
 
+// Interpolation
+
+// Value at pos on a branch interpolated from a piecewise rational function
+// which covers pos. pos is in [0, 1], and the bounds of the piecewise rational
+// function is an interval [a, b] with 0 ≤ a ≤ pos ≤ b ≤ 1.
+
+template <unsigned p, unsigned q>
+double interpolate(double pos, const pw_ratpoly<p, q>& f) {
+    auto [extent, poly] = f(pos);
+    auto [left, right] = extent;
+
+    return left==right? poly[0]: poly((pos-left)/(right-left));
+}
+
+// Integration
+
+// Integral of piecwise constant function g with respect to a measure determined
+// by a single piecewise monotonic right continuous rational function f, over
+// an interval [r, s]: ∫[r,s] g(x) df(x) (where [r, s] is the domain of g).
+
+template <unsigned p, unsigned q>
+double integrate(const pw_constant_fn& g, const pw_ratpoly<p, q>& f) {
+    double sum = 0;
+    for (auto&& [extent, gval]: g) {
+        sum += gval*(interpolate(extent.second, f)-interpolate(extent.first, f));
+    }
+    return sum;
+}
+
+// Integral of piecewise constant function g with respect to a measure determined
+// by a contiguous sequence of piecewise monotonic right continuous rational
+// functions fi with support [aⱼ, bⱼ], over an interval [r, s] with a₀ ≤ r ≤ s ≤ bₙ:
+// Σⱼ ∫[r,s]∩[aⱼ,bⱼ] g(x)dfⱼ(x) (where [r, s] is the domain of g).
+
+template <unsigned p, unsigned q>
+double integrate(const pw_constant_fn& g, const pw_elements<pw_ratpoly<p, q>>& fs) {
+    double sum = 0;
+    for (auto&& [extent, pw_pair]: pw_zip_range(g, fs)) {
+        auto [left, right] = extent;
+        if (left==right) continue;
+
+        double gval = pw_pair.first;
+        pw_ratpoly<p, q> f = pw_pair.second;
+        sum += gval*(interpolate(right, f)-interpolate(left, f));
+    }
+    return sum;
+}
+
+// Implementation of public emned_pwlin methods:
+
 double embed_pwlin::radius(mlocation loc) const {
-    return interpolate(data_->radius, loc.branch, loc.pos);
+    return interpolate(loc.pos, data_->radius.at(loc.branch));
 }
 
 double embed_pwlin::directed_projection(arb::mlocation loc) const {
-    return interpolate(data_->directed_projection, loc.branch, loc.pos);
+    return interpolate(loc.pos, data_->directed_projection.at(loc.branch));
 }
 
 // Point to point integration:
 
 double embed_pwlin::integrate_length(mlocation proximal, mlocation distal) const {
-    return interpolate(data_->length, distal.branch, distal.pos) -
-           interpolate(data_->length, proximal.branch, proximal.pos);
+    return interpolate(distal.pos, data_->length.at(distal.branch)) -
+           interpolate(proximal.pos, data_->length.at(proximal.branch));
 }
 
 double embed_pwlin::integrate_area(mlocation proximal, mlocation distal) const {
-    return interpolate(data_->area, distal.branch, distal.pos) -
-           interpolate(data_->area, proximal.branch, proximal.pos);
+    return interpolate(distal.pos, data_->area.at(distal.branch)) -
+           interpolate(proximal.pos, data_->area.at(proximal.branch));
+}
+
+// Integrate piecewise function over a branch:
+
+double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
+    return integrate(g, data_->length.at(bid));
+}
+
+double embed_pwlin::integrate_area(msize_t bid, const pw_constant_fn& g) const {
+    return integrate(g, data_->area.at(bid));
+}
+
+double embed_pwlin::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
+    return integrate(g, data_->ixa.at(bid));
 }
 
 // Integrate over cable:
@@ -170,35 +190,64 @@ double embed_pwlin::integrate_ixa(mcable c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-// Integrate piecewise function over a branch:
-
-double embed_pwlin::integrate_length(msize_t bid, const pw_constant_fn& g) const {
-    return integrate(data_->length, bid, g);
-}
-
-double embed_pwlin::integrate_area(msize_t bid, const pw_constant_fn& g) const {
-    return integrate(data_->area, bid, g);
-}
-
-double embed_pwlin::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
-    return integrate(data_->ixa, bid, g);
-}
-
 // Integrate piecewise function over a cable:
 
+static pw_constant_fn restrict(const pw_constant_fn& g, double left, double right) {
+    return pw_zip_with(g, pw_elements<void>{{left, right}});
+}
+
 double embed_pwlin::integrate_length(mcable c, const pw_constant_fn& g) const {
-    return integrate(data_->length, c, g);
+    return integrate_length(c.branch, restrict(g, c.prox_pos, c.dist_pos));
 }
 
 double embed_pwlin::integrate_area(mcable c, const pw_constant_fn& g) const {
-    return integrate(data_->area, c, g);
+    return integrate_area(c.branch, restrict(g, c.prox_pos, c.dist_pos));
 }
 
 double embed_pwlin::integrate_ixa(mcable c, const pw_constant_fn& g) const {
-    return integrate(data_->ixa, c, g);
+    return integrate_ixa(c.branch, restrict(g, c.prox_pos, c.dist_pos));
 }
 
 // Subregions defined by geometric inequalities:
+
+// Given a piecewise linear function f over a branch, a comparison operation op and a threshold v,
+// determine the subset of the branch where the op(f(x), v) is true.
+//
+// Functions are supplied for each branch via a branch-index vector of pw_ratpoly<1, 0> functions;
+// supplied branch id is the index into this vector, and is used to construct the cables
+// corresponding to the matching subset.
+
+template <typename operation>
+mcable_list data_cmp(const std::vector<pw_ratpoly<1, 0>>& f_on_branch, msize_t bid, double val, operation op) {
+    mcable_list L;
+    for (auto&& piece: f_on_branch.at(bid)) {
+        auto [left, right] = piece.extent;
+        auto left_val = piece.value(0);
+        auto right_val = piece.value(1);
+
+        if (!op(left_val, val) && !op(right_val, val)) {
+            continue;
+        }
+        if (op(left_val, val) && op(right_val, val)) {
+            L.push_back({bid, left, right});
+            continue;
+        }
+
+        auto cable_loc = (val - left_val)/(right_val - left_val);
+        auto edge = math::lerp(left, right, cable_loc);
+
+        if (op(left_val, val)) {
+            L.push_back({bid, left, edge});
+            continue;
+        }
+        if (!op(left_val, val)) {
+            L.push_back({bid, edge, right});
+            continue;
+        }
+    }
+    return L;
+}
+
 
 mcable_list embed_pwlin::radius_cmp(msize_t bid, double val, comp_op op) const {
     switch (op) {
@@ -275,11 +324,13 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             segment_cables_[seg.id] = mcable{bid, pos0, pos1};
         }
 
-        double length_0 = parent==mnpos? 0: data_->length[parent].back().element[1];
+        double length_0 = parent==mnpos? 0: data_->length[parent].back().value[1];
         data_->length[bid].push_back(0., 1, rat_element<1, 0>(length_0, length_0+branch_length));
 
-        double area_0 = parent==mnpos? 0: data_->area[parent].back().element[2];
-        double ixa_0 = parent==mnpos? 0: data_->ixa[parent].back().element[2];
+        double area_0 = parent==mnpos? 0: data_->area[parent].back().value[2];
+
+        double ixa_last = 0;
+        pw_ratpoly<1, 1> ixa_pw;
 
         for (auto i: util::count_along(segments)) {
             auto prox = segments[i].prox;
@@ -304,11 +355,52 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             data_->area[bid].push_back(p0, p1, rat_element<2, 0>(area_0, area_half, area_1));
             area_0 = area_1;
 
-            // (Test for positive dx explicitly in case r0 is zero.)
-            double ixa_half = ixa_0 + (dx>0? dx/(pi*r0*(r0+r1)): 0);
-            double ixa_1 = ixa_0 + (dx>0? dx/(pi*r0*r1): 0);
-            data_->ixa[bid].push_back(p0, p1, rat_element<1, 1>(ixa_0, ixa_half, ixa_1));
-            ixa_0 = ixa_1;
+            if (dx>0) {
+                double ixa_0 = 0;
+                double ixa_half = dx/(pi*r0*(r0+r1));
+                double ixa_1 = dx/(pi*r0*r1);
+
+                if (r0==0 && r1==0) {
+                    // ixa is just not defined on this segment; represent with all
+                    // infinite node values.
+                    ixa_0 = INFINITY;
+                    ixa_half = INFINITY;
+                    ixa_1 = INFINITY;
+                }
+                else if (r0==0) {
+                    ixa_0 = -INFINITY;
+                    ixa_half = -dx/(pi*r1*r1);
+                    ixa_1 = 0;
+                }
+
+                // Start a new piecewise function if last ixa value is
+                // large compared to ixa_1 - ixa_0 (leading to loss
+                // of precision), or if ixa_0 is already non-zero (something
+                // above has declared we should start anew).
+
+                constexpr double max_ixa_ratio = 1e5;
+                if (!ixa_pw.empty() && ixa_0 == 0 && ixa_last<max_ixa_ratio*ixa_1) {
+                    // Extend last pw representation on the branch.
+                    ixa_0 += ixa_last;
+                    ixa_half += ixa_last;
+                    ixa_1 += ixa_last;
+                }
+                else {
+                    // Start a new pw representation on the branch:
+                    if (!ixa_pw.empty()) {
+                        auto [left, right] = ixa_pw.bounds();
+                        data_->ixa[bid].push_back(left, right, ixa_pw);
+                    }
+                    ixa_pw.clear();
+                }
+                ixa_pw.push_back(p0, p1, rat_element<1, 1>(ixa_0, ixa_half, ixa_1));
+                ixa_last = ixa_1;
+            }
+        }
+        // push last ixa pw function on the branch, if nonempty.
+        if (!ixa_pw.empty()) {
+            auto [left, right] = ixa_pw.bounds();
+            data_->ixa[bid].push_back(left, right, ixa_pw);
         }
 
         arb_assert((data_->radius[bid].size()>0));

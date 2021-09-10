@@ -1,6 +1,6 @@
 #include "../gtest.h"
 
-#include <list>
+#include <cmath>
 
 #include "util/ratelem.hpp"
 #include "util/rangeutil.hpp"
@@ -113,5 +113,35 @@ TYPED_TEST(ratelem_pq, interpolate_monotonic) {
             double x = (double)i/(p+q);
             EXPECT_DOUBLE_EQ(f(x), fpq(x));
         }
+    }
+}
+
+TEST(ratelem, p1q1singular) {
+    // Check special case behaviour for p==1, q==1 when interpolants
+    // are strictly monotonic but possibly infinite.
+
+    auto f1 = [](double x) { return (1-x)/x; };
+    rat_element<1, 1> r1(f1);
+
+    for (unsigned i = 0; i<=4; ++i) {
+        double x = (double)i/4.0;
+        EXPECT_DOUBLE_EQ(f1(x), r1(x));
+    }
+
+    auto f2 = [](double x) { return x/(1-x); };
+    rat_element<1, 1> r2(f2);
+
+    for (unsigned i = 0; i<=4; ++i) {
+        double x = (double)i/4.0;
+        EXPECT_DOUBLE_EQ(f2(x), r2(x));
+    }
+
+    // With p==1, q==1, all infinite node values should
+    // give us NaN when we try to evaluate.
+
+    rat_element<1, 1> nope(INFINITY, INFINITY, INFINITY);
+    for (unsigned i = 0; i<=4; ++i) {
+        double x = (double)i/4.0;
+        EXPECT_TRUE(std::isnan(nope(x)));
     }
 }

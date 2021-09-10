@@ -53,7 +53,6 @@ void rat_interpolate(std::array<double, m>& h, const std::array<double, m+1>& g,
             h[i] = ook*((x - i)*g[i+1] + (i+k - x)*g[i]);
         }
         else {
-            // Using h[i] = k/(g[i+1]/(x - i) + g[i]/(i+k - x)) is more robust to
             // singularities, but the expense should not be necessary if we stick
             // to strictly monotonic elements for rational polynomials.
             h[i] = k*g[i]*g[i+1]/(g[i]*(x - i) + g[i+1]*(i+k - x));
@@ -62,7 +61,7 @@ void rat_interpolate(std::array<double, m>& h, const std::array<double, m+1>& g,
 }
 
 template <unsigned a, unsigned c, unsigned k, bool upper>
-double rat_eval(const std::array<double, 1+a+c>& g, const std::array<double, 2+a+c>& p, double x) {
+double recursive_rat_eval(const std::array<double, 1+a+c>& g, const std::array<double, 2+a+c>& p, double x) {
     if constexpr (a==0 && c==0) {
         return g[0];
     }
@@ -73,28 +72,48 @@ double rat_eval(const std::array<double, 1+a+c>& g, const std::array<double, 2+a
             h[i] = p[i+1] + k/((x - i)/(g[i+1]-p[i+1]) + (i+k - x)/(g[i]-p[i+1]));
         }
 
-        return rat_eval<0, c-1, k+1, upper>(h, g, x);
+        return recursive_rat_eval<0, c-1, k+1, upper>(h, g, x);
     }
     else {
         std::array<double, a+c> h;
         rat_interpolate<k, upper>(h, g, x);
-        return rat_eval<a-1, c, k+1, upper>(h, g, x);
+        return recursive_rat_eval<a-1, c, k+1, upper>(h, g, x);
     }
 }
 
+template <unsigned p, unsigned q>
+double rat_eval(const std::array<double, 1+p+q>& data, double x) {
+    // upper => interpolate polynomials first;
+    // !upper => interpolate reciprocal polynomials first;
+    // a is the number of (reciprocal) polynomial interpolation steps;
+    // c is the number of 'rhombus' interpolation steps.
 
-template <unsigned a, unsigned c, unsigned k, bool upper>
-double rat_eval(const std::array<double, 1+a+c>& g, double x) {
+    constexpr bool upper = p>=q;
+    constexpr unsigned a = upper? p-q+(q>0): q-p+(p>0);
+    constexpr unsigned c = p+q-a;
+
     if constexpr (a==0 && c==0) {
-        return g[0];
+        return data[0];
+    }
+    else if constexpr (a==1 && c==1) {
+        // Special case when p==1 and q==1 so that we can have
+        // well-defined behaviour in the case where the interpolants
+        // are strictly monotonic, but might take non-finite values.
+        // (Used for ixa interpolation in embed_pwlin.cpp).
+
+        double y0 = data[0];
+        double y1 = data[1];
+        double y2 = data[2];
+
+        return y1+(2*x-1)/(x/(y2-y1)+(1-x)/(y1-y0));
     }
     else {
+        x *= p+q;
         std::array<double, a+c> h;
-        rat_interpolate<k, upper>(h, g, x);
-        return rat_eval<a-1, c, k+1, upper>(h, g, x);
+        rat_interpolate<1, upper>(h, data, x);
+        return recursive_rat_eval<a-1, c, 2, upper>(h, data, x);
     }
 }
-
 
 } // namespace impl
 
@@ -132,16 +151,7 @@ struct rat_element {
 
     // Rational interpolation at x.
     double operator()(double x) const {
-        // upper j => interpolate polynomials first;
-        // !upper => interpolate reciprocal polynomials first;
-        // a is the number of (reciprocal) polynomial interpolation steps;
-        // c is the number of 'rhombus' interpolation steps.
-
-        constexpr bool upper = p>=q;
-        constexpr unsigned a = upper? p-q+(q>0): q-p+(p>0);
-        constexpr unsigned c = p+q-a;
-
-        return impl::rat_eval<a, c, 1, upper>(data_, x*(p+q));
+        return impl::rat_eval<p, q>(data_, x);
     }
 
     // Node values.

@@ -286,3 +286,66 @@ TEST(embedding, area_0_length_segment) {
     double expected_a2 = expected_a1 + pi*(20*20-10*10);
     EXPECT_TRUE(near_relative(a2, expected_a2, reltol));
 }
+
+TEST(embedding, small_radius) {
+    using testing::near_relative;
+    constexpr double pi = math::pi<double>;
+    constexpr double reltol = 1e-10;
+
+    segment_tree t;
+    t.append(mnpos, { 0, 0, 0, 10}, {10, 0, 0, 0.00001}, 0);
+    t.append(0,     {10, 0, 0, 40}, {20, 0, 0, 40}, 0);
+
+    embedding em{morphology(t)};
+
+    // Integrated inverse cross-sectional area in segment 1
+    // corresponding to cable(0, 0.5, 1):
+    // radius r₀ = 40, r₁ = 40, length = 10.
+
+    double expected_ixa = 10/(40*40*pi);
+    double computed_ixa = em.integrate_ixa(mcable{0, 0.5, 1.0});
+    ASSERT_FALSE(std::isnan(computed_ixa));
+    EXPECT_TRUE(near_relative(expected_ixa, computed_ixa, reltol));
+}
+
+TEST(embedding, zero_radius) {
+    using testing::near_relative;
+    constexpr double pi = math::pi<double>;
+    constexpr double reltol = 1e-10;
+
+    segment_tree t;
+    t.append(mnpos, { 0, 0, 0, 10}, {10, 0, 0, 0}, 0);
+    t.append(0,     {10, 0, 0, 40}, {20, 0, 0, 40}, 0);
+
+    embedding em{morphology(t)};
+
+    // Integrated inverse cross-sectional area in segment 1
+    // corresponding to cable(0, 0.5, 1):
+    // radius r₀ = 40, r₁ = 40, length = 10.
+
+    double expected_ixa = 10/(40*40*pi);
+    double computed_ixa = em.integrate_ixa(mcable{0, 0.5, 1.0});
+    ASSERT_FALSE(std::isnan(computed_ixa));
+    EXPECT_TRUE(near_relative(expected_ixa, computed_ixa, reltol));
+
+    // Integrating over the zero radius point though should give us
+    // INFINITY.
+
+    double infinite_ixa = em.integrate_ixa(mcable{0, 0.25, 0.75});
+    ASSERT_FALSE(std::isnan(infinite_ixa));
+    EXPECT_TRUE(std::isinf(infinite_ixa));
+
+    // Should be able to integrate ixa over a tree that starts
+    // with a zero radius.
+
+    segment_tree t2;
+    t2.append(mnpos, { 0, 0, 0, 0}, {10, 0, 0, 10}, 0);
+    embedding em2{morphology(t2)};
+
+    expected_ixa = 5/(10*5*pi);
+    computed_ixa = em2.integrate_ixa(mcable{0, 0.5, 1.0});
+    ASSERT_FALSE(std::isnan(computed_ixa));
+    EXPECT_TRUE(near_relative(expected_ixa, computed_ixa, reltol));
+
+    EXPECT_TRUE(std::isinf(em2.integrate_ixa(mcable{0, 0, 0.5})));
+}

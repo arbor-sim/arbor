@@ -118,7 +118,7 @@ pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value
     }
 
     if (cable.prox_pos!=0 || cable.dist_pos!=1) {
-        pw = zip(pw, pw_elements<>({cable.prox_pos, cable.dist_pos}));
+        pw = pw_zip_with(pw, pw_elements<>({cable.prox_pos, cable.dist_pos}));
     }
     return pw;
 }
@@ -1173,8 +1173,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const mcable_map<init_ext_concentration>&  econc_on_cable = initial_econc_map[ion];
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
 
-        auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
-            return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
+        auto pw_times = [](const pw_elements<double>& pwa, const pw_elements<double>& pwb) {
+            return pw_zip_with(pwa, pwb, [](std::pair<double, double>, double a, double b) { return a*b; });
         };
 
         for (auto i: count_along(config.cv)) {
