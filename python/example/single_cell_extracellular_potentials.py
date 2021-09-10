@@ -321,7 +321,7 @@ ax.set_ylim(Y.min(), Y.max())
 ax.set_xlabel(r'$x$ ($\mu$m)')
 ax.set_ylabel(r'$y$ ($\mu$m)')
 
-fig.savefig('example_extracellular_potentials.svg', bbox_inches='tight')
+fig.savefig('single_cell_extracellular_potentials.svg', bbox_inches='tight')
 
 # ## Notes on output:
 # The spatial discretization is here deliberately coarse with only 3 CVs per branch.
