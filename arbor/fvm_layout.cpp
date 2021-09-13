@@ -770,12 +770,12 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-fvm_gap_junction_cvs fvm_build_gap_junction_cv_map(
+fvm_gap_junction_cv_map fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D) {
 
-    std::unordered_map<cell_member_type, fvm_index_type> gj_cvs;
+    fvm_gap_junction_cv_map gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
         for (const auto& mech : cells[cell_idx].junctions()) {
             for (const auto& gj: mech.second) {
@@ -814,25 +814,26 @@ resolved_gj_connection_map fvm_resolve_gj_connections(
 
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
-    const cable_cell& cell, cell_gid_type gid,
-    const fvm_gap_junction_cvs& gj_cvs,
-    std::vector<resolved_gj_connection>& gj_conns,
-    const fvm_cv_discretization& D,
-    fvm_size_type cell_idx);
+    const cable_cell& cell,
+    std::vector<resolved_gj_connection>& gj_conns, // gj connections ending on the cell
+    const fvm_gap_junction_cv_map& gj_cvs,         // (gid, lid) to cv_index for all gj sites in the cell group
+    const fvm_cv_discretization& D,                // discretization information all cells in the cell group
+    cell_gid_type gid,                             // cell gid
+    fvm_size_type cell_idx);                       // cell index
 
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells,
-    const std::vector<cell_gid_type>& gids,
-    const fvm_gap_junction_cvs& gj_cvs,
-    resolved_gj_connection_map& gj_conns,
-    const fvm_cv_discretization& D,
+    const std::vector<cable_cell>& cells,          // cells in the cell group
+    const std::vector<cell_gid_type>& gids,        // cell gids in the cell group
+    resolved_gj_connection_map& gj_conns,          // gj connections in the cell group
+    const fvm_gap_junction_cv_map& gj_cvs,         // (gid, lid) to cv_index for all gj sites in the cell group
+    const fvm_cv_discretization& D,                // discretization information all cells in the cell group
     const execution_context& ctx)
 {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
         auto gid = gids[i];
-        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gid, gj_cvs, gj_conns.at(gid), D, i);
+        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns[gid], gj_cvs, D, gid, i);
     });
 
     fvm_mechanism_data combined;
@@ -846,10 +847,11 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
-    const cable_cell& cell, cell_gid_type gid,
-    const fvm_gap_junction_cvs& gj_cvs,
+    const cable_cell& cell,
     std::vector<resolved_gj_connection>& gj_conns,
+    const fvm_gap_junction_cv_map& gj_cvs,
     const fvm_cv_discretization& D,
+    cell_gid_type gid,
     fvm_size_type cell_idx)
 {
     using size_type = fvm_size_type;
@@ -1194,7 +1196,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         M.mechanisms[name] = std::move(config);
     }
 
-    // Sort gj_conns by local cv because to ensure that local CVs are monotonically increasing
+    // Sort gj_conns by local cv to ensure that local CVs are monotonically increasing
     util::sort(gj_conns, [gj_cvs, gid](const auto& lhs, const auto& rhs) {
         return gj_cvs.at({gid, lhs.local}) < gj_cvs.at({gid, rhs.local});});
 
@@ -1211,8 +1213,41 @@ fvm_mechanism_data fvm_build_mechanism_data(
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
     }
-    {
+    if (M.mechanisms.count("expsyn")) {
+        std::cout << "expsyn" << std::endl;
         auto& config = M.mechanisms["expsyn"];
+        std::cout << "cell " << gid << std::endl;
+        std::cout << "local cv: {";
+        for (const auto& cv: config.cv) {
+            std::cout << cv << " ";
+        }
+        std::cout << "}" << std::endl;
+
+        std::cout << "peer cv:  {";
+        for (const auto& cv: config.peer_cv) {
+            std::cout << cv << " ";
+        }
+        std::cout << "}" << std::endl;
+
+        std::cout << "weight:   {";
+        for (const auto& lw: config.local_weight) {
+            std::cout << lw << " ";
+        }
+        std::cout << "}" << std::endl;
+
+        std::cout << "params:   {" << std::endl;
+        for (const auto& pv: config.param_values) {
+            std::cout << "\t" << pv.first << " {";
+            for (const auto& v: pv.second) {
+                std::cout << v << " ";
+            }
+            std::cout << "}" << std::endl;
+        }
+        std::cout << "}" << std::endl;
+    }
+    if (M.mechanisms.count("exp2syn")) {
+        std::cout << "exp2syn" << std::endl;
+        auto& config = M.mechanisms["exp2syn"];
         std::cout << "cell " << gid << std::endl;
         std::cout << "local cv: {";
         for (const auto& cv: config.cv) {
