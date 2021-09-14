@@ -272,8 +272,8 @@ void run_expsyn_g_probe_test(const context& ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     auto bs = builder.make_cell();
-    bs.decorations.place(loc0, "expsyn", "syn0");
-    bs.decorations.place(loc1, "expsyn", "syn1");
+    bs.decorations.place(loc0, synapse("expsyn"), "syn0");
+    bs.decorations.place(loc1, synapse("expsyn"), "syn1");
     bs.decorations.set_default(cv_policy_fixed_per_branch(2));
 
     auto run_test = [&](bool coalesce_synapses) {
@@ -376,9 +376,9 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
         for (unsigned j = 0; j<10; ++j) {
             auto idx = (bid*10+j)*2;
             mlocation expsyn_loc{bid, 0.1*j};
-            d.place(expsyn_loc, "expsyn", "syn"+std::to_string(idx));
+            d.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
             expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            d.place(mlocation{bid, 0.1*j+0.05}, "exp2syn", "syn"+std::to_string(idx+1));
+            d.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
             ++n_expsyn;
         }
     }
@@ -503,9 +503,9 @@ void run_ion_density_probe_test(const context& ctx) {
     // Calcium ions everywhere, half written by write_ca1, half by write_ca2.
     // Sodium ions only on distal half.
 
-    d.paint(mcable{0, 0., 0.5}, "write_ca1");
-    d.paint(mcable{0, 0.5, 1.}, "write_ca2");
-    d.paint(mcable{0, 0.5, 1.}, "write_na3");
+    d.paint(mcable{0, 0., 0.5}, density("write_ca1"));
+    d.paint(mcable{0, 0.5, 1.}, density("write_ca2"));
+    d.paint(mcable{0, 0.5, 1.}, density("write_na3"));
 
     // Place probes in each CV.
 
@@ -1198,13 +1198,13 @@ void run_exact_sampling_probe_test(const context& ctx) {
             std::vector<cable_cell_description> cd;
             cd.assign(4, builder.make_cell());
 
-            cd[0].decorations.place(mlocation{1, 0.1}, "expsyn", "syn");
-            cd[1].decorations.place(mlocation{1, 0.1}, "exp2syn", "syn");
-            cd[2].decorations.place(mlocation{1, 0.9}, "expsyn", "syn");
-            cd[3].decorations.place(mlocation{1, 0.9}, "exp2syn", "syn");
+            cd[0].decorations.place(mlocation{1, 0.1}, synapse("expsyn"), "syn");
+            cd[1].decorations.place(mlocation{1, 0.1}, synapse("exp2syn"), "syn");
+            cd[2].decorations.place(mlocation{1, 0.9}, synapse("expsyn"), "syn");
+            cd[3].decorations.place(mlocation{1, 0.9}, synapse("exp2syn"), "syn");
 
-            cd[1].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
-            cd[3].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
+            cd[1].decorations.place(mlocation{1, 0.2}, junction("gj"), "gj");
+            cd[3].decorations.place(mlocation{1, 0.2}, junction("gj"), "gj");
 
             for (auto& d: cd) cells_.push_back(d);
         }

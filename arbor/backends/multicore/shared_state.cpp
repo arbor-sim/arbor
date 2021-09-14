@@ -438,7 +438,8 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
         }
     }
 
-    if (!data) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
+    if (!data)
+        throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
 
     if (!m.ppack_.width) return;
     auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);

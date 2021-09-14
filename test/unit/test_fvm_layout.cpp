@@ -56,8 +56,8 @@ namespace {
             builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
             auto description = builder.make_cell();
-            description.decorations.paint("soma"_lab, "hh");
-            description.decorations.paint("dend"_lab, "pas");
+            description.decorations.paint("soma"_lab, density("hh"));
+            description.decorations.paint("dend"_lab, density("pas"));
             description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "clamp");
 
             s.builders.push_back(std::move(builder));
@@ -99,8 +99,8 @@ namespace {
             auto b3 = b.add_branch(1, 180, 0.35, 0.35, 4, "dend");
             auto desc = b.make_cell();
 
-            desc.decorations.paint("soma"_lab, "hh");
-            desc.decorations.paint("dend"_lab, "pas");
+            desc.decorations.paint("soma"_lab, density("hh"));
+            desc.decorations.paint("dend"_lab, density("pas"));
 
             using ::arb::reg::branch;
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
@@ -139,15 +139,15 @@ void check_compatible_mechanism_failure(cable_cell_global_properties gprop, P pa
     check_two_cell_system(cells);
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
 
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, {0,1}, {{0, {}}, {1, {}}}, D), arb::cable_cell_error);
 }
 
 TEST(fvm_layout, compatible_mechanisms) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.place(sys.builders[0].location({1, 0.4}), "hh", "syn0"); });
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[1].decorations.paint(sys.builders[1].cable(mcable{0}), "expsyn"); });
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.place(sys.builders[0].location({1, 0.4}), synapse("hh"), "syn0"); });
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[1].decorations.paint(sys.builders[1].cable(mcable{0}), density("expsyn")); });
     check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.set_default(ion_reversal_potential_method{"na", "expsyn"}); });
 
     gprop.default_parameters.reversal_potential_method["na"] = "pas";
@@ -160,10 +160,10 @@ TEST(fvm_layout, mech_index) {
     auto& builders = system.builders;
 
     // Add four synapses of two varieties across the cells.
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn", "syn0");
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn", "syn1");
-    descriptions[1].decorations.place(builders[1].location({2, 0.4}), "exp2syn", "syn3");
-    descriptions[1].decorations.place(builders[1].location({3, 0.4}), "expsyn", "syn4");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), synapse("expsyn"), "syn0");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), synapse("expsyn"), "syn1");
+    descriptions[1].decorations.place(builders[1].location({2, 0.4}), synapse("exp2syn"), "syn3");
+    descriptions[1].decorations.place(builders[1].location({3, 0.4}), synapse("expsyn"), "syn4");
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
@@ -171,7 +171,7 @@ TEST(fvm_layout, mech_index) {
     auto cells = system.cells();
     check_two_cell_system(cells);
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, {0, 1}, {{0, {}}, {1, {}}}, D);
 
     auto& hh_config = M.mechanisms.at("hh");
     auto& expsyn_config = M.mechanisms.at("expsyn");
@@ -280,14 +280,14 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         auto desc = builder.make_cell();
 
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "expsyn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "expsyn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("expsyn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("expsyn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 3, 4, 5}), expsyn_config.cv);
@@ -297,14 +297,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "exp2syn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "exp2syn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("exp2syn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("exp2syn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
@@ -317,14 +317,14 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         auto desc = builder.make_cell();
 
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "expsyn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "expsyn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("expsyn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("expsyn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 3, 4, 5}), expsyn_config.cv);
@@ -334,14 +334,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "exp2syn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "exp2syn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("exp2syn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("exp2syn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
@@ -355,14 +355,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
@@ -372,14 +372,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2), "syn0");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2), "syn1");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0.1, 0.2), "syn2");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0.1, 0.2), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 0.2)), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 0.2)), "syn1");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0.1, 0.2)), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 0.1, 0.2)), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         std::vector<exp_instance> instances{
             exp_instance(2, L{0, 1}, 0., 0.2),
@@ -395,18 +395,18 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3), "syn0");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3), "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3), "syn2");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3), "syn3");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2), "syn4");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2), "syn5");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2), "syn6");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2), "syn7");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 0, 3)), "syn0");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 1, 3)), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 0, 3)), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 1, 3)), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 2)), "syn4");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 1, 2)), "syn5");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 2)), "syn6");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 1, 2)), "syn7");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         std::vector<exp_instance> instances{
             exp_instance(2, L{4, 6}, 0.0, 2.0),
@@ -423,20 +423,20 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn0");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 4, 1), "syn1");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn2");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  5, 1), "syn3");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 1, 3), "syn4");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn5");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2), "syn6");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1), "syn7");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1), "syn8");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2), "syn9");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  1, 2)), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc_2("exp2syn", 4, 1)), "syn1");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  1, 2)), "syn2");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  5, 1)), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc_2("exp2syn", 1, 3)), "syn4");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  1, 2)), "syn5");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 2)), "syn6");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 1)), "syn7");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 1)), "syn8");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 2)), "syn9");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         for (auto &instance: {exp_instance(2, L{0,2,5}, 1, 2),
                               exp_instance(2, L{3},     5, 1)}) {
@@ -472,21 +472,21 @@ TEST(fvm_layout, synapse_targets) {
         return mechanism_desc(name).set("e", syn_e.at(idx));
     };
 
-    descriptions[0].decorations.place(builders[0].location({1, 0.9}), syn_desc("expsyn", 0), "syn0");
-    descriptions[0].decorations.place(builders[0].location({0, 0.5}), syn_desc("expsyn", 1), "syn1");
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), syn_desc("expsyn", 2), "syn2");
+    descriptions[0].decorations.place(builders[0].location({1, 0.9}), synapse(syn_desc("expsyn", 0)), "syn0");
+    descriptions[0].decorations.place(builders[0].location({0, 0.5}), synapse(syn_desc("expsyn", 1)), "syn1");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), synapse(syn_desc("expsyn", 2)), "syn2");
 
-    descriptions[1].decorations.place(builders[1].location({2, 0.4}), syn_desc("exp2syn", 3), "syn3");
-    descriptions[1].decorations.place(builders[1].location({1, 0.4}), syn_desc("exp2syn", 4), "syn4");
-    descriptions[1].decorations.place(builders[1].location({3, 0.4}), syn_desc("expsyn", 5), "syn5");
-    descriptions[1].decorations.place(builders[1].location({3, 0.7}), syn_desc("exp2syn", 6), "syn6");
+    descriptions[1].decorations.place(builders[1].location({2, 0.4}), synapse(syn_desc("exp2syn", 3)), "syn3");
+    descriptions[1].decorations.place(builders[1].location({1, 0.4}), synapse(syn_desc("exp2syn", 4)), "syn4");
+    descriptions[1].decorations.place(builders[1].location({3, 0.4}), synapse(syn_desc("expsyn", 5)), "syn5");
+    descriptions[1].decorations.place(builders[1].location({3, 0.7}), synapse(syn_desc("exp2syn", 6)), "syn6");
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, {0, 1}, {{0, {}}, {1, {}}}, D);
 
     ASSERT_EQ(1u, M.mechanisms.count("expsyn"));
     ASSERT_EQ(1u, M.mechanisms.count("exp2syn"));
@@ -590,10 +590,10 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gl"] = seg3_gl;
 
     auto desc = builder.make_cell();
-    desc.decorations.paint("soma"_lab, std::move(hh_0));
-    desc.decorations.paint("reg1"_lab, std::move(hh_1));
-    desc.decorations.paint("reg2"_lab, std::move(hh_2));
-    desc.decorations.paint("reg3"_lab, std::move(hh_3));
+    desc.decorations.paint("soma"_lab, density(std::move(hh_0)));
+    desc.decorations.paint("reg1"_lab, density(std::move(hh_1)));
+    desc.decorations.paint("reg2"_lab, density(std::move(hh_2)));
+    desc.decorations.paint("reg3"_lab, density(std::move(hh_3)));
 
     std::vector<cable_cell> cells{desc};
 
@@ -637,7 +637,7 @@ TEST(fvm_layout, density_norm_area) {
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, {0}, {{0, {}}}, D);
 
     // Grab the HH parameters from the mechanism.
 
@@ -690,8 +690,8 @@ TEST(fvm_layout, density_norm_area_partial) {
     auto desc = builder.make_cell();
     desc.decorations.set_default(cv_policy_fixed_per_branch(1));
 
-    desc.decorations.paint(builder.cable({1, 0., 0.3}), hh_begin);
-    desc.decorations.paint(builder.cable({1, 0.4, 1.}), hh_end);
+    desc.decorations.paint(builder.cable({1, 0., 0.3}), density(hh_begin));
+    desc.decorations.paint(builder.cable({1, 0.4, 1.}), density(hh_end));
 
     std::vector<cable_cell> cells{desc};
 
@@ -711,7 +711,7 @@ TEST(fvm_layout, density_norm_area_partial) {
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, {0}, {{0, {}}}, D);
 
     // Grab the HH parameters from the mechanism.
 
@@ -739,7 +739,7 @@ TEST(fvm_layout, density_norm_area_partial) {
 
 TEST(fvm_layout, valence_verify) {
     auto desc = soma_cell_builder(6).make_cell();
-    desc.decorations.paint("soma"_lab, "test_cl_valence");
+    desc.decorations.paint("soma"_lab, density("test_cl_valence"));
     std::vector<cable_cell> cells{desc};
 
     cable_cell_global_properties gprop;
@@ -751,16 +751,16 @@ TEST(fvm_layout, valence_verify) {
     gprop.catalogue = &testcat;
 
     // Missing the 'cl' ion:
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, {0, 1}, {{0, {}}}, D), cable_cell_error);
 
     // Adding ion, should be fine now:
     gprop.default_parameters.ion_data["cl"] = { 1., 1., 0. };
     gprop.ion_species["cl"] = -1;
-    EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, D));
+    EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, {0}, {{0, {}}}, D));
 
     // 'cl' ion has wrong charge:
     gprop.ion_species["cl"] = -2;
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, {0}, {{0, {}}}, D), cable_cell_error);
 }
 
 TEST(fvm_layout, ion_weights) {
@@ -832,13 +832,13 @@ TEST(fvm_layout, ion_weights) {
 
         for (auto i: mech_branches[run]) {
             auto cab = builder.cable({i, 0, 1});
-            desc.decorations.paint(reg::cable(cab.branch, cab.prox_pos, cab.dist_pos), "test_ca");
+            desc.decorations.paint(reg::cable(cab.branch, cab.prox_pos, cab.dist_pos), density("test_ca"));
         }
 
         std::vector<cable_cell> cells{desc};
 
         fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, {0}, {{0, {}}}, D);
 
         ASSERT_EQ(1u, M.ions.count("ca"s));
         auto& ca = M.ions.at("ca"s);
@@ -868,9 +868,9 @@ TEST(fvm_layout, revpot) {
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
     auto desc = builder.make_cell();
-    desc.decorations.paint("soma"_lab, "read_eX/c");
-    desc.decorations.paint("soma"_lab, "read_eX/a");
-    desc.decorations.paint("dend"_lab, "read_eX/a");
+    desc.decorations.paint("soma"_lab, density("read_eX/c"));
+    desc.decorations.paint("soma"_lab, density("read_eX/a"));
+    desc.decorations.paint("dend"_lab, density("read_eX/a"));
 
     std::vector<cable_cell_description> descriptions{desc, desc};
 
@@ -893,7 +893,7 @@ TEST(fvm_layout, revpot) {
 
         std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
         fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
-        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
+        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, {0, 1}, {{0, {}}, {1, {}}}, D), cable_cell_error);
     }
 
     {
@@ -905,7 +905,7 @@ TEST(fvm_layout, revpot) {
         std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
 
         fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
-        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
+        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, {0, 1}, {{0, {}}, {1, {}}}, D), cable_cell_error);
     }
 
     {
@@ -916,7 +916,7 @@ TEST(fvm_layout, revpot) {
 
         std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
         fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, {0, 1}, {{0, {}}, {1, {}}}, D);
 
         // Only CV which needs write_multiple_eX/x=b,y=c is the soma (first CV)
         // of the second cell.

@@ -467,7 +467,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     // Discretize and build gap junction info.
 
     auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
-    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
     for (const auto& [lid, cv]: gj_cvs) {
         std::cout << lid << " -> " << cv << std::endl;
@@ -476,7 +476,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Discretize mechanism data.
 
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, gj_cvs, D, context_);
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
 
     std::cout << "done" << std::endl << std::endl;
 

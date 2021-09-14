@@ -462,9 +462,6 @@ std::ostream& operator<<(std::ostream& o, const i_clamp& c) {
 std::ostream& operator<<(std::ostream& o, const threshold_detector& p) {
     return o << "(threshold-detector " << p.threshold << ')';
 }
-std::ostream& operator<<(std::ostream& o, const gap_junction_site& p) {
-    return o << "(gap-junction-site)";
-}
 std::ostream& operator<<(std::ostream& o, const init_membrane_potential& p) {
     return o << "(membrane-potential " << p.value << ')';
 }
@@ -492,6 +489,15 @@ std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
         o << " (\"" << p.first << "\" " << p.second << ')';
     }
     return o << ')';
+}
+std::ostream& operator<<(std::ostream& o, const junction& p) {
+    return o << "(junction " << p.mech << ')';
+}
+std::ostream& operator<<(std::ostream& o, const synapse& p) {
+    return o << "(synapse " << p.mech << ')';
+}
+std::ostream& operator<<(std::ostream& o, const density& p) {
+    return o << "(density " << p.mech << ')';
 }
 std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
     return o << "(ion-reversal-potential-method \"" << p.ion << "\" " << p.method << ')';

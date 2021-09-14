@@ -68,7 +68,7 @@ namespace {
 
         arb::util::unique_any get_cell_description(cell_gid_type) const override {
             auto c = arb::make_cell_soma_only(false);
-            c.decorations.place(mlocation{0,1}, gap_junction_site{}, "gj");
+            c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
             return {arb::cable_cell(c)};
         }
 

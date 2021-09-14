@@ -47,12 +47,11 @@ TEST(abi, multicore_initialisation) {
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
-    std::vector<arb::fvm_gap_junction> gj = {};
     std::vector<arb_index_type> src_to_spike = {};
 
     arb::multicore::shared_state shared_state(ncell, ncell, 0,
                                               cv_to_intdom, cv_to_intdom,
-                                              gj, vinit, temp, diam, src_to_spike,
+                                              vinit, temp, diam, src_to_spike,
                                               mech.data_alignment());
 
     arb::mechanism_layout layout;
