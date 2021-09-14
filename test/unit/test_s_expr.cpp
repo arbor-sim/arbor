@@ -6,8 +6,8 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/cv_policy.hpp>
-
 #include <arbor/s_expr.hpp>
+#include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
@@ -514,11 +514,11 @@ std::ostream& operator<<(std::ostream& o, const place_tuple& p) {
     return o << " \"" << std::get<2>(p) << "\")";
 }
 std::ostream& operator<<(std::ostream& o, const defaultable& p) {
+    auto default_visitor = arb::util::overload(
+        [&](const cv_policy& p)   { o << "(cv-policy " << p << ")"; },
+        [&](const auto& p){ o << p; });
     o << "(default ";
-    std::visit([&](auto&& x) {
-        if constexpr (std::is_same_v<std::decay_t<decltype(x)>, cv_policy>) o << "(cv-policy " << x << ")";
-        else o << x;
-    }, p);
+    std::visit(default_visitor, p);
     return o << ")";
 }
 std::ostream& operator<<(std::ostream& o, const locset_pair& p) {
