@@ -18,6 +18,7 @@ struct cv_policy_parse_error: arb::arbor_exception {
 using parse_cv_policy_hopefully = arb::util::expected<arb::cv_policy, cv_policy_parse_error>;
 
 parse_cv_policy_hopefully parse_cv_policy_expression(const std::string& s);
+parse_cv_policy_hopefully parse_cv_policy_expression(const arb::s_expr& s);
 
 namespace literals {
 

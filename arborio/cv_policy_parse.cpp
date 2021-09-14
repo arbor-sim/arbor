@@ -188,8 +188,8 @@ parse_hopefully<std::any> eval(const s_expr& e) {
 }
 }
 
-parse_cv_policy_hopefully parse_cv_policy_expression(const std::string& s) {
-    if (auto e = eval(parse_s_expr(s))) {
+parse_cv_policy_hopefully parse_cv_policy_expression(const arb::s_expr& s) {
+    if (auto e = eval(s)) {
         if (e->type() == typeid(cv_policy)) {
             return {std::move(std::any_cast<cv_policy&>(*e))};
         }
@@ -200,5 +200,7 @@ parse_cv_policy_hopefully parse_cv_policy_expression(const std::string& s) {
         return util::unexpected(cv_policy_parse_error(std::string() + e.error().what()));
     }
 }
-
+parse_cv_policy_hopefully parse_cv_policy_expression(const std::string& s) {
+    return parse_cv_policy_expression(parse_s_expr(s));
+}
 } // namespace arb
