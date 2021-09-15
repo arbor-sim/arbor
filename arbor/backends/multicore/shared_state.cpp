@@ -502,6 +502,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.vec_t            = nullptr;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
+    bool peer_indices = !pos_data.peer_cv.empty();
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
@@ -564,7 +565,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     {
         // Allocate bulk storage
         std::size_t index_width_padded = extend_width<arb_index_type>(m, pos_data.cv.size());
-        std::size_t count = mult_in_place + m.mech_.n_ions + 1;
+        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*index_width_padded, 0, pad);
         chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
@@ -595,6 +596,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, index_width_padded), m.iface_.partition_width));
         }
         if (mult_in_place) m.ppack_.multiplicity = writer.append(pos_data.multiplicity, 0);
+        if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }
 

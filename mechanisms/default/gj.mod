@@ -1,23 +1,15 @@
 NEURON {
-    SUFFIX gj
+    JUNCTION_PROCESS gj
     NONSPECIFIC_CURRENT i
-    RANGE g
-    GLOBAL e
 }
 
-UNITS {
-    (mV) = (millivolt)
-    (S) = (siemens)
-}
+UNITS {}
 
 
 INITIAL {}
 
-PARAMETER {
-    g = .001 (S/cm2)
-    e = -70  (mV) : Taken from nrn
-}
+PARAMETER {}
 
 BREAKPOINT {
-    i = g*(v - e)
+    i = (v - v_peer)
 }

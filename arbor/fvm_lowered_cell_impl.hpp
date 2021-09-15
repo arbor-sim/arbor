@@ -541,6 +541,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         mechanism_layout layout;
         layout.cv = config.cv;
         layout.multiplicity = config.multiplicity;
+        layout.peer_cv = config.peer_cv;
         layout.weight.resize(layout.cv.size());
 
         std::vector<fvm_index_type> multiplicity_divs;
@@ -570,6 +571,15 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                         fvm_info.target_handles[config.target[j]] = handle;
                     }
                 }
+            }
+            break;
+        case arb_mechanism_kind_gap_junction:
+            // Point mechanism contributions are in [nA]; CV area A in [µm^2].
+            // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
+
+            for (auto i: count_along(layout.cv)) {
+                auto cv = layout.cv[i];
+                layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
             break;
         case arb_mechanism_kind_density:

@@ -739,8 +739,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
             L.kind = R.kind;
             append(L.cv, R.cv);
+            append(L.peer_cv, R.peer_cv);
             append(L.multiplicity, R.multiplicity);
             append(L.norm_area, R.norm_area);
+            append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
 
             arb_assert(util::equal(L.param_values, R.param_values,
@@ -1168,13 +1170,17 @@ fvm_mechanism_data fvm_build_mechanism_data(
     // and create empty fvm_mechanism_config
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: cell.junctions()) {
+        mechanism_info info = catalogue[name];
+/*        if (info.kind != arb_mechanism_kind_gap_junction) {
+            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+        }*/
+
         fvm_mechanism_config config;
-        config.kind = arb_mechanism_kind_gap_junction;
+        config.kind = info.kind;
 
         std::vector<std::string> param_names;
         std::vector<double> param_dflt;
 
-        mechanism_info info = catalogue[name];
         assign(param_names, util::keys(info.parameters));
         std::size_t n_param = param_names.size();
 
@@ -1206,7 +1212,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         config.cv.push_back(conn.local_cv);
         config.peer_cv.push_back(conn.peer_cv);
-        config.local_weight.push_back(conn.weight* 1e3 / D.cv_area[conn.local_cv]);
+        config.local_weight.push_back(conn.weight);
         for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
@@ -1275,6 +1281,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
         std::cout << "}" << std::endl;
     }
+
     // Stimuli:
 
     if (!cell.stimuli().empty()) {

@@ -58,9 +58,10 @@ struct namespace_declaration_close {
 
 inline const char* module_kind_str(const Module& m) {
     switch (m.kind()) {
-    case moduleKind::density: return "arb_mechanism_kind_density";            break;
-    case moduleKind::point:   return "arb_mechanism_kind_point";              break;
-    case moduleKind::revpot:  return "arb_mechanism_kind_reversal_potential"; break;
+    case moduleKind::density:       return "arb_mechanism_kind_density";
+    case moduleKind::point:         return "arb_mechanism_kind_point";
+    case moduleKind::revpot:        return "arb_mechanism_kind_reversal_potential";
+    case moduleKind::junction:  return "arb_mechanism_kind_gap_junction";
     default: throw compiler_exception("Unknown module kind " + std::to_string((int)m.kind()));
     }
 }

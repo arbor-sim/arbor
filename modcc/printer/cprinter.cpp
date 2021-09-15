@@ -279,6 +279,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\\\n"
                                    "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\\\n"
                                    "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\\\n"
+                                   "[[maybe_unused]] auto* {0}peer_index        = pp->peer_index;\\\n"
                                    "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\\\n"
                                    "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
                                    "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
