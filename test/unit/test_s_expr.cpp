@@ -608,8 +608,8 @@ TEST(decor_literals, round_tripping) {
         "(ion-external-concentration \"h\" -50.1)",
         "(ion-reversal-potential \"na\" 30)"};
     auto paint_literals = {
-        "(mechanism \"hh\")",
-        "(mechanism \"pas\" (\"g\" 0.02))",
+        "(density (mechanism \"hh\"))",
+        "(density (mechanism \"pas\" (\"g\" 0.02)))",
     };
     auto default_literals = {
         "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
@@ -618,8 +618,8 @@ TEST(decor_literals, round_tripping) {
     auto place_literals = {
         "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 10 0.25)",
         "(threshold-detector -10)",
-        "(gap-junction-site)",
-        "(mechanism \"expsyn\")"};
+        "(junction (mechanism \"gj\"))",
+        "(synapse (mechanism \"expsyn\"))"};
     for (auto l: paint_default_literals) {
         EXPECT_EQ(l, round_trip_variant<defaultable>(l));
         EXPECT_EQ(l, round_trip_variant<paintable>(l));
@@ -663,8 +663,8 @@ TEST(decor_expressions, round_tripping) {
         "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" 75.1))",
         "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" -50.1))",
         "(paint (region \"my_region\") (ion-reversal-potential \"na\" 30))",
-        "(paint (cable 2 0.1 0.4) (mechanism \"hh\"))",
-        "(paint (all) (mechanism \"pas\" (\"g\" 0.02)))"
+        "(paint (cable 2 0.1 0.4) (density (mechanism \"hh\")))",
+        "(paint (all) (density (mechanism \"pas\" (\"g\" 0.02))))"
     };
     auto decorate_default_literals = {
         "(default (membrane-potential -65.1))",
@@ -680,8 +680,8 @@ TEST(decor_expressions, round_tripping) {
     auto decorate_place_literals = {
         "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0.5 0.25) \"clamp\")",
         "(place (terminal) (threshold-detector -10) \"detector\")",
-        "(place (root) (gap-junction-site) \"gap_junction\")",
-        "(place (locset \"my!ls\") (mechanism \"expsyn\") \"synapse\")"};
+        "(place (root) (junction (mechanism \"gj\")) \"gap_junction\")",
+        "(place (locset \"my!ls\") (synapse (mechanism \"expsyn\")) \"synapse\")"};
 
     for (auto l: decorate_paint_literals) {
         EXPECT_EQ(l, round_trip<paint_pair>(l));
@@ -748,10 +748,12 @@ TEST(decor, round_tripping) {
                                 "          1)))\n"
                                 "    (paint \n"
                                 "      (region \"dend\")\n"
-                                "      (mechanism \"pas\"))\n"
+                                "      (density \n"
+                                "        (mechanism \"pas\")))\n"
                                 "    (paint \n"
                                 "      (region \"soma\")\n"
-                                "      (mechanism \"hh\"))\n"
+                                "      (density \n"
+                                "        (mechanism \"hh\")))\n"
                                 "    (paint \n"
                                 "      (join \n"
                                 "        (tag 1)\n"
@@ -759,7 +761,8 @@ TEST(decor, round_tripping) {
                                 "      (ion-internal-concentration \"ca\" 0.500000))\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
-                                "      (gap-junction-site)\n"
+                                "      (junction \n"
+                                "        (mechanism \"gj\"))\n"
                                 "      \"gap-junction\")\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
@@ -767,8 +770,9 @@ TEST(decor, round_tripping) {
                                 "      \"detector\")\n"
                                 "    (place \n"
                                 "      (location 0 0.5)\n"
-                                "      (mechanism \"expsyn\" \n"
-                                "        (\"tau\" 1.500000))\n"
+                                "      (synapse \n"
+                                "        (mechanism \"expsyn\" \n"
+                                "          (\"tau\" 1.500000)))\n"
                                 "      \"synapse\")))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str.c_str()));
@@ -965,11 +969,13 @@ TEST(cable_cell, round_tripping) {
                                 "    (decor \n"
                                 "      (paint \n"
                                 "        (region \"dend\")\n"
-                                "        (mechanism \"pas\"))\n"
+                                "        (density \n"
+                                "          (mechanism \"pas\")))\n"
                                 "      (paint \n"
                                 "        (region \"soma\")\n"
-                                "        (mechanism \"hh\" \n"
-                                "          (\"el\" 0.500000)))\n"
+                                "        (density \n"
+                                "          (mechanism \"hh\" \n"
+                                "            (\"el\" 0.500000))))\n"
                                 "      (place \n"
                                 "        (location 0 1)\n"
                                 "        (current-clamp \n"
@@ -992,19 +998,19 @@ TEST(cable_cell_literals, errors) {
                      "(membrane-capacitance ",       // syntax error
                      "(mem-capacitance 3.5)",        // invalid function
                      "(ion-initial-concentration ca 0.1)",   // unquoted ion
-                     "(mechanism \"hh\" (gl 3.5))",          // unqouted parameter
-                     "(mechanism \"pas\" ((\"g\" 0.5) (\"e\" 0.2)))",   // paranthesis around params
-                     "(mechanism \"pas\" (\"g\" 0.5 0.1) (\"e\" 0.2))", // too many values
-                     "(gap-junction-site 0)",                // too many arguments
-                     "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)))",  // too few arguments
+                     "(density (mechanism \"hh\" (gl 3.5)))",// unqouted parameter
+                     "(density (mechanism \"pas\" ((\"g\" 0.5) (\"e\" 0.2))))",   // paranthesis around params
+                     "(density (mechanism \"pas\" (\"g\" 0.5 0.1) (\"e\" 0.2)))", // too many values
+                     "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)))",     // too few arguments
                      "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 10)",  // too few arguments
                      "(paint (region) (mechanism \"hh\"))",  // invalid region
                      "(paint (tag 1) (mechanims hh))",       // invalid painting
                      "(paint (terminal) (membrance-capacitance 0.2))", // can't paint a locset
                      "(paint (tag 3))",                      // too few arguments
-                     "(place (locset) (gap-junction-site) \"gj\")",        // invalid locset
-                     "(place (gap-junction-site) (location 0 1), \"gj\")", // swapped argument order
-                     "(place (location 0 1) (mechanism \"expsyn\"))",      // missing label
+                     "(place (locset) (junction (mechanism \"gj\")) \"gj\")",        // invalid locset
+                     "(place (junction (mechanism \"gj\")) (location 0 1), \"gj\")", // swapped argument order
+                     "(place (location 0 1) (mechanism \"expsyn\"))",                // missing synapse
+                     "(place (location 0 1) (synapse (mechanism \"expsyn\")))",      // missing label
                      "(region-def my_region (tag 3))",       // unquoted region name
                      "(locset-def \"my_ls\" (tag 3))",       // invalid locset
                      "(locset-def \"my_ls\")",               // too few arguments
@@ -1044,7 +1050,7 @@ TEST(doc_expressions, parse) {
     // literals
     for (auto expr: {"(region-def \"my_region\" (branch 1))",
                      "(locset-def \"my_locset\" (location 3 0.5))",
-                     "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
+                     "(density (mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2)))",
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
                      "(current-clamp (envelope (0 10) (50 10) (50 0)) 40 0.25)",
                      "(paint (tag 1) (membrane-capacitance 0.02))",
@@ -1066,10 +1072,10 @@ TEST(doc_expressions, parse) {
                      "  (default (membrane-potential -55.000000))\n"
                      "  (paint (region \"custom\") (temperature-kelvin 270))\n"
                      "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
-                     "  (paint (all) (mechanism \"pas\"))\n"
-                     "  (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "  (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
-                     "  (place (terminal) (gap-junction-site) \"terminal_gj\"))",
+                     "  (paint (all) (density (mechanism \"pas\")))\n"
+                     "  (paint (tag 4) (density (mechanism \"Ih\" (\"gbar\" 0.001))))\n"
+                     "  (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
+                     "  (place (terminal) (junction (mechanism \"gj\")) \"terminal_gj\"))",
                      "(morphology\n"
                      "  (branch 0 -1\n"
                      "    (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
@@ -1099,9 +1105,9 @@ TEST(doc_expressions, parse) {
                      "    (default (membrane-potential -55.000000))\n"
                      "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
                      "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
-                     "    (paint (tag 4) (mechanism \"Ih\" (\"gbar\" 0.001)))\n"
-                     "    (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
-                     "    (place (location 1 0.2) (gap-junction-site) \"terminal_gj\"))\n"
+                     "    (paint (tag 4) (density (mechanism \"Ih\" (\"gbar\" 0.001))))\n"
+                     "    (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
+                     "    (place (location 1 0.2) (junction (mechanism \"gj\")) \"terminal_gj\"))\n"
                      "  (morphology\n"
                      "    (branch 0 -1\n"
                      "      (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"
@@ -1138,7 +1144,7 @@ TEST(doc_expressions, parse) {
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
                             "  (decor\n"
                             "    (default (membrane-potential -55.000000))\n"
-                            "    (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
+                            "    (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
                             "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
                             "(arbor-component\n"
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
@@ -1155,7 +1161,7 @@ TEST(doc_expressions, parse) {
                             "      (locset-def \"root\" (root)))\n"
                             "    (decor\n"
                             "      (default (membrane-potential -55.000000))\n"
-                            "      (place (locset \"root\") (mechanism \"expsyn\") \"root_synapse\")\n"
+                            "      (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
                             "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
                             "    (morphology\n"
                             "       (branch 0 -1\n"

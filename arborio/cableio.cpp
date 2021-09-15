@@ -80,7 +80,7 @@ s_expr mksexp(const junction& j) {
     return slist("junction"_symbol, mksexp(j.mech));
 }
 s_expr mksexp(const synapse& j) {
-    return slist("synpase"_symbol, mksexp(j.mech));
+    return slist("synapse"_symbol, mksexp(j.mech));
 }
 s_expr mksexp(const density& j) {
     return slist("density"_symbol, mksexp(j.mech));
@@ -227,6 +227,8 @@ arb::cv_policy make_cv_policy(const cv_policy& p) {
 arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
     return ion_reversal_potential_method{ion, mech};
 }
+template <typename T>
+T make_wrapped_mechanism(const arb::mechanism_desc& mech) {return T(mech);}
 #undef ARBIO_DEFINE_SINGLE_ARG
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
@@ -353,24 +355,22 @@ struct mech_match {
     }
 };
 // Create a mechanism_desc from a std::vector<std::any>.
-template <typename T>
 struct mech_eval {
-    T operator()(const std::vector<std::any>& args) {
+    arb::mechanism_desc operator()(const std::vector<std::any>& args) {
         auto name = eval_cast<std::string>(args.front());
         arb::mechanism_desc mech(name);
         for (auto it = args.begin()+1; it != args.end(); ++it) {
             auto p = eval_cast<param_tuple>(*it);
             mech.set(std::get<0>(p), std::get<1>(p));
         }
-        return T(mech);
+        return mech;
     }
 };
 // Wrap mech_match and mech_eval in an evaluator
-template <typename T>
 struct make_mech_call {
     evaluator state;
     make_mech_call(const char* msg="mechanism"):
-        state(mech_eval<T>(), mech_match(), msg)
+        state(mech_eval(), mech_match(), msg)
     {}
     operator evaluator() const {
         return state;
@@ -596,12 +596,9 @@ eval_map named_evals{
         "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
     {"cv-policy", make_call<cv_policy>(make_cv_policy,
         "'cv-policy' with 1 argument (p:policy)")},
-    {"junction", make_mech_call<junction>("'mechanism' with a name argument, and 0 or more parameter settings"
-        "(name:string (param:string val:real))")},
-    {"synapse", make_mech_call<synapse>("'mechanism' with a name argument, and 0 or more parameter settings"
-        "(name:string (param:string val:real))")},
-    {"density", make_mech_call<density>("'mechanism' with a name argument, and 0 or more parameter settings"
-        "(name:string (param:string val:real))")},
+    {"junction", make_call<arb::mechanism_desc>(make_wrapped_mechanism<junction>, "'junction' with 1 argumnet (m: mechanism)")},
+    {"synapse",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<synapse>, "'synapse' with 1 argumnet (m: mechanism)")},
+    {"density",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<density>, "'density' with 1 argumnet (m: mechanism)")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
     {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
     {"place", make_call<locset, junction, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:junction name:string)")},
