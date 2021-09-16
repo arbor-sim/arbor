@@ -82,10 +82,10 @@ public:
     }
 
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-//        if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
+        if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
             return{};
-//        }
-//        return {arb::cell_connection({gid - 1, "detector"}, {"syn"}, params_.event_weight, params_.event_min_delay)};
+        }
+        return {arb::cell_connection({gid - 1, "detector"}, {"syn"}, params_.event_weight, params_.event_min_delay)};
     }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
@@ -313,8 +313,8 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
 
     // Add two gap junction sites.
-    decor.place(arb::mlocation{0, 1}, arb::junction{"expsyn", {{"tau", 1}}}, "local_1");
-    decor.place(arb::mlocation{0, 0}, arb::junction{"exp2syn"}, "local_0");
+    decor.place(arb::mlocation{0, 1}, arb::junction{"gj", {{"g", 2}}}, "local_1");
+    decor.place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0");
 
     // Attach a stimulus to the second cell.
     if (!gid) {
@@ -323,7 +323,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     }
 
     // Add a synapse to the mid point of the first dendrite.
-//    decor.place(arb::mlocation{0, 0.5}, arb::synapse{"exp2syn"}, "syn");
+    decor.place(arb::mlocation{0, 0.5}, arb::synapse{"expsyn"}, "syn");
 
     // Create the cell and set its electrical properties.
     return arb::cable_cell(tree, {}, decor);

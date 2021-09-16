@@ -906,19 +906,17 @@ TEST(fvm_lowered, gj_coords_simple) {
     std::vector<cell_gid_type> gids = {0, 1};
     auto fvm_info = fvcell.initialize(gids, rec);
 
-    /*
-    auto GJ = fvcell.fvm_gap_junctions(cells, gids, fvm_info.gap_junction_data, rec, D);
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+    auto GJ = fvcell.fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
-    auto weight = [&](fvm_value_type g, fvm_index_type i){
-        return g * 1e3 / D.cv_area[i];
-    };
+    EXPECT_EQ(1u, GJ.at(0).size());
+    EXPECT_EQ(1u, GJ.at(1).size());
 
-    EXPECT_EQ(std::pair<int, int>{5,10}, GJ[0].loc);
-    EXPECT_EQ(weight(0.5, 5), GJ[0].weight);
+    auto gj0 = fvm_gap_junction{0, 5, 10, 0.5};
+    auto gj1 = fvm_gap_junction{0, 10, 5, 0.5};
 
-    EXPECT_EQ(std::pair<int, int>{10,5}, GJ[1].loc);
-    EXPECT_EQ(weight(0.5, 10), GJ[1].weight);
-    */
+    EXPECT_EQ(gj0, GJ.at(0).front());
+    EXPECT_EQ(gj1, GJ.at(1).front());
 }
 
 TEST(fvm_lowered, gj_coords_complex) {
@@ -977,16 +975,14 @@ TEST(fvm_lowered, gj_coords_complex) {
         cell_size_type n_ = 3;
     };
 
-    /*
-    // Add 5 gap junctions
     soma_cell_builder b0(2.1);
     b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
 
     auto c0 = b0.make_cell();
     mlocation c0_gj[2] = {b0.location({1, 1}), b0.location({1, 0.5})};
 
-    c0.decorations.place(c0_gj[0], gap_junction_site{}, "gj0");
-    c0.decorations.place(c0_gj[1], gap_junction_site{}, "gj1");
+    c0.decorations.place(c0_gj[0], junction{"gj"}, "gj0");
+    c0.decorations.place(c0_gj[1], junction{"gj"}, "gj1");
 
     soma_cell_builder b1(1.4);
     b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
@@ -996,10 +992,10 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c1 = b1.make_cell();
     mlocation c1_gj[4] = {b1.location({2, 1}), b1.location({1, 1}), b1.location({1, 0.45}), b1.location({1, 0.1})};
 
-    c1.decorations.place(c1_gj[0], gap_junction_site{}, "gj0");
-    c1.decorations.place(c1_gj[1], gap_junction_site{}, "gj1");
-    c1.decorations.place(c1_gj[2], gap_junction_site{}, "gj2");
-    c1.decorations.place(c1_gj[3], gap_junction_site{}, "gj3");
+    c1.decorations.place(c1_gj[0], junction{"gj"}, "gj0");
+    c1.decorations.place(c1_gj[1], junction{"gj"}, "gj1");
+    c1.decorations.place(c1_gj[2], junction{"gj"}, "gj2");
+    c1.decorations.place(c1_gj[3], junction{"gj"}, "gj3");
 
 
     soma_cell_builder b2(2.9);
@@ -1012,9 +1008,9 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto c2 = b2.make_cell();
     mlocation c2_gj[3] = {b2.location({1, 0.5}), b2.location({4, 1}), b2.location({2, 1})};
 
-    c2.decorations.place(c2_gj[0], gap_junction_site{}, "gj0");
-    c2.decorations.place(c2_gj[1], gap_junction_site{}, "gj1");
-    c2.decorations.place(c2_gj[2], gap_junction_site{}, "gj2");
+    c2.decorations.place(c2_gj[0], junction{"gj"}, "gj0");
+    c2.decorations.place(c2_gj[1], junction{"gj"}, "gj1");
+    c2.decorations.place(c2_gj[2], junction{"gj"}, "gj2");
 
     std::vector<cable_cell> cells{c0, c1, c2};
     std::vector<cell_gid_type> gids = {0, 1, 2};
@@ -1025,6 +1021,7 @@ TEST(fvm_lowered, gj_coords_complex) {
     auto fvm_info = fvcell.initialize(gids, rec);
     fvcell.fvm_intdom(rec, gids, fvm_info.cell_to_intdom);
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
 
     using namespace cv_prefer;
     int c0_gj_cv[2];
@@ -1036,38 +1033,33 @@ TEST(fvm_lowered, gj_coords_complex) {
     int c2_gj_cv[3];
     for (int i = 0; i<3; ++i) c2_gj_cv[i] = D.geometry.location_cv(2, c2_gj[i], cv_nonempty);
 
-    std::vector<fvm_gap_junction> GJ = fvcell.fvm_gap_junctions(cells, gids, fvm_info.gap_junction_data, rec, D);
-    EXPECT_EQ(10u, GJ.size());
-
-    auto weight = [&](fvm_value_type g, fvm_index_type i){
-        return g * 1e3 / D.cv_area[i];
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
+    expected[0] = {
+        {0, c0_gj_cv[0], c1_gj_cv[0], 0.03},
+        {0, c0_gj_cv[0], c1_gj_cv[1], 0.04},
+        {1, c0_gj_cv[1], c2_gj_cv[0], 0.01},
+    };
+    expected[1] = {
+        {0, c1_gj_cv[0], c0_gj_cv[0], 0.03},
+        {1, c1_gj_cv[1], c0_gj_cv[0], 0.04},
+        {2, c1_gj_cv[2], c2_gj_cv[1], 0.02},
+        {3, c1_gj_cv[3], c2_gj_cv[2], 0.01}
+    };
+    expected[2] = {
+        {0, c2_gj_cv[0], c0_gj_cv[1], 0.01},
+        {1, c2_gj_cv[1], c1_gj_cv[2], 0.02},
+        {2, c2_gj_cv[2], c1_gj_cv[3], 0.01}
     };
 
-    std::vector<fvm_gap_junction> expected = {
-        {{c0_gj_cv[0], c1_gj_cv[0]}, weight(0.03, c0_gj_cv[0])},
-        {{c0_gj_cv[0], c1_gj_cv[1]}, weight(0.04, c0_gj_cv[0])},
-        {{c0_gj_cv[1], c2_gj_cv[0]}, weight(0.01, c0_gj_cv[1])},
-        {{c1_gj_cv[0], c0_gj_cv[0]}, weight(0.03, c1_gj_cv[0])},
-        {{c1_gj_cv[1], c0_gj_cv[0]}, weight(0.04, c1_gj_cv[1])},
-        {{c1_gj_cv[2], c2_gj_cv[1]}, weight(0.02, c1_gj_cv[2])},
-        {{c1_gj_cv[3], c2_gj_cv[2]}, weight(0.01, c1_gj_cv[3])},
-        {{c2_gj_cv[0], c0_gj_cv[1]}, weight(0.01, c2_gj_cv[0])},
-        {{c2_gj_cv[1], c1_gj_cv[2]}, weight(0.02, c2_gj_cv[1])},
-        {{c2_gj_cv[2], c1_gj_cv[3]}, weight(0.01, c2_gj_cv[2])}
-    };
+    auto GJ = fvcell.fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
-    using util::sort_by;
-    using util::transform_view;
+    util::sort(expected.at(0));
+    util::sort(expected.at(1));
+    util::sort(expected.at(2));
 
-    auto gj_loc = [](const fvm_gap_junction gj) { return gj.loc; };
-    auto gj_weight = [](const fvm_gap_junction gj) { return gj.weight; };
-
-    sort_by(GJ, [](fvm_gap_junction gj) { return gj.loc; });
-    sort_by(expected, [](fvm_gap_junction gj) { return gj.loc; });
-
-    EXPECT_TRUE(testing::seq_eq(transform_view(expected, gj_loc), transform_view(GJ, gj_loc)));
-    EXPECT_TRUE(testing::seq_almost_eq<double>(transform_view(expected, gj_weight), transform_view(GJ, gj_weight)));
-    */
+    EXPECT_EQ(expected.at(0), GJ.at(0));
+    EXPECT_EQ(expected.at(1), GJ.at(1));
+    EXPECT_EQ(expected.at(2), GJ.at(2));
 }
 
 TEST(fvm_lowered, cell_group_gj) {
@@ -1119,12 +1111,11 @@ TEST(fvm_lowered, cell_group_gj) {
     std::vector<cable_cell> cell_group0;
     std::vector<cable_cell> cell_group1;
 
-    /*
     // Make 20 cells
     for (unsigned i = 0; i < 20; i++) {
         cable_cell_description c = soma_cell_builder(2.1).make_cell();
         if (i % 2 == 0) {
-            c.decorations.place(mlocation{0, 1}, gap_junction_site{}, "gj");
+            c.decorations.place(mlocation{0, 1}, junction{"gj"}, "gj");
         }
         if (i < 10) {
             cell_group0.push_back(c);
@@ -1151,17 +1142,26 @@ TEST(fvm_lowered, cell_group_gj) {
     fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, context);
     fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, context);
 
-    auto GJ0 = fvcell0.fvm_gap_junctions(cell_group0, gids_cg0, fvm_info_0.gap_junction_data, rec, D0);
-    auto GJ1 = fvcell1.fvm_gap_junctions(cell_group1, gids_cg1, fvm_info_1.gap_junction_data, rec, D1);
+    auto gj_cvs_0 = fvm_build_gap_junction_cv_map(cell_group0, gids_cg0, D0);
+    auto gj_cvs_1 = fvm_build_gap_junction_cv_map(cell_group1, gids_cg1, D1);
 
-    EXPECT_EQ(10u, GJ0.size());
-    EXPECT_EQ(10u, GJ1.size());
+    auto GJ0 = fvcell0.fvm_resolve_gj_connections(gids_cg0, fvm_info_0.gap_junction_data, gj_cvs_0, rec);
+    auto GJ1 = fvcell1.fvm_resolve_gj_connections(gids_cg1, fvm_info_1.gap_junction_data, gj_cvs_1, rec);
 
-    std::vector<std::pair<int,int>> expected_loc = {{0, 2}, {0, 8}, {2, 4}, {2, 0}, {4, 6} ,{4, 2}, {6, 8}, {6, 4}, {8, 0}, {8, 6}};
+    EXPECT_EQ(gids_cg0.size(), GJ0.size());
+    EXPECT_EQ(gids_cg1.size(), GJ1.size());
+
+    std::vector<std::vector<fvm_gap_junction>> expected = {
+        {{0, 0, 2, 0.03}, {0, 0, 8, 0.03}}, {},
+        {{0, 2, 0, 0.03}, {0, 2, 4, 0.03}}, {},
+        {{0, 4, 2, 0.03} ,{0, 4, 6, 0.03}}, {},
+        {{0, 6, 4, 0.03}, {0, 6, 8, 0.03}}, {},
+        {{0, 8, 0, 0.03}, {0, 8, 6, 0.03}}, {}
+    };
 
     for (unsigned i = 0; i < GJ0.size(); i++) {
-        EXPECT_EQ(expected_loc[i], GJ0[i].loc);
-        EXPECT_EQ(expected_loc[i], GJ1[i].loc);
+        EXPECT_EQ(expected[i], GJ0[i]);
+        EXPECT_EQ(expected[i], GJ1[i+10]);
     }
 
     std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
@@ -1170,7 +1170,6 @@ TEST(fvm_lowered, cell_group_gj) {
 
     EXPECT_EQ(expected_doms, fvm_info_0.cell_to_intdom);
     EXPECT_EQ(expected_doms, fvm_info_1.cell_to_intdom);
-    */
 }
 
 TEST(fvm_lowered, integration_domains) {

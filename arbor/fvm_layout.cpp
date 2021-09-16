@@ -788,45 +788,10 @@ fvm_gap_junction_cv_map fvm_build_gap_junction_cv_map(
     return gj_cvs;
 }
 
-resolved_gj_connection_map fvm_resolve_gj_connections(
-    const std::vector<cell_gid_type>& gids,
-    const cell_label_range& gj_data,
-    const fvm_gap_junction_cv_map& gj_cvs,
-    const recipe& rec)
-{
-    // Construct and resolve all gj_connections, this is not thread safe
-    std::unordered_map<cell_gid_type, std::vector<resolved_gj_connection>> gj_conns;
-    label_resolution_map resolution_map({gj_data, gids});
-    auto gj_resolver = resolver(&resolution_map);
-    for (const auto& gid: gids) {
-        std::vector<resolved_gj_connection> local_conns;
-        for (const auto& conn: rec.gap_junctions_on(gid)) {
-            auto local_idx = gj_resolver.resolve({gid, conn.local});
-            auto peer_idx  = gj_resolver.resolve(conn.peer);
-
-            auto local_cv = gj_cvs.at({gid, local_idx});
-            auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
-
-            local_conns.push_back({local_idx, local_cv, peer_cv, conn.ggap});
-        }
-        // Sort local_conns by local_cv
-        util::sort(local_conns, [](const auto& lhs, const auto& rhs) { return lhs.local_cv < rhs.local_cv;});
-        gj_conns[gid] = local_conns;
-    }
-
-    for (const auto& [gid, v]: gj_conns) {
-        for (const auto& i: v) {
-            std::cout << "" << gid << "," << i.local_idx << i.local_cv << " -> " << i.peer_cv << " - " << i.weight << std::endl;
-        }
-    }
-    std::cout << std::endl;
-    return gj_conns;
-}
-
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const cable_cell& cell,
-    const std::vector<resolved_gj_connection>& gj_conns,
+    const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
     fvm_size_type cell_idx);
 
@@ -834,7 +799,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
-    const resolved_gj_connection_map& gj_conns,
+    const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
     const fvm_cv_discretization& D,
     const execution_context& ctx)
 {
@@ -855,7 +820,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const cable_cell& cell,
-    const std::vector<resolved_gj_connection>& gj_conns,
+    const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
     fvm_size_type cell_idx)
 {
@@ -1171,9 +1136,9 @@ fvm_mechanism_data fvm_build_mechanism_data(
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: cell.junctions()) {
         mechanism_info info = catalogue[name];
-/*        if (info.kind != arb_mechanism_kind_gap_junction) {
+        if (info.kind != arb_mechanism_kind_gap_junction) {
             throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
-        }*/
+        }
 
         fvm_mechanism_config config;
         config.kind = info.kind;
@@ -1216,70 +1181,6 @@ fvm_mechanism_data fvm_build_mechanism_data(
         for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
-    }
-    if (M.mechanisms.count("expsyn")) {
-        std::cout << "expsyn" << std::endl;
-        auto& config = M.mechanisms["expsyn"];
-        std::cout << "cell " << cell_idx << std::endl;
-        std::cout << "local cv: {";
-        for (const auto& cv: config.cv) {
-            std::cout << cv << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "peer cv:  {";
-        for (const auto& cv: config.peer_cv) {
-            std::cout << cv << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "weight:   {";
-        for (const auto& lw: config.local_weight) {
-            std::cout << lw << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "params:   {" << std::endl;
-        for (const auto& pv: config.param_values) {
-            std::cout << "\t" << pv.first << " {";
-            for (const auto& v: pv.second) {
-                std::cout << v << " ";
-            }
-            std::cout << "}" << std::endl;
-        }
-        std::cout << "}" << std::endl;
-    }
-    if (M.mechanisms.count("exp2syn")) {
-        std::cout << "exp2syn" << std::endl;
-        auto& config = M.mechanisms["exp2syn"];
-        std::cout << "cell " << cell_idx << std::endl;
-        std::cout << "local cv: {";
-        for (const auto& cv: config.cv) {
-            std::cout << cv << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "peer cv:  {";
-        for (const auto& cv: config.peer_cv) {
-            std::cout << cv << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "weight:   {";
-        for (const auto& lw: config.local_weight) {
-            std::cout << lw << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "params:   {" << std::endl;
-        for (const auto& pv: config.param_values) {
-            std::cout << "\t" << pv.first << " {";
-            for (const auto& v: pv.second) {
-                std::cout << v << " ";
-            }
-            std::cout << "}" << std::endl;
-        }
-        std::cout << "}" << std::endl;
     }
 
     // Stimuli:

@@ -137,6 +137,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                    "auto* {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
                                    "auto* {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
                                    "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
+                                   "auto* {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
                                    "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
                                    "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
                                    "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"
