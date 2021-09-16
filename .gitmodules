@@ -7,3 +7,6 @@
 [submodule "ext/fmt"]
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "ext/random123"]
+	path = ext/random123
+	url = https://github.com/DEShawResearch/random123
