@@ -1,15 +1,14 @@
 NEURON {
     JUNCTION_PROCESS gj
     NONSPECIFIC_CURRENT i
+    RANGE g
 }
-
-UNITS {}
-
-
 INITIAL {}
 
-PARAMETER {}
+PARAMETER {
+    g = 1
+}
 
 BREAKPOINT {
-    i = (v - v_peer)
+    i = g*(v - v_peer)
 }

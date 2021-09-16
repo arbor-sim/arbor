@@ -191,7 +191,6 @@ shared_state::shared_state(
     fvm_size_type n_detector,
     const std::vector<fvm_index_type>& cv_to_intdom_vec,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
-//    const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
@@ -203,10 +202,8 @@ shared_state::shared_state(
     n_intdom(n_intdom),
     n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
-//    n_gj(gj_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
-//    gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_intdom, pad(alignment)),
     time_to(n_intdom, pad(alignment)),
     dt_intdom(n_intdom, pad(alignment)),
@@ -232,10 +229,6 @@ shared_state::shared_state(
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
     }
-//    if (n_gj>0) {
-//        std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
-//        std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
-//    }
 
     util::fill(time_since_spike, -1.0);
     for (unsigned i = 0; i<n_cv; ++i) {
@@ -322,16 +315,6 @@ void shared_state::set_dt() {
         indirect(dt_cv.data()+i, simd_width) = dt;
     }
 }
-
-/*void shared_state::add_gj_current() {
-    for (unsigned i = 0; i < n_gj; i++) {
-        auto gj = gap_junctions[i];
-        auto curr = gj.weight *
-                    (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
-        current_density[gj.loc.first] -= curr;
-    }
-}*/
 
 void shared_state::add_stimulus_current() {
      stim_data.add_current(time, cv_to_intdom, current_density);
@@ -438,8 +421,7 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
         }
     }
 
-    if (!data)
-        throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
+    if (!data) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
 
     if (!m.ppack_.width) return;
     auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);

@@ -601,7 +601,6 @@ TEST(fvm_lowered, ionic_concentrations) {
     std::vector<fvm_value_type> temp(ncv, 23);
     std::vector<fvm_value_type> diam(ncv, 1.);
     std::vector<fvm_value_type> vinit(ncv, -65);
-    std::vector<fvm_gap_junction> gj = {};
     std::vector<fvm_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
@@ -857,8 +856,6 @@ TEST(fvm_lowered, gj_coords_simple) {
     }
     arb::execution_context context(resources);
 
-    using pair = std::pair<int, int>;
-
     class gap_recipe: public recipe {
     public:
         gap_recipe(std::vector<cable_cell> cells) : cells_(cells) {
@@ -916,10 +913,10 @@ TEST(fvm_lowered, gj_coords_simple) {
         return g * 1e3 / D.cv_area[i];
     };
 
-    EXPECT_EQ(pair({5,10}), GJ[0].loc);
+    EXPECT_EQ(std::pair<int, int>{5,10}, GJ[0].loc);
     EXPECT_EQ(weight(0.5, 5), GJ[0].weight);
 
-    EXPECT_EQ(pair({10,5}), GJ[1].loc);
+    EXPECT_EQ(std::pair<int, int>{10,5}, GJ[1].loc);
     EXPECT_EQ(weight(0.5, 10), GJ[1].weight);
     */
 }
@@ -1083,8 +1080,6 @@ TEST(fvm_lowered, cell_group_gj) {
     }
     arb::execution_context context(resources);
 
-    using pair = std::pair<int, int>;
-
     class gap_recipe: public recipe {
     public:
         gap_recipe(const std::vector<cable_cell>& cg0, const std::vector<cable_cell>& cg1) {
@@ -1162,7 +1157,7 @@ TEST(fvm_lowered, cell_group_gj) {
     EXPECT_EQ(10u, GJ0.size());
     EXPECT_EQ(10u, GJ1.size());
 
-    std::vector<pair> expected_loc = {{0, 2}, {0, 8}, {2, 4}, {2, 0}, {4, 6} ,{4, 2}, {6, 8}, {6, 4}, {8, 0}, {8, 6}};
+    std::vector<std::pair<int,int>> expected_loc = {{0, 2}, {0, 8}, {2, 4}, {2, 0}, {4, 6} ,{4, 2}, {6, 8}, {6, 4}, {8, 0}, {8, 6}};
 
     for (unsigned i = 0; i < GJ0.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ0[i].loc);

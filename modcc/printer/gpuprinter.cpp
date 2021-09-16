@@ -99,7 +99,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     auto ns_components = namespace_components(opt.cpp_namespace);
 
-    const bool is_point_proc = module_.kind() == moduleKind::point;
+    const bool is_point_proc = (module_.kind() == moduleKind::point) || (module_.kind() == moduleKind::junction);
 
     APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
     APIMethod* post_event_api  = find_api_method(module_, "post_event_api");
