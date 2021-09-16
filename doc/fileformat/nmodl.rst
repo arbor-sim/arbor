@@ -122,12 +122,19 @@ two simulators.
 
 1. In Arbor, the reversal potential of an ion remains equal to its initial value (which
 has to be set by the user) over the entire course of the simulation, unless another
-mechanism which alters that reversal potential is explicitly added to the model
-(see :ref:`cppcablecell-revpot` for details).
+mechanism which alters that reversal potential (such as ``nernst``) is explicitly selected
+for the cell. (see :ref:`cppcablecell-revpot` for details).
 
-2. In NEURON, there is a rule which is evaluated (under the hood) per section to determine
-whether or not the reversal potential of an ion remains constant or is calculated using
-``nernst``. The rule is documented `here <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_
+.. NOTE:
+  This means that a user cannot indicate to use ``nernst`` to calculate the reversal
+  potential on some regions of the cell, while other regions of the cell have a constant
+  reversal potential. It's either applied on the enitre cell or not at all. This differs
+  from NEURON's policy.
+
+2. In NEURON, there is a rule which is evaluated (under the hood) per section of a given
+cell to determine whether or not the reversal potential of an ion remains constant or is
+calculated using ``nernst``. The rule is documented
+`here <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_
 and can be summarized as follows:
 
   Examining all mechansims on a given section, if the internal or external concentration of
