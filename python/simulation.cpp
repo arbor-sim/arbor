@@ -77,6 +77,15 @@ public:
         }
     }
 
+    void clear() {
+        spike_record_.clear();
+        for (auto&& [handle, cb]: sampler_map_) {
+            for (auto& rec: *cb.recorders) {
+                rec->reset();
+            }
+        }
+    }
+
     arb::time_type run(arb::time_type tfinal, arb::time_type dt) {
         return sim_->run(tfinal, dt);
     }
@@ -199,6 +208,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
+        .def("clear", &simulation_shim::clear,
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             "Clearing spike and sample information.")
         .def("run", &simulation_shim::run,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
