@@ -11,9 +11,9 @@ using fvm_index_type = arb_index_type;
 
 struct fvm_gap_junction {
     cell_lid_type local_idx;
-    fvm_index_type local_cv;
-    fvm_index_type peer_cv;
-    arb_value_type weight;
+    fvm_size_type local_cv;
+    fvm_size_type peer_cv;
+    fvm_value_type weight;
 };
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(fvm_gap_junction, (a.local_cv, a.peer_cv, a.local_idx, a.weight), (b.local_cv, b.peer_cv, b.local_idx, b.weight))
 

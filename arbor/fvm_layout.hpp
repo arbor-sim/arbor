@@ -291,13 +291,18 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
-using fvm_gap_junction_cv_map = std::unordered_map<cell_member_type, fvm_index_type>;
-
 // Maps gjs placed on a cell to CV indices
-fvm_gap_junction_cv_map fvm_build_gap_junction_cv_map(
+std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D);
+
+// Resolves gj_connections into lids, then CV indices and a weight.
+std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cv,
+    const recipe& rec);
 
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.

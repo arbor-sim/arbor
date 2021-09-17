@@ -2,14 +2,20 @@
 #include <string>
 #include <vector>
 
-#include <arborio/label_parse.hpp>
-
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
-#include "arbor/cable_cell_param.hpp"
-#include "arbor/morph/morphology.hpp"
-#include "arbor/morph/segment_tree.hpp"
+#include <arbor/cable_cell_param.hpp>
+#include <arbor/morph/morphology.hpp>
+#include <arbor/morph/segment_tree.hpp>
+
+#include <arborio/label_parse.hpp>
+
+#include <arborenv/concurrency.hpp>
+
+#include "backends/multicore/fvm.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "fvm_lowered_cell_impl.hpp"
 #include "fvm_layout.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
@@ -29,6 +35,9 @@ using util::make_span;
 using util::count_along;
 using util::ptr_by_key;
 using util::value_by_key;
+
+using backend = arb::multicore::backend;
+using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
 namespace {
     struct system {
@@ -127,6 +136,77 @@ namespace {
         ASSERT_EQ(1u, cells[0].morphology().num_branches());
         ASSERT_EQ(3u, cells[1].morphology().num_branches());
     }
+
+    system six_cell_gj_system() {
+        system s;
+        auto& descriptions = s.descriptions;
+
+        // Cell 0: simple soma cell, 1 CV. No gap junctions.
+        {
+            soma_cell_builder builder(12.6157/2.0);
+
+            auto desc = builder.make_cell();
+            desc.decorations.paint("soma"_lab, density("hh"));
+
+            s.builders.push_back(std::move(builder));
+            descriptions.push_back(desc);
+        }
+        // Cell 1: ball and 3-stick, 2 CVs per dendrite, 1 CV for the soma. 5 gap junctions.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
+            b.add_branch(1, 300, 0.4,  0.4, 2,  "dend");
+            b.add_branch(1, 180, 0.35, 0.35, 2, "dend");
+            auto desc = b.make_cell();
+
+            desc.decorations.paint("soma"_lab, density("hh"));
+            desc.decorations.paint("dend"_lab, density("pas"));
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 2: ball and stick, 1 CV for the soma, 2 CVs for the dendrite. 2 gap junctions.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
+            auto desc = b.make_cell();
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 3: simple soma cell, 1 CV. 1 gap junction.
+        {
+            soma_cell_builder b(7.);
+            auto desc = b.make_cell();
+
+            desc.decorations.paint("soma"_lab, density("hh"));
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 4: ball and stick, 1 CV for the soma, 3 CVs for the dendrite. No gap junctions.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 3,  "dend");
+            auto desc = b.make_cell();
+
+            desc.decorations.paint("soma"_lab, density("pas"));
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 5: ball and stick, 1 CV for the soma, 1 CV for the dendrite. 2 gap junctions.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 1,  "dend");
+            auto desc = b.make_cell();
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        return s;
+    }
+
 } // namespace
 
 template<typename P>
@@ -525,6 +605,526 @@ TEST(fvm_layout, synapse_targets) {
     for (auto i: count_along(exp2syn_target)) {
         EXPECT_EQ(syn_e[exp2syn_target[i]], exp2syn_e[i]);
     }
+}
+
+TEST(fvm_lowered, gj_example_0) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    } else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            conns.push_back(gap_junction_connection({(gid+1)%2, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 0.5));
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 2;
+    };
+
+    std::vector<cable_cell> cells;
+    soma_cell_builder b0(2.1);
+    b0.add_branch(0, 10, 0.3, 0.2, 5, "dend");
+    auto c0 = b0.make_cell();
+    auto loc_0 = b0.location({1, 0.8});
+    c0.decorations.place(loc_0, junction("gj"), "gj");
+    cells.push_back(c0);
+
+    soma_cell_builder b1(2.4);
+    b1.add_branch(0, 10, 0.3, 0.2, 2, "dend");
+    auto c1 = b1.make_cell();
+    auto loc_1 = b1.location({1, 1});
+    c1.decorations.place(loc_1, junction("gj"), "gj");
+    cells.push_back(c1);
+
+    // Check the GJ CV map
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    std::vector<cell_gid_type> gids = {0, 1};
+
+    auto D = fvm_cv_discretize(cells, gprop.default_parameters, context);
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+
+    auto cv_0 = D.geometry.location_cv(0, loc_0, cv_prefer::cv_nonempty);
+    auto cv_1 = D.geometry.location_cv(1, loc_1, cv_prefer::cv_nonempty);
+
+    EXPECT_EQ(2u, gj_cvs.size());
+
+    EXPECT_EQ(cv_0, gj_cvs.at(cell_member_type{0, 0}));
+    EXPECT_EQ(cv_1, gj_cvs.at(cell_member_type{1, 0}));
+
+    // Check the resolved GJ connections
+    fvm_cell fvcell(context);
+    gap_recipe rec(cells, gprop);
+
+    auto fvm_info = fvcell.initialize(gids, rec);
+    auto GJ = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    EXPECT_EQ(1u, GJ.at(0).size());
+    EXPECT_EQ(1u, GJ.at(1).size());
+
+    auto gj0 = fvm_gap_junction{0, cv_0, cv_1, 0.5};
+    auto gj1 = fvm_gap_junction{0, cv_1, cv_0, 0.5};
+
+    EXPECT_EQ(gj0, GJ.at(0).front());
+    EXPECT_EQ(gj1, GJ.at(1).front());
+}
+
+TEST(fvm_lowered, gj_example_1) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    } else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            switch (gid) {
+            case 0:
+                return {
+                    gap_junction_connection({2, "gj0"}, {"gj1"}, 0.01),
+                    gap_junction_connection({1, "gj0"}, {"gj0"}, 0.03),
+                    gap_junction_connection({1, "gj1"}, {"gj0"}, 0.04)
+                };
+            case 1:
+                return {
+                    gap_junction_connection({0, "gj0"}, {"gj0"}, 0.03),
+                    gap_junction_connection({0, "gj0"}, {"gj1"}, 0.04),
+                    gap_junction_connection({2, "gj1"}, {"gj1"}, 0.02),
+                    gap_junction_connection({2, "gj2"}, {"gj3"}, 0.01)
+                };
+            case 2:
+                return {
+                    gap_junction_connection({0, "gj1"}, {"gj0"}, 0.01),
+                    gap_junction_connection({1, "gj1"}, {"gj1"}, 0.02),
+                    gap_junction_connection({1, "gj3"}, {"gj2"}, 0.01)
+                };
+            default : return {};
+            }
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 3;
+    };
+
+    soma_cell_builder b0(2.1);
+    b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
+
+    auto c0 = b0.make_cell();
+    mlocation c0_gj[2] = {b0.location({1, 1}), b0.location({1, 0.5})};
+
+    c0.decorations.place(c0_gj[0], junction{"gj"}, "gj0");
+    c0.decorations.place(c0_gj[1], junction{"gj"}, "gj1");
+
+    soma_cell_builder b1(1.4);
+    b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
+    b1.add_branch(1,  9, 0.3, 0.2, 3, "dend");
+    b1.add_branch(1,  5, 0.2, 0.2, 5, "dend");
+
+    auto c1 = b1.make_cell();
+    mlocation c1_gj[4] = {b1.location({2, 1}), b1.location({1, 1}), b1.location({1, 0.45}), b1.location({1, 0.1})};
+
+    c1.decorations.place(c1_gj[0], junction{"gj"}, "gj0");
+    c1.decorations.place(c1_gj[1], junction{"gj"}, "gj1");
+    c1.decorations.place(c1_gj[2], junction{"gj"}, "gj2");
+    c1.decorations.place(c1_gj[3], junction{"gj"}, "gj3");
+
+    soma_cell_builder b2(2.9);
+    b2.add_branch(0, 4, 0.3, 0.5, 2, "dend");
+    b2.add_branch(1, 6, 0.4, 0.2, 2, "dend");
+    b2.add_branch(1, 8, 0.1, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+
+    auto c2 = b2.make_cell();
+    mlocation c2_gj[3] = {b2.location({1, 0.5}), b2.location({4, 1}), b2.location({2, 1})};
+
+    c2.decorations.place(c2_gj[0], junction{"gj"}, "gj0");
+    c2.decorations.place(c2_gj[1], junction{"gj"}, "gj1");
+    c2.decorations.place(c2_gj[2], junction{"gj"}, "gj2");
+
+    // Check the GJ CV map
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    std::vector<cable_cell> cells{c0, c1, c2};
+    std::vector<cell_gid_type> gids = {0, 1, 2};
+
+    auto D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
+    unsigned c0_gj_cv[2], c1_gj_cv[4], c2_gj_cv[3];
+    for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<4; ++i) c1_gj_cv[i] = D.geometry.location_cv(1, c1_gj[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<3; ++i) c2_gj_cv[i] = D.geometry.location_cv(2, c2_gj[i], cv_prefer::cv_nonempty);
+
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+
+    EXPECT_EQ(9u, gj_cvs.size());
+    EXPECT_EQ(c0_gj_cv[0], gj_cvs.at(cell_member_type{0, 0}));
+    EXPECT_EQ(c0_gj_cv[1], gj_cvs.at(cell_member_type{0, 1}));
+    EXPECT_EQ(c1_gj_cv[0], gj_cvs.at(cell_member_type{1, 0}));
+    EXPECT_EQ(c1_gj_cv[1], gj_cvs.at(cell_member_type{1, 1}));
+    EXPECT_EQ(c1_gj_cv[2], gj_cvs.at(cell_member_type{1, 2}));
+    EXPECT_EQ(c1_gj_cv[3], gj_cvs.at(cell_member_type{1, 3}));
+    EXPECT_EQ(c2_gj_cv[0], gj_cvs.at(cell_member_type{2, 0}));
+    EXPECT_EQ(c2_gj_cv[1], gj_cvs.at(cell_member_type{2, 1}));
+    EXPECT_EQ(c2_gj_cv[2], gj_cvs.at(cell_member_type{2, 2}));
+
+    // Check the resolved GJ connections
+    fvm_cell fvcell(context);
+    gap_recipe rec(cells, gprop);
+
+    auto fvm_info = fvcell.initialize(gids, rec);
+    auto GJ = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
+    expected[0] = {
+        {0, c0_gj_cv[0], c1_gj_cv[0], 0.03},
+        {0, c0_gj_cv[0], c1_gj_cv[1], 0.04},
+        {1, c0_gj_cv[1], c2_gj_cv[0], 0.01},
+    };
+    expected[1] = {
+        {0, c1_gj_cv[0], c0_gj_cv[0], 0.03},
+        {1, c1_gj_cv[1], c0_gj_cv[0], 0.04},
+        {1, c1_gj_cv[1], c2_gj_cv[1], 0.02},
+        {3, c1_gj_cv[3], c2_gj_cv[2], 0.01}
+    };
+    expected[2] = {
+        {0, c2_gj_cv[0], c0_gj_cv[1], 0.01},
+        {1, c2_gj_cv[1], c1_gj_cv[1], 0.02},
+        {2, c2_gj_cv[2], c1_gj_cv[3], 0.01}
+    };
+
+    util::sort(expected.at(0));
+    util::sort(expected.at(1));
+    util::sort(expected.at(2));
+
+    EXPECT_EQ(expected.at(0), GJ.at(0));
+    EXPECT_EQ(expected.at(1), GJ.at(1));
+    EXPECT_EQ(expected.at(2), GJ.at(2));
+}
+
+TEST(fvm_layout, gj_example_2) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    } else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {
+            cat_ = make_unit_test_catalogue();
+            cat_.import(arb::global_default_catalogue(), "");
+            gprop_.catalogue = &cat_;
+        }
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            switch (gid) {
+            case 0:
+                return {};
+            case 1:
+                return {
+                    gap_junction_connection({2, "j5"}, {"j2"}, 0.03),
+                    gap_junction_connection({2, "j6"}, {"j3"}, 0.04),
+                    gap_junction_connection({3, "j7"}, {"j0"}, 0.02),
+                    gap_junction_connection({5, "j8"}, {"j1"}, 0.01),
+                    gap_junction_connection({5, "j9"}, {"j4"}, 0.01)
+                };
+            case 2:
+                return {
+                    gap_junction_connection({1, "j2"}, {"j5"}, 0.03),
+                    gap_junction_connection({1, "j3"}, {"j6"}, 0.04),
+                    gap_junction_connection({3, "j7"}, {"j5"}, 0.02),
+                    gap_junction_connection({5, "j9"}, {"j6"}, 0.01),
+                };
+            case 3:
+                return {
+                    gap_junction_connection({1, "j0"}, {"j7"}, 0.03),
+                    gap_junction_connection({2, "j5"}, {"j7"}, 0.04),
+                    gap_junction_connection({5, "j8"}, {"j7"}, 0.02),
+                };
+            case 4:
+                return {};
+            case 5:
+                return {
+                    gap_junction_connection({1, "j1"}, {"j8"}, 0.03),
+                    gap_junction_connection({1, "j4"}, {"j9"}, 0.04),
+                    gap_junction_connection({2, "j6"}, {"j9"}, 0.02),
+                    gap_junction_connection({3, "j7"}, {"j8"}, 0.01),
+                };
+            default : return {};
+            }
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        arb::mechanism_catalogue cat_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 6;
+    };
+
+    auto system = six_cell_gj_system();
+    auto& desc = system.descriptions;
+    auto& builders = system.builders;
+
+    std::vector<mlocation> locs_1 = {
+        builders[1].location({2, 0}),
+        builders[1].location({3, 0.3}),
+        builders[1].location({0, 0.5}),
+        builders[1].location({0, 0.6}),
+        builders[1].location({3, 0.8})};
+    desc[1].decorations.place(locs_1[0], junction("gj1", {{"g", 0.3}, {"e", 1e-3}}), "j0");
+    desc[1].decorations.place(locs_1[1], junction("gj0", {{"g", 0.2}}), "j1");
+    desc[1].decorations.place(locs_1[2], junction("gj0", {{"g", 1.5}}), "j2");
+    desc[1].decorations.place(locs_1[3], junction("gj0"), "j3");
+    desc[1].decorations.place(locs_1[4], junction("gj0"), "j4");
+
+    std::vector<mlocation> locs_2 = {
+        builders[2].location({0, 0.5}),
+        builders[2].location({1, 0})};
+    desc[2].decorations.place(locs_2[0], junction("gj0", {{"g", 2.3}}), "j5");
+    desc[2].decorations.place(locs_2[1], junction("gj1", {{"e", 5e-4}}), "j6");
+
+    std::vector<mlocation> locs_3 = {
+        builders[3].location({0, 0.5})};
+    desc[3].decorations.place(locs_3[0], junction("gj1", {{"g", 0.4}}), "j7");
+
+    std::vector<mlocation> locs_5 = {
+        builders[5].location({0, 0.1}),
+        builders[5].location({0, 0.2})};
+    desc[5].decorations.place(locs_5[0], junction("gj1"), "j8");
+    desc[5].decorations.place(locs_5[1], junction("gj0", {{"g", 1.6}}), "j9");
+
+    // Check fist the GJ CV map
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    auto cells = system.cells();
+    std::vector<cell_gid_type> gids = {0, 1, 2, 3, 4, 5};
+
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+    unsigned cvs_1[5], cvs_2[2], cvs_3[1], cvs_5[2];
+    for (int i = 0; i<5; ++i) cvs_1[i] = D.geometry.location_cv(1, locs_1[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<2; ++i) cvs_2[i] = D.geometry.location_cv(2, locs_2[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<1; ++i) cvs_3[i] = D.geometry.location_cv(3, locs_3[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<2; ++i) cvs_5[i] = D.geometry.location_cv(5, locs_5[i], cv_prefer::cv_nonempty);
+
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+
+    EXPECT_EQ(10u, gj_cvs.size());
+    EXPECT_EQ(cvs_1[0], gj_cvs.at(cell_member_type{1, 0}));
+    EXPECT_EQ(cvs_1[1], gj_cvs.at(cell_member_type{1, 1}));
+    EXPECT_EQ(cvs_1[2], gj_cvs.at(cell_member_type{1, 2}));
+    EXPECT_EQ(cvs_1[3], gj_cvs.at(cell_member_type{1, 3}));
+    EXPECT_EQ(cvs_1[4], gj_cvs.at(cell_member_type{1, 4}));
+    EXPECT_EQ(cvs_2[0], gj_cvs.at(cell_member_type{2, 0}));
+    EXPECT_EQ(cvs_2[1], gj_cvs.at(cell_member_type{2, 1}));
+    EXPECT_EQ(cvs_3[0], gj_cvs.at(cell_member_type{3, 0}));
+    EXPECT_EQ(cvs_5[0], gj_cvs.at(cell_member_type{5, 0}));
+    EXPECT_EQ(cvs_5[1], gj_cvs.at(cell_member_type{5, 1}));
+
+    // Check the resolved GJ connections
+    fvm_cell fvcell(context);
+    gap_recipe rec(cells, gprop);
+
+    auto fvm_info = fvcell.initialize(gids, rec);
+    auto GJ = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
+    expected[0] = {};
+    expected[1] = {
+        {2, cvs_1[2], cvs_2[0], 0.03},
+        {3, cvs_1[3], cvs_2[1], 0.04},
+        {0, cvs_1[0], cvs_3[0], 0.02},
+        {1, cvs_1[1], cvs_5[0], 0.01},
+        {4, cvs_1[4], cvs_5[1], 0.01},
+    };
+    expected[2] = {
+        {0, cvs_2[0], cvs_1[2], 0.03},
+        {1, cvs_2[1], cvs_1[3], 0.04},
+        {0, cvs_2[0], cvs_3[0], 0.02},
+        {1, cvs_2[1], cvs_5[1], 0.01}
+    };
+    expected[3] = {
+        {0, cvs_3[0], cvs_1[0], 0.03},
+        {0, cvs_3[0], cvs_2[0], 0.04},
+        {0, cvs_3[0], cvs_5[0], 0.02}
+    };
+    expected[4] = {};
+    expected[5] = {
+        {0, cvs_5[0], cvs_1[1], 0.03},
+        {1, cvs_5[1], cvs_1[4], 0.04},
+        {1, cvs_5[1], cvs_2[1], 0.02},
+        {0, cvs_5[0], cvs_3[0], 0.01}
+    };
+
+    util::sort(expected.at(1));
+    util::sort(expected.at(2));
+    util::sort(expected.at(3));
+    util::sort(expected.at(5));
+
+    EXPECT_EQ(expected.at(0), GJ.at(0));
+    EXPECT_EQ(expected.at(1), GJ.at(1));
+    EXPECT_EQ(expected.at(2), GJ.at(2));
+    EXPECT_EQ(expected.at(3), GJ.at(3));
+    EXPECT_EQ(expected.at(4), GJ.at(4));
+    EXPECT_EQ(expected.at(5), GJ.at(5));
+}
+
+TEST(fvm_lowered, cell_group_gj) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+    arb::execution_context context(resources);
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(const std::vector<cable_cell>& cg0, const std::vector<cable_cell>& cg1) {
+            cells_ = cg0;
+            cells_.insert(cells_.end(), cg1.begin(), cg1.end());
+            gprop_.default_parameters = neuron_parameter_defaults;
+        }
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            if (gid % 2 == 0) {
+                // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
+                auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
+                auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
+                conns.push_back(gap_junction_connection({next_cell, "gj", lid_selection_policy::assert_univalent},
+                                                        {"gj", lid_selection_policy::assert_univalent}, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, "gj", lid_selection_policy::assert_univalent},
+                                                        {"gj", lid_selection_policy::assert_univalent}, 0.03));
+            }
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 20;
+    };
+
+    std::vector<cable_cell> cell_group0;
+    std::vector<cable_cell> cell_group1;
+
+    // Make 20 cells
+    for (unsigned i = 0; i < 20; i++) {
+        cable_cell_description c = soma_cell_builder(2.1).make_cell();
+        if (i % 2 == 0) {
+            c.decorations.place(mlocation{0, 1}, junction{"gj"}, "gj");
+        }
+        if (i < 10) {
+            cell_group0.push_back(c);
+        }
+        else {
+            cell_group1.push_back(c);
+        }
+    }
+
+    std::vector<cell_gid_type> gids_cg0 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<cell_gid_type> gids_cg1 = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+
+    gap_recipe rec(cell_group0, cell_group1);
+
+    fvm_cell fvcell0(context);
+    fvm_cell fvcell1(context);
+
+    auto fvm_info_0 = fvcell0.initialize(gids_cg0, rec);
+    auto fvm_info_1 = fvcell1.initialize(gids_cg1, rec);
+
+    auto num_dom0 = fvcell0.fvm_intdom(rec, gids_cg0, fvm_info_0.cell_to_intdom);
+    auto num_dom1 = fvcell1.fvm_intdom(rec, gids_cg1, fvm_info_1.cell_to_intdom);
+
+    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, context);
+    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, context);
+
+    auto gj_cvs_0 = fvm_build_gap_junction_cv_map(cell_group0, gids_cg0, D0);
+    auto gj_cvs_1 = fvm_build_gap_junction_cv_map(cell_group1, gids_cg1, D1);
+
+    auto GJ0 = fvm_resolve_gj_connections(gids_cg0, fvm_info_0.gap_junction_data, gj_cvs_0, rec);
+    auto GJ1 = fvm_resolve_gj_connections(gids_cg1, fvm_info_1.gap_junction_data, gj_cvs_1, rec);
+
+    EXPECT_EQ(gids_cg0.size(), GJ0.size());
+    EXPECT_EQ(gids_cg1.size(), GJ1.size());
+
+    std::vector<std::vector<fvm_gap_junction>> expected = {
+        {{0, 0, 2, 0.03}, {0, 0, 8, 0.03}}, {},
+        {{0, 2, 0, 0.03}, {0, 2, 4, 0.03}}, {},
+        {{0, 4, 2, 0.03} ,{0, 4, 6, 0.03}}, {},
+        {{0, 6, 4, 0.03}, {0, 6, 8, 0.03}}, {},
+        {{0, 8, 0, 0.03}, {0, 8, 6, 0.03}}, {}
+    };
+
+    for (unsigned i = 0; i < GJ0.size(); i++) {
+        EXPECT_EQ(expected[i], GJ0[i]);
+        EXPECT_EQ(expected[i], GJ1[i+10]);
+    }
+
+    std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
+    EXPECT_EQ(6u, num_dom0);
+    EXPECT_EQ(6u, num_dom1);
+
+    EXPECT_EQ(expected_doms, fvm_info_0.cell_to_intdom);
+    EXPECT_EQ(expected_doms, fvm_info_1.cell_to_intdom);
 }
 
 namespace {

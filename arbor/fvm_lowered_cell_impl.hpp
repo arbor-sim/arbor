@@ -68,13 +68,6 @@ public:
         const std::vector<cell_gid_type>& gids,
         std::vector<fvm_index_type>& cell_to_intdom);
 
-    // Resolves gj_connections into lids, then CV indices and a weight.
-    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
-        const std::vector<cell_gid_type>& gids,
-        const cell_label_range& gj_data,
-        const fvm_gap_junction_cv_map& gj_cv,
-        const recipe& rec);
-
     value_type time() const override { return tmin_; }
 
     //Exposed for testing purposes
@@ -654,35 +647,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     reset();
 
     return fvm_info;
-}
-
-template <typename Backend>
-std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_lowered_cell_impl<Backend>::fvm_resolve_gj_connections(
-    const std::vector<cell_gid_type>& gids,
-    const cell_label_range& gj_data,
-    const fvm_gap_junction_cv_map& gj_cvs,
-    const recipe& rec)
-{
-    // Construct and resolve all gj_connections, this is not thread safe
-    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
-    label_resolution_map resolution_map({gj_data, gids});
-    auto gj_resolver = resolver(&resolution_map);
-    for (const auto& gid: gids) {
-        std::vector<fvm_gap_junction> local_conns;
-        for (const auto& conn: rec.gap_junctions_on(gid)) {
-            auto local_idx = gj_resolver.resolve({gid, conn.local});
-            auto peer_idx  = gj_resolver.resolve(conn.peer);
-
-            auto local_cv = gj_cvs.at({gid, local_idx});
-            auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
-
-            local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
-        }
-        // Sort local_conns by local_cv
-        util::sort(local_conns);
-        gj_conns[gid] = std::move(local_conns);
-    }
-    return gj_conns;
 }
 
 template <typename Backend>

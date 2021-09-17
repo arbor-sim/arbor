@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <iostream>
 #include <optional>
 #include <set>
 #include <stdexcept>
@@ -772,12 +771,13 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-fvm_gap_junction_cv_map fvm_build_gap_junction_cv_map(
+std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D) {
 
-    fvm_gap_junction_cv_map gj_cvs;
+    arb_assert(cells.size() == gids.size());
+    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
         for (const auto& mech : cells[cell_idx].junctions()) {
             for (const auto& gj: mech.second) {
@@ -786,6 +786,34 @@ fvm_gap_junction_cv_map fvm_build_gap_junction_cv_map(
         }
     }
     return gj_cvs;
+}
+
+std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
+    const recipe& rec)
+{
+    // Construct and resolve all gj_connections, this is not thread safe
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
+    label_resolution_map resolution_map({gj_data, gids});
+    auto gj_resolver = resolver(&resolution_map);
+    for (const auto& gid: gids) {
+        std::vector<fvm_gap_junction> local_conns;
+        for (const auto& conn: rec.gap_junctions_on(gid)) {
+            auto local_idx = gj_resolver.resolve({gid, conn.local});
+            auto peer_idx  = gj_resolver.resolve(conn.peer);
+
+            auto local_cv = gj_cvs.at({gid, local_idx});
+            auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
+
+            local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
+        }
+        // Sort local_conns by local_cv
+        util::sort(local_conns);
+        gj_conns[gid] = std::move(local_conns);
+    }
+    return gj_conns;
 }
 
 fvm_mechanism_data fvm_build_mechanism_data(

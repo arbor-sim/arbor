@@ -10,6 +10,8 @@
 #include "mechanisms/ca_linear.hpp"
 #include "mechanisms/celsius_test.hpp"
 #include "mechanisms/diam_test.hpp"
+#include "mechanisms/gj0.hpp"
+#include "mechanisms/gj1.hpp"
 #include "mechanisms/non_linear.hpp"
 #include "mechanisms/param_as_state.hpp"
 #include "mechanisms/post_events_syn.hpp"
@@ -60,6 +62,8 @@ using namespace arb;
 mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
     mechanism_catalogue cat(from);
 
+    ADD_MECH(cat, gj0)
+    ADD_MECH(cat, gj1)
     ADD_MECH(cat, test_ca)
     ADD_MECH(cat, test_kin1)
     ADD_MECH(cat, test_kinlva)
