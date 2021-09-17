@@ -1,5 +1,6 @@
 #include <limits>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -848,11 +849,7 @@ TEST(fvm_layout, gj_example_2) {
 
     class gap_recipe: public recipe {
     public:
-        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {
-            cat_ = make_unit_test_catalogue();
-            cat_.import(arb::global_default_catalogue(), "");
-            gprop_.catalogue = &cat_;
-        }
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {}
 
         cell_size_type num_cells() const override { return n_; }
         cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
@@ -903,7 +900,6 @@ TEST(fvm_layout, gj_example_2) {
         }
     protected:
         arb::cable_cell_global_properties gprop_;
-        arb::mechanism_catalogue cat_;
         std::vector<cable_cell> cells_;
         cell_size_type n_ = 6;
     };
@@ -940,8 +936,11 @@ TEST(fvm_layout, gj_example_2) {
     desc[5].decorations.place(locs_5[0], junction("gj1"), "j8");
     desc[5].decorations.place(locs_5[1], junction("gj0", {{"g", 1.6}}), "j9");
 
-    // Check fist the GJ CV map
+    // Check the GJ CV map
     cable_cell_global_properties gprop;
+    auto cat = make_unit_test_catalogue();
+    cat.import(arb::global_default_catalogue(), "");
+    gprop.catalogue = &cat;
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
@@ -974,7 +973,7 @@ TEST(fvm_layout, gj_example_2) {
     gap_recipe rec(cells, gprop);
 
     auto fvm_info = fvcell.initialize(gids, rec);
-    auto GJ = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
     expected[0] = {};
@@ -1009,12 +1008,81 @@ TEST(fvm_layout, gj_example_2) {
     util::sort(expected.at(3));
     util::sort(expected.at(5));
 
-    EXPECT_EQ(expected.at(0), GJ.at(0));
-    EXPECT_EQ(expected.at(1), GJ.at(1));
-    EXPECT_EQ(expected.at(2), GJ.at(2));
-    EXPECT_EQ(expected.at(3), GJ.at(3));
-    EXPECT_EQ(expected.at(4), GJ.at(4));
-    EXPECT_EQ(expected.at(5), GJ.at(5));
+    EXPECT_EQ(expected.at(0), gj_conns.at(0));
+    EXPECT_EQ(expected.at(1), gj_conns.at(1));
+    EXPECT_EQ(expected.at(2), gj_conns.at(2));
+    EXPECT_EQ(expected.at(3), gj_conns.at(3));
+    EXPECT_EQ(expected.at(4), gj_conns.at(4));
+    EXPECT_EQ(expected.at(5), gj_conns.at(5));
+
+    // Check the GJ mechanism data
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, context);
+
+    EXPECT_EQ(4u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("gj0"));
+    ASSERT_EQ(1u, M.mechanisms.count("gj1"));
+
+    const auto& gj0_data = M.mechanisms["gj0"];
+    const auto& gj1_data = M.mechanisms["gj1"];
+
+    const auto& gj0_params = gj0_data.param_values;
+    const auto& gj1_params = gj1_data.param_values;
+
+    const auto& gj0_g_param = *ptr_by_key(gj0_params, "g"s);
+    const auto& gj1_g_param = *ptr_by_key(gj1_params, "g"s);
+    const auto& gj1_e_param = *ptr_by_key(gj1_params, "e"s);
+
+    std::vector<std::tuple<int, int, double, double>> expected_gj0_values = {
+        {cvs_1[2], cvs_2[0], 0.03, 1.5},
+        {cvs_1[3], cvs_2[1], 0.04, 1. },
+        {cvs_1[1], cvs_5[0], 0.01, 0.2},
+        {cvs_1[4], cvs_5[1], 0.01, 1.0},
+        {cvs_2[0], cvs_1[2], 0.03, 2.3},
+        {cvs_2[0], cvs_3[0], 0.02, 2.3},
+        {cvs_5[1], cvs_1[4], 0.04, 1.6},
+        {cvs_5[1], cvs_2[1], 0.02, 1.6}
+    };
+    util::sort(expected_gj0_values);
+
+    std::vector<int> expected_gj0_cv, expected_gj0_peer_cv;
+    std::vector<double> expected_gj0_weight, expected_gj0_g;
+    util::assign(expected_gj0_cv,      util::transform_view(expected_gj0_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj0_peer_cv, util::transform_view(expected_gj0_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj0_weight,  util::transform_view(expected_gj0_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj0_g,       util::transform_view(expected_gj0_values, [](const auto& x){return std::get<3>(x);}));
+
+    EXPECT_EQ(8u, gj0_data.cv.size());
+    EXPECT_EQ(expected_gj0_cv,      gj0_data.cv);
+    EXPECT_EQ(expected_gj0_peer_cv, gj0_data.peer_cv);
+    EXPECT_EQ(expected_gj0_weight,  gj0_data.local_weight);
+    EXPECT_EQ(expected_gj0_g,       gj0_g_param);
+
+    std::vector<std::tuple<int, int, double, double, double>> expected_gj1_values = {
+        {cvs_1[0], cvs_3[0], 0.02, 0.3, 1e-3},
+        {cvs_2[1], cvs_1[3], 0.04, 1.0, 5e-4},
+        {cvs_2[1], cvs_5[1], 0.01, 1.0, 5e-4},
+        {cvs_3[0], cvs_1[0], 0.03, 0.4, 0.},
+        {cvs_3[0], cvs_2[0], 0.04, 0.4, 0.},
+        {cvs_3[0], cvs_5[0], 0.02, 0.4, 0.},
+        {cvs_5[0], cvs_1[1], 0.03, 1.0, 0.},
+        {cvs_5[0], cvs_3[0], 0.01, 1.0, 0.}
+    };
+    util::sort(expected_gj0_values);
+
+    std::vector<int> expected_gj1_cv, expected_gj1_peer_cv;
+    std::vector<double> expected_gj1_weight, expected_gj1_g, expected_gj1_e;
+    util::assign(expected_gj1_cv,      util::transform_view(expected_gj1_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj1_peer_cv, util::transform_view(expected_gj1_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj1_weight,  util::transform_view(expected_gj1_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj1_g,       util::transform_view(expected_gj1_values, [](const auto& x){return std::get<3>(x);}));
+    util::assign(expected_gj1_e,       util::transform_view(expected_gj1_values, [](const auto& x){return std::get<4>(x);}));
+
+    EXPECT_EQ(8u, gj1_data.cv.size());
+    EXPECT_EQ(expected_gj1_cv,      gj1_data.cv);
+    EXPECT_EQ(expected_gj1_peer_cv, gj1_data.peer_cv);
+    EXPECT_EQ(expected_gj1_weight,  gj1_data.local_weight);
+    EXPECT_EQ(expected_gj1_g,       gj1_g_param);
+    EXPECT_EQ(expected_gj1_e,       gj1_e_param);
 }
 
 TEST(fvm_lowered, cell_group_gj) {
