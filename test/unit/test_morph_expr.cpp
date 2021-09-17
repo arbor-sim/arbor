@@ -72,6 +72,8 @@ TEST(locset, expr_repn) {
     auto term = ls::terminal();
     auto loc = ls::location(2, 0.5);
     auto bdy = ls::boundary(reg::tagged(1));
+    auto prox = ls::proximal_translate(ls::terminal(), 100);
+    auto dist = ls::distal_translate(ls::root(), 42);
 
     EXPECT_EQ(to_string(root), "(root)");
     EXPECT_EQ(to_string(term), "(terminal)");
@@ -79,6 +81,8 @@ TEST(locset, expr_repn) {
     EXPECT_EQ(to_string(sum(root, term, loc)), "(sum (sum (root) (terminal)) (location 2 0.5))");
     EXPECT_EQ(to_string(loc), "(location 2 0.5)");
     EXPECT_EQ(to_string(bdy), "(boundary (tag 1))");
+    EXPECT_EQ(to_string(prox), "(proximal-translate (terminal) 100)");
+    EXPECT_EQ(to_string(dist), "(distal-translate (root) 42)");
 }
 
 TEST(locset, invalid_mlocation) {
@@ -173,9 +177,23 @@ TEST(region, thingify_named) {
     }
 }
 
-// Embedded evaluation (thingify) tests:
+// Compare locsets to within machine epsilon accuracy.
+bool compare_locsets(const mlocation_list& lhs, const mlocation_list& rhs) {
+    if (lhs.size()!=rhs.size()) return false;
+    for (std::size_t i=0; i<lhs.size(); ++i) {
+        if (lhs[i].branch != rhs[i].branch) goto not_equal;
+        if (std::fabs(lhs[i].pos-rhs[i].pos) > std::numeric_limits<double>::epsilon()) goto not_equal;
+    }
+    return true;
 
+    not_equal:
+    std::cerr << "mismatch:\n  expected: " << rhs << "\n    actual: " << lhs << "\n";
+    return false;
+};
+
+// Embedded evaluation (thingify) tests:
 TEST(locset, thingify) {
+
     using pvec = std::vector<msize_t>;
     using svec = std::vector<mpoint>;
     using ll = mlocation_list;
@@ -210,6 +228,25 @@ TEST(locset, thingify) {
     };
     auto sm = segments_from_points(points, parents);
 
+    {
+        auto mp = mprovider(morphology(sm));
+
+        auto allroot = ll{{0,0}, {1,0}};
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(root, 50), mp), (ll{{0, 0.5}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(root, 100), mp), (ll{{0, 1.0}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(root, 150), mp), (ll{{0, 1.0}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(allroot, 50), mp), (ll{{0, 0.5}, {1,0.5}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(allroot, 100), mp), (ll{{0, 1}, {1,1}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(allroot, 150), mp), (ll{{0, 1}, {2,0.5}, {3,0.25}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(allroot, 150), mp), (ll{{0, 1}, {2,0.5}, {3,0.25}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(ls::location(0, 0.1), 20), mp), (ll{{0, 0.3}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::distal_translate(ls::location(1, 0.9), 20), mp), (ll{{2, 0.1}, {3, 0.05}})));
+
+        EXPECT_TRUE(compare_locsets(thingify(ls::proximal_translate(ls::terminal(), 20), mp), (ll{{0, 0.8}, {2, 0.8}, {3, 0.9}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::proximal_translate(ls::location(0,0.5), 10), mp), (ll{{0,0.4}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::proximal_translate(ls::location(0,0.5), 60), mp), (ll{{0,0}})));
+        EXPECT_TRUE(compare_locsets(thingify(ls::proximal_translate(ls::location(2,0.5), 60), mp), (ll{{1,0.9}})));
+    }
     {
         auto mp = mprovider(morphology(sm));
 

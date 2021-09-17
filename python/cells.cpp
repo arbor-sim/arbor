@@ -606,11 +606,11 @@ void register_cells(pybind11::module& m) {
             "The number of unbranched cable sections in the morphology.")
         // Get locations associated with a locset label.
         .def("locations",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arb::ls::named(label));},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arborio::parse_locset_expression(label).unwrap());},
             "label"_a, "The locations of the cell morphology for a locset label.")
         // Get cables associated with a region label.
         .def("cables",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arb::reg::named(label)).cables();},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arborio::parse_region_expression(label).unwrap()).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
