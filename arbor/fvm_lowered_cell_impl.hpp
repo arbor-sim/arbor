@@ -469,16 +469,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
     auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
-    for (const auto& [lid, cv]: gj_cvs) {
-        std::cout << lid << " -> " << cv << std::endl;
-    }
-    std::cout << std::endl;
-
     // Discretize mechanism data.
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
-
-    std::cout << "done" << std::endl << std::endl;
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
