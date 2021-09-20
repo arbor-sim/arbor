@@ -68,7 +68,7 @@ class _command_template:
     Override a setuptools-like command to augment the command line options.
     Needs to appear before the command class in the class's argument list for
     correct MRO.
-    
+
     Examples
     --------
 
@@ -83,12 +83,6 @@ class _command_template:
               # Both here and in `mixin1`, a `super` call is required
               super().initialize_options()
               # ...
-
-    Usage
-    -----
-
-        python3 setup.py install --mpi --arch=skylake
-        pip3 install --install-option '--mpi' --install-option '--arch=skylake'
 
     """
     def __init_subclass__(cls, **kwargs):
