@@ -50,10 +50,10 @@ decor.set_property(Vm=-55)
 decor.set_ion('ca', method=mech('nernst/x=ca'))
 #decor.set_ion('ca', method='nernst/x=ca')
 # hh mechanism on the soma and axon.
-decor.paint('"soma"', 'hh')
-decor.paint('"axon"', 'hh')
+decor.paint('"soma"', arbor.density('hh'))
+decor.paint('"axon"', arbor.density('hh'))
 # pas mechanism the dendrites.
-decor.paint('"dend"', 'pas')
+decor.paint('"dend"', arbor.density('pas'))
 # Increase resistivity on dendrites.
 decor.paint('"dend"', rL=500)
 # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
@@ -74,7 +74,7 @@ decor.discretization(policy)
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(morpho, labels, decor)
 
-print(cell.locations('"axon_end"'))
+print(cell.locations("axon_end"))
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)

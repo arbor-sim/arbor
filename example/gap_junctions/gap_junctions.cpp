@@ -287,7 +287,6 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
 
     decor.set_default(arb::axial_resistivity{100});       // [Ω·cm]
     decor.set_default(arb::membrane_capacitance{0.018});  // [F/m²]
-    decor.set_default(arb::cv_policy_fixed_per_branch(2));
 
     // Define the density channels and their parameters.
     arb::mechanism_desc nax("nax");
@@ -313,7 +312,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
 
     // Add two gap junction sites.
-    decor.place(arb::mlocation{0, 1}, arb::junction{"gj", {{"g", 2}}}, "local_1");
+    decor.place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1");
     decor.place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0");
 
     // Attach a stimulus to the second cell.

@@ -680,7 +680,7 @@ void run_partial_density_probe_test(const context& ctx) {
     //    CV 4:   8.6
     //    CV 5:  10.5
 
-    auto mk_mech = [](double param) { return mechanism_desc("param_as_state").set("p", param); };
+    auto mk_mech = [](double param) { return density(mechanism_desc("param_as_state").set("p", param)); };
 
     d0.paint(mcable{0, 0.0, 0.1}, mk_mech(2));
     d0.paint(mcable{0, 0.2, 0.3}, mk_mech(3));
@@ -781,7 +781,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
     // to 0.01 F/m².
 
-    d.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
+    d.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
     d.set_default(membrane_capacitance{0.01}); // [F/m²]
     const double tau = 0.1; // [ms]
 
@@ -933,9 +933,9 @@ void run_multi_probe_test(const context& ctx) {
     decor d;
 
     // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
-    d.paint(reg::branch(1), mechanism_desc("param_as_state").set("p", 10.));
-    d.paint(reg::branch(2), mechanism_desc("param_as_state").set("p", 20.));
-    d.paint(reg::branch(5), mechanism_desc("param_as_state").set("p", 50.));
+    d.paint(reg::branch(1), density("param_as_state", {{"p", 10.}}));
+    d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
+    d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
     auto tracev = run_simple_sampler<double, mlocation>(ctx, 0.1, {cable_cell{m, {}, d}}, 0, cable_probe_density_state{ls::terminal(), "param_as_state", "s"}, {0.});
 
@@ -1025,7 +1025,7 @@ void run_total_current_probe_test(const context& ctx) {
     const double tau = 0.1;     // [ms]
     d0.place(mlocation{0, 0}, i_clamp(0.3), "clamp0");
 
-    d0.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
+    d0.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
     d0.set_default(membrane_capacitance{0.01}); // [F/m²]
     // Tweak membrane capacitance on cells[1] so as to change dynamics a bit.
     auto d1 = d0;
@@ -1341,9 +1341,9 @@ TEST(probe, get_probe_metadata) {
     decor d;
 
     // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
-    d.paint(reg::branch(1), mechanism_desc("param_as_state").set("p", 10.));
-    d.paint(reg::branch(2), mechanism_desc("param_as_state").set("p", 20.));
-    d.paint(reg::branch(5), mechanism_desc("param_as_state").set("p", 50.));
+    d.paint(reg::branch(1), density("param_as_state", {{"p", 10.}}));
+    d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
+    d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
     cable1d_recipe rec(cable_cell{m, {}, d}, false);
     rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());

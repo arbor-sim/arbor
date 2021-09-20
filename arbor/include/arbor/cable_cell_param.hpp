@@ -188,7 +188,7 @@ private:
 // Tagged mechanism types for dispatching cable_cell::place() and cable_cell::paint() calls
 struct junction {
     mechanism_desc mech;
-    junction(mechanism_desc m): mech(std::move(m)) {}
+    explicit junction(mechanism_desc m): mech(std::move(m)) {}
     junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
         for (const auto& [param, value]: params) {
             mech.set(param, value);
@@ -198,7 +198,7 @@ struct junction {
 
 struct synapse {
     mechanism_desc mech;
-    synapse(mechanism_desc m): mech(std::move(m)) {}
+    explicit synapse(mechanism_desc m): mech(std::move(m)) {}
     synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
         for (const auto& [param, value]: params) {
             mech.set(param, value);
@@ -208,7 +208,7 @@ struct synapse {
 
 struct density {
     mechanism_desc mech;
-    density(mechanism_desc m): mech(std::move(m)) {}
+    explicit density(mechanism_desc m): mech(std::move(m)) {}
     density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
         for (const auto& [param, value]: params) {
             mech.set(param, value);

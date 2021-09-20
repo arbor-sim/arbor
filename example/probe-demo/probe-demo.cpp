@@ -119,7 +119,7 @@ struct cable_recipe: public arb::recipe {
         tree.append(arb::mnpos, {0, 0, 0, 0.5*diam}, {length, 0, 0, 0.5*diam}, 1);
 
         arb::decor decor;
-        decor.paint(arb::reg::all(), "hh"); // HH mechanism over whole cell.
+        decor.paint(arb::reg::all(), arb::density("hh")); // HH mechanism over whole cell.
         decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp"); // Inject a 1 nA current indefinitely.
 
         return arb::cable_cell(tree, {}, decor);

@@ -652,7 +652,7 @@ TEST(fvm_lowered, gj_example_0) {
     b1.add_branch(0, 10, 0.3, 0.2, 2, "dend");
     auto c1 = b1.make_cell();
     auto loc_1 = b1.location({1, 1});
-    c1.decorations.place(loc_1, junction("gj"), "gj");
+    c1.decorations.place(loc_1, junction("gj", {{"g", 0.5}}), "gj");
     cells.push_back(c1);
 
     // Check the GJ CV map
@@ -677,16 +677,44 @@ TEST(fvm_lowered, gj_example_0) {
     gap_recipe rec(cells, gprop);
 
     auto fvm_info = fvcell.initialize(gids, rec);
-    auto GJ = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
-    EXPECT_EQ(1u, GJ.at(0).size());
-    EXPECT_EQ(1u, GJ.at(1).size());
+    EXPECT_EQ(1u, gj_conns.at(0).size());
+    EXPECT_EQ(1u, gj_conns.at(1).size());
 
     auto gj0 = fvm_gap_junction{0, cv_0, cv_1, 0.5};
     auto gj1 = fvm_gap_junction{0, cv_1, cv_0, 0.5};
 
-    EXPECT_EQ(gj0, GJ.at(0).front());
-    EXPECT_EQ(gj1, GJ.at(1).front());
+    EXPECT_EQ(gj0, gj_conns.at(0).front());
+    EXPECT_EQ(gj1, gj_conns.at(1).front());
+
+    // Check the GJ mechanism data
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, context);
+
+    EXPECT_EQ(1u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("gj"));
+
+    const auto& gj_data = M.mechanisms["gj"];
+    const auto& gj_g_param = *ptr_by_key(gj_data.param_values, "g"s);
+
+    std::vector<std::tuple<int, int, double, double>> expected_gj_values = {
+        {cv_0, cv_1, 0.5, 1.},
+        {cv_1, cv_0, 0.5, 0.5},
+    };
+    util::sort(expected_gj_values);
+
+    std::vector<int> expected_gj_cv, expected_gj_peer_cv;
+    std::vector<double> expected_gj_weight, expected_gj_g;
+    util::assign(expected_gj_cv,      util::transform_view(expected_gj_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj_peer_cv, util::transform_view(expected_gj_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj_weight,  util::transform_view(expected_gj_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj_g,       util::transform_view(expected_gj_values, [](const auto& x){return std::get<3>(x);}));
+
+    EXPECT_EQ(2u, gj_data.cv.size());
+    EXPECT_EQ(expected_gj_cv,      gj_data.cv);
+    EXPECT_EQ(expected_gj_peer_cv, gj_data.peer_cv);
+    EXPECT_EQ(expected_gj_weight,  gj_data.local_weight);
+    EXPECT_EQ(expected_gj_g,       gj_g_param);
 }
 
 TEST(fvm_lowered, gj_example_1) {
@@ -809,7 +837,7 @@ TEST(fvm_lowered, gj_example_1) {
     gap_recipe rec(cells, gprop);
 
     auto fvm_info = fvcell.initialize(gids, rec);
-    auto GJ = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
     expected[0] = {
@@ -833,9 +861,45 @@ TEST(fvm_lowered, gj_example_1) {
     util::sort(expected.at(1));
     util::sort(expected.at(2));
 
-    EXPECT_EQ(expected.at(0), GJ.at(0));
-    EXPECT_EQ(expected.at(1), GJ.at(1));
-    EXPECT_EQ(expected.at(2), GJ.at(2));
+    EXPECT_EQ(expected.at(0), gj_conns.at(0));
+    EXPECT_EQ(expected.at(1), gj_conns.at(1));
+    EXPECT_EQ(expected.at(2), gj_conns.at(2));
+
+    // Check the GJ mechanism data
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, context);
+
+    EXPECT_EQ(1u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("gj"));
+
+    const auto& gj_data = M.mechanisms["gj"];
+    const auto& gj_g_param = *ptr_by_key(gj_data.param_values, "g"s);
+
+    std::vector<std::tuple<int, int, double, double>> expected_gj_values = {
+        {c0_gj_cv[0], c1_gj_cv[0], 0.03, 1.},
+        {c0_gj_cv[0], c1_gj_cv[1], 0.04, 1.},
+        {c0_gj_cv[1], c2_gj_cv[0], 0.01, 1.},
+        {c1_gj_cv[0], c0_gj_cv[0], 0.03, 1.},
+        {c1_gj_cv[1], c0_gj_cv[0], 0.04, 1.},
+        {c1_gj_cv[1], c2_gj_cv[1], 0.02, 1.},
+        {c1_gj_cv[3], c2_gj_cv[2], 0.01, 1.},
+        {c2_gj_cv[0], c0_gj_cv[1], 0.01, 1.},
+        {c2_gj_cv[1], c1_gj_cv[1], 0.02, 1.},
+        {c2_gj_cv[2], c1_gj_cv[3], 0.01, 1.}
+    };
+    util::sort(expected_gj_values);
+
+    std::vector<int> expected_gj_cv, expected_gj_peer_cv;
+    std::vector<double> expected_gj_weight, expected_gj_g;
+    util::assign(expected_gj_cv,      util::transform_view(expected_gj_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj_peer_cv, util::transform_view(expected_gj_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj_weight,  util::transform_view(expected_gj_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj_g,       util::transform_view(expected_gj_values, [](const auto& x){return std::get<3>(x);}));
+
+    EXPECT_EQ(10u, gj_data.cv.size());
+    EXPECT_EQ(expected_gj_cv,      gj_data.cv);
+    EXPECT_EQ(expected_gj_peer_cv, gj_data.peer_cv);
+    EXPECT_EQ(expected_gj_weight,  gj_data.local_weight);
+    EXPECT_EQ(expected_gj_g,       gj_g_param);
 }
 
 TEST(fvm_layout, gj_example_2) {
@@ -1067,7 +1131,7 @@ TEST(fvm_layout, gj_example_2) {
         {cvs_5[0], cvs_1[1], 0.03, 1.0, 0.},
         {cvs_5[0], cvs_3[0], 0.01, 1.0, 0.}
     };
-    util::sort(expected_gj0_values);
+    util::sort(expected_gj1_values);
 
     std::vector<int> expected_gj1_cv, expected_gj1_peer_cv;
     std::vector<double> expected_gj1_weight, expected_gj1_g, expected_gj1_e;

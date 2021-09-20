@@ -684,8 +684,8 @@ TEST(fvm_lowered, ionic_currents) {
     m2["coeff"] = coeff;
 
     auto c = b.make_cell();
-    c.decorations.paint("soma"_lab, m1);
-    c.decorations.paint("soma"_lab, m2);
+    c.decorations.paint("soma"_lab, density(m1));
+    c.decorations.paint("soma"_lab, density(m2));
 
     cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
