@@ -592,6 +592,8 @@ eval_map named_evals{
         "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
     {"threshold-detector", make_call<double>(make_threshold_detector,
         "'threshold-detector' with 1 argument (threshold:real)")},
+    {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
+        "(name:string (param:string val:real))")},
     {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>( make_ion_reversal_potential_method,
         "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
     {"cv-policy", make_call<cv_policy>(make_cv_policy,

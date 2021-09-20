@@ -1050,7 +1050,7 @@ TEST(doc_expressions, parse) {
     // literals
     for (auto expr: {"(region-def \"my_region\" (branch 1))",
                      "(locset-def \"my_locset\" (location 3 0.5))",
-                     "(density (mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2)))",
+                     "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
                      "(current-clamp (envelope (0 10) (50 10) (50 0)) 40 0.25)",
                      "(paint (tag 1) (membrane-capacitance 0.02))",
