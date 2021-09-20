@@ -66,11 +66,17 @@ def check_cmake():
 # These arguments must come after `install` on the command line, e.g.:
 #    python3 setup.py install --mpi --arch=skylake
 #    pip3 install --install-option '--mpi' --install-option '--arch=skylake' .
-class install_command(install):
-    user_options = install.user_options + user_options_
+class _command_template:
+    def __init_subclass__(cls, base=None, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.user_options = base.user_options + user_options_
+        cls._initialize_options = base.initialize_options
+        cls._finalize_options = base.finalize_options
+        cls._run = base.run
+
 
     def initialize_options(self):
-        install.initialize_options(self)
+        self._initialize_options()
         self.mpi  = None
         self.gpu  = None
         self.arch = None
@@ -79,7 +85,7 @@ class install_command(install):
         self.sysdeps = None
 
     def finalize_options(self):
-        install.finalize_options(self)
+        self._finalize_options()
 
     def run(self):
         # The options are stored in global variables:
@@ -98,42 +104,15 @@ class install_command(install):
         #             By default use bundled libs.
         opt['bundled'] = self.sysdeps is None
 
-        install.run(self)
+        self._run()
+
+
+class install_command(_command_template, base=install):
+    pass
 
 if WHEEL_INSTALLED:
-    class bdist_wheel_command(bdist_wheel):
-        user_options = bdist_wheel.user_options + user_options_
-
-        def initialize_options(self):
-            bdist_wheel.initialize_options(self)
-            self.mpi  = None
-            self.gpu  = None
-            self.arch = None
-            self.vec  = None
-            self.neuroml = None
-            self.sysdeps = None
-
-        def finalize_options(self):
-            bdist_wheel.finalize_options(self)
-
-        def run(self):
-            # The options are stored in global variables:
-            opt = cl_opt()
-            #   mpi  : build with MPI support (boolean).
-            opt['mpi']  = self.mpi is not None
-            #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
-            opt['gpu']  = "none" if self.gpu is None else self.gpu
-            #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
-            opt['vec']  = self.vec is not None
-            #   arch : target CPU micro-architecture (string).
-            opt['arch'] = 'none' if self.arch is None else self.arch
-            #   neuroml : compile with neuroml support for morphologies.
-            opt['neuroml'] = self.neuroml is not None
-            #   bundled : use bundled/git-submoduled 3rd party libraries.
-            #             By default use bundled libs.
-            opt['bundled'] = self.sysdeps is None
-
-            bdist_wheel.run(self)
+    class bdist_wheel_command(_command_template, base=bdist_wheel):
+        pass
 
 class cmake_extension(Extension):
     def __init__(self, name):
