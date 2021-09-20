@@ -83,4 +83,4 @@ dist
 
 # generated image files by Python examples
 python/example/*.svg
-
+python/example/*.csv
