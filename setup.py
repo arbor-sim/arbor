@@ -62,13 +62,37 @@ def check_cmake():
     except OSError:
         return False
 
-# Extend the command line options available to the install phase.
-# These arguments must come after `install` on the command line, e.g.:
-#    python3 setup.py install --mpi --arch=skylake
-#    pip3 install --install-option '--mpi' --install-option '--arch=skylake' .
+
 class _command_template:
+    """
+    Override a setuptools-like command to augment the command line options.
+    Needs to appear before the command class in the class's argument list for
+    correct MRO. Will assume that the 2nd class is the base command class unless
+    a ``base`` kwarg is explicitly defined in the class's argument list.
+
+    Examples
+    --------
+
+    .. code-block: python
+
+      class install_command(_command_template, install):
+          pass
+
+
+      class complex_command(_command_template, mixin1, install, base=install):
+          pass
+
+    Usage
+    -----
+
+        python3 setup.py install --mpi
+        python3 setup.py bdist_wheel --vec --mpi --arch=none
+
+    """
     def __init_subclass__(cls, base=None, **kwargs):
         super().__init_subclass__(**kwargs)
+        if base is None:
+            base = cls.__bases__[1]
         cls.user_options = base.user_options + user_options_
         cls._initialize_options = base.initialize_options
         cls._finalize_options = base.finalize_options
@@ -107,11 +131,15 @@ class _command_template:
         self._run()
 
 
-class install_command(_command_template, base=install):
+# Extend the command line options available to the install phase.
+# These arguments must come after `install` on the command line, e.g.:
+#    python3 setup.py install --mpi --arch=skylake
+#    pip3 install --install-option '--mpi' --install-option '--arch=skylake' .
+class install_command(_command_template, install):
     pass
 
 if WHEEL_INSTALLED:
-    class bdist_wheel_command(_command_template, base=bdist_wheel):
+    class bdist_wheel_command(_command_template, bdist_wheel):
         pass
 
 class cmake_extension(Extension):
