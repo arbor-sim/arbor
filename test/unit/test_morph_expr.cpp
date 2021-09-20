@@ -241,6 +241,26 @@ TEST(locset, thingify) {
         EXPECT_EQ(thingify(ls::on_components(0.25, reg::cable(1, 0.5, 1)), mp),  (ll{{1, 0.625}}));
     }
     {
+        // Regression test for on-components applied to a region with zero-length cables.
+
+        auto mp = mprovider(morphology(sm));
+
+        auto reg1 = join(reg::branch(1), reg::cable(2, 0, 0));
+        auto reg2 = join(reg::cable(2, 0, 0), reg::cable(3, 0.5, 0.5));
+
+        auto l1a = ls::on_components(1., reg1);
+        EXPECT_EQ(thingify(l1a, mp), (ll{{2, 0}}));
+
+        auto l2a = ls::on_components(1., reg2);
+        EXPECT_EQ(thingify(l2a, mp), (ll{{2, 0}, {3, 0.5}}));
+
+        auto l2b = ls::on_components(0.3, reg2);
+        EXPECT_EQ(thingify(l2b, mp), (ll{{2, 0}, {3, 0.5}}));
+
+        auto l2c = ls::on_components(0, reg2);
+        EXPECT_EQ(thingify(l2c, mp), (ll{{2, 0}, {3, 0.5}}));
+    }
+    {
         auto mp = mprovider(morphology(sm));
 
         auto all = reg::all();
