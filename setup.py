@@ -62,15 +62,36 @@ def check_cmake():
     except OSError:
         return False
 
-# Extend the command line options available to the install phase.
-# These arguments must come after `install` on the command line, e.g.:
-#    python3 setup.py install --mpi --arch=skylake
-#    pip3 install --install-option '--mpi' --install-option '--arch=skylake' .
-class install_command(install):
-    user_options = install.user_options + user_options_
+
+class _command_template:
+    """
+    Override a setuptools-like command to augment the command line options.
+    Needs to appear before the command class in the class's argument list for
+    correct MRO.
+
+    Examples
+    --------
+
+    .. code-block: python
+
+      class install_command(_command_template, install):
+          pass
+
+
+      class complex_command(_command_template, mixin1, install):
+          def initialize_options(self):
+              # Both here and in `mixin1`, a `super` call is required
+              super().initialize_options()
+              # ...
+
+    """
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.user_options = super().user_options + user_options_
+
 
     def initialize_options(self):
-        install.initialize_options(self)
+        super().initialize_options()
         self.mpi  = None
         self.gpu  = None
         self.arch = None
@@ -79,7 +100,7 @@ class install_command(install):
         self.sysdeps = None
 
     def finalize_options(self):
-        install.finalize_options(self)
+        super().finalize_options()
 
     def run(self):
         # The options are stored in global variables:
@@ -98,46 +119,21 @@ class install_command(install):
         #             By default use bundled libs.
         opt['bundled'] = self.sysdeps is None
 
-        install.run(self)
+        super().run()
+
+
+class install_command(_command_template, install):
+    pass
 
 if WHEEL_INSTALLED:
-    class bdist_wheel_command(bdist_wheel):
-        user_options = bdist_wheel.user_options + user_options_
+    class bdist_wheel_command(_command_template, bdist_wheel):
+        pass
 
-        def initialize_options(self):
-            bdist_wheel.initialize_options(self)
-            self.mpi  = None
-            self.gpu  = None
-            self.arch = None
-            self.vec  = None
-            self.neuroml = None
-            self.sysdeps = None
-
-        def finalize_options(self):
-            bdist_wheel.finalize_options(self)
-
-        def run(self):
-            # The options are stored in global variables:
-            opt = cl_opt()
-            #   mpi  : build with MPI support (boolean).
-            opt['mpi']  = self.mpi is not None
-            #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
-            opt['gpu']  = "none" if self.gpu is None else self.gpu
-            #   vec  : generate SIMD vectorized kernels for CPU micro-architecture (boolean).
-            opt['vec']  = self.vec is not None
-            #   arch : target CPU micro-architecture (string).
-            opt['arch'] = 'none' if self.arch is None else self.arch
-            #   neuroml : compile with neuroml support for morphologies.
-            opt['neuroml'] = self.neuroml is not None
-            #   bundled : use bundled/git-submoduled 3rd party libraries.
-            #             By default use bundled libs.
-            opt['bundled'] = self.sysdeps is None
-
-            bdist_wheel.run(self)
 
 class cmake_extension(Extension):
     def __init__(self, name):
         Extension.__init__(self, name, sources=[])
+
 
 class cmake_build(build_ext):
     def run(self):
