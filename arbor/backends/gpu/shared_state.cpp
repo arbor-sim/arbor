@@ -374,7 +374,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         }
 
         m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
-        m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv, pos_data.peer_cv.back()): nullptr;
+        m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
     }
 
     // Shift data to GPU, set up pointers
