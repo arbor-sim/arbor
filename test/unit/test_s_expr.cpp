@@ -6,8 +6,8 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/cv_policy.hpp>
-
 #include <arbor/s_expr.hpp>
+#include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
@@ -514,8 +514,11 @@ std::ostream& operator<<(std::ostream& o, const place_tuple& p) {
     return o << " \"" << std::get<2>(p) << "\")";
 }
 std::ostream& operator<<(std::ostream& o, const defaultable& p) {
+    auto default_visitor = arb::util::overload(
+        [&](const cv_policy& p)   { o << "(cv-policy " << p << ")"; },
+        [&](const auto& p){ o << p; });
     o << "(default ";
-    std::visit([&](auto&& x) {o << x;}, p);
+    std::visit(default_visitor, p);
     return o << ")";
 }
 std::ostream& operator<<(std::ostream& o, const locset_pair& p) {
@@ -529,6 +532,11 @@ template <typename T>
 std::string to_string(const T& obj) {
     std::stringstream s;
     s << obj;
+    return s.str();
+}
+std::string to_string(const cv_policy& p) {
+    std::stringstream s;
+    s << "(cv-policy " << p << ')';
     return s.str();
 }
 std::string to_string(const arborio::cable_cell_component& c) {
@@ -598,7 +606,9 @@ TEST(decor_literals, round_tripping) {
         "(mechanism \"pas\" (\"g\" 0.02))",
     };
     auto default_literals = {
-        "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))"};
+        "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
+        "(cv-policy (single (segment 0)))"
+    };
     auto place_literals = {
         "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 10 0.25)",
         "(threshold-detector -10)",
@@ -658,7 +668,8 @@ TEST(decor_expressions, round_tripping) {
         "(default (ion-internal-concentration \"ca\" 75.1))",
         "(default (ion-external-concentration \"h\" -50.1))",
         "(default (ion-reversal-potential \"na\" 30))",
-        "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))"
+        "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))",
+        "(default (cv-policy (max-extent 2 (region \"soma\") 2)))"
     };
     auto decorate_place_literals = {
         "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0.5 0.25) \"clamp\")",
@@ -724,6 +735,11 @@ TEST(decor, round_tripping) {
                                 "    (default \n"
                                 "      (ion-reversal-potential-method \"na\" \n"
                                 "        (mechanism \"nernst\")))\n"
+                                "    (default \n"
+                                "      (cv-policy \n"
+                                "        (fixed-per-branch 10 \n"
+                                "          (all)\n"
+                                "          1)))\n"
                                 "    (paint \n"
                                 "      (region \"dend\")\n"
                                 "      (mechanism \"pas\"))\n"

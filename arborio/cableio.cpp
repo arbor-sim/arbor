@@ -8,6 +8,7 @@
 
 #include <arborio/label_parse.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/cv_policy_parse.hpp>
 
 #include "parse_helpers.hpp"
 #include "parse_s_expr.hpp"
@@ -88,7 +89,7 @@ s_expr mksexp(const msegment& seg) {
 s_expr mksexp(const cv_policy& c) {
     std::stringstream s;
     s << c;
-    return parse_s_expr(s.str());
+    return slist("cv-policy"_symbol, parse_s_expr(s.str()));
 }
 s_expr mksexp(const decor& d) {
     auto round_trip = [](auto& x) {
@@ -216,6 +217,9 @@ arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq, double phase) {
 }
 arb::gap_junction_site make_gap_junction_site() {
     return arb::gap_junction_site{};
+}
+arb::cv_policy make_cv_policy(const cv_policy& p) {
+    return p;
 }
 arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
     return ion_reversal_potential_method{ion, mech};
@@ -536,17 +540,19 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
             }
         }
 
-        // If it's not in the provided map, maybe it's a label expression
-        // the corresponding parser is provided by the arbor lib
+        // If it's not in the provided map, it could be a label expression
         if (auto l = parse_label_expression(e)) {
             if (match<region>(l->type())) return eval_cast<region>(l.value());
             if (match<locset>(l->type())) return eval_cast<locset>(l.value());
         }
 
+        // Or it could be a cv-policy expression
+        if (auto p = parse_cv_policy_expression(e)) return p.value();
+
         // Unable to find a match: try to return a helpful error message.
         const auto nc = std::distance(matches.first, matches.second);
         std::string msg = "No matches for found for "+name+" with "+std::to_string(args->size())+" arguments.\n"
-                          "There are "+std::to_string(nc)+" potential candiates"+(nc?":":".");
+                          "There are "+std::to_string(nc)+" potential candidates"+(nc?":":".");
         int count = 0;
         for (auto i=matches.first; i!=matches.second; ++i) {
             msg += "\n  Candidate "+std::to_string(++count)+": "+i->second.message;
@@ -558,34 +564,36 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
 
 eval_map named_evals{
     {"membrane-potential", make_call<double>(make_init_membrane_potential,
-                               "'membrane-potential' with 1 argument (val:real)")},
+        "'membrane-potential' with 1 argument (val:real)")},
     {"temperature-kelvin", make_call<double>(make_temperature_K,
-                               "'temperature-kelvin' with 1 argument (val:real)")},
+        "'temperature-kelvin' with 1 argument (val:real)")},
     {"axial-resistivity", make_call<double>(make_axial_resistivity,
-                              "'axial-resistivity' with 1 argument (val:real)")},
+        "'axial-resistivity' with 1 argument (val:real)")},
     {"membrane-capacitance", make_call<double>(make_membrane_capacitance,
-                                 "'membrane-capacitance' with 1 argument (val:real)")},
+        "'membrane-capacitance' with 1 argument (val:real)")},
     {"ion-internal-concentration", make_call<std::string, double>(make_init_int_concentration,
-                                       "'ion_internal_concentration' with 2 arguments (ion:string val:real)")},
+        "'ion_internal_concentration' with 2 arguments (ion:string val:real)")},
     {"ion-external-concentration", make_call<std::string, double>(make_init_ext_concentration,
-                                       "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
+        "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
     {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential,
-                                   "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
+        "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
     {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
-                     "`envelope` with one or more pairs of start time and amplitude (start:real amplitude:real)")},
+        "'envelope' with one or more pairs of start time and amplitude (start:real amplitude:real)")},
     {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,
-                          "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
+        "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
     {"current-clamp", make_call<std::vector<arb::i_clamp::envelope_point>, double, double>(make_i_clamp,
-                          "`current-clamp` with 3 arguments (env:envelope freq:real phase:real)")},
+        "'current-clamp' with 3 arguments (env:envelope freq:real phase:real)")},
     {"current-clamp", make_call<pulse_tuple, double, double>(make_i_clamp_pulse,
-                          "`current-clamp` with 3 arguments (env:envelope_pulse freq:real phase:real)")},
+        "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
     {"threshold-detector", make_call<double>(make_threshold_detector,
-                               "'threshold-detector' with 1 argument (threshold:real)")},
+        "'threshold-detector' with 1 argument (threshold:real)")},
     {"gap-junction-site", make_call<>(make_gap_junction_site,
-                              "'gap-junction-site' with 0 arguments")},
+        "'gap-junction-site' with 0 arguments")},
     {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(
-            make_ion_reversal_potential_method,
-            "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
+        make_ion_reversal_potential_method,
+        "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
+    {"cv-policy", make_call<cv_policy>(make_cv_policy,
+        "'cv-policy' with 1 argument (p:policy)")},
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
                                  "(name:string (param:string val:real))")},
     {"place", make_call<locset, gap_junction_site, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:gap-junction-site name:string)")},
@@ -610,28 +618,29 @@ eval_map named_evals{
     {"default", make_call<init_ext_concentration>(make_default, "'default' with 1 argument (v:ion-external-concentration)")},
     {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (v:ion-reversal-potential)")},
     {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (v:ion-reversal-potential-method)")},
+    {"default", make_call<cv_policy>(make_default, "'default' with 1 argument (v:cv-policy)")},
 
     {"locset-def", make_call<std::string, locset>(make_locset_pair,
-                       "'locset-def' with 2 arguments (name:string ls:locset)")},
+        "'locset-def' with 2 arguments (name:string ls:locset)")},
     {"region-def", make_call<std::string, region>(make_region_pair,
-                       "'region-def' with 2 arguments (name:string reg:region)")},
+        "'region-def' with 2 arguments (name:string reg:region)")},
 
     {"point",   make_call<double, double, double, double>(make_point,
-                    "'point' with 4 arguments (x:real y:real z:real radius:real)")},
+         "'point' with 4 arguments (x:real y:real z:real radius:real)")},
     {"segment", make_call<int, mpoint, mpoint, int>(make_segment,
-                    "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
+        "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
     {"branch",  make_branch_call(
-                    "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
+        "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
     {"decor", make_arg_vec_call<place_tuple, paint_pair, defaultable>(make_decor,
-                  "'decor' with 1 or more `paint`, `place` or `default` arguments")},
+        "'decor' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
-                       "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
+        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
     {"morphology", make_arg_vec_call<branch_tuple>(make_morphology,
-                       "'morphology' 1 or more `branch` arguments")},
+        "'morphology' 1 or more `branch` arguments")},
 
     {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable_cell,
-                       "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
+        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
 
     {"version", make_call<std::string>(make_version, "'version' with one argment (val:std::string)")},
     {"meta-data", make_call<version_tuple>(make_meta_data, "'meta-data' with one argument (v:version)")},
