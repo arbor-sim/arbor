@@ -68,6 +68,7 @@ class _command_template:
     Override a setuptools-like command to augment the command line options.
     Needs to appear before the command class in the class's argument list for
     correct MRO.
+    
     Examples
     --------
 
