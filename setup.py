@@ -86,8 +86,8 @@ class _command_template:
     Usage
     -----
 
-        python3 setup.py install --mpi
-        python3 setup.py bdist_wheel --vec --mpi --arch=none
+        python3 setup.py install --mpi --arch=skylake
+        pip3 install --install-option '--mpi' --install-option '--arch=skylake'
 
     """
     def __init_subclass__(cls, **kwargs):
@@ -127,10 +127,6 @@ class _command_template:
         super().run()
 
 
-# Extend the command line options available to the install phase.
-# These arguments must come after `install` on the command line, e.g.:
-#    python3 setup.py install --mpi --arch=skylake
-#    pip3 install --install-option '--mpi' --install-option '--arch=skylake' .
 class install_command(_command_template, install):
     pass
 
@@ -138,9 +134,11 @@ if WHEEL_INSTALLED:
     class bdist_wheel_command(_command_template, bdist_wheel):
         pass
 
+
 class cmake_extension(Extension):
     def __init__(self, name):
         Extension.__init__(self, name, sources=[])
+
 
 class cmake_build(build_ext):
     def run(self):
