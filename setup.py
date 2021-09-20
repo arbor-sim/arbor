@@ -67,9 +67,7 @@ class _command_template:
     """
     Override a setuptools-like command to augment the command line options.
     Needs to appear before the command class in the class's argument list for
-    correct MRO. Will assume that the 2nd class is the base command class unless
-    a ``base`` kwarg is explicitly defined in the class's argument list.
-
+    correct MRO.
     Examples
     --------
 
@@ -79,8 +77,11 @@ class _command_template:
           pass
 
 
-      class complex_command(_command_template, mixin1, install, base=install):
-          pass
+      class complex_command(_command_template, mixin1, install):
+          def initialize_options(self):
+              # Both here and in `mixin1`, a `super` call is required
+              super().initialize_options()
+              # ...
 
     Usage
     -----
@@ -89,18 +90,13 @@ class _command_template:
         python3 setup.py bdist_wheel --vec --mpi --arch=none
 
     """
-    def __init_subclass__(cls, base=None, **kwargs):
+    def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        if base is None:
-            base = cls.__bases__[1]
-        cls.user_options = base.user_options + user_options_
-        cls._initialize_options = base.initialize_options
-        cls._finalize_options = base.finalize_options
-        cls._run = base.run
+        cls.user_options = super().user_options + user_options_
 
 
     def initialize_options(self):
-        self._initialize_options()
+        super().initialize_options()
         self.mpi  = None
         self.gpu  = None
         self.arch = None
@@ -109,7 +105,7 @@ class _command_template:
         self.sysdeps = None
 
     def finalize_options(self):
-        self._finalize_options()
+        super().finalize_options()
 
     def run(self):
         # The options are stored in global variables:
@@ -128,7 +124,7 @@ class _command_template:
         #             By default use bundled libs.
         opt['bundled'] = self.sysdeps is None
 
-        self._run()
+        super().run()
 
 
 # Extend the command line options available to the install phase.
