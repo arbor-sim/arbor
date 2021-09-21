@@ -194,7 +194,6 @@ void register_mechanisms(pybind11::module& m) {
                     return util::pprintf("<arbor.mechanism_catalogue>"); });
 
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
-    m.def("empty_catalogue", [](){return arb::global_empty_catalogue();});
     m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
     m.def("bbp_catalogue", [](){return arb::global_bbp_catalogue();});
     m.def("load_catalogue", [](const std::string& fn){return arb::load_catalogue(fn);});
