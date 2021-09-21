@@ -109,3 +109,7 @@ Arbor-specific features
     POST_EVENT(t) {
        g = g + (0.1*t)
     }
+
+* Arbor allows gap-junction mechanism to access the membrane potential at the peer site
+  of a gap-junction connections. The peer membrane potential is made available through the
+  magic ``v_peer`` variable.

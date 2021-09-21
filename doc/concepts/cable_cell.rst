@@ -5,7 +5,7 @@ Cable cells
 
 An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell
 with morphology and cell dynamics like ion species and their properties, ion
-channels, synapses, gap junction sites, stimuli and spike detectors.
+channels, synapses, gap junctions, stimuli and spike detectors.
 
 Cable cells are constructed from three components:
 
@@ -17,7 +17,7 @@ When a cable cell is constructed the following steps are performed using the inp
 
 1. Concrete regions and locsets are generated for the morphology for each labelled region and locset in the dictionary
 2. The default values for parameters specified in the decor, such as ion species concentration, are instantiated.
-3. Dynamics (mechanisms, parameters, synapses, etc.) are instantiated on the regions and locsets as specified by the decor.
+3. Dynamics (mechanisms, parameters, synapses, gap junctions etc.) are instantiated on the regions and locsets as specified by the decor.
 
 Once constructed, the cable cell can be queried for specific information about the cell, but it can't be modified (it is *immutable*).
 

@@ -316,11 +316,11 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
     density
-        .def(pybind11::init([](const std::string& s) { return arb::density(s); }))
-        .def(pybind11::init([](arb::mechanism_desc m) { return arb::density(m); }))
-        .def(pybind11::init([](arb::mechanism_desc m, const std::unordered_map<std::string, double>& params) { return arb::density(m, params);}))
-        .def(pybind11::init([](const std::string& s, const std::unordered_map<std::string, double>& params) { return arb::density(arb::mechanism_desc(s), params);}))
-        .def_readonly("mechanism", &arb::density::mech, "The underlying mechanism.")
+        .def(pybind11::init([](const std::string& name) { return arb::density(name); }))
+        .def(pybind11::init([](arb::mechanism_desc mech) { return arb::density(mech); }))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) { return arb::density(mech, params);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) { return arb::density(arb::mechanism_desc(name), params);}))
+        .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
 
@@ -328,11 +328,11 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<arb::synapse> synapse(m, "synapse", "For placing a synaptic mechanism on a locset.");
     synapse
-        .def(pybind11::init([](const std::string& s) { return arb::synapse(s); }))
-        .def(pybind11::init([](arb::mechanism_desc m) { return arb::synapse(m); }))
-        .def(pybind11::init([](arb::mechanism_desc m, const std::unordered_map<std::string, double>& params) { return arb::synapse(m, params);} ))
-        .def(pybind11::init([](const std::string& s, const std::unordered_map<std::string, double>& params) { return arb::synapse(arb::mechanism_desc(s), params);}))
-        .def_readonly("mechanism", &arb::synapse::mech, "The underlying mechanism.")
+        .def(pybind11::init([](const std::string& name) { return arb::synapse(name); }))
+        .def(pybind11::init([](arb::mechanism_desc mech) { return arb::synapse(mech); }))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) { return arb::synapse(mech, params);} ))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) { return arb::synapse(arb::mechanism_desc(name), params);}))
+        .def_readonly("mech", &arb::synapse::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";})
         .def("__str__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";});
 
@@ -340,11 +340,11 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<arb::junction> junction(m, "junction", "For placing a gap-junction mechanism on a locset.");
     junction
-        .def(pybind11::init([](const std::string& s) { return arb::junction(s); }))
-        .def(pybind11::init([](arb::mechanism_desc m) { return arb::junction(m); }))
-        .def(pybind11::init([](arb::mechanism_desc m, const std::unordered_map<std::string, double>& params) { return arb::junction(m, params);} ))
-        .def(pybind11::init([](const std::string& s, const std::unordered_map<std::string, double>& params) { return arb::junction(arb::mechanism_desc(s), params);}))
-        .def_readonly("mechanism", &arb::junction::mech, "The underlying mechanism.")
+        .def(pybind11::init([](const std::string& name) { return arb::junction(name); }))
+        .def(pybind11::init([](arb::mechanism_desc mech) { return arb::junction(mech); }))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) { return arb::junction(mech, params);} ))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) { return arb::junction(arb::mechanism_desc(name), params);}))
+        .def_readonly("mech", &arb::junction::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";})
         .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
 
