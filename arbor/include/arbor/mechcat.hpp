@@ -112,6 +112,7 @@ private:
 // Reference to global default mechanism catalogue.
 
 const mechanism_catalogue& global_default_catalogue();
+const mechanism_catalogue& global_empty_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
 
