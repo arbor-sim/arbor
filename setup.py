@@ -70,6 +70,7 @@ class _command_template:
     Override a setuptools-like command to augment the command line options.
     Needs to appear before the command class in the class's argument list for
     correct MRO.
+
     Examples
     --------
 
@@ -84,12 +85,6 @@ class _command_template:
               # Both here and in `mixin1`, a `super` call is required
               super().initialize_options()
               # ...
-
-    Usage
-    -----
-
-        python3 setup.py install --mpi --arch=skylake
-        pip3 install --install-option '--mpi' --install-option '--arch=skylake'
 
     """
     def __init_subclass__(cls, **kwargs):
@@ -115,7 +110,7 @@ class _command_template:
             err = True
         else:
             err = False
-        if err or int(self.makejobs) < 1:
+        if err or self.makejobs < 1:
             raise AssertionError('makejobs must be a strictly positive integer')
 
     def run(self):
