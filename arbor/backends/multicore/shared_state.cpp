@@ -567,7 +567,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         store.indices_ = iarray(count*index_width_padded, 0, pad);
         chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
-        m.ppack_.node_index = writer.append(pos_data.cv, pos_data.cv.empty() ? 0 : pos_data.cv.back());
+        auto pad_val = pos_data.cv.empty() ? 0 : pos_data.cv.back();
+        m.ppack_.node_index = writer.append(pos_data.cv, pad_val);
         auto node_index = util::range_n(m.ppack_.node_index, index_width_padded);
         // Make SIMD index constraints and set the view
         store.constraints_ = make_constraint_partition(node_index, m.ppack_.width, m.iface_.partition_width);
