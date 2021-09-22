@@ -21,7 +21,6 @@ public:
     void visit(UnaryExpression *e) override;
     void visit(BinaryExpression *e) override;
     void visit(AssignmentExpression *e) override;
-    void visit(PowBinaryExpression *e) override;
     void visit(NumberExpression *e) override;
     void visit(IfExpression *e) override;
 
@@ -54,7 +53,6 @@ public:
     void visit(UnaryExpression *e) override;
     void visit(BinaryExpression *e) override;
     void visit(AssignmentExpression *e) override;
-    void visit(PowBinaryExpression *e) override;
     void visit(NumberExpression *e) override;
     void visit(IfExpression *e) override;
 

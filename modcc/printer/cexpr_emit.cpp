@@ -91,10 +91,6 @@ void CExprEmitter::visit(AssignmentExpression* e) {
     e->rhs()->accept(this);
 }
 
-void CExprEmitter::visit(PowBinaryExpression* e) {
-    emit_as_call("pow", e->lhs(), e->rhs());
-}
-
 void CExprEmitter::visit(BinaryExpression* e) {
     static std::unordered_map<tok, const char*> binop_tbl = {
         {tok::minus,    "-"},
@@ -111,6 +107,7 @@ void CExprEmitter::visit(BinaryExpression* e) {
         {tok::ne,       "!="},
         {tok::min,      "min"},
         {tok::max,      "max"},
+        {tok::pow,      "pow"},
     };
 
     if (!binop_tbl.count(e->op())) {
@@ -178,14 +175,6 @@ void CExprEmitter::visit(IfExpression* e) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
-void SimdExprEmitter::visit(PowBinaryExpression* e) {
-    out_ << "S::pow(";
-    e->lhs()->accept(this);
-    out_ << ", ";
-    e->rhs()->accept(this);
-    out_ << ')';
-}
-
 void SimdExprEmitter::visit(NumberExpression* e) {
     out_ << " (double)" << as_c_double(e->value());
 } 
@@ -252,6 +241,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             {tok::ne,       "S::cmp_neq"},
             {tok::min,      "S::min"},
             {tok::max,      "S::max"},
+            {tok::pow,      "S::pow"},
     };
 
     static std::unordered_map<tok, const char *> binop_tbl = {
@@ -269,6 +259,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             {tok::ne,       "!="},
             {tok::min,      "min"},
             {tok::max,      "max"},
+            {tok::pow,      "pow"},
     };
 
 
