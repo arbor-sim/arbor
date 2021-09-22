@@ -567,6 +567,9 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         store.indices_ = iarray(count*index_width_padded, 0, pad);
         chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
+        //   We usually insert cv.size() == width elements into node index (length: width_padded >= width)
+        //   and pad by the last element of cv. If width == 0 we must choose a different pad, that will not
+        //   really be used, as width == width_padded == 0. Nevertheless, we need to pass it.
         auto pad_val = pos_data.cv.empty() ? 0 : pos_data.cv.back();
         m.ppack_.node_index = writer.append(pos_data.cv, pad_val);
         auto node_index = util::range_n(m.ppack_.node_index, index_width_padded);
