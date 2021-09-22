@@ -70,6 +70,26 @@ class Catalogues(unittest.TestCase):
         sim = arb.simulation(rcp, dom, ctx)
         sim.run(tfinal=30)
 
+    def test_empty(self):
+        def len(cat):
+            return sum(1 for _ in cat)
+
+        def hash_(cat):
+            return hash(" ".join(sorted(cat)))
+
+        cat = arb.catalogue()
+        ref = arb.default_catalogue()
+        other = arb.default_catalogue()
+        # Test empty constructor
+        self.assertEqual(0, len(cat), "0 arg ctor shouldn't have mechs")
+        # Test empty extend
+        other.extend(cat)
+        self.assertEqual(hash_(ref), hash_(other), "merging empty changed cat")
+        self.assertEqual(0, len(cat), "merging empty changed empty")
+        cat.extend(other)
+        self.assertEqual(hash_(other), hash_(cat), "merging cat w. empty diff")
+
+
 
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
