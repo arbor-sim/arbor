@@ -89,7 +89,7 @@ std::string do_cprint(Expression* cp, int ind) {
 
 struct simdprint {
     Expression* expr_;
-    bool is_indirect_ = false;
+    bool is_indirect_ = false; // to determine whether index_ or i_ as an index. (Depends on whether we are in a procedure or the simd constraint for loops)
     bool is_masked_ = false;
     std::unordered_set<std::string> scalars_;
 

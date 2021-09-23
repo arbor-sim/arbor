@@ -59,7 +59,7 @@ public:
 protected:
     static std::unordered_set<std::string> mask_names_;
     bool processing_true_ = false;
-    bool is_indirect_ = false;
+    bool is_indirect_ = false; // to determine whether index_ or i_ as an index. (Depends on whether we are in a procedure or the simd constraint for loops)
     std::string current_mask_, current_mask_bar_, input_mask_;
     std::unordered_set<std::string> scalars_;
     Visitor* fallback_;

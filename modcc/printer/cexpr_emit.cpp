@@ -377,6 +377,9 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
     auto lhs_pfxd = id_prefix(e->lhs()->is_identifier());
 
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
+        // input_mask_ will only appear in PROCEDURE and FUNCTION calls which
+        // can only assign to VariableExpression (STATE and ASSIGNED block), not
+        // IndexedVariable or any other expression
         if (!input_mask_.empty()) {
             mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
@@ -390,11 +393,11 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
         bool cast = e->rhs()->is_number();
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
+        if (cast) out_ << ")";
 
         out_ << ")";
-
-        if (cast) out_ << ")";
-    } else {
+    }
+    else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);
         out_ << ") = ";
