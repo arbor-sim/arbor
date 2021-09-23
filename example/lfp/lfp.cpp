@@ -90,11 +90,11 @@ private:
 
         // Add pas and hh mechanisms:
         dec.paint(reg::tagged(1), density("hh")); // (default parameters)
-        dec.paint(reg::tagged(4), mechanism_desc("pas/e=-70.0"));
+        dec.paint(reg::tagged(4), density("pas/e=-70.0"));
 
         // Add exponential synapse at centre of soma.
         synapse_location_ = ls::on_components(0.5, reg::tagged(1));
-        dec.place(synapse_location_, synapse(mechanism_desc("expsyn").set("e", 0).set("tau", 2)), "syn");
+        dec.place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
 
         cell_ = cable_cell(tree, {}, dec);
     }

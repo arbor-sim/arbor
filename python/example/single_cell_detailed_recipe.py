@@ -5,7 +5,7 @@ import arbor
 import pandas
 import seaborn
 import sys
-from arbor import density 
+from arbor import density
 
 # (1) Read the morphology from an SWC file.
 

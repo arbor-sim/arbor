@@ -245,7 +245,7 @@ struct fvm_mechanism_config {
     // Gap junction peer CV index (gap junction mechanisms only)
     std::vector<index_type> peer_cv;
 
-    // Gap junction weight (gap junction mechanisms only)
+    // Gap junction weight, unit-less (gap junction mechanisms only)
     std::vector<value_type> local_weight;
 
     // (Non-global) parameters and parameter values across the mechanism instance.
@@ -291,13 +291,13 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
-// Maps gjs placed on a cell to CV indices
+// Maps gj {gid, lid} locations on a cell to their CV indices.
 std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D);
 
-// Resolves gj_connections into lids, then CV indices and a weight.
+// Resolves gj_connections into {gid, lid} pairs, then to CV indices and a weight.
 std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,

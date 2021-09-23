@@ -142,7 +142,7 @@ namespace {
         system s;
         auto& descriptions = s.descriptions;
 
-        // Cell 0: simple soma cell, 1 CV. No gap junctions.
+        // Cell 0: simple soma cell, 1 CV.
         {
             soma_cell_builder builder(12.6157/2.0);
 
@@ -152,7 +152,7 @@ namespace {
             s.builders.push_back(std::move(builder));
             descriptions.push_back(desc);
         }
-        // Cell 1: ball and 3-stick, 2 CVs per dendrite, 1 CV for the soma. 5 gap junctions.
+        // Cell 1: ball and 3-stick, 2 CVs per dendrite, 1 CV for the soma.
         {
             soma_cell_builder b(7.);
             b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
@@ -166,7 +166,7 @@ namespace {
             s.builders.push_back(std::move(b));
             descriptions.push_back(desc);
         }
-        // Cell 2: ball and stick, 1 CV for the soma, 2 CVs for the dendrite. 2 gap junctions.
+        // Cell 2: ball and stick, 1 CV for the soma, 2 CVs for the dendrite.
         {
             soma_cell_builder b(7.);
             b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
@@ -185,7 +185,7 @@ namespace {
             s.builders.push_back(std::move(b));
             descriptions.push_back(desc);
         }
-        // Cell 4: ball and stick, 1 CV for the soma, 3 CVs for the dendrite. No gap junctions.
+        // Cell 4: ball and stick, 1 CV for the soma, 3 CVs for the dendrite.
         {
             soma_cell_builder b(7.);
             b.add_branch(0, 200, 0.5,  0.5, 3,  "dend");
@@ -196,7 +196,7 @@ namespace {
             s.builders.push_back(std::move(b));
             descriptions.push_back(desc);
         }
-        // Cell 5: ball and stick, 1 CV for the soma, 1 CV for the dendrite. 2 gap junctions.
+        // Cell 5: ball and stick, 1 CV for the soma, 1 CV for the dendrite.
         {
             soma_cell_builder b(7.);
             b.add_branch(0, 200, 0.5,  0.5, 1,  "dend");

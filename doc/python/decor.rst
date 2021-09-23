@@ -130,8 +130,9 @@ Cable cell decoration
         :noindex:
 
         Place one instance of the gap junction mechanism described by ``junction`` at each location in ``locations``
-        and label the group of gap junction sites with ``label``. The label can be used to form connections to/from
-        on of the sites in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.gap_junction_connection`.
+        and label the group of gap junction sites with ``label``. The label can be used to form gap junction
+        connections to/from one of labeled sites in the :py:class:`arbor.recipe` by creating a
+        :py:class:`arbor.gap_junction_connection`.
 
         :param str locations: description of the locset.
         :param junction: the gap junction mechanism.

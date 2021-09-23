@@ -1021,8 +1021,8 @@ TEST(fvm_lowered, label_data) {
             {
                 arb::decor decor;
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
-                decor.place(uniform(all(), 0, 3, 42), synapse("expsyn"), "4_synapses");
-                decor.place(uniform(all(), 4, 4, 42), synapse("expsyn"), "1_synapse");
+                decor.place(uniform(all(), 0, 3, 42), arb::synapse("expsyn"), "4_synapses");
+                decor.place(uniform(all(), 4, 4, 42), arb::synapse("expsyn"), "1_synapse");
                 decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
 
                 cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));

@@ -5,7 +5,6 @@
 #include <optional>
 #include <unordered_map>
 #include <string>
-#include <utility>
 #include <variant>
 
 #include <arbor/arbexcept.hpp>
@@ -185,7 +184,7 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
-// Tagged mechanism types for dispatching cable_cell::place() and cable_cell::paint() calls
+// Tagged mechanism types for dispatching decor::place() and decor::paint() calls
 struct junction {
     mechanism_desc mech;
     explicit junction(mechanism_desc m): mech(std::move(m)) {}

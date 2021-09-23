@@ -11,5 +11,5 @@ PARAMETER {
 }
 
 BREAKPOINT {
-    i = g*(v - v_peer -e)
+    i = g*(v - v_peer - e)
 }

@@ -61,7 +61,7 @@ Cable cell mechanisms
         expsyn = arbor.mechanism("expsyn")
 
         # A gap-junction mechanism with default parameter values (set in NOMDL file).
-        expsyn = arbor.mechanism("gj")
+        gj = arbor.mechanism("gj")
 
     .. method:: mechanism(name, params)
 
@@ -117,7 +117,7 @@ Cable cell mechanisms
         # Decorate the 'soma' with (multiple) density mechanisms
         decor.paint('"soma"', density(pas))
         decor.paint('"soma"', density('pas', {'g': 0.1})) # Error: can't place the same mechanism on overlapping regions
-        decor.paint('"soma"', density('pas/e=-45'))       # This is ok: m3 is a new, derived mechanism by virtue of
+        decor.paint('"soma"', density('pas/e=-45'))       # This is ok: pas/e=-45 is a new, derived mechanism by virtue of
                                                           # having a different name, i.e. 'pas/e=-45' vs. 'pas'.
 
     .. py:attribute:: mech

@@ -245,9 +245,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_current();
         }
 
-        // Add current contribution from gap_junctions
-//        state_->add_gj_current();
-
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
 
@@ -567,7 +564,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             }
             break;
         case arb_mechanism_kind_gap_junction:
-            // Point mechanism contributions are in [nA]; CV area A in [µm^2].
+            // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
             for (auto i: count_along(layout.cv)) {

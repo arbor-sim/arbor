@@ -252,11 +252,11 @@ Junction mechanisms
 *Junction mechanisms*, which are associated with gap-junction connection end points on a
 cable cell, are placed at discrete locations on the cell.
 A junction mechanism contributes a current at the discrete location of the cell on which it is placed.
-This current contribution depends on the state of the mechanism and the cell, as well as the membrane
+This current contribution depends on the state of the mechanism and the process, as well as the membrane
 potential at the discrete location which forms the other end of the gap-junction connection and the weight
 of that connection.
 
-In NMODL, junction mechanisms are identified using the ``JUNCTION`` keyword in the
+In NMODL, junction mechanisms are identified using the ``JUNCTION_PROCESS`` keyword in the
 ``NEURON`` block.
 
 API

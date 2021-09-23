@@ -182,9 +182,6 @@ struct shared_state {
     // Set the per-intdom and per-compartment dt from time_to - time.
     void set_dt();
 
-    // Update gap_junction state
-    void add_gj_current();
-
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
 

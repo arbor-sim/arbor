@@ -110,6 +110,7 @@ Arbor-specific features
        g = g + (0.1*t)
     }
 
-* Arbor allows gap-junction mechanism to access the membrane potential at the peer site
-  of a gap-junction connections. The peer membrane potential is made available through the
-  magic ``v_peer`` variable.
+* Arbor allows a gap-junction mechanism to access the membrane potential at the peer site
+  of a gap-junction connection as well as the local site. The peer membrane potential is
+  made available through the magic ``v_peer`` variable while the local membrane potential
+  is available through ``v``, as usual.

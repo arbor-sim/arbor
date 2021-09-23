@@ -116,7 +116,7 @@ specialised on specific regions.
 
 Regions can have density mechanisms defined over their extents.
 :ref:`Density mechanisms <mechanisms-density>` are a kind of
-:ref:`NMODL mechanisms <nmodl>` which describe biophysical processes.
+:ref:`NMODL mechanism <nmodl>` which describe biophysical processes.
 These are processes that are distributed in space, but whose behaviour is
 defined purely by the state of the cell and the process at any given point.
 
@@ -274,7 +274,7 @@ locset.
 
 Similar to how regions can have density mechanisms defined over their extents,
 locsets can have point mechanisms placed on their individual locations.
-:ref:`Point mechanisms <mechanisms-point>` are :ref:`NMODL mechanisms <nmodl>`
+:ref:`Point mechanisms <mechanisms-point>` are a kind of :ref:`NMODL mechanism <nmodl>`
 which describe synaptic processes such as the ``expsyn`` mechanism provided by
 NEURON and Arbor, which models an exponential synapse.
 
@@ -290,7 +290,7 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
     decor.paint('"syn_loc_0"', arbor.synapse(expsyn))
 
-    # Create an 'expsyn' mechanism with default parameter value wrapped in a `synapse` object, and add it to the decor.
+    # Create an 'expsyn' mechanism with default parameter values wrapped in a `synapse` object, and add it to the decor.
     decor.paint('"syn_loc_1"', arbor.synapse("expsyn"))
 
     # Create an 'expsyn' mechanism with modified 'tau' parameter wrapped in a `synapse` object, and add it to the decor.
@@ -308,7 +308,7 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Locsets can also have junction mechanisms placed on their individual locations.
-:ref:`Junction mechanisms <mechanisms-junction>` are :ref:`NMODL mechanisms <nmodl>`
+:ref:`Junction mechanisms <mechanisms-junction>` are a kind of :ref:`NMODL mechanism <nmodl>`
 which describe gap-junction processes such as the ``gj`` mechanism provided by Arbor,
 which models a basic, linear, constant-conductance based gap-junction.
 

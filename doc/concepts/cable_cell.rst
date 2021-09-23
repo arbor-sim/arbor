@@ -5,7 +5,7 @@ Cable cells
 
 An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell
 with morphology and cell dynamics like ion species and their properties, ion
-channels, synapses, gap junctions, stimuli and spike detectors.
+channels, synapses, gap junction mechanisms, stimuli and spike detectors.
 
 Cable cells are constructed from three components:
 

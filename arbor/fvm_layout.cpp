@@ -774,8 +774,8 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
-    const fvm_cv_discretization& D) {
-
+    const fvm_cv_discretization& D)
+{
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, fvm_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
@@ -794,7 +794,7 @@ std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_
     const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
     const recipe& rec)
 {
-    // Construct and resolve all gj_connections, this is not thread safe
+    // Construct and resolve all gj_connections. This is not thread safe.
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
     label_resolution_map resolution_map({gj_data, gids});
     auto gj_resolver = resolver(&resolution_map);
@@ -809,7 +809,7 @@ std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_
 
             local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
         }
-        // Sort local_conns by local_cv
+        // Sort local_conns by local_cv.
         util::sort(local_conns);
         gj_conns[gid] = std::move(local_conns);
     }
@@ -1155,12 +1155,12 @@ fvm_mechanism_data fvm_build_mechanism_data(
     // Gap junctions:
 
     struct junction_desc {
-        std::string name;
-        std::vector<value_type> param_values;
+        std::string name;                     // mechanism name.
+        std::vector<value_type> param_values; // overridden parameter values.
     };
 
-    // First, gather gap_junction mechanism descriptions per lid
-    // and create empty fvm_mechanism_config
+    // Create gap_junction mechanism descriptions per gap-junction lid on the cell.
+    // Create incomplete fvm_mechanism_config.
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: cell.junctions()) {
         mechanism_info info = catalogue[name];
@@ -1198,7 +1198,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
         M.mechanisms[name] = std::move(config);
     }
 
-    // Then iterate over the gj_connections on the cell, and create the fvm_mechanism_config
+    // Iterate over the gj_conns local to the cell, and complete the fvm_mechanism_config.
+    // The gj_conns are expected to be sorted by local CV index.
     for (const auto& conn: gj_conns) {
         auto local_junction_desc = lid_junction_desc[conn.local_idx];
         auto& config = M.mechanisms[local_junction_desc.name];
