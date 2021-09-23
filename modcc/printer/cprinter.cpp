@@ -89,7 +89,7 @@ std::string do_cprint(Expression* cp, int ind) {
 
 struct simdprint {
     Expression* expr_;
-    bool is_indirect_ = false; // to determine whether index_ or i_ as an index. (Depends on whether we are in a procedure or the simd constraint for loops)
+    bool is_indirect_ = false; // To index using index_ or i_. Depends on whether we are in a procedure or handling a simd constraint in an API call.
     bool is_masked_ = false;
     std::unordered_set<std::string> scalars_;
 
@@ -658,21 +658,20 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
     std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
+    std::string index = is_indirect_ ? "index_" : "i_";
 
-    // lhs should not be an IndexedVariable, only a VariableExpression or LocalVariable
+    // lhs should not be an IndexedVariable, only a VariableExpression or LocalVariable.
+    // IndexedVariables are only assigned in API calls and are handled in a special way.
     if (lhs->is_indexed_variable()) {
         throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
     }
-    // If a variable is being written, it must be a range variable, non-range variables are global read only
+    // If lhs is a VariableExpression, it must be a range variable. Non-range variables are scalars and read-only.
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        if(is_indirect_)
-            out_ << "indirect(" << pfx << lhs->name() << "+index_, simd_width_) = ";
-        else
-            out_ << "indirect(" << pfx << lhs->name() << "+i_, simd_width_) = ";
-
+        out_ << "indirect(" << pfx << lhs->name() << "+" << index << ", simd_width_) = ";
         if (!input_mask_.empty())
             out_ << "S::where(" << input_mask_ << ", ";
 
+        // If the rhs is a scalar identifier or a number, it needs to be cast to a vector.
         auto id = e->rhs()->is_identifier();
         auto num = e->rhs()->is_number();
         bool cast = num || (id && scalars_.count(id->name()));
@@ -687,14 +686,13 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
         throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
     }
-    // Otherwise, this must be a LocalVariable, in which case we don't need to mask the assignments.
+    // Otherwise, lhs must be a LocalVariable, we don't need to mask according to the input_mask_.
     else {
         out_ << "assign(" << pfx << lhs->name() << ", ";
         if (auto rhs = e->rhs()->is_identifier()) {
             if (auto sym = rhs->symbol()) {
                 // We shouldn't call the rhs visitor in this case because it automatically casts indirect expressions
                 if (sym->is_variable() && sym->is_variable()->is_range()) {
-                    auto index = is_indirect_ ? "index_" : "i_";
                     out_ << "indirect(" << pp_var_pfx << rhs->name() << "+" << index << ", simd_width_))";
                     return;
                 }
