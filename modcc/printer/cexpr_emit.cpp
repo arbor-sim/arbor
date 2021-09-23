@@ -381,18 +381,18 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
     if (lhs->is_indexed_variable()) {
         throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
     }
-    // If lhs is a VariableExpression, it must be a range variable. Non-range variables are scalars and are read-only.
+    // If lhs is a VariableExpression, it must be a range variable. Non-range variables
+    // are scalars and are read-only.
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         // input_mask_ will only appear in PROCEDURE and FUNCTION calls which can only
         // assign to VariableExpression and LocalVariable. But only VariableExpression
-        // needs to assign vector elements where input_mask_ is true.
+        // vectors need to be assigned only at the elements where input_mask_ is true.
         if (!input_mask_.empty()) {
             mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
 
         std::string index = is_indirect_ ? "index_" : "i_";
-        out_ << "indirect(" << lhs_pfxd << "+" << index << ", simd_width_) = "
-             << "S::where(" << mask << ", ";
+        out_ << "indirect(" << lhs_pfxd << "+" << index << ", simd_width_) = S::where(" << mask << ", ";
 
         // If the rhs is a scalar identifier or a number, it needs to be cast to a vector.
         auto id = e->rhs()->is_identifier();
@@ -408,7 +408,8 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
     else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
         throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
     }
-    // Otherwise, lhs must be a LocalVariable, we don't need to mask according to the input_mask_.
+    // Otherwise, lhs must be a LocalVariable, we don't need to mask assignment according to the
+    // input_mask_.
     else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);

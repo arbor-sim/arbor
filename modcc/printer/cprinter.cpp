@@ -89,7 +89,8 @@ std::string do_cprint(Expression* cp, int ind) {
 
 struct simdprint {
     Expression* expr_;
-    bool is_indirect_ = false; // To index using index_ or i_. Depends on whether we are in a procedure or handling a simd constraint in an API call.
+    bool is_indirect_ = false; // For choosing between "index_" and "i_" as an index. Depends on whether
+                               // we are in a procedure or handling a simd constraint in an API call.
     bool is_masked_ = false;
     std::unordered_set<std::string> scalars_;
 
@@ -665,7 +666,8 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     if (lhs->is_indexed_variable()) {
         throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
     }
-    // If lhs is a VariableExpression, it must be a range variable. Non-range variables are scalars and read-only.
+    // If lhs is a VariableExpression, it must be a range variable. Non-range variables
+    // are scalars and read-only.
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         out_ << "indirect(" << pfx << lhs->name() << "+" << index << ", simd_width_) = ";
         if (!input_mask_.empty())
@@ -686,7 +688,8 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
         throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
     }
-    // Otherwise, lhs must be a LocalVariable, we don't need to mask according to the input_mask_.
+    // Otherwise, lhs must be a LocalVariable, we don't need to mask assignment according to the
+    // input_mask_.
     else {
         out_ << "assign(" << pfx << lhs->name() << ", ";
         if (auto rhs = e->rhs()->is_identifier()) {

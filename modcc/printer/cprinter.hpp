@@ -76,6 +76,7 @@ public:
 private:
     std::ostream& out_;
     std::string input_mask_;
-    bool is_indirect_ = false; // To index using index_ or i_. Depends on whether we are in a procedure or handling a simd constraint in an API call.
+    bool is_indirect_ = false; // For choosing between "index_" and "i_" as an index. Depends on whether
+                               // we are in a procedure or handling a simd constraint in an API call.
     std::unordered_set<std::string> scalars_;
 };
