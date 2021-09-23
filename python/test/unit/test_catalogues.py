@@ -81,13 +81,19 @@ class Catalogues(unittest.TestCase):
         ref = arb.default_catalogue()
         other = arb.default_catalogue()
         # Test empty constructor
-        self.assertEqual(0, len(cat), "0 arg ctor shouldn't have mechs")
+        self.assertEqual(0, len(cat), "Expected no mechanisms in `arbor.catalogue()`.")
         # Test empty extend
-        other.extend(cat)
-        self.assertEqual(hash_(ref), hash_(other), "merging empty changed cat")
-        self.assertEqual(0, len(cat), "merging empty changed empty")
-        cat.extend(other)
-        self.assertEqual(hash_(other), hash_(cat), "merging cat w. empty diff")
+        other.extend(cat, "")
+        self.assertEqual(hash_(ref), hash_(other), "Extending cat with empty should not change cat.")
+        self.assertEqual(0, len(cat), "Extending cat with empty should not change empty.")
+        other.extend(cat, "prefix/")
+        self.assertEqual(hash_(ref), hash_(other), "Extending cat with prefixed empty should not change cat.")
+        self.assertEqual(0, len(cat), "Extending cat with prefixed empty should not change empty.")
+        cat.extend(other, "")
+        self.assertEqual(hash_(other), hash_(cat), "Extending empty with cat should turn empty into cat.")
+        cat = arb.catalogue()
+        cat.extend(other, "prefix/")
+        self.assertNotEqual(hash_(other), hash_(cat), "Extending empty with prefixed cat should not yield cat")
 
 
 
