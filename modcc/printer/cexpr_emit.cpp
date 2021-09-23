@@ -376,6 +376,11 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
 
     auto lhs_pfxd = id_prefix(e->lhs()->is_identifier());
 
+    // lhs should not be an IndexedVariable, only a VariableExpression or LocalVariable
+    if (lhs->is_indexed_variable()) {
+        throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
+    }
+    // If a variable is being written, it must be a range variable, non-range variables are global read only
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         // input_mask_ will only appear in PROCEDURE and FUNCTION calls which
         // can only assign to VariableExpression (STATE and ASSIGNED block), not
@@ -390,13 +395,20 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
 
         out_ << "S::where(" << mask << ", ";
 
-        bool cast = e->rhs()->is_number();
+        auto id = e->rhs()->is_identifier();
+        bool num = e->rhs()->is_number();
+        bool cast = num || (id && scalars_.count(id->name()));
+
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
         if (cast) out_ << ")";
 
         out_ << ")";
     }
+    else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
+        throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
+    }
+    // Otherwise, this must be a LocalVariable, we don't need to mask according to the input_mask_
     else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);

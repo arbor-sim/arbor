@@ -657,16 +657,14 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     }
 
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
- 
-    bool cast = false;
-    if (auto id = e->rhs()->is_identifier()) {
-        if (scalars_.count(id->name())) cast = true;
-    }
-    if (e->rhs()->is_number()) cast = true;
-    if (scalars_.count(e->lhs()->is_identifier()->name()))  cast = false;
+    std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
 
+    // lhs should not be an IndexedVariable, only a VariableExpression or LocalVariable
+    if (lhs->is_indexed_variable()) {
+        throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
+    }
+    // If a variable is being written, it must be a range variable, non-range variables are global read only
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
         if(is_indirect_)
             out_ << "indirect(" << pfx << lhs->name() << "+index_, simd_width_) = ";
         else
@@ -675,14 +673,22 @@ void SimdPrinter::visit(AssignmentExpression* e) {
         if (!input_mask_.empty())
             out_ << "S::where(" << input_mask_ << ", ";
 
+        auto id = e->rhs()->is_identifier();
+        auto num = e->rhs()->is_number();
+        bool cast = num || (id && scalars_.count(id->name()));
+
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
         if (cast) out_ << ")";
 
         if (!input_mask_.empty())
             out_ << ")";
-    } else {
-        std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
+    }
+    else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
+        throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
+    }
+    // Otherwise, this must be a LocalVariable, in which case we don't need to mask the assignments.
+    else {
         out_ << "assign(" << pfx << lhs->name() << ", ";
         if (auto rhs = e->rhs()->is_identifier()) {
             if (auto sym = rhs->symbol()) {
