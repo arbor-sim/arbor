@@ -141,11 +141,13 @@ std::vector<arb::time_type> explicit_schedule_shim::events(arb::time_type t0, ar
 poisson_schedule_shim::poisson_schedule_shim(
         arb::time_type ts,
         arb::time_type f,
-        rng_type::result_type s)
+        rng_type::result_type s,
+        py::object tstop)
 {
     set_tstart(ts);
     set_freq(f);
     seed = s;
+    set_tstop(tstop);
 }
 
 poisson_schedule_shim::poisson_schedule_shim(arb::time_type f) {
@@ -164,6 +166,11 @@ void poisson_schedule_shim::set_freq(arb::time_type f) {
     freq = f;
 };
 
+void poisson_schedule_shim::set_tstop(py::object t) {
+    tstop = py2optional<arb::time_type>(
+            t, "tstop must be a non-negative number, or None", is_nonneg());
+};
+
 arb::time_type poisson_schedule_shim::get_tstart() const {
     return tstart;
 }
@@ -172,8 +179,12 @@ arb::time_type poisson_schedule_shim::get_freq() const {
     return freq;
 }
 
+poisson_schedule_shim::opt_time_type poisson_schedule_shim::get_tstop() const {
+    return tstop;
+}
+
 arb::schedule poisson_schedule_shim::schedule() const {
-    return arb::poisson_schedule(tstart, freq, rng_type(seed));
+    return arb::poisson_schedule(tstart, freq, rng_type(seed), tstop.value_or(arb::terminal_time));
 }
 
 std::vector<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
@@ -237,15 +248,16 @@ void register_schedules(py::module& m) {
 
     // Poisson schedule
     py::class_<poisson_schedule_shim, schedule_shim_base> poisson_schedule(m, "poisson_schedule",
-        "Describes a schedule according to a Poisson process.");
+        "Describes a schedule according to a Poisson process within the interval [tstart, tstop).");
 
     poisson_schedule
-        .def(py::init<time_type, time_type, std::mt19937_64::result_type>(),
-            "tstart"_a = 0., "freq"_a, "seed"_a = 0,
+        .def(py::init<time_type, time_type, std::mt19937_64::result_type, py::object>(),
+             "tstart"_a = 0., "freq"_a, "seed"_a = 0, "tstop"_a = py::none(),
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
             "  freq:   The expected frequency [kHz].\n"
-            "  seed:   The seed for the random number generator, 0 by default.")
+            "  seed:   The seed for the random number generator, 0 by default.\n"
+            "  tstop:  No events delivered after this time [ms], None by default.")
         .def(py::init<time_type>(),
             "freq"_a,
             "Construct a Poisson schedule, starting from t = 0, default seed, with:\n"
@@ -256,6 +268,8 @@ void register_schedules(py::module& m) {
             "The expected frequency [kHz].")
         .def_readwrite("seed", &poisson_schedule_shim::seed,
             "The seed for the random number generator.")
+        .def_property("tstop", &poisson_schedule_shim::get_tstop, &poisson_schedule_shim::set_tstop,
+            "No events delivered after this time [ms].")
         .def("events", &poisson_schedule_shim::events,
             "A view of monotonically increasing time values in the half-open interval [t0, t1).")
         .def("__str__",  util::to_string<poisson_schedule_shim>)
