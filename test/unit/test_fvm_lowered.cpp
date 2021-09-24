@@ -555,11 +555,10 @@ TEST(fvm_lowered, null_region) {
     rec.catalogue() = make_unit_test_catalogue();
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
-    std::vector<double> samples[3];
     auto ctx = make_context(resources);
     auto decomp = partition_load_balance(rec, ctx);
     simulation sim(rec, decomp, ctx);
-    sim.run(30.0, 1.f/1024);
+    EXPECT_NO_THROW(sim.run(30.0, 1.f/1024));
 }
 
 
