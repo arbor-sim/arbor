@@ -115,13 +115,19 @@ with TemporaryDirectory() as tmp:
     except sp.CalledProcessError as e:
         import sys, traceback as tb
 
-        sys.stdout.write("Build log:\n")
-        sys.stdout.write(e.stdout.decode())
-        sys.stderr.write(tb.format_exc() + " Error:\n\n")
-        sys.stderr.write(e.stderr.decode())
+        if not verbose:
+            sys.stdout.write("Build log:\n")
+            sys.stdout.write(e.stdout.decode())
+            sys.stderr.write(tb.format_exc() + " Error:\n\n")
+            sys.stderr.write(e.stderr.decode())
+        else:
+            sys.stderr.write(
+                "Check stdout log for underlying error,"
+                + " or omit verbose flag to capture it."
+            )
         sys.stdout.flush()
         sys.stderr.flush()
         exit(e.returncode)
-    
+
     if not quiet:
         print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
