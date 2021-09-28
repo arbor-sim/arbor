@@ -152,6 +152,7 @@ void register_mechanisms(pybind11::module& m) {
         .def("__next__", &py_mech_cat_item_iterator::next);
 
     cat
+        .def(pybind11::init())
         .def(pybind11::init<const arb::mechanism_catalogue&>())
         .def("__contains__", &arb::mechanism_catalogue::has,
              "name"_a, "Is 'name' in the catalogue?")
