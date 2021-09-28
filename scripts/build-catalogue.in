@@ -122,7 +122,8 @@ with TemporaryDirectory() as tmp:
             sys.stderr.write(e.stderr.decode())
         else:
             sys.stderr.write(
-                "Check stdout log for underlying error,"
+                "Catalogue building error occurred."
+                + " Check stdout log for underlying error,"
                 + " or omit verbose flag to capture it."
             )
         sys.stdout.flush()
