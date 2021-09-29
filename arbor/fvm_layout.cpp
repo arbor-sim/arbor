@@ -1160,7 +1160,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
     };
 
     // Create gap_junction mechanism descriptions per gap-junction lid on the cell.
-    // Create incomplete fvm_mechanism_config.
+    // Create incomplete fvm_mechanism_config per mechanism name.
+    std::unordered_map<std::string, fvm_mechanism_config> junction_configs;
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: cell.junctions()) {
         mechanism_info info = catalogue[name];
@@ -1195,14 +1196,14 @@ fvm_mechanism_data fvm_build_mechanism_data(
             }
             lid_junction_desc.insert({pm.lid, std::move(per_lid)});
         }
-        M.mechanisms[name] = std::move(config);
+        junction_configs[name] = std::move(config);
     }
 
     // Iterate over the gj_conns local to the cell, and complete the fvm_mechanism_config.
     // The gj_conns are expected to be sorted by local CV index.
     for (const auto& conn: gj_conns) {
         auto local_junction_desc = lid_junction_desc[conn.local_idx];
-        auto& config = M.mechanisms[local_junction_desc.name];
+        auto& config = junction_configs[local_junction_desc.name];
 
         config.cv.push_back(conn.local_cv);
         config.peer_cv.push_back(conn.peer_cv);
@@ -1210,6 +1211,11 @@ fvm_mechanism_data fvm_build_mechanism_data(
         for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
+    }
+
+    // Add non-empty fvm_mechanism_config to the fvm_mechanism_data
+    for (auto [name, config]: junction_configs) {
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
 
     // Stimuli:

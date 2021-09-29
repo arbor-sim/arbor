@@ -548,8 +548,8 @@ TEST(fvm_lowered, null_region) {
     builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
     auto cell = builder.make_cell();
 
-    cell.decorations.paint(reg::nil(), "test_kin1");
-    cell.decorations.paint(reg::nil(), "custom_kin1");
+    cell.decorations.paint(reg::nil(), density("test_kin1"));
+    cell.decorations.paint(reg::nil(), density("custom_kin1"));
 
     cable1d_recipe rec(cable_cell{cell});
     rec.catalogue() = make_unit_test_catalogue();
