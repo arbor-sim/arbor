@@ -1,11 +1,22 @@
 import arbor
 import functools
+from functools import lru_cache as cache
 import unittest
 from pathlib import Path
 import subprocess
 
 _mpi_enabled = arbor.__config__["mpi"]
 _mpi4py_enabled = arbor.__config__["mpi4py"]
+
+# The API of `functools`'s caches went through a bunch of breaking changes from
+# 3.6 to 3.9. Patch them up in a local `cache` function.
+try:
+    cache(lambda: None)
+except TypeError:
+    # If `lru_cache` does not accept user functions as first arg, it expects
+    # the max cache size as first arg, we pass None to produce a cache decorator
+    # without max size.
+    cache = cache(None)
 
 def _fix(param_name, fixture, func):
     """
@@ -26,7 +37,7 @@ def _fixture(decorator):
     return fixture_decorator
 
 def _singleton_fixture(f):
-    return _fixture(functools.lru_cache(f))
+    return _fixture(cache(f))
 
 
 @_fixture
