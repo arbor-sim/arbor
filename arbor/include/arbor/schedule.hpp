@@ -180,6 +180,7 @@ public:
         tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart), tstop_(tstop)
     {
         arb_assert(tstart_>=0);
+        arb_assert(tstart_ <= tstop_);
         step();
     }
 
