@@ -111,7 +111,6 @@ std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
 
     return out <<
         table_prefix{"namespace"} << popt.cpp_namespace << line_end <<
-        table_prefix{"profile"} << noyes[popt.profile] << line_end <<
         table_prefix{"simd"} << popt.simd << line_end;
 }
 
@@ -138,7 +137,6 @@ const char* usage_str =
         "-t|--target            [Build module for target; Avaliable targets: 'cpu', 'gpu']\n"
         "-s|--simd              [Generate code with explicit SIMD vectorization]\n"
         "-S|--simd-abi          [Override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...]\n"
-        "-P|--profile           [Build with profiled kernels]\n"
         "-V|--verbose           [Toggle verbose mode]\n"
         "-A|--analyse           [Toggle analysis mode]\n"
         "-T|--trace-codegen     [Leave trace marks in generated source]\n"
@@ -172,7 +170,6 @@ int main(int argc, char **argv) {
                 { to::set(opt.verbose),  to::flag,                       "-V", "--verbose" },
                 { to::set(opt.analysis), to::flag,                       "-A", "--analyse" },
                 { opt.modulename,                                        "-m", "--module" },
-                { to::set(popt.profile), to::flag,                       "-P", "--profile" },
                 { popt.cpp_namespace,                                    "-N", "--namespace" },
                 { to::action(enable_simd), to::flag,                     "-s", "--simd" },
                 { popt.simd,                                             "-S", "--simd-abi" },

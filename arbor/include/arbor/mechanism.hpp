@@ -9,6 +9,8 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechinfo.hpp>
+#include <arbor/profile/profiler.hpp>
+#include <arbor/version.hpp>
 
 namespace arb {
 
@@ -55,8 +57,8 @@ public:
 
     // Forward to interface methods
     void initialize()     { ppack_.vec_t = *time_ptr_ptr; iface_.init_mechanism(&ppack_); }
-    void update_current() { ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); }
-    void update_state()   { ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_); }
+    void update_current() { prof_enter("advance_integrate_current"); ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); prof_exit(); }
+    void update_state()   { prof_enter("advance_integrate_state");   ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_);    prof_exit(); }
     void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
     void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
     void deliver_events(arb_deliverable_event_stream& stream) { ppack_.vec_t  = *time_ptr_ptr; iface_.apply_events(&ppack_, &stream); }
@@ -68,6 +70,21 @@ public:
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
     arb_value_type** time_ptr_ptr = nullptr;
+
+private:
+#ifdef ARB_PROFILE_ENABLED
+    void prof_enter(std::string reg) {
+        static auto id = arb::profile::profiler_region_id(std::string(reg+"_"+internal_name()).c_str());
+        arb::profile::profiler_enter(id);
+    }
+    void prof_exit() {
+        arb::profile::profiler_leave();
+    }
+#else
+    void prof_enter(std::string reg) {}
+    void prof_exit() {}
+#endif
+
 };
 
 struct mechanism_layout {

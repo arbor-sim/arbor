@@ -145,28 +145,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto ion_deps = module_.ion_deps();
     std::string fingerprint = "<placeholder>";
 
-    auto profiler_enter = [name, opt](const char* region_prefix) -> std::string {
-        static std::regex invalid_profile_chars("[^a-zA-Z0-9]");
-
-        if (opt.profile) {
-            std::string region_name = region_prefix;
-            region_name += '_';
-            region_name += std::regex_replace(name, invalid_profile_chars, "");
-
-            return
-                "{\n"
-                "    static auto id = ::arb::profile::profiler_region_id(\""
-                + region_name + "\");\n"
-                "    ::arb::profile::profiler_enter(id);\n"
-                "}\n";
-        }
-        else return "";
-    };
-
-    auto profiler_leave = [opt]() -> std::string {
-        return opt.profile? "::arb::profile::profiler_leave();\n": "";
-    };
-
     io::pfxstringstream out;
 
     ENTER(out);
@@ -177,9 +155,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "#include <memory>\n"
         "#include <"  << arb_header_prefix() << "mechanism_abi.h>\n"
         "#include <" << arb_header_prefix() << "math.hpp>\n";
-
-    opt.profile &&
-        out << "#include <" << arb_header_prefix() << "profile/profiler.hpp>\n";
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
@@ -343,15 +318,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent << "}\n\n";
 
     out << "static void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
-    out << profiler_enter("advance_integrate_state");
     emit_body(state_api);
-    out << profiler_leave();
     out << popindent << "}\n\n";
 
     out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
-    out << profiler_enter("advance_integrate_current");
     emit_body(current_api);
-    out << profiler_leave();
     out << popindent << "}\n\n";
 
     out << "static void write_ions(arb_mechanism_ppack* pp) {\n" << indent;

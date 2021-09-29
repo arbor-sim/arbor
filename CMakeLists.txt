@@ -420,9 +420,6 @@ set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
 endif()
-if(ARB_WITH_PROFILING)
-    list(APPEND ARB_MODCC_FLAGS "--profile")
-endif()
 
 #----------------------------------------------------------
 # Set up install paths, permissions.
