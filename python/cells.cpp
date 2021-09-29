@@ -267,7 +267,7 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
-        .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(s).unwrap(); }),
+        .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
             "expression"_a, "A valid CV policy expression")
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
