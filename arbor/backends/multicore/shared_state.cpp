@@ -430,17 +430,20 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
 
+    bool found = false;
     arb_value_type* data = nullptr;
     for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
         if (key==m.mech_.parameters[i].name) {
             data = m.ppack_.parameters[i];
+            found = true;
             break;
         }
     }
 
-    if (!data) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
+    if (!found) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
 
     if (!m.ppack_.width) return;
+
     auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);
     copy_extend(values, util::range_n(data, width_padded), values.back());
 }
@@ -519,9 +522,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         m.ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
     }
 
-    // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (m.ppack_.width==0) return;
-
     // Initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
@@ -567,8 +567,11 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         store.indices_ = iarray(count*index_width_padded, 0, pad);
         chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
-        m.ppack_.node_index = writer.append(pos_data.cv, pos_data.cv.back());
-
+        //   We usually insert cv.size() == width elements into node index (length: width_padded >= width)
+        //   and pad by the last element of cv. If width == 0 we must choose a different pad, that will not
+        //   really be used, as width == width_padded == 0. Nevertheless, we need to pass it.
+        auto pad_val = pos_data.cv.empty() ? 0 : pos_data.cv.back();
+        m.ppack_.node_index = writer.append(pos_data.cv, pad_val);
         auto node_index = util::range_n(m.ppack_.node_index, index_width_padded);
         // Make SIMD index constraints and set the view
         store.constraints_ = make_constraint_partition(node_index, m.ppack_.width, m.iface_.partition_width);

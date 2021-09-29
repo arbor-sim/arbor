@@ -59,7 +59,7 @@ TEST(abi, multicore_initialisation) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    shared_state.instantiate(mech, 42, {}, layout);
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
 
     {
         ASSERT_EQ(globals.size(), mech.mech_.n_globals);
@@ -91,6 +91,53 @@ TEST(abi, multicore_initialisation) {
             EXPECT_EQ(expected, values);
         }
     }
+}
+
+TEST(abi, multicore_null) {
+    std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
+                                           { "G1", "lb",  456.0,     0.0, 2000.0},
+                                           { "G2", "gr",  789.0,     0.0, 2000.0}};
+    std::vector<arb_field_info> states  = {{ "S0", "nA",      0.123, 0.0, 2000.0},
+                                           { "S1", "mV",      0.456, 0.0, 2000.0}};
+    std::vector<arb_field_info> params  = {{ "P0", "lm", -123.0,     0.0, 2000.0}};
+
+    arb_mechanism_type type{};
+    type.abi_version = ARB_MECH_ABI_VERSION;
+    type.globals    = globals.data(); type.n_globals    = globals.size();
+    type.parameters = params.data();  type.n_parameters = params.size();
+    type.state_vars = states.data();  type.n_state_vars = states.size();
+
+    arb_mechanism_interface iface { arb_backend_kind_cpu,
+                                    1,
+                                    1,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr };
+
+    auto mech = arb::mechanism(type, iface);
+
+    arb_size_type ncell = 1;
+    arb_size_type ncv = 0;
+    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_value_type> temp(ncv, 23);
+    std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb::fvm_gap_junction> gj = {};
+    std::vector<arb_index_type> src_to_spike = {};
+
+    arb::multicore::shared_state shared_state(ncell, ncell, 0,
+                                              cv_to_intdom, cv_to_intdom,
+                                              gj, vinit, temp, diam, src_to_spike,
+                                              mech.data_alignment());
+
+    arb::mechanism_layout layout;
+    layout.weight.assign(ncv, 1.);
+    for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
+
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
 }
 
 #ifdef ARB_GPU_ENABLED
@@ -155,7 +202,7 @@ TEST(abi, gpu_initialisation) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    shared_state.instantiate(mech, 42, {}, layout);
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
 
     {
         ASSERT_EQ(globals.size(), mech.mech_.n_globals);
@@ -187,4 +234,53 @@ TEST(abi, gpu_initialisation) {
         }
     }
 }
+
+TEST(abi, gpu_null) {
+    std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
+                                           { "G1", "lb",  456.0,     0.0, 2000.0},
+                                           { "G2", "gr",  789.0,     0.0, 2000.0}};
+    std::vector<arb_field_info> states  = {{ "S0", "nA",      0.123, 0.0, 2000.0},
+                                           { "S1", "mV",      0.456, 0.0, 2000.0}};
+    std::vector<arb_field_info> params  = {{ "P0", "lm", -123.0,     0.0, 2000.0}};
+
+    arb_mechanism_type type{};
+    type.abi_version = ARB_MECH_ABI_VERSION;
+    type.globals    = globals.data(); type.n_globals    = globals.size();
+    type.parameters = params.data();  type.n_parameters = params.size();
+    type.state_vars = states.data();  type.n_state_vars = states.size();
+
+    arb_mechanism_interface iface { arb_backend_kind_gpu,
+                                    1,
+                                    1,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr,
+                                    nullptr };
+
+    auto mech = arb::mechanism(type, iface);
+
+    arb_size_type ncell = 1;
+    arb_size_type ncv = 0;
+    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_value_type> temp(ncv, 23);
+    std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb::fvm_gap_junction> gj = {};
+    std::vector<arb_index_type> src_to_spike = {};
+
+    arb::gpu::shared_state shared_state(ncell, ncell, 0,
+                                        cv_to_intdom, cv_to_intdom,
+                                        gj, vinit, temp, diam, src_to_spike,
+                                        1);
+
+    arb::mechanism_layout layout;
+    layout.weight.assign(ncv, 1.);
+    for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
+
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
+}
+
+
 #endif
