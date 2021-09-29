@@ -51,21 +51,27 @@ def context():
     return arbor.context(*args)
 
 
-@_singleton_fixture
-@context
-@repo_path
-def dummy_catalogue(context, repo_path):
-    curr = Path.cwd()
+def _build_cat(name, path):
     from mpi4py.MPI import COMM_WORLD as comm
     build_err = None
     try:
-        if not context.rank:
-            path = repo_path / "test" / "unit" / "dummy"
-            subprocess.run(["build-catalogue", "dummy", str(path)], check=True)
+        if not comm.Get_rank():
+            subprocess.run(["build-catalogue", name, str(path)], check=True)
         build_err = comm.bcast(build_err, root=0)
     except Exception as e:
         build_err = comm.bcast(e, root=0)
     if build_err:
         raise RuntimeError("Tests can't build catalogues")
+    return Path.cwd() / (name + "-catalogue.so")
 
-    return arbor.load_catalogue(str(curr / "dummy-catalogue.so"))
+
+@_singleton_fixture
+@repo_path
+def dummy_catalogue(repo_path):
+    path = repo_path / "test" / "unit" / "dummy"
+    cat_path = _build_cat("dummy", path)
+    return arbor.load_catalogue(str(cat_path))
+
+@_fixture
+class empty_recipe(arbor.recipe):
+    pass
