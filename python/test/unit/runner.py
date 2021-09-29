@@ -18,6 +18,7 @@ try:
     import test_event_generators
     import test_identifiers
     import test_morphology
+    import test_profiling
     import test_schedules
     import test_spikes
     import test_tests
@@ -32,6 +33,7 @@ except ModuleNotFoundError:
     from test.unit import test_event_generators
     from test.unit import test_identifiers
     from test.unit import test_morphology
+    from test.unit import test_profiling
     from test.unit import test_schedules
     from test.unit import test_spikes
     # add more if needed
@@ -45,6 +47,7 @@ test_modules = [\
     test_event_generators,\
     test_identifiers,\
     test_morphology,\
+    test_profiling,\
     test_schedules,\
     test_spikes,\
 ] # add more if needed

@@ -95,9 +95,7 @@ class TestProfiling(unittest.TestCase):
 def suite():
     # specify class and test functions in tuple (here: all tests starting with 'test' from classes RegularSchedule, ExplicitSchedule and PoissonSchedule
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(RegularSchedule, ('test')))
-    suite.addTests(unittest.makeSuite(ExplicitSchedule, ('test')))
-    suite.addTests(unittest.makeSuite(PoissonSchedule, ('test')))
+    suite.addTests(unittest.makeSuite(TestProfiling, ('test')))
     return suite
 
 def run():
