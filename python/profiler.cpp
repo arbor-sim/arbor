@@ -5,6 +5,7 @@
 
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/version.hpp>
 
 #include "context.hpp"
 #include "strprintf.hpp"
