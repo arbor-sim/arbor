@@ -5,15 +5,7 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, options
 
 # check Arbor's configuration of mpi
 mpi_enabled    = arb.__config__["mpi"]
@@ -27,7 +19,7 @@ all tests for distributed arb.context using mpi4py
 """
 # Only test class if env var ARB_WITH_MPI4PY=ON
 @unittest.skipIf(mpi_enabled == False or mpi4py_enabled == False, "MPI/mpi4py not enabled")
-class Contexts_mpi4py(unittest.TestCase):
+class TestContexts_mpi4py(unittest.TestCase):
     def test_initialized_mpi4py(self):
         # test mpi initialization (automatically when including mpi4py: https://mpi4py.readthedocs.io/en/stable/mpi4py.run.html)
         self.assertTrue(mpi.Is_initialized())
@@ -68,27 +60,3 @@ class Contexts_mpi4py(unittest.TestCase):
     def test_finalized_mpi4py(self):
         # test mpi finalization (automatically when including mpi4py, but only just before the Python process terminates)
         self.assertFalse(mpi.Is_finalized())
-
-def suite():
-    # specify class and test functions as tuple (here: all tests starting with 'test' from class Contexts_mpi4py
-    suite = unittest.makeSuite(Contexts_mpi4py, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-
-    comm = arb.mpi_comm(mpi.COMM_WORLD)
-    alloc = arb.proc_allocation()
-    ctx = arb.context(alloc, comm)
-    rank = ctx.rank
-
-    if rank == 0:
-        runner = unittest.TextTestRunner(verbosity = v)
-    else:
-        sys.stdout = open(os.devnull, 'w')
-        runner = unittest.TextTestRunner(stream=sys.stdout)
-
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

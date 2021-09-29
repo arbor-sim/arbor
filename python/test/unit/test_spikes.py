@@ -4,21 +4,13 @@
 
 import unittest
 import arbor as A
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, options
 
 """
 all tests for the simulator wrapper
 """
 
-# Test recipe art_spiker_recipe comprises three artificial spiking cells 
+# Test recipe art_spiker_recipe comprises three artificial spiking cells
 
 class art_spiker_recipe(A.recipe):
     def __init__(self):
@@ -51,7 +43,7 @@ class art_spiker_recipe(A.recipe):
         return A.spike_source_cell("src", A.explicit_schedule(self.trains[gid]))
 
 
-class Spikes(unittest.TestCase):
+class TestSpikes(unittest.TestCase):
     # Helper for constructing a simulation from a recipe using default context and domain decomposition.
     def init_sim(self, recipe):
         context = A.context()
@@ -75,16 +67,3 @@ class Spikes(unittest.TestCase):
 
         self.assertEqual([2, 1, 0, 0, 1, 2, 0, 1, 2, 0, 2, 1, 1], gids)
         self.assertEqual([0.2, 0.4, 0.8, 2., 2., 2., 2.1, 2.2, 2.8, 3., 3., 3.1, 4.5], times)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Spikes, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

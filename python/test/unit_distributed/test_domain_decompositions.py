@@ -5,15 +5,7 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, options
 
 # check Arbor's configuration of mpi and gpu
 mpi_enabled = arb.__config__["mpi"]
@@ -146,7 +138,7 @@ class gj_non_symmetric (arb.recipe):
             return []
 
 @unittest.skipIf(mpi_enabled == False, "MPI not enabled")
-class Domain_Decompositions_Distributed(unittest.TestCase):
+class TestDomain_Decompositions_Distributed(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
     def setUpClass(self):
@@ -432,34 +424,3 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,
             "unable to perform load balancing because cell_kind::cable has invalid suggested gpu_cell_group size of 0"):
             decomp2 = arb.partition_load_balance(recipe, context, hints2)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Domain_Decompositions_Distributed, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-
-    if not arb.mpi_is_initialized():
-        arb.mpi_init()
-
-    comm = arb.mpi_comm()
-
-    alloc = arb.proc_allocation()
-    ctx = arb.context(alloc, comm)
-    rank = ctx.rank
-
-    if rank == 0:
-        runner = unittest.TextTestRunner(verbosity = v)
-    else:
-        sys.stdout = open(os.devnull, 'w')
-        runner = unittest.TextTestRunner(stream=sys.stdout)
-
-    runner.run(suite())
-
-    if not arb.mpi_is_finalized():
-        arb.mpi_finalize()
-
-if __name__ == "__main__":
-    run()

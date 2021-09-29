@@ -5,15 +5,7 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, options
 
 # check Arbor's configuration of mpi and gpu
 gpu_enabled = arb.__config__["gpu"]
@@ -56,7 +48,7 @@ class hetero_recipe (arb.recipe):
         else:
             return arb.cell_kind.cable
 
-class Domain_Decompositions(unittest.TestCase):
+class TestDomain_Decompositions(unittest.TestCase):
     # 1 cpu core, no gpus; assumes all cells will be put into cell groups of size 1
     def test_domain_decomposition_homogenous_CPU(self):
         n_cells = 10
@@ -242,16 +234,3 @@ class Domain_Decompositions(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,
             "unable to perform load balancing because cell_kind::spike_source has invalid suggested gpu_cell_group size of 0"):
             decomp = arb.partition_load_balance(recipe, context, hints)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Domain_Decompositions, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

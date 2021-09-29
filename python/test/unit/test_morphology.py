@@ -6,15 +6,7 @@ import unittest
 import arbor as A
 import numpy as N
 import math
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, options
 
 """
 tests for morphology-related classes
@@ -24,7 +16,7 @@ def as_matrix(iso):
     trans = N.array(iso((0, 0, 0)))
     return N.c_[N.array([iso(v) for v in [(1,0,0),(0,1,0),(0,0,1)]]).transpose()-N.c_[trans, trans, trans], trans]
 
-class PlacePwlin(unittest.TestCase):
+class TestPlacePwlin(unittest.TestCase):
     def test_identity(self):
         self.assertTrue(N.isclose(as_matrix(A.isometry()), N.eye(3, 4)).all())
 
@@ -130,16 +122,3 @@ class PlacePwlin(unittest.TestCase):
 
         Chalf_all = [(s.prox, s.dist) for s in place.all_segments([A.cable(0, 0., 0.5)])]
         self.assertEqual([(x0p, x0d), (x1p, x1p)], Chalf_all)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(PlacePwlin, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()
