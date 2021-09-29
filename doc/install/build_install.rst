@@ -563,7 +563,7 @@ Profiling
 ---------
 
 Arbor has built in profiling that can report the time spent in each step during
-that can be toggled with the ``-DARB_WITH_PROFILING`` CMake option:
+the simulation that can be toggled with the ``-DARB_WITH_PROFILING`` CMake option:
 
 .. code-block:: bash
 
