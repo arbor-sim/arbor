@@ -1005,7 +1005,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
 
         update_ion_support(info, config.cv);
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
 
     // Synapses:
@@ -1148,7 +1148,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         update_ion_support(info, config.cv);
 
         M.n_target += config.target.size();
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
     M.post_events = post_events;
 
@@ -1259,7 +1259,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         std::unique_copy(config.cv.begin(), config.cv.end(), std::back_inserter(config.cv_unique));
         config.cv_unique.shrink_to_fit();
 
-        M.stimuli = std::move(config);
+        if (!config.cv.empty()) M.stimuli = std::move(config);
     }
 
     // Ions:
@@ -1328,7 +1328,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             config.init_econc[i] *= oo_cv_area;
         }
 
-        M.ions[ion] = std::move(config);
+        if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }
 
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
@@ -1399,7 +1399,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                         config.param_values.emplace_back(kv.first, std::vector<value_type>(config.cv.size(), kv.second));
                     }
 
-                    M.mechanisms[revpot.name()] = std::move(config);
+                    if (!config.cv.empty()) M.mechanisms[revpot.name()] = std::move(config);
                 }
             }
         }

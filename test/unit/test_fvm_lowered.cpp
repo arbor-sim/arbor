@@ -535,6 +535,33 @@ TEST(fvm_lowered, derived_mechs) {
     }
 }
 
+TEST(fvm_lowered, null_region) {
+    arb::proc_allocation resources;
+    if (auto nt = arbenv::get_env_num_threads()) {
+        resources.num_threads = nt;
+    }
+    else {
+        resources.num_threads = arbenv::thread_concurrency();
+    }
+
+    soma_cell_builder builder(6);
+    builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
+    auto cell = builder.make_cell();
+
+    cell.decorations.paint(reg::nil(), "test_kin1");
+    cell.decorations.paint(reg::nil(), "custom_kin1");
+
+    cable1d_recipe rec(cable_cell{cell});
+    rec.catalogue() = make_unit_test_catalogue();
+    rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
+
+    auto ctx = make_context(resources);
+    auto decomp = partition_load_balance(rec, ctx);
+    simulation sim(rec, decomp, ctx);
+    EXPECT_NO_THROW(sim.run(30.0, 1.f/1024));
+}
+
+
 // Test that ion charge is propagated into mechanism variable.
 
 TEST(fvm_lowered, read_valence) {

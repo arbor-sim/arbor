@@ -394,6 +394,15 @@ Mechanism catalogues
     2. A further hierarchy of *derived* mechanisms, that allow specialization of
        global parameters, ion bindings, and implementations.
 
+    .. py:method:: __init__(catalogue=None)
+
+        Create an empty or copied catalogue.
+
+        :param catalogue: ``catalogue`` to copy
+        :type catalogue: :class:`catalogue`
+        :return: empty or copied catalogue
+        :rtype: :class:`catalogue`
+
     .. py:method:: __contains__(name)
 
         Test if mechanism with *name* is in the catalogue.

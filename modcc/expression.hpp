@@ -1441,6 +1441,9 @@ public:
     :   BinaryExpression(loc, tok::pow, std::move(lhs), std::move(rhs))
     {}
 
+    // pow is a prefix binop
+    bool is_infix() const override {return false;}
+
     void accept(Visitor *v) override;
 };
 
