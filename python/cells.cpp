@@ -267,8 +267,8 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
-        .def(pybind11::init([](const std::string& s) { return arborio::parse_cv_policy_expression(s).unwrap(); }),
-            "s"_a, "A valid CV policy expression")
+        .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(s).unwrap(); }),
+            "expression"_a, "A valid CV policy expression")
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
@@ -596,13 +596,13 @@ void register_cells(pybind11::module& m) {
                 return arb::cable_cell(m, labels.dict, d);
             }),
             "morphology"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology.")
+            "Construct with a morphology, label dictionary and decor.")
         .def(pybind11::init(
             [](const arb::segment_tree& t, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(arb::morphology(t), labels.dict, d);
             }),
             "segment_tree"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology derived from a segment tree.")
+            "Construct with a morphology derived from a segment tree, label dictionary and decor.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
