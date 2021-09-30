@@ -109,11 +109,11 @@ with TemporaryDirectory() as tmp:
     shutil.copy2(f'@ARB_INSTALL_DATADIR@/BuildModules.cmake', tmp)
     shutil.copy2(f'@ARB_INSTALL_DATADIR@/generate_catalogue', tmp)
     if verbose:
-        sp.run('cmake ..', shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE)
-        sp.run('make',     shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE)
-    else:
         sp.run('cmake ..', shell=True, check=True)
         sp.run('make',     shell=True, check=True)
+    else:
+        p = sp.run('cmake ..', shell=True, check=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        p = sp.run('make',     shell=True, check=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     shutil.copy2(f'{name}-catalogue.so', pwd)
     if not quiet:
         print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
