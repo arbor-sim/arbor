@@ -165,3 +165,12 @@ class TestPoissonSchedule(unittest.TestCase):
             "t1 must be a non-negative number"):
             ps = arb.poisson_schedule(0,0.01)
             ps.events(1., -1.)
+        with self.assertRaisesRegex(RuntimeError,
+            "tstop must be a non-negative number, or None"):
+            arb.poisson_schedule(0, 0.1, tstop='tstop')
+            ps.events(1., -1.)
+
+    def test_tstop_poisson_schedule(self):
+        tstop = 50
+        events = arb.poisson_schedule(0., 1, 0, tstop).events(0, 100)
+        self.assertTrue(max(events) < tstop)
