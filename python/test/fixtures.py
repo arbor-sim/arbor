@@ -67,7 +67,7 @@ def _build_cat(name, path):
     build_err = None
     try:
         if not comm.Get_rank():
-            subprocess.run(["build-catalogue", name, str(path / "uhsahh")], check=True, capture_output=True)
+            subprocess.run(["build-catalogue", name, str(path)], check=True, stderr=subprocess.PIPE)
         build_err = comm.bcast(build_err, root=0)
     except subprocess.CalledProcessError as e:
         rt_err = RuntimeError("Tests can't build catalogues:\n" + e.stderr.decode())
