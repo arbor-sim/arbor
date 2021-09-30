@@ -91,7 +91,7 @@ class profiler {
     // The regions are assigned consecutive indexes in the order that they are
     // added to the profiler with calls to `region_index()`, with the first
     // region numbered zero.
-    std::unordered_map<const char*, region_id_type> name_index_;
+    std::unordered_map<std::string, region_id_type> name_index_;
 
     // The name of each region being recorded, with index stored in name_index_
     // is used to index into region_names_.
@@ -108,10 +108,10 @@ public:
 
     void initialize(task_system_handle& ts);
     void enter(region_id_type index);
-    void enter(const char* name);
+    void enter(const std::string& name);
     void leave();
     const std::vector<std::string>& regions() const;
-    region_id_type region_index(const char* name);
+    region_id_type region_index(const std::string& name);
     profile results() const;
 
     static profiler& get_global_profiler() {
@@ -186,7 +186,7 @@ void profiler::enter(region_id_type index) {
     recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
 }
 
-void profiler::enter(const char* name) {
+void profiler::enter(const std::string& name) {
     if (!init_) return;
     const auto index = region_index(name);
     recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
@@ -197,7 +197,7 @@ void profiler::leave() {
     recorders_[thread_ids_.at(std::this_thread::get_id())].leave();
 }
 
-region_id_type profiler::region_index(const char* name) {
+region_id_type profiler::region_index(const std::string& name) {
     // The name_index_ hash table is shared by all threads, so all access
     // has to be protected by a mutex.
     std::lock_guard<std::mutex> guard(mutex_);
@@ -248,6 +248,20 @@ profile profiler::results() const {
     }
 
     p.num_threads = recorders_.size();
+
+    // Remove elements with count == 0
+    for(unsigned i=0; i<p.counts.size();) {
+        if (p.counts[i] != 0) {
+            ++i;
+            continue;
+        }
+        std::swap(p.counts[i], p.counts.back());
+        std::swap(p.times[i],  p.times.back());
+        std::swap(p.names[i],  p.names.back());
+        p.counts.pop_back();
+        p.times.pop_back();
+        p.names.pop_back();
+    }
 
     return p;
 }
@@ -332,7 +346,7 @@ void profiler_leave() {
     profiler::get_global_profiler().leave();
 }
 
-region_id_type profiler_region_id(const char* name) {
+region_id_type profiler_region_id(const std::string& name) {
     if (!is_valid_region_string(name)) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
     }
@@ -370,7 +384,7 @@ void profiler_enter(region_id_type) {}
 profile profiler_summary();
 void profiler_print(const profile& prof, float threshold) {};
 profile profiler_summary() {return profile();}
-region_id_type profiler_region_id(const char*) {return 0;}
+region_id_type profiler_region_id(const std::string&) {return 0;}
 std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
 
 #endif // ARB_HAVE_PROFILING

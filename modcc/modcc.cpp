@@ -106,7 +106,6 @@ std::ostream& operator<<(std::ostream& out, const Options& opt) {
 }
 
 std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
-    static const char* noyes[2] = {"no", "yes"};
     static const std::string line_end = cyan(" |") + "\n";
 
     return out <<
