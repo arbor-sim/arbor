@@ -26,6 +26,7 @@ std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
     return o << "<arbor.poisson_schedule: tstart " << p.tstart << " ms"
+             << ", tstop " << util::to_string(p.tstop) << " ms"
              << ", freq " << p.freq << " kHz"
              << ", seed " << p.seed << ">";
 };
