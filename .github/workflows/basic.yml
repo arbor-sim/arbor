@@ -150,7 +150,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
-          make -j4 tests examples pyarb html
+          make -j4 tests examples pyarb html install
           cd -
       - name: Run unit tests
         run: |
