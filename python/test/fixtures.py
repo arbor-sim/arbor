@@ -71,7 +71,7 @@ def _build_cat(name, path):
         build_err = comm.bcast(build_err, root=0)
     except subprocess.CalledProcessError as e:
         rt_err = RuntimeError("Tests can't build catalogues:\n" + e.stderr.decode())
-        build_err = comm.bcast(e, root=0)
+        build_err = comm.bcast(rt_err, root=0)
     except Exception as e:
         build_err = comm.bcast(e, root=0)
     if build_err:
