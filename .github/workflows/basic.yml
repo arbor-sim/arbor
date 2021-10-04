@@ -155,7 +155,7 @@ jobs:
       - name: Install arbor
         run: |
           cd build
-          make install
+          sudo make install
           cd -
       - name: Run unit tests
         run: |
