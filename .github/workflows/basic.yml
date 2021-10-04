@@ -91,7 +91,13 @@ jobs:
         # This is a workaround for the unfortunate interaction of MacOS and OpenMPI 4
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
+        # Needed for build-catalogue to work
+        CMAKE_PREFIX_PATH: ${{ github.workspace }}/local
     steps:
+      - name: set env vars for custom install prefix
+        run: |
+          export LD_LIBRARY_PATH="$CMAKE_PREFIX_PATH/lib:$LD_LIBRARY_PATH"
+          export PATH="$CMAKE_PREFIX_PATH/bin:$PATH"
       - name: Get clang/gcc 8
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
@@ -149,8 +155,13 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
-          make -j4 tests examples pyarb html install
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CMAKE_PREFIX_PATH -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          make -j4 tests examples pyarb html
+          cd -
+      - name: Install arbor
+        run: |
+          cd build
+          make install
           cd -
       - name: Run unit tests
         run: |
@@ -173,3 +184,5 @@ jobs:
         run:  mpirun -n 4 -oversubscribe python -m unittest discover -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
+      - name: Build a catalogue
+        run: build-catalogue -v default mechanisms/default
