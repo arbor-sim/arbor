@@ -49,6 +49,9 @@ def repo_path():
 
 @_fixture
 def context():
+    """
+    Fixture that produces an MPI sensitive `arbor.context`
+    """
     args = [arbor.proc_allocation()]
     if _mpi_enabled:
         if not arbor.mpi_is_initialized():
@@ -82,10 +85,17 @@ def _build_cat(name, path):
 @_singleton_fixture
 @repo_path
 def dummy_catalogue(repo_path):
+    """
+    Fixture that returns a dummy `arbor.catalogue`
+    which contains the `dummy` mech.
+    """
     path = repo_path / "test" / "unit" / "dummy"
     cat_path = _build_cat("dummy", path)
     return arbor.load_catalogue(str(cat_path))
 
 @_fixture
 class empty_recipe(arbor.recipe):
+    """
+    Fixture that returns a blank `arbor.recipe` instance.
+    """
     pass
