@@ -144,11 +144,6 @@ class cmake_build(build_ext):
         build_directory = os.path.abspath(self.build_temp)
         # The path where the package will be copied after building.
         lib_directory = os.path.abspath(self.build_lib)
-        # The path where the Python package will be compiled.
-        source_path = build_directory + '/python/arbor'
-        # Where to copy the package after it is built, so that whatever the next phase is
-        # can copy it into the target 'prefix' path.
-        dest_path = lib_directory + '/arbor'
 
         opt = cl_opt()
         cmake_args = [
@@ -186,13 +181,6 @@ class cmake_build(build_ext):
         cmake_cmd = ['cmake', '--build', '.'] + build_args
         subprocess.check_call(cmake_cmd,
                               cwd=self.build_temp)
-
-        # Copy from build path to some other place from whence it will later be installed.
-        # ... or something like that
-        # ... setuptools is an enigma monkey patched on a mystery
-        if not os.path.exists(dest_path):
-            os.makedirs(dest_path, exist_ok=True)
-        self.copy_tree(source_path, dest_path)
 
 setuptools.setup(
     name='arbor',
