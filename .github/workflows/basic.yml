@@ -163,6 +163,9 @@ jobs:
           cd build
           make install
           cd -
+          echo "$LD_LIBRARY_PATH"
+          echo "$PATH"
+          ls "$CMAKE_PREFIX_PATH/bin"
       - name: Run unit tests
         run: |
           build/bin/unit
