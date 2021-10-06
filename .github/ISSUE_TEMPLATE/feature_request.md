@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Request a new feature that you need Arbor to have. Add a clear and concise description of what the feature addresses or solves and what you want to happen. The Arbor team will follow-up and help you flesh the feature out and help work towards an implementation.
+about: Request a new feature. Add a clear and concise description of what the feature addresses or solves and what you want to happen. The Arbor team will follow-up and help you get to an implementation.
 title: ''
 labels:
 - 'Feature Request'
