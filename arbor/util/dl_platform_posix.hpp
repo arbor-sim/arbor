@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <string>
 
 #include <dlfcn.h>
@@ -21,6 +22,12 @@ struct dl_handle {
 };
 
 dl_handle dl_open(const std::string& fn) {
+    try {
+        std::ifstream fd{fn.c_str()};
+        if(!fd.good()) throw file_not_found_error{fn};
+    } catch(...) {
+        throw file_not_found_error{fn};
+    }
     // Call once to clear errors not caused by us
     dlerror();
     auto result = dlopen(fn.c_str(), RTLD_LAZY);

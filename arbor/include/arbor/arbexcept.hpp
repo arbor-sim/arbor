@@ -146,6 +146,13 @@ struct file_not_found_error: arbor_exception {
     std::string filename;
 };
 
+//
+struct bad_catalogue_error: arbor_exception {
+    bad_catalogue_error(const std::string&);
+    bad_catalogue_error(const std::string&, const std::any&);
+    std::any platform_error;
+};
+
 // ABI errors
 
 struct bad_alignment: arbor_exception {

@@ -124,8 +124,16 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
 {}
 
 file_not_found_error::file_not_found_error(const std::string &fn)
-    : arbor_exception(pprintf("Could not find file '{}'", fn)),
+    : arbor_exception(pprintf("Could not find readable file at '{}'", fn)),
       filename{fn}
+{}
+
+bad_catalogue_error::bad_catalogue_error(const std::string& msg)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg))
+{}
+
+bad_catalogue_error::bad_catalogue_error(const std::string& msg, const std::any& pe)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(pe)
 {}
 
 unsupported_abi_error::unsupported_abi_error(size_t v):

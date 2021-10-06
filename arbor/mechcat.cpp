@@ -15,8 +15,7 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 #include "util/span.hpp"
-
-#include "dl.hpp"
+#include "util/dl.hpp"
 
 /* Notes on implementation:
  *
@@ -586,10 +585,16 @@ mechanism_catalogue::~mechanism_catalogue() = default;
 
 const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
-
-    auto plugin = dl_open(fn);
-    auto get_catalogue = dl_get_symbol<global_catalogue_t*>(plugin, "get_catalogue");
-
+    global_catalogue_t* get_catalogue = nullptr;
+    try {
+        auto plugin = dl_open(fn);
+        get_catalogue = dl_get_symbol<global_catalogue_t*>(plugin, "get_catalogue");
+    } catch(dl_error& e) {
+        throw bad_catalogue_error{e.what(), {e}};
+    }
+    if (!get_catalogue) {
+        throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
+    }
     /* NOTE We do not free the DSO handle here and accept retaining the handles
        until termination since the mechanisms provided by the catalogue may have
        a different lifetime than the actual catalogue itfself. This is not a
