@@ -128,12 +128,6 @@ file_not_found_error::file_not_found_error(const std::string &fn)
       filename{fn}
 {}
 
-bad_catalogue_error::bad_catalogue_error(const std::string &fn, const std::string& call)
-    : arbor_exception(pprintf("Error in '{}' while opening catalogue '{}'", call, fn)),
-      filename{fn},
-      failed_call{call}
-{}
-
 unsupported_abi_error::unsupported_abi_error(size_t v):
     arbor_exception(pprintf("ABI version is not supported by this version of arbor '{}'", v)),
     version{v} {}

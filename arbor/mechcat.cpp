@@ -5,8 +5,6 @@
 #include <vector>
 #include <cassert>
 
-#include <dlfcn.h>
-
 #include <arbor/version.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
@@ -17,6 +15,8 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 #include "util/span.hpp"
+
+#include "dl.hpp"
 
 /* Notes on implementation:
  *
@@ -584,20 +584,11 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-static void check_dlerror(const std::string& fn, const std::string& call) {
-    auto error = dlerror();
-    if (error) { throw arb::bad_catalogue_error{fn, call}; }
-}
-
 const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
 
-    auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
-    check_dlerror(fn, "dlopen");
-    assert(plugin);
-
-    auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
-    check_dlerror(fn, "dlsym");
+    auto plugin = dl_open(fn);
+    auto get_catalogue = dl_get_symbol<global_catalogue_t*>(plugin, "get_catalogue");
 
     /* NOTE We do not free the DSO handle here and accept retaining the handles
        until termination since the mechanisms provided by the catalogue may have
