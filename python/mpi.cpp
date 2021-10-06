@@ -97,11 +97,14 @@ std::ostream& operator<<(std::ostream& o, const mpi_comm_shim& c) {
 
 void register_mpi(pybind11::module& m) {
     using namespace std::string_literals;
+    using namespace pybind11::literals;
 
     pybind11::class_<mpi_comm_shim> mpi_comm(m, "mpi_comm");
     mpi_comm
         .def(pybind11::init<>())
-        .def(pybind11::init([](pybind11::object o){return mpi_comm_shim(o);}))
+        .def(pybind11::init(
+            [](pybind11::object o){ return mpi_comm_shim(o); }),
+            "mpi_comm_obj"_a, "MPI communicator object.")
         .def("__str__",  util::to_string<mpi_comm_shim>)
         .def("__repr__", util::to_string<mpi_comm_shim>);
 

@@ -25,7 +25,7 @@ no_such_branch::no_such_branch(msize_t bid):
 {}
 
 no_such_segment::no_such_segment(msize_t id):
-    arbor_exception(pprintf("segment {} out of bounds", id)),
+    arbor_exception(pprintf("no such segment {}", id)),
     sid(id)
 {}
 

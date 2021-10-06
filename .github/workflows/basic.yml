@@ -152,6 +152,11 @@ jobs:
           cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
           make -j4 tests examples pyarb html
           cd -
+      - name: Install arbor
+        run: |
+          cd build
+          sudo make install
+          cd -
       - name: Run unit tests
         run: |
           build/bin/unit
@@ -175,3 +180,5 @@ jobs:
         run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py -v2
       - name: Run Python examples
         run: scripts/run_python_examples.sh
+      - name: Build a catalogue
+        run: build-catalogue -v default mechanisms/default

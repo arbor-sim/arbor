@@ -267,7 +267,8 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
-        .def(pybind11::init([](const std::string& s) { return arborio::parse_cv_policy_expression(s).unwrap(); }))
+        .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
+            "expression"_a, "A valid CV policy expression")
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
@@ -369,9 +370,8 @@ void register_cells(pybind11::module& m) {
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
         .def(pybind11::init(
-            [](double thresh) {
-                return arb::threshold_detector{thresh};
-            }), "threshold"_a)
+            [](double thresh) { return arb::threshold_detector{thresh}; }),
+            "threshold"_a, "Voltage threshold of spike detector [mV]")
         .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
@@ -594,13 +594,15 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init(
             [](const arb::morphology& m, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(m, labels.dict, d);
-            }), "morphology"_a, "labels"_a, "decor"_a)
+            }),
+            "morphology"_a, "labels"_a, "decor"_a,
+            "Construct with a morphology, label dictionary and decor.")
         .def(pybind11::init(
             [](const arb::segment_tree& t, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(arb::morphology(t), labels.dict, d);
             }),
             "segment_tree"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology derived from a segment tree.")
+            "Construct with a morphology derived from a segment tree, label dictionary and decor.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
