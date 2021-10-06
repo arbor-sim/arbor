@@ -128,6 +128,7 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/index
    concepts/recipe
    concepts/cell
+   concepts/mechanisms
    concepts/interconnectivity
    concepts/hardware
    concepts/domdec
