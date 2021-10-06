@@ -24,6 +24,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: pypa/cibuildwheel@v1.9.0
         with:
+          package-dir: python
           output-dir: dist
         env:
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
@@ -37,6 +38,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'macos') }}
         uses: pypa/cibuildwheel@v1.9.0
         with:
+          package-dir: python
           output-dir: dist
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
