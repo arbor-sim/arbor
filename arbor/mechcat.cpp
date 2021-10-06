@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <cassert>
+#include <filesystem>
 
 #include <dlfcn.h>
 
@@ -590,6 +591,10 @@ static void check_dlerror(const std::string& fn, const std::string& call) {
 }
 
 const mechanism_catalogue& load_catalogue(const std::string& fn) {
+    if (!std::filesystem::exists(fn)) {
+        throw file_not_found_error(fn);
+    }
+
     typedef const void* global_catalogue_t();
 
     auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
