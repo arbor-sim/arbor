@@ -186,8 +186,7 @@ setuptools.setup(
     name='arbor',
     version=version_,
     python_requires='>=3.6',
-    packages=setuptools.find_packages(exclude=["test", "example"]),
-    package_dir="python",
+
     install_requires=['numpy'],
     setup_requires=[],
     zip_safe=False,
@@ -200,6 +199,7 @@ setuptools.setup(
         'build_ext':   cmake_build,
         'install':     install_command,
     },
+
     author='The Arbor dev team.',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
