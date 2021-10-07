@@ -53,12 +53,17 @@ def parse_arguments():
                         help='Less output.')
 
     parser.add_argument('-d', '--debug',
-                        action='store_true',
-                        help='Don\'t clean up the generated temp cpp code.')
+                        nargs="?",
+                        metavar="path",
+                        const=True,
+                        default=False,
+                        help='Don\'t clean up the generated temp cpp code.'
+                        + ' Can be a target path for the generated code.')
 
     parser.add_argument('-h', '--help',
                         action='help',
                         help='Display this help and exit.')
+
 
     return vars(parser.parse_args())
 
@@ -112,7 +117,18 @@ if debug:
     # code can be debugged
     class TemporaryDirectory:
         def __enter__(*args, **kwargs):
-            return mkdtemp()
+            if isinstance(debug, str):
+                path = os.path.abspath(debug)
+                try:
+                    os.makedirs(path, exist_ok=False)
+                except FileExistsError:
+                    sys.stderr.write(f"Error: Debug destination '{path}' already exists.\n")
+                    sys.stderr.flush()
+                    exit(1)
+            else:
+                path = mkdtemp()
+            print(f"Building debug code in '{path}'.")
+            return path
 
         def __exit__(*args, **kwargs):
             pass
@@ -131,5 +147,3 @@ with TemporaryDirectory() as tmp:
     shutil.copy2(f'{name}-catalogue.so', pwd)
     if not quiet:
         print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
-        if debug:
-            print(f"Generated code available in '{tmp}'.")
