@@ -2,7 +2,7 @@
 
 import subprocess as sp
 import sys
-from tempfile import TemporaryDirectory
+from tempfile import mkdtemp, TemporaryDirectory
 import os
 from pathlib import Path
 import shutil
@@ -52,9 +52,18 @@ def parse_arguments():
                         action='store_true',
                         help='Less output.')
 
+    parser.add_argument('-d', '--debug',
+                        nargs="?",
+                        metavar="path",
+                        const=True,
+                        default=False,
+                        help='Don\'t clean up the generated temp cpp code.'
+                        + ' Can be a target path for the generated code.')
+
     parser.add_argument('-h', '--help',
                         action='help',
                         help='Display this help and exit.')
+
 
     return vars(parser.parse_args())
 
@@ -68,6 +77,7 @@ mod_dir = pwd / Path(args['modpfx'])
 mods    = [ f[:-4] for f in os.listdir(mod_dir) if f.endswith('.mod') ]
 verbose = args['verbose'] and not args['quiet']
 quiet   = args['quiet']
+debug   = args['debug']
 
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
@@ -96,8 +106,32 @@ make_catalogue(
 
 if not quiet:
     print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
+    if debug:
+        print("Debug mode enabled.")
     for m in mods:
         print(" *", m)
+
+if debug:
+    # Overwrite the local reference to `TemporaryDirectory` with a context
+    # manager that doesn't clean up the build folder so that the generated cpp
+    # code can be debugged
+    class TemporaryDirectory:
+        def __enter__(*args, **kwargs):
+            if isinstance(debug, str):
+                path = os.path.abspath(debug)
+                try:
+                    os.makedirs(path, exist_ok=False)
+                except FileExistsError:
+                    sys.stderr.write(f"Error: Debug destination '{path}' already exists.\n")
+                    sys.stderr.flush()
+                    exit(1)
+            else:
+                path = mkdtemp()
+            print(f"Building debug code in '{path}'.")
+            return path
+
+        def __exit__(*args, **kwargs):
+            pass
 
 with TemporaryDirectory() as tmp:
     tmp = Path(tmp)
@@ -111,9 +145,32 @@ with TemporaryDirectory() as tmp:
     if verbose:
         out, err = (None, None)
     else:
-        out, err = (sp.DEVNULL, sp.DEVNULL)
-    sp.run('cmake ..', shell=True, check=True, stdout=out, stderr=err)
-    sp.run('make', shell=True, check=True, stdout=out, stderr=err)
-    shutil.copy2(f'{name}-catalogue.so', pwd)
+        out, err = (sp.PIPE, sp.PIPE)
+    try:
+        sp.run('cmake ..', shell=True, check=True, stdout=out, stderr=err)
+        sp.run('make',     shell=True, check=True, stdout=out, stderr=err)
+        shutil.copy2(f'{name}-catalogue.so', pwd)
+    except sp.CalledProcessError as e:
+        import sys, traceback as tb
+
+        if not verbose:
+            # Not in verbose mode, so we have captured the
+            # `stdout` and `stderr` and can print it to the user.
+            sys.stdout.write("Build log:\n")
+            sys.stdout.write(e.stdout.decode())
+            sys.stderr.write(tb.format_exc() + " Error:\n\n")
+            sys.stderr.write(e.stderr.decode())
+        else:
+            # In verbose mode the outputs weren't captured and
+            # have been streamed to `stdout` and `stderr` already.
+            sys.stderr.write(
+                "Catalogue building error occurred."
+                + " Check stdout log for underlying error,"
+                + " or omit verbose flag to capture it."
+            )
+        sys.stdout.flush()
+        sys.stderr.flush()
+        exit(e.returncode)
+    
     if not quiet:
         print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')

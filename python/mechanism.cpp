@@ -240,7 +240,7 @@ void register_mechanisms(pybind11::module& m) {
             }, "A dictionary of parameter values with parameter name as key.")
         .def("__repr__",
                 [](const arb::mechanism_desc& md) {
-                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}", md.name(), util::dictionary_csv(md.values())); })
+                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}>", md.name(), util::dictionary_csv(md.values())); })
         .def("__str__",
                 [](const arb::mechanism_desc& md) {
                     return util::pprintf("('{}' {})", md.name(), util::dictionary_csv(md.values())); });
