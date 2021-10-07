@@ -27,7 +27,8 @@ class CL_opt:
                                'vec': False,
                                'arch': 'none',
                                'neuroml': True,
-                               'bundled': True}
+                               'bundled': True,
+                               'makejobs': 2}
 
     def settings(self):
         return CL_opt.instance
@@ -43,7 +44,8 @@ user_options_ = [
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
         ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)'),
-        ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.')
+        ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.'),
+        ('makejobs=', None, 'the amount of jobs to run `make` with.')
     ]
 
 # VERSION is in the same path as setup.py
@@ -98,9 +100,18 @@ class _command_template:
         self.vec  = None
         self.neuroml = None
         self.sysdeps = None
+        self.makejobs = 2
 
     def finalize_options(self):
         super().finalize_options()
+        try:
+            self.makejobs = int(self.makejobs)
+        except ValueError:
+            err = True
+        else:
+            err = False
+        if err or self.makejobs < 1:
+            raise AssertionError('makejobs must be a strictly positive integer')
 
     def run(self):
         # The options are stored in global variables:
@@ -118,6 +129,9 @@ class _command_template:
         #   bundled : use bundled/git-submoduled 3rd party libraries.
         #             By default use bundled libs.
         opt['bundled'] = self.sysdeps is None
+        #   makejobs : specify amount of jobs.
+        #              By default 2.
+        opt['makejobs'] = int(self.makejobs)
 
         super().run()
 
@@ -169,7 +183,7 @@ class cmake_build(build_ext):
         build_args = ['--config', 'Release']
 
         # Assuming Makefiles
-        build_args += ['--', '-j2']
+        build_args += ['--', f'-j{opt["makejobs"]}']
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{}'.format(env.get('CXXFLAGS', ''))

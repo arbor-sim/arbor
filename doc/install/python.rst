@@ -21,7 +21,7 @@ The easiest way to get Arbor is with
     pip3 install arbor
 
 .. note::
-    For other platforms, `pip` will build Arbor from source. 
+    For other platforms, `pip` will build Arbor from source.
     You will need to have some development packages installed in order to build Arbor this way.
 
     * Ubuntu/Debian: `git cmake gcc python3-dev python3-pip libxml2-dev`
@@ -84,6 +84,7 @@ The following optional flags can be used to configure the installation:
   See :ref:`install-architecture` for details.
 * ``--arch``: CPU micro-architecture to target. The advised default is ``native``.
   See `here <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of options.
+* ``--makejobs``: Specify the amount of jobs to ``make`` the project with for faster build times on multicore systems. By default set to ``2``.
 
 **Vanilla install** with no additional features enabled:
 
@@ -134,7 +135,7 @@ The following optional flags can be used to configure the installation:
     it with the flags you need.
 
 .. Note::
-    Detailed instructions on how to install using CMake are in the 
+    Detailed instructions on how to install using CMake are in the
     :ref:`Python configuration <install-python>` section of the :ref:`installation guide <in_build_install>`.
     CMake is recommended if you need more control over compilation and installation, plan to use Arbor with C++,
     or if you are integrating with package managers such as Spack and EasyBuild.
