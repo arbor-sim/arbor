@@ -145,9 +145,32 @@ with TemporaryDirectory() as tmp:
     if verbose:
         out, err = (None, None)
     else:
-        out, err = (sp.DEVNULL, sp.DEVNULL)
-    sp.run('cmake ..', shell=True, check=True, stdout=out, stderr=err)
-    sp.run('make', shell=True, check=True, stdout=out, stderr=err)
-    shutil.copy2(f'{name}-catalogue.so', pwd)
+        out, err = (sp.PIPE, sp.PIPE)
+    try:
+        sp.run('cmake ..', shell=True, check=True, stdout=out, stderr=err)
+        sp.run('make',     shell=True, check=True, stdout=out, stderr=err)
+        shutil.copy2(f'{name}-catalogue.so', pwd)
+    except sp.CalledProcessError as e:
+        import sys, traceback as tb
+
+        if not verbose:
+            # Not in verbose mode, so we have captured the
+            # `stdout` and `stderr` and can print it to the user.
+            sys.stdout.write("Build log:\n")
+            sys.stdout.write(e.stdout.decode())
+            sys.stderr.write(tb.format_exc() + " Error:\n\n")
+            sys.stderr.write(e.stderr.decode())
+        else:
+            # In verbose mode the outputs weren't captured and
+            # have been streamed to `stdout` and `stderr` already.
+            sys.stderr.write(
+                "Catalogue building error occurred."
+                + " Check stdout log for underlying error,"
+                + " or omit verbose flag to capture it."
+            )
+        sys.stdout.flush()
+        sys.stderr.flush()
+        exit(e.returncode)
+    
     if not quiet:
         print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
