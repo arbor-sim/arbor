@@ -77,7 +77,7 @@ public:
         }
     }
 
-    void clear() {
+    void clear_samplers() {
         spike_record_.clear();
         for (auto&& [handle, cb]: sampler_map_) {
             for (auto& rec: *cb.recorders) {
@@ -208,9 +208,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
-        .def("clear", &simulation_shim::clear,
+        .def("clear_samplers", &simulation_shim::clear_samplers,
              pybind11::call_guard<pybind11::gil_scoped_release>(),
-             "Clearing spike and sample information.")
+             "Clearing spike and sample information. restoring memory")
         .def("run", &simulation_shim::run,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
