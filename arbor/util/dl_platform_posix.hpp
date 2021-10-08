@@ -9,8 +9,6 @@
 
 #include "util/strprintf.hpp"
 
-#define DL "POSIX"
-
 namespace arb {
 
 struct dl_error: arbor_exception {
