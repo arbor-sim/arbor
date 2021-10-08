@@ -8,6 +8,7 @@
 *.so
 
 # intermediate python files
+__pycache__
 *.pyc
 
 # python dev env files
