@@ -22,7 +22,7 @@ jobs:
 
       - name: Build wheels Linux
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        uses: joerick/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v1.9.0
         with:
           output-dir: dist
         env:
@@ -35,7 +35,7 @@ jobs:
 
       - name: Build wheels macos
         if: ${{ startsWith(matrix.os, 'macos') }}
-        uses: joerick/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v1.9.0
         with:
           output-dir: dist
         env:
