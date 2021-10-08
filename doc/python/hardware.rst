@@ -21,6 +21,7 @@ Helper functions for checking cmake or environment variables, as well as configu
 
     * ``ARB_MPI_ENABLED``
     * ``ARB_WITH_MPI4PY``
+    * ``ARB_GPU_ENABLED``
     * ``ARB_VECTORIZE``
     * ``ARB_WITH_PROFILING``
     * ``ARB_VERSION``
