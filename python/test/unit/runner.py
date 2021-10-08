@@ -12,6 +12,7 @@ try:
     import options
     import test_cable_probes
     import test_catalogues
+    import test_clear_samplers
     import test_contexts
     import test_decor
     import test_domain_decomposition
@@ -27,6 +28,7 @@ except ModuleNotFoundError:
     from test import options
     from test.unit import test_cable_probes
     from test.unit import test_catalogues
+    from test.unit import test_clear_samplers
     from test.unit import test_contexts
     from test.unit import test_decor
     from test.unit import test_domain_decompositions
@@ -40,7 +42,8 @@ except ModuleNotFoundError:
 
 test_modules = [\
     test_cable_probes,\
-    test_catalogues,\
+    test_catalogues, \
+    test_clear_samplers, \
     test_contexts,\
     test_decor,\
     test_domain_decompositions,\
