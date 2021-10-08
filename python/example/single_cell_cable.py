@@ -43,6 +43,10 @@ class Cable(arbor.recipe):
         self.rL = rL
         self.g = g
 
+        self.stimulus_start = stimulus_start
+        self.stimulus_duration = stimulus_duration
+        self.stimulus_amplitude = stimulus_amplitude
+
         self.cv_policy_max_extent = cv_policy_max_extent
 
         self.the_props = arbor.neuron_cable_properties()
@@ -86,7 +90,7 @@ class Cable(arbor.recipe):
         decor.paint('"cable"',
                     arbor.mechanism(f'pas/e={self.Vm}', {'g': self.g}))
 
-        decor.place('"start"', arbor.iclamp(args.stimulus_start, args.stimulus_duration, args.stimulus_amplitude), "iclamp")
+        decor.place('"start"', arbor.iclamp(self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude), "iclamp")
 
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)
