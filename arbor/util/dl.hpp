@@ -9,5 +9,5 @@
 #endif
 
 #ifndef DL
-#error "No platform with dynamic loading found"
+#error "No platform support for dynamically loading libraries found."
 #endif

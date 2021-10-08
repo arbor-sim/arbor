@@ -21,6 +21,7 @@ struct dl_handle {
     void* dl = nullptr;
 };
 
+inline
 dl_handle dl_open(const std::string& fn) {
     try {
         std::ifstream fd{fn.c_str()};
@@ -39,7 +40,7 @@ dl_handle dl_open(const std::string& fn) {
     return {result};
 }
 
-template<typename T>
+template<typename T> inline
 T dl_get_symbol(const dl_handle& handle, const std::string& symbol) {
     // Call once to clear errors not caused by us
     dlerror();
@@ -52,6 +53,7 @@ T dl_get_symbol(const dl_handle& handle, const std::string& symbol) {
     return reinterpret_cast<T>(result);
 }
 
+inline
 void dl_close(dl_handle& handle) {
     dlclose(handle.dl);
     handle.dl = nullptr;
