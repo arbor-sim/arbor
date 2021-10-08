@@ -211,6 +211,6 @@ class art_spiker_recipe(arbor.recipe):
 @_fixture
 @context
 @art_spiker_recipe
-def art_spiking_sim(self, context, art_spiker_recipe):
+def art_spiking_sim(context, art_spiker_recipe):
     dd = arbor.partition_load_balance(art_spiker_recipe, context)
     return arbor.simulation(art_spiker_recipe, dd, context)
