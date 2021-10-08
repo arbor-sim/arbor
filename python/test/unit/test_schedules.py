@@ -5,7 +5,7 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures, options
+from .. import fixtures
 
 """
 all tests for schedules (regular, explicit, poisson)

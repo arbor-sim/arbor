@@ -8,7 +8,7 @@ import numpy as np
 
 # to be able to run .py file from child directory
 import sys, os
-from .. import fixtures, options
+from .. import fixtures
 
 """
 all tests for the simulator wrapper

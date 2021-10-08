@@ -4,7 +4,7 @@
 
 import unittest
 import arbor as A
-from .. import fixtures, options
+from .. import fixtures
 
 """
 all tests for the simulator wrapper

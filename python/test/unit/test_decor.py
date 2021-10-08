@@ -3,7 +3,7 @@
 import unittest
 import arbor as A
 
-from .. import fixtures, options
+from .. import fixtures
 
 """
 Tests for decor and decoration wrappers.

@@ -1,4 +1,4 @@
-from .. import fixtures, options
+from .. import fixtures
 import unittest
 import arbor as arb
 

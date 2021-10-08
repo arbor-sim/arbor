@@ -5,7 +5,7 @@
 import unittest
 import numpy as np
 import arbor as A
-from .. import fixtures, options
+from .. import fixtures
 
 mpi_enabled = A.__config__["mpi"]
 

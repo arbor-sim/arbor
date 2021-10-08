@@ -6,7 +6,7 @@ import unittest
 import arbor as A
 import numpy as N
 import math
-from .. import fixtures, options
+from .. import fixtures
 
 """
 tests for morphology-related classes
