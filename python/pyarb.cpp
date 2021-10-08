@@ -45,7 +45,7 @@ PYBIND11_MODULE(_arbor, m) {
     m.attr("__version__") = ARB_VERSION;
 
     // Translate to Arbor error -> Python exceptions.
-    pybind11::register_exception<arb::file_not_found_error>(m, "FileNotFoundError");
+    pybind11::register_exception<arb::file_not_found_error>(m, "FileNotFoundError", PyExc_FileNotFoundError);
 
     pyarb::register_cable_loader(m);
     pyarb::register_cable_probes(m, global_ptr);
