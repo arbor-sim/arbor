@@ -102,7 +102,7 @@ def _build_cat(name, path, context):
     if context.has_mpi:
         try:
             from mpi4py.MPI import COMM_WORLD as comm
-            
+
             serial = False
         except ImportError:
             warnings.warn(
@@ -133,6 +133,84 @@ def dummy_catalogue(repo_path):
 @_fixture
 class empty_recipe(arbor.recipe):
     """
-    Fixture that returns a blank `arbor.recipe` instance.
+    Blank recipe fixture.
     """
     pass
+
+
+@_fixture
+def cable_cell():
+    # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
+    tree = arbor.segment_tree()
+    tree.append(
+        arbor.mnpos,
+        arbor.mpoint(-3, 0, 0, 3),
+        arbor.mpoint(3, 0, 0, 3),
+        tag=1,
+    )
+
+    # (2) Define the soma and its midpoint
+    labels = arbor.label_dict({'soma':   '(tag 1)',
+                               'midpoint': '(location 0 0.5)'})
+
+    # (3) Create cell and set properties
+    decor = arbor.decor()
+    decor.set_property(Vm=-40)
+    decor.paint('"soma"', 'hh')
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+    decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+    return arbor.cable_cell(tree, labels, decor)
+
+@_fixture
+class art_spiker_recipe(arbor.recipe):
+    """
+    Recipe fixture with 3 artificial spiking cells.
+    """
+    def __init__(self):
+        arbor.recipe.__init__(self)
+        self.the_props = arbor.neuron_cable_properties()
+        self.trains = [
+                [0.8, 2, 2.1, 3],
+                [0.4, 2, 2.2, 3.1, 4.5],
+                [0.2, 2, 2.8, 3]]
+
+    def num_cells(self):
+        return 4
+
+    def cell_kind(self, gid):
+        if gid < 3:
+            return arbor.cell_kind.spike_source
+        else:
+            return arbor.cell_kind.cable
+
+    def connections_on(self, gid):
+        return []
+
+    def event_generators(self, gid):
+        return []
+
+    def global_properties(self, kind):
+        return self.the_props
+
+    def probes(self, gid):
+        if gid < 3:
+            return []
+        else:
+            return [arbor.cable_probe_membrane_voltage('"midpoint"')]
+
+    @cable_cell
+    def _cable_cell(self, cable_cell):
+        return cable_cell
+
+    def cell_description(self, gid):
+        if gid < 3:
+            return arbor.spike_source_cell("src", arbor.explicit_schedule(self.trains[gid]))
+        else:
+            return self._cable_cell()
+
+@_fixture
+@context
+@art_spiker_recipe
+def art_spiking_sim(self, context, art_spiker_recipe):
+    dd = arbor.partition_load_balance(art_spiker_recipe, context)
+    return arbor.simulation(art_spiker_recipe, dd, context)
