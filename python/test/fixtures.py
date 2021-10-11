@@ -93,14 +93,15 @@ def _build_cat_distributed(comm, name, path):
     #   * If it builds correctly it finishes the collective `build_err`
     #     broadcast with the initial value `None`: all nodes continue.
     #   * If it errors, it finishes the collective broadcast with the caught err
-    # * All MPI ranks either continue or raise the same err. (prevents stalling)
+    #
+    # All MPI ranks either continue or raise the same err. (prevents stalling)
     build_err = None
-    try:
-        if not comm.Get_rank():
+    if not comm.Get_rank():
+        try:
             _build_cat_local(name, path)
-        build_err = comm.bcast(build_err, root=0)
-    except Exception as e:
-        build_err = comm.bcast(e, root=0)
+        except Exception as e:
+            build_err = e
+    build_err = comm.bcast(build_err, root=0)
     if build_err:
         raise build_err
 
