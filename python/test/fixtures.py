@@ -167,7 +167,7 @@ class art_spiker_recipe(arbor.recipe):
     Recipe fixture with 3 artificial spiking cells.
     """
     def __init__(self):
-        arbor.recipe.__init__(self)
+        super().__init__()
         self.the_props = arbor.neuron_cable_properties()
         self.trains = [
                 [0.8, 2, 2.1, 3],
