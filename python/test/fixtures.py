@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 import subprocess
 import warnings
+import atexit
 
 _mpi_enabled = arbor.__config__["mpi"]
 _mpi4py_enabled = arbor.__config__["mpi4py"]
@@ -49,6 +50,11 @@ def repo_path():
     return Path(__file__).parent.parent.parent
 
 
+def _finalize_mpi():
+    print("Context fixture finalizing mpi")
+    arbor.mpi_finalize()
+
+
 @_fixture
 def context():
     """
@@ -59,6 +65,7 @@ def context():
         if not arbor.mpi_is_initialized():
             print("Context fixture initializing mpi", flush=True)
             arbor.mpi_init()
+            atexit.register(_finalize_mpi)
         if _mpi4py_enabled:
             from mpi4py.MPI import COMM_WORLD as comm
         else:
