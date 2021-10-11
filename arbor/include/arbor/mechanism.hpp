@@ -34,8 +34,8 @@ public:
     mechanism(const arb_mechanism_type m,
               const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
-        state_prof_id   = profile::profiler_region_id("advance_integrate_state_"+internal_name());
-        current_prof_id = profile::profiler_region_id("advance_integrate_current_"+internal_name());
+        state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
+        current_prof_id = profile::profiler_region_id("advance:integrate:current:"+internal_name());
     }
     mechanism() = default;
     mechanism(const mechanism&) = delete;

@@ -139,12 +139,12 @@ time_type communicator::min_delay() {
 }
 
 gathered_vector<spike> communicator::exchange(std::vector<spike> local_spikes) {
-    PE(communication_exchange_sort);
+    PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
     util::sort_by(local_spikes, [](spike s){return s.source;});
     PL();
 
-    PE(communication_exchange_gather);
+    PE(communication:exchange:gather);
     // global all-to-all to gather a local copy of the global spike list on each node.
     auto global_spikes = distributed_->gather_spikes(local_spikes);
     num_spikes_ += global_spikes.size();

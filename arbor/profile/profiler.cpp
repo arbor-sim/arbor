@@ -20,12 +20,12 @@ using util::make_span;
 namespace {
     // Check whether a string describes a valid profiler region name.
     bool is_valid_region_string(const std::string& s) {
-        if (s.size()==0u || s.front()=='_' || s.back()=='_') return false;
+        if (s.size()==0u || s.front()==':' || s.back()==':') return false;
         return s.find("__") == s.npos;
     }
 
     //
-    // Return a list of the words in the string, using '_' as the delimiter
+    // Return a list of the words in the string, using ':' as the delimiter
     // string, e.g.:
     //      "communicator"             -> {"communicator"}
     //      "communicator_events"      -> {"communicator", "events"}
@@ -33,11 +33,11 @@ namespace {
     std::vector<std::string> split(const std::string& str) {
         std::vector<std::string> cont;
         std::size_t first = 0;
-        std::size_t last = str.find('_');
+        std::size_t last = str.find(':');
         while (last != std::string::npos) {
             cont.push_back(str.substr(first, last - first));
             first = last + 1;
-            last = str.find('_', first);
+            last = str.find(':', first);
         }
         cont.push_back(str.substr(first, last - first));
         return cont;
