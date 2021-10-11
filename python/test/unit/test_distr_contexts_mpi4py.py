@@ -5,7 +5,7 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures
+from .. import fixtures, cases
 
 # check Arbor's configuration of mpi
 mpi_enabled    = arb.__config__["mpi"]
