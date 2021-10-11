@@ -435,7 +435,7 @@ void Lexer::binop_prec_init() {
         return;
 
     // I have taken the operator precedence from C++
-    // Note that only infix operators require precidence.
+    // Note that only infix operators require precedence.
     binop_prec_[tok::eq]       = 1;
     binop_prec_[tok::lor]      = 2;
     binop_prec_[tok::land]     = 3;
