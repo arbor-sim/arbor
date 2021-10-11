@@ -32,7 +32,10 @@ In subfolders `unit`/`unit_distributed`:
 
 ## Adding new tests
 
-1. In suitable folder `test/unit` (no MPI) or `test/unit_distributed` (MPI), create `test_xxxs.py` file
+1. In suitable folder `test/unit` (no MPI) or `test/unit_distributed` (MPI),
+  create `test_xxxs.py` file
+1. Create tests suitable for local and distributed
+  testing, or mark with the appropriate `cases.skipIf(Not)Distributed` decorator
 
 ## Naming convention
 
