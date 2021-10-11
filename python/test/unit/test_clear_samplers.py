@@ -8,13 +8,13 @@ import numpy as np
 
 # to be able to run .py file from child directory
 import sys, os
-from .. import fixtures
+from .. import fixtures, cases
 
 """
 all tests for the simulator wrapper
 """
 
-
+@cases.skipIfDistributed()
 class TestClearSamplers(unittest.TestCase):
     # test that all spikes are sorted by time then by gid
     @fixtures.art_spiking_sim

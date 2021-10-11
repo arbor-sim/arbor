@@ -5,7 +5,7 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures
+from .. import fixtures, cases
 
 # check Arbor's configuration of mpi and gpu
 mpi_enabled = arb.__config__["mpi"]
@@ -137,7 +137,7 @@ class gj_non_symmetric (arb.recipe):
         else:
             return []
 
-@unittest.skipIf(mpi_enabled == False, "MPI not enabled")
+@cases.skipIfNotDistributed()
 class TestDomain_Decompositions_Distributed(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod

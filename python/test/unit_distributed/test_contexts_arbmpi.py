@@ -5,15 +5,12 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures
-
-# check Arbor's configuration of mpi
-mpi_enabled = arb.__config__["mpi"]
+from .. import fixtures, cases
 
 """
 all tests for distributed arb.context using arbor mpi wrappers
 """
-@unittest.skipIf(mpi_enabled == False, "MPI not enabled")
+@cases.skipIfNotDistributed()
 class TestContexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod

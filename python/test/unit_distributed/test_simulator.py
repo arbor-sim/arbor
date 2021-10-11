@@ -5,7 +5,7 @@
 import unittest
 import numpy as np
 import arbor as A
-from .. import fixtures
+from .. import fixtures, cases
 
 mpi_enabled = A.__config__["mpi"]
 
@@ -48,7 +48,7 @@ class lifN_recipe(A.recipe):
             c.t_ref = 4
         return c
 
-@unittest.skipIf(mpi_enabled == False, "MPI not enabled")
+@cases.skipIfNotDistributed()
 class TestSimulator(unittest.TestCase):
     def init_sim(self):
         comm = A.mpi_comm()
