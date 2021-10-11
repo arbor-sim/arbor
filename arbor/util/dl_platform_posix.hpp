@@ -25,12 +25,10 @@ dl_handle dl_open(const std::string& fn) {
     if (!std::ifstream{fn.c_str()}.good()) throw file_not_found_error{fn};
     // Call once to clear errors not caused by us
     dlerror();
+    // Try to open shared object
     auto result = dlopen(fn.c_str(), RTLD_LAZY);
     // dlopen fails by returning NULL
-    if (nullptr == result) {
-        auto error = dlerror();
-        throw dl_error{util::pprintf("[POSIX] dl_open failed with: {}", error)};
-    }
+    if (!result) throw dl_error{util::pprintf("[POSIX] dl_open failed with: {}", dlerror())};
     return {result};
 }
 
@@ -38,12 +36,10 @@ template<typename T> inline
 T dl_get_symbol(const dl_handle& handle, const std::string& symbol) {
     // Call once to clear errors not caused by us
     dlerror();
+    // Get symbol from shared object, may return NULL if that is what symbol refers to
     auto result = dlsym(handle.dl, symbol.c_str());
-    // dlsym mayb return NULL even if succeeding
-    auto error = dlerror();
-    if (error) {
-        throw dl_error{util::pprintf("[POSIX] dl_get_symbol failed with: {}", error)};
-    }
+    // ... so we can only ask for dlerror here
+    if (auto error = dlerror()) throw dl_error{util::pprintf("[POSIX] dl_get_symbol failed with: {}", error)};
     return reinterpret_cast<T>(result);
 }
 
