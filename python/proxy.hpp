@@ -119,11 +119,10 @@ struct label_dict_proxy {
     }
 
     std::optional<std::string> getitem(const std::string& name) const {
-        auto kv = cache.find(name);
-        if (kv == cache.end()) {
-            return {};
+        if (auto kv = cache.find(name); kv != cache.end()) {
+            return kv->second;
         }
-        return kv->second;
+        return {};
     }
 
     private:
