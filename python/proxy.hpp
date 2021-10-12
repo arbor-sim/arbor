@@ -6,9 +6,6 @@
 
 #include <arbor/morph/label_dict.hpp>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "strprintf.hpp"
 
 namespace pyarb {
@@ -23,16 +20,7 @@ struct label_dict_proxy {
 
     label_dict_proxy(const str_map& in) {
         for (auto& i: in) {
-            set(i.first.c_str(), i.second.c_str());
-        }
-    }
-
-    label_dict_proxy(pybind11::iterator& it) {
-        for (; it != pybind11::iterator::sentinel(); ++it) {
-            const auto tuple = it->cast<pybind11::tuple>();
-            const auto key   = tuple[0].cast<std::string>();
-            const auto value = tuple[1].cast<std::string>();
-            set(key.c_str(), value.c_str());
+            set(i.first, i.second);
         }
     }
 
@@ -51,7 +39,7 @@ struct label_dict_proxy {
         update_cache();
     }
 
-    void set(const char* name, const char* desc) {
+    void set(const std::string& name, const std::string& desc) {
         using namespace std::string_literals;
         // The following code takes an input name and a region or locset
         // description, e.g.:
@@ -93,7 +81,7 @@ struct label_dict_proxy {
 
             throw std::runtime_error(util::pprintf(base, name, desc, msg));
         }
-            // Exceptions are thrown in parse or eval if an unexpected error occured.
+        // Exceptions are thrown in parse or eval if an unexpected error occured.
         catch (std::exception& e) {
             const char* msg =
                 "\n----- internal error -------------------------------------------"

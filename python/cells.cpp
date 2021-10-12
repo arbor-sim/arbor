@@ -234,7 +234,17 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
             "Initialize a label dictionary from a dictionary with string labels as keys,"
             " and corresponding definitions as strings.")
-        .def(pybind11::init<pybind11::iterator&>())
+        .def(pybind11::init([](pybind11::iterator& it) {
+                label_dict_proxy ld;
+                for (; it != pybind11::iterator::sentinel(); ++it) {
+                    const auto tuple = it->cast<pybind11::sequence>();
+                    const auto key   = tuple[0].cast<std::string>();
+                    const auto value = tuple[1].cast<std::string>();
+                    ld.set(key, value);
+                }
+                return ld;
+            }),
+            "Initialize a label dictionary from an iterable of key, definition pairs")
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
                 l.set(name, desc);})
