@@ -6,6 +6,9 @@
 
 #include <arbor/morph/label_dict.hpp>
 
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
 #include "strprintf.hpp"
 
 namespace pyarb {
@@ -21,6 +24,15 @@ struct label_dict_proxy {
     label_dict_proxy(const str_map& in) {
         for (auto& i: in) {
             set(i.first.c_str(), i.second.c_str());
+        }
+    }
+
+    label_dict_proxy(pybind11::iterator& it) {
+        for (; it != pybind11::iterator::sentinel(); ++it) {
+            const auto tuple = it->cast<pybind11::tuple>();
+            const auto key   = tuple[0].cast<std::string>();
+            const auto value = tuple[1].cast<std::string>();
+            set(key.c_str(), value.c_str());
         }
     }
 
@@ -108,7 +120,6 @@ struct label_dict_proxy {
         s += ")";
         return s;
     }
-
     
     bool contains(const std::string& name) const {
         return cache.find(name) != cache.end();
