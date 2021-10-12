@@ -234,6 +234,8 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
             "Initialize a label dictionary from a dictionary with string labels as keys,"
             " and corresponding definitions as strings.")
+        .def(pybind11::init<const label_dict_proxy&>(),
+            "Initialize a label dictionary from another one")
         .def(pybind11::init([](pybind11::iterator& it) {
                 label_dict_proxy ld;
                 for (; it != pybind11::iterator::sentinel(); ++it) {
@@ -279,6 +281,11 @@ void register_cells(pybind11::module& m) {
             "other"_a, "The label_dict to be imported"
             "prefix"_a="", "optional prefix appended to the region and locset labels",
             "Import the entries of a another label dictionary with an optional prefix.")
+        .def("update", [](label_dict_proxy& l, const label_dict_proxy& other) {
+                l.import(other);
+            },
+            "other"_a, "The label_dict to be imported"
+            "Import the entries of a another label dictionary.")
         .def_readonly("regions", &label_dict_proxy::regions,
              "The region definitions.")
         .def_readonly("locsets", &label_dict_proxy::locsets,
