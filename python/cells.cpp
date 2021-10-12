@@ -228,7 +228,7 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<label_dict_proxy> label_dict(m, "label_dict",
         "A dictionary of labelled region and locset definitions, with a\n"
-        "unique label is assigned to each definition.");
+        "unique label assigned to each definition.");
     label_dict
         .def(pybind11::init<>(), "Create an empty label dictionary.")
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
@@ -239,15 +239,28 @@ void register_cells(pybind11::module& m) {
                 l.set(name, desc);})
         .def("__getitem__",
             [](label_dict_proxy& l, const char* name) {
-                if (!l.cache.count(name)) {
-                    throw pybind11::key_error(name);
-                }
-                return l.cache.at(name);
+                auto v = l.getitem(name);
+                if (! v) throw pybind11::key_error(name);
+                return v.value();
             })
         .def("__len__", &label_dict_proxy::size)
         .def("__iter__",
             [](const label_dict_proxy &ld) {
                 return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
+            pybind11::keep_alive<0, 1>())
+        .def("__contains__",
+             [](const label_dict_proxy &ld, const char* name) {
+                 return ld.contains(name);})
+        .def(
+            "items",
+            [](const label_dict_proxy &ld) {
+                return pybind11::make_iterator(ld.cache.begin(), ld.cache.end());},
+            pybind11::keep_alive<0, 1>())
+        .def(
+            "values",
+            [](const label_dict_proxy &ld) {
+                return pybind11::make_value_iterator(ld.cache.begin(), ld.cache.end());
+            },
             pybind11::keep_alive<0, 1>())
         .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
                 l.import(other, prefix);

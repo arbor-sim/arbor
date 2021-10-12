@@ -109,6 +109,19 @@ struct label_dict_proxy {
         return s;
     }
 
+    
+    bool contains(const std::string& name) const {
+        return cache.find(name) != cache.end();
+    }
+
+    std::optional<std::string> getitem(const std::string& name) const {
+        auto kv = cache.find(name);
+        if (kv == cache.end()) {
+            return std::optional<std::string>();
+        }
+        return kv->second;
+    }
+
     private:
 
     void clear_cache() {
