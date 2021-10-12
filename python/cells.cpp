@@ -252,9 +252,8 @@ void register_cells(pybind11::module& m) {
                 l.set(name, desc);})
         .def("__getitem__",
             [](label_dict_proxy& l, const char* name) {
-                auto v = l.getitem(name);
-                if (! v) throw pybind11::key_error(name);
-                return v.value();
+                if (auto v = l.getitem(name)) return v.value();
+                throw pybind11::key_error(name);
             })
         .def("__len__", &label_dict_proxy::size)
         .def("__iter__",
@@ -264,17 +263,19 @@ void register_cells(pybind11::module& m) {
         .def("__contains__",
              [](const label_dict_proxy &ld, const char* name) {
                  return ld.contains(name);})
-        .def(
-            "items",
+        .def("keys",
             [](const label_dict_proxy &ld) {
-                return pybind11::make_iterator(ld.cache.begin(), ld.cache.end());},
+                return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
             pybind11::keep_alive<0, 1>())
-        .def(
-            "values",
-            [](const label_dict_proxy &ld) {
-                return pybind11::make_value_iterator(ld.cache.begin(), ld.cache.end());
-            },
-            pybind11::keep_alive<0, 1>())
+        .def("items",
+             [](const label_dict_proxy &ld) {
+                 return pybind11::make_iterator(ld.cache.begin(), ld.cache.end());},
+             pybind11::keep_alive<0, 1>())
+        .def("values",
+             [](const label_dict_proxy &ld) {
+                 return pybind11::make_value_iterator(ld.cache.begin(), ld.cache.end());
+             },
+             pybind11::keep_alive<0, 1>())
         .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
                 l.import(other, prefix);
             },

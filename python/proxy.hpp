@@ -121,7 +121,7 @@ struct label_dict_proxy {
     std::optional<std::string> getitem(const std::string& name) const {
         auto kv = cache.find(name);
         if (kv == cache.end()) {
-            return std::optional<std::string>();
+            return {};
         }
         return kv->second;
     }
