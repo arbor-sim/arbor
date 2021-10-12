@@ -28,6 +28,8 @@ struct label_dict_proxy {
         update_cache();
     }
 
+    label_dict_proxy(const label_dict_proxy&) = default;
+
     std::size_t size() const  {
         return locsets.size() + regions.size();
     }
