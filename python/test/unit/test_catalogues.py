@@ -48,7 +48,7 @@ class recipe(arb.recipe):
 
 class Catalogues(unittest.TestCase):
     def test_nonexistent(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(FileNotFoundError):
             arb.load_catalogue("_NO_EXIST_.so")
 
     def test_shared_catalogue(self):
