@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <thread>
 
 namespace arb {
 
@@ -12,6 +13,33 @@ struct dry_run_info {
             num_ranks(ranks),
             num_cells_per_rank(cells_per_rank) {}
 };
+
+struct Threads {
+  private:
+    int threads;
+    
+  public:
+    Threads() : Threads(1) {};
+    Threads(int t) {
+        switch(t) {
+            case -1:
+                if ( std::thread::hardware_concurrency()>0 ) {
+                    threads == std::thread::hardware_concurrency();
+                } else {
+                    throw arb::illegal_nb_threads;
+                }
+            case 0:
+                throw arb::illegal_nb_threads;
+            default:
+                threads = t;
+        }
+    }
+    operator int() const {
+        return threads;
+    }
+    
+    (std::thread::hardware_concurrency()>0) ? std::thread::hardware_concurrency() : 1
+}
 
 // A description of local computation resources to use in a computation.
 // By default, a proc_allocation will comprise one thread and no GPU.

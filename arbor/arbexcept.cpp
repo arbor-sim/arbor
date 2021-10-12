@@ -10,6 +10,12 @@ namespace arb {
 
 using arb::util::pprintf;
 
+bad_thread_nb::bad_cell_probe(cell_kind kind, cell_gid_type gid):
+    arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
+    gid(gid),
+    kind(kind)
+{}
+
 bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
     gid(gid),
@@ -35,6 +41,11 @@ bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_typ
 bad_global_property::bad_global_property(cell_kind kind):
     arbor_exception(pprintf("bad global property for cell kind {}", kind)),
     kind(kind)
+{}
+
+illegal_nb_threads::illegal_nb_threads(int nbt):
+    arbor_exception(pprintf("illegal number of threads requested {}", nbt)),
+    nbt(nbt)
 {}
 
 bad_probe_id::bad_probe_id(cell_member_type probe_id):
