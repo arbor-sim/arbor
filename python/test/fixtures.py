@@ -110,20 +110,15 @@ def _build_cat(name, path, context):
     if context.has_mpi:
         try:
             from mpi4py.MPI import COMM_WORLD as comm
-
-            serial = False
         except ImportError:
-            warnings.warn(
+            raise _BuildCatError(
                 "Building catalogue in an MPI context, but `mpi4py` not found."
                 + " Concurrent identical catalogue builds might occur."
-            )
-            serial = True
-    else:
-        serial = True
-    if serial:
-        _build_cat_local(name, path)
-    else:
+            ) from None
+
         _build_cat_distributed(comm, name, path)
+    else:
+        _build_cat_local(name, path)
     return Path.cwd() / (name + "-catalogue.so")
 
 
