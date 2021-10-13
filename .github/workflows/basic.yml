@@ -172,12 +172,10 @@ jobs:
         run: scripts/run_cpp_examples.sh "mpirun -n 4 -oversubscribe"
       - name: Run python tests
         run: |
-          cd build
-          python ../python/test/unit/runner.py -v2
-          cd -
+          python3 -m unittest discover -v -s python
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
-        run:  mpirun -n 4 -oversubscribe python python/test/unit_distributed/runner.py -v2
+        run:  mpirun -n 4 -oversubscribe python3 -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
       - name: Build a catalogue

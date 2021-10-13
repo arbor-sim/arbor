@@ -95,9 +95,7 @@ class Cable(arbor.recipe):
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)
 
-        cell = arbor.cable_cell(tree, labels, decor)
-
-        return cell
+        return arbor.cable_cell(tree, labels, decor)
 
     def probes(self, gid):
         assert gid == 0
@@ -194,24 +192,17 @@ if __name__ == "__main__":
     sim.run(tfinal=30, dt=dt)
 
     # retrieve the sampled membrane voltages and convert to a pandas DataFrame
-    data = [sim.samples(handle)[0][0] for handle in handles]
-    data_dict = {str(i): d[:, 1] for i, d in enumerate(data)}
-    data_dict["t"] = data[0][:, 0]
+    print("Plotting results ...")
+    df_list = []
+    for probe in range(len(handles)):
+        samples, meta = sim.samples(handles[probe])[0]
+        df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Probe': f"{probe}"}))
 
-    df = pandas.DataFrame.from_dict(data_dict)
-
-    # plot all probes and save to file
-    for i in range(len(probes)):
-        plot = seaborn.lineplot(data=df, x="t", y=str(
-            i), ci=None, legend="full", label=i)
-
-    plot.set(xlabel="t/ms")
-    plot.set(ylabel="U/mV")
-    plot.set_xlim(9, 14)
-
-    plot.figure.savefig("single_cell_cable_result.svg")
+    df = pandas.concat(df_list,ignore_index=True)
+    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Probe",ci=None).set(xlim=(9,14)).savefig('single_cell_cable_result.svg')
 
     # calculcate the idealized conduction velocity, cf. cable equation
+    data = [sim.samples(handle)[0][0] for handle in handles]
     rm = get_rm(args.g*1/(0.01*0.01))
     taum = get_taum(args.cm, rm)
     lambdam = get_lambdam(args.radius*1e-6, rm, args.rL*0.01)

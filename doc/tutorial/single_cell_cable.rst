@@ -43,7 +43,7 @@ We parse the command line arguments, instantiate the recipe, run the simulation,
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 147-210
+   :lines: 145-202
 
 The output plot below shows how the current pulse is attenuated and
 gets broader the further it travels along the dendrite from the current
@@ -57,7 +57,7 @@ The conduction velocity in simulation is calculated from the time of the maximum
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 212-
+   :lines: 204-
 
 Please have in mind that the calculated (idealized) conduction velocity is only correct for an infinite cable.
 
@@ -71,6 +71,8 @@ When we set the control volume policy to cover the full dendrite, all probes wil
 .. code-block:: bash
 
 	./single_cell_cable.py --length 1000 --cv_policy_max_extent 1000
+
+Output:
 
 .. figure:: single_cell_cable_result_cv_policy.svg
     :width: 800

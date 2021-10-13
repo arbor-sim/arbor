@@ -1,0 +1,219 @@
+import arbor
+import functools
+from functools import lru_cache as cache
+import unittest
+from pathlib import Path
+import subprocess
+import warnings
+import atexit
+
+_mpi_enabled = arbor.__config__["mpi"]
+_mpi4py_enabled = arbor.__config__["mpi4py"]
+
+# The API of `functools`'s caches went through a bunch of breaking changes from
+# 3.6 to 3.9. Patch them up in a local `cache` function.
+try:
+    cache(lambda: None)
+except TypeError:
+    # If `lru_cache` does not accept user functions as first arg, it expects
+    # the max cache size as first arg, we pass None to produce a cache decorator
+    # without max size.
+    cache = cache(None)
+
+def _fix(param_name, fixture, func):
+    """
+    Decorates `func` to inject the `fixture` callable result as `param_name`.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        kwargs[param_name] = fixture()
+        return func(*args, **kwargs)
+
+    return wrapper
+
+def _fixture(decorator):
+    @functools.wraps(decorator)
+    def fixture_decorator(func):
+        return _fix(decorator.__name__, decorator, func)
+
+    return fixture_decorator
+
+def _singleton_fixture(f):
+    return _fixture(cache(f))
+
+
+@_fixture
+def repo_path():
+    """
+    Fixture that returns the repo root path.
+    """
+    return Path(__file__).parent.parent.parent
+
+
+def _finalize_mpi():
+    print("Context fixture finalizing mpi")
+    arbor.mpi_finalize()
+
+
+@_fixture
+def context():
+    """
+    Fixture that produces an MPI sensitive `arbor.context`
+    """
+    args = [arbor.proc_allocation()]
+    if _mpi_enabled:
+        if not arbor.mpi_is_initialized():
+            print("Context fixture initializing mpi", flush=True)
+            arbor.mpi_init()
+            atexit.register(_finalize_mpi)
+        if _mpi4py_enabled:
+            from mpi4py.MPI import COMM_WORLD as comm
+        else:
+            comm = arbor.mpi_comm()
+        args.append(comm)
+    return arbor.context(*args)
+
+
+class _BuildCatError(Exception): pass
+
+
+def _build_cat_local(name, path):
+    try:
+        subprocess.run(["build-catalogue", name, str(path)], check=True, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        raise _BuildCatError("Tests can't build catalogues:\n" + e.stderr.decode()) from None
+
+
+def _build_cat_distributed(comm, name, path):
+    # Control flow explanation:
+    # * `build_err` starts out as `None`
+    # * Rank 1 to N wait for a broadcast from rank 0 to receive the new value
+    #   for `build_err`
+    # * Rank 0 splits off from the others and executes the build.
+    #   * If it builds correctly it finishes the collective `build_err`
+    #     broadcast with the initial value `None`: all nodes continue.
+    #   * If it errors, it finishes the collective broadcast with the caught err
+    #
+    # All MPI ranks either continue or raise the same err. (prevents stalling)
+    build_err = None
+    if not comm.Get_rank():
+        try:
+            _build_cat_local(name, path)
+        except Exception as e:
+            build_err = e
+    build_err = comm.bcast(build_err, root=0)
+    if build_err:
+        raise build_err
+
+@context
+def _build_cat(name, path, context):
+    if context.has_mpi:
+        try:
+            from mpi4py.MPI import COMM_WORLD as comm
+        except ImportError:
+            raise _BuildCatError(
+                "Building catalogue in an MPI context, but `mpi4py` not found."
+                + " Concurrent identical catalogue builds might occur."
+            ) from None
+
+        _build_cat_distributed(comm, name, path)
+    else:
+        _build_cat_local(name, path)
+    return Path.cwd() / (name + "-catalogue.so")
+
+
+@_singleton_fixture
+@repo_path
+def dummy_catalogue(repo_path):
+    """
+    Fixture that returns a dummy `arbor.catalogue`
+    which contains the `dummy` mech.
+    """
+    path = repo_path / "test" / "unit" / "dummy"
+    cat_path = _build_cat("dummy", path)
+    return arbor.load_catalogue(str(cat_path))
+
+@_fixture
+class empty_recipe(arbor.recipe):
+    """
+    Blank recipe fixture.
+    """
+    pass
+
+
+@_fixture
+def cable_cell():
+    # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
+    tree = arbor.segment_tree()
+    tree.append(
+        arbor.mnpos,
+        arbor.mpoint(-3, 0, 0, 3),
+        arbor.mpoint(3, 0, 0, 3),
+        tag=1,
+    )
+
+    # (2) Define the soma and its midpoint
+    labels = arbor.label_dict({'soma':   '(tag 1)',
+                               'midpoint': '(location 0 0.5)'})
+
+    # (3) Create cell and set properties
+    decor = arbor.decor()
+    decor.set_property(Vm=-40)
+    decor.paint('"soma"', 'hh')
+    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+    decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+    return arbor.cable_cell(tree, labels, decor)
+
+@_fixture
+class art_spiker_recipe(arbor.recipe):
+    """
+    Recipe fixture with 3 artificial spiking cells.
+    """
+    def __init__(self):
+        super().__init__()
+        self.the_props = arbor.neuron_cable_properties()
+        self.trains = [
+                [0.8, 2, 2.1, 3],
+                [0.4, 2, 2.2, 3.1, 4.5],
+                [0.2, 2, 2.8, 3]]
+
+    def num_cells(self):
+        return 4
+
+    def cell_kind(self, gid):
+        if gid < 3:
+            return arbor.cell_kind.spike_source
+        else:
+            return arbor.cell_kind.cable
+
+    def connections_on(self, gid):
+        return []
+
+    def event_generators(self, gid):
+        return []
+
+    def global_properties(self, kind):
+        return self.the_props
+
+    def probes(self, gid):
+        if gid < 3:
+            return []
+        else:
+            return [arbor.cable_probe_membrane_voltage('"midpoint"')]
+
+    @cable_cell
+    def _cable_cell(self, cable_cell):
+        return cable_cell
+
+    def cell_description(self, gid):
+        if gid < 3:
+            return arbor.spike_source_cell("src", arbor.explicit_schedule(self.trains[gid]))
+        else:
+            return self._cable_cell()
+
+@_fixture
+@context
+@art_spiker_recipe
+def art_spiking_sim(context, art_spiker_recipe):
+    dd = arbor.partition_load_balance(art_spiker_recipe, context)
+    return arbor.simulation(art_spiker_recipe, dd, context)
