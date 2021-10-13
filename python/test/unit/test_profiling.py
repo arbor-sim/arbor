@@ -6,15 +6,7 @@ import unittest
 
 import arbor as arb
 import functools
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures
 
 """
 all tests for profiling
@@ -91,17 +83,3 @@ class TestProfiling(unittest.TestCase):
         summary = arb.profiler_summary()
         self.assertEqual(str, type(summary), 'profiler summary must be str')
         self.assertTrue(summary, 'empty summary')
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from classes RegularSchedule, ExplicitSchedule and PoissonSchedule
-    suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestProfiling, ('test')))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()
