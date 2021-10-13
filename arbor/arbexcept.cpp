@@ -10,12 +10,6 @@ namespace arb {
 
 using arb::util::pprintf;
 
-bad_thread_nb::bad_cell_probe(cell_kind kind, cell_gid_type gid):
-    arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
-    gid(gid),
-    kind(kind)
-{}
-
 bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
     gid(gid),

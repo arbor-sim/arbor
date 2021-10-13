@@ -34,9 +34,9 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
     std::optional<int> gpu_id = {};
-    int num_threads = 1;
+    arb::Threads num_threads = 1;
 
-    proc_allocation_shim(int threads, pybind11::object gpu) {
+    proc_allocation_shim(arb::Threads threads, pybind11::object gpu) {
         set_num_threads(threads);
         set_gpu_id(gpu);
     }
@@ -48,8 +48,8 @@ struct proc_allocation_shim {
         gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
     };
 
-    void set_num_threads(int threads) {
-        pyarb::assert_throw([](int n) { return n>0; }(threads), "threads must be a positive integer");
+    void set_num_threads(arb::Threads threads) {
+        //pyarb::assert_throw([](int n) { return n>0; }(threads), "threads must be a positive integer");
         num_threads = threads;
     };
 
