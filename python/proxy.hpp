@@ -20,7 +20,7 @@ struct label_dict_proxy {
 
     label_dict_proxy(const str_map& in) {
         for (auto& i: in) {
-            set(i.first.c_str(), i.second.c_str());
+            set(i.first, i.second);
         }
     }
 
@@ -28,18 +28,20 @@ struct label_dict_proxy {
         update_cache();
     }
 
+    label_dict_proxy(const label_dict_proxy&) = default;
+
     std::size_t size() const  {
         return locsets.size() + regions.size();
     }
 
-    void import(const label_dict_proxy& other, std::string prefix) {
+    void import(const label_dict_proxy& other, std::string prefix = "") {
         dict.import(other.dict, prefix);
 
         clear_cache();
         update_cache();
     }
 
-    void set(const char* name, const char* desc) {
+    void set(const std::string& name, const std::string& desc) {
         using namespace std::string_literals;
         // The following code takes an input name and a region or locset
         // description, e.g.:
@@ -81,7 +83,7 @@ struct label_dict_proxy {
 
             throw std::runtime_error(util::pprintf(base, name, desc, msg));
         }
-            // Exceptions are thrown in parse or eval if an unexpected error occured.
+        // Exceptions are thrown in parse or eval if an unexpected error occured.
         catch (std::exception& e) {
             const char* msg =
                 "\n----- internal error -------------------------------------------"
@@ -107,6 +109,17 @@ struct label_dict_proxy {
         }
         s += ")";
         return s;
+    }
+    
+    bool contains(const std::string& name) const {
+        return cache.find(name) != cache.end();
+    }
+
+    std::optional<std::string> getitem(const std::string& name) const {
+        if (auto kv = cache.find(name); kv != cache.end()) {
+            return kv->second;
+        }
+        return {};
     }
 
     private:
