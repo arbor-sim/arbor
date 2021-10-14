@@ -176,6 +176,9 @@ struct mechanism_desc {
         return i->second;
     }
 
+    void dump_stats(bool b) { do_dump_stats = b; }
+    bool dump_stats() const { return do_dump_stats; }
+
     const std::unordered_map<std::string, double>& values() const {
         return param_;
     }
@@ -185,6 +188,7 @@ struct mechanism_desc {
 private:
     std::string name_;
     std::unordered_map<std::string, double> param_;
+    bool do_dump_stats = false;
 };
 
 struct ion_reversal_potential_method {

@@ -100,7 +100,7 @@ void register_mechanisms(pybind11::module& m) {
             "True if a synapse mechanism has a `POST_EVENT` procedure defined.")
         .def_property_readonly("kind",
                 [](const arb::mechanism_info& info) {
-                    return arb_mechsnism_kind_str(info.kind);
+                    return arb_mechanism_kind_str(info.kind);
                 }, "String representation of the kind of the mechanism.")
         .def("__repr__",
                 [](const arb::mechanism_info& inf) {
@@ -228,7 +228,11 @@ void register_mechanisms(pybind11::module& m) {
             [](arb::mechanism_desc& md, std::string name, double value) {
                 md.set(name, value);
             },
-            "name"_a, "value"_a, "Set parameter value.")
+             "name"_a, "value"_a, "Set parameter value.")
+        .def_property("dump_stats",
+                      pybind11::overload_cast<>(&arb::mechanism_desc::dump_stats, pybind11::const_),
+                      pybind11::overload_cast<bool>(&arb::mechanism_desc::dump_stats),
+                      "[Debug] Print CV assignments and assorted statistics.")
         .def_property_readonly("name",
             [](const arb::mechanism_desc& md) {
                 return md.name();

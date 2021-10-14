@@ -479,7 +479,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     auto gj_vector = fvm_gap_junctions(cells, gids, fvm_info.gap_junction_data, rec, D);
 
-    // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
+    // Fill src_to_spike vector only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
     if (post_events_) {
@@ -488,15 +488,14 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     }
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
-    if (post_events_) {
-        for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
-                src_to_spike.push_back(cell_idx * max_detector + lid);
-            }
+    for (auto cell_idx: make_span(ncell)) {
+        for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
+            src_to_spike.push_back(cell_idx * max_detector + lid);
         }
-        src_to_spike.shrink_to_fit();
-        cv_to_cell = D.geometry.cv_to_cell;
     }
+    src_to_spike.shrink_to_fit();
+    cv_to_cell = D.geometry.cv_to_cell;
+
 
     // Create shared cell state.
     // Shared state vectors should accommodate each mechanism's data alignment requests.
@@ -585,6 +584,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
 
         auto minst = mech_instance(name);
+        minst.mech->dump_stats = config.dump_stats;
         state_->instantiate(*minst.mech, mech_id++, minst.overrides, layout);
         mechptr_by_name[name] = minst.mech.get();
 

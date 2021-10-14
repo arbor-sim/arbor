@@ -240,6 +240,7 @@ else()
   unset(nlohmann_json_DIR CACHE)
 endif()
 add_subdirectory(ext)
+target_link_libraries(arbor-private-deps INTERFACE ${json_library_name})
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 

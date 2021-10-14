@@ -860,7 +860,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         fvm_mechanism_config config;
         if (info.kind != arb_mechanism_kind_density) {
-            throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
         config.kind = info.kind;
 
@@ -884,18 +884,16 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         param_maps.resize(n_param);
 
-        for (auto& on_cable: entry.second) {
-            verify_mechanism(info, on_cable.second);
-            mcable cable = on_cable.first;
-            const auto& set_params = on_cable.second.values();
-
+        for (const auto& [cable, desc]: entry.second) {
+            verify_mechanism(info, desc);
+            const auto& set_params = desc.values();
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
                 double value = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
                 param_maps[i].insert(cable, value);
             }
+            config.dump_stats |= desc.dump_stats();
         }
-
         std::vector<double> param_on_cv(n_param);
 
         for (auto cv: D.geometry.cell_cvs(cell_idx)) {
@@ -943,6 +941,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
 
         update_ion_support(info, config.cv);
+
         if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
 
@@ -967,7 +966,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         mechanism_info info = catalogue[name];
 
         if (info.kind != arb_mechanism_kind_point) {
-            throw cable_cell_error("expected point mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected point mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
 
         post_events |= info.post_events;
@@ -995,6 +994,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         arb_assert(ix==n_param);
 
         std::size_t offset = 0;
+        bool dump_stats = false;
         for (const placed<mechanism_desc>& pm: entry.second) {
             verify_mechanism(info, pm.item);
 
@@ -1010,6 +1010,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             for (const auto& kv: pm.item.values()) {
                 in_param[param_index.at(kv.first)] = kv.second;
             }
+            dump_stats |= pm.item.dump_stats();
 
             in.target_index = pm.lid;
             in.cv = D.geometry.location_cv(cell_idx, pm.loc, cv_prefer::cv_nonempty);
@@ -1052,6 +1053,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
         fvm_mechanism_config config;
         config.kind = info.kind;
+        config.dump_stats = dump_stats;
         for (auto& kv: info.parameters) {
             config.param_values.emplace_back(kv.first, std::vector<value_type>{});
             if (!coalesce) {
@@ -1218,7 +1220,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             const mechanism_desc& revpot = *maybe_revpot;
             mechanism_info info = catalogue[revpot.name()];
             if (info.kind != arb_mechanism_kind_reversal_potential) {
-                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechsnism_kind_str(info.kind));
+                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechanism_kind_str(info.kind));
             }
 
             verify_mechanism(info, revpot);
@@ -1252,7 +1254,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                     fvm_mechanism_config& config = M.mechanisms[revpot.name()];
                     config.cv = unique_union(config.cv, M.ions[ion].cv);
                     config.norm_area.assign(config.cv.size(), 1.);
-
+                    config.dump_stats = revpot.dump_stats();
                     for (auto& pv: config.param_values) {
                         pv.second.assign(config.cv.size(), pv.second.front());
                     }
@@ -1260,6 +1262,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 else {
                     fvm_mechanism_config config;
                     config.kind = info.kind;
+                    config.dump_stats |= revpot.dump_stats();
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 

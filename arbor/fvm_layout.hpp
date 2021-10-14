@@ -227,7 +227,7 @@ struct fvm_mechanism_config {
     using index_type = fvm_index_type;
 
     arb_mechanism_kind kind;
-
+    bool dump_stats = false;
     // Ordered CV indices where mechanism is present; may contain
     // duplicates for point mechanisms.
     std::vector<index_type> cv;

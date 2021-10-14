@@ -27,6 +27,8 @@
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace arb {
 namespace multicore {
 
@@ -597,6 +599,24 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, index_width_padded), m.iface_.partition_width));
         }
         if (mult_in_place) m.ppack_.multiplicity = writer.append(pos_data.multiplicity, 0);
+    }
+
+    if (m.dump_stats) {
+        nlohmann::json stats;
+        std::vector<unsigned> cells;
+        cells.reserve(pos_data.cv.size());
+        for(auto cv: pos_data.cv) cells.push_back(cv_to_cell[cv]);
+        stats["name"]  = m.mech_.name;
+        stats["kind"]  = arb_mechanism_kind_str(m.mech_.kind);
+        stats["id"]    = id;
+        stats["width"] = pos_data.cv.size();
+        stats["n_cv"]  = n_cv;
+        stats["cv"]    = pos_data.cv;
+        stats["cells"] = cells;
+        stats["diam"]  = diam_um;
+        std::stringstream ss;
+        ss << stats << '\n';
+        std::cout << ss.str();
     }
 }
 

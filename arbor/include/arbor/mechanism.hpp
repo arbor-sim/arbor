@@ -68,6 +68,8 @@ public:
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
     arb_value_type** time_ptr_ptr = nullptr;
+
+    bool dump_stats = false;
 };
 
 struct mechanism_layout {
