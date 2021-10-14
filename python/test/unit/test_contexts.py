@@ -19,7 +19,7 @@ class TestContexts(unittest.TestCase):
         self.assertEqual(alloc.threads, 1)
         self.assertEqual(alloc.gpu_id, None)
         self.assertFalse(alloc.has_gpu)
-
+        
     def test_set_allocation(self):
         alloc = arb.proc_allocation()
 
@@ -66,6 +66,16 @@ class TestContexts(unittest.TestCase):
         self.assertFalse(ctx.has_mpi)
         self.assertFalse(ctx.has_gpu)
         self.assertEqual(ctx.threads, 42)
+        self.assertEqual(ctx.ranks, 1)
+        self.assertEqual(ctx.rank, 0)
+
+    def test_context(self):
+        # test that 'avail_threads' returns at least 1.
+        ctx = arb.context(threads = 'avail_threads', gpu_id = None)
+
+        self.assertFalse(ctx.has_mpi)
+        self.assertFalse(ctx.has_gpu)
+        self.assertTrue(ctx.threads >= 1)
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
 
