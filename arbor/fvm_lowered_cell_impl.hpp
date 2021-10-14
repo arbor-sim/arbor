@@ -488,12 +488,14 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     }
     std::vector<fvm_index_type> src_to_spike, cv_to_cell;
 
-    for (auto cell_idx: make_span(ncell)) {
-        for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
-            src_to_spike.push_back(cell_idx * max_detector + lid);
+    if (post_events_) {
+        for (auto cell_idx: make_span(ncell)) {
+            for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
+                src_to_spike.push_back(cell_idx * max_detector + lid);
+            }
         }
+        src_to_spike.shrink_to_fit();
     }
-    src_to_spike.shrink_to_fit();
     cv_to_cell = D.geometry.cv_to_cell;
 
 

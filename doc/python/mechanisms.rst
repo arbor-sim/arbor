@@ -113,6 +113,49 @@ mechanism that is to be painted or placed on the cable cell.
 
        A dictionary of key-value pairs for the parameters.
 
+    .. py:property:: dump_stats
+        :type: bool
+
+        Display discretization level debug info at instantiation. Use **only for
+        debugging discretization**. This is not thread safe and using threads
+        will result in garbled output.
+
+        .. code-block:: Python
+
+          import arbor
+
+          hh = arbor.mechanism('hh')
+          hh.dump_stats = True
+
+        Results in the following output at instantiation time (after pretty
+        printing using `jq`)
+
+        .. code-block:: json
+
+          {
+            "cells": [
+              0,
+              0,
+              0
+            ],
+            "cv": [
+              0,
+              1,
+              2
+            ],
+            "diam": [
+              7.028884301062342,
+              3.0000000000000004,
+              2.9999999999999987
+            ],
+            "id": 0,
+            "kind": "density mechanism kind",
+            "n_cv": 3,
+            "name": "kamt",
+            "width": 3
+          }
+
+        Arrays are per-CV values and output is one block per cell group.
 
 .. py:class:: mechanism_info
 
