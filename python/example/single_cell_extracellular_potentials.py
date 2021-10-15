@@ -92,7 +92,7 @@ decor.set_property(
 # passive mech w. leak reversal potential (mV)
 pas = arbor.mechanism('pas/e=-65')
 pas.set('g', 0.0001)  # leak conductivity (S/cm2)
-decor.paint('(all)', pas)
+decor.paint('(all)', arbor.density(pas))
 
 # set sinusoid input current at mid point of terminating CV (segment)
 iclamp = arbor.iclamp(5,  # stimulation onset (ms)
