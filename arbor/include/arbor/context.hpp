@@ -22,7 +22,7 @@ struct thread_count {
     
   public:
     thread_count(unsigned t) {
-        if (t<=0) {
+        if (t==0) {
             throw arb::zero_thread_requested_error(t);
         } else {
             threads = t;

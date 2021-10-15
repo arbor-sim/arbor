@@ -74,7 +74,7 @@ void register_contexts(pybind11::module& m) {
     pybind11::class_<proc_allocation_shim> proc_allocation(m, "proc_allocation",
         "Enumerates the computational resources on a node to be used for simulation.");
     proc_allocation
-        .def(pybind11::init<int, pybind11::object>(),
+        .def(pybind11::init<unsigned, pybind11::object>(),
             "threads"_a=1, "gpu_id"_a=pybind11::none(),
             "Construct an allocation with arguments:\n"
             "  threads: The number of threads available locally for execution, 1 by default.\n"
@@ -120,7 +120,7 @@ void register_contexts(pybind11::module& m) {
             "  alloc:   The computational resources to be used for the simulation.\n"
             "  mpi:     The MPI communicator, None by default.\n")
         .def(pybind11::init(
-            [](int threads, pybind11::object gpu, pybind11::object mpi){
+            [](unsigned threads, pybind11::object gpu, pybind11::object mpi){
                 const char* gpu_err_str = "gpu_id must be None, or a non-negative integer";
                 const char* mpi_err_str = "mpi must be None, or an MPI communicator";
 
@@ -170,7 +170,7 @@ void register_contexts(pybind11::module& m) {
             "  mpi:     The MPI communicator, None by default.\n")
 #else
         .def(pybind11::init(
-            [](int threads, pybind11::object gpu){
+            [](unsigned threads, pybind11::object gpu){
                 auto gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
                 return context_shim(arb::make_context(arb::proc_allocation(threads, gpu_id.value_or(-1))));
             }),
