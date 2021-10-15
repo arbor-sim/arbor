@@ -5,21 +5,13 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures
 
 """
 all tests for event generators (regular, explicit, poisson)
 """
 
-class EventGenerator(unittest.TestCase):
+class TestEventGenerator(unittest.TestCase):
 
     def test_event_generator_regular_schedule(self):
         cm = arb.cell_local_label("tgt0")
@@ -43,16 +35,3 @@ class EventGenerator(unittest.TestCase):
         self.assertEqual(pg.target.label, "tgt2")
         self.assertEqual(pg.target.policy, arb.selection_policy.univalent)
         self.assertEqual(pg.weight, 42.)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class EventGenerator
-    suite = unittest.makeSuite(EventGenerator, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

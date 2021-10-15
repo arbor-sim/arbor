@@ -77,19 +77,23 @@ struct explicit_schedule_shim: schedule_shim_base {
 // arb::poisson_schedule when a C++ recipe is created from a Python recipe.
 struct poisson_schedule_shim: schedule_shim_base {
     using rng_type = std::mt19937_64;
+    using opt_time_type = std::optional<arb::time_type>;
 
     arb::time_type tstart; // ms
     arb::time_type freq; // kHz
+    opt_time_type  tstop = {}; // ms
     rng_type::result_type seed;
 
-    poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s);
+    poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s, pybind11::object tstop);
     poisson_schedule_shim(arb::time_type f);
 
     void set_tstart(arb::time_type t);
     void set_freq(arb::time_type f);
+    void set_tstop(pybind11::object t);
 
     arb::time_type get_tstart() const;
     arb::time_type get_freq() const;
+    opt_time_type get_tstop() const;
 
     arb::schedule schedule() const override;
 

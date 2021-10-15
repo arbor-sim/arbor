@@ -1334,7 +1334,7 @@ expression_ptr Parser::parse_expression(int prec, tok stop_token) {
         auto p_op = binop_precedence(op.type);
 
         // Note: all tokens that are not infix binary operators have
-        // precidence of -1, so expressions like function calls will short
+        // precedence of -1, so expressions like function calls will short
         // circuit this loop here.
         if (p_op <= prec) return lhs;
 

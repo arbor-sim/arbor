@@ -89,15 +89,15 @@ class ring_recipe (arbor.recipe):
     # (8) Make a ring network. For each gid, provide a list of incoming connections.
     def connections_on(self, gid):
         src = (gid-1)%self.ncells
-        w = 0.01
-        d = 5
+        w = 0.01 # 0.01 μS on expsyn
+        d = 5 # ms delay
         return [arbor.connection((src,'detector'), 'syn', w, d)]
 
     # (9) Attach a generator to the first cell in the ring.
     def event_generators(self, gid):
         if gid==0:
-            sched = arbor.explicit_schedule([1])
-            weight = 0.1
+            sched = arbor.explicit_schedule([1]) # one event at 1 ms
+            weight = 0.1 # 0.1 μS on expsyn
             return [arbor.event_generator('syn', weight, sched)]
         return []
 

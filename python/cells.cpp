@@ -228,33 +228,65 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<label_dict_proxy> label_dict(m, "label_dict",
         "A dictionary of labelled region and locset definitions, with a\n"
-        "unique label is assigned to each definition.");
+        "unique label assigned to each definition.");
     label_dict
         .def(pybind11::init<>(), "Create an empty label dictionary.")
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
             "Initialize a label dictionary from a dictionary with string labels as keys,"
             " and corresponding definitions as strings.")
+        .def(pybind11::init<const label_dict_proxy&>(),
+            "Initialize a label dictionary from another one")
+        .def(pybind11::init([](pybind11::iterator& it) {
+                label_dict_proxy ld;
+                for (; it != pybind11::iterator::sentinel(); ++it) {
+                    const auto tuple = it->cast<pybind11::sequence>();
+                    const auto key   = tuple[0].cast<std::string>();
+                    const auto value = tuple[1].cast<std::string>();
+                    ld.set(key, value);
+                }
+                return ld;
+            }),
+            "Initialize a label dictionary from an iterable of key, definition pairs")
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
                 l.set(name, desc);})
         .def("__getitem__",
             [](label_dict_proxy& l, const char* name) {
-                if (!l.cache.count(name)) {
-                    throw pybind11::key_error(name);
-                }
-                return l.cache.at(name);
+                if (auto v = l.getitem(name)) return v.value();
+                throw pybind11::key_error(name);
             })
         .def("__len__", &label_dict_proxy::size)
         .def("__iter__",
             [](const label_dict_proxy &ld) {
                 return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
             pybind11::keep_alive<0, 1>())
+        .def("__contains__",
+             [](const label_dict_proxy &ld, const char* name) {
+                 return ld.contains(name);})
+        .def("keys",
+            [](const label_dict_proxy &ld) {
+                return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
+            pybind11::keep_alive<0, 1>())
+        .def("items",
+             [](const label_dict_proxy &ld) {
+                 return pybind11::make_iterator(ld.cache.begin(), ld.cache.end());},
+             pybind11::keep_alive<0, 1>())
+        .def("values",
+             [](const label_dict_proxy &ld) {
+                 return pybind11::make_value_iterator(ld.cache.begin(), ld.cache.end());
+             },
+             pybind11::keep_alive<0, 1>())
         .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
                 l.import(other, prefix);
             },
             "other"_a, "The label_dict to be imported"
             "prefix"_a="", "optional prefix appended to the region and locset labels",
             "Import the entries of a another label dictionary with an optional prefix.")
+        .def("update", [](label_dict_proxy& l, const label_dict_proxy& other) {
+                l.import(other);
+            },
+            "other"_a, "The label_dict to be imported"
+            "Import the entries of a another label dictionary.")
         .def_readonly("regions", &label_dict_proxy::regions,
              "The region definitions.")
         .def_readonly("locsets", &label_dict_proxy::locsets,
@@ -267,7 +299,8 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
-        .def(pybind11::init([](const std::string& s) { return arborio::parse_cv_policy_expression(s).unwrap(); }))
+        .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
+            "expression"_a, "A valid CV policy expression")
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
@@ -396,9 +429,8 @@ void register_cells(pybind11::module& m) {
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
         .def(pybind11::init(
-            [](double thresh) {
-                return arb::threshold_detector{thresh};
-            }), "threshold"_a)
+            [](double thresh) { return arb::threshold_detector{thresh}; }),
+            "threshold"_a, "Voltage threshold of spike detector [mV]")
         .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
@@ -609,13 +641,15 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init(
             [](const arb::morphology& m, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(m, labels.dict, d);
-            }), "morphology"_a, "labels"_a, "decor"_a)
+            }),
+            "morphology"_a, "labels"_a, "decor"_a,
+            "Construct with a morphology, label dictionary and decor.")
         .def(pybind11::init(
             [](const arb::segment_tree& t, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(arb::morphology(t), labels.dict, d);
             }),
             "segment_tree"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology derived from a segment tree.")
+            "Construct with a morphology derived from a segment tree, label dictionary and decor.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")

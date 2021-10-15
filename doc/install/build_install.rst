@@ -285,6 +285,12 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         cmake -DARB_VECTORIZE=ON -DCMAKE_INSTALL_PREFIX=/opt/arbor
 
+.. topic:: `Release <buildtarget_>`_ mode with profiling enabled
+
+    .. code-block:: bash
+
+        cmake -DARB_WITH_PROFILING=ON
+
 .. _buildtarget:
 
 Build target
@@ -459,7 +465,7 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     The location of libraries under a prefix in only guaranteed to be standard for Python's global library location.
     Therefore, correct installation of the Python package to any other location using ``CMAKE_INSTALL_PREFIX``,
     such as user directory (e.g. `~/.local`), a Python or Conda virtual environment, may result in installation to a wrong path.
-    
+
     ``python3 -m site --user-site`` (for user installations) or a path from ``python3 -c 'import site; print(site.getsitepackages())'``
     (for virtual environment installation) can be used in combination with ``ARB_PYTHON_LIB_PATH``.
 
@@ -550,6 +556,20 @@ component ``neuroml``. The corresponding CMake library target is ``arbor::arbori
    find_package(arbor COMPONENTS neuroml)
    # ...
    target_link_libraries(myapp arbor::arborio)
+
+.. install-profiling:
+
+Profiling
+---------
+
+Arbor has built in profiling that can report the time spent in each step during
+the simulation that can be toggled with the ``-DARB_WITH_PROFILING`` CMake option:
+
+.. code-block:: bash
+
+  cmake .. -DARB_WITH_PROFILING=ON
+
+By default ``ARB_WITH_PROFILING=OFF``.
 
 
 .. _install:
@@ -871,4 +891,3 @@ need to be `updated <install-downloading_>`_.
         git submodule update
     Or download submodules recursively when checking out:
         git clone --recurse-submodules https://github.com/arbor-sim/arbor.git
-
