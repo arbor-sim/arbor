@@ -1,4 +1,4 @@
-O# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # test_contexts_arbmpi.py
 

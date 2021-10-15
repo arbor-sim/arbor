@@ -34,7 +34,7 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
     std::optional<int> gpu_id = {};
-    unsigned num_threads = 1;
+    arb::thread_count num_threads = 1;
 
     proc_allocation_shim(unsigned threads, pybind11::object gpu) {
         set_num_threads(threads);
