@@ -37,8 +37,13 @@ bad_global_property::bad_global_property(cell_kind kind):
     kind(kind)
 {}
 
-illegal_nb_threads::illegal_nb_threads(int nbt):
-    arbor_exception(pprintf("illegal number of threads requested {}", nbt)),
+zero_thread_requested_error::zero_thread_requested_error(unsigned nbt):
+    arbor_exception(pprintf("You can't run Arbor with 0 CPU threads.")),
+    nbt(nbt)
+{}
+
+undefined_hardware_thread_count_error::undefined_hardware_thread_count_error(unsigned nbt):
+    arbor_exception(pprintf("There was an error requesting the available thread count.")),
     nbt(nbt)
 {}
 

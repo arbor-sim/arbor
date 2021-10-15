@@ -77,9 +77,14 @@ struct gj_unsupported_lid_selection_policy: arbor_exception {
 
 // Context errors:
 
-struct illegal_nb_threads: arbor_exception {
-    illegal_nb_threads(int nbt);
-    int nbt;
+struct zero_thread_requested_error: arbor_exception {
+    zero_thread_requested_error(unsigned nbt);
+    unsigned nbt;
+};
+
+struct undefined_hardware_thread_count_error: arbor_exception {
+    undefined_hardware_thread_count_error(unsigned nbt);
+    unsigned nbt;
 };
 
 // Domain decomposition errors:

@@ -34,9 +34,9 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
     std::optional<int> gpu_id = {};
-    arb::Threads num_threads = 1;
+    unsigned num_threads = 1;
 
-    proc_allocation_shim(arb::Threads threads, pybind11::object gpu) {
+    proc_allocation_shim(unsigned threads, pybind11::object gpu) {
         set_num_threads(threads);
         set_gpu_id(gpu);
     }
@@ -48,13 +48,12 @@ struct proc_allocation_shim {
         gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
     };
 
-    void set_num_threads(arb::Threads threads) {
-        //pyarb::assert_throw([](int n) { return n>0; }(threads), "threads must be a positive integer");
+    void set_num_threads(unsigned threads) {
         num_threads = threads;
     };
 
     std::optional<int> get_gpu_id() const { return gpu_id; }
-    int get_num_threads() const { return num_threads; }
+    unsigned get_num_threads() const { return num_threads; }
     bool has_gpu() const { return bool(gpu_id); }
 
     // helper function to use arb::make_context(arb::proc_allocation)
@@ -149,7 +148,7 @@ void register_contexts(pybind11::module& m) {
                     const char* mpi_err_str = "mpi must be None, or an MPI communicator";
 
                     auto gpu_id = py2optional<int>(gpu, gpu_err_str, is_nonneg());
-                    arb::proc_allocation alloc(-1, gpu_id.value_or(-1));
+                    arb::proc_allocation alloc(arb::thread_count::avail_threads(), gpu_id.value_or(-1));
 
                     if (can_convert_to_mpi_comm(mpi)) {
                         return context_shim(arb::make_context(alloc, convert_to_mpi_comm(mpi)));
@@ -183,7 +182,7 @@ void register_contexts(pybind11::module& m) {
             [](std::string threads, pybind11::object gpu){
                 if ("avail_threads" == threads) {
                     auto gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
-                    return context_shim(arb::make_context(arb::proc_allocation(-1, gpu_id.value_or(-1))));
+                    return context_shim(arb::make_context(arb::proc_allocation(arb::thread_count::avail_threads(), gpu_id.value_or(-1))));
                 } else {
                     throw pyarb_error(
                         util::pprintf("{} is not a valid value.", threads));

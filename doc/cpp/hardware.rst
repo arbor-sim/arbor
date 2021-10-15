@@ -237,7 +237,7 @@ The core Arbor library *libarbor* provides an API for:
 
         Constructor that sets the number of :cpp:var:`threads` and the id :cpp:var:`gpu_id` of
         the available GPU. To automatically use the maximum number of threads the system makes
-        available, set ``threads`` to a negative number.
+        available, set ``threads`` to ``arb::thread_count::avail_threads()``.
 
     .. cpp:member:: unsigned num_threads
 

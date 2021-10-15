@@ -8,11 +8,10 @@
 
 TEST(local_context, proc_allocation_avail_threads)
 {
-    arb::proc_allocation res = {-1,-1};
+    arb::proc_allocation res = {arb::thread_count::avail_threads(),-1};
     // if (auto nt = arbenv::get_env_num_threads()) {
     //     resources.num_threads = nt;
     // }
-    // arb::execution_context ctx({-1,-1});
 
     EXPECT_GE(res.num_threads, 1);
 }

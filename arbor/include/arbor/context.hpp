@@ -16,26 +16,28 @@ struct dry_run_info {
             num_cells_per_rank(cells_per_rank) {}
 };
 
-struct Threads {
+struct thread_count {
   private:
-    unsigned threads;
+    unsigned threads = 1;
     
   public:
-    Threads() : Threads(1) {};
-    Threads(int t) {
-        if (t<0) {
-            if ( std::thread::hardware_concurrency()>0 ) {
-                threads = std::thread::hardware_concurrency();
-            } else {
-                throw arb::illegal_nb_threads(t);
-            }
-        } else if (0 == t) {
-            throw arb::illegal_nb_threads(t);
+    thread_count(unsigned t) {
+        if (t<=0) {
+            throw arb::zero_thread_requested_error(t);
         } else {
             threads = t;
         }
     }
-    operator int() const {
+
+    static thread_count avail_threads() { 
+        auto tc = thread_count{std::thread::hardware_concurrency()};
+        if (0 == tc){
+            throw arb::undefined_hardware_thread_count_error(0);
+        }
+        return tc;
+    }
+
+    operator unsigned() const {
         return threads;
     }
 };
@@ -44,7 +46,7 @@ struct Threads {
 // By default, a proc_allocation will comprise one thread and no GPU.
 
 struct proc_allocation {
-    Threads num_threads;
+    unsigned num_threads;
 
     // The gpu id corresponds to the `int device` parameter used by
     // CUDA/HIP API calls to identify gpu devices.
@@ -54,7 +56,7 @@ struct proc_allocation {
 
     proc_allocation(): proc_allocation(1, -1) {}
 
-    proc_allocation(Threads threads, int gpu):
+    proc_allocation(thread_count threads, int gpu):
         num_threads(threads),
         gpu_id(gpu)
     {}

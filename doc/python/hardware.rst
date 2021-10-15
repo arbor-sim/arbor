@@ -82,7 +82,7 @@ The Python wrapper provides an API for:
     .. attribute:: threads
 
         The number of CPU threads available, 1 by default.
-        Passing ``avail_threads`` will query and use the maximum number of threads the system makes available.
+        Passing ``arb::thread_count::avail_threads()`` will query and use the maximum number of threads the system makes available.
 
     .. attribute:: gpu_id
 
@@ -137,7 +137,7 @@ The Python wrapper provides an API for:
         .. attribute:: threads
 
             The number of threads available locally for execution, 1 by default.
-            Passing ``avail_threads`` will query and use the maximum number of threads the system makes available.
+            Passing ``arb::thread_count::avail_threads()`` will query and use the maximum number of threads the system makes available.
 
         .. attribute:: gpu_id
 
