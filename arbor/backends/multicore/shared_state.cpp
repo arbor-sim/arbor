@@ -581,6 +581,9 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, index_width_padded), m.iface_.partition_width));
         }
         if (mult_in_place) m.ppack_.multiplicity = writer.append(pos_data.multiplicity, 0);
+        // `peer_index` holds the peer CV of each CV in node_index.
+        // Peer CVs are only filled for gap junction mechanisms. They are used
+        // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }

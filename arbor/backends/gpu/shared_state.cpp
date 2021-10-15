@@ -374,6 +374,9 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         }
 
         m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
+        // `peer_index` holds the peer CV of each CV in node_index.
+        // Peer CVs are only filled for gap junction mechanisms. They are used
+        // to index the voltage at the other side of a gap-junction connection.
         m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
     }
 

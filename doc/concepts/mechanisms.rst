@@ -259,6 +259,10 @@ of that connection.
 In NMODL, junction mechanisms are identified using the ``JUNCTION_PROCESS`` keyword in the
 ``NEURON`` block.
 
+.. note::
+    ``JUNCTION_PROCESS`` is an Arbor-specific extension to NMODL. The NMODL description of gap-junction
+    mechanisms in arbor is not identical to NEURON's though it is similar.
+
 API
 ---
 

@@ -157,7 +157,7 @@ Take for example the built-in mechanism for passive leaky dynamics:
     # Create an instance of the same mechanism, that also sets conductance (range)
     m4 = arbor.mechanism('pas/e=-45', {'g': 0.1})
 
-    # Wrap the mechanisms in `density` mechanism objects and add them to the decor.
+    # And the mechanisms in `density` mechanism objects and add them to the decor.
     decor = arbor.decor()
     decor.paint('"soma"', arbor.density(m1))
     decor.paint('"soma"', arbor.density(m2)) # error: can't place the same mechanism on overlapping regions
@@ -290,10 +290,10 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
     decor.paint('"syn_loc_0"', arbor.synapse(expsyn))
 
-    # Create an 'expsyn' mechanism with default parameter values wrapped in a `synapse` object, and add it to the decor.
+    # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
     decor.paint('"syn_loc_1"', arbor.synapse("expsyn"))
 
-    # Create an 'expsyn' mechanism with modified 'tau' parameter wrapped in a `synapse` object, and add it to the decor.
+    # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
     decor.paint('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
 
 
@@ -325,7 +325,7 @@ on two separate cells.
     # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
     decor.paint('"gj_loc_0"', arbor.junction(gj))
 
-    # Create a 'gj' mechanism with modified 'g' parameter wrapped in a `junction` object, and add it to the decor.
+    # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
     decor.paint('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
 
 .. _cablecell-stimuli:

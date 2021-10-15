@@ -794,7 +794,7 @@ std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_
     const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
     const recipe& rec)
 {
-    // Construct and resolve all gj_connections. This is not thread safe.
+    // Construct and resolve all gj_connections.
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
     label_resolution_map resolution_map({gj_data, gids});
     auto gj_resolver = resolver(&resolution_map);
@@ -923,7 +923,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         if (info.kind != arb_mechanism_kind_density) {
             throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
         }
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_density;
 
         std::vector<std::string> param_names;
         assign(param_names, util::keys(info.parameters));
@@ -1114,7 +1114,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_point;
         for (auto& kv: info.parameters) {
             config.param_values.emplace_back(kv.first, std::vector<value_type>{});
             if (!coalesce) {
@@ -1159,8 +1159,21 @@ fvm_mechanism_data fvm_build_mechanism_data(
         std::vector<value_type> param_values; // overridden parameter values.
     };
 
-    // Create gap_junction mechanism descriptions per gap-junction lid on the cell.
-    // Create incomplete fvm_mechanism_config per mechanism name.
+    // Gap-junction mechanisms are handled differently from point mechanisms.
+    // There is a separate mechanism instance at the local site of every gap-junction connection,
+    // meaning there can be multiple gap-junction mechanism instances of the same type (name) per
+    // lid.
+    // As a result, building fvm_mechanism_config per junction mechanism is split into 2 phases.
+    // (1) For every type (name) of gap-junction mechanism used on the cell, an fvm_mechanism_config
+    //     object is constructed and only the kind and parameter names are set. The object is
+    //     stored in the `junction_configs` map. Another map `lid_junction_desc` containing the
+    //     name and parameter values of the mechanism per lid is stored, needed to complete the
+    //     description of the fvm_mechanism_config object in the next step.
+    // (2) For every gap-junction connection, the cv, peer_cv, local_weight and parameter values
+    //     of the mechanism present on the local lid of the connection are added to the
+    //     fvm_mechanism_config of that mechanism. This completes the fvm_mechanism_config
+    //     description for each gap-junction mechanism.
+
     std::unordered_map<std::string, fvm_mechanism_config> junction_configs;
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: cell.junctions()) {
@@ -1170,7 +1183,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
 
         fvm_mechanism_config config;
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_gap_junction;
 
         std::vector<std::string> param_names;
         std::vector<double> param_dflt;
@@ -1388,7 +1401,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 }
                 else {
                     fvm_mechanism_config config;
-                    config.kind = info.kind;
+                    config.kind = arb_mechanism_kind_reversal_potential;
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 

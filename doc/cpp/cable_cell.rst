@@ -125,13 +125,22 @@ Density mechanisms are associated with a cable cell object with:
 
 Point mechanisms, which are associated with connection end points on a
 cable cell, are placed on a set of locations given by a locset. The group
-of generated items requires a label. They are attached to a cell with:
+of generated items are given a label which can be used to create connections
+in the recipe. Point mechanisms are attached to a cell with:
 
 .. cpp:function:: void cable_cell::place(const locset&, synapse, cell_tag_type label)
 
+Gap-junction mechanisms, which are associated with gap-junction connection
+end points on a cable cell, are placed on a single location given by a locset
+(locsets with multiple locations will raise an exception). The generated item
+is given a label which can be used to create gap-junction connections in the
+recipe. Gap-junction mechanisms are attached to a cell with:
+
+.. cpp:function:: void cable_cell::place(const locset&, junction, cell_tag_type label)
+
 .. todo::
 
-   TODO: describe other ``place``-able things: current clamps, junctions, threshold potential measurement point.
+   TODO: describe other ``place``-able things: current clamps, threshold potential measurement point.
 
 .. _cppcablecell-electrical-properties:
 
