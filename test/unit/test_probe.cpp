@@ -18,8 +18,9 @@
 #include <arbor/util/any_ptr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/version.hpp>
-#include <arborenv/gpu_env.hpp>
 #include <arbor/mechanism.hpp>
+
+#include <arborenv/default_env.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multicore/fvm.hpp"

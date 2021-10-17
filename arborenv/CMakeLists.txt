@@ -1,8 +1,10 @@
 set(arborenv-sources
+    arbenvexcept.cpp
     affinity.cpp
     concurrency.cpp
-    default_gpu.cpp
+    default_env.cpp
     private_gpu.cpp
+    read_envvar.cpp
 )
 
 if(ARB_WITH_GPU)
