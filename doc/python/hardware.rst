@@ -151,10 +151,6 @@ The Python wrapper provides an API for:
             The MPI communicator (see :class:`mpi_comm`).
             mpi must be ``None``, or an MPI communicator.
 
-            .. Note::
-
-                Arbor must be built with MPI support for the
-
     .. function:: context(alloc)
         :noindex:
 
