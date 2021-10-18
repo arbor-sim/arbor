@@ -40,21 +40,33 @@ Interconnectivity
 
         The delay time of the connection [ms]. Must be positive.
 
-    An example of a connection reads as follows:
+    .. note::
 
-    .. container:: example-code
+        An minimal full example of a connection reads as follows:
+        (see :ref:`network tutorial <tutorialnetworkring>` for a more comprehensive example):
 
         .. code-block:: python
 
             import arbor
 
+            # Create two locset labels, describing the endpoints of the connection.
+            labels = arbor.label_dict()
+            labels['synapse_site'] = '(location 1 0.5)'
+            labels['root'] = '(root)'
+
+            # Place 'expsyn' mechanism on "synapse_site", and a spike detector at "root"
+            decor = arbor.decor()
+            decor.place('"synapse_site"', 'expsyn', 'syn')
+            decor.place('"root"', arbor.spike_detector(-10), 'detector')
+
+            # Implement the connections_on() function on a recipe as follows:
             def connections_on(gid):
                # construct a connection from the "detector" source label on cell 2
                # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
-               src  = arbor.cell_global_label(2, "detector")
-               dest = arbor.cell_local_label("syn") # gid of the destination is is determined by the argument to `connections_on`
-               w    = 0.01
-               d    = 10
+               src  = (2, "detector") # gid and locset label of the source
+               dest = "syn" # gid of the destination is determined by the argument to `connections_on`.
+               w    = 0.01  # weight of the connection. Correspondes to 0.01 μS on expsyn mechanisms
+               d    = 10 # delay in ms
                return [arbor.connection(src, dest, w, d)]
 
 .. class:: gap_junction_connection

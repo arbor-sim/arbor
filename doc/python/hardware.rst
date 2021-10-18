@@ -8,6 +8,10 @@ Arbor provides two ways for working with hardware resources:
 * *Prescribe* the hardware resources and their contexts for use in Arbor simulations.
 * *Query* available hardware resources (e.g. the number of available GPUs), and initializing MPI.
 
+.. Note::
+
+    Arbor must be built with MPI support for the MPI-related options to be present.
+
 Available resources
 -------------------
 
@@ -146,6 +150,10 @@ The Python wrapper provides an API for:
 
             The MPI communicator (see :class:`mpi_comm`).
             mpi must be ``None``, or an MPI communicator.
+
+            .. Note::
+
+                Arbor must be built with MPI support for the
 
     .. function:: context(alloc)
         :noindex:
