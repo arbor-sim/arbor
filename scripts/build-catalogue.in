@@ -143,13 +143,16 @@ with TemporaryDirectory() as tmp:
         fd.write(cmake)
     shutil.copy2(f'@ARB_INSTALL_DATADIR@/BuildModules.cmake', tmp)
     shutil.copy2(f'@ARB_INSTALL_DATADIR@/generate_catalogue', tmp)
+    cmake_cmd = 'cmake ..'
+    make_cmd = 'make'
     if verbose:
         out, err = (None, None)
+        make_cmd += ' VERBOSE=1'
     else:
         out, err = (sp.PIPE, sp.PIPE)
     try:
-        sp.run('cmake ..', shell=True, check=True, stdout=out, stderr=err)
-        sp.run('make',     shell=True, check=True, stdout=out, stderr=err)
+        sp.run(cmake_cmd, shell=True, check=True, stdout=out, stderr=err)
+        sp.run(make_cmd,  shell=True, check=True, stdout=out, stderr=err)
         shutil.copy2(f'{name}-catalogue.so', pwd)
     except sp.CalledProcessError as e:
         import sys, traceback as tb
@@ -172,6 +175,6 @@ with TemporaryDirectory() as tmp:
         sys.stdout.flush()
         sys.stderr.flush()
         exit(e.returncode)
-    
+
     if not quiet:
         print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
