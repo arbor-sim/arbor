@@ -22,7 +22,7 @@ Soma (A=500π µm^2)
 
 ## Network
 Cells are structured into groups ('cables') that are inter-connected by gap
-junctions; Groups are connected by synapses. The second cell of the first group
+junctions; Groups are connected by synapses. The first cell of the first group
 (top left in diagram) has a current stimulus.
 
 ```
