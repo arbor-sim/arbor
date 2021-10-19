@@ -2,22 +2,48 @@
 
 A miniapp that demonstrates how to describe how to build a network with gap junctions.
 
-##Structure:
+## Structure
+
+### Cell
+
+Cells have a simple ball-and-stick morphology with gap junctions attached at the end of the 
+soma.
+
+The following mechanisms are assigned to the complete cell
+
+- `nax`: `gbar=0.04`, `sh=10`
+- `gbar`: `gbar=0.0001`
+- `kamt`: `gbar=0.004`
+- `pas`: `e=-65 mV`, `g=1/12000`
+
+```
+Soma       Dendrite
+
+ /\\\\\\\
+(  ))))))) ()=================)
+ \///////
+        * 
+        GJ
+```
+
+### Network
+
 Cells are structured into groups that are inter-connected by gap junctions; Groups are
 connected by synapses. The first cell of the first group (top left in diagram) has a 
 current stimulus.
 
-
 ```
-c --gj-- c --gj-- c --gj-- c --gj-- c
-                                    |
-                                    syn
-                                    |
-c --gj-- c --gj-- c --gj-- c --gj-- c
-|
-syn
-|
-c --gj-- c --gj-- c --gj-- c --gj-- c
+     c --gj-- c --gj-- c --gj-- c --gj-- c   # Cable 0
+                                         |
+                                        syn
+                                         |
+     c --gj-- c --gj-- c --gj-- c --gj-- c   # Cable 1
+     |
+    syn
+     |
+     c --gj-- c --gj-- c --gj-- c --gj-- c   # Cable 2
+                                         |
+                                        ...
 ```
      
 
