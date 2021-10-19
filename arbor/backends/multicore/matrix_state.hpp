@@ -15,11 +15,10 @@ struct matrix_state {
 public:
     using value_type = T;
     using index_type = I;
-
-    using array = padded_vector<value_type>;
+    using array      = padded_vector<value_type>;
     using const_view = const array&;
+    using iarray     = padded_vector<index_type>;
 
-    using iarray = padded_vector<index_type>;
     iarray parent_index;
     iarray cell_cv_divs;
 
@@ -76,7 +75,6 @@ public:
         // contains the solution after the matrix_solve is performed.
         return rhs;
     }
-
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
@@ -144,10 +142,7 @@ public:
     }
 
 private:
-
-    std::size_t size() const {
-        return parent_index.size();
-    }
+    std::size_t size() const { return parent_index.size(); }
 };
 
 } // namespace multicore
