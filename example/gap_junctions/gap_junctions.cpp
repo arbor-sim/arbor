@@ -315,7 +315,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_0");
     decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_1");
 
-    // Attach a stimulus to the second cell.
+    // Attach a stimulus to the first cell of the first group
     if (!gid) {
         auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
         decor.place(arb::mlocation{0, 0.5}, stim, "stim");

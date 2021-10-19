@@ -1,15 +1,9 @@
 # Gap Junctions Example
+A miniapp that demonstrates how to build a network with gap junctions.
 
-A miniapp that demonstrates how to describe how to build a network with gap junctions.
-
-## Structure
-
-### Cell
-
-Cells have a simple ball-and-stick morphology with gap junctions attached at the end of the 
-soma.
-
-The following mechanisms are assigned to the complete cell
+## Cells
+Cells have a simple ball-and-stick morphology with gap junctions attached at the
+end of the soma. The following mechanisms are assigned to the complete cell
 
 - `nax`: `gbar=0.04`, `sh=10`
 - `gbar`: `gbar=0.0001`
@@ -17,25 +11,24 @@ The following mechanisms are assigned to the complete cell
 - `pas`: `e=-65 mV`, `g=1/12000`
 
 ```
-Soma       Dendrite
+Soma (A=500π µm^2)
 
  /\\\\\\\
-(  ))))))) ()=================)
+(  ))))))) ()=================) Dendrite (l=300 µm, r=1.5 µm)
  \///////
         * 
         GJ
 ```
 
-### Network
-
-Cells are structured into groups that are inter-connected by gap junctions; Groups are
-connected by synapses. The first cell of the first group (top left in diagram) has a 
-current stimulus.
+## Network
+Cells are structured into groups ('cables') that are inter-connected by gap
+junctions; Groups are connected by synapses. The second cell of the first group
+(top left in diagram) has a current stimulus.
 
 ```
      c --gj-- c --gj-- c --gj-- c --gj-- c   # Cable 0
-                                         |
-                                        syn
+     ^                                   |
+    I_s                                 syn
                                          |
      c --gj-- c --gj-- c --gj-- c --gj-- c   # Cable 1
      |
@@ -46,7 +39,6 @@ current stimulus.
                                         ...
 ```
      
-
 ## Tunable parameters
 * _n_cables_: number of groups of cells connected by gap junctions.
 * _n_cells_per_cable_: number of cells in a group.
