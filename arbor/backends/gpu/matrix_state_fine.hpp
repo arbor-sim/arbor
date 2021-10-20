@@ -503,11 +503,9 @@ public:
         packed_to_flat(rhs, to);
     }
 
-private:
-    std::size_t size() const {
-        return matrix_size;
-    }
+    std::size_t size() const { return matrix_size; }
 
+private:
     void flat_to_packed(const array& from, array& to ) {
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);

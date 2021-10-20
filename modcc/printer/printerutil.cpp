@@ -171,6 +171,11 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.scale = 0.1;
         v.readonly = false;
         break;
+    case sourceKind::ion_conductivity:
+        v.data_var = ion_pfx+".conductivity";
+        v.scale = 0.1;
+        v.readonly = false;
+        break;
     case sourceKind::ion_current:
         // unit scale; sourceKind for point processes updating an ionic current variable.
         v.data_var = ion_pfx+".current_density";
