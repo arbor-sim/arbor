@@ -53,9 +53,13 @@ class NrnCurrentRewriter: public BlockRewriterBase {
     std::map<std::string, expression_ptr> conductivity_exps_;
 
 public:
+
+    std::string non_specific_current = "";
     using BlockRewriterBase::visit;
 
-    virtual void finalize() override {
+        virtual void finalize() override {
+        // Take current name 'iX' and strip off leading 'i' to get ion name.
+        auto i2ion = [this](const auto& name) { return id("conductivity_" + name.substr(1) + "_"); };
         if (has_current_update_) {
             expression_ptr current_sum, conductivity_sum;
             for (auto& curr: current_vars_) {
@@ -74,11 +78,11 @@ public:
                     conductivity_sum = make_expression<AddBinaryExpression>(
                             Location{}, std::move(conductivity_sum), cond->clone());
                 }
-                std::cout << "Fetching " << name << '\n';
-                statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                                                                            id("conductivity_" + name + "_"),
-                                                                            cond->clone()));
-                std::cout << "Fetching " << name << "OK" << '\n';
+                if (name != non_specific_current) {
+                    statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                                                                                i2ion(name),
+                                                                                cond->clone()));
+                }
             }
             if (current_sum) {
                 statements_.push_back(make_expression<AssignmentExpression>(loc_,
@@ -99,13 +103,13 @@ public:
         sourceKind current_source = current_update(e);
         if (current_source != sourceKind::no_source) {
             has_current_update_ = true;
-
-            auto visited_current = current_vars_.count(e->lhs()->is_identifier()->name());
-            current_vars_.insert(e->lhs()->is_identifier()->name());
+            auto name = e->lhs()->is_identifier()->name();
+            auto visited_current = current_vars_.count(name);
+            current_vars_.insert(name);
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
             if (L.coef.count("v") && !visited_current) {
-                conductivity_exps_[e->lhs()->is_identifier()->name()] = L.coef.at("v")->clone();
+                conductivity_exps_[name] = L.coef.at("v")->clone();
             }
         }
     }
@@ -491,6 +495,9 @@ bool Module::semantic() {
     // compute_currents : update contributions to currents
     //..........................................................
     NrnCurrentRewriter compute_currents_rewriter;
+    // Register non-specific current name
+    if (neuron_block_.has_nonspecific_current()) compute_currents_rewriter.non_specific_current = neuron_block_.nonspecific_current.spelling;
+
     breakpoint->accept(&compute_currents_rewriter);
 
     for (auto& s: breakpoint->body()->statements()) {
@@ -717,7 +724,6 @@ void Module::add_variables_to_symbols() {
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
         create_indexed_variable(i.spelling, current_kind, accessKind::noaccess, "", i.location);
-        create_indexed_variable("conductivity_" + i.spelling + "_", sourceKind::ion_conductivity, accessKind::write, "", i.location);
     }
 
     for(auto const& ion : neuron_block_.ions) {
@@ -726,7 +732,7 @@ void Module::add_variables_to_symbols() {
         }
         for(auto const& var : ion.write) {
             update_ion_symbols(var, accessKind::write, ion.name);
-            create_indexed_variable("conductivity_" + ion.name + "_", sourceKind::ion_conductivity, accessKind::write, "", var.location);
+            create_indexed_variable("conductivity_" + ion.name + "_", sourceKind::ion_conductivity, accessKind::write, ion.name, var.location);
         }
 
         if(ion.uses_valence()) {
