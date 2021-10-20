@@ -17,10 +17,11 @@ namespace arb {
 template<class Backend, class State=typename Backend::matrix_state>
 class matrix {
 public:
-    using backend = Backend;
-    using array   = typename backend::array;
-    using iarray  = typename backend::iarray;
-    using state   = State;                    // backend specific storage for matrix state
+    using backend    = Backend;
+    using array      = typename backend::array;
+    using iarray     = typename backend::iarray;
+    using const_view = const array&;
+    using state      = State;                         // backend specific storage for matrix state
 
     matrix() = default;
 
@@ -47,7 +48,7 @@ public:
     /// Solve the linear system into a given solution storage.
     void solve(array& to) { state_.solve(to); }
     /// Assemble the matrix for given dt
-    void assemble(const array& dt, const array& U, const array& I, const array& g) { state_.assemble(dt, U, I, g); }
+    void assemble(const_view& dt, const_view& U, const_view& I, const_view& g) { state_.assemble(dt, U, I, g); }
 
 private:
    std::size_t num_cells_ = 0;
