@@ -726,13 +726,18 @@ void Module::add_variables_to_symbols() {
         create_indexed_variable(i.spelling, current_kind, accessKind::noaccess, "", i.location);
     }
 
+    std::set<std::string> cond;
     for(auto const& ion : neuron_block_.ions) {
         for(auto const& var : ion.read) {
             update_ion_symbols(var, accessKind::read, ion.name);
         }
         for(auto const& var : ion.write) {
             update_ion_symbols(var, accessKind::write, ion.name);
-            create_indexed_variable("conductivity_" + ion.name + "_", sourceKind::ion_conductivity, accessKind::write, ion.name, var.location);
+            auto name = "conductivity_" + ion.name + "_";
+            if (cond.find(name) == cond.end()) {
+                create_indexed_variable(name, sourceKind::ion_conductivity, accessKind::write, ion.name, var.location);
+                cond.insert(name);
+            }
         }
 
         if(ion.uses_valence()) {
