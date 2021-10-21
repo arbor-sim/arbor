@@ -64,6 +64,7 @@ ion_state::ion_state(
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
     Xi_(ion_data.cv.size(), NAN, pad(alignment)),
     Xo_(ion_data.cv.size(), NAN, pad(alignment)),
+    gX_(ion_data.cv.size(), NAN, pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
     init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
@@ -83,6 +84,7 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
+    util::fill(gX_, 0);
     util::fill(iX_, 0);
 }
 
@@ -519,7 +521,15 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
-        m.ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+
+        auto& ion_state = m.ppack_.ion_states[idx];
+        ion_state = {0};
+        ion_state.current_density        = oion->iX_.data();
+        ion_state.reversal_potential     = oion->eX_.data();
+        ion_state.internal_concentration = oion->Xi_.data();
+        ion_state.external_concentration = oion->Xo_.data();
+        ion_state.ionic_charge           = oion->charge.data();
+        ion_state.conductivity           = oion->gX_.data();
     }
 
     // Initialize state and parameter vectors with default values.

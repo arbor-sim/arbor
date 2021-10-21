@@ -42,10 +42,11 @@ struct ion_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
     iarray node_index_;     // Instance to CV map.
-    array iX_;              // (A/m²) current density
-    array eX_;              // (mV) reversal potential
-    array Xi_;              // (mM) internal concentration
-    array Xo_;              // (mM) external concentration
+    array iX_;              // (A/m²)  current density
+    array eX_;              // (mV)    reversal potential
+    array Xi_;              // (mM)    internal concentration
+    array Xo_;              // (mM)    external concentration
+    array gX_;              // (kS/m²) per-species conductivity
 
     array init_Xi_;         // (mM) area-weighted initial internal concentration
     array init_Xo_;         // (mM) area-weighted initial external concentration
