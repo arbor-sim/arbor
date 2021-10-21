@@ -204,9 +204,10 @@ inline event_generator poisson_generator(
     float weight,
     time_type tstart,
     time_type rate_kHz,
-    const RNG& rng)
+    const RNG& rng,
+    time_type tstop=terminal_time)
 {
-    return schedule_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, rng));
+    return schedule_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, rng, tstop));
 }
 
 

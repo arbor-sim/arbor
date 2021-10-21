@@ -5,21 +5,13 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures
 
 """
 all tests for non-distributed arb.context
 """
 
-class Contexts(unittest.TestCase):
+class TestContexts(unittest.TestCase):
     def test_default_allocation(self):
         alloc = arb.proc_allocation()
 
@@ -86,16 +78,3 @@ class Contexts(unittest.TestCase):
         self.assertEqual(ctx.has_gpu, alloc.has_gpu)
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Contexts, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

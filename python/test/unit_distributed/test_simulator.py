@@ -5,15 +5,7 @@
 import unittest
 import numpy as np
 import arbor as A
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, cases
 
 mpi_enabled = A.__config__["mpi"]
 
@@ -56,8 +48,8 @@ class lifN_recipe(A.recipe):
             c.t_ref = 4
         return c
 
-@unittest.skipIf(mpi_enabled == False, "MPI not enabled")
-class Simulator(unittest.TestCase):
+@cases.skipIfNotDistributed()
+class TestSimulator(unittest.TestCase):
     def init_sim(self):
         comm = A.mpi_comm()
         context = A.context(threads=1, gpu_id=None, mpi=A.mpi_comm())
@@ -98,34 +90,3 @@ class Simulator(unittest.TestCase):
 
         expected = [((s, 0), t) for s in range(0, self.ranks) for t in ([0, 2, 4, 6, 8] if s%2==0 else [0, 4, 8])]
         self.assertEqual(expected, sorted(spikes))
-
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Simulator, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-
-    if not A.mpi_is_initialized():
-        A.mpi_init()
-
-    comm = A.mpi_comm()
-    alloc = A.proc_allocation()
-    ctx = A.context(alloc, comm)
-    rank = ctx.rank
-
-    if rank == 0:
-        runner = unittest.TextTestRunner(verbosity = v)
-    else:
-        sys.stdout = open(os.devnull, 'w')
-        runner = unittest.TextTestRunner(stream=sys.stdout)
-
-    runner.run(suite())
-
-    if not A.mpi_is_finalized():
-        A.mpi_finalize()
-
-if __name__ == "__main__":
-    run()

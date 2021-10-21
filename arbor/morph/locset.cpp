@@ -486,7 +486,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
         }
         else if (n.relpos==1) {
             double diameter = 0;
-            mlocation_list most_distal = {prox};
+            mlocation_list most_distal;
 
             for (mcable c: comp) {
                 mlocation x = dist_loc(c);
@@ -501,7 +501,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
                 }
             }
 
-            util::append(L, most_distal);
+            util::append(L, maxset(p.morphology(), support(most_distal)));
         }
         else {
             double diameter = util::max_value(util::transform_view(comp,
@@ -518,7 +518,6 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
                     L.push_back(mlocation{c.branch, s});
                 }
             }
-
         }
     }
 
