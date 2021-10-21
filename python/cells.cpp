@@ -440,7 +440,7 @@ void register_cells(pybind11::module& m) {
             [](arb::cable_cell_global_properties& props, const char* ion,
                optional<double> valence, optional<double> int_con,
                optional<double> ext_con, optional<double> rev_pot,
-               pybind11::object method, , optional<double> diff)
+               pybind11::object method, optional<double> diff)
             {
                 if (!props.ion_species.count(ion) && !valence) {
                     throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
@@ -448,10 +448,10 @@ void register_cells(pybind11::module& m) {
                 if (valence) props.ion_species[ion] = *valence;
 
                 auto& data = props.default_parameters.ion_data[ion];
-                if (int_con) data.init_int_concentration = *int_con;
-                if (ext_con) data.init_ext_concentration = *ext_con;
+                if (int_con) data.init_int_concentration  = *int_con;
+                if (ext_con) data.init_ext_concentration  = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
-                if (diff)    data.diffusivity = *diff;
+                if (diff)    data.diffusivity             = *diff;
 
                 if (auto m = maybe_method(method)) {
                     props.default_parameters.reversal_potential_method[ion] = *m;
@@ -577,7 +577,8 @@ void register_cells(pybind11::module& m) {
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
                 if (diff)    dec.paint(r, arb::ion_diffusivity{name, *diff});
             },
-            "region"_a, "ion_name"_a,
+            "region"_a,
+            "ion_name"_a,
             pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
             pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
             pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
