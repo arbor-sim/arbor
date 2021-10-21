@@ -144,11 +144,13 @@ The Python wrapper provides an API for:
 
             The identifier of the GPU to use, ``None`` by default.
             Must be ``None``, or a non-negative integer.
+            Can only be set when Arbor was built with GPU support.
 
         .. attribute:: mpi
 
-            The MPI communicator (see :class:`mpi_comm`).
-            mpi must be ``None``, or an MPI communicator.
+            The MPI communicator (see :class:`mpi_comm`), ``None`` by default.
+            Must be ``None``, or an MPI communicator.
+            Can only be set when Arbor was built with MPI support.
 
     .. function:: context(alloc)
         :noindex:
@@ -171,22 +173,9 @@ The Python wrapper provides an API for:
 
         .. attribute:: mpi
 
-            The MPI communicator (see :class:`mpi_comm`).
+            The MPI communicator (see :class:`mpi_comm`). ``None`` by default.
             mpi must be ``None``, or an MPI communicator.
-
-    .. function:: context(threads, gpu_id)
-        :noindex:
-
-        Create a context that uses a set number of :attr:`threads` and the GPU with id :attr:`gpu_id`.
-
-        .. attribute:: threads
-
-            The number of threads available locally for execution, 1 by default.
-
-        .. attribute:: gpu_id
-
-            The identifier of the GPU to use, ``None`` by default.
-            Must be ``None``, or a non-negative integer.
+            Can only be set when Arbor was built with MPI support.
 
     Contexts can be queried for information about which features a context has enabled,
     whether it has a GPU, how many threads are in its thread pool.
