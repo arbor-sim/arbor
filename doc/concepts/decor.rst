@@ -255,6 +255,20 @@ using the *paint* interface:
     # Alternatively, one can selectively overwrite the global defaults.
     decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
 
+To enable diffusion of ion species along the morphology (axial diffusion) one
+sets the per-species diffusivity to a positive value. It can be changed per
+region and defaults to zero. This is strictly passive transport according to the
+diffusion equation ``X' = ß ∆X`` where ``X`` is the species' internal
+concentration and ``ß`` the diffusivity constant.
+
+.. code-block:: Python
+
+    decor = arbor.decor()
+    decor.set_ion('ca', diff=23.0)
+    decor.paint('"region"', 'ca', diff=42.0)
+
+Be aware of the consequences of setting ``ß > 0`` only in some places.
+
 .. _cablecell-place:
 
 Placed dynamics

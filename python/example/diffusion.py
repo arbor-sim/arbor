@@ -28,7 +28,6 @@ class recipe (A.recipe):
     def global_properties(self, kind):
         return self.the_props
 
-
 tree = A.segment_tree()
 tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(  3, 0, 0, 3), tag=1)
 tree.append(A.mnpos, A.mpoint( 3, 0, 0, 1), A.mpoint(303, 0, 0, 1), tag=3)
