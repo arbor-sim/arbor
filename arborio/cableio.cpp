@@ -57,6 +57,9 @@ s_expr mksexp(const init_ext_concentration& c) {
 s_expr mksexp(const init_reversal_potential& c) {
     return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
 }
+s_expr mksexp(const ion_diffusivity& c) {
+    return slist("ion-diffusivity"_symbol, s_expr(c.ion), c.value);
+}
 s_expr mksexp(const i_clamp& c) {
     std::vector<s_expr> evlps;
     std::transform(c.envelope.begin(), c.envelope.end(), std::back_inserter(evlps),
@@ -195,7 +198,7 @@ using version_tuple  = std::tuple<std::string>;
 #define ARBIO_DEFINE_DOUBLE_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
 
 ARB_PP_FOREACH(ARBIO_DEFINE_SINGLE_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
-ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
+ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential, ion_diffusivity)
 
 std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::variant<envelope_tuple>>& vec) {
     std::vector<arb::i_clamp::envelope_point> envlp;
@@ -575,6 +578,8 @@ eval_map named_evals{
         "'ion_internal_concentration' with 2 arguments (ion:string val:real)")},
     {"ion-external-concentration", make_call<std::string, double>(make_init_ext_concentration,
         "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
+    {"ion-diffusivity", make_call<std::string, double>(make_ion_diffusivity,
+        "'ion_diffusivity' with 2 arguments (ion:string val:real)")},
     {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential,
         "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
     {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
@@ -607,6 +612,7 @@ eval_map named_evals{
     {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with 2 arguments (reg:region v:axial-resistivity)")},
     {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-internal-concentration)")},
     {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-external-concentration)")},
+    {"paint", make_call<region, ion_diffusivity>(make_paint, "'paint' with 2 arguments (reg:region v:ion-diffusivity)")},
     {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (reg:region v:ion-reversal-potential)")},
     {"paint", make_call<region, mechanism_desc>(make_paint, "'paint' with 2 arguments (reg:region v:mechanism)")},
 
@@ -616,6 +622,7 @@ eval_map named_evals{
     {"default", make_call<axial_resistivity>(make_default, "'default' with 1 argument (v:axial-resistivity)")},
     {"default", make_call<init_int_concentration>(make_default, "'default' with 1 argument (v:ion-internal-concentration)")},
     {"default", make_call<init_ext_concentration>(make_default, "'default' with 1 argument (v:ion-external-concentration)")},
+    {"default", make_call<ion_diffusivity>(make_default, "'default' with 1 argument (v:ion-diffusivity)")},
     {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (v:ion-reversal-potential)")},
     {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (v:ion-reversal-potential-method)")},
     {"default", make_call<cv_policy>(make_default, "'default' with 1 argument (v:cv-policy)")},

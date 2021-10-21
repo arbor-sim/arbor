@@ -31,6 +31,7 @@ struct cable_cell_ion_data {
     std::optional<double> init_int_concentration;
     std::optional<double> init_ext_concentration;
     std::optional<double> init_reversal_potential;
+    std::optional<double> diffusivity;
 };
 
 // Clamp current is described by a sine wave with amplitude governed by a
@@ -113,6 +114,12 @@ struct init_int_concentration {
     std::string ion = "";
     double value = NAN; // [mM]
 };
+
+struct ion_diffusivity {
+    std::string ion = "";
+    double value = NAN; // TODO []
+};
+
 
 struct init_ext_concentration {
     std::string ion = "";
@@ -197,6 +204,7 @@ using paintable =
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
+                 ion_diffusivity,
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
@@ -213,6 +221,7 @@ using defaultable =
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
+                 ion_diffusivity,
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
@@ -284,17 +293,18 @@ struct cable_cell_global_properties {
     cable_cell_parameter_set default_parameters;
 
     // Convenience methods for adding a new ion together with default ion values.
-    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot) {
+    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot, double diffusivity=0.0) {
         ion_species[ion_name] = charge;
 
         auto &ion_data = default_parameters.ion_data[ion_name];
-        ion_data.init_int_concentration = init_iconc;
-        ion_data.init_ext_concentration = init_econc;
+        ion_data.init_int_concentration  = init_iconc;
+        ion_data.init_ext_concentration  = init_econc;
         ion_data.init_reversal_potential = init_revpot;
+        ion_data.diffusivity             = diffusivity;
     }
 
-    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, mechanism_desc revpot_mechanism) {
-        add_ion(ion_name, charge, init_iconc, init_econc, 0);
+    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, mechanism_desc revpot_mechanism, double diffusivity=0.0) {
+        add_ion(ion_name, charge, init_iconc, init_econc, 0, diffusivity);
         default_parameters.reversal_potential_method[ion_name] = std::move(revpot_mechanism);
     }
 };

@@ -1143,6 +1143,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     auto initial_iconc_map = cell.region_assignments().get<init_int_concentration>();
     auto initial_econc_map = cell.region_assignments().get<init_ext_concentration>();
+    auto initial_diff_map  = cell.region_assignments().get<ion_diffusivity>();
     auto initial_rvpot_map = cell.region_assignments().get<init_reversal_potential>();
 
     for (const auto& ion_cvs: ion_support) {
@@ -1154,6 +1155,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto n_cv = config.cv.size();
         config.init_iconc.resize(n_cv);
         config.init_econc.resize(n_cv);
+        config.diff.resize(n_cv);
         config.reset_iconc.resize(n_cv);
         config.reset_econc.resize(n_cv);
         config.init_revpot.resize(n_cv);
@@ -1162,16 +1164,19 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto dflt_iconc = global_ion_data.init_int_concentration.value();
         auto dflt_econc = global_ion_data.init_ext_concentration.value();
         auto dflt_rvpot = global_ion_data.init_reversal_potential.value();
+        auto dflt_diff  = global_ion_data.diffusivity.value();
 
         if (auto ion_data = value_by_key(dflt.ion_data, ion)) {
             dflt_iconc = ion_data.value().init_int_concentration.value_or(dflt_iconc);
             dflt_econc = ion_data.value().init_ext_concentration.value_or(dflt_econc);
             dflt_rvpot = ion_data.value().init_reversal_potential.value_or(dflt_rvpot);
+            dflt_diff  = ion_data.value().diffusivity.value_or(dflt_diff);
         }
 
         const mcable_map<init_int_concentration>&  iconc_on_cable = initial_iconc_map[ion];
         const mcable_map<init_ext_concentration>&  econc_on_cable = initial_econc_map[ion];
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
+        const mcable_map<ion_diffusivity>&         diff_on_cable  = initial_diff_map[ion];
 
         auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
             return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
@@ -1185,10 +1190,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 auto iconc = pw_over_cable(iconc_on_cable, c, dflt_iconc);
                 auto econc = pw_over_cable(econc_on_cable, c, dflt_econc);
                 auto rvpot = pw_over_cable(rvpot_on_cable, c, dflt_rvpot);
+                auto diff  = pw_over_cable(diff_on_cable,  c, dflt_diff);
 
                 config.reset_iconc[i] += embedding.integrate_area(c.branch, iconc);
                 config.reset_econc[i] += embedding.integrate_area(c.branch, econc);
                 config.init_revpot[i] += embedding.integrate_area(c.branch, rvpot);
+                config.diff[i]        += embedding.integrate_area(c.branch, diff);
 
                 auto iconc_masked = pw_times(pw_over_cable(init_iconc_mask[ion], c, 1.), iconc);
                 auto econc_masked = pw_times(pw_over_cable(init_econc_mask[ion], c, 1.), econc);
@@ -1203,6 +1210,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             config.init_revpot[i] *= oo_cv_area;
             config.init_iconc[i] *= oo_cv_area;
             config.init_econc[i] *= oo_cv_area;
+            config.diff[i]       *= oo_cv_area;
         }
 
         if (!config.cv.empty()) M.ions[ion] = std::move(config);

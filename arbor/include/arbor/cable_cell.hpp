@@ -189,7 +189,8 @@ template <typename T>
 using region_assignment =
     std::conditional_t<
         std::is_same<T, mechanism_desc>::value || std::is_same<T, init_int_concentration>::value ||
-        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
+        std::is_same<T, ion_diffusivity>::value,
         std::unordered_map<std::string, mcable_map<T>>,
         mcable_map<T>>;
 
@@ -213,7 +214,7 @@ using location_assignment =
 
 using cable_cell_region_map = static_typed_map<region_assignment,
     mechanism_desc, init_membrane_potential, axial_resistivity,
-    temperature_K, membrane_capacitance, init_int_concentration,
+    temperature_K, membrane_capacitance, init_int_concentration, ion_diffusivity,
     init_ext_concentration, init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,

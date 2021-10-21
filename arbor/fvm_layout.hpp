@@ -259,6 +259,9 @@ struct fvm_ion_config {
     std::vector<value_type> init_iconc;
     std::vector<value_type> init_econc;
 
+    // Diffusivity
+    std::vector<value_type> diff;
+
     // Normalized area contribution of default concentration contribution in corresponding CV set by users
     std::vector<value_type> reset_iconc;
     std::vector<value_type> reset_econc;

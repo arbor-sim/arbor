@@ -519,7 +519,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-        ion_state* oion = ptr_by_key(ion_data, ion_binding);
+        auto* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
 
         auto& ion_state = m.ppack_.ion_states[idx];
