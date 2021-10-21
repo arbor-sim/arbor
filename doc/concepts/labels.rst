@@ -307,11 +307,14 @@ Locset expressions
 
 .. label:: (distal-translate ls:locset distance:real)
 
-    The set of locations that correspond to moving each location in ``ls`` in the distal direction
+    The set of locations that correspond to translating each location in ``ls`` in the distal direction
     ``distance`` μm or to a terminal location, whichever is closest.
-    The number of locations in the output is greater than or equal the number in the input, with
-    multiple locations generated from input locations that are less than ``distance`` μm
-    from fork points (see example below).
+
+    An input location will generate multiple output locations when it is translated
+    past a fork point, with a new location for each child branch (see the example
+    below). For this reason there is not a one-to-one correspondance between locations
+    in the input and output sets, so the results are sorted and duplicates are removed.
+
 
     .. figure:: ../gen-images/distal_translate_label.svg
       :width: 600
