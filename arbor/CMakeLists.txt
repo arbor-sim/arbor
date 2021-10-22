@@ -57,6 +57,7 @@ set(arbor_sources
     tree.cpp
     util/hostname.cpp
     util/unwind.cpp
+    util/dl_platform_posix.cpp
     version.cpp
 )
 

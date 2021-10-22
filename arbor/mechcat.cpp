@@ -12,10 +12,11 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/rangeutil.hpp"
+#include "util/dl_platform_posix.hpp"
 #include "util/maputil.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/dl.hpp"
+#include "util/strprintf.hpp"
 
 /* Notes on implementation:
  *
@@ -587,9 +588,8 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
     global_catalogue_t* get_catalogue = nullptr;
     try {
-        auto plugin = dl_open(fn);
-        get_catalogue = dl_get_symbol<global_catalogue_t*>(plugin, "get_catalogue");
-    } catch(dl_error& e) {
+        get_catalogue = util::dl_get_symbol<global_catalogue_t*>(fn, "get_catalogue");
+    } catch(util::dl_error& e) {
         throw bad_catalogue_error{e.what(), {e}};
     }
     if (!get_catalogue) {
