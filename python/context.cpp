@@ -140,6 +140,11 @@ void register_contexts(pybind11::module& m) {
         .def(pybind11::init(
             [](proc_allocation_shim alloc, pybind11::object mpi){
                 auto a = alloc.allocation(); // unwrap the C++ resource_allocation description
+#ifndef ARB_GPU_ENABLED
+                if (a.has_gpu()) {
+                    throw pyarb_error("Attempt to set an GPU communicator but Arbor is not configured with GPU support.");
+                }
+#endif
 #ifndef ARB_MPI_ENABLED
                 if (!mpi.is_none()) {
                     throw pyarb_error("Attempt to set an MPI communicator but Arbor is not configured with MPI support.");
