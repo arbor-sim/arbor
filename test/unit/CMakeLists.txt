@@ -25,6 +25,8 @@ set(test_mechanisms
     test2_kin_diff
     test3_kin_diff
     test4_kin_compartment
+    test5_nonlinear_diff
+    test6_nonlinear_diff
     test_ca
     test_ca_read_valence
     test_cl_valence

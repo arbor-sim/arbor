@@ -127,6 +127,20 @@ TEST(mech_kinetic, kinetic_nonlinear) {
 
 }
 
+TEST(mech_kinetic, normal_nonlinear_0) {
+    std::vector<std::string> state_variables = {"a", "b", "c"};
+    std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
+    std::vector<fvm_value_type> t1_values = {0.2078873133, 0.34222075, 0.45777925};
+    run_test<multicore::backend>("test5_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
+}
+
+TEST(mech_kinetic, normal_nonlinear_1) {
+    std::vector<std::string> state_variables = {"p"};
+    std::vector<fvm_value_type> t0_values = {1};
+    std::vector<fvm_value_type> t1_values = {1.0213199524};
+    run_test<multicore::backend>("test6_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
+}
+
 TEST(mech_kinetic, kinetic_nonlinear_scaled) {
     std::vector<std::string> state_variables = {"A", "B", "C", "d", "e"};
     std::vector<fvm_value_type> t0_values = {4.5, 6.6, 0.28, 2, 0};
@@ -189,6 +203,20 @@ TEST(mech_kinetic_gpu, kinetic_nonlinear) {
 
     run_test<gpu::backend>("test2_kin_diff", state_variables, t0_values, t1_0_values, 0.025);
     run_test<gpu::backend>("test3_kin_diff", state_variables, t0_values, t1_1_values, 0.025);
+}
+
+TEST(mech_kinetic_gpu, normal_nonlinear_0) {
+    std::vector<std::string> state_variables = {"a", "b", "c"};
+    std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
+    std::vector<fvm_value_type> t1_values = {0.2078873133, 0.34222075, 0.45777925};
+    run_test<gpu::backend>("test5_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
+}
+
+TEST(mech_kinetic_gpu, normal_nonlinear_1) {
+    std::vector<std::string> state_variables = {"p"};
+    std::vector<fvm_value_type> t0_values = {1};
+    std::vector<fvm_value_type> t1_values = {1.0213199524};
+    run_test<gpu::backend>("test6_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
 }
 
 TEST(mech_kinetic_gpu, kinetic_nonlinear_scaled) {
