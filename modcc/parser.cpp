@@ -233,8 +233,9 @@ void Parser::parse_neuron_block() {
 
         case tok::suffix:
         case tok::point_process:
-            neuron_block.kind = (token_.type == tok::suffix) ? moduleKind::density
-                                                             : moduleKind::point;
+        case tok::junction_process:
+            neuron_block.kind = (token_.type == tok::suffix) ? moduleKind::density :
+                                (token_.type == tok::point_process) ? moduleKind::point : moduleKind::junction;
 
             // set the modul kind
             module_->kind(neuron_block.kind);

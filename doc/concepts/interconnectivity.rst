@@ -5,8 +5,9 @@ Interconnectivity
 
 Networks can be regarded as graphs, where the nodes are locations on cells and the edges
 describe the communications between them. In Arbor, two sorts of edges are modelled: a
-:term:`connection` abstracts the propagation of action potentials (:term:`spikes <spike>`) through the network,
-while a :term:`gap junction` is used to describe a direct electrical connection between two locations on two cells.
+:term:`connection` abstracts the propagation of action potentials (:term:`spikes <spike>`)
+through the network, while a :term:`gap junction connection` is used to describe a direct
+electrical connection between two locations on two cells.
 Connections only capture the propagation delay and attenuation associated with spike
 connectivity: the biophysical modelling of the chemical synapses themselves is the
 responsibility of the target cell model.
@@ -51,7 +52,7 @@ A recipe lets you define which sites are connected to which.
 
 .. glossary::
 
-   gap junction
+   gap junction connection
       Gap junctions represent electrical synapses where transmission between cells is bidirectional and direct.
       They are modelled as a conductance between two **gap junction sites** on two cells.
 
@@ -63,7 +64,7 @@ A recipe lets you define which sites are connected to which.
          on the cell.
       2. Declare the Gap Junction connections in the recipe *on the local cell*: from a peer **gap junction site**
          identified using a :gen:`global_label`; to a local **gap junction site** identified using a
-         :gen:`local_label` (:gen:`gid` of the site is implicitly known); and a conductance in μS.
+         :gen:`local_label` (:gen:`gid` of the site is implicitly known); and a unit-less connection weight.
          Two of these connections are needed, on each of the peer and local cells.
 
    .. Note::

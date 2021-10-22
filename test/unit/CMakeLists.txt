@@ -5,6 +5,8 @@ set(test_mechanisms
     celsius_test
     diam_test
     fixed_ica_current
+    gj0
+    gj1
     linear_ca_conc
     non_linear
     param_as_state

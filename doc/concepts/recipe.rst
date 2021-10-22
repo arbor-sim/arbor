@@ -34,10 +34,10 @@ three cells:
   the **kind** of the cell.
 - ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
   It has a single synapse at the end of the dendrite labeled "syanpse_1" and a gap
-  junction site in the middle of the soma labeled "gap_junction_1".
+  junction mechanism in the middle of the soma labeled "gap_junction_1".
   This is the **description** of the cell. It's also a cable cell, which is its **cell kind**.
 - ``Cell 2``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
-  It has a gap junction site in the middle of the soma labeled "gap_junction_2".
+  It has a gap junction mechanism in the middle of the soma labeled "gap_junction_2".
   This is the **description** of the cell. It's also a cable cell, which is its **cell kind**.
 
 The total **number of cells** in the model is 3. The **kind**, and **description** of each cell

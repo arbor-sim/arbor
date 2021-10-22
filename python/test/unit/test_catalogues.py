@@ -20,7 +20,7 @@ class recipe(arb.recipe):
             raise
 
         d = arb.decor()
-        d.paint('(all)', 'pas')
+        d.paint('(all)', arb.density('pas'))
         d.set_property(Vm=0.0)
         self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
 

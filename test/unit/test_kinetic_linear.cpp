@@ -37,7 +37,6 @@ void run_test(std::string mech_name,
     fvm_size_type ncv = 1;
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
-    std::vector<fvm_gap_junction> gj = {};
     auto instance = cat.instance(backend::kind, mech_name);
     auto& test = instance.mech;
 
@@ -47,7 +46,7 @@ void run_test(std::string mech_name,
     std::vector<fvm_index_type> src_to_spike = {};
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, test->data_alignment());
+            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;

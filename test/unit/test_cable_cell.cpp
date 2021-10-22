@@ -31,13 +31,13 @@ TEST(cable_cell, lid_ranges) {
 
     // Place synapses and threshold detectors in interleaved order.
     // Note: there are 2 terminal points.
-    decorations.place("term"_lab, "expsyn", "t0");
-    decorations.place("term"_lab, "expsyn", "t1");
+    decorations.place("term"_lab, synapse("expsyn"), "t0");
+    decorations.place("term"_lab, synapse("expsyn"), "t1");
     decorations.place("term"_lab, threshold_detector{-10}, "s0");
-    decorations.place(empty_sites, "expsyn", "t2");
+    decorations.place(empty_sites, synapse("expsyn"), "t2");
     decorations.place("term"_lab, threshold_detector{-20}, "s1");
-    decorations.place(three_sites, "expsyn", "t3");
-    decorations.place("term"_lab, "exp2syn", "t3");
+    decorations.place(three_sites, synapse("expsyn"), "t3");
+    decorations.place("term"_lab, synapse("exp2syn"), "t3");
 
     cable_cell cell(morph, dict, decorations);
 

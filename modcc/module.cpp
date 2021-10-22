@@ -586,13 +586,14 @@ void Module::add_variables_to_symbols() {
             make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
     };
 
-    sourceKind current_kind = kind_==moduleKind::point? sourceKind::current: sourceKind::current_density;
-    sourceKind conductance_kind = kind_==moduleKind::point? sourceKind::conductance: sourceKind::conductivity;
+    sourceKind current_kind = kind_==moduleKind::density? sourceKind::current_density: sourceKind::current;
+    sourceKind conductance_kind = kind_==moduleKind::density? sourceKind::conductivity: sourceKind::conductance;
 
     create_indexed_variable("current_", current_kind, accessKind::write, "", Location());
     create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
-    create_indexed_variable("v", sourceKind::voltage, accessKind::read,  "", Location());
-    create_indexed_variable("dt", sourceKind::dt, accessKind::read,  "", Location());
+    create_indexed_variable("v",      sourceKind::voltage, accessKind::read,  "", Location());
+    create_indexed_variable("v_peer", sourceKind::peer_voltage, accessKind::read,  "", Location());
+    create_indexed_variable("dt",     sourceKind::dt, accessKind::read,  "", Location());
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -604,9 +605,9 @@ void Module::add_variables_to_symbols() {
             accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range, true);
     }
 
-    // Add parameters, ignoring built-in voltage variable "v".
+    // Add parameters, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: parameter_block_) {
-        if (id.name() == "v") {
+        if (id.name() == "v" || id.name() == "v_peer") {
             continue;
         }
 
@@ -653,9 +654,9 @@ void Module::add_variables_to_symbols() {
         parameter_block_.end()
     );
 
-    // Add 'assigned' variables, ignoring built-in voltage variable "v".
+    // Add 'assigned' variables, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: assigned_block_) {
-        if (id.name() == "v") {
+        if (id.name() == "v" || id.name() == "v_peer") {
             continue;
         }
 

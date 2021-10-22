@@ -242,6 +242,12 @@ struct fvm_mechanism_config {
     // For each instance index i, there are multiplicity[i] consecutive entries.
     std::vector<index_type> target;
 
+    // Gap junction peer CV index (gap junction mechanisms only)
+    std::vector<index_type> peer_cv;
+
+    // Gap junction weight, unit-less (gap junction mechanisms only)
+    std::vector<value_type> local_weight;
+
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
 };
@@ -285,6 +291,19 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
+// Maps gj {gid, lid} locations on a cell to their CV indices.
+std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D);
+
+// Resolves gj_connections into {gid, lid} pairs, then to CV indices and a weight.
+std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cv,
+    const recipe& rec);
+
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
@@ -305,6 +324,12 @@ struct fvm_mechanism_data {
     bool post_events = false;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const arb::execution_context& ctx={});
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
+    const fvm_cv_discretization& D,
+    const arb::execution_context& ctx={});
 
 } // namespace arb

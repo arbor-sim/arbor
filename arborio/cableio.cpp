@@ -66,9 +66,6 @@ s_expr mksexp(const i_clamp& c) {
 s_expr mksexp(const threshold_detector& d) {
     return slist("threshold-detector"_symbol, d.threshold);
 }
-s_expr mksexp(const gap_junction_site& s) {
-    return slist("gap-junction-site"_symbol);
-}
 s_expr mksexp(const mechanism_desc& d) {
     std::vector<s_expr> mech;
     mech.push_back(s_expr(d.name()));
@@ -78,6 +75,15 @@ s_expr mksexp(const mechanism_desc& d) {
 }
 s_expr mksexp(const ion_reversal_potential_method& e) {
     return slist("ion-reversal-potential-method"_symbol, s_expr(e.ion), mksexp(e.method));
+}
+s_expr mksexp(const junction& j) {
+    return slist("junction"_symbol, mksexp(j.mech));
+}
+s_expr mksexp(const synapse& j) {
+    return slist("synapse"_symbol, mksexp(j.mech));
+}
+s_expr mksexp(const density& j) {
+    return slist("density"_symbol, mksexp(j.mech));
 }
 s_expr mksexp(const mpoint& p) {
     return slist("point"_symbol, p.x, p.y, p.z, p.radius);
@@ -215,15 +221,14 @@ pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude)
 arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq, double phase) {
     return arb::i_clamp::box(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq, phase);
 }
-arb::gap_junction_site make_gap_junction_site() {
-    return arb::gap_junction_site{};
-}
 arb::cv_policy make_cv_policy(const cv_policy& p) {
     return p;
 }
 arb::ion_reversal_potential_method make_ion_reversal_potential_method(const std::string& ion, const arb::mechanism_desc& mech) {
     return ion_reversal_potential_method{ion, mech};
 }
+template <typename T>
+T make_wrapped_mechanism(const arb::mechanism_desc& mech) {return T(mech);}
 #undef ARBIO_DEFINE_SINGLE_ARG
 #undef ARBIO_DEFINE_DOUBLE_ARG
 
@@ -587,19 +592,19 @@ eval_map named_evals{
         "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
     {"threshold-detector", make_call<double>(make_threshold_detector,
         "'threshold-detector' with 1 argument (threshold:real)")},
-    {"gap-junction-site", make_call<>(make_gap_junction_site,
-        "'gap-junction-site' with 0 arguments")},
-    {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>(
-        make_ion_reversal_potential_method,
+    {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
+        "(name:string (param:string val:real))")},
+    {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>( make_ion_reversal_potential_method,
         "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
     {"cv-policy", make_call<cv_policy>(make_cv_policy,
         "'cv-policy' with 1 argument (p:policy)")},
-    {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
-                                 "(name:string (param:string val:real))")},
-    {"place", make_call<locset, gap_junction_site, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:gap-junction-site name:string)")},
+    {"junction", make_call<arb::mechanism_desc>(make_wrapped_mechanism<junction>, "'junction' with 1 argumnet (m: mechanism)")},
+    {"synapse",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<synapse>, "'synapse' with 1 argumnet (m: mechanism)")},
+    {"density",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<density>, "'density' with 1 argumnet (m: mechanism)")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
     {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
-    {"place", make_call<locset, mechanism_desc, std::string>(make_place, "'place' with 3 arguments (ls:locset mech:mechanism name:string)")},
+    {"place", make_call<locset, junction, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:junction name:string)")},
+    {"place", make_call<locset, synapse, std::string>(make_place, "'place' with 3 arguments (ls:locset mech:synapse name:string)")},
 
     {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with 2 arguments (reg:region v:membrane-potential)")},
     {"paint", make_call<region, temperature_K>(make_paint, "'paint' with 2 arguments (reg:region v:temperature-kelvin)")},
@@ -608,7 +613,7 @@ eval_map named_evals{
     {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-internal-concentration)")},
     {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-external-concentration)")},
     {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (reg:region v:ion-reversal-potential)")},
-    {"paint", make_call<region, mechanism_desc>(make_paint, "'paint' with 2 arguments (reg:region v:mechanism)")},
+    {"paint", make_call<region, density>(make_paint, "'paint' with 2 arguments (reg:region v:density)")},
 
     {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (v:membrane-potential)")},
     {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (v:temperature-kelvin)")},

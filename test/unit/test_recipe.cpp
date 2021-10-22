@@ -80,12 +80,12 @@ namespace {
 
         // Add a num_synapses synapses to the cell.
         for (auto i: util::make_span(num_synapses)) {
-            decorations.place(arb::mlocation{0,(double)i/num_synapses}, "expsyn", "synapse"+std::to_string(i));
+            decorations.place(arb::mlocation{0,(double)i/num_synapses}, arb::synapse("expsyn"), "synapse"+std::to_string(i));
         }
 
         // Add a num_gj gap_junctions to the cell.
         for (auto i: util::make_span(num_gj)) {
-            decorations.place(arb::mlocation{0,(double)i/num_gj}, arb::gap_junction_site{}, "gapjunction"+std::to_string(i));
+            decorations.place(arb::mlocation{0,(double)i/num_gj}, arb::junction("gj"), "gapjunction"+std::to_string(i));
         }
 
         return arb::cable_cell(tree, {}, decorations);
