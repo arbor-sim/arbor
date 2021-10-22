@@ -136,6 +136,12 @@ locset most_distal(region reg);
 // Most proximal points of a region.
 locset most_proximal(region reg);
 
+// Translate locations in locset distance μm in the distal direction
+locset distal_translate(locset ls, double distance);
+
+// Translate locations in locset distance μm in the proximal direction
+locset proximal_translate(locset ls, double distance);
+
 // Boundary points of a region.
 locset boundary(region reg);
 

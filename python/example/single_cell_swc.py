@@ -66,7 +66,7 @@ decor.discretization(policy)
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(morpho, labels, decor)
 
-print(cell.locations('axon_end'))
+print(cell.locations('"axon_end"'))
 
 # Make single cell model.
 m = arbor.single_cell_model(cell)

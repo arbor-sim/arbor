@@ -288,6 +288,8 @@ TEST(regloc, round_tripping) {
         "(cboundary (join (tag 2) (region \"dend\")))",
         "(segment-boundaries)",
         "(support (distal (tag 2)))",
+        "(proximal-translate (terminal) 20)",
+        "(distal-translate (root) 20)",
     };
     for (auto l: locset_literals) {
         EXPECT_EQ(l, round_trip_label<arb::locset>(l));
