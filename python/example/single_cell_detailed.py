@@ -91,8 +91,8 @@ model = arbor.single_cell_model(cell)
 # (6) Set the model default properties
 
 model.properties.set_property(Vm =-65, tempK=300, rL=35.4, cm=0.01)
-model.properties.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na', diff=0)
-model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77, diff=0)
+model.properties.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 
 # Extend the default catalogue with the Allen catalogue.
 # The function takes a second string parameter that can prefix

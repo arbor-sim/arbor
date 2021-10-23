@@ -31,7 +31,7 @@ struct cable_cell_ion_data {
     std::optional<double> init_int_concentration;
     std::optional<double> init_ext_concentration;
     std::optional<double> init_reversal_potential;
-    std::optional<double> diffusivity;
+    std::optional<double> diffusivity = {0.0};
 };
 
 // Clamp current is described by a sine wave with amplitude governed by a
