@@ -88,7 +88,7 @@ class Cable(arbor.recipe):
         decor.set_property(rL=self.rL)
 
         decor.paint('"cable"',
-                    arbor.mechanism(f'pas/e={self.Vm}', {'g': self.g}))
+                    arbor.density(f'pas/e={self.Vm}', {'g': self.g}))
 
         decor.place('"start"', arbor.iclamp(self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude), "iclamp")
 

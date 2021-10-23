@@ -20,8 +20,8 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 * *Placed dynamics* are applied to locations on the cell, and are associated
   with entities that can be counted.
 
-  * :ref:`Synapses <cablecell-synapses>`.
-  * :ref:`Gap junction sites <cablecell-gj-sites>`.
+  * :ref:`Synapse mechanisms <cablecell-synapses>`.
+  * :ref:`Gap junction mechanisms <cablecell-gj-mechs>`.
   * :ref:`Threshold detectors <cablecell-threshold-detectors>` (spike detectors).
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
@@ -115,10 +115,10 @@ specialised on specific regions.
 ~~~~~~~~~~~~~~~~~~~~~
 
 Regions can have density mechanisms defined over their extents.
-Density mechanisms are :ref:`NMODL mechanisms <nmodl>`
-which describe biophysical processes. These are processes
-that are distributed in space, but whose behaviour is defined purely
-by the state of the cell and the process at any given point.
+:ref:`Density mechanisms <mechanisms-density>` are a kind of
+:ref:`NMODL mechanism <nmodl>` which describe biophysical processes.
+These are processes that are distributed in space, but whose behaviour is
+defined purely by the state of the cell and the process at any given point.
 
 The most common use for density mechanisms is to describe ion channel dynamics,
 for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,
@@ -157,11 +157,12 @@ Take for example the built-in mechanism for passive leaky dynamics:
     # Create an instance of the same mechanism, that also sets conductance (range)
     m4 = arbor.mechanism('pas/e=-45', {'g': 0.1})
 
+    # And the mechanisms in `density` mechanism objects and add them to the decor.
     decor = arbor.decor()
-    decor.paint('"soma"', m1)
-    decor.paint('"soma"', m2) # error: can't place the same mechanism on overlapping regions
-    decor.paint('"soma"', m3) # error: can't have overlap between two instances of a mechanism
-                              #        with different values for a global parameter.
+    decor.paint('"soma"', arbor.density(m1))
+    decor.paint('"soma"', arbor.density(m2)) # error: can't place the same mechanism on overlapping regions
+    decor.paint('"soma"', arbor.density(m3)) # error: can't have overlap between two instances of a mechanism
+                                             #        with different values for a global parameter.
 
 .. _cablecell-ions:
 
@@ -285,19 +286,61 @@ locset.
 1. Connection sites
 ~~~~~~~~~~~~~~~~~~~
 
-Connections (synapses) are instances of NMODL POINT mechanisms. See also :term:`connection`.
+Similar to how regions can have density mechanisms defined over their extents,
+locsets can have point mechanisms placed on their individual locations.
+:ref:`Point mechanisms <mechanisms-point>` are a kind of :ref:`NMODL mechanism <nmodl>`
+which describe synaptic processes such as the ``expsyn`` mechanism provided by
+NEURON and Arbor, which models an exponential synapse.
 
-.. _cablecell-gj-sites:
+A point mechanism (synapse) can form the target of a :term:`connection` on a cell.
 
-2. Gap junction sites
-~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: Python
 
-See :term:`gap junction`.
+    decor = arbor.decor()
+
+    # Create an 'expsyn' mechanism with default parameter values (set in NMODL file).
+    expsyn = arbor.mechanism('expsyn')
+
+    # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
+    decor.paint('"syn_loc_0"', arbor.synapse(expsyn))
+
+    # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
+    decor.paint('"syn_loc_1"', arbor.synapse("expsyn"))
+
+    # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
+    decor.paint('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
+
 
 .. _cablecell-threshold-detectors:
 
-3. Threshold detectors (spike detectors).
+2. Threshold detectors (spike detectors).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _cablecell-gj-mechs:
+
+3. Gap junction connection sites
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Locsets can also have junction mechanisms placed on their individual locations.
+:ref:`Junction mechanisms <mechanisms-junction>` are a kind of :ref:`NMODL mechanism <nmodl>`
+which describe gap-junction processes such as the ``gj`` mechanism provided by Arbor,
+which models a basic, linear, constant-conductance based gap-junction.
+
+A junction mechanism can form each of the endpoints of a :term:`gap junction connection`
+on two separate cells.
+
+.. code-block:: Python
+
+    decor = arbor.decor()
+
+    # Create a 'gj' mechanism with modified 'g' value.
+    gj = arbor.mechanism("gj", {"g": 2.0})
+
+    # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
+    decor.paint('"gj_loc_0"', arbor.junction(gj))
+
+    # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
+    decor.paint('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
 
 .. _cablecell-stimuli:
 

@@ -188,8 +188,8 @@ struct cable_cell_impl;
 template <typename T>
 using region_assignment =
     std::conditional_t<
-        std::is_same<T, mechanism_desc>::value || std::is_same<T, init_int_concentration>::value ||
-        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
+        std::is_same<T, density>::value || std::is_same<T, init_int_concentration>::value ||
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
         std::is_same<T, ion_diffusivity>::value,
         std::unordered_map<std::string, mcable_map<T>>,
         mcable_map<T>>;
@@ -208,17 +208,17 @@ using mlocation_map = std::vector<placed<T>>;
 template <typename T>
 using location_assignment =
     std::conditional_t<
-        std::is_same<T, mechanism_desc>::value,
+        std::is_same<T, synapse>::value || std::is_same<T, junction>::value,
         std::unordered_map<std::string, mlocation_map<T>>,
         mlocation_map<T>>;
 
 using cable_cell_region_map = static_typed_map<region_assignment,
-    mechanism_desc, init_membrane_potential, axial_resistivity,
-    temperature_K, membrane_capacitance, init_int_concentration, ion_diffusivity,
-    init_ext_concentration, init_reversal_potential>;
+    density, init_membrane_potential, axial_resistivity,
+    temperature_K, membrane_capacitance, init_int_concentration,
+    ion_diffusivity, init_ext_concentration, init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,
-    mechanism_desc, i_clamp, gap_junction_site, threshold_detector>;
+    synapse, junction, i_clamp, threshold_detector>;
 
 // High-level abstract representation of a cell.
 class cable_cell {
@@ -226,8 +226,6 @@ public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
-
-    using gap_junction_instance = mlocation;
 
     // Default constructor.
     cable_cell();
@@ -258,12 +256,12 @@ public:
 
     // Convenience access to placed items.
 
-    const std::unordered_map<std::string, mlocation_map<mechanism_desc>>& synapses() const {
-        return location_assignments().get<mechanism_desc>();
+    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const {
+        return location_assignments().get<synapse>();
     }
 
-    const mlocation_map<gap_junction_site>& gap_junction_sites() const {
-        return location_assignments().get<gap_junction_site>();
+    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const {
+        return location_assignments().get<junction>();
     }
 
     const mlocation_map<threshold_detector>& detectors() const {
@@ -293,7 +291,7 @@ public:
     // The labeled lid_ranges of sources, targets and gap_junctions on the cell;
     const std::unordered_multimap<cell_tag_type, lid_range>& detector_ranges() const;
     const std::unordered_multimap<cell_tag_type, lid_range>& synapse_ranges() const;
-    const std::unordered_multimap<cell_tag_type, lid_range>& gap_junction_ranges() const;
+    const std::unordered_multimap<cell_tag_type, lid_range>& junction_ranges() const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

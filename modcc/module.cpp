@@ -161,7 +161,7 @@ bool Module::semantic() {
     // symbol table.
     // Returns false if a symbol name clashes with the name of a symbol that
     // is already in the symbol table.
-    bool linear = true;
+    bool linear_homogeneous = true;
     std::vector<std::string> state_vars;
     auto move_symbols = [this] (std::vector<symbol_ptr>& symbol_list) {
         for(auto& symbol: symbol_list) {
@@ -398,61 +398,56 @@ bool Module::semantic() {
             continue;
         }
         found_solve = true;
-        std::unique_ptr<SolverVisitorBase> solver;
 
+        // If the derivative block is a kinetic block, perform kinetic rewrite first.
+        auto deriv = solve_expression->procedure();
+        auto solve_body = deriv->body()->clone();
+        if (deriv->kind()==procedureKind::kinetic) {
+            solve_body = kinetic_rewrite(deriv->body());
+        }
+        else if (deriv->kind()==procedureKind::linear) {
+            solve_body = linear_rewrite(deriv->body(), state_vars);
+        }
+
+        // Calculate linearity and homogeneity of the statements in the derivative block.
+        bool linear = true;
+        bool homogeneous = true;
+        for (auto& s: solve_body->is_block()->statements()) {
+            if(s->is_assignment() && !state_vars.empty()) {
+                linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                linear &= r.is_linear;
+                homogeneous &= r.is_homogeneous;
+            }
+        }
+        linear_homogeneous &= (linear & homogeneous);
+
+        // Construct solver based on system kind, linearity and solver method.
+        std::unique_ptr<SolverVisitorBase> solver;
         switch(solve_expression->method()) {
         case solverMethod::cnexp:
             solver = std::make_unique<CnexpSolverVisitor>();
             break;
         case solverMethod::sparse: {
-            solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
+            if (linear) {
+                solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
+            }
+            else {
+                solver = std::make_unique<SparseNonlinearSolverVisitor>();
+            }
             break;
         }
         case solverMethod::none:
-            solver = std::make_unique<DirectSolverVisitor>();
+            if (deriv->kind()==procedureKind::linear) {
+                solver = std::make_unique<LinearSolverVisitor>(state_vars);
+            }
+            else {
+                solver = std::make_unique<DirectSolverVisitor>();
+            }
             break;
         }
-
-        // If the derivative block is a kinetic block, perform kinetic
-        // rewrite first.
-
-        auto deriv = solve_expression->procedure();
-
-        if (deriv->kind()==procedureKind::kinetic) {
-            auto rewrite_body = kinetic_rewrite(deriv->body());
-            bool linear_kinetic = true;
-
-            for (auto& s: rewrite_body->is_block()->statements()) {
-                if(s->is_assignment() && !state_vars.empty()) {
-                    linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                    linear_kinetic &= r.is_linear;
-                }
-            }
-
-            if (!linear_kinetic) {
-                solver = std::make_unique<SparseNonlinearSolverVisitor>();
-            }
-
-            rewrite_body->semantic(advance_state_scope);
-            rewrite_body->accept(solver.get());
-        }
-        else if (deriv->kind()==procedureKind::linear) {
-            solver = std::make_unique<LinearSolverVisitor>(state_vars);
-            auto rewrite_body = linear_rewrite(deriv->body(), state_vars);
-
-            rewrite_body->semantic(advance_state_scope);
-            rewrite_body->accept(solver.get());
-        }
-        else {
-            deriv->body()->accept(solver.get());
-            for (auto& s: deriv->body()->statements()) {
-                if(s->is_assignment() && !state_vars.empty()) {
-                    linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                    linear &= r.is_linear;
-                    linear &= r.is_homogeneous;
-                }
-            }
-        }
+        // Perform semantic analysis on the solve block statements and solve them.
+        solve_body->semantic(advance_state_scope);
+        solve_body->accept(solver.get());
 
         if (auto solve_block = solver->as_block(false)) {
             // Check that we didn't solve an already solved variable.
@@ -503,8 +498,8 @@ bool Module::semantic() {
     for (auto& s: breakpoint->body()->statements()) {
         if(s->is_assignment() && !state_vars.empty()) {
             linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-            linear &= r.is_linear;
-            linear &= r.is_homogeneous;
+            linear_homogeneous &= r.is_linear;
+            linear_homogeneous &= r.is_homogeneous;
         }
     }
 
@@ -530,7 +525,7 @@ bool Module::semantic() {
                     for (const auto &id: state_vars) {
                         auto coef = symbolic_pdiff(s->is_assignment()->rhs(), id);
                         if(!coef) {
-                            linear = false;
+                            linear_homogeneous = false;
                             continue;
                         }
                         if(coef->is_number()) {
@@ -538,19 +533,19 @@ bool Module::semantic() {
                                 error(pprintf("Left hand side of assignment is not an identifier"));
                                 return false;
                             }
-                            linear &= s->is_assignment()->lhs()->is_identifier()->name() == id ?
-                                      coef->is_number()->value() == 1 :
-                                      coef->is_number()->value() == 0;
+                            linear_homogeneous &= s->is_assignment()->lhs()->is_identifier()->name() == id ?
+                                                  coef->is_number()->value() == 1 :
+                                                  coef->is_number()->value() == 0;
                         }
                         else {
-                            linear = false;
+                            linear_homogeneous = false;
                         }
                     }
                 }
             }
         }
     }
-    linear_ = linear;
+    linear_ = linear_homogeneous;
 
     post_events_ = has_symbol("post_event", symbolKind::procedure);
     if (post_events_) {
@@ -599,13 +594,14 @@ void Module::add_variables_to_symbols() {
             make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
     };
 
-    sourceKind current_kind = kind_==moduleKind::point? sourceKind::current: sourceKind::current_density;
-    sourceKind conductance_kind = kind_==moduleKind::point? sourceKind::conductance: sourceKind::conductivity;
+    sourceKind current_kind = kind_==moduleKind::density? sourceKind::current_density: sourceKind::current;
+    sourceKind conductance_kind = kind_==moduleKind::density? sourceKind::conductivity: sourceKind::conductance;
 
     create_indexed_variable("current_", current_kind, accessKind::write, "", Location());
     create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
-    create_indexed_variable("v", sourceKind::voltage, accessKind::read,  "", Location());
-    create_indexed_variable("dt", sourceKind::dt, accessKind::read,  "", Location());
+    create_indexed_variable("v",      sourceKind::voltage, accessKind::read,  "", Location());
+    create_indexed_variable("v_peer", sourceKind::peer_voltage, accessKind::read,  "", Location());
+    create_indexed_variable("dt",     sourceKind::dt, accessKind::read,  "", Location());
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -617,9 +613,9 @@ void Module::add_variables_to_symbols() {
             accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range, true);
     }
 
-    // Add parameters, ignoring built-in voltage variable "v".
+    // Add parameters, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: parameter_block_) {
-        if (id.name() == "v") {
+        if (id.name() == "v" || id.name() == "v_peer") {
             continue;
         }
 
@@ -666,9 +662,9 @@ void Module::add_variables_to_symbols() {
         parameter_block_.end()
     );
 
-    // Add 'assigned' variables, ignoring built-in voltage variable "v".
+    // Add 'assigned' variables, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: assigned_block_) {
-        if (id.name() == "v") {
+        if (id.name() == "v" || id.name() == "v_peer") {
             continue;
         }
 

@@ -21,6 +21,7 @@ typedef uint32_t arb_mechanism_kind;
 #define arb_mechanism_kind_point 1
 #define arb_mechanism_kind_density 2
 #define arb_mechanism_kind_reversal_potential 3
+#define arb_mechanism_kind_gap_junction 4
 
 typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_nil 0
@@ -92,6 +93,7 @@ typedef struct arb_mechanism_ppack {
     arb_value_type* diam_um;
     arb_value_type* time_since_spike;
     arb_index_type* node_index;
+    arb_index_type* peer_index;
     arb_index_type* multiplicity;
     arb_value_type* weight;
     arb_size_type   mechanism_id;

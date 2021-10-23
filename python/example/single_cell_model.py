@@ -15,7 +15,7 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
 # (3) Create and set up a decor object
 decor = arbor.decor()
 decor.set_property(Vm=-40)
-decor.paint('"soma"', 'hh')
+decor.paint('"soma"', arbor.density('hh'))
 decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
 decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
 

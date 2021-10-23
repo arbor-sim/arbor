@@ -47,9 +47,9 @@ Cable cells
 
         # Define decorations
         decor = arbor.decor()
-        decor.paint('"dend"', 'pas')
-        decor.paint('"axon"', 'hh')
-        decor.paint('"soma"', 'hh')
+        decor.paint('"dend"', arbor.density('pas'))
+        decor.paint('"axon"', arbor.density('hh'))
+        decor.paint('"soma"', arbor.density('hh'))
 
         # Construct a cable cell.
         cell = arbor.cable_cell(morph, labels, decor)

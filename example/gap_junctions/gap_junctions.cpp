@@ -303,26 +303,26 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     pas["g"] =  1.0/12000.0;
 
     // Paint density channels on all parts of the cell
-    decor.paint("(all)"_reg, nax);
-    decor.paint("(all)"_reg, kdrmt);
-    decor.paint("(all)"_reg, kamt);
-    decor.paint("(all)"_reg, pas);
+    decor.paint("(all)"_reg, arb::density{nax});
+    decor.paint("(all)"_reg, arb::density{kdrmt});
+    decor.paint("(all)"_reg, arb::density{kamt});
+    decor.paint("(all)"_reg, arb::density{pas});
 
     // Add a spike detector to the soma.
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
 
     // Add two gap junction sites.
-    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_0");
-    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_1");
+    decor.place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1");
+    decor.place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0");
 
-    // Attach a stimulus to the second cell.
+    // Attach a stimulus to the first cell of the first group
     if (!gid) {
         auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
         decor.place(arb::mlocation{0, 0.5}, stim, "stim");
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    decor.place(arb::mlocation{0, 0.5}, "expsyn", "syn");
+    decor.place(arb::mlocation{0, 0.5}, arb::synapse{"expsyn"}, "syn");
 
     // Create the cell and set its electrical properties.
     return arb::cable_cell(tree, {}, decor);
