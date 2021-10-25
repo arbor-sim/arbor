@@ -40,7 +40,7 @@ struct backend {
         return util::range_pointer_view(v);
     }
 
-    using matrix_state = arb::multicore::matrix_state<value_type, index_type>;
+    using matrix_state = arb::multicore::matrix_state;
     using threshold_watcher = arb::multicore::threshold_watcher;
 
     using deliverable_event_stream = arb::multicore::deliverable_event_stream;

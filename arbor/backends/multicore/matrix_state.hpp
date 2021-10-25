@@ -10,10 +10,9 @@
 namespace arb {
 namespace multicore {
 
-template <typename T, typename I>
 struct matrix_state {
-    using value_type = T;
-    using index_type = I;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
     using array      = padded_vector<value_type>;
     using const_view = const array&;
     using iarray     = padded_vector<index_type>;
@@ -35,6 +34,11 @@ struct matrix_state {
     array invariant_d;         // [μS]
 
     matrix_state() = default;
+    matrix_state(const matrix_state&) = default;
+    matrix_state(matrix_state&&) = default;
+
+    matrix_state& operator=(const matrix_state&) = default;
+    matrix_state& operator=(matrix_state&&) = default;
 
     matrix_state(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,

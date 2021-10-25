@@ -16,15 +16,20 @@
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
-#include "matrix_state.hpp"
 #include "multi_event_stream.hpp"
 #include "threshold_watcher.hpp"
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"
 #include "partition_by_constraint.hpp"
+#include "backends/multicore/matrix_state.hpp"
 
 namespace arb {
 namespace multicore {
+
+using diff_solver_type = matrix_state; // TODO(TH) this is a mock-up using the cable solver, we need a slight modification of it, actually
+using volt_solver_type = matrix_state;
+
+using diff_solver_ptr = std::unique_ptr<diff_solver_type>;
 
 /*
  * Ion state fields correspond to NMODL ion variables, where X
@@ -55,6 +60,8 @@ struct ion_state {
     array init_eX_;         // (mV) initial reversal potential
 
     array charge;           // charge of ionic species (global value, length 1)
+
+    diff_solver_ptr diffusion_solver = nullptr;
 
     ion_state() = default;
 
@@ -116,6 +123,8 @@ struct shared_state {
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
     };
+
+    volt_solver_type voltage_solver;
 
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
@@ -190,6 +199,10 @@ struct shared_state {
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
+
+    // Integrate by matrix solve.
+    void integrate_voltage();
+    void integrate_diffusion();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

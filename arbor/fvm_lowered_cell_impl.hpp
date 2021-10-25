@@ -27,7 +27,6 @@
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
-#include "matrix.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
 #include "util/maputil.hpp"
@@ -90,7 +89,6 @@ private:
     sample_event_stream sample_events_;
     array sample_time_;
     array sample_value_;
-    matrix<backend> matrix_;
     threshold_watcher threshold_watcher_;
 
     value_type tmin_ = 0;
@@ -272,13 +270,16 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_events_.drop_marked_events();
         PL();
 
-        // Integrate voltage by matrix solve.
+        // Integrate voltage / solve cable eq
 
-        PE(advance_integrate_matrix_build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
+        PE(advance_integrate_voltage);
+        state_->integrate_voltage();
         PL();
-        PE(advance_integrate_matrix_solve);
-        matrix_.solve(state_->voltage);
+
+        // Compute ionic diffusion effects
+
+        PE(advance_integrate_diffusion);
+        state_->integrate_diffusion();
         PL();
 
         // Integrate mechanism state.
@@ -457,8 +458,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                    [&fvm_info](index_type i){ return fvm_info.cell_to_intdom[i]; });
 
     arb_assert(D.n_cell() == ncell);
-    matrix_ = matrix<backend>(D.geometry.cv_parent, D.geometry.cell_cv_divs,
-                              D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom);
     sample_events_ = sample_event_stream(nintdom);
 
     // Discretize and build gap junction info.
@@ -500,6 +499,8 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
+
+    state_->voltage_solver = {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
 
     // Instantiate mechanisms, ions, and stimuli.
 

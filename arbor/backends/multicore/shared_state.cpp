@@ -238,6 +238,23 @@ shared_state::shared_state(
     }
 }
 
+void shared_state::integrate_voltage() {
+    voltage_solver.assemble(dt_intdom, voltage, current_density, conductivity);
+    voltage_solver.solve(voltage);
+}
+
+void shared_state::integrate_diffusion() {
+    for (auto& [ion, data]: ion_data) {
+        if (!data.diffusion_solver) continue; // Some ions might not have diffusivity enabled
+        data.diffusion_solver->assemble(dt_intdom,
+                                        voltage,
+                                        data.iX_,
+                                        data.gX_);
+        data.diffusion_solver->solve(data.Xi_);
+    }
+}
+
+
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
