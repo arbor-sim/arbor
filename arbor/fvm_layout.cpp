@@ -1355,6 +1355,10 @@ fvm_mechanism_data fvm_build_mechanism_data(
             config.diff[i]       *= oo_cv_area;
         }
 
+        config.has_diffusivity = std::any_of(config.diff.begin(),
+                                             config.diff.end(),
+                                             [](auto v) { return v != 0; });
+
         if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }
 

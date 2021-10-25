@@ -47,6 +47,9 @@ void check_global_properties(const cable_cell_global_properties& G) {
         if (!data.diffusivity) {
             throw cable_cell_error("missing diffusivity for ion "+ion);
         }
+        else if (data.diffusivity.value() < 0.0) {
+            throw cable_cell_error("negative diffusivity for ion "+ion);
+        }
         if (!data.init_reversal_potential && !param.reversal_potential_method.count(ion)) {
             throw cable_cell_error("missing init_reversal_potential or reversal_potential_method for ion "+ion);
         }

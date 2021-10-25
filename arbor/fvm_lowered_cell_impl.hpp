@@ -76,10 +76,10 @@ public:
 
 private:
     // Host or GPU-side back-end dependent storage.
-    using array = typename backend::array;
-    using shared_state = typename backend::shared_state;
+    using array               = typename backend::array;
+    using shared_state        = typename backend::shared_state;
     using sample_event_stream = typename backend::sample_event_stream;
-    using threshold_watcher = typename backend::threshold_watcher;
+    using threshold_watcher   = typename backend::threshold_watcher;
 
     execution_context context_;
 
@@ -500,18 +500,21 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
-    state_->voltage_solver = {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
+    state_->voltage_solver =
+        {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
 
     // Instantiate mechanisms, ions, and stimuli.
 
-    for (auto& i: mech_data.ions) {
-        const std::string& ion_name = i.first;
-
-        if (auto charge = value_by_key(global_props.ion_species, ion_name)) {
-            state_->add_ion(ion_name, *charge, i.second);
+    for (auto& [ion, data]: mech_data.ions) {
+        if (auto charge = value_by_key(global_props.ion_species, ion)) {
+            state_->add_ion(ion, *charge, data);
+            if (data.has_diffusivity) {
+                state_->ion_data[ion].diffusion_solver =
+                    std::make_unique<typename backend::ion_state::solver_type>(
+                        D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom);            }
         }
         else {
-            throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");
+            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
         }
     }
 

@@ -26,11 +26,6 @@
 namespace arb {
 namespace multicore {
 
-using diff_solver_type = matrix_state; // TODO(TH) this is a mock-up using the cable solver, we need a slight modification of it, actually
-using volt_solver_type = matrix_state;
-
-using diff_solver_ptr = std::unique_ptr<diff_solver_type>;
-
 /*
  * Ion state fields correspond to NMODL ion variables, where X
  * is replaced with the name of the ion. E.g. for calcium 'ca':
@@ -44,6 +39,8 @@ using diff_solver_ptr = std::unique_ptr<diff_solver_type>;
  */
 
 struct ion_state {
+    using solver_type = matrix_state; // TODO(TH) this is a mock-up using the cable solver, we need a slight modification of it, actually
+
     unsigned alignment = 1; // Alignment and padding multiple.
 
     iarray node_index_;     // Instance to CV map.
@@ -61,7 +58,7 @@ struct ion_state {
 
     array charge;           // charge of ionic species (global value, length 1)
 
-    diff_solver_ptr diffusion_solver = nullptr;
+    std::unique_ptr<solver_type> diffusion_solver = nullptr;
 
     ion_state() = default;
 
@@ -114,6 +111,8 @@ struct istim_state {
 };
 
 struct shared_state {
+    using solver_type = matrix_state;
+
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -124,7 +123,7 @@ struct shared_state {
         std::vector<arb_ion_state>   ion_states_;
     };
 
-    volt_solver_type voltage_solver;
+    solver_type voltage_solver;
 
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.

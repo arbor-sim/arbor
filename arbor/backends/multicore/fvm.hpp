@@ -40,14 +40,12 @@ struct backend {
         return util::range_pointer_view(v);
     }
 
-    using matrix_state = arb::multicore::matrix_state;
-    using threshold_watcher = arb::multicore::threshold_watcher;
-
+    using matrix_state             = arb::multicore::matrix_state;
+    using threshold_watcher        = arb::multicore::threshold_watcher;
     using deliverable_event_stream = arb::multicore::deliverable_event_stream;
-    using sample_event_stream = arb::multicore::sample_event_stream;
-
-    using shared_state = arb::multicore::shared_state;
-    using ion_state = arb::multicore::ion_state;
+    using sample_event_stream      = arb::multicore::sample_event_stream;
+    using shared_state             = arb::multicore::shared_state;
+    using ion_state                = arb::multicore::ion_state;
 
     static threshold_watcher voltage_watcher(
         shared_state& state,
