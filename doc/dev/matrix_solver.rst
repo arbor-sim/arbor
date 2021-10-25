@@ -3,6 +3,9 @@
 Matrix Solvers
 ==============
 
+Cable Equation
+--------------
+
 At the heart of the time evolution step Arbor we find a linear system that must
 be solved once per time step. This system arises from the cable equation
 
@@ -22,8 +25,18 @@ Euler time step as
    \left(\frac{\sigma_i C_i}{\Delta\,t} + \sum_{\delta(i, j)} a_{ij}\right)V_i^{k+1} - \sum_{\delta(i, j)} a_ij V_i^{k+1} = \frac{\sigma_i C_i}{\Delta\,t}V_i^k + \sigma_i I_i
 
 where :math:`\delta(i, j)` indicates whether two CVs are adjacent. It is written
-in form of a sparse matrix, symmetric by construction. Note that the cable
-equation is non-linear as :math:`I` potentially depends on :math:`V`.
+in form of a sparse matrix, symmetric by construction.
+
+Note that the cable equation is non-linear as the currents :math:`I` potentially
+depend on :math:`V`. We obtain the current value of :math:`I` by splitting the
+full operator into the 'matrix' (described here) and 'mechanism' parts (giving
+the currents) and assuming one part being a constant during the update of the
+respective other. However, for the matrix solver, we model _linear_ dependencies
+:math:`I = gV + J` and collect all higher orders in the pretended constant
+:math:`J` to improve accuracy and stability of the solver. This requires the
+computation of the symbolic derivative :math:`g = \partial_V I` during
+compilation of the mechanisms and an update to :math:`g(t)` when updating
+currents using that symbolic expression.
 
 Each *branch* in the morphology leads to a tri-diagonal block in the matrix
 describing the system, since *branches* to not contain interior branching
@@ -33,6 +46,23 @@ couple blocks via entries outside the tri-diagonal structure. To ensure
 un-problematic data dependencies for use of a substitution algorithm, ie each
 row depends only on those of larger indices, we enumerate CVs in breadth-first
 ordering. This particular form of matrix is called a *Hines matrix*.
+
+Extension to Axial Diffusion
+----------------------------
+
+We reuse the matrix solver to model ionic diffusion along the dendrite ('axial diffusion')
+
+.. math::
+   \partial_t X_s = \partial_x(K_s\partial_x X_s) + I_s
+
+   X_s: \mbox{External currents for ion species } s
+
+   K_s: \mbox{diffusivity}
+
+This requires computation of the per-species conductivity :math:`g_s` -- similar
+to the total conductivity :math:`g` -- to model :math:`I_s(V) = g_sV + J_s`.
+Apart from :math:`C=const.=1`, the two equations are identical, so the same
+solver is used.
 
 CPU
 ---
@@ -51,7 +81,7 @@ Assembly
 
 We store the matrix in compressed form, as its upper and main diagonals.
 Assembly computes the changing parts of the matrix and the right-hand side of
-the matrix equation. Static parts are computed once.
+the matrix equation. Static parts are computed once, mainly the diagonal.
 
 Solving
 ^^^^^^^
