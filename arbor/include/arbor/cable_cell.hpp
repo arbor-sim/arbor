@@ -189,7 +189,7 @@ template <typename T>
 using region_assignment =
     std::conditional_t<
         std::is_same<T, density>::value || std::is_same<T, init_int_concentration>::value ||
-        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
         std::is_same<T, ion_diffusivity>::value,
         std::unordered_map<std::string, mcable_map<T>>,
         mcable_map<T>>;
