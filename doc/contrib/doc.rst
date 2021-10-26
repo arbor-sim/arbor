@@ -45,7 +45,7 @@ Wherever possible, observe:
 * file names: avoid underscores as much as possible. E.g. `cpp/cable_cell.rst` -> `cpp/cablecell.rst`.
 * page-level labels in each file: the path concatenated without spaces. E.g. `cpp/cablecell.rst` -> `cppcablecell`.
 * heading labels in a file: `pagelevel-sectionname`. Feel free to slugify long headings.
-E.g. the morphology section in the C++ cable cell docs could be `cppcablecell-morph`.
+  E.g. the morphology section in the C++ cable cell docs could be `cppcablecell-morph`.
 
 .. _contribdoc-lang:
 

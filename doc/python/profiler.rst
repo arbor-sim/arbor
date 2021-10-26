@@ -5,6 +5,22 @@
 Profiler
 ========
 
+If Arbor is built with :ref:`profiling support <install-profiling>` the profiler
+can be initialized after the context is created and a summary is available after
+the simulation has concluded:
+
+.. code-block:: python
+
+  arbor.profiler_initialize(context)
+  simulation.run(tfinal)
+  summary = arbor.profiler_summary()
+  print(summary)
+
+
+
+Meter manager
+=============
+
 Arbor's python module :py:mod:`arbor` has a :class:`meter_manager` for measuring time (and if applicable memory) consumptions of regions of interest in the python code.
 
 Users manually instrument the regions to measure.

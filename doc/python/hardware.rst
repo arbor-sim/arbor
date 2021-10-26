@@ -22,7 +22,10 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_MPI_ENABLED``
     * ``ARB_WITH_MPI4PY``
     * ``ARB_GPU_ENABLED``
+    * ``ARB_VECTORIZE``
+    * ``ARB_WITH_PROFILING``
     * ``ARB_VERSION``
+    * ``ARB_ARCH``
 
     .. container:: example-code
 
@@ -31,7 +34,7 @@ Helper functions for checking cmake or environment variables, as well as configu
             import arbor
             arbor.config()
 
-            {'mpi': True, 'mpi4py': True, 'gpu': False, 'version': '0.2.1-dev'}
+            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'version': '0.5.3-dev', 'arch': 'native'}
 
 .. function:: mpi_init()
 

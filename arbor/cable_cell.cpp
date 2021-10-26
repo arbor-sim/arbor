@@ -74,8 +74,12 @@ struct cable_cell_impl {
         return location_map.get<T>();
     }
 
-    mlocation_map<mechanism_desc>& get_location_map(const mechanism_desc& desc) {
-        return location_map.get<mechanism_desc>()[desc.name()];
+    mlocation_map<synapse>& get_location_map(const synapse& desc) {
+        return location_map.get<synapse>()[desc.mech.name()];
+    }
+
+    mlocation_map<junction>& get_location_map(const junction& desc) {
+        return location_map.get<junction>()[desc.mech.name()];
     }
 
     template <typename Item>
@@ -98,8 +102,8 @@ struct cable_cell_impl {
         return region_map.get<T>();
     }
 
-    mcable_map<mechanism_desc>& get_region_map(const mechanism_desc& desc) {
-        return region_map.get<mechanism_desc>()[desc.name()];
+    mcable_map<density>& get_region_map(const density& desc) {
+        return region_map.get<density>()[desc.mech.name()];
     }
 
     mcable_map<init_int_concentration>& get_region_map(const init_int_concentration& init) {
@@ -210,11 +214,11 @@ const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::detector_ra
 }
 
 const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::synapse_ranges() const {
-    return impl_->labeled_lid_ranges.get<mechanism_desc>();
+    return impl_->labeled_lid_ranges.get<synapse>();
 }
 
-const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::gap_junction_ranges() const {
-    return impl_->labeled_lid_ranges.get<gap_junction_site>();
+const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::junction_ranges() const {
+    return impl_->labeled_lid_ranges.get<junction>();
 }
 
 } // namespace arb

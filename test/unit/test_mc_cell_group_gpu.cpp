@@ -27,8 +27,8 @@ namespace {
         soma_cell_builder builder(12.6157/2.0);
         builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
         auto d = builder.make_cell();
-        d.decorations.paint("soma"_lab, "hh");
-        d.decorations.paint("dend"_lab, "pas");
+        d.decorations.paint("soma"_lab, density("hh"));
+        d.decorations.paint("dend"_lab, density("pas"));
         d.decorations.place(builder.location({1,1}), i_clamp::box(5, 80, 0.3), "clamp0");
         d.decorations.place(builder.location({0, 0}), threshold_detector{0}, "detector0");
         return d;

@@ -228,33 +228,65 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<label_dict_proxy> label_dict(m, "label_dict",
         "A dictionary of labelled region and locset definitions, with a\n"
-        "unique label is assigned to each definition.");
+        "unique label assigned to each definition.");
     label_dict
         .def(pybind11::init<>(), "Create an empty label dictionary.")
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
             "Initialize a label dictionary from a dictionary with string labels as keys,"
             " and corresponding definitions as strings.")
+        .def(pybind11::init<const label_dict_proxy&>(),
+            "Initialize a label dictionary from another one")
+        .def(pybind11::init([](pybind11::iterator& it) {
+                label_dict_proxy ld;
+                for (; it != pybind11::iterator::sentinel(); ++it) {
+                    const auto tuple = it->cast<pybind11::sequence>();
+                    const auto key   = tuple[0].cast<std::string>();
+                    const auto value = tuple[1].cast<std::string>();
+                    ld.set(key, value);
+                }
+                return ld;
+            }),
+            "Initialize a label dictionary from an iterable of key, definition pairs")
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
                 l.set(name, desc);})
         .def("__getitem__",
             [](label_dict_proxy& l, const char* name) {
-                if (!l.cache.count(name)) {
-                    throw pybind11::key_error(name);
-                }
-                return l.cache.at(name);
+                if (auto v = l.getitem(name)) return v.value();
+                throw pybind11::key_error(name);
             })
         .def("__len__", &label_dict_proxy::size)
         .def("__iter__",
             [](const label_dict_proxy &ld) {
                 return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
             pybind11::keep_alive<0, 1>())
+        .def("__contains__",
+             [](const label_dict_proxy &ld, const char* name) {
+                 return ld.contains(name);})
+        .def("keys",
+            [](const label_dict_proxy &ld) {
+                return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
+            pybind11::keep_alive<0, 1>())
+        .def("items",
+             [](const label_dict_proxy &ld) {
+                 return pybind11::make_iterator(ld.cache.begin(), ld.cache.end());},
+             pybind11::keep_alive<0, 1>())
+        .def("values",
+             [](const label_dict_proxy &ld) {
+                 return pybind11::make_value_iterator(ld.cache.begin(), ld.cache.end());
+             },
+             pybind11::keep_alive<0, 1>())
         .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
                 l.import(other, prefix);
             },
             "other"_a, "The label_dict to be imported"
             "prefix"_a="", "optional prefix appended to the region and locset labels",
             "Import the entries of a another label dictionary with an optional prefix.")
+        .def("update", [](label_dict_proxy& l, const label_dict_proxy& other) {
+                l.import(other);
+            },
+            "other"_a, "The label_dict to be imported"
+            "Import the entries of a another label dictionary.")
         .def_readonly("regions", &label_dict_proxy::regions,
              "The region definitions.")
         .def_readonly("locsets", &label_dict_proxy::locsets,
@@ -267,7 +299,8 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
             "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     cv_policy
-        .def(pybind11::init([](const std::string& s) { return arborio::parse_cv_policy_expression(s).unwrap(); }))
+        .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
+            "expression"_a, "A valid CV policy expression")
         .def_property_readonly("domain",
                                [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
                                "The domain on which the policy is applied.")
@@ -312,14 +345,41 @@ void register_cells(pybind11::module& m) {
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to use the same number of CVs for each branch.");
 
-    // arb::gap_junction_site
+    // arb::density
 
-    pybind11::class_<arb::gap_junction_site> gjsite(m, "gap_junction",
-            "For marking a location on a cell morphology as a gap junction site.");
-    gjsite
-        .def(pybind11::init<>())
-        .def("__repr__", [](const arb::gap_junction_site&){return "<arbor.gap_junction>";})
-        .def("__str__", [](const arb::gap_junction_site&){return "<arbor.gap_junction>";});
+    pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
+    density
+        .def(pybind11::init([](const std::string& name) {return arb::density(name);}))
+        .def(pybind11::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
+        .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
+        .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
+        .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
+
+    // arb::synapse
+
+    pybind11::class_<arb::synapse> synapse(m, "synapse", "For placing a synaptic mechanism on a locset.");
+    synapse
+        .def(pybind11::init([](const std::string& name) {return arb::synapse(name);}))
+        .def(pybind11::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
+        .def_readonly("mech", &arb::synapse::mech, "The underlying mechanism.")
+        .def("__repr__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";})
+        .def("__str__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";});
+
+    // arb::junction
+
+    pybind11::class_<arb::junction> junction(m, "junction", "For placing a gap-junction mechanism on a locset.");
+    junction
+        .def(pybind11::init([](const std::string& name) {return arb::junction(name);}))
+        .def(pybind11::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
+        .def_readonly("mech", &arb::junction::mech, "The underlying mechanism.")
+        .def("__repr__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";})
+        .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
 
     // arb::i_clamp
 
@@ -369,9 +429,8 @@ void register_cells(pybind11::module& m) {
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
         .def(pybind11::init(
-            [](double thresh) {
-                return arb::threshold_detector{thresh};
-            }), "threshold"_a)
+            [](double thresh) { return arb::threshold_detector{thresh}; }),
+            "threshold"_a, "Voltage threshold of spike detector [mV]")
         .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
             return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
@@ -499,17 +558,11 @@ void register_cells(pybind11::module& m) {
             "compartments in the cell, and can't be overriden locally.")
         // Paint mechanisms.
         .def("paint",
-            [](arb::decor& dec, const char* region, const arb::mechanism_desc& d) {
-                dec.paint(arborio::parse_region_expression(region).unwrap(), d);
+            [](arb::decor& dec, const char* region, const arb::density& mechanism) {
+                dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
             },
             "region"_a, "mechanism"_a,
-            "Associate a mechanism with a region.")
-        .def("paint",
-            [](arb::decor& dec, const char* region, const char* mech_name) {
-                dec.paint(arborio::parse_region_expression(region).unwrap(), arb::mechanism_desc(mech_name));
-            },
-            "region"_a, "mechanism"_a,
-            "Associate a mechanism with a region.")
+            "Associate a density mechanism with a region.")
         // Paint membrane/static properties.
         .def("paint",
             [](arb::decor& dec,
@@ -538,33 +591,27 @@ void register_cells(pybind11::module& m) {
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
             },
-            "region"_a, "ion_name"_a,
+            "region"_a, pybind11::kw_only(), "ion_name"_a,
             pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
             pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
             pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::mechanism_desc& d, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), d, label_name); },
-            "locations"_a, "mechanism"_a, "label"_a,
-            "Place one instance of the synapse described by 'mechanism' on each location in 'locations'. "
-            "The group of synapses has the label 'label', used for forming connections between cells.")
-        .def("place",
-            [](arb::decor& dec, const char* locset, const char* mech_name, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mech_name, label_name);
+            [](arb::decor& dec, const char* locset, const arb::synapse& mechanism, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
             },
-            "locations"_a, "mechanism"_a, "label"_a,
-            "Place one instance of the synapse described by 'mechanism' on each location in 'locations'."
+            "locations"_a, "synapse"_a, "label"_a,
+            "Place one instance of 'synapse' on each location in 'locations'."
             "The group of synapses has the label 'label', used for forming connections between cells.")
         // Place gap junctions.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::gap_junction_site& site, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), site, label_name);
+            [](arb::decor& dec, const char* locset, const arb::junction& mechanism, const char* label_name) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
             },
-            "locations"_a, "gapjunction"_a, "label"_a,
-            "Place one gap junction site labeled 'label' on each location in 'locations'."
-            "The group of gap junctions has the label 'label', used for forming connections between cells.")
+            "locations"_a, "junction"_a, "label"_a,
+            "Place one instance of 'junction' on each location in 'locations'."
+            "The group of junctions has the label 'label', used for forming gap-junction connections between cells.")
         // Place current clamp stimulus.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::i_clamp& stim, const char* label_name) {
@@ -594,23 +641,25 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init(
             [](const arb::morphology& m, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(m, labels.dict, d);
-            }), "morphology"_a, "labels"_a, "decor"_a)
+            }),
+            "morphology"_a, "labels"_a, "decor"_a,
+            "Construct with a morphology, label dictionary and decor.")
         .def(pybind11::init(
             [](const arb::segment_tree& t, const label_dict_proxy& labels, const arb::decor& d) {
                 return arb::cable_cell(arb::morphology(t), labels.dict, d);
             }),
             "segment_tree"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology derived from a segment tree.")
+            "Construct with a morphology derived from a segment tree, label dictionary and decor.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
         // Get locations associated with a locset label.
         .def("locations",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arb::ls::named(label));},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arborio::parse_locset_expression(label).unwrap());},
             "label"_a, "The locations of the cell morphology for a locset label.")
         // Get cables associated with a region label.
         .def("cables",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arb::reg::named(label)).cables();},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arborio::parse_region_expression(label).unwrap()).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})

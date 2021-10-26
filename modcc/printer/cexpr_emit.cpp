@@ -91,10 +91,6 @@ void CExprEmitter::visit(AssignmentExpression* e) {
     e->rhs()->accept(this);
 }
 
-void CExprEmitter::visit(PowBinaryExpression* e) {
-    emit_as_call("pow", e->lhs(), e->rhs());
-}
-
 void CExprEmitter::visit(BinaryExpression* e) {
     static std::unordered_map<tok, const char*> binop_tbl = {
         {tok::minus,    "-"},
@@ -111,6 +107,7 @@ void CExprEmitter::visit(BinaryExpression* e) {
         {tok::ne,       "!="},
         {tok::min,      "min"},
         {tok::max,      "max"},
+        {tok::pow,      "pow"},
     };
 
     if (!binop_tbl.count(e->op())) {
@@ -178,14 +175,6 @@ void CExprEmitter::visit(IfExpression* e) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
-void SimdExprEmitter::visit(PowBinaryExpression* e) {
-    out_ << "S::pow(";
-    e->lhs()->accept(this);
-    out_ << ", ";
-    e->rhs()->accept(this);
-    out_ << ')';
-}
-
 void SimdExprEmitter::visit(NumberExpression* e) {
     out_ << " (double)" << as_c_double(e->value());
 } 
@@ -252,6 +241,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             {tok::ne,       "S::cmp_neq"},
             {tok::min,      "S::min"},
             {tok::max,      "S::max"},
+            {tok::pow,      "S::pow"},
     };
 
     static std::unordered_map<tok, const char *> binop_tbl = {
@@ -269,6 +259,7 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             {tok::ne,       "!="},
             {tok::min,      "min"},
             {tok::max,      "max"},
+            {tok::pow,      "pow"},
     };
 
 
@@ -385,25 +376,41 @@ void SimdExprEmitter::visit(AssignmentExpression* e) {
 
     auto lhs_pfxd = id_prefix(e->lhs()->is_identifier());
 
+    // lhs should not be an IndexedVariable, only a VariableExpression or LocalVariable.
+    // IndexedVariables are only assigned in API calls and are handled in a special way.
+    if (lhs->is_indexed_variable()) {
+        throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
+    }
+    // If lhs is a VariableExpression, it must be a range variable. Non-range variables
+    // are scalars and are read-only.
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
+        // input_mask_ will only appear in PROCEDURE and FUNCTION calls which can only
+        // assign to VariableExpression and LocalVariable. But only VariableExpression
+        // vectors need to be assigned only at the elements where input_mask_ is true.
         if (!input_mask_.empty()) {
             mask = "S::logical_and(" + mask + ", " + input_mask_ + ")";
         }
-        if(is_indirect_)
-            out_ << "indirect(" << lhs_pfxd << "+index_, simd_width_) = ";
-        else
-            out_ << "indirect(" << lhs_pfxd << "+i_, simd_width_) = ";
 
-        out_ << "S::where(" << mask << ", ";
+        std::string index = is_indirect_ ? "index_" : "i_";
+        out_ << "indirect(" << lhs_pfxd << "+" << index << ", simd_width_) = S::where(" << mask << ", ";
 
-        bool cast = e->rhs()->is_number();
+        // If the rhs is a scalar identifier or a number, it needs to be cast to a vector.
+        auto id = e->rhs()->is_identifier();
+        bool num = e->rhs()->is_number();
+        bool cast = num || (id && scalars_.count(id->name()));
+
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
+        if (cast) out_ << ")";
 
         out_ << ")";
-
-        if (cast) out_ << ")";
-    } else {
+    }
+    else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
+        throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
+    }
+    // Otherwise, lhs must be a LocalVariable, we don't need to mask assignment according to the
+    // input_mask_.
+    else {
         out_ << "S::where(" << mask << ", ";
         e->lhs()->accept(this);
         out_ << ") = ";
