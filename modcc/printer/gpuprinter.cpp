@@ -370,7 +370,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
             index_prop index_var = {outer_index_var, inner_index_var};
             auto it = std::find(indices.begin(), indices.end(), index_var);
             if (it == indices.end()) {
-                // It an inner index is required, push this index to the end of the list
+                // If an inner index is required, push the outer index_var to the end of the list
                 if (nested) {
                     indices.push_back(index_var);
                 }

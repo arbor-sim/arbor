@@ -557,7 +557,7 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
             index_prop index_var = {outer_index_var, inner_index_var, d.index_var_kind};
             auto it = std::find(indices.begin(), indices.end(), index_var);
             if (it == indices.end()) {
-                // It an inner index is required, push this index to the end of the list
+                // If an inner index is required, push the outer index_var to the end of the list
                 if (nested) {
                     indices.push_back(index_var);
                 }
