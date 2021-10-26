@@ -3,9 +3,6 @@
 Cable cell mechanisms
 =====================
 
-When :ref:`decorating <cablecell-decoration>` a cable cell, we use a :py:class:`mechanism` type to describe a
-mechanism that is to be painted or placed on the cable cell.
-
 .. py:class:: mechanism
 
     Mechanisms describe physical processes, distributed over the membrane of the cell.
@@ -13,7 +10,9 @@ mechanism that is to be painted or placed on the cable cell.
     a function of the cell state and their own state where they are present.
     *Point mechanisms* are defined at discrete locations on the cell, which receive
     events from the network.
-    A third, specific type of density mechanism, which describes ionic reversal potential
+    *Junction mechanisms* are defined at discrete locations on the cell, which define the
+    behavior of a gap-junction mechanism.
+    A fourth, specific type of density mechanism, which describes ionic reversal potential
     behaviour, can be specified for cells or the whole model.
 
     The :class:`mechanism` type is a simple wrapper around a mechanism
@@ -37,44 +36,32 @@ mechanism that is to be painted or placed on the cable cell.
 
         import arbor
 
-        # hh dynamics with default parameters.
-        hh = arbor.mechanism('hh')
+        # A passive leaky channel with default parameter values (set in NOMDL file).
+        pas_0 = arbor.mechanism('pas')
 
-        # A passive leaky channel with custom parameters
-        pas = arbor.mechanism('pas/e=-55.0', {'g': 0.02})
+        # A passive leaky channel with custom conductance (range).
+        pas_1 = arbor.mechanism('pas', {'g': 0.02})
+
+        # A passive leaky channel with custom reversal potential (global).
+        pas_2 = arbor.mechanism('pas/e=-45')
+
+        # A passive leaky channel with custom reversal potential (global), and custom conductance (range).
+        pas_3 = arbor.mechanism('pas/e=-45', {'g', 0.1})
+
+        # This is an equivalent to pas_3, using set method to specify range parameters.
+        pas_4 = arbor.mechanism('pas/e=-45')
+        pas_4.set('g', 0.1)
 
         # Reversal potential using Nernst equation with GLOBAL parameter values
         # for Faraday's constant and the target ion species, set with a '/' followed
         # by comma-separated list of parameter after the base mechanism name.
         rev = arbor.mechanism('nernst/F=96485,x=ca')
 
-    Mechanisms can be painted to a region. Different mechanisms can be painted on top of each other.
+        # An exponential synapse with default parameter values (set in NOMDL file).
+        expsyn = arbor.mechanism("expsyn")
 
-    .. code-block:: Python
-
-        import arbor
-
-        # Create pas mechanism with default parameter values (set in NOMDL file).
-        m1 = arbor.mechanism('pas')
-
-        # Create default mechainsm with custom conductance (range).
-        m2 = arbor.mechanism('pas', {'g', 0.1})
-
-        # Create a new pas mechanism with that changes reversal potential (global).
-        m3 = arbor.mechanism('pas/e=-45')
-
-        # Create an instance of the same mechanism, that also sets conductance (range).
-        m4 = arbor.mechanism('pas/e=-45', {'g', 0.1})
-
-        # This is an equivalent to m4, using set method to specify range parameters.
-        m5 = arbor.mechanism('pas/e=-45')
-        m5.set('g', 0.1)
-
-        # Decorate the 'soma' with (multiple) mechanisms
-        decor.paint('"soma"', m1)
-        decor.paint('"soma"', m2) # Error: can't place the same mechanism on overlapping regions
-        decor.paint('"soma"', m3) # This is ok: m3 is a new, derived mechanism by virtue of
-                                  # having a different name, i.e. 'pas/e=-45' vs. 'pas'.
+        # A gap-junction mechanism with default parameter values (set in NOMDL file).
+        gj = arbor.mechanism("gj")
 
     .. method:: mechanism(name, params)
 
@@ -113,6 +100,156 @@ mechanism that is to be painted or placed on the cable cell.
 
        A dictionary of key-value pairs for the parameters.
 
+.. py:class:: density
+
+   When :ref:`decorating <cablecell-decoration>` a cable cell, we use a :py:class:`density` type to
+   wrap a density :py:class:`mechanism` that is to be painted on the cable cell.
+
+   Different :py:class:`density` mechanisms can be painted on top of each other.
+
+    .. code-block:: Python
+
+        import arbor
+
+        pas = arbor.mechanism('pas')
+        pas.set('g', 0.2)
+
+        # Decorate the 'soma' with (multiple) density mechanisms
+        decor.paint('"soma"', density(pas))
+        decor.paint('"soma"', density('pas', {'g': 0.1})) # Error: can't place the same mechanism on overlapping regions
+        decor.paint('"soma"', density('pas/e=-45'))       # This is ok: pas/e=-45 is a new, derived mechanism by virtue of
+                                                          # having a different name, i.e. 'pas/e=-45' vs. 'pas'.
+
+    .. py:attribute:: mech
+        :type: mechanism
+
+        The underlying mechanism.
+
+    .. method:: density(name)
+        :noindex:
+
+        constructs :attr:`mech` with *name* and default parameters.
+
+        :param name: name of mechanism.
+        :type name: str
+
+    .. method:: density(name, params)
+
+        constructs :attr:`mech` with *name* and range parameter overrides *params*.
+        for example: ``arbor.density('pas', {'g': 0.01})``.
+
+        :param name: name of mechanism.
+        :type name: str
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
+
+    .. method:: density(mech)
+        :noindex:
+
+        constructs :attr:`mech` from *mech*.
+
+        :param mech: mechanism description.
+        :type mech: :py:class:`mechanism`
+
+    .. method:: density(mech, params)
+
+        constructs :attr:`mech` from *mech* and sets the range parameter overrides *params*.
+
+        :param mech: mechanism description.
+        :type mech: :py:class:`mechanism`
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
+
+.. py:class:: synapse
+
+   When :ref:`decorating <cablecell-decoration>` a cable cell, we use a :py:class:`synapse` type to
+   wrap a point :py:class:`mechanism` that is to be placed on the cable cell.
+
+    .. py:attribute:: mech
+        :type: mechanism
+
+        The underlying mechanism.
+
+    .. method:: synapse(name)
+        :noindex:
+
+        constructs :attr:`mech` with *name* and default parameters.
+
+        :param name: name of mechanism.
+        :type name: str
+
+    .. method:: synapse(name, params)
+
+        constructs :attr:`mech` with *name* and range parameter overrides *params*.
+        for example: ``arbor.synapse('expsyn', {'tau': 0.01})``.
+
+        :param name: name of mechanism.
+        :type name: str
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
+
+    .. method:: synapse(mech)
+        :noindex:
+
+        constructs :attr:`mech` from *mech*.
+
+        :param mech: mechanism description.
+        :type mech: :py:class:`mechanism`
+
+    .. method:: synapse(mech, params)
+
+        constructs :attr:`mech` from *mech* and sets the range parameter overrides *params*.
+
+        :param mech: mechanism description.
+        :type mech: :py:class:`mechanism`
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
+
+
+.. py:class:: junction
+
+   When :ref:`decorating <cablecell-decoration>` a cable cell, we use a :py:class:`junction` type to
+   wrap a gap-junction :py:class:`mechanism` that is to be placed on the cable cell.
+
+    .. py:attribute:: mech
+        :type: mechanism
+
+        The underlying mechanism.
+
+    .. method:: junction(name)
+        :noindex:
+
+        constructs :attr:`mech` with *name* and default parameters.
+
+        :param name: name of mechanism.
+        :type name: str
+
+    .. method:: junction(name, params)
+
+        constructs :attr:`mech` with *name* and range parameter overrides *params*.
+        for example: ``arbor.junction('gj', {'g': 2})``.
+
+        :param name: name of mechanism.
+        :type name: str
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
+
+    .. method:: junction(mech)
+        :noindex:
+
+        constructs :attr:`mech` from *mech*.
+
+        :param mech: mechanism description.
+        :type mech: :py:class:`mechanism`
+
+    .. method:: junction(mech, params)
+
+        constructs :attr:`mech` from *mech* and sets the range parameter overrides *params*.
+
+        :param mech: mechanism description.
+        :type mech: :py:class:`mechanism`
+        :param params: A dictionary of parameter values, with parameter name as key.
+        :type params: dict[str, double]
 
 .. py:class:: mechanism_info
 
@@ -256,6 +393,15 @@ Mechanism catalogues
     1. Collection of mechanism metadata indexed by name.
     2. A further hierarchy of *derived* mechanisms, that allow specialization of
        global parameters, ion bindings, and implementations.
+
+    .. py:method:: __init__(catalogue=None)
+
+        Create an empty or copied catalogue.
+
+        :param catalogue: ``catalogue`` to copy
+        :type catalogue: :class:`catalogue`
+        :return: empty or copied catalogue
+        :rtype: :class:`catalogue`
 
     .. py:method:: __contains__(name)
 

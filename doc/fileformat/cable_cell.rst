@@ -95,9 +95,9 @@ of the cell):
    ion reversal potential method,      --,            --,             ✓
    density mechanism,                  --,             ✓,            --
    point mechanism,                    ✓,             --,            --
+   junction mechanism,                 ✓,             --,            --
    current clamp,                      ✓,             --,            --
    threshold detector,                 ✓,             --,            --
-   gap junction site,                  ✓,             --,            --
 
 The various properties and dynamics of the decor are described as follows:
 
@@ -153,6 +153,18 @@ The various properties and dynamics of the decor are described as follows:
 
       (ion-reversal-potential-method "ca" (mechanism "nernst/ca"))
 
+.. label:: (density method:mechanism)
+
+   This describes a *density* mechanism whose behavior is is defined by ``mechanism``.
+
+.. label:: (synapse method:mechanism)
+
+   This describes a *synapse* (point) mechanism whose behavior is is defined by ``mechanism``.
+
+.. label:: (junction method:mechanism)
+
+   This describes a *gap-junction* mechanism whose behavior is is defined by ``mechanism``.
+
 .. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real phase:real)
 
    This creates a *current clamp*. If the frequency ``freq`` (unit kHz) is zero, the current is a square
@@ -180,10 +192,6 @@ The various properties and dynamics of the decor are described as follows:
 .. label:: (threshold-detector val:real).
 
    This describes a *threshold-detector* object with value ``val`` (unit mV).
-
-.. label:: (gap-junction-site)
-
-   This describes a *gap-junction-site*.
 
 *Paintable* and *placeable* properties and dynamics are placed on regions (generated from :ref:`region expressions
 <labels-region-expr>`) and locsets (generated from :ref:`locset expressions <labels-locset-expr>`) respectively.
@@ -243,10 +251,10 @@ Any number of paint, place and default expressions can be used to create a decor
         (default (membrane-potential -55.000000))
         (paint (region "custom") (temperature-kelvin 270))
         (paint (region "soma") (membrane-potential -50.000000))
-        (paint (all) (mechanism "pas"))
-        (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
-        (place (locset "root") (mechanism "expsyn") "root_synapse")
-        (place (terminal) (gap-junction-site) "terminal_gj"))
+        (paint (all) (density (mechanism "pas")))
+        (paint (tag 4) (density (mechanism "Ih" ("gbar" 0.001))))
+        (place (locset "root") (synapse (mechanism "expsyn")) "root_synapse")
+        (place (terminal) (junction (mechanism "gj")) "terminal_gj"))
 
 Morphology
 ----------
@@ -337,9 +345,9 @@ expressions.
           (default (membrane-potential -55.000000))
           (paint (region "my_soma") (temperature-kelvin 270))
           (paint (region "my_region") (membrane-potential -50.000000))
-          (paint (tag 4) (mechanism "Ih" ("gbar" 0.001)))
-          (place (locset "root") (mechanism "expsyn") "root_synapse")
-          (place (location 1 0.2) (gap-junction-site) "terminal_gj"))
+          (paint (tag 4) (density (mechanism "Ih" ("gbar" 0.001))))
+          (place (locset "root") (synapse (mechanism "expsyn")) "root_synapse")
+          (place (location 1 0.2) (junction (mechanism "gj")) "terminal_gj"))
         (morphology
           (branch 0 -1
             (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
@@ -405,7 +413,7 @@ Decoration
      (meta-data (version "0.1-dev"))
      (decor
        (default (membrane-potential -55.000000))
-       (place (locset "root") (mechanism "expsyn") "root_synapse")
+       (place (locset "root") (synapse (mechanism "expsyn")) "root_synapse")
        (paint (region "my_soma") (temperature-kelvin 270))))
 
 Morphology
@@ -434,7 +442,7 @@ Cable-cell
          (locset-def "root" (root)))
        (decor
          (default (membrane-potential -55.000000))
-         (place (locset "root") (mechanism "expsyn") "root_synapse")
+         (place (locset "root") (synapse (mechanism "expsyn")) "root_synapse")
          (paint (region "my_soma") (temperature-kelvin 270)))
        (morphology
           (branch 0 -1

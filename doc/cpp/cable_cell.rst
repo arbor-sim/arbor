@@ -47,7 +47,7 @@ given subsection of the morphology via the ``paint`` interface of the decor
 
 Ion channels and other distributed dynamical processes are also specified
 on the cell via the ``paint`` method; while synapses, current clamps,
-gap junction locations, and the site for testing the threshold potential
+gap junction mechanisms, and the site for testing the threshold potential
 are specified via the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
 
 .. _cppcablecell-dynamics:
@@ -61,9 +61,10 @@ that are distributed in space, but whose behaviour is defined purely
 by the state of the cell and the process at any given point.
 
 Cells may also have *point* mechanisms, describing the dynamics
-at post-synaptic sites.
+at post-synaptic sites. And *junction* mechanisms, describing the
+dynamics at each site of the two sites of a gap-junction connection.
 
-A third type of mechanism, which describes ionic reversal potential
+A fourth type of mechanism, which describes ionic reversal potential
 behaviour, can be specified for cells or the whole model via cell parameter
 settings, described below.
 
@@ -87,21 +88,59 @@ mechanism name, and mechanism parameter values then set with the
    Returns a reference to the mechanism description, so that calls to
    :cpp:expr:`set` can be chained in a single expression.
 
+:cpp:type:`density`, :cpp:type:`synapse` and :cpp:type:`junction` objects are thin wrappers
+around a :cpp:type:`mechanism_desc`, needed for *painting* and *placing* mechanisms on a :cpp:type:`decor`.
+Relevant methods:
+
+.. cpp:function:: density::density(mechanism_desc mech)
+
+   Construct a density wrapper from the mechanism `mech`.
+
+.. cpp:function:: density::density(mechanism_desc mech, const std::unordered_map<std::string, double>& params)
+
+   For each ``{key, value}`` pair in `params`, set the parameter associated with ``key`` to ``value``
+   on mechanism ``mech``, then construct a density wrapper from the mechanism `mech`.
+
+.. cpp:function:: synapse::synapse(mechanism_desc mech)
+
+   Construct a synapse wrapper from the mechanism `mech`.
+
+.. cpp:function:: synapse::synapse(mechanism_desc mech, const std::unordered_map<std::string, double>& params)
+
+   For each ``{key, value}`` pair in `params`, set the parameter associated with ``key`` to ``value``
+   on mechanism ``mech``, then construct a synapse wrapper from the mechanism `mech`.
+
+.. cpp:function:: junction::junction(mechanism_desc mech)
+
+   Construct a junction wrapper from the mechanism `mech`.
+
+.. cpp:function:: junction::junction(mechanism_desc mech, const std::unordered_map<std::string, double>& params)
+
+   For each ``{key, value}`` pair in `params`, set the parameter associated with ``key`` to ``value``
+   on mechanism ``mech``, then construct a junction wrapper from the mechanism `mech`.
 
 Density mechanisms are associated with a cable cell object with:
 
-.. cpp:function:: void cable_cell::paint(const region&, mechanism_desc)
+.. cpp:function:: void cable_cell::paint(const region&, density)
 
 Point mechanisms, which are associated with connection end points on a
 cable cell, are placed on a set of locations given by a locset. The group
-of generated items requires a label. They are attached to a cell with:
+of generated items are given a label which can be used to create connections
+in the recipe. Point mechanisms are attached to a cell with:
 
-.. cpp:function:: void cable_cell::place(const locset&, mechanism_desc, cell_tag_type label)
+.. cpp:function:: void cable_cell::place(const locset&, synapse, cell_tag_type label)
+
+Gap-junction mechanisms, which are associated with gap-junction connection
+end points on a cable cell, are placed on a single location given by a locset
+(locsets with multiple locations will raise an exception). The generated item
+is given a label which can be used to create gap-junction connections in the
+recipe. Gap-junction mechanisms are attached to a cell with:
+
+.. cpp:function:: void cable_cell::place(const locset&, junction, cell_tag_type label)
 
 .. todo::
 
-   TODO: describe other ``place``-able things: current clamps, gap junction
-   sites, threshold potential measurement point.
+   TODO: describe other ``place``-able things: current clamps, threshold potential measurement point.
 
 .. _cppcablecell-electrical-properties:
 
@@ -230,7 +269,7 @@ A reversal potential mechanism described in NMODL:
 
 * May not maintain any STATE variables.
 * Can only write to the "eX" value associated with an ion.
-* Can not given as a POINT mechanism.
+* Can not be given as a POINT mechanism.
 
 Essentially, reversal potential mechanisms must be pure functions of cellular
 and ionic state.

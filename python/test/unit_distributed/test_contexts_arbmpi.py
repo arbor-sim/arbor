@@ -5,24 +5,13 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
-
-# check Arbor's configuration of mpi
-mpi_enabled = arb.__config__["mpi"]
+from .. import fixtures, cases
 
 """
 all tests for distributed arb.context using arbor mpi wrappers
 """
-@unittest.skipIf(mpi_enabled == False, "MPI not enabled")
-class Contexts_arbmpi(unittest.TestCase):
+@cases.skipIfNotDistributed()
+class TestContexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
     def setUpClass(self):
@@ -74,33 +63,3 @@ class Contexts_arbmpi(unittest.TestCase):
 
     def test_finalized_arbmpi(self):
         self.assertFalse(arb.mpi_is_finalized())
-
-def suite():
-    # specify class and test functions as tuple (here: all tests starting with 'test' from class Contexts_arbmpi
-    suite = unittest.makeSuite(Contexts_arbmpi, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-
-    if not arb.mpi_is_initialized():
-        arb.mpi_init()
-
-    comm = arb.mpi_comm()
-    alloc = arb.proc_allocation()
-    ctx = arb.context(alloc, comm)
-    rank = ctx.rank
-
-    if rank == 0:
-        runner = unittest.TextTestRunner(verbosity = v)
-    else:
-        sys.stdout = open(os.devnull, 'w')
-        runner = unittest.TextTestRunner(stream=sys.stdout)
-
-    runner.run(suite())
-
-    if not arb.mpi_is_finalized():
-        arb.mpi_finalize()
-
-if __name__ == "__main__":
-    run()

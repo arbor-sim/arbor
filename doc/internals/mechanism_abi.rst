@@ -59,6 +59,7 @@ This type collects all information independent of the backend.
     * point
     * density
     * reversal_potential
+    * junction
 
   .. c:member:: bool                      is_linear
 
@@ -221,6 +222,10 @@ fully formed to the interface. At this point:
   .. c:member:: arb_index_type* node_index
 
     Indices of CVs covered by this mechanism, size is width
+
+  .. c:member:: arb_index_type* peer_index
+
+    Indices of peer CV of each CV in ``node_index``, needed for gap-junction connections, size is width.
 
   .. c:member:: arb_index_type* multiplicity
 

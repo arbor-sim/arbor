@@ -1,15 +1,6 @@
+from .. import fixtures
 import unittest
-
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
 
 """
 tests for (dynamically loaded) catalogues
@@ -29,7 +20,7 @@ class recipe(arb.recipe):
             raise
 
         d = arb.decor()
-        d.paint('(all)', 'pas')
+        d.paint('(all)', arb.density('pas'))
         d.set_property(Vm=0.0)
         self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
 
@@ -46,17 +37,14 @@ class recipe(arb.recipe):
         return self.cell
 
 
-class Catalogues(unittest.TestCase):
+class TestCatalogues(unittest.TestCase):
     def test_nonexistent(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(FileNotFoundError):
             arb.load_catalogue("_NO_EXIST_.so")
 
-    def test_shared_catalogue(self):
-        try:
-            cat = arb.load_catalogue("lib/dummy-catalogue.so")
-        except:
-            print("BBP catalogue not found. Are you running from build directory?")
-            raise
+    @fixtures.dummy_catalogue
+    def test_shared_catalogue(self, dummy_catalogue):
+        cat = dummy_catalogue
         nms = [m for m in cat]
         self.assertEqual(nms, ['dummy'], "Expected equal names.")
         for nm in nms:
@@ -70,16 +58,27 @@ class Catalogues(unittest.TestCase):
         sim = arb.simulation(rcp, dom, ctx)
         sim.run(tfinal=30)
 
+    def test_empty(self):
+        def len(cat):
+            return sum(1 for _ in cat)
 
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Catalogues, ('test'))
-    return suite
+        def hash_(cat):
+            return hash(" ".join(sorted(cat)))
 
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()
+        cat = arb.catalogue()
+        ref = arb.default_catalogue()
+        other = arb.default_catalogue()
+        # Test empty constructor
+        self.assertEqual(0, len(cat), "Expected no mechanisms in `arbor.catalogue()`.")
+        # Test empty extend
+        other.extend(cat, "")
+        self.assertEqual(hash_(ref), hash_(other), "Extending cat with empty should not change cat.")
+        self.assertEqual(0, len(cat), "Extending cat with empty should not change empty.")
+        other.extend(cat, "prefix/")
+        self.assertEqual(hash_(ref), hash_(other), "Extending cat with prefixed empty should not change cat.")
+        self.assertEqual(0, len(cat), "Extending cat with prefixed empty should not change empty.")
+        cat.extend(other, "")
+        self.assertEqual(hash_(other), hash_(cat), "Extending empty with cat should turn empty into cat.")
+        cat = arb.catalogue()
+        cat.extend(other, "prefix/")
+        self.assertNotEqual(hash_(other), hash_(cat), "Extending empty with prefixed cat should not yield cat")

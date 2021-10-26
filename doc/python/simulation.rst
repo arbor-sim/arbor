@@ -74,6 +74,10 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         Reset the state of the simulation to its initial state.
         Clears recorded spikes and sample data.
 
+    .. function:: clear_samplers()
+
+        Clears recorded spikes and sample data.
+
     .. function:: run(tfinal, dt)
 
         Run the simulation from current simulation time to ``tfinal``,

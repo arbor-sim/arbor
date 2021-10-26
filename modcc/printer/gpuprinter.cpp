@@ -99,7 +99,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     auto ns_components = namespace_components(opt.cpp_namespace);
 
-    const bool is_point_proc = module_.kind() == moduleKind::point;
+    const bool is_point_proc = (module_.kind() == moduleKind::point) || (module_.kind() == moduleKind::junction);
 
     APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
     APIMethod* post_event_api  = find_api_method(module_, "post_event_api");
@@ -137,6 +137,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                    "auto* {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
                                    "auto* {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
                                    "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
+                                   "auto* {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
                                    "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
                                    "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
                                    "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"

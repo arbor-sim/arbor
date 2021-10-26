@@ -35,9 +35,9 @@ struct test_recipe: public n_cable_cell_recipe {
         labels.set("soma", arb::reg::tagged(1));
 
         decor decorations;
-        decorations.place(mlocation{0, 0.5}, "expsyn", "synapse");
+        decorations.place(mlocation{0, 0.5}, synapse("expsyn"), "synapse");
         decorations.place(mlocation{0, 0.5}, threshold_detector{-64}, "detector");
-        decorations.place(mlocation{0, 0.5}, gap_junction_site{}, "gapjunction");
+        decorations.place(mlocation{0, 0.5}, junction("gj"), "gapjunction");
         cable_cell c(st, labels, decorations);
 
         return c;
@@ -110,7 +110,7 @@ struct test_recipe_gj: public test_recipe {
             if (p.first == i) gjs.push_back({{p.second, "gapjunction", lid_selection_policy::assert_univalent},
                                              {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
             if (p.second == i) gjs.push_back({{p.first, "gapjunction", lid_selection_policy::assert_univalent},
-                                                    {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
+                                             {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
         }
         return gjs;
     }

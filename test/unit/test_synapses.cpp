@@ -31,9 +31,9 @@ TEST(synapses, add_to_cell) {
 
     auto description = make_cell_soma_only(false);
 
-    description.decorations.place(mlocation{0, 0.1}, "expsyn", "synapse0");
-    description.decorations.place(mlocation{0, 0.2}, "exp2syn", "synapse1");
-    description.decorations.place(mlocation{0, 0.3}, "expsyn", "synapse2");
+    description.decorations.place(mlocation{0, 0.1}, synapse("expsyn"), "synapse0");
+    description.decorations.place(mlocation{0, 0.2}, synapse("exp2syn"), "synapse1");
+    description.decorations.place(mlocation{0, 0.3}, synapse("expsyn"), "synapse2");
 
     cable_cell cell(description);
 
@@ -43,16 +43,16 @@ TEST(synapses, add_to_cell) {
     ASSERT_EQ(1u, syns["exp2syn"].size());
 
     EXPECT_EQ((mlocation{0, 0.1}), syns["expsyn"][0].loc);
-    EXPECT_EQ("expsyn", syns["expsyn"][0].item.name());
+    EXPECT_EQ("expsyn", syns["expsyn"][0].item.mech.name());
 
     EXPECT_EQ((mlocation{0, 0.3}), syns["expsyn"][1].loc);
-    EXPECT_EQ("expsyn", syns["expsyn"][1].item.name());
+    EXPECT_EQ("expsyn", syns["expsyn"][1].item.mech.name());
 
     EXPECT_EQ((mlocation{0, 0.2}), syns["exp2syn"][0].loc);
-    EXPECT_EQ("exp2syn", syns["exp2syn"][0].item.name());
+    EXPECT_EQ("exp2syn", syns["exp2syn"][0].item.mech.name());
 
     // adding a synapse to an invalid branch location should throw.
-    description.decorations.place(mlocation{1, 0.3}, "expsyn", "synapse3");
+    description.decorations.place(mlocation{1, 0.3}, synapse("expsyn"), "synapse3");
     EXPECT_THROW((cell=description), std::runtime_error);
 }
 
@@ -85,7 +85,6 @@ TEST(synapses, syn_basic_state) {
     auto exp2syn = unique_cast<mechanism>(global_default_catalogue().instance(backend::kind, "exp2syn").mech);
     ASSERT_TRUE(exp2syn);
 
-    std::vector<fvm_gap_junction> gj = {};
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
     shared_state state(num_intdom,
@@ -93,7 +92,6 @@ TEST(synapses, syn_basic_state) {
         0,
         std::vector<index_type>(num_comp, 0),
         std::vector<index_type>(num_comp, 0),
-        {},
         std::vector<value_type>(num_comp, -65),
         std::vector<value_type>(num_comp, temp_K),
         std::vector<value_type>(num_comp, 1.),
@@ -109,8 +107,8 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    state.instantiate(*expsyn,  0, {}, {syn_cv, syn_weight, syn_mult});
-    state.instantiate(*exp2syn, 1, {}, {syn_cv, syn_weight, syn_mult});
+    state.instantiate(*expsyn,  0, {}, {syn_cv, {}, syn_weight, syn_mult});
+    state.instantiate(*exp2syn, 1, {}, {syn_cv, {}, syn_weight, syn_mult});
 
     // Parameters initialized to default values?
 

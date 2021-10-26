@@ -123,8 +123,8 @@ std::string con_to_string(const arb::cell_connection& c) {
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), ggap {}>",
-         gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.ggap);
+    return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), weight {}>",
+         gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.weight);
 }
 
 void register_recipe(pybind11::module& m) {
@@ -158,17 +158,17 @@ void register_recipe(pybind11::module& m) {
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
         .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, double>(),
-            "peer"_a, "local"_a, "ggap"_a,
+            "peer"_a, "local"_a, "weight"_a,
             "Construct a gap junction connection with arguments:\n"
             "  peer:  remote half of the gap junction connection.\n"
             "  local: local half of the gap junction connection.\n"
-            "  ggap:  Gap junction conductance [μS].")
+            "  weight:  Gap junction connection weight [unit-less].")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,
             "Remote gid and label of the gap junction connection.")
         .def_readwrite("local", &arb::gap_junction_connection::local,
             "Local label of the gap junction connection.")
-        .def_readwrite("ggap", &arb::gap_junction_connection::ggap,
-            "Gap junction conductance [μS].")
+        .def_readwrite("weight", &arb::gap_junction_connection::weight,
+            "Gap junction connection weight [unit-less].")
         .def("__str__",  &gj_to_string)
         .def("__repr__", &gj_to_string);
 

@@ -13,7 +13,7 @@ You can find out how to :ref:`get Arbor<in_install>`; get started quickly with o
 What is Arbor?
 --------------
 
-`Arbor <https://arbor-sim.org>`_. is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
+`Arbor <https://arbor-sim.org>`_ is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
 from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to
 help neuroscientists effectively use contemporary and future HPC systems to meet their simulation needs.
 

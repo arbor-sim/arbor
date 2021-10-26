@@ -738,8 +738,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
             L.kind = R.kind;
             append(L.cv, R.cv);
+            append(L.peer_cv, R.peer_cv);
             append(L.multiplicity, R.multiplicity);
             append(L.norm_area, R.norm_area);
+            append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
 
             arb_assert(util::equal(L.param_values, R.param_values,
@@ -769,15 +771,70 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx);
+std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D)
+{
+    arb_assert(cells.size() == gids.size());
+    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs;
+    for (auto cell_idx: util::make_span(0, cells.size())) {
+        for (const auto& mech : cells[cell_idx].junctions()) {
+            for (const auto& gj: mech.second) {
+                gj_cvs.insert({cell_member_type{gids[cell_idx], gj.lid}, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)});
+            }
+        }
+    }
+    return gj_cvs;
+}
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const execution_context& ctx)
+std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
+    const recipe& rec)
+{
+    // Construct and resolve all gj_connections.
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
+    label_resolution_map resolution_map({gj_data, gids});
+    auto gj_resolver = resolver(&resolution_map);
+    for (const auto& gid: gids) {
+        std::vector<fvm_gap_junction> local_conns;
+        for (const auto& conn: rec.gap_junctions_on(gid)) {
+            auto local_idx = gj_resolver.resolve({gid, conn.local});
+            auto peer_idx  = gj_resolver.resolve(conn.peer);
+
+            auto local_cv = gj_cvs.at({gid, local_idx});
+            auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
+
+            local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
+        }
+        // Sort local_conns by local_cv.
+        util::sort(local_conns);
+        gj_conns[gid] = std::move(local_conns);
+    }
+    return gj_conns;
+}
+
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const cable_cell& cell,
+    const std::vector<fvm_gap_junction>& gj_conns,
+    const fvm_cv_discretization& D,
+    fvm_size_type cell_idx);
+
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
+    const fvm_cv_discretization& D,
+    const execution_context& ctx)
 {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], D, i);});
+    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
+        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i);
+    });
 
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {
@@ -788,8 +845,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
 // Construct FVM mechanism data for a single cell.
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx)
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const cable_cell& cell,
+    const std::vector<fvm_gap_junction>& gj_conns,
+    const fvm_cv_discretization& D,
+    fvm_size_type cell_idx)
 {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -854,7 +915,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     // Density mechanisms:
 
-    for (const auto& entry: cell.region_assignments().get<mechanism_desc>()) {
+    for (const auto& entry: cell.region_assignments().get<density>()) {
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
 
@@ -862,7 +923,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         if (info.kind != arb_mechanism_kind_density) {
             throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
         }
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_density;
 
         std::vector<std::string> param_names;
         assign(param_names, util::keys(info.parameters));
@@ -885,9 +946,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         param_maps.resize(n_param);
 
         for (auto& on_cable: entry.second) {
-            verify_mechanism(info, on_cable.second);
+            const auto& mech = on_cable.second.mech;
+            verify_mechanism(info, mech);
             mcable cable = on_cable.first;
-            const auto& set_params = on_cable.second.values();
+            const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
@@ -943,7 +1005,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
 
         update_ion_support(info, config.cv);
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
 
     // Synapses:
@@ -995,10 +1057,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         arb_assert(ix==n_param);
 
         std::size_t offset = 0;
-        for (const placed<mechanism_desc>& pm: entry.second) {
-            verify_mechanism(info, pm.item);
+        for (const placed<synapse>& pm: entry.second) {
+            const auto& mech = pm.item.mech;
+            verify_mechanism(info, mech);
 
-            synapse_instance in;
+            synapse_instance in{};
 
             in.param_values_offset = offset;
             offset += n_param;
@@ -1007,7 +1070,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             double* in_param = all_param_values.data()+in.param_values_offset;
             std::copy(default_param_value.begin(), default_param_value.end(), in_param);
 
-            for (const auto& kv: pm.item.values()) {
+            for (const auto& kv: mech.values()) {
                 in_param[param_index.at(kv.first)] = kv.second;
             }
 
@@ -1051,7 +1114,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_point;
         for (auto& kv: info.parameters) {
             config.param_values.emplace_back(kv.first, std::vector<value_type>{});
             if (!coalesce) {
@@ -1085,9 +1148,88 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         update_ion_support(info, config.cv);
 
         M.n_target += config.target.size();
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
     M.post_events = post_events;
+
+    // Gap junctions:
+
+    struct junction_desc {
+        std::string name;                     // mechanism name.
+        std::vector<value_type> param_values; // overridden parameter values.
+    };
+
+    // Gap-junction mechanisms are handled differently from point mechanisms.
+    // There is a separate mechanism instance at the local site of every gap-junction connection,
+    // meaning there can be multiple gap-junction mechanism instances of the same type (name) per
+    // lid.
+    // As a result, building fvm_mechanism_config per junction mechanism is split into 2 phases.
+    // (1) For every type (name) of gap-junction mechanism used on the cell, an fvm_mechanism_config
+    //     object is constructed and only the kind and parameter names are set. The object is
+    //     stored in the `junction_configs` map. Another map `lid_junction_desc` containing the
+    //     name and parameter values of the mechanism per lid is stored, needed to complete the
+    //     description of the fvm_mechanism_config object in the next step.
+    // (2) For every gap-junction connection, the cv, peer_cv, local_weight and parameter values
+    //     of the mechanism present on the local lid of the connection are added to the
+    //     fvm_mechanism_config of that mechanism. This completes the fvm_mechanism_config
+    //     description for each gap-junction mechanism.
+
+    std::unordered_map<std::string, fvm_mechanism_config> junction_configs;
+    std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
+    for (const auto& [name, placements]: cell.junctions()) {
+        mechanism_info info = catalogue[name];
+        if (info.kind != arb_mechanism_kind_gap_junction) {
+            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+        }
+
+        fvm_mechanism_config config;
+        config.kind = arb_mechanism_kind_gap_junction;
+
+        std::vector<std::string> param_names;
+        std::vector<double> param_dflt;
+
+        assign(param_names, util::keys(info.parameters));
+        std::size_t n_param = param_names.size();
+
+        param_dflt.reserve(n_param);
+        for (const auto& p: param_names) {
+            config.param_values.emplace_back(p, std::vector<value_type>{});
+            param_dflt.push_back(info.parameters.at(p).default_value);
+        }
+
+        for (const placed<junction>& pm: placements) {
+            const auto& mech = pm.item.mech;
+            verify_mechanism(info, mech);
+            const auto& set_params = mech.values();
+
+            junction_desc per_lid;
+            per_lid.name = name;
+            for (std::size_t i = 0; i<n_param; ++i) {
+                per_lid.param_values.push_back(value_by_key(set_params, param_names[i]).value_or(param_dflt[i]));
+            }
+            lid_junction_desc.insert({pm.lid, std::move(per_lid)});
+        }
+        junction_configs[name] = std::move(config);
+    }
+
+    // Iterate over the gj_conns local to the cell, and complete the fvm_mechanism_config.
+    // The gj_conns are expected to be sorted by local CV index.
+    for (const auto& conn: gj_conns) {
+        auto local_junction_desc = lid_junction_desc[conn.local_idx];
+        auto& config = junction_configs[local_junction_desc.name];
+
+        config.cv.push_back(conn.local_cv);
+        config.peer_cv.push_back(conn.peer_cv);
+        config.local_weight.push_back(conn.weight);
+        for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
+            config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
+        }
+    }
+
+    // Add non-empty fvm_mechanism_config to the fvm_mechanism_data
+    for (auto [name, config]: junction_configs) {
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
+    }
 
     // Stimuli:
 
@@ -1136,7 +1278,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         std::unique_copy(config.cv.begin(), config.cv.end(), std::back_inserter(config.cv_unique));
         config.cv_unique.shrink_to_fit();
 
-        M.stimuli = std::move(config);
+        if (!config.cv.empty()) M.stimuli = std::move(config);
     }
 
     // Ions:
@@ -1205,7 +1347,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             config.init_econc[i] *= oo_cv_area;
         }
 
-        M.ions[ion] = std::move(config);
+        if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }
 
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
@@ -1259,7 +1401,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 }
                 else {
                     fvm_mechanism_config config;
-                    config.kind = info.kind;
+                    config.kind = arb_mechanism_kind_reversal_potential;
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 
@@ -1276,7 +1418,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                         config.param_values.emplace_back(kv.first, std::vector<value_type>(config.cv.size(), kv.second));
                     }
 
-                    M.mechanisms[revpot.name()] = std::move(config);
+                    if (!config.cv.empty()) M.mechanisms[revpot.name()] = std::move(config);
                 }
             }
         }

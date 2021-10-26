@@ -2,6 +2,7 @@
 [![basic ci](https://github.com/arbor-sim/arbor/actions/workflows/basic.yml/badge.svg)](https://github.com/arbor-sim/arbor/actions/workflows/basic.yml)
 [![gitpod](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor)
 [![docs](https://readthedocs.org/projects/arbor/badge/?version=latest)](https://docs.arbor-sim.org/en/latest/)
+[![Gitter](https://badges.gitter.im/arbor-sim.svg)](https://gitter.im/arbor-sim/community)
 
 # Arbor Library
 

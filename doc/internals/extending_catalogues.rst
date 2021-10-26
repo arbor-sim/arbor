@@ -10,7 +10,7 @@ all likelihood interested in the former.
 .. warning::
 
    If you are coming from NEURON and looking for the equivalent of
-   ``nrnivmodl``, please read on :ref:`here <_mechanisms_dynamic>`.
+   ``nrnivmodl``, please read on :ref:`here <mechanisms_dynamic>`.
 
    Following this path is for developers rather than end-users.
 

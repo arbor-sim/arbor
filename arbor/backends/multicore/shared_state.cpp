@@ -191,7 +191,6 @@ shared_state::shared_state(
     fvm_size_type n_detector,
     const std::vector<fvm_index_type>& cv_to_intdom_vec,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
-    const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
@@ -203,10 +202,8 @@ shared_state::shared_state(
     n_intdom(n_intdom),
     n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
-    n_gj(gj_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
-    gap_junctions(math::round_up(n_gj, alignment), pad(alignment)),
     time(n_intdom, pad(alignment)),
     time_to(n_intdom, pad(alignment)),
     dt_intdom(n_intdom, pad(alignment)),
@@ -231,10 +228,6 @@ shared_state::shared_state(
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
-    }
-    if (n_gj>0) {
-        std::copy(gj_vec.begin(), gj_vec.end(), gap_junctions.begin());
-        std::fill(gap_junctions.begin()+n_gj, gap_junctions.end(), gj_vec.back());
     }
 
     util::fill(time_since_spike, -1.0);
@@ -320,16 +313,6 @@ void shared_state::set_dt() {
         simd_value_type dt;
         assign(dt, indirect(dt_intdom.data(), intdom_idx, simd_width));
         indirect(dt_cv.data()+i, simd_width) = dt;
-    }
-}
-
-void shared_state::add_gj_current() {
-    for (unsigned i = 0; i < n_gj; i++) {
-        auto gj = gap_junctions[i];
-        auto curr = gj.weight *
-                    (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
-        current_density[gj.loc.first] -= curr;
     }
 }
 
@@ -430,17 +413,20 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
 
+    bool found = false;
     arb_value_type* data = nullptr;
     for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
         if (key==m.mech_.parameters[i].name) {
             data = m.ppack_.parameters[i];
+            found = true;
             break;
         }
     }
 
-    if (!data) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
+    if (!found) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
 
     if (!m.ppack_.width) return;
+
     auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);
     copy_extend(values, util::range_n(data, width_padded), values.back());
 }
@@ -501,6 +487,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.vec_t            = nullptr;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
+    bool peer_indices = !pos_data.peer_cv.empty();
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
@@ -518,9 +505,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
         m.ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
     }
-
-    // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (m.ppack_.width==0) return;
 
     // Initialize state and parameter vectors with default values.
     {
@@ -563,12 +547,15 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     {
         // Allocate bulk storage
         std::size_t index_width_padded = extend_width<arb_index_type>(m, pos_data.cv.size());
-        std::size_t count = mult_in_place + m.mech_.n_ions + 1;
+        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*index_width_padded, 0, pad);
         chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
-        m.ppack_.node_index = writer.append(pos_data.cv, pos_data.cv.back());
-
+        //   We usually insert cv.size() == width elements into node index (length: width_padded >= width)
+        //   and pad by the last element of cv. If width == 0 we must choose a different pad, that will not
+        //   really be used, as width == width_padded == 0. Nevertheless, we need to pass it.
+        auto pad_val = pos_data.cv.empty() ? 0 : pos_data.cv.back();
+        m.ppack_.node_index = writer.append(pos_data.cv, pad_val);
         auto node_index = util::range_n(m.ppack_.node_index, index_width_padded);
         // Make SIMD index constraints and set the view
         store.constraints_ = make_constraint_partition(node_index, m.ppack_.width, m.iface_.partition_width);
@@ -594,6 +581,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
             arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, index_width_padded), m.iface_.partition_width));
         }
         if (mult_in_place) m.ppack_.multiplicity = writer.append(pos_data.multiplicity, 0);
+        // `peer_index` holds the peer CV of each CV in node_index.
+        // Peer CVs are only filled for gap junction mechanisms. They are used
+        // to index the voltage at the other side of a gap-junction connection.
+        if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }
 
