@@ -46,7 +46,7 @@ struct index_prop {
     std::string index_name; // index into the array
     index_kind  kind; // node index (cv) or cell index or other
     bool operator==(const index_prop& other) const {
-        return (source_var == other.source_var) && (index_name == other.index_name) && (kind == other.kind);
+        return (source_var == other.source_var) && (index_name == other.index_name);
     }
 };
 
@@ -538,7 +538,7 @@ namespace {
         deref(indexed_variable_info d): d(d) {}
 
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
-            auto index_var = wrap.d.index_var();
+            auto index_var = wrap.d.outer_index_var();
             auto i_name = index_i_name(index_var);
             index_var = pp_var_pfx + index_var;
             return o << data_via_ppack(wrap.d) << '[' << (wrap.d.scalar() ? "0": i_name) << ']';
@@ -551,15 +551,19 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            index_prop index_var = {d.index_var(), index, d.index_var_kind};
+            auto nested = !d.inner_index_var().empty();
+            auto outer_index_var = d.outer_index_var();
+            auto inner_index_var = nested? d.inner_index_var()+"i_": index;
+            index_prop index_var = {outer_index_var, inner_index_var, d.index_var_kind};
             auto it = std::find(indices.begin(), indices.end(), index_var);
-            if (it == indices.end()) indices.push_front(index_var);
-
-            auto internal_index = d.internal_index_var();
-            if (!internal_index.empty()) {
-                index_prop internal_index_var = {internal_index, node_index_i_name(d), d.index_var_kind};
-                auto it = std::find(indices.begin(), indices.end(), internal_index_var);
-                if (it == indices.end()) indices.push_back(internal_index_var);
+            if (it == indices.end()) {
+                // It an inner index is required, push this index to the end of the list
+                if (nested) {
+                    indices.push_back(index_var);
+                }
+                else {
+                    indices.push_front(index_var);
+                }
             }
         }
     }
@@ -804,7 +808,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                 default: {
                     out << ";\n"
                         << "assign(" << local->name() << ", indirect(" << data_via_ppack(d)
-                        << ", " << index_i_name(d.index_var()) << ", simd_width_, index_constraint::none));\n";
+                        << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none));\n";
                     break;
                 }
             }
@@ -872,7 +876,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                 break;
             }
             default: {
-                out << "indirect(" << data_via_ppack(d) << ", " << index_i_name(d.index_var()) << ", simd_width_, index_constraint::none)";
+                out << "indirect(" << data_via_ppack(d) << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none)";
                 if (coeff != 1) {
                     out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
                 } else {
@@ -899,7 +903,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
             }
             default: {
                 out << "indirect(" << data_via_ppack(d)
-                    << ", " << index_i_name(d.index_var()) << ", simd_width_, index_constraint::none) = ";
+                    << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none) = ";
                 break;
             }
         }

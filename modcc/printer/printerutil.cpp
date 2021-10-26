@@ -121,18 +121,18 @@ PostEventExpression* find_post_event(const Module& m) {
 
 bool indexed_variable_info::scalar() const { return index_var_kind==index_kind::none; }
 
-std::string indexed_variable_info::index_var() const {
-    switch(index_var_kind) {
-    case index_kind::node: return node_index_var;
-    case index_kind::cell: return cell_index_var;
-    case index_kind::other: return other_index_var;
-    default: return {};
-    }
-}
-
-std::string indexed_variable_info::internal_index_var() const {
+std::string indexed_variable_info::inner_index_var() const {
     if (index_var_kind == index_kind::cell) return node_index_var;
     return {};
+}
+
+std::string indexed_variable_info::outer_index_var() const {
+    switch(index_var_kind) {
+        case index_kind::node: return node_index_var;
+        case index_kind::cell: return cell_index_var;
+        case index_kind::other: return other_index_var;
+        default: return {};
+    }
 }
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {

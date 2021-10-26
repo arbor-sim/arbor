@@ -153,8 +153,8 @@ struct indexed_variable_info {
     // to the NMODL value.
     double scale = 1;
     bool scalar() const;
-    std::string index_var() const;
-    std::string internal_index_var() const;
+    std::string inner_index_var() const;
+    std::string outer_index_var() const;
 };
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
