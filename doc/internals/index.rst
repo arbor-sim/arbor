@@ -13,3 +13,4 @@ Here we document internal components of Arbor. These pages can be useful if you'
    simd_api
    extending_catalogues
    mechanism_abi
+   numerics
