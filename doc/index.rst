@@ -165,6 +165,7 @@ A full list of our software attributions can be found `here <https://github.com/
    contrib/doc
    contrib/example
    contrib/test
+   contrib/release
 
 .. meta::
    :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo
