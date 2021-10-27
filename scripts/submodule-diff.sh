@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -Eeuo pipefail
-
 git submodule foreach 'git describe HEAD --tags' > pre.log
 git submodule update --remote
 git submodule foreach 'git checkout `git describe --abbrev=0 --tags`'
