@@ -20,7 +20,7 @@ jobs:
       - name: Create Issue From File
         uses: peter-evans/create-issue-from-file@v3
         with:
-          title: [AUTOMATED] Git submodule updates found
+          title: '[AUTOMATED] Git submodule updates found'
           content-filepath: ./diff.log
           labels: |
             dependency update
