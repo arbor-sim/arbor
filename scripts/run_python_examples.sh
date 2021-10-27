@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 if [[ "$#" -gt 1 ]]; then
     echo "usage: run_python_examples.sh <prefix>"
-	exit 1
+    exit 1
 fi
 
 PREFIX=${1:-}

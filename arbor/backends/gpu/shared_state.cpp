@@ -38,9 +38,6 @@ void set_dt_impl(
     fvm_size_type nintdom, fvm_size_type ncomp, fvm_value_type* dt_intdom, fvm_value_type* dt_comp,
     const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom);
 
-void add_gj_current_impl(
-    fvm_size_type n_gj, const fvm_gap_junction* gj, const fvm_value_type* v, fvm_value_type* i);
-
 void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
     const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value);
@@ -179,7 +176,6 @@ shared_state::shared_state(
     fvm_size_type n_detector,
     const std::vector<fvm_index_type>& cv_to_intdom_vec,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
-    const std::vector<fvm_gap_junction>& gj_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
@@ -189,10 +185,8 @@ shared_state::shared_state(
     n_intdom(n_intdom),
     n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
-    n_gj(gj_vec.size()),
     cv_to_intdom(make_const_view(cv_to_intdom_vec)),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
-    gap_junctions(make_const_view(gj_vec)),
     time(n_intdom),
     time_to(n_intdom),
     dt_intdom(n_intdom),
@@ -280,6 +274,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     using util::value_by_key;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
+    bool peer_indices = !pos_data.peer_cv.empty();
 
     // Set internal variables
     m.time_ptr_ptr   = &time_ptr;
@@ -358,7 +353,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
-        std::size_t count = mult_in_place + m.mech_.n_ions + 1;
+        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*width_padded);
         chunk_writer writer(store.indices_.data(), width);
 
@@ -379,6 +374,10 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         }
 
         m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
+        // `peer_index` holds the peer CV of each CV in node_index.
+        // Peer CVs are only filled for gap junction mechanisms. They are used
+        // to index the voltage at the other side of a gap-junction connection.
+        m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
     }
 
     // Shift data to GPU, set up pointers
@@ -441,10 +440,6 @@ void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
 
 void shared_state::set_dt() {
     set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
-}
-
-void shared_state::add_gj_current() {
-    add_gj_current_impl(n_gj, gap_junctions.data(), voltage.data(), current_density.data());
 }
 
 void shared_state::add_stimulus_current() {

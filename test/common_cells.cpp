@@ -179,7 +179,7 @@ cable_cell_description make_cell_soma_only(bool with_stim) {
     soma_cell_builder builder(18.8/2.0);
 
     auto c = builder.make_cell();
-    c.decorations.paint("soma"_lab, "hh");
+    c.decorations.paint("soma"_lab, density("hh"));
     if (with_stim) {
         c.decorations.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1}, "cc");
     }
@@ -213,8 +213,8 @@ cable_cell_description make_cell_ball_and_stick(bool with_stim) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
     auto c = builder.make_cell();
-    c.decorations.paint("soma"_lab, "hh");
-    c.decorations.paint("dend"_lab, "pas");
+    c.decorations.paint("soma"_lab, density("hh"));
+    c.decorations.paint("dend"_lab, density("pas"));
     if (with_stim) {
         c.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "cc");
     }
@@ -251,8 +251,8 @@ cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
     builder.add_branch(1, 100, 0.5, 0.5, 4, "dend");
 
     auto c = builder.make_cell();
-    c.decorations.paint("soma"_lab, "hh");
-    c.decorations.paint("dend"_lab, "pas");
+    c.decorations.paint("soma"_lab, density("hh"));
+    c.decorations.paint("dend"_lab, density("pas"));
     if (with_stim) {
         c.decorations.place(builder.location({2,1}), i_clamp{5.,  80., 0.45}, "cc0");
         c.decorations.place(builder.location({3,1}), i_clamp{40., 10.,-0.2}, "cc1");

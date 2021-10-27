@@ -19,10 +19,10 @@ class cc_recipe(A.recipe):
 
         dec = A.decor()
 
-        dec.place('(location 0 0.08)', "expsyn", "syn0")
-        dec.place('(location 0 0.09)', "exp2syn", "syn1")
+        dec.place('(location 0 0.08)', A.synapse("expsyn"), "syn0")
+        dec.place('(location 0 0.09)', A.synapse("exp2syn"), "syn1")
         dec.place('(location 0 0.1)', A.iclamp(20.), "iclamp")
-        dec.paint('(all)', "hh")
+        dec.paint('(all)', A.density("hh"))
 
         self.cell = A.cable_cell(st, A.label_dict(), dec)
 

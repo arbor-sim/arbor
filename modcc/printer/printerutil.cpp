@@ -137,6 +137,11 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.data_var="vec_v";
         v.readonly = true;
         break;
+    case sourceKind::peer_voltage:
+        v.data_var="vec_v";
+        v.node_index_var = "peer_index";
+        v.readonly = true;
+        break;
     case sourceKind::current_density:
         v.data_var = "vec_i";
         v.readonly = false;
