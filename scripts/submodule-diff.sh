@@ -11,3 +11,4 @@ if diff pre.log post.log ; then
 else
     diff pre.log post.log -U 10000 > diff.log
 fi
+echo "Last retval must be zero for GA to pass..."
