@@ -48,7 +48,7 @@ Ions
   they need to be passed as arguments.
 * If ``Xi`` or ``Xo`` (internal and external concentrations) are written in the
   NMODL mechanism they need to be declared as ``STATE`` variables and their initial
-  values have to be set in the mechanism.
+  values have to be set in the ``INITIAL`` block in the mechanism.
 
 Special variables
 -----------------
@@ -114,3 +114,51 @@ Arbor-specific features
   of a gap-junction connection as well as the local site. The peer membrane potential is
   made available through the ``v_peer`` variable while the local membrane potential
   is available through ``v``, as usual.
+
+Nernst
+------
+Many mechanisms make use of the reversal potential of an ion (``eX`` for ion ``X``).
+A popular equation for determining the reversal potential during the simulation is
+the `Nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
+Both Arbor and NEURON make use of ``nernst``. Arbor implements it as a mechanism and
+NEURON implements it as a built-in method. However, the conditions for using the
+``nernst`` equation to change the reversal potential of an ion differ between the
+two simulators.
+
+1. In Arbor, the reversal potential of an ion remains equal to its initial value (which
+has to be set by the user) over the entire course of the simulation, unless another
+mechanism which alters that reversal potential (such as ``nernst``) is explicitly selected
+for the entire cell. (see :ref:`cppcablecell-revpot` for details).
+
+.. NOTE:
+  This means that a user cannot indicate to use ``nernst`` to calculate the reversal
+  potential on some regions of the cell, while other regions of the cell have a constant
+  reversal potential. It's either applied on the entire cell or not at all. This differs
+  from NEURON's policy.
+
+2. In NEURON, there is a rule which is evaluated (under the hood) per section of a given
+cell to determine whether or not the reversal potential of an ion remains constant or is
+calculated using ``nernst``. The rule is documented
+`here <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_
+and can be summarized as follows:
+
+  Examining all mechansims on a given section, if the internal or external concentration of
+  an ion is **written**, and its reversal potential is **read but not written**, then the
+  nernst equation is used **continuously** during the simulation to update the reversal
+  potential of the ion.
+  And if the internal or external concentration of an ion is **read**, and its reversal
+  potential is **read but not written**, then the nernst equation is used **once** at the
+  beginning of the simulation to caluclate the reversal potential of the ion, and then
+  remains constant.
+  Otherwise, the reversal potential is set by the user and remains constant.
+
+One of the main consequences of this difference in behavior is that in Arbor, a mechanism
+modifying the reversal potential (for example ``nernst``) can only be applied (for a given ion)
+at a global level on a given cell. While in Neuron, different mechanisms can be used for
+calculating the reversal potential of an ion on different parts of the morphology.
+This is due to the different methods Arbor and NEURON use for discretising the morphology.
+(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section``can only
+contain full ``segments``).
+
+Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
+as it can lead to vastly different model behavior.
