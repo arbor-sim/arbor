@@ -14,10 +14,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Clone w/ submodules
-        run: |
-          git submodule update --remote
-          git submodule foreach 'git checkout `git describe --abbrev=0 --tags`'
+      - name: Update remotes
+        run: git submodule update --remote
+      - name: Checkout latest tags
+        run: git submodule foreach 'git checkout `git describe --abbrev=0 --tags`'
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v3
