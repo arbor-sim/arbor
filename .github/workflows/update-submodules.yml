@@ -1,10 +1,8 @@
 name: Update submodules
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  schedule:
+    - cron: '0 2 * * 0' # run at 2 AM every sunday
 
 jobs:
   update_submodules:
