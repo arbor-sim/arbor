@@ -43,3 +43,4 @@ jobs:
           assignees: brenthuisman
           reviewers: brenthuisman
           draft: true
+          base: master
