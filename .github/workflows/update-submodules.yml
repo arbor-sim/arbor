@@ -3,7 +3,9 @@ name: Update submodules
 on:
   schedule:
     - cron: '0 2 * * 0' # run at 2 AM every sunday
-
+  push:
+    branches: [ 'ci/auto-update-submodules' ]
+    
 jobs:
   update_submodules:
     runs-on: ubuntu-latest
