@@ -130,10 +130,6 @@ The Python wrapper provides an API for:
     provided by :class:`context`, instead they configure contexts, which are passed to
     Arbor interfaces for domain decomposition and simulation.
 
-    .. function:: context()
-
-        Construct a local context with one thread, no GPU, no MPI.
-
     .. function:: context(threads, gpu_id, mpi)
         :noindex:
 
@@ -154,15 +150,6 @@ The Python wrapper provides an API for:
             The MPI communicator (see :class:`mpi_comm`), ``None`` by default.
             Must be ``None``, or an MPI communicator.
             Can only be set when Arbor was built with MPI support.
-
-    .. function:: context(alloc)
-        :noindex:
-
-        Create a local context, with no distributed/MPI, that uses the local resources described by :class:`proc_allocation`.
-
-        .. attribute:: alloc
-
-            The computational resources, one thread and no GPU by default.
 
     .. function:: context(alloc, mpi)
         :noindex:

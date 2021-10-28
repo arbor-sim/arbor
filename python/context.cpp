@@ -93,16 +93,6 @@ void register_contexts(pybind11::module& m) {
     // context
     pybind11::class_<context_shim> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
     context
-        .def(pybind11::init<>(
-            [](){return context_shim(arb::make_context());}),
-            "Construct a local context with one thread, no GPU, no MPI by default.\n"
-            )
-        .def(pybind11::init(
-            [](const proc_allocation_shim& alloc){
-                return context_shim(arb::make_context(alloc.allocation())); }),
-            "alloc"_a,
-            "Construct a local context with argument:\n"
-            "  alloc:   The computational resources to be used for the simulation.\n")
         .def(pybind11::init(
             [](int threads, pybind11::object gpu, pybind11::object mpi){
                 const char* gpu_err_str = "gpu_id must be None, or a non-negative integer";
