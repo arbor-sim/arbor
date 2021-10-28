@@ -48,7 +48,6 @@ public:
     virtual pybind11::object global_properties(arb::cell_kind kind) const {
         return pybind11::none();
     };
-    //TODO: virtual pybind11::object global_properties(arb::cell_kind kind) const {return pybind11::none();};
 };
 
 class py_recipe_trampoline: public py_recipe {

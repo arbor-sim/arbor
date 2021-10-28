@@ -14,6 +14,7 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 
+#include "arbor/cable_cell_param.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"
@@ -69,6 +70,9 @@ static arb::util::unique_any convert_cell(pybind11::object o) {
 static std::any convert_gprop(pybind11::object o) {
     if (o.is(pybind11::none())) {
         return {};
+    }
+    if (!pybind11::isinstance<arb::cable_cell_global_properties>(o)) {
+        throw pyarb_error("recipe.global_properties must return a valid description of cable cell properties of type arbor.cable_global_properties");
     }
     return pybind11::cast<arb::cable_cell_global_properties>(o);
 }
