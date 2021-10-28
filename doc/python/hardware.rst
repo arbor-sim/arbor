@@ -8,6 +8,9 @@ Arbor provides two ways for working with hardware resources:
 * *Prescribe* the hardware resources and their contexts for use in Arbor simulations.
 * *Query* available hardware resources (e.g. the number of available GPUs), and initializing MPI.
 
+Note that to utilize some hardware features Arbor must be built and installed with the feature enabled, for example MPI or a GPU.
+Please refer to the :ref:`kind <modelcellkind>` for informatioon on how to enable hardware support.
+
 Available resources
 -------------------
 
