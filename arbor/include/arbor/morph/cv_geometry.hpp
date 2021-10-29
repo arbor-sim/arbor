@@ -7,6 +7,7 @@
 #include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/region.hpp>
 
 namespace arb {
 class cv_geometry;
@@ -30,8 +31,26 @@ private:
     std::vector<util::pw_elements<fvm_size_type>> branch_cv_map;     // CV offset map by branch.
 
     friend cv_geometry;
-    friend cell_cv_geometry cell_cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
+    friend cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset);
 };
 
-cell_cv_geometry cell_cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
+class region_cv_geometry {
+public:
+    auto cables(fvm_size_type cv_index) const;       // Returns mcables comprising the CV at a given index.
+    auto proportion(fvm_size_type cv_index) const;   // Returns proportion of CV in the region, by area.
+    fvm_size_type num_cv() const;                    // Returns total number of CVs.
+
+private:
+    std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
+    std::vector<fvm_index_type> cv_cables_divs;   // Partitions cv_cables by CV index
+    std::vector<fvm_value_type> cv_proportion;    // Proportion of CV by area.
+
+    friend region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& cvs);
+};
+
+// Construct cell_cv_geometry for cell from locset describing CV boundary points.
+cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset);
+
+region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& cvs);
+
 } //namespace arb

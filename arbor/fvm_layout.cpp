@@ -18,6 +18,7 @@
 #include "util/meta.hpp"
 #include "util/partition.hpp"
 #include "util/piecewise.hpp"
+#include "util/pw_over_cable.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "util/unique.hpp"
@@ -30,19 +31,13 @@ using util::count_along;
 using util::make_span;
 using util::pw_elements;
 using util::pw_element;
+using util::pw_over_cable;
 using util::sort;
 using util::sort_by;
 using util::stable_sort_by;
 using util::value_by_key;
 
 namespace {
-struct get_value {
-    template <typename X>
-    double operator()(const X& x) const { return x.value; }
-
-    double operator()(double x) const { return x; }
-};
-
 template <typename V>
 std::optional<V> operator|(const std::optional<V>& a, const std::optional<V>& b) {
     return a? a: b;
@@ -81,183 +76,11 @@ std::vector<V> unique_union(const std::vector<V>& a, const std::vector<V>& b) {
     }
     return u;
 }
-
-// Convert mcable_map values to a piecewise function over an mcable.
-// The projection gives the map from the values in the mcable_map to the values in the piecewise function.
-template <typename T, typename U, typename Proj = get_value>
-pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value, Proj projection = Proj{}) {
-    using value_type = typename mcable_map<T>::value_type;
-    msize_t bid = cable.branch;
-
-    struct as_branch {
-        msize_t value;
-        as_branch(const value_type& x): value(x.first.branch) {}
-        as_branch(const msize_t& x): value(x) {}
-    };
-
-    auto map_on_branch = util::make_range(
-            std::equal_range(mm.begin(), mm.end(), bid,
-                [](as_branch a, as_branch b) { return a.value<b.value; }));
-
-    if (map_on_branch.empty()) {
-        return pw_elements<U>({cable.prox_pos, cable.dist_pos}, {dflt_value});
-    }
-
-    pw_elements<U> pw;
-    for (const auto& el: map_on_branch) {
-        double pw_right = pw.empty()? 0: pw.bounds().second;
-        if (el.first.prox_pos>pw_right) {
-            pw.push_back(pw_right, el.first.prox_pos, dflt_value);
-        }
-        pw.push_back(el.first.prox_pos, el.first.dist_pos, projection(el.second));
-    }
-
-    double pw_right = pw.empty()? 0: pw.bounds().second;
-    if (pw_right<1.) {
-        pw.push_back(pw_right, 1., dflt_value);
-    }
-
-    if (cable.prox_pos!=0 || cable.dist_pos!=1) {
-        pw = pw_zip_with(pw, pw_elements<>({cable.prox_pos, cable.dist_pos}));
-    }
-    return pw;
-}
 } // anonymous namespace
 
 
 // Building CV geometry
 // --------------------
-
-// Construct cv_geometry for cell from locset describing CV boundary points.
-
-/*
-cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
-    auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
-
-    cv_geometry geom;
-    const auto& mp = cell.provider();
-    const auto& m = mp.morphology();
-
-    if (m.empty()) {
-        geom.cell_cv_divs = {0, 0};
-        return geom;
-    }
-
-    mlocation_list locs = thingify(lset, mp);
-
-    // Filter out root, terminal locations and repeated locations so as to
-    // avoid trivial CVs outside of fork points. (This is not necessary for
-    // correctness, but is for the convenience of specification by lset.)
-
-    auto neither_root_nor_terminal = [&m](mlocation x) {
-        return !(x.pos==0 && x.branch==(m.branch_children(mnpos).size()>1u? mnpos: 0)) // root?
-            && !(x.pos==1 && m.branch_children(x.branch).empty()); // terminal?
-    };
-    locs.erase(std::partition(locs.begin(), locs.end(), neither_root_nor_terminal), locs.end());
-    util::sort(locs);
-    util::unique_in_place(locs);
-
-    // Collect cables constituting each CV, maintaining a stack of CV
-    // proximal 'head' points, and recursing down branches in the morphology
-    // within each CV.
-
-    constexpr fvm_index_type no_parent = -1;
-    std::vector<std::pair<mlocation, fvm_index_type>> next_cv_head; // head loc, parent cv index
-    next_cv_head.emplace_back(mlocation{mnpos, 0}, no_parent);
-
-    mcable_list cables;
-    std::vector<msize_t> branches;
-    geom.cv_cables_divs.push_back(0);
-    fvm_index_type cv_index = 0;
-
-    while (!next_cv_head.empty()) {
-        auto next = pop(next_cv_head);
-        mlocation h = next.first;
-
-        cables.clear();
-        branches.clear();
-        branches.push_back(h.branch);
-        geom.cv_parent.push_back(next.second);
-
-        while (!branches.empty()) {
-            msize_t b = pop(branches);
-
-            // Find most proximal point in locs on this branch, strictly more distal than h.
-            auto it = locs.end();
-            if (b!=mnpos && b==h.branch) {
-                it = std::upper_bound(locs.begin(), locs.end(), h);
-            }
-            else if (b!=mnpos) {
-                it = std::lower_bound(locs.begin(), locs.end(), mlocation{b, 0});
-            }
-
-            // If found, use as an end point, and stop descent.
-            // Otherwise, recurse over child branches.
-            if (it!=locs.end() && it->branch==b) {
-                cables.push_back({b, b==h.branch? h.pos: 0, it->pos});
-                next_cv_head.emplace_back(*it, cv_index);
-            }
-            else {
-                if (b!=mnpos) {
-                    cables.push_back({b, b==h.branch? h.pos: 0, 1});
-                }
-                for (auto& c: m.branch_children(b)) {
-                    branches.push_back(c);
-                }
-            }
-        }
-
-        sort(cables);
-        util::append(geom.cv_cables, std::move(cables));
-        geom.cv_cables_divs.push_back(geom.cv_cables.size());
-        ++cv_index;
-    }
-
-    auto n_cv = cv_index;
-    arb_assert(n_cv>0);
-    arb_assert(geom.cv_parent.front()==-1);
-    arb_assert(util::all_of(util::subrange_view(geom.cv_parent, 1, n_cv),
-            [](auto v) { return v!=no_parent; }));
-
-    // Construct CV children mapping by sorting CV indices by parent.
-    assign(geom.cv_children, make_span(1, n_cv));
-    stable_sort_by(geom.cv_children, [&geom](auto cv) { return geom.cv_parent[cv]; });
-
-    geom.cv_children_divs.reserve(n_cv+1);
-    geom.cv_children_divs.push_back(0);
-
-    auto b = geom.cv_children.begin();
-    auto e = geom.cv_children.end();
-    auto from = b;
-
-    for (fvm_index_type cv = 0; cv<n_cv; ++cv) {
-        from = std::partition_point(from, e,
-            [cv, &geom](auto i) { return geom.cv_parent[i]<=cv; });
-        geom.cv_children_divs.push_back(from-b);
-    }
-
-    // Fill cv/cell mapping for single cell (index 0).
-    geom.cv_to_cell.assign(cv_index, 0);
-    geom.cell_cv_divs = {0, (fvm_index_type)cv_index};
-
-    // Build location query map.
-    geom.branch_cv_map.resize(1);
-    std::vector<pw_elements<fvm_size_type>>& bmap = geom.branch_cv_map.back();
-
-    for (auto cv: make_span(n_cv)) {
-        for (auto cable: geom.cables(cv)) {
-            if (cable.branch>=bmap.size()) {
-                bmap.resize(cable.branch+1);
-            }
-
-            // Ordering of CV ensures CV cables on any given branch are found sequentially.
-            bmap[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
-        }
-    }
-
-    return geom;
-}
-*/
 
 namespace impl {
     using std::begin;
@@ -340,7 +163,6 @@ fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discreti
     return dczn;
 }
 
-
 // FVM discretization
 // ------------------
 
@@ -348,7 +170,7 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
-    D.geometry = cell_cv_geometry_from_ends(cell,
+    D.geometry = cv_geometry_from_locset(cell,
         dflt.discretization? dflt.discretization->cv_boundary_points(cell):
         global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
         default_cv_policy().cv_boundary_points(cell));

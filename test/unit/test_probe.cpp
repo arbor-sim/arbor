@@ -240,7 +240,7 @@ void run_v_cell_probe_test(const context& ctx) {
 
         // Independetly discretize the cell so we can follow cable–CV relationship.
 
-        cv_geometry geom = cell_cv_geometry_from_ends(cell, testcase.second.cv_boundary_points(cell));
+        cv_geometry geom = cv_geometry_from_locset(cell, testcase.second.cv_boundary_points(cell));
 
         // For each cable in metadata, get CV from geom and confirm raw handle is
         // state voltage + CV.
@@ -414,8 +414,8 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
 
         // Independently get cv geometry to compute CV indices.
 
-        cv_geometry geom = cell_cv_geometry_from_ends(cells[0], policy.cv_boundary_points(cells[0]));
-        append(geom, cell_cv_geometry_from_ends(cells[1], policy.cv_boundary_points(cells[1])));
+        cv_geometry geom = cv_geometry_from_locset(cells[0], policy.cv_boundary_points(cells[0]));
+        append(geom, cv_geometry_from_locset(cells[1], policy.cv_boundary_points(cells[1])));
 
         ASSERT_EQ(2u, probe_map.size());
         for (unsigned i: {0u, 1u}) {

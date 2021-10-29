@@ -6,6 +6,7 @@
 
 #include "util/partition.hpp"
 #include "util/piecewise.hpp"
+#include "util/pw_over_cable.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "util/unique.hpp"
@@ -30,7 +31,7 @@ fvm_size_type cell_cv_geometry::num_cv() const {
     return cv_parent.size();
 }
 
-cell_cv_geometry cell_cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
+cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset) {
     auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
 
     cell_cv_geometry geom;
@@ -148,6 +149,54 @@ cell_cv_geometry cell_cv_geometry_from_ends(const cable_cell& cell, const locset
     }
 
     return geom;
+}
+
+auto region_cv_geometry::cables(fvm_size_type cv_index) const {
+    auto partn = util::partition_view(cv_cables_divs);
+    return util::subrange_view(cv_cables, partn[cv_index]);
+}
+
+auto region_cv_geometry::proportion(fvm_size_type cv_index) const {
+    return cv_proportion[cv_index];
+}
+
+fvm_size_type region_cv_geometry::num_cv() const {
+    return cv_proportion.size();
+}
+
+region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& geom) {
+    const auto& mp = cell.provider();
+    const auto& embedding = cell.embedding();
+
+    region_cv_geometry reg_geom;
+    auto extent = thingify(reg, mp);
+    mcable_map<double> support;
+    for (auto& cable: extent) {
+        support.insert(cable, 1.);
+    }
+    if(support.empty()) {
+        return reg_geom;
+    }
+
+    reg_geom.cv_cables_divs.push_back(0);
+    for (auto cv: util::make_span(geom.num_cv())) {
+        std::vector<mcable> cables;
+        double cv_area = 0, area_on_cv = 0;
+        for (mcable c: geom.cables(cv)) {
+            cv_area += embedding.integrate_area(c);
+            auto area_on_cable = embedding.integrate_area(c.branch, util::pw_over_cable(support, c, 0.));
+            if (area_on_cable > 0) {
+                cables.push_back(c);
+                area_on_cv += area_on_cable;
+            }
+        }
+        if (!cables.empty()) {
+            util::append(reg_geom.cv_cables, cables);
+            reg_geom.cv_cables_divs.push_back(reg_geom.cv_cables.size());
+            reg_geom.cv_proportion.push_back(area_on_cv/cv_area);
+        }
+    }
+    return reg_geom;
 }
 
 } //namespace arb
