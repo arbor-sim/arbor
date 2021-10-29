@@ -15,10 +15,17 @@ class cv_geometry;
 // Stores info about the CV geometry of a discretized cable-cell
 class cell_cv_geometry {
 public:
-    auto cables(fvm_size_type cv_index) const;   // Returns mcables comprising the CV at a given index.
-    auto children(fvm_size_type cv_index) const; // Returns the CV indices of the children of a given CV index.
-    auto parent(fvm_size_type cv_index) const;   // Returns the CV index of the parent of a given CV index.
-    fvm_size_type num_cv() const;                // Returns total number of CVs.
+    // Returns mcables comprising the CV at a given index.
+    mcable_list cables(fvm_size_type cv_index) const;
+
+    // Returns the CV indices of the children of a given CV index.
+    std::vector<fvm_index_type> children(fvm_size_type cv_index) const;
+
+    // Returns the CV index of the parent of a given CV index.
+    fvm_index_type parent(fvm_size_type cv_index) const;
+
+    // Returns total number of CVs.
+    fvm_size_type num_cv() const;
 
 private:
     std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
@@ -28,7 +35,7 @@ private:
     std::vector<fvm_index_type> cv_children;      // CV child indices, partitioned by CV, and then in order.
     std::vector<fvm_index_type> cv_children_divs; // Paritions cv_children by CV index.
 
-    std::vector<util::pw_elements<fvm_size_type>> branch_cv_map;     // CV offset map by branch.
+//    std::vector<util::pw_elements<fvm_size_type>> branch_cv_map;     // CV offset map by branch.
 
     friend cv_geometry;
     friend cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset);
@@ -36,9 +43,14 @@ private:
 
 class region_cv_geometry {
 public:
-    auto cables(fvm_size_type cv_index) const;       // Returns mcables comprising the CV at a given index.
-    auto proportion(fvm_size_type cv_index) const;   // Returns proportion of CV in the region, by area.
-    fvm_size_type num_cv() const;                    // Returns total number of CVs.
+    // Returns mcables comprising the CV at a given index.
+    mcable_list cables(fvm_size_type cv_index) const;
+
+    // Returns proportion of CV in the region, by area.
+    fvm_value_type proportion(fvm_size_type cv_index) const;
+
+    // Returns total number of CVs.
+    fvm_size_type num_cv() const;
 
 private:
     std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
@@ -47,6 +59,9 @@ private:
 
     friend region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& cvs);
 };
+
+// Construct cell_cv_geometry for cell from default cell discretization if it exists.
+std::optional<cell_cv_geometry> cv_geometry_from_locset(const cable_cell& cell);
 
 // Construct cell_cv_geometry for cell from locset describing CV boundary points.
 cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset);

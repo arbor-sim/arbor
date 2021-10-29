@@ -25,6 +25,7 @@
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
+#include <arbor/morph/cv_geometry.hpp>
 
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -159,6 +160,28 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
+
+        auto c = arb::util::any_cast<arb::cable_cell>(recipe.get_cell_description(0));
+
+        if (auto c_cv = arb::cv_geometry_from_locset(c)) {
+            auto val = c_cv.value();
+            for (unsigned cv = 0; cv < val.num_cv(); cv++) {
+                std::cout << cv << std::endl;
+                for (const auto& c: val.cables(cv)) {
+                    std::cout << "\t" << c << std::endl;
+                }
+            }
+
+            std::cout << "soma_reg:" << std::endl;
+            auto s_cv = arb::intersect_region(c, arb::reg::all(), val);
+            for (unsigned cv = 0; cv < s_cv.num_cv(); cv++) {
+                std::cout << cv << std::endl;
+                for (const auto& c: s_cv.cables(cv)) {
+                    std::cout << "\t" << c << std::endl;
+                }
+                std::cout << "\t\t" << s_cv.proportion(cv) << std::endl;
+            }
+        }
 
         auto decomp = arb::partition_load_balance(recipe, context);
 

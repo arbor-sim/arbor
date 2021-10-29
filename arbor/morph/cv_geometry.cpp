@@ -13,22 +13,32 @@
 
 namespace arb {
 
-auto cell_cv_geometry::cables(fvm_size_type cv_index) const {
+mcable_list cell_cv_geometry::cables(fvm_size_type cv_index) const {
     auto partn = util::partition_view(cv_cables_divs);
-    return util::subrange_view(cv_cables, partn[cv_index]);
+    auto view = util::subrange_view(cv_cables, partn[cv_index]);
+    return mcable_list{view.begin(), view.end()};
 }
 
-auto cell_cv_geometry::children(fvm_size_type cv_index) const {
+std::vector<fvm_index_type> cell_cv_geometry::children(fvm_size_type cv_index) const {
     auto partn = util::partition_view(cv_children_divs);
-    return util::subrange_view(cv_children, partn[cv_index]);
+    auto view = util::subrange_view(cv_children, partn[cv_index]);
+    return std::vector<fvm_index_type>{view.begin(), view.end()};
 }
 
-auto cell_cv_geometry::parent(fvm_size_type cv_index) const {
+fvm_index_type cell_cv_geometry::parent(fvm_size_type cv_index) const {
     return cv_parent[cv_index];
 }
 
 fvm_size_type cell_cv_geometry::num_cv() const {
     return cv_parent.size();
+}
+
+std::optional<cell_cv_geometry> cv_geometry_from_locset(const cable_cell& cell) {
+    if (auto ls = cell.decorations().defaults().discretization) {
+        return cv_geometry_from_locset(cell, ls->cv_boundary_points(cell));
+    } else {
+        return {};
+    }
 }
 
 cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset) {
@@ -135,28 +145,16 @@ cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& l
         geom.cv_children_divs.push_back(from-b);
     }
 
-    // Build location query map.
-
-    for (auto cv: util::make_span(n_cv)) {
-        for (auto cable: geom.cables(cv)) {
-            if (cable.branch>=geom.branch_cv_map.size()) {
-                geom.branch_cv_map.resize(cable.branch+1);
-            }
-
-            // Ordering of CV ensures CV cables on any given branch are found sequentially.
-            geom.branch_cv_map[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
-        }
-    }
-
     return geom;
 }
 
-auto region_cv_geometry::cables(fvm_size_type cv_index) const {
+mcable_list region_cv_geometry::cables(fvm_size_type cv_index) const {
     auto partn = util::partition_view(cv_cables_divs);
-    return util::subrange_view(cv_cables, partn[cv_index]);
+    auto view = util::subrange_view(cv_cables, partn[cv_index]);
+    return mcable_list(view.begin(), view.end());
 }
 
-auto region_cv_geometry::proportion(fvm_size_type cv_index) const {
+fvm_value_type region_cv_geometry::proportion(fvm_size_type cv_index) const {
     return cv_proportion[cv_index];
 }
 
@@ -190,6 +188,7 @@ region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, c
                 area_on_cv += area_on_cable;
             }
         }
+        // TODO, what if cv_area = 0?
         if (!cables.empty()) {
             util::append(reg_geom.cv_cables, cables);
             reg_geom.cv_cables_divs.push_back(reg_geom.cv_cables.size());

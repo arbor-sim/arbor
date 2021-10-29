@@ -72,20 +72,6 @@ struct cv_geometry {
     std::vector<std::vector<util::pw_elements<size_type>>> branch_cv_map;
 
     cv_geometry() = default;
-    cv_geometry(cell_cv_geometry cell_geom) :
-        cv_cables(std::move(cell_geom.cv_cables)),
-        cv_cables_divs(std::move(cell_geom.cv_cables_divs)),
-        cv_parent(std::move(cell_geom.cv_parent)),
-        cv_children(std::move(cell_geom.cv_children)),
-        cv_children_divs(std::move(cell_geom.cv_children_divs))
-    {
-        branch_cv_map.resize(1);
-        branch_cv_map.back() = std::move(cell_geom.branch_cv_map);
-
-        auto n_cv = cv_parent.size();
-        cv_to_cell.assign(n_cv, 0);
-        cell_cv_divs = {0, (fvm_index_type)n_cv};
-    }
 
     auto cables(size_type cv_index) const {
         auto partn = util::partition_view(cv_cables_divs);
@@ -163,6 +149,32 @@ struct cv_geometry {
 
         index_type cv_base = cell_cv_divs.at(cell_idx);
         return cv_base+pw_cv_offset.value(i);
+    }
+
+    cv_geometry(cell_cv_geometry cell_geom) :
+        cv_cables(std::move(cell_geom.cv_cables)),
+        cv_cables_divs(std::move(cell_geom.cv_cables_divs)),
+        cv_parent(std::move(cell_geom.cv_parent)),
+        cv_children(std::move(cell_geom.cv_children)),
+        cv_children_divs(std::move(cell_geom.cv_children_divs))
+    {
+        // Build location query map.
+
+        auto n_cv = cv_parent.size();
+        branch_cv_map.resize(1);
+        std::vector<util::pw_elements<fvm_size_type>>& bmap = branch_cv_map.back();
+        for (auto cv: util::make_span(n_cv)) {
+            for (auto cable: cables(cv)) {
+                if (cable.branch>=bmap.size()) {
+                    bmap.resize(cable.branch+1);
+                }
+
+                // Ordering of CV ensures CV cables on any given branch are found sequentially.
+                bmap[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
+            }
+        }
+        cv_to_cell.assign(n_cv, 0);
+        cell_cv_divs = {0, (fvm_index_type)n_cv};
     }
 };
 
