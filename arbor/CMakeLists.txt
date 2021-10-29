@@ -28,6 +28,7 @@ set(arbor_sources
     mechinfo.cpp
     memory/gpu_wrappers.cpp
     memory/util.cpp
+    morph/cv_geometry.cpp
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp

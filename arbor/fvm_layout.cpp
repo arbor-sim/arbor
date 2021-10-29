@@ -130,6 +130,7 @@ pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value
 
 // Construct cv_geometry for cell from locset describing CV boundary points.
 
+/*
 cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
     auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
 
@@ -256,6 +257,7 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
 
     return geom;
 }
+*/
 
 namespace impl {
     using std::begin;
@@ -346,7 +348,7 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
-    D.geometry = cv_geometry_from_ends(cell,
+    D.geometry = cell_cv_geometry_from_ends(cell,
         dflt.discretization? dflt.discretization->cv_boundary_points(cell):
         global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
         default_cv_policy().cv_boundary_points(cell));
