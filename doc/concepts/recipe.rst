@@ -14,6 +14,9 @@ building phase to provide information about individual cells in the model, such 
 * **Gap junction connections** on each cell.
 * **Probes** on each cell.
 
+.. raw:: html
+   :file: rec2.html
+
 Recipes are structured to provide a consistent interface for describing each cell in the
 network using their global identifier (`gid`).
 This allows the simulator to be able to quickly look-up properties related to the connections

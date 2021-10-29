@@ -3,6 +3,11 @@
 Concepts overview
 =================
 
+Arbor is a library that lets you to model neural networks with morphologically detailed cells; itwhich it then executes the resulting simulation on a variety of hardware. The execution can optionally be configured in high detail but comes with sensible defaults.
+
+.. raw:: html
+   :file: over3.html
+
 To learn how to use Arbor, it is helpful to understand some of its concepts.
 Arbor's design aims to enable scalability through abstraction.
 To achieve this, Arbor makes a distinction between the **description** of a model, and the
