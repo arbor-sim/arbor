@@ -691,9 +691,9 @@ auto name(const typename detail::simd_traits<typename detail::sve_type_to_impl<T
 };
 
 
-ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min, cos, sin)
+ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
 ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt, logical_and, logical_or)
-ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr)
+ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr, cos, sin)
 
 #undef ARB_SVE_UNARY_ARITHMETIC_
 #undef ARB_SVE_BINARY_ARITHMETIC_
