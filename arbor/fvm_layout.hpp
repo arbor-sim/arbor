@@ -9,7 +9,7 @@
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/morph/cv_geometry.hpp>
+#include <arbor/morph/cv_data.hpp>
 
 #include "execution_context.hpp"
 #include "util/piecewise.hpp"
@@ -151,15 +151,14 @@ struct cv_geometry {
         return cv_base+pw_cv_offset.value(i);
     }
 
-    cv_geometry(cell_cv_geometry cell_geom) :
-        cv_cables(std::move(cell_geom.cv_cables)),
-        cv_cables_divs(std::move(cell_geom.cv_cables_divs)),
-        cv_parent(std::move(cell_geom.cv_parent)),
-        cv_children(std::move(cell_geom.cv_children)),
-        cv_children_divs(std::move(cell_geom.cv_children_divs))
+    cv_geometry(cell_cv_data data) :
+        cv_cables(std::move(data.cv_cables)),
+        cv_cables_divs(std::move(data.cv_cables_divs)),
+        cv_parent(std::move(data.cv_parent)),
+        cv_children(std::move(data.cv_children)),
+        cv_children_divs(std::move(data.cv_children_divs))
     {
         // Build location query map.
-
         auto n_cv = cv_parent.size();
         branch_cv_map.resize(1);
         std::vector<util::pw_elements<fvm_size_type>>& bmap = branch_cv_map.back();
@@ -181,9 +180,6 @@ struct cv_geometry {
 // Combine two cv_geometry groups in-place.
 // (Returns reference to first argument.)
 cv_geometry& append(cv_geometry&, const cv_geometry&);
-
-// Construct cv_geometry from locset describing boundaries.
-//cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
 
 // Discretization of morphologies and physical properties. Contains cv_geometry
 // as above.

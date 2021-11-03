@@ -1,7 +1,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/morph/cv_geometry.hpp>
+#include <arbor/morph/cv_data.hpp>
 #include <arbor/morph/embed_pwlin.hpp>
 
 #include "util/partition.hpp"
@@ -13,43 +13,43 @@
 
 namespace arb {
 
-mcable_list cell_cv_geometry::cables(fvm_size_type cv_index) const {
+mcable_list cell_cv_data::cables(fvm_size_type cv_index) const {
     auto partn = util::partition_view(cv_cables_divs);
     auto view = util::subrange_view(cv_cables, partn[cv_index]);
     return mcable_list{view.begin(), view.end()};
 }
 
-std::vector<fvm_index_type> cell_cv_geometry::children(fvm_size_type cv_index) const {
+std::vector<fvm_index_type> cell_cv_data::children(fvm_size_type cv_index) const {
     auto partn = util::partition_view(cv_children_divs);
     auto view = util::subrange_view(cv_children, partn[cv_index]);
     return std::vector<fvm_index_type>{view.begin(), view.end()};
 }
 
-fvm_index_type cell_cv_geometry::parent(fvm_size_type cv_index) const {
+fvm_index_type cell_cv_data::parent(fvm_size_type cv_index) const {
     return cv_parent[cv_index];
 }
 
-fvm_size_type cell_cv_geometry::num_cv() const {
+fvm_size_type cell_cv_data::num_cv() const {
     return cv_parent.size();
 }
 
-std::optional<cell_cv_geometry> cv_geometry_from_locset(const cable_cell& cell) {
-    if (auto ls = cell.decorations().defaults().discretization) {
-        return cv_geometry_from_locset(cell, ls->cv_boundary_points(cell));
+std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
+    if (auto policy = cell.decorations().defaults().discretization) {
+        return cv_data_from_locset(cell, policy->cv_boundary_points(cell));
     } else {
         return {};
     }
 }
 
-cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset) {
+cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
     auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
 
-    cell_cv_geometry geom;
+    cell_cv_data data;
     const auto& mp = cell.provider();
     const auto& m = mp.morphology();
 
     if (m.empty()) {
-        return geom;
+        return data;
     }
 
     mlocation_list locs = thingify(lset, mp);
@@ -76,7 +76,7 @@ cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& l
 
     mcable_list cables;
     std::vector<msize_t> branches;
-    geom.cv_cables_divs.push_back(0);
+    data.cv_cables_divs.push_back(0);
     fvm_index_type cv_index = 0;
 
     while (!next_cv_head.empty()) {
@@ -86,7 +86,7 @@ cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& l
         cables.clear();
         branches.clear();
         branches.push_back(h.branch);
-        geom.cv_parent.push_back(next.second);
+        data.cv_parent.push_back(next.second);
 
         while (!branches.empty()) {
             msize_t b = pop(branches);
@@ -117,56 +117,56 @@ cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& l
         }
 
         util::sort(cables);
-        util::append(geom.cv_cables, std::move(cables));
-        geom.cv_cables_divs.push_back(geom.cv_cables.size());
+        util::append(data.cv_cables, std::move(cables));
+        data.cv_cables_divs.push_back(data.cv_cables.size());
         ++cv_index;
     }
 
     auto n_cv = cv_index;
     arb_assert(n_cv>0);
-    arb_assert(geom.cv_parent.front()==-1);
-    arb_assert(util::all_of(util::subrange_view(geom.cv_parent, 1, n_cv),
+    arb_assert(data.cv_parent.front()==-1);
+    arb_assert(util::all_of(util::subrange_view(data.cv_parent, 1, n_cv),
                             [](auto v) { return v!=no_parent; }));
 
     // Construct CV children mapping by sorting CV indices by parent.
-    assign(geom.cv_children, util::make_span(1, n_cv));
-    util::stable_sort_by(geom.cv_children, [&geom](auto cv) { return geom.cv_parent[cv]; });
+    assign(data.cv_children, util::make_span(1, n_cv));
+    util::stable_sort_by(data.cv_children, [&data](auto cv) { return data.cv_parent[cv]; });
 
-    geom.cv_children_divs.reserve(n_cv+1);
-    geom.cv_children_divs.push_back(0);
+    data.cv_children_divs.reserve(n_cv+1);
+    data.cv_children_divs.push_back(0);
 
-    auto b = geom.cv_children.begin();
-    auto e = geom.cv_children.end();
+    auto b = data.cv_children.begin();
+    auto e = data.cv_children.end();
     auto from = b;
 
     for (fvm_index_type cv = 0; cv<n_cv; ++cv) {
         from = std::partition_point(from, e,
-                                    [cv, &geom](auto i) { return geom.cv_parent[i]<=cv; });
-        geom.cv_children_divs.push_back(from-b);
+                                    [cv, &data](auto i) { return data.cv_parent[i]<=cv; });
+        data.cv_children_divs.push_back(from-b);
     }
 
-    return geom;
+    return data;
 }
 
-mcable_list region_cv_geometry::cables(fvm_size_type cv_index) const {
+mcable_list region_cv_data::cables(fvm_size_type cv_index) const {
     auto partn = util::partition_view(cv_cables_divs);
     auto view = util::subrange_view(cv_cables, partn[cv_index]);
     return mcable_list(view.begin(), view.end());
 }
 
-fvm_value_type region_cv_geometry::proportion(fvm_size_type cv_index) const {
+fvm_value_type region_cv_data::proportion(fvm_size_type cv_index) const {
     return cv_proportion[cv_index];
 }
 
-fvm_size_type region_cv_geometry::num_cv() const {
+fvm_size_type region_cv_data::num_cv() const {
     return cv_proportion.size();
 }
 
-region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& geom) {
+region_cv_data intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& geom) {
     const auto& mp = cell.provider();
     const auto& embedding = cell.embedding();
 
-    region_cv_geometry reg_geom;
+    region_cv_data reg_geom;
     auto extent = thingify(reg, mp);
     mcable_map<double> support;
     for (auto& cable: extent) {
@@ -188,7 +188,6 @@ region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, c
                 area_on_cv += area_on_cable;
             }
         }
-        // TODO, what if cv_area = 0?
         if (!cables.empty()) {
             util::append(reg_geom.cv_cables, cables);
             reg_geom.cv_cables_divs.push_back(reg_geom.cv_cables.size());

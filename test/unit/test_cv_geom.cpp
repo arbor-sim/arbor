@@ -2,7 +2,7 @@
 #include <utility>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/morph/cv_geometry.hpp>
+#include <arbor/morph/cv_data.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
@@ -72,7 +72,7 @@ TEST(cv_geom, empty) {
     using namespace common_morphology;
 
     cable_cell empty_cell{m_empty};
-    cv_geometry geom = cv_geometry_from_locset(empty_cell, ls::nil());
+    cv_geometry geom = cv_data_from_locset(empty_cell, ls::nil());
     EXPECT_TRUE(verify_cv_children(geom));
 
     EXPECT_TRUE(geom.cv_parent.empty());
@@ -98,8 +98,8 @@ TEST(cv_geom, trivial) {
         auto& m = cell.morphology();
 
         // Equivalent ways of specifying one CV comprising whole cell:
-        cv_geometry geom1 = cv_geometry_from_locset(cell, ls::nil());
-        cv_geometry geom2 = cv_geometry_from_locset(cell, ls::terminal());
+        cv_geometry geom1 = cv_data_from_locset(cell, ls::nil());
+        cv_geometry geom2 = cv_data_from_locset(cell, ls::terminal());
 
         EXPECT_TRUE(verify_cv_children(geom1));
         EXPECT_TRUE(verify_cv_children(geom2));
@@ -108,8 +108,8 @@ TEST(cv_geom, trivial) {
         EXPECT_EQ(geom1.cv_cables, geom2.cv_cables);
 
         // These are equivalent too, if there is a single root branch.
-        cv_geometry geom3 = cv_geometry_from_locset(cell, ls::root());
-        cv_geometry geom4 = cv_geometry_from_locset(cell, join(ls::root(), ls::terminal()));
+        cv_geometry geom3 = cv_data_from_locset(cell, ls::root());
+        cv_geometry geom4 = cv_data_from_locset(cell, join(ls::root(), ls::terminal()));
 
         EXPECT_TRUE(verify_cv_children(geom3));
         EXPECT_TRUE(verify_cv_children(geom4));
@@ -139,7 +139,7 @@ TEST(cv_geom, one_cv_per_branch) {
         auto& m = cell.morphology();
 
         cv_geometry geom =
-            cv_geometry_from_locset(cell, sum(ls::on_branches(0), ls::on_branches(1)));
+            cv_data_from_locset(cell, sum(ls::on_branches(0), ls::on_branches(1)));
         EXPECT_TRUE(verify_cv_children(geom));
 
         // Expect trivial CVs at every fork point, and single-cable CVs for each branch.
@@ -193,7 +193,7 @@ TEST(cv_geom, midpoints) {
         cable_cell cell{p.second};
         auto& m = cell.morphology();
 
-        cv_geometry geom = cv_geometry_from_locset(cell, ls::on_branches(0.5));
+        cv_geometry geom = cv_data_from_locset(cell, ls::on_branches(0.5));
         EXPECT_TRUE(verify_cv_children(geom));
 
         // Expect CVs to be either: covering fork points, with one cable per branch
@@ -284,7 +284,7 @@ TEST(cv_geom, weird) {
     using testing::seq_eq;
 
     cable_cell cell{common_morphology::m_reg_b6};
-    cv_geometry geom = cv_geometry_from_locset(cell, mlocation_list{{1, 0}, {4,0}});
+    cv_geometry geom = cv_data_from_locset(cell, mlocation_list{{1, 0}, {4,0}});
 
     EXPECT_TRUE(verify_cv_children(geom));
     ASSERT_EQ(3u, geom.size());
@@ -316,7 +316,7 @@ TEST(cv_geom, location_cv) {
     };
 
     // Two CVs per branch, plus trivial CV at forks.
-    cv_geometry geom = cv_geometry_from_locset(cell,
+    cv_geometry geom = cv_data_from_locset(cell,
        join(ls::on_branches(0.), ls::on_branches(0.5), ls::on_branches(1.)));
 
     // Confirm CVs are either trivial or a single cable covering half a branch.
@@ -451,7 +451,7 @@ TEST(cv_geom, multicell) {
 
     cable_cell cell = cable_cell(m_reg_b6);
 
-    cv_geometry geom = cv_geometry_from_locset(cell, ls::on_branches(0.5));
+    cv_geometry geom = cv_data_from_locset(cell, ls::on_branches(0.5));
     unsigned n_cv = geom.size();
 
     cv_geometry geom2 = geom;

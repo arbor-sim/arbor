@@ -170,7 +170,7 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
-    D.geometry = cv_geometry_from_locset(cell,
+    D.geometry = cv_data_from_locset(cell,
         dflt.discretization? dflt.discretization->cv_boundary_points(cell):
         global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
         default_cv_policy().cv_boundary_points(cell));

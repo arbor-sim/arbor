@@ -13,7 +13,7 @@ namespace arb {
 class cv_geometry;
 
 // Stores info about the CV geometry of a discretized cable-cell
-class cell_cv_geometry {
+class cell_cv_data {
 public:
     // Returns mcables comprising the CV at a given index.
     mcable_list cables(fvm_size_type cv_index) const;
@@ -35,13 +35,11 @@ private:
     std::vector<fvm_index_type> cv_children;      // CV child indices, partitioned by CV, and then in order.
     std::vector<fvm_index_type> cv_children_divs; // Paritions cv_children by CV index.
 
-//    std::vector<util::pw_elements<fvm_size_type>> branch_cv_map;     // CV offset map by branch.
-
     friend cv_geometry;
-    friend cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset);
+    friend cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
 };
 
-class region_cv_geometry {
+class region_cv_data {
 public:
     // Returns mcables comprising the CV at a given index.
     mcable_list cables(fvm_size_type cv_index) const;
@@ -57,15 +55,15 @@ private:
     std::vector<fvm_index_type> cv_cables_divs;   // Partitions cv_cables by CV index
     std::vector<fvm_value_type> cv_proportion;    // Proportion of CV by area.
 
-    friend region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& cvs);
+    friend region_cv_data intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs);
 };
 
 // Construct cell_cv_geometry for cell from default cell discretization if it exists.
-std::optional<cell_cv_geometry> cv_geometry_from_locset(const cable_cell& cell);
+std::optional<cell_cv_data> cv_data(const cable_cell& cell);
 
 // Construct cell_cv_geometry for cell from locset describing CV boundary points.
-cell_cv_geometry cv_geometry_from_locset(const cable_cell& cell, const locset& lset);
+cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
 
-region_cv_geometry intersect_region(const cable_cell& cell, const region& reg, const cell_cv_geometry& cvs);
+region_cv_data intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs);
 
 } //namespace arb
