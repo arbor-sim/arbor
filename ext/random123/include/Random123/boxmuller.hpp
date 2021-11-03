@@ -68,8 +68,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace r123{
 
-typedef ::float2 float2;
-typedef ::double2 double2;
+#if !defined(__CUDACC__) || !defined(__HIPCC__)
+    typedef struct { float x, y; } float2;
+    typedef struct { double x, y; } double2;
+#else
+    typedef ::float2 float2;
+    typedef ::double2 double2;
+#endif
 
 #if !defined(R123_NO_SINCOS) && defined(__APPLE__)
 /* MacOS X 10.10.5 (2015) doesn't have sincosf */
