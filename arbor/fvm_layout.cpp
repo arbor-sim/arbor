@@ -901,6 +901,33 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     // Track ion usage of mechanisms so that ions are only instantiated where required.
     std::unordered_map<std::string, std::vector<index_type>> ion_support;
+
+    // add explicit paintings of diffusivity to support
+    for (const auto& [ion, data]: cell.region_assignments().get<ion_diffusivity>()) {
+        mcable_map<double> diff_map;
+        mcable_map<double> cables;
+        for (auto& [cable, diff]: data) {
+            if (diff.value == 0.0) continue;
+            cables.insert(cable, 1.);
+            diff_map.insert(cable, diff.value);
+        }
+
+        std::vector<index_type> cvs;
+        for (auto cv: D.geometry.cell_cvs(cell_idx)) {
+            double area = 0.0;
+            double diff_on_cv = 0.0;
+            for (mcable c: D.geometry.cables(cv)) {
+                double area_on_cable = embedding.integrate_area(c.branch, pw_over_cable(cables, c, 0.));
+                if (!area_on_cable) continue;
+                area += area_on_cable;
+                diff_on_cv += embedding.integrate_area(c.branch, pw_over_cable(data, c, 0.));
+            }
+            if ((area > 0.0) && (diff_on_cv != 0.0)) cvs.push_back(cv);
+        }
+        auto& support = ion_support[ion];
+        support = unique_union(support, cvs);
+    }
+
     auto update_ion_support = [&ion_support](const mechanism_info& info, const std::vector<index_type>& cvs) {
         arb_assert(util::is_sorted(cvs));
 
@@ -1285,7 +1312,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     auto initial_iconc_map = cell.region_assignments().get<init_int_concentration>();
     auto initial_econc_map = cell.region_assignments().get<init_ext_concentration>();
-    auto initial_diff_map  = cell.region_assignments().get<ion_diffusivity>();
+    auto initial_idiff_map = cell.region_assignments().get<ion_diffusivity>();
     auto initial_rvpot_map = cell.region_assignments().get<init_reversal_potential>();
 
     for (const auto& ion_cvs: ion_support) {
@@ -1297,28 +1324,39 @@ fvm_mechanism_data fvm_build_mechanism_data(
         auto n_cv = config.cv.size();
         config.init_iconc.resize(n_cv);
         config.init_econc.resize(n_cv);
-        config.diff.resize(n_cv);
+        config.face_diffusivity.resize(n_cv);
+        config.diffusivity.resize(n_cv);
+        config.init_revpot.resize(n_cv);
         config.reset_iconc.resize(n_cv);
         config.reset_econc.resize(n_cv);
-        config.init_revpot.resize(n_cv);
 
         auto global_ion_data = value_by_key(global_dflt.ion_data, ion).value();
         auto dflt_iconc = global_ion_data.init_int_concentration.value();
         auto dflt_econc = global_ion_data.init_ext_concentration.value();
         auto dflt_rvpot = global_ion_data.init_reversal_potential.value();
-        auto dflt_diff  = global_ion_data.diffusivity.value();
+        auto dflt_idiff = global_ion_data.diffusivity.value();
 
         if (auto ion_data = value_by_key(dflt.ion_data, ion)) {
             dflt_iconc = ion_data.value().init_int_concentration.value_or(dflt_iconc);
             dflt_econc = ion_data.value().init_ext_concentration.value_or(dflt_econc);
             dflt_rvpot = ion_data.value().init_reversal_potential.value_or(dflt_rvpot);
-            dflt_diff  = ion_data.value().diffusivity.value_or(dflt_diff);
+            dflt_idiff = ion_data.value().diffusivity.value_or(dflt_idiff);
         }
 
         const mcable_map<init_int_concentration>&  iconc_on_cable = initial_iconc_map[ion];
         const mcable_map<init_ext_concentration>&  econc_on_cable = initial_econc_map[ion];
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
-        const mcable_map<ion_diffusivity>&         diff_on_cable  = initial_diff_map[ion];
+        const mcable_map<ion_diffusivity>&         idiff_on_cable = initial_idiff_map[ion];
+
+        std::vector<pw_constant_fn> inv_diff;
+        msize_t n_branch = D.geometry.n_branch(0);
+        inv_diff.reserve(n_branch);
+        for (msize_t i = 0; i<n_branch; ++i) {
+            inv_diff.push_back(
+                1.0/pw_over_cable(idiff_on_cable,
+                                  mcable{i, 0., 1.},
+                                  dflt_idiff));
+        }
 
         auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
             return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
@@ -1328,16 +1366,17 @@ fvm_mechanism_data fvm_build_mechanism_data(
             auto cv = config.cv[i];
             if (D.cv_area[cv]==0) continue;
 
-            for (mcable c: D.geometry.cables(cv)) {
+            const auto& cv_cables = D.geometry.cables(cv);
+            for (const mcable c: cv_cables) {
                 auto iconc = pw_over_cable(iconc_on_cable, c, dflt_iconc);
                 auto econc = pw_over_cable(econc_on_cable, c, dflt_econc);
                 auto rvpot = pw_over_cable(rvpot_on_cable, c, dflt_rvpot);
-                auto diff  = pw_over_cable(diff_on_cable,  c, dflt_diff);
+                auto idiff = pw_over_cable(idiff_on_cable, c, dflt_idiff);
 
                 config.reset_iconc[i] += embedding.integrate_area(c.branch, iconc);
                 config.reset_econc[i] += embedding.integrate_area(c.branch, econc);
                 config.init_revpot[i] += embedding.integrate_area(c.branch, rvpot);
-                config.diff[i]        += embedding.integrate_area(c.branch, diff);
+                config.diffusivity[i] += embedding.integrate_area(c.branch, idiff);
 
                 auto iconc_masked = pw_times(pw_over_cable(init_iconc_mask[ion], c, 1.), iconc);
                 auto econc_masked = pw_times(pw_over_cable(init_econc_mask[ion], c, 1.), econc);
@@ -1346,18 +1385,39 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 config.init_econc[i] += embedding.integrate_area(c.branch, econc_masked);
             }
 
+            // Scale all by area
             double oo_cv_area = 1./D.cv_area[cv];
             config.reset_iconc[i] *= oo_cv_area;
             config.reset_econc[i] *= oo_cv_area;
             config.init_revpot[i] *= oo_cv_area;
-            config.init_iconc[i] *= oo_cv_area;
-            config.init_econc[i] *= oo_cv_area;
-            config.diff[i]       *= oo_cv_area;
-        }
+            config.init_iconc[i]  *= oo_cv_area;
+            config.init_econc[i]  *= oo_cv_area;
+            config.diffusivity[i] *= oo_cv_area;
 
-        config.has_diffusivity = std::any_of(config.diff.begin(),
-                                             config.diff.end(),
-                                             [](auto v) { return v != 0; });
+            // Now compute 'face_diffusivity' following the model for 'face_conductance'
+            config.face_diffusivity[i] = 0.0;
+
+            if (const auto parent = D.geometry.cv_parent[i]; parent!=-1) {
+                auto parent_cables = D.geometry.cables(parent);
+                msize_t bid = cv_cables.front().branch;
+                double pc_ref = 0.0, cv_ref = 1.0;
+                if (cv_cables.size()==1) {
+                    const auto& cable = cv_cables.front();
+                    cv_ref = 0.5*(cable.prox_pos + cable.dist_pos);
+                }
+                if (parent_cables.size()==1) {
+                    const auto& cable = parent_cables.front();
+                    // A trivial parent CV with a zero-length cable might not be on the same branch.
+                    if (cable.branch==bid) {
+                        pc_ref = 0.5*(cable.prox_pos + cable.dist_pos);
+                    }
+                }
+                auto inv_diff_coeff = embedding.integrate_ixa({bid, pc_ref, cv_ref}, inv_diff.at(bid));
+                config.face_diffusivity[i] = 1.0/inv_diff_coeff;
+            }
+
+            config.has_diffusivity |= (config.diffusivity[i] != 0.0);
+        }
 
         if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }

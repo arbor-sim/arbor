@@ -43,7 +43,7 @@ double interpolate(const branch_pw_ratpoly<p, q>& f, unsigned bid, double pos) {
 }
 
 // Length, area, and ixa are polynomial or rational polynomial functions of branch position,
-// continuos and monotonically increasing with respect to distance from root.
+// continous and monotonically increasing with respect to distance from root.
 //
 // Integration wrt a piecewise constant function is performed by taking the difference between
 // interpolated values at the end points of each constant interval.
