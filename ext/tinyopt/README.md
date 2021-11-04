@@ -64,9 +64,9 @@ int main(int argc, char** argv) {
 
         for (auto arg = argv+1; *arg; ) {
             bool ok =
-                help << to::parse(arg, 'h', "help") ||
-                n    << to::parse<int>(arg, 'n', "number") ||
-                fn   << to::parse<int>(arg, to::keywords(functions), 'f', "function");
+                help << to::parse(arg, "-h", "--help") ||
+                n    << to::parse<int>(arg, "-n", "--number") ||
+                fn   << to::parse<int>(arg, to::keywords(functions), "-f", "--function");
 
             if (!ok) throw to::option_error("unrecognized argument", *arg);
         }
