@@ -1,6 +1,6 @@
-add_executable(lmorpho lmorpho.cpp lsystem.cpp lsys_models.cpp morphio.cpp)
+add_executable(lmorpho lmorpho.cpp lsystem.cpp lsys_models.cpp)
 
-target_link_libraries(lmorpho PRIVATE arbor arbor-sup)
+target_link_libraries(lmorpho PRIVATE arbor arbor-sup ext-tinyopt arborio)
 
 # TODO: resolve public headers
 target_link_libraries(lmorpho PRIVATE arbor-private-headers)

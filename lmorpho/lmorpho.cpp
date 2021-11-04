@@ -5,37 +5,29 @@
 #include <sstream>
 #include <vector>
 
-#include <arbor/morphology.hpp>
-#include <arbor/util/optional.hpp>
-#include <sup/tinyopt.hpp>
+#include <tinyopt/tinyopt.h>
 
-#include "morphio.hpp"
 #include "lsystem.hpp"
 #include "lsys_models.hpp"
 
-using arb::util::optional;
-using arb::util::nullopt;
-using arb::util::just;
+#include <arbor/cable_cell.hpp>
+#include <arborio/cableio.hpp>
+#include <arborio/label_parse.hpp>
 
 const char* usage_str =
 "[OPTION]...\n"
 "\n"
 "  -n, --count=N      Number of morphologies to generate.\n"
 "  -m, --model=MODEL  Use L-system MODEL for generation (see below).\n"
-"  -g, --segment=DX   Segment model into compartments of max size DX µm.\n"
-"  --swc=FILE         Output morphologies as SWC to FILE (see below).\n"
-"  --pvec=FILE        Output 'parent vector' structural representation\n"
-"                     to FILE.\n"
+"  --acc=FILE         Output morphologies as ACC to FILE.\n"
 "  -h, --help         Emit this message and exit.\n"
 "\n"
 "Generate artificial neuron morphologies based on L-system descriptions.\n"
 "\n"
 "If a FILE argument contains a '%', then one file will be written for\n"
 "each generated morphology, with the '%' replaced by the index of the\n"
-"morphology, starting from zero. Output for each morphology will otherwise\n"
-"be concatenated: SWC files will be headed by a comment line with the\n"
-"index of the morphology; parent vectors will be merged into one long\n"
-"vector.  A FILE argument of '-' corresponds to standard output.\n"
+"morphology, starting from zero.\n"
+"A FILE argument of '-' corresponds to standard output.\n"
 "\n"
 "Currently supported MODELs:\n"
 "    motoneuron    Adult cat spinal alpha-motoneurons, based on models\n"
@@ -46,62 +38,72 @@ const char* usage_str =
 int main(int argc, char** argv) {
     // options
     int n_morph = 1;
-    optional<unsigned> rng_seed;
-    optional<std::string> swc_file;
-    optional<std::string> pvector_file;
-    double segment_dx = 0;
+	std::optional<unsigned> rng_seed = 0;
+    lsys_param P;
+	bool help = false;
+	std::optional<std::string> acc_file;
 
     std::pair<const char*, const lsys_param*> models[] = {
         {"motoneuron", &alpha_motoneuron_lsys},
         {"purkinje", &purkinje_lsys}
     };
-    lsys_param P;
+
 
     try {
-        auto arg = argv+1;
-        while (*arg) {
-            if (auto o = to::parse_opt<int>(arg, 'n', "count")) {
-                n_morph = *o;
-            }
-            if (auto o = to::parse_opt<int>(arg, 's', "seed")) {
-                rng_seed = *o;
-            }
-            else if (auto o = to::parse_opt<std::string>(arg, 0, "swc")) {
-                swc_file = *o;
-            }
-            else if (auto o = to::parse_opt<double>(arg, 'g', "segment")) {
-                segment_dx = *o;
-            }
-            else if (auto o = to::parse_opt<std::string>(arg, 'p', "pvec")) {
-                pvector_file = *o;
-            }
-            else if (auto o = to::parse_opt<const lsys_param*>(arg, 'm', "model", to::keywords(models))) {
-                P = **o;
-            }
-            else if (to::parse_opt(arg, 'h', "help")) {
-                std::cout << "Usage: " << argv[0] << " " << usage_str;
-                return 0;
-            }
-            else {
-                throw to::parse_opt_error(*arg, "unrecognized option");
-            }
-        }
+        for (auto arg = argv+1; *arg; ) {
+			bool ok = false;
+            ok |= (n_morph << to::parse<int>(arg, "--n", "--count")).has_value();
+            ok |= (rng_seed << to::parse<int>(arg, "--s", "--seed")).has_value();
+            ok |= (acc_file << to::parse<std::string>(arg, "-f", "--acc")).has_value();
+			const lsys_param* o;
+			if((o << to::parse<const lsys_param*>(arg, to::keywords(models), "-m", "--model")).has_value()) {
+				P = *o;
+			}
+			ok |= (help << to::parse(arg, "-h", "--help")).has_value();
+			if (!ok) throw to::option_error("unrecognized argument", *arg);
+		}
 
-        std::minstd_rand g;
-        if (rng_seed) g.seed(rng_seed.value());
+		if (help) {
+			to::usage(argv[0], usage_str);
+			return 0;
+		}
 
-        auto emit_swc = swc_file? just(swc_emitter(*swc_file, n_morph)): nullopt;
-        auto emit_pvec = pvector_file? just(pvector_emitter(*pvector_file, n_morph)): nullopt;
+		std::minstd_rand g;
+		if (rng_seed) {
+			g.seed(rng_seed.value());
+		}
 
-        for (int i=0; i<n_morph; ++i) {
-            auto morph = generate_morphology(P, g);
-            morph.segment(segment_dx);
+		using namespace arborio::literals;
 
-            if (emit_swc) (*emit_swc)(i, morph);
-            if (emit_pvec) (*emit_pvec)(i, morph);
-        }
-    }
-    catch (to::parse_opt_error& e) {
+		for (int i = 0; i < n_morph; ++i) {
+			const arb::segment_tree morph = generate_morphology(P, g);
+
+			arb::label_dict labels;
+			labels.set("soma", "(tag 1)"_reg);
+			labels.set("dend", "(tag 3)"_reg);
+			arb::decor decor;
+
+			arb::cable_cell cell(morph, labels, decor);
+
+			if(acc_file) {
+				std::string filename = acc_file.value();
+				const std::string toReplace("%");
+				auto pos = filename.find(toReplace);
+				if(pos != std::string::npos) {
+					filename.replace(pos, toReplace.length(), std::to_string(i));
+				}
+
+				if(filename == "-") {
+					arborio::write_component(std::cout, cell);
+				} else {
+					std::ofstream of(filename);
+					arborio::write_component(of, cell);
+				}
+
+			}
+		}
+
+	}  catch (to::option_error& e) {
         std::cerr << argv[0] << ": " << e.what() << "\n";
         std::cerr << "Try '" << argv[0] << " --help' for more information.\n";
         std::exit(2);
@@ -110,5 +112,6 @@ int main(int argc, char** argv) {
         std::cerr << "caught exception: " << e.what() << "\n";
         std::exit(1);
     }
+
 }
 

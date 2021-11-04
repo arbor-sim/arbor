@@ -2,13 +2,13 @@
 
 #include <random>
 
-#include <arbor/morphology.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 struct lsys_param;
 
 using lsys_generator = std::minstd_rand;
 
-arb::morphology generate_morphology(const lsys_param& P, lsys_generator& g);
+arb::segment_tree generate_morphology(const lsys_param& P, lsys_generator& g);
 
 // The distribution parameters used in the specification of the L-system parameters.
 // The distribution can be a constant, uniform over an interval, or truncated normal.
@@ -80,16 +80,16 @@ struct lsys_param {
     // roll (about x-axis) is applied first, followed by pitch (about y-axis).
 
     // Initial roll (intrinsic rotation about x-axis) [degrees]. (Taz)
-    lsys_distribution_param roll_initial = { 0 };
+    lsys_distribution_param roll_initial = { -45, 45 };
 
     // Initial pitch (intrinsic rotation about y-axis) [degrees]. (Tel)
-    lsys_distribution_param pitch_initial = { 0 };
+    lsys_distribution_param pitch_initial = { -45, 45 };
 
     // Tortuousness: roll within section over ΔL [degrees]. (Eaz)
-    lsys_distribution_param roll_section = { 0 };
+    lsys_distribution_param roll_section = { -45, 45 };
 
     // Tortuousness: pitch within section over ΔL [degrees]. (Eel)
-    lsys_distribution_param pitch_section = { 0 };
+    lsys_distribution_param pitch_section = { -45, 45 };
 
     // Taper rate: diameter decrease per unit length. (TPRB)
     lsys_distribution_param taper = { 0 };

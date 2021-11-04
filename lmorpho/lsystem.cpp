@@ -3,17 +3,13 @@
 #include <random>
 #include <stack>
 #include <vector>
+#include <map>
 
-#include <arbor/morphology.hpp>
 #include <arbor/math.hpp>
 
 #include "lsystem.hpp"
 
 using namespace arb::math;
-
-using arb::section_geometry;
-using arb::section_point;
-using arb::morphology;
 
 // L-system implementation.
 
@@ -191,11 +187,52 @@ struct lsys_sampler {
     double max_extent;
 };
 
+struct section_point {
+	double x;
+	double y;
+	double z;
+	double r;
+	friend std::ostream& operator<<(std::ostream& os, const section_point& obj);
+};
+
+std::ostream& operator<<(std::ostream& os, const section_point& obj) {
+	os << obj.x << " " << obj.y << " " << obj.z << " " << obj.r << '\n';
+	return os;
+}
+
 struct section_tip {
     section_point point = {0., 0., 0., 0.};
     quaternion rotation = {1., 0., 0., 0.};
     double somatic_distance = 0.;
 };
+
+
+struct section_geometry {
+    unsigned id = 0; // ids should be contigously numbered from 1 in the morphology.
+    unsigned parent_id = 0;
+    bool terminal = false;
+    std::vector<section_point> points;
+    double length = 0; // µm
+
+    section_geometry() = default;
+    section_geometry(unsigned id, unsigned parent_id, bool terminal, std::vector<section_point> points, double length) :
+        id(id), parent_id(parent_id), terminal(terminal), points(std::move(points)), length(length)
+    {}
+
+	friend std::ostream& operator<<(std::ostream& os, const section_geometry& obj);
+};
+
+std::ostream& operator<<(std::ostream& os, const section_geometry& obj) {
+	os << "id: " << obj.id << '\n';
+	os << "parent_id: " << obj.parent_id << '\n';
+	os << "terminal: " << obj.terminal << '\n';
+	os << "length: " << obj.length << '\n';
+	os << "points: " << '\n';
+	for (auto& p : obj.points) {
+		os << p << '\n';
+	}
+	return os;
+}
 
 struct grow_result {
     std::vector<section_point> points;
@@ -267,13 +304,12 @@ grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
     }
 }
 
-arb::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
+arb::segment_tree generate_morphology(const lsys_param& P, lsys_generator &g) {
     constexpr quaternion xaxis = {0, 1, 0, 0};
-    arb::morphology morph;
 
     lsys_sampler S(P);
-    double soma_radius = 0.5*S.diam_soma(g);
-    morph.soma = {0, 0, 0, soma_radius};
+    double const soma_diameter = S.diam_soma(g);
+    double const soma_radius = 0.5*soma_diameter;
 
     struct section_start {
         section_tip tip;
@@ -298,7 +334,9 @@ arb::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         starts.push({tip, 0u});
     }
 
-    while (!starts.empty() && morph.sections.size()<P.max_sections) {
+	std::vector<section_geometry> sections;
+
+    while (!starts.empty() && sections.size() < P.max_sections) {
         auto start = starts.top();
         starts.pop();
 
@@ -308,7 +346,46 @@ arb::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         for (auto child: branch.children) {
             starts.push({child, section.id});
         }
-        morph.sections.push_back(std::move(section));
+
+		sections.push_back(std::move(section));
+    }
+
+	// map from internal representation to Arbor ids
+    std::map<size_t, arb::msize_t> parent_end_id;
+
+    // soma
+    parent_end_id[0] = 0;
+
+	arb::segment_tree morph;
+	morph.append(
+				arb::mnpos, arb::mpoint{-soma_diameter, 0, 0, soma_diameter},
+				arb::mpoint{soma_diameter, 0, 0, soma_diameter}, 1);
+
+    // dendrites:
+    for (auto& sec: sections) {
+
+		// the first section must have the soma as parent
+        size_t parent = parent_end_id.at(sec.parent_id);
+
+        const auto& points = sec.points;
+        if (points.size() < 2) {
+            throw std::runtime_error("segment has only 1 point");
+        }
+
+        // Include first point only for dendrites segments attached to soma.
+        if (sec.parent_id==0) {
+			parent = morph.append(parent,
+								  arb::mpoint{points[0].x, points[0].y, points[0].z, points[0].r},
+								  arb::mpoint{points[1].x, points[1].y, points[1].z, points[1].r}, 3);
+        }
+
+        // Remaining points.
+        for (unsigned i = 1; i < points.size(); ++i) {
+            const auto& p = points[i];
+			parent = morph.append(parent, arb::mpoint{p.x, p.y, p.z, p.r}, 3);
+        }
+
+        parent_end_id[sec.id] = parent;
     }
 
     return morph;
