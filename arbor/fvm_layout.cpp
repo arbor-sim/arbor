@@ -1348,14 +1348,18 @@ fvm_mechanism_data fvm_build_mechanism_data(
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
         const mcable_map<ion_diffusivity>&         idiff_on_cable = initial_idiff_map[ion];
 
+        // Build map of inverse diffusivity, needed for computing face_diffusivity
+        mcable_map<ion_diffusivity> inv_idiff_on_cable;
+        for (const auto& [k, v]: idiff_on_cable) inv_idiff_on_cable.insert(k, {v.ion, 1.0/v.value});
+
         std::vector<pw_constant_fn> inv_diff;
         msize_t n_branch = D.geometry.n_branch(0);
         inv_diff.reserve(n_branch);
         for (msize_t i = 0; i<n_branch; ++i) {
             inv_diff.push_back(
-                1.0/pw_over_cable(idiff_on_cable,
-                                  mcable{i, 0., 1.},
-                                  dflt_idiff));
+                pw_over_cable(inv_idiff_on_cable,
+                              mcable{i, 0., 1.},
+                              1.0/dflt_idiff));
         }
 
         auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
@@ -1395,25 +1399,16 @@ fvm_mechanism_data fvm_build_mechanism_data(
             config.diffusivity[i] *= oo_cv_area;
 
             // Now compute 'face_diffusivity' following the model for 'face_conductance'
+            // TODO(TH): the reference points could be cached when building face_conductance.
             config.face_diffusivity[i] = 0.0;
-
             if (const auto parent = D.geometry.cv_parent[i]; parent!=-1) {
-                auto parent_cables = D.geometry.cables(parent);
-                msize_t bid = cv_cables.front().branch;
-                double pc_ref = 0.0, cv_ref = 1.0;
-                if (cv_cables.size()==1) {
-                    const auto& cable = cv_cables.front();
-                    cv_ref = 0.5*(cable.prox_pos + cable.dist_pos);
-                }
-                if (parent_cables.size()==1) {
-                    const auto& cable = parent_cables.front();
-                    // A trivial parent CV with a zero-length cable might not be on the same branch.
-                    if (cable.branch==bid) {
-                        pc_ref = 0.5*(cable.prox_pos + cable.dist_pos);
-                    }
-                }
-                auto inv_diff_coeff = embedding.integrate_ixa({bid, pc_ref, cv_ref}, inv_diff.at(bid));
-                config.face_diffusivity[i] = 1.0/inv_diff_coeff;
+                const auto parent_cables = D.geometry.cables(parent);
+                const auto& [cbid, cprox, cdist] = cv_cables.front();
+                const auto& [pbid, pprox, pdist] = parent_cables.front();
+                const double pc_ref = (cv_cables.size()==1) ? 0.5*(cprox + cdist) : 0.0;
+                // A trivial parent CV with a zero-length cable might not be on the same branch.
+                const double cv_ref = (parent_cables.size()==1) && (pbid==cbid) ? 0.5*(pprox + pdist) : 1.0;
+                config.face_diffusivity[i] = 1.0/embedding.integrate_ixa({cbid, pc_ref, cv_ref}, inv_diff.at(cbid));
             }
 
             config.has_diffusivity |= (config.diffusivity[i] != 0.0);

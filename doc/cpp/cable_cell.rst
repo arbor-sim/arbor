@@ -257,6 +257,8 @@ assign them to the :cpp:expr:`default_parameters` field of the global properties
 object returned in the recipe.
 
 
+.. _cppcablecell-revpot:
+
 Reversal potential dynamics
 ---------------------------
 
