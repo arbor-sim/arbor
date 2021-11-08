@@ -49,7 +49,7 @@ using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 using shared_state = backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_cell::state_)
 
-using matrix = arb::multicore::matrix_state;
+using matrix = arb::multicore::cable_solver;
 
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr, &fvm_cell::mechanisms_)
 
@@ -210,7 +210,7 @@ TEST(fvm_lowered, matrix_init)
     fvcell.initialize({0}, cable1d_recipe(cell));
 
     auto& S = fvcell.*private_state_ptr;
-    auto& J = S->voltage_solver;
+    auto& J = S->solver;
     EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values

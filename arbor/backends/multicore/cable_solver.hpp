@@ -10,7 +10,7 @@
 namespace arb {
 namespace multicore {
 
-struct matrix_state {
+struct cable_solver {
     using value_type = arb_value_type;
     using index_type = arb_index_type;
     using array      = padded_vector<value_type>;
@@ -33,14 +33,14 @@ struct matrix_state {
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
-    matrix_state() = default;
-    matrix_state(const matrix_state&) = default;
-    matrix_state(matrix_state&&) = default;
+    cable_solver() = default;
+    cable_solver(const cable_solver&) = default;
+    cable_solver(cable_solver&&) = default;
 
-    matrix_state& operator=(const matrix_state&) = default;
-    matrix_state& operator=(matrix_state&&) = default;
+    cable_solver& operator=(const cable_solver&) = default;
+    cable_solver& operator=(cable_solver&&) = default;
 
-    matrix_state(const std::vector<index_type>& p,
+    cable_solver(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
@@ -139,6 +139,7 @@ struct matrix_state {
         memory::copy(rhs, to);
     }
 
+    std::size_t num_cells() const { return cell_cv_divs.size() - 1; }
     std::size_t size() const { return parent_index.size(); }
 };
 

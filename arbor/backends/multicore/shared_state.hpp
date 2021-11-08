@@ -21,7 +21,8 @@
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"
 #include "partition_by_constraint.hpp"
-#include "backends/multicore/matrix_state.hpp"
+#include "backends/multicore/cable_solver.hpp"
+#include "backends/multicore/diffusion_solver.hpp"
 
 namespace arb {
 namespace multicore {
@@ -39,7 +40,7 @@ namespace multicore {
  */
 
 struct ion_state {
-    using solver_type = matrix_state; // TODO(TH) this is a mock-up using the cable solver, we need a slight modification of it, actually
+    using solver_type = diffusion_solver;
 
     unsigned alignment = 1; // Alignment and padding multiple.
 
@@ -58,7 +59,7 @@ struct ion_state {
 
     array charge;           // charge of ionic species (global value, length 1)
 
-    std::unique_ptr<solver_type> diffusion_solver = nullptr;
+    std::unique_ptr<solver_type> solver = nullptr;
 
     ion_state() = default;
 
@@ -111,8 +112,6 @@ struct istim_state {
 };
 
 struct shared_state {
-    using solver_type = matrix_state;
-
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -123,7 +122,7 @@ struct shared_state {
         std::vector<arb_ion_state>   ion_states_;
     };
 
-    solver_type voltage_solver;
+    cable_solver solver;
 
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.

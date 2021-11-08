@@ -1349,6 +1349,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         const mcable_map<ion_diffusivity>&         idiff_on_cable = initial_idiff_map[ion];
 
         // Build map of inverse diffusivity, needed for computing face_diffusivity
+        // TODO(TH): Check pw_map once #1719 is merged
         mcable_map<ion_diffusivity> inv_idiff_on_cable;
         for (const auto& [k, v]: idiff_on_cable) inv_idiff_on_cable.insert(k, {v.ion, 1.0/v.value});
 

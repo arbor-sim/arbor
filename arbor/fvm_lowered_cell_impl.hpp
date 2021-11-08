@@ -500,7 +500,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
-    state_->voltage_solver =
+    state_->solver =
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
 
     // Instantiate mechanisms, ions, and stimuli.
@@ -509,7 +509,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
         return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
                                                                           D.geometry.cell_cv_divs,
-                                                                          D.cv_capacitance, // TODO(TH) remove
                                                                           fd,
                                                                           D.cv_area,
                                                                           fvm_info.cell_to_intdom);
@@ -518,7 +517,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         if (auto charge = value_by_key(global_props.ion_species, ion)) {
             state_->add_ion(ion, *charge, data);
             if (data.has_diffusivity)
-                state_->ion_data[ion].diffusion_solver = mk_diff_solver(data.face_diffusivity);
+                state_->ion_data[ion].solver = mk_diff_solver(data.face_diffusivity);
         }
         else {
             throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
