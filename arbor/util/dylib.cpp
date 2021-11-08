@@ -11,11 +11,7 @@
 namespace arb {
 namespace util {
 
-struct dl_handle {
-    void* dl = nullptr;
-};
-
-dl_handle dl_open(const std::string& fn) {
+void* dl_open(const std::string& fn) {
     try {
         std::ifstream fd{fn.c_str()};
         if(!fd.good()) throw file_not_found_error{fn};
@@ -30,12 +26,7 @@ dl_handle dl_open(const std::string& fn) {
         auto error = dlerror();
         throw dl_error{util::pprintf("[POSIX] dl_open failed with: {}", error)};
     }
-    return {result};
-}
-
-void dl_close(dl_handle& handle) {
-    dlclose(handle.dl);
-    handle.dl = nullptr;
+    return result;
 }
 
 namespace impl{
@@ -46,7 +37,7 @@ void* dl_get_symbol(const std::string& fn, const std::string& symbol) {
     auto handle = dl_open(fn);
 
     // Get symbol from shared object, may return NULL if that is what symbol refers to
-    auto result = dlsym(handle.dl, symbol.c_str());
+    auto result = dlsym(handle, symbol.c_str());
     // dlsym mayb return NULL even if succeeding
     if (auto error = dlerror()) {
         throw dl_error{util::pprintf("[POSIX] dl_get_symbol failed with: {}", error)};

@@ -595,10 +595,10 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
     if (!get_catalogue) {
         throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
     }
-    /* NOTE We do not free the DSO handle here and accept retaining the handles
-       until termination since the mechanisms provided by the catalogue may have
-       a different lifetime than the actual catalogue itfself. This is not a
-       leak proper as `dlopen` caches handles for us.
+    /* The DSO handle is not freed here: handles will be retained until
+     * termination since the mechanisms provided by the catalogue may have a
+     * different lifetime than the actual catalogue itfself. This is not a leak,
+     * as `dlopen` caches handles for us.
      */
     return *((const mechanism_catalogue*)get_catalogue());
 }

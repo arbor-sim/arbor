@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import ctypes
 import os
 import sys
 
@@ -18,7 +17,5 @@ print(catname)
 if not os.path.isfile(catname):
     print('ERROR: unable to open catalogue file')
     sys.exit(1)
-
-print(ctypes.CDLL(catname))
 
 print([n for n in arbor.load_catalogue(catname).keys()])
