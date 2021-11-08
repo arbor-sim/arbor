@@ -38,18 +38,18 @@ lbl = A.label_dict({'soma': '(tag 1)',
                                     (on-branches 0.25)
                                     (on-branches 0.50)
                                     (on-branches 0.75)
-                                    (on-branches 1.00))''' })
+                                    (on-branches 1.00))'''})
 
 dec = A.decor()
 dec.set_property(Vm=-40)
-dec.paint('"soma"', 'hh')
+dec.paint('"soma"', A.density('hh'))
 
 # Set up ion diffusion
 # TODO(TH) figure out diff scale
 dec.set_ion('na', int_con=10, ext_con=140, rev_pot=50, diff=0.02)
-dec.paint('"soma"', 'na', int_con=100, diff=0.05)
+dec.paint('"soma"', ion_name="na", int_con=100.0, diff=0.05)
 
-prb = [A.cable_probe_ion_int_concentration('"locs"')]
+prb = [A.cable_probe_ion_int_concentration('"locs"', 'na')]
 cel = A.cable_cell(tree, lbl, dec)
 rec = recipe(cel, prb)
 ctx = A.context()

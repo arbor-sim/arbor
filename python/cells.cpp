@@ -590,8 +590,8 @@ void register_cells(pybind11::module& m) {
         // Paint ion species initial conditions on a region.
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
-               optional<double> int_con, optional<double> ext_con, optional<double> rev_pot,
-               optional<double> diff) {
+               optional<double> int_con, optional<double> ext_con,
+               optional<double> rev_pot, optional<double> diff) {
                 auto r = arborio::parse_region_expression(region).unwrap();
                 if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
