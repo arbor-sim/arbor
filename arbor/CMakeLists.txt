@@ -55,9 +55,9 @@ set(arbor_sources
     threading/threading.cpp
     thread_private_spike_store.cpp
     tree.cpp
+    util/dylib.cpp
     util/hostname.cpp
     util/unwind.cpp
-    util/dl_platform_posix.cpp
     version.cpp
 )
 

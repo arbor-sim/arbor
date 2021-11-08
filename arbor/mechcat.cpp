@@ -12,7 +12,7 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/dl_platform_posix.hpp"
+#include "util/dylib.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"

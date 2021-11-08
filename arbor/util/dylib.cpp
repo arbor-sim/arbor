@@ -5,7 +5,7 @@
 
 #include <arbor/arbexcept.hpp>
 
-#include "util/dl_platform_posix.hpp"
+#include "util/dylib.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
