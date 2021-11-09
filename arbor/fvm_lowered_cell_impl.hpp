@@ -36,6 +36,8 @@
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
+#include <iostream>
+
 namespace arb {
 
 template <class Backend>
@@ -468,6 +470,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     // Discretize mechanism data.
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
+    std::cout << "After Build: Has diffusion? Na=" << mech_data.ions["na"].has_diffusivity << '\n';
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
@@ -513,11 +516,16 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                                                                           D.cv_area,
                                                                           fvm_info.cell_to_intdom);
     };
-    for (auto& [ion, data]: mech_data.ions) {
+    for (const auto& [ion, data]: mech_data.ions) {
+        std::cerr << "Should make iffusion solver? " << ion << ": " << data.has_diffusivity << "\n";
         if (auto charge = value_by_key(global_props.ion_species, ion)) {
             state_->add_ion(ion, *charge, data);
-            if (data.has_diffusivity)
+            if (data.has_diffusivity) {
+                std::cerr << "Diffusion solver: " << ion << "\n";
                 state_->ion_data[ion].solver = mk_diff_solver(data.face_diffusivity);
+            } else {
+                std::cerr << "NO Diffusion solver: " << ion << "\n";
+            }
         }
         else {
             throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");

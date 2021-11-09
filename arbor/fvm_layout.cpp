@@ -22,6 +22,8 @@
 #include "util/transform.hpp"
 #include "util/unique.hpp"
 
+#include <iostream>
+
 namespace arb {
 
 using util::assign;
@@ -723,6 +725,9 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         append(L.reset_iconc, R.reset_iconc);
         append(L.reset_econc, R.reset_econc);
         append(L.init_revpot, R.init_revpot);
+        append(L.diffusivity, R.diffusivity);
+        append(L.face_diffusivity, R.face_diffusivity);
+        L.has_diffusivity |= R.has_diffusivity;
     }
 
     for (const auto& kv: right.mechanisms) {
@@ -1348,10 +1353,14 @@ fvm_mechanism_data fvm_build_mechanism_data(
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
         const mcable_map<ion_diffusivity>&         idiff_on_cable = initial_idiff_map[ion];
 
+
         // Build map of inverse diffusivity, needed for computing face_diffusivity
         // TODO(TH): Check pw_map once #1719 is merged
         mcable_map<ion_diffusivity> inv_idiff_on_cable;
-        for (const auto& [k, v]: idiff_on_cable) inv_idiff_on_cable.insert(k, {v.ion, 1.0/v.value});
+        for (const auto& [k, v]: idiff_on_cable) {
+            inv_idiff_on_cable.insert(k, {v.ion, 1.0/v.value});
+            std::cerr << k << ": " << v.value << '\n';
+        }
 
         std::vector<pw_constant_fn> inv_diff;
         msize_t n_branch = D.geometry.n_branch(0);
@@ -1367,6 +1376,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
         };
 
+        config.has_diffusivity = false;
         for (auto i: count_along(config.cv)) {
             auto cv = config.cv[i];
             if (D.cv_area[cv]==0) continue;
@@ -1414,9 +1424,14 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
             config.has_diffusivity |= (config.diffusivity[i] != 0.0);
         }
+        std::cerr << "is " << ion << " "<< "diffuse? " << config.has_diffusivity << " and exists " << !config.cv.empty() << '\n';
 
         if (!config.cv.empty()) M.ions[ion] = std::move(config);
+
+        std::cerr << "is " << ion << " "<< "diffuse? " << M.ions[ion].has_diffusivity << '\n';
     }
+
+    std::cout << "Has diffusion? Na=" << M.ions["na"].has_diffusivity << '\n';
 
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
     std::unordered_set<std::string> revpot_specified;
@@ -1492,6 +1507,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
     }
 
+    std::cout << "After erev: Has diffusion? Na=" << M.ions["na"].has_diffusivity << '\n';
+
     // Confirm that all ions written to by a revpot have a corresponding entry in a reversal_potential_method table.
     for (auto& kv: revpot_tbl) {
         if (!revpot_specified.count(kv.first)) {
@@ -1499,7 +1516,11 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
     }
 
+    std::cout << "After check: Has diffusion? Na=" << M.ions["na"].has_diffusivity << '\n';
+
     M.target_divs = {0u, M.n_target};
+
+    std::cout << "After target: Has diffusion? Na=" << M.ions["na"].has_diffusivity << '\n';
     return M;
 }
 

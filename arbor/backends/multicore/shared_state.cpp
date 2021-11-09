@@ -244,8 +244,10 @@ void shared_state::integrate_voltage() {
 }
 
 void shared_state::integrate_diffusion() {
+    static bool told = false;
     for (auto& [ion, data]: ion_data) {
-        if (!data.solver) continue; // Some ions might not have diffusivity enabled
+        if (!told && !data.solver) std::cout << "No diffusion for: " << ion << '\n';
+        if (!data.solver) { continue; } // Some ions might not have diffusivity enabled
         data.solver->assemble(dt_intdom,
                               data.Xi_,
                               voltage,
@@ -253,8 +255,8 @@ void shared_state::integrate_diffusion() {
                               data.gX_);
         data.solver->solve(data.Xi_);
     }
+    told = true;
 }
-
 
 void shared_state::add_ion(
     const std::string& ion_name,
