@@ -21,7 +21,7 @@
 // [lᵢ₊₁, rᵢ₊₁] then rᵢ must equal lᵢ₊₁.
 //
 // The `value_type` of `pw_elements<A>` is the type of the elements, i.e.
-// `pw_element<A>`, as `pw_elements<A>` presents as a read-only container.
+// `pw_element<A>`, as `pw_elements<A>` presents as a container.
 // To avoid ambiguity the type `A` is termed the _codomain_ of a `pw_elements<A>`
 // object.
 //
@@ -184,7 +184,7 @@ std::pair<std::ptrdiff_t, std::ptrdiff_t> equal_range_indices(const std::vector<
     // Let n be the number of elements, indexed from 0 to n-1, with
     // vertices indexed from 0 to n. Observe:
     // * eq.first points to least vertex v_i ≥ x.
-    //   or else to vetices.end() if v < x for all vertices v.
+    //   or else to vertices.end() if v < x for all vertices v.
     // * eq.second points to vertices.end() if the last vertex v_n ≤ x,
     //   or else to the least vertex v_k > x.
     //
@@ -224,7 +224,7 @@ struct pw_elements {
 
         reference operator[](difference_type j) { return reference{*pw_, j+*c_}; }
         reference operator*() { return reference{*pw_, *c_}; }
-        pw_element<X> operator*() const { return (*pw_)[*c_]; }
+        value_type operator*() const { return (*pw_)[*c_]; }
         pointer operator->() { return pointer{*pw_, *c_}; }
 
         // (required for iterator_adaptor)
@@ -464,7 +464,7 @@ private:
     std::vector<X> value_;
 };
 
-// With X = void, present the element intervals only, keeping othewise the
+// With X = void, present the element intervals only, keeping otherwise the
 // same interface.
 
 template <>
@@ -672,7 +672,7 @@ auto pw_map(const pw_elements<X>& pw, Fn&& fn) {
             return pw;
         }
         else {
-            auto mapped = util::transform_view(pw.begin(), pw.end(), [&fn](auto&&) { return fn(); });
+            auto mapped = util::transform_view(pw, [&fn](auto&&) { return fn(); });
             return pw_elements<Out>(pw.vertices(), std::vector<Out>(mapped.begin(), mapped.end()));
         }
     }
@@ -684,8 +684,7 @@ auto pw_map(const pw_elements<X>& pw, Fn&& fn) {
             return pw_elements<void>(pw);
         }
         else {
-            auto mapped = util::transform_view(pw.begin(), pw.end(), [&fn](auto&& elem) {
-                return fn(elem.value); });
+            auto mapped = util::transform_view(pw, [&fn](auto&& elem) { return fn(elem.value); });
             return pw_elements<Out>(pw.vertices(), std::vector<Out>(mapped.begin(), mapped.end()));
         }
     }
@@ -695,7 +694,7 @@ auto pw_map(const pw_elements<X>& pw, Fn&& fn) {
 // sequences where the elements overlap.
 //
 // * `pw_zip_view` performs a lazy zip, represented by a range of
-//   `pw_zip_iterator` objects. The iterators dereference to onbjects of
+//   `pw_zip_iterator` objects. The iterators dereference to objects of
 //   type `pw_element<std::pair<pw_element<A>, pw_element<B>>`.
 //
 // * `pw_zip` performs a strict zip, returning a piecewise object of type
@@ -703,7 +702,7 @@ auto pw_map(const pw_elements<X>& pw, Fn&& fn) {
 //
 // * `pw_zip_with` performs a map composed with a zip, where the map is
 //    given by a function which takes three arguments: the extent of
-//    the zipped element as `std::pair<double, double`; the element
+//    the zipped element as `std::pair<double, double>`; the element
 //    from the first sequence of type `<pw_element<A>`; and the element
 //    from the second sequence of type `pw_element<B>`. It is equivalent
 //    in action to performing a `pw_zip` followed by a `pw_map`.

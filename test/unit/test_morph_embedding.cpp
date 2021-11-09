@@ -335,6 +335,13 @@ TEST(embedding, zero_radius) {
     ASSERT_FALSE(std::isnan(infinite_ixa));
     EXPECT_TRUE(std::isinf(infinite_ixa));
 
+    // Integrating to the zero radius point should also give us
+    // INFINITY, because we integrate over closed intervals.
+
+    double also_infinite_ixa = em.integrate_ixa(mcable{0, 0.25, 0.5});
+    ASSERT_FALSE(std::isnan(also_infinite_ixa));
+    EXPECT_TRUE(std::isinf(also_infinite_ixa));
+
     // Should be able to integrate ixa over a tree that starts
     // with a zero radius.
 

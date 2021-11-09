@@ -6,8 +6,6 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
-#include "io/trace.hpp"
-
 #include "util/piecewise.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -22,7 +20,7 @@ namespace arb {
 //
 // The piecewise functions are represented by util::pw_elements<util::rat_element<p, q>>
 // objects. util::rat_element describes an order (p, q) rational function in terms of
-// the values of that function at p+q+1 equally spaced points along the elemnt, including
+// the values of that function at p+q+1 equally spaced points along the element, including
 // the two endpoints.
 
 using util::rat_element;
@@ -36,12 +34,12 @@ using util::pw_elements;
 template <unsigned p, unsigned q>
 using pw_ratpoly = util::pw_elements<rat_element<p, q>>;
 
-// One branch can be convered by more than one pw_ratpoly. When the function
-// represents an integral, the integral between two points that do not lie
-// in the same domain of a pw_ratpoly must be summed by considering the
-// contribution of each pw_ratpoly element separately. Multiple pw_ratpoly
-// elements over the same branch are required to avoid cases of loss of precision
-// and singularities.
+// One branch can be covered by more than one pw_ratpoly (of the same degree).
+// When the function represents an integral, the integral between two points
+// that do not lie in the same domain of a pw_ratpoly must be summed by
+// considering the contribution of each pw_ratpoly element separately. Multiple
+// pw_ratpoly elements over the same branch are required to avoid cases of loss
+// of precision and singularities.
 
 template <unsigned p, unsigned q>
 using branch_pw_spans = util::pw_elements<pw_ratpoly<p, q>>;
@@ -140,7 +138,7 @@ double integrate(const pw_constant_fn& g, const pw_elements<pw_ratpoly<p, q>>& f
     return sum;
 }
 
-// Implementation of public emned_pwlin methods:
+// Implementation of public embed_pwlin methods:
 
 double embed_pwlin::radius(mlocation loc) const {
     return interpolate(loc.pos, data_->radius.at(loc.branch));

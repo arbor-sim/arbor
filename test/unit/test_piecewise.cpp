@@ -366,6 +366,19 @@ TEST(piecewise, mutate) {
     ASSERT_TRUE(std::is_const_v<decltype(p[0].extent)>);
 }
 
+TEST(piecewise, map) {
+    double xx[5] = {1, 2.25, 3.25, 3.5, 4.};
+    pw_elements<int> p(xx, (int [4]){3, 4, 5, 6});
+
+    auto void_fn = [](auto) {};
+    pw_elements<> void_expected(xx);
+    EXPECT_EQ(void_expected, pw_map(p, void_fn));
+
+    auto str_fn = [](int j) { return std::string(j, '.'); };
+    pw_elements<std::string> str_expected(xx, (const char* [4]){"...", "....", ".....", "......"});
+    EXPECT_EQ(str_expected, pw_map(p, str_fn));
+}
+
 TEST(piecewise, zip) {
     pw_elements<int> p03;
     p03.assign((double [3]){0., 1.5, 3.}, (int [2]){10, 11});
