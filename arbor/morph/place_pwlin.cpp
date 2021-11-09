@@ -232,6 +232,11 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
                 }
             }
             else {
+                // Find the relative position of the orthogonal projection onto the line segment
+                // that along the axis of the segment:
+                //   t=0 -> proximal end of the segment
+                //   t=1 -> distal end of the segment
+                // values are clamped to the range [0, 1]
                 const double t = std::max(0., std::min(1., dot(vw, vp) / wvs));
                 const double distance =
                     t<=0.? norm(p-v):

@@ -576,14 +576,14 @@ TEST(place_pwlin, nearest) {
 
     //  the test morphology:
     //
-    //       x=-6        x=6
+    //       x=-9        x=9
     //
-    //         _        _
-    //          \       / y=35
-    //      seg4 \     / seg3
-    //  branch 2  \   \     branch 1
-    //             \ / seg2
-    //              | y=20
+    //         _        _  y=40
+    //          \       /
+    //      seg4 \     / seg2
+    //  branch 2  /   /     branch 1
+    //        seg3 \ /
+    //              | y=25
     //              |
     //              |
     //              | branch 0
@@ -592,7 +592,7 @@ TEST(place_pwlin, nearest) {
     //              _ y=7
     //
     //              - y=5
-    //        seg0  |       soma
+    //        seg0  |
     //              _ y=-5
 
     // Root branch.
