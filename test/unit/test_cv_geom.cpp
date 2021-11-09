@@ -138,8 +138,8 @@ TEST(cv_geom, one_cv_per_branch) {
         cable_cell cell{p.second};
         auto& m = cell.morphology();
 
-        cv_geometry geom =
-            cv_data_from_locset(cell, sum(ls::on_branches(0), ls::on_branches(1)));
+        auto cell_cv_geom = cv_data_from_locset(cell, sum(ls::on_branches(0), ls::on_branches(1)));
+        auto geom = cv_geometry(cell_cv_geom);
         EXPECT_TRUE(verify_cv_children(geom));
 
         // Expect trivial CVs at every fork point, and single-cable CVs for each branch.
@@ -483,3 +483,9 @@ TEST(cv_geom, multicell) {
     EXPECT_EQ((std::pair<index_type, index_type>(0, n_cv)), geom2.cell_cv_interval(0));
     EXPECT_EQ((std::pair<index_type, index_type>(n_cv, 2*n_cv)), geom2.cell_cv_interval(1));
 }
+
+TEST(region_cv, empty) {}
+
+TEST(region_cv, trivial) {}
+
+TEST(region_cv, weird) {}

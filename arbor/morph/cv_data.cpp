@@ -148,53 +148,31 @@ cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
     return data;
 }
 
-mcable_list region_cv_data::cables(fvm_size_type cv_index) const {
-    auto partn = util::partition_view(cv_cables_divs);
-    auto view = util::subrange_view(cv_cables, partn[cv_index]);
-    return mcable_list(view.begin(), view.end());
-}
-
-fvm_value_type region_cv_data::proportion(fvm_size_type cv_index) const {
-    return cv_proportion[cv_index];
-}
-
-fvm_size_type region_cv_data::num_cv() const {
-    return cv_proportion.size();
-}
-
-region_cv_data intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& geom) {
+std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& geom) {
     const auto& mp = cell.provider();
     const auto& embedding = cell.embedding();
 
-    region_cv_data reg_geom;
+    std::vector<cv_proportion> intersection;
     auto extent = thingify(reg, mp);
     mcable_map<double> support;
     for (auto& cable: extent) {
         support.insert(cable, 1.);
     }
     if(support.empty()) {
-        return reg_geom;
+        return {};
     }
 
-    reg_geom.cv_cables_divs.push_back(0);
     for (auto cv: util::make_span(geom.num_cv())) {
-        std::vector<mcable> cables;
-        double cv_area = 0, area_on_cv = 0;
+        double cv_area = 0, reg_area_on_cv = 0;
         for (mcable c: geom.cables(cv)) {
             cv_area += embedding.integrate_area(c);
-            auto area_on_cable = embedding.integrate_area(c.branch, util::pw_over_cable(support, c, 0.));
-            if (area_on_cable > 0) {
-                cables.push_back(c);
-                area_on_cv += area_on_cable;
-            }
+            reg_area_on_cv += embedding.integrate_area(c.branch, util::pw_over_cable(support, c, 0.));
         }
-        if (!cables.empty()) {
-            util::append(reg_geom.cv_cables, cables);
-            reg_geom.cv_cables_divs.push_back(reg_geom.cv_cables.size());
-            reg_geom.cv_proportion.push_back(area_on_cv/cv_area);
+        if (reg_area_on_cv>0) {
+            intersection.push_back({cv, reg_area_on_cv/cv_area});
         }
     }
-    return reg_geom;
+    return intersection;
 }
 
 } //namespace arb

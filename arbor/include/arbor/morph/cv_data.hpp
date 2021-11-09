@@ -39,23 +39,9 @@ private:
     friend cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
 };
 
-class region_cv_data {
-public:
-    // Returns mcables comprising the CV at a given index.
-    mcable_list cables(fvm_size_type cv_index) const;
-
-    // Returns proportion of CV in the region, by area.
-    fvm_value_type proportion(fvm_size_type cv_index) const;
-
-    // Returns total number of CVs.
-    fvm_size_type num_cv() const;
-
-private:
-    std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
-    std::vector<fvm_index_type> cv_cables_divs;   // Partitions cv_cables by CV index
-    std::vector<fvm_value_type> cv_proportion;    // Proportion of CV by area.
-
-    friend region_cv_data intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs);
+struct cv_proportion {
+    fvm_size_type idx;
+    fvm_value_type proportion;
 };
 
 // Construct cell_cv_geometry for cell from default cell discretization if it exists.
@@ -64,6 +50,6 @@ std::optional<cell_cv_data> cv_data(const cable_cell& cell);
 // Construct cell_cv_geometry for cell from locset describing CV boundary points.
 cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
 
-region_cv_data intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs);
+std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs);
 
 } //namespace arb

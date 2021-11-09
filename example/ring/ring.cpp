@@ -188,13 +188,9 @@ int main(int argc, char** argv) {
             }
 
             std::cout << " ------------- " << std::endl;
-            auto s_cv = arb::intersect_region(c, arb::reg::tagged(4), val);
-            for (unsigned cv = 0; cv < s_cv.num_cv(); cv++) {
-                std::cout << cv << std::endl;
-                for (const auto& c: s_cv.cables(cv)) {
-                    std::cout << "\t" << c << std::endl;
-                }
-                std::cout << "\t\t" << s_cv.proportion(cv) << std::endl;
+            auto s_cv = arb::intersect_region(c, arb::reg::all(), val);
+            for (auto [idx, prop]: s_cv) {
+                std::cout << "{" << idx << ", " << prop << "}" << std::endl;
             }
         }
 
