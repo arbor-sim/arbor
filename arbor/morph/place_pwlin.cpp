@@ -56,8 +56,8 @@ mpoint place_pwlin::at(mlocation loc) const {
     const auto& pw_index = data_->segment_index.at(loc.branch);
     double pos = is_degenerate(pw_index)? 0: loc.pos;
 
-    auto [bounds, index] = pw_index(pos);
-    return interpolate_segment(bounds, data_->segments.at(index), pos);
+    auto index = pw_index(pos);
+    return interpolate_segment(index.extent, data_->segments.at(index), pos);
 }
 
 std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
@@ -65,7 +65,8 @@ std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
     const auto& pw_index = data_->segment_index.at(loc.branch);
     double pos = is_degenerate(pw_index)? 0: loc.pos;
 
-    for (auto [bounds, index]: util::make_range(pw_index.equal_range(pos))) {
+    for (auto index: util::make_range(pw_index.equal_range(pos))) {
+        auto bounds = index.extent;
         auto seg = data_->segments.at(index);
 
         // Add both ends of zero length segment, if they differ.
