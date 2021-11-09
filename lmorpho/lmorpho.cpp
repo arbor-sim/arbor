@@ -75,12 +75,16 @@ int main(int argc, char** argv) {
 
 		using namespace arborio::literals;
 
+		auto apical = apical_lsys;
+		auto basal = basal_lsys;
+
 		for (int i = 0; i < n_morph; ++i) {
-			const arb::segment_tree morph = generate_morphology(P, g);
+			const arb::segment_tree morph = generate_morphology(P.diam_soma, std::vector<lsys_param>{apical, basal}, g);
 
 			arb::label_dict labels;
 			labels.set("soma", "(tag 1)"_reg);
-			labels.set("dend", "(tag 3)"_reg);
+			labels.set("basal", "(tag 3)"_reg);
+			labels.set("apical", "(tag 4)"_reg);
 			arb::decor decor;
 
 			arb::cable_cell cell(morph, labels, decor);

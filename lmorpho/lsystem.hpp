@@ -8,7 +8,8 @@ struct lsys_param;
 
 using lsys_generator = std::minstd_rand;
 
-arb::segment_tree generate_morphology(const lsys_param& P, lsys_generator& g);
+class lsys_distribution_param;
+arb::segment_tree generate_morphology(const lsys_distribution_param& soma, std::vector<lsys_param> Ps, lsys_generator& g);
 
 // The distribution parameters used in the specification of the L-system parameters.
 // The distribution can be a constant, uniform over an interval, or truncated normal.
@@ -127,5 +128,7 @@ struct lsys_param {
 
     // Absolute maximum number of unbranched sections. (Forces termination of algorithm)
     unsigned max_sections = 10000;
+
+	size_t tag = 0;
 };
 

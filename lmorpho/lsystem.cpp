@@ -304,12 +304,10 @@ grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
     }
 }
 
-arb::segment_tree generate_morphology(const lsys_param& P, lsys_generator &g) {
-    constexpr quaternion xaxis = {0, 1, 0, 0};
+std::vector<section_geometry> generate_sections(double soma_radius, lsys_param P, lsys_generator &g) {
+	constexpr quaternion xaxis = {0, 1, 0, 0};
 
-    lsys_sampler S(P);
-    double const soma_diameter = S.diam_soma(g);
-    double const soma_radius = 0.5*soma_diameter;
+	lsys_sampler S(P);
 
     struct section_start {
         section_tip tip;
@@ -350,43 +348,55 @@ arb::segment_tree generate_morphology(const lsys_param& P, lsys_generator &g) {
 		sections.push_back(std::move(section));
     }
 
-	// map from internal representation to Arbor ids
-    std::map<size_t, arb::msize_t> parent_end_id;
+	return sections;
+}
 
-    // soma
-    parent_end_id[0] = 0;
+arb::segment_tree generate_morphology(const lsys_distribution_param& soma, std::vector<lsys_param> Ps, lsys_generator &g) {
+
+    double const soma_diameter = lsys_distribution(soma)(g);
+    double const soma_radius = 0.5*soma_diameter;
 
 	arb::segment_tree morph;
 	morph.append(
 				arb::mnpos, arb::mpoint{-soma_diameter, 0, 0, soma_diameter},
 				arb::mpoint{soma_diameter, 0, 0, soma_diameter}, 1);
 
-    // dendrites:
-    for (auto& sec: sections) {
+	for(auto P : Ps) {
+		auto sections = generate_sections(soma_radius, P, g);
 
-		// the first section must have the soma as parent
-        size_t parent = parent_end_id.at(sec.parent_id);
+		// map from internal representation to Arbor ids
+		std::map<size_t, arb::msize_t> parent_end_id;
 
-        const auto& points = sec.points;
-        if (points.size() < 2) {
-            throw std::runtime_error("segment has only 1 point");
-        }
+		// soma
+		parent_end_id[0] = 0;
 
-        // Include first point only for dendrites segments attached to soma.
-        if (sec.parent_id==0) {
-			parent = morph.append(parent,
-								  arb::mpoint{points[0].x, points[0].y, points[0].z, points[0].r},
-								  arb::mpoint{points[1].x, points[1].y, points[1].z, points[1].r}, 3);
-        }
+		// dendrites:
+		for (auto& sec: sections) {
 
-        // Remaining points.
-        for (unsigned i = 1; i < points.size(); ++i) {
-            const auto& p = points[i];
-			parent = morph.append(parent, arb::mpoint{p.x, p.y, p.z, p.r}, 3);
-        }
+			// the first section must have the soma as parent
+			size_t parent = parent_end_id.at(sec.parent_id);
 
-        parent_end_id[sec.id] = parent;
-    }
+			const auto& points = sec.points;
+			if (points.size() < 2) {
+				throw std::runtime_error("segment has only 1 point");
+			}
+
+			// Include first point only for dendrites segments attached to soma.
+			if (sec.parent_id==0) {
+				parent = morph.append(parent,
+									  arb::mpoint{points[0].x, points[0].y, points[0].z, points[0].r},
+									  arb::mpoint{points[1].x, points[1].y, points[1].z, points[1].r}, P.tag);
+			}
+
+			// Remaining points.
+			for (unsigned i = 1; i < points.size(); ++i) {
+				const auto& p = points[i];
+				parent = morph.append(parent, arb::mpoint{p.x, p.y, p.z, p.r}, P.tag);
+			}
+
+			parent_end_id[sec.id] = parent;
+		}
+	}
 
     return morph;
 }
