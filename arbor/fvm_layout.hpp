@@ -116,15 +116,15 @@ struct cv_geometry {
     size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
         auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
         auto zero_extent = [&pw_cv_offset](auto j) {
-            return pw_cv_offset.interval(j).first==pw_cv_offset.interval(j).second;
+            return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
         };
 
         auto i = pw_cv_offset.index_of(loc.pos);
         auto i_max = pw_cv_offset.size()-1;
-        auto cv_prox = pw_cv_offset.interval(i).first;
+        auto cv_prox = pw_cv_offset.extent(i).first;
 
         // index_of() should have returned right-most matching interval.
-        arb_assert(i==i_max || loc.pos<pw_cv_offset.interval(i+1).first);
+        arb_assert(i==i_max || loc.pos<pw_cv_offset.extent(i+1).first);
 
         using namespace cv_prefer;
         switch (prefer) {
@@ -145,7 +145,7 @@ struct cv_geometry {
         }
 
         index_type cv_base = cell_cv_divs.at(cell_idx);
-        return cv_base+pw_cv_offset[i].element;
+        return cv_base+pw_cv_offset.value(i);
     }
 };
 
