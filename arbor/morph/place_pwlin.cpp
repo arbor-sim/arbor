@@ -215,7 +215,7 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
         const auto b = data_->segment_index[bid];
         // loop over the segments in the branch
         for (auto s: b) {
-            const auto& seg = data_->segments[s.element];
+            const auto& seg = data_->segments[s.value];
 
             // v and w are the proximal and distal ends of the segment.
             const p3d v = seg.prox;
@@ -228,7 +228,7 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
                 const double distance = norm(p-v);
                 if (distance<mind) {
                     mind = distance;
-                    loc = {bid, s.interval.first};
+                    loc = {bid, s.lower_bound()};
                 }
             }
             else {
@@ -238,7 +238,7 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
                     t>=1.? norm(p-w):
                            norm(p-(v + t*vw));
                 if (distance<mind) {
-                    loc = {bid, math::lerp(s.interval.first, s.interval.second, t)};
+                    loc = {bid, math::lerp(s.lower_bound(), s.upper_bound(), t)};
                     mind = distance;
                 }
             }
