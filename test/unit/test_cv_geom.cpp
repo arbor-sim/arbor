@@ -484,8 +484,51 @@ TEST(cv_geom, multicell) {
     EXPECT_EQ((std::pair<index_type, index_type>(n_cv, 2*n_cv)), geom2.cell_cv_interval(1));
 }
 
-TEST(region_cv, empty) {}
+TEST(region_cv, empty) {
+    using namespace common_morphology;
 
-TEST(region_cv, trivial) {}
+    cable_cell empty_cell{m_empty};
+    auto cell_geom = cv_data_from_locset(empty_cell, ls::nil());
 
-TEST(region_cv, weird) {}
+    auto all_cv = intersect_region(empty_cell, reg::all(), cell_geom);
+    EXPECT_EQ(0u, all_cv.size());
+
+    auto tag1_cv = intersect_region(empty_cell, reg::tagged(1), cell_geom);
+    EXPECT_EQ(0u, tag1_cv.size());
+}
+
+TEST(region_cv, trivial) {
+    using namespace common_morphology;
+
+    for (auto& p: test_morphologies) {
+        if (p.second.empty()) continue;
+
+        SCOPED_TRACE(p.first);
+        cable_cell cell{p.second};
+        auto& m = cell.morphology();
+
+        // One CV comprising whole cell:
+        cell_cv_data cell_geom1 = cv_data_from_locset(cell, ls::nil());
+
+        auto all_cv  = intersect_region(cell, reg::all(), cell_geom1);
+        auto tag1_cv = intersect_region(cell, reg::tagged(1), cell_geom1);
+        auto tag2_cv = intersect_region(cell, reg::tagged(2), cell_geom1);
+
+        EXPECT_EQ(1u, all_cv.size());
+        EXPECT_EQ(0u, all_cv.front().idx);
+        EXPECT_EQ(1., all_cv.front().proportion);
+
+        EXPECT_EQ(1u, all_cv.size());
+        EXPECT_EQ(0u, all_cv.front().idx);
+        EXPECT_EQ(1., all_cv.front().proportion);
+
+        EXPECT_EQ(1u, tag1_cv.size());
+        EXPECT_EQ(0u, tag1_cv.front().idx);
+        EXPECT_EQ(1., tag1_cv.front().proportion);
+
+        EXPECT_EQ(0u, tag2_cv.size());
+    }
+}
+
+TEST(region_cv, custom_geometry) {
+}

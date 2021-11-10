@@ -5,7 +5,6 @@
 #include <arbor/morph/embed_pwlin.hpp>
 
 #include "util/partition.hpp"
-#include "util/piecewise.hpp"
 #include "util/pw_over_cable.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -29,7 +28,7 @@ fvm_index_type cell_cv_data::parent(fvm_size_type cv_index) const {
     return cv_parent[cv_index];
 }
 
-fvm_size_type cell_cv_data::num_cv() const {
+fvm_size_type cell_cv_data::size() const {
     return cv_parent.size();
 }
 
@@ -162,7 +161,7 @@ std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region
         return {};
     }
 
-    for (auto cv: util::make_span(geom.num_cv())) {
+    for (auto cv: util::make_span(geom.size())) {
         double cv_area = 0, reg_area_on_cv = 0;
         for (mcable c: geom.cables(cv)) {
             cv_area += embedding.integrate_area(c);

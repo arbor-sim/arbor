@@ -25,7 +25,7 @@ public:
     fvm_index_type parent(fvm_size_type cv_index) const;
 
     // Returns total number of CVs.
-    fvm_size_type num_cv() const;
+    fvm_size_type size() const;
 
 private:
     std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
