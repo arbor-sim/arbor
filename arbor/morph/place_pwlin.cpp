@@ -1,10 +1,14 @@
+#include <iostream>
+
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <vector>
 
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/math.hpp>
 
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
@@ -169,5 +173,83 @@ place_pwlin::place_pwlin(const arb::morphology& m, const isometry& iso) {
         }
     }
 };
+
+struct p3d {
+    double x=0,y=0,z=0;
+    constexpr p3d() = default;
+    constexpr p3d(const mpoint& p): x(p.x), y(p.y), z(p.z) {}
+    constexpr p3d(double x, double y, double z): x(x), y(y), z(z) {}
+    friend constexpr p3d operator-(const p3d& l, const p3d& r) {
+        return {l.x-r.x, l.y-r.y, l.z-r.z};
+    }
+    friend constexpr p3d operator+(const p3d& l, const p3d& r) {
+        return {l.x+r.x, l.y+r.y, l.z+r.z};
+    }
+    friend constexpr p3d operator*(double l, const p3d& r) {
+        return {l*r.x, l*r.y, l*r.z};
+    }
+    friend constexpr double dot(const p3d& l, const p3d& r) {
+        return l.x*r.x + l.y*r.y + l.z*r.z;
+    }
+    friend double norm(const p3d p) {
+        return std::sqrt(dot(p, p));
+    }
+    friend std::ostream& operator<<(std::ostream& o, const p3d& p) {
+        return o << '[' << p.x << ' ' << p.y << ' ' << p.z << ']';
+    }
+};
+
+// Policy:
+//  If two collated points are equidistant from the input point, take the
+//  proximal location.
+// Rationale:
+//  if the location is on a fork point, it makes sense to take the proximal
+//  location, which corresponds to the end of the parent branch.
+std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) const {
+    double mind = std::numeric_limits<double>::max();
+    p3d p(x,y,z);
+    mlocation loc;
+
+    // loop over each branch
+    for (msize_t bid: util::count_along(data_->segment_index)) {
+        const auto b = data_->segment_index[bid];
+        // loop over the segments in the branch
+        for (auto s: b) {
+            const auto& seg = data_->segments[s.value];
+
+            // v and w are the proximal and distal ends of the segment.
+            const p3d v = seg.prox;
+            const p3d w = seg.dist;
+
+            const p3d vw = w-v;
+            const p3d vp = p-v;
+            const double wvs = dot(vw, vw);
+            if (wvs==0.) { // zero length segment is a special case
+                const double distance = norm(p-v);
+                if (distance<mind) {
+                    mind = distance;
+                    loc = {bid, s.lower_bound()};
+                }
+            }
+            else {
+                // Find the relative position of the orthogonal projection onto the line segment
+                // that along the axis of the segment:
+                //   t=0 -> proximal end of the segment
+                //   t=1 -> distal end of the segment
+                // values are clamped to the range [0, 1]
+                const double t = std::max(0., std::min(1., dot(vw, vp) / wvs));
+                const double distance =
+                    t<=0.? norm(p-v):
+                    t>=1.? norm(p-w):
+                           norm(p-(v + t*vw));
+                if (distance<mind) {
+                    loc = {bid, math::lerp(s.lower_bound(), s.upper_bound(), t)};
+                    mind = distance;
+                }
+            }
+        }
+    }
+    return {loc, mind};
+}
 
 } // namespace arb

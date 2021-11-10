@@ -183,6 +183,10 @@ zero-length components as a result of such discontinuities.
       Return the maximal set of segments and partial segments whose
       union is coterminous with the given :cpp:class:`mextent` in the placement.
 
+   .. cpp:function:: closest(double x, double y, double z) -> std::pair<mpoint, double>
+
+      Find the closest location to p. Returns the location and its distance from the input coordinates.
+
 Isometries
 ^^^^^^^^^^
 
