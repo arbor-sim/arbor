@@ -26,7 +26,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
@@ -128,12 +128,7 @@ int main(int argc, char** argv) {
         bool root = true;
 
         arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
+        resources.num_threads = arbenv::default_concurrency();
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);

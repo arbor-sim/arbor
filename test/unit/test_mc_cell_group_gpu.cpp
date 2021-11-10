@@ -2,7 +2,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arborio/label_parse.hpp>
-#include <arborenv/gpu_env.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "epoch.hpp"
 #include "execution_context.hpp"
@@ -16,13 +16,6 @@ using namespace arb;
 using namespace arborio::literals;
 
 namespace {
-    fvm_lowered_cell_ptr lowered_cell() {
-        arb::proc_allocation resources;
-        resources.gpu_id = arbenv::default_gpu();
-        execution_context context(resources);
-        return make_fvm_lowered_cell(backend_kind::gpu, context);
-    }
-
     cable_cell_description make_cell() {
         soma_cell_builder builder(12.6157/2.0);
         builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
@@ -37,6 +30,8 @@ namespace {
 
 TEST(mc_cell_group, gpu_test)
 {
+    auto context = make_context({1, arbenv::default_gpu()});
+
     cable_cell cell = make_cell();
     auto rec = cable1d_recipe({cell});
     rec.nernst_ion("na");
@@ -44,7 +39,7 @@ TEST(mc_cell_group, gpu_test)
     rec.nernst_ion("k");
 
     cell_label_range srcs, tgts;
-    mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
+    mc_cell_group group{{0}, rec, srcs, tgts, make_fvm_lowered_cell(backend_kind::gpu, *context)};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // The model is expected to generate 4 spikes as a result of the
