@@ -7,6 +7,8 @@
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include "fvm_layout.hpp"
 #include "util/rangeutil.hpp"
 
@@ -505,7 +507,6 @@ TEST(region_cv, trivial) {
 
         SCOPED_TRACE(p.first);
         cable_cell cell{p.second};
-        auto& m = cell.morphology();
 
         // One CV comprising whole cell:
         cell_cv_data cell_geom1 = cv_data_from_locset(cell, ls::nil());
@@ -531,4 +532,179 @@ TEST(region_cv, trivial) {
 }
 
 TEST(region_cv, custom_geometry) {
+    auto almost_eq = [](const cv_proportion& a, const cv_proportion& b) {
+        return a.idx==b.idx && (fabs(a.proportion-b.proportion)<1e-6);
+    };
+
+    using namespace arborio::literals;
+    segment_tree tree;
+    //  the test morphology:
+    //
+    //         _        _  y=40
+    //          \       /
+    //  seg3     \     /   seg2
+    //  branch2   \   /    branch1
+    //             \ /
+    //              | y=25
+    //              |
+    //              | seg1
+    //              | branch0
+    //              |
+    //              |
+    //              - y=5
+    //              | seg0
+    //              _ y=-5
+
+    // Root branch.
+    mpoint psoma_p{0, -5, 0, 5};
+    mpoint psoma_d{0,  5, 0, 5};
+
+    msize_t ssoma = tree.append(mnpos, psoma_p, psoma_d, 1);
+
+    mpoint py1_p{0,  5, 0, 1};
+    mpoint py1_d{0, 25, 0, 1};
+
+    msize_t sy1 = tree.append(ssoma, py1_p, py1_d, 3);
+
+    // branch 1 of y: translation (9,15) in one segment
+    mpoint py2_d{ 9, 40, 0, 1};
+    tree.append(sy1, py2_d, 3);
+
+    // branch 2 of y: translation (-9,15) in 2 segments
+    mpoint py3_d{-9, 40, 0, 1};
+    tree.append(sy1, py3_d, 3);
+
+    morphology m(tree);
+
+    label_dict l;
+    l.set("all", reg::all());
+    l.set("soma", reg::tagged(1));
+    l.set("dend", reg::tagged(3));
+    l.set("custom0", reg::cable(0, 0, 0.5));
+    l.set("custom1", reg::cable(1, 0.5, 1));
+    l.set("custom2", join(reg::named("custom0"), reg::named("custom1")));
+    l.set("custom3", reg::cable(0, 1./6., 3./5.));
+    l.set("custom4", reg::cable(0, 3./5., 1));
+    {
+        decor d;
+        // Discretize by segment
+        d.set_default(cv_policy_every_segment());
+        auto cell = cable_cell(m, l, d);
+        auto geom = cv_data(cell);
+        EXPECT_TRUE(geom);
+
+        auto cv0 = cv_proportion{0, 1};
+        auto cv1 = cv_proportion{1, 1};
+        auto cv2 = cv_proportion{3, 1};
+        auto cv3 = cv_proportion{4, 1};
+        auto cv1_quarter = cv_proportion{1, 0.25};
+        auto cv2_half = cv_proportion{3, 0.5};
+
+        auto all_cv = intersect_region(cell, "all"_lab, geom.value());
+        EXPECT_EQ(4u,  all_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, all_cv[0]));
+        EXPECT_TRUE(almost_eq(cv1, all_cv[1]));
+        EXPECT_TRUE(almost_eq(cv2, all_cv[2]));
+        EXPECT_TRUE(almost_eq(cv3, all_cv[3]));
+
+        auto soma_cv = intersect_region(cell, "soma"_lab, geom.value());
+        EXPECT_EQ(1u, soma_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, soma_cv[0]));
+
+        auto dend_cv = intersect_region(cell, "dend"_lab, geom.value());
+        EXPECT_EQ(3u, dend_cv.size());
+        EXPECT_TRUE(almost_eq(cv1, dend_cv[0]));
+        EXPECT_TRUE(almost_eq(cv2, dend_cv[1]));
+        EXPECT_TRUE(almost_eq(cv3, dend_cv[2]));
+
+        auto c0_cv = intersect_region(cell, "custom0"_lab, geom.value());
+        EXPECT_EQ(2u, c0_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, c0_cv[0]));
+        EXPECT_TRUE(almost_eq(cv1_quarter, c0_cv[1]));
+
+        auto c1_cv = intersect_region(cell, "custom1"_lab, geom.value());
+        EXPECT_EQ(1u, c1_cv.size());
+        EXPECT_TRUE(almost_eq(cv2_half, c1_cv[0]));
+
+        auto c2_cv = intersect_region(cell, "custom2"_lab, geom.value());
+        EXPECT_EQ(3u, c2_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, c2_cv[0]));
+        EXPECT_TRUE(almost_eq(cv1_quarter, c2_cv[1]));
+        EXPECT_TRUE(almost_eq(cv2_half, c2_cv[2]));
+    }
+    {
+        decor d;
+        // Discretize using explicit locset
+        auto ls = locset({
+          {0, 0},
+          {0, 0.1},
+          {0, 0.5},
+          {0, 0.7},
+          {0, 0.9},
+          {1, 0.1},
+          {1, 1},
+          {2, 0.2},
+          {2, 1}
+        });
+        d.set_default(cv_policy_explicit(ls));
+        auto cell = cable_cell(m, l, d);
+        auto geom = cv_data(cell);
+        EXPECT_TRUE(geom);
+
+        auto cv0 = cv_proportion{0, 1};
+        auto cv1 = cv_proportion{1, 1};
+        auto cv1_part0 = cv_proportion{1, 7./8.};
+        auto cv1_part1 = cv_proportion{1, 1./8.};
+        auto cv1_part2 = cv_proportion{1, 3./4.};
+        auto cv2 = cv_proportion{2, 1};
+        auto cv2_part = cv_proportion{2, 1./2.};
+        auto cv3 = cv_proportion{3, 1};
+        auto cv4 = cv_proportion{4, 1};
+        auto cv4_part = cv_proportion{4, 10/(sqrt(306)+10)};
+        auto cv5 = cv_proportion{5, 1};
+        auto cv5_part = cv_proportion{5, 15./27.};
+        auto cv6 = cv_proportion{6, 1};
+
+        auto all_cv = intersect_region(cell, "all"_lab, geom.value());
+        EXPECT_EQ(7u,  all_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, all_cv[0]));
+        EXPECT_TRUE(almost_eq(cv1, all_cv[1]));
+        EXPECT_TRUE(almost_eq(cv2, all_cv[2]));
+        EXPECT_TRUE(almost_eq(cv3, all_cv[3]));
+        EXPECT_TRUE(almost_eq(cv4, all_cv[4]));
+        EXPECT_TRUE(almost_eq(cv5, all_cv[5]));
+        EXPECT_TRUE(almost_eq(cv6, all_cv[6]));
+
+        auto soma_cv = intersect_region(cell, "soma"_lab, geom.value());
+        EXPECT_EQ(2u, soma_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, soma_cv[0]));
+        EXPECT_TRUE(almost_eq(cv1_part0, soma_cv[1]));
+
+        auto dend_cv = intersect_region(cell, "dend"_lab, geom.value());
+        EXPECT_EQ(6u, dend_cv.size());
+        EXPECT_TRUE(almost_eq(cv1_part1, dend_cv[0]));
+        EXPECT_TRUE(almost_eq(cv2, dend_cv[1]));
+        EXPECT_TRUE(almost_eq(cv3, dend_cv[2]));
+        EXPECT_TRUE(almost_eq(cv4, dend_cv[3]));
+        EXPECT_TRUE(almost_eq(cv5, dend_cv[4]));
+        EXPECT_TRUE(almost_eq(cv6, dend_cv[5]));
+        EXPECT_TRUE(almost_eq(cv6, dend_cv[5]));
+
+        auto c2_cv = intersect_region(cell, "custom2"_lab, geom.value());
+        EXPECT_EQ(3u, c2_cv.size());
+        EXPECT_TRUE(almost_eq(cv0, c2_cv[0]));
+        EXPECT_TRUE(almost_eq(cv1, c2_cv[1]));
+        EXPECT_TRUE(almost_eq(cv5_part, c2_cv[2]));
+
+        auto c3_cv = intersect_region(cell, "custom3"_lab, geom.value());
+        EXPECT_EQ(2u, c3_cv.size());
+        EXPECT_TRUE(almost_eq(cv1_part2, c3_cv[0]));
+        EXPECT_TRUE(almost_eq(cv2_part, c3_cv[1]));
+
+        auto c4_cv = intersect_region(cell, "custom4"_lab, geom.value());
+        EXPECT_EQ(3u, c2_cv.size());
+        EXPECT_TRUE(almost_eq(cv2_part, c4_cv[0]));
+        EXPECT_TRUE(almost_eq(cv3, c4_cv[1]));
+        EXPECT_TRUE(almost_eq(cv4_part, c4_cv[2]));
+    }
 }
