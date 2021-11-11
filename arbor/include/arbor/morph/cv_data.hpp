@@ -16,13 +16,13 @@ class cv_geometry;
 class cell_cv_data {
 public:
     // Returns mcables comprising the CV at a given index.
-    mcable_list cables(fvm_size_type cv_index) const;
+    mcable_list cables(fvm_size_type index) const;
 
     // Returns the CV indices of the children of a given CV index.
-    std::vector<fvm_index_type> children(fvm_size_type cv_index) const;
+    std::vector<fvm_index_type> children(fvm_size_type index) const;
 
     // Returns the CV index of the parent of a given CV index.
-    fvm_index_type parent(fvm_size_type cv_index) const;
+    fvm_index_type parent(fvm_size_type index) const;
 
     // Returns total number of CVs.
     fvm_size_type size() const;
@@ -35,8 +35,8 @@ private:
     std::vector<fvm_index_type> cv_children;      // CV child indices, partitioned by CV, and then in order.
     std::vector<fvm_index_type> cv_children_divs; // Paritions cv_children by CV index.
 
-    friend cv_geometry;
     friend cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
+    friend cv_geometry;
 };
 
 struct cv_proportion {

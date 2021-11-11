@@ -515,15 +515,11 @@ TEST(region_cv, trivial) {
         auto tag1_cv = intersect_region(cell, reg::tagged(1), cell_geom1);
         auto tag2_cv = intersect_region(cell, reg::tagged(2), cell_geom1);
 
-        EXPECT_EQ(1u, all_cv.size());
+        EXPECT_EQ(1u,  all_cv.size());
         EXPECT_EQ(0u, all_cv.front().idx);
         EXPECT_EQ(1., all_cv.front().proportion);
 
-        EXPECT_EQ(1u, all_cv.size());
-        EXPECT_EQ(0u, all_cv.front().idx);
-        EXPECT_EQ(1., all_cv.front().proportion);
-
-        EXPECT_EQ(1u, tag1_cv.size());
+        EXPECT_EQ(1u,  tag1_cv.size());
         EXPECT_EQ(0u, tag1_cv.front().idx);
         EXPECT_EQ(1., tag1_cv.front().proportion);
 
@@ -595,9 +591,9 @@ TEST(region_cv, custom_geometry) {
 
         auto cv0 = cv_proportion{0, 1};
         auto cv1 = cv_proportion{1, 1};
+        auto cv1_quarter = cv_proportion{1, 0.25};
         auto cv2 = cv_proportion{3, 1};
         auto cv3 = cv_proportion{4, 1};
-        auto cv1_quarter = cv_proportion{1, 0.25};
         auto cv2_half = cv_proportion{3, 0.5};
 
         auto all_cv = intersect_region(cell, "all"_lab, geom.value());
