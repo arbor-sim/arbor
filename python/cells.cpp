@@ -352,7 +352,7 @@ void register_cells(pybind11::module& m) {
     cell_cv_data
             .def(pybind11::init<>())
             .def(pybind11::init<const arb::cell_cv_data&>())
-            .def("size", &arb::cell_cv_data::size,
+            .def("num_cv", &arb::cell_cv_data::size,
                  "Return the number of CVs in the cell.")
             .def("cables", &arb::cell_cv_data::cables, "index"_a,
                  "Return a list of cables representing the CV at the given index.")

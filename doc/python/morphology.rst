@@ -527,7 +527,7 @@ region.
 
       Returns the index of the CV representing the parent of the CV at index ``idx``.
 
-   .. py:method:: size() -> int
+   .. py:method:: num_cv() -> int
 
       Returns the total number of CVs on the cell.
 
