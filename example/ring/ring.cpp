@@ -25,7 +25,6 @@
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
-#include <arbor/morph/cv_data.hpp>
 
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -160,39 +159,6 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
-
-        float r = 10;
-        arb::segment_tree tree;
-        auto p = tree.append(arb::mnpos, {0, 0, 0, r}, {0, 0, 10, r}, 1);
-        p = tree.append(p, {0, 0, 10, r}, {0, 0, 20, r}, 1);
-        p = tree.append(p, {0, 0, 20, r}, {0, 0, 30, r}, 1);
-        p = tree.append(p, {0, 0, 30, r}, {0, 0, 40, r}, 2);
-
-        auto g = tree.append(p, {0, 0, 40, r}, {0, 0, 50, r}, 3);
-        tree.append(g, {0, 0, 50, r}, {0, 0, 70, r}, 4);
-        tree.append(p, {0, 0, 40, r}, {0, 50, 50, r}, 2);
-
-        auto dec = arb::decor();
-        dec.set_default(arb::cv_policy_fixed_per_branch(1));
-//        dec.set_default(arb::cv_policy_single());
-
-        auto c = arb::cable_cell(tree, {}, dec);
-
-        if (auto c_cv = arb::cv_data(c)) {
-            auto val = c_cv.value();
-            for (unsigned cv = 0; cv < val.num_cv(); cv++) {
-                std::cout << cv << std::endl;
-                for (const auto& c: val.cables(cv)) {
-                    std::cout << "\t" << c << std::endl;
-                }
-            }
-
-            std::cout << " ------------- " << std::endl;
-            auto s_cv = arb::intersect_region(c, arb::reg::all(), val);
-            for (auto [idx, prop]: s_cv) {
-                std::cout << "{" << idx << ", " << prop << "}" << std::endl;
-            }
-        }
 
         auto decomp = arb::partition_load_balance(recipe, context);
 
