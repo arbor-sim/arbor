@@ -32,7 +32,7 @@ already has a working knowledge of NMODL.
 Units
 -----
 
-Arbor doesn't support unit conversion in nmodl. This table lists the key nmodl
+Arbor doesn't support unit conversion in NMODL. This table lists the key NMODL
 quantities and their expected units.
 
 ===============================================  ===================================================  ==========
@@ -44,7 +44,7 @@ temperature                                      celsius                        
 diameter (cross-sectional)                       diam                                                 µm
 
 current_density (density mechanisms)             identifier defined using ``NONSPECIFIC_CURRENT``     mA/cm²
-conductivity (density mechanisms)                identifier inferred from current_denisty equation    S/cm²
+conductivity (density mechanisms)                identifier inferred from current_density equation    S/cm²
                                                  e.g. in ``i = g*v`` g is the conductivity
 current (point and junction mechanisms)          identifier defined using ``NONSPECIFIC_CURRENT``     nA
 conductance (point and junction mechanisms)      identifier inferred from current equation            µS
