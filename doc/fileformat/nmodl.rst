@@ -29,6 +29,35 @@ does not allow some constructions used in NEURON's NMODL.
 This page is a collection of NMODL rules for Arbor. It assumes that the reader
 already has a working knowledge of NMODL.
 
+Units
+-----
+
+Arbor doesn't support unit conversion in nmodl. This table lists the key nmodl
+quantities and their expected units.
+
+===============================================  ===================================================  ==========
+quantity                                         identifier                                           unit
+===============================================  ===================================================  ==========
+voltage                                          v / v_peer                                           mV
+time                                             t                                                    ms
+temperature                                      celsius                                              °C
+diameter (cross-sectional)                       diam                                                 µm
+
+current_density (density mechanisms)             identifier defined using ``NONSPECIFIC_CURRENT``     mA/cm²
+conductivity (density mechanisms)                identifier inferred from current_denisty equation    S/cm²
+                                                 e.g. in ``i = g*v`` g is the conductivity
+current (point and junction mechanisms)          identifier defined using ``NONSPECIFIC_CURRENT``     nA
+conductance (point and junction mechanisms)      identifier inferred from current equation            µS
+                                                 e.g. in ``i = g*v`` g is the conductance
+ion X current_density (density mechanisms)       iX                                                   mA/cm²
+
+ion X current (point and junction mechanisms)    iX                                                   nA
+
+ion X reversal potential                         eX                                                   mV
+ion X internal concentration                     Xi                                                   mmol/L
+ion X external concentration                     Xo                                                   mmol/L
+===============================================  ===================================================  ==========
+
 Ions
 -----
 
