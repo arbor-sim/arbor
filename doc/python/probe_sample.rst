@@ -3,6 +3,8 @@
 Cable cell probing and sampling
 ===============================
 
+.. module:: arbor
+
 Cable cell probe addresses are defined analogously to their counterparts in
 the C++ API (see :ref:`cablecell-probes` for details). Sample data recorded
 by the Arbor simulation object is returned in the form of a NumPy array,
@@ -15,7 +17,7 @@ one, or more probes, one per site. They are evaluated in the context of
 the cell on which the probe is attached.
 
 Each of the functions described below generates an opaque :class:`probe`
-object for use in the recipe :py:func:`get_probes` method.
+object for use in the recipe :py:func:`recipe.probes` method.
 
 More information on probes, probe metadata, and sampling can be found
 in the documentation for the class :class:`simulation`.
