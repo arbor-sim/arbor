@@ -70,7 +70,8 @@ domain_decomposition partition_load_balance(
     // Local load balance
 
     std::vector<std::vector<cell_gid_type>> super_cells; //cells connected by gj
-    std::vector<cell_gid_type> reg_cells; //independent cells
+    std::vector<cell_gid_type> independent_cells;
+    std::vector<cell_gid_type> single_sided_cells; //cells with only outgoing gj connections
 
     // Map to track visited cells (cells that already belong to a group)
     std::unordered_set<cell_gid_type> visited;
@@ -91,10 +92,16 @@ domain_decomposition partition_load_balance(
                     cg.push_back(element);
                     // Adjacency list
                     auto conns = rec.gap_junctions_on(element);
-                    for (auto c: conns) {
-                        if (!visited.count(c.peer.gid)) {
-                            visited.insert(c.peer.gid);
-                            q.push(c.peer.gid);
+                    for (const auto& c: conns) {
+                        auto peer_gid = c.peer.gid;
+                        if (!visited.count(peer_gid)) {
+                            visited.insert(peer_gid);
+                            q.push(peer_gid);
+                            // Save the gids of peers with no incoming gap-junction connections.
+                            // These need to be removed from the independent_cells vector.
+                            if (rec.gap_junctions_on(peer_gid).empty()) {
+                                single_sided_cells.push_back(peer_gid);
+                            }
                         }
                     }
                 }
@@ -103,26 +110,35 @@ domain_decomposition partition_load_balance(
         }
         else {
             // If cell has no gap_junctions, put in separate group of independent cells
-            reg_cells.push_back(gid);
+            independent_cells.push_back(gid);
         }
     }
 
+    // Sort the single_sided_cells, and remove from independent_cells the elements
+    // that are also present in single_sided_cells because those elements are already
+    // included in a super_cell (where they belong).
+    util::sort(single_sided_cells);
+    independent_cells.erase(std::remove_if(independent_cells.begin(), independent_cells.end(),
+        [&](const auto& gid) {
+            return std::binary_search(single_sided_cells.begin(), single_sided_cells.end(), gid);
+        }), independent_cells.end());
+
     // Sort super_cell groups and only keep those where the first element in the group belongs to domain
     super_cells.erase(std::remove_if(super_cells.begin(), super_cells.end(),
-            [gid_part, domain_id](std::vector<cell_gid_type>& cg)
-            {
-                std::sort(cg.begin(), cg.end());
-                return cg.front() < gid_part[domain_id].first;
-            }), super_cells.end());
+        [gid_part, domain_id](std::vector<cell_gid_type>& cg)
+        {
+            std::sort(cg.begin(), cg.end());
+            return cg.front() < gid_part[domain_id].first;
+        }), super_cells.end());
 
     // Collect local gids that belong to this rank, and sort gids into kind lists
     // kind_lists maps a cell_kind to a vector of either:
-    // 1. gids of regular cells (in reg_cells)
+    // 1. gids of independent cells (in independent_cells)
     // 2. indices of supercells (in super_cells)
 
     std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_identifier>> kind_lists;
-    for (auto gid: reg_cells) {
+    for (auto gid: independent_cells) {
         local_gids.push_back(gid);
         kind_lists[rec.get_cell_kind(gid)].push_back({gid, false});
     }
