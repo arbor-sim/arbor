@@ -171,6 +171,12 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
 // to the CV, or in the absence of any internal forks, is exact at the
 // midpoint of an unbranched CV.
 
+struct fvm_diffusion_info {
+    using value_type = fvm_value_type;
+    std::vector<value_type> face_diffusivity;                      // [???]
+    std::vector<std::vector<pw_constant_fn>>axial_inv_diffusivity; // [???]
+};
+    
 struct fvm_cv_discretization {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -191,7 +197,10 @@ struct fvm_cv_discretization {
     std::vector<value_type> diam_um;          // [µm]
 
     // For each cell, one piece-wise constant value per branch.
-    std::vector<std::vector<pw_constant_fn>> axial_resistivity; // [Ω·cm]
+    std::vector<std::vector<pw_constant_fn>>axial_resistivity; // [Ω·cm]
+
+    // For each diffusive ion species, their properties
+    std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 };
 
 // Combine two fvm_cv_geometry groups in-place.
@@ -265,17 +274,17 @@ struct fvm_ion_config {
     std::vector<value_type> init_iconc;
     std::vector<value_type> init_econc;
 
-    // Diffusivity
-    std::vector<value_type> diffusivity;
-    std::vector<value_type> face_diffusivity;
-    bool has_diffusivity;
-
     // Normalized area contribution of default concentration contribution in corresponding CV set by users
     std::vector<value_type> reset_iconc;
     std::vector<value_type> reset_econc;
 
     // Ion-specific (initial) reversal potential per CV.
     std::vector<value_type> init_revpot;
+
+    // diffusivity
+    bool is_diffusive = false;
+    std::vector<value_type> face_diffusivity;                      // [???]
+    std::vector<std::vector<pw_constant_fn>>axial_inv_diffusivity; // [???]
 };
 
 struct fvm_stimulus_config {

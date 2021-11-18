@@ -172,6 +172,7 @@ void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
 }
 
 void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+    std::cerr << pm.meta.type().name() << '\n';
     auto* cables_ptr = any_cast<const arb::mcable_list*>(pm.meta);
     assert(cables_ptr);
     unsigned n_cable = cables_ptr->size();

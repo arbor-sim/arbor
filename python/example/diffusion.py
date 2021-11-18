@@ -31,36 +31,36 @@ class recipe (A.recipe):
 
 tree = A.segment_tree()
 s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(  3, 0, 0, 3), tag=1)
-_ = tree.append(s,       A.mpoint( 3, 0, 0, 1), A.mpoint(303, 0, 0, 1), tag=3)
+_ = tree.append(s,       A.mpoint( 3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
 
 dec = A.decor()
 dec.set_property(Vm=-40)
-dec.paint('(tag 1)', A.density('hh'))
+# dec.paint('(tag 1)', A.density('hh'))
+dec.discretization(A.cv_policy('(max-extent 5)'))
 
 # Set up ion diffusion
 # TODO(TH) figure out diff scale
-dec.set_ion('na', int_con=10, ext_con=140, rev_pot=50, diff=1e-10)
-dec.paint('(tag 1)', ion_name="na", int_con=100.0)
+dec.set_ion('na', int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
+dec.paint('(tag 1)', ion_name="na", int_con=100.0, diff=0.0)
 
-prb = [A.cable_probe_ion_int_concentration('(join (location 0 0) (location 0 0.25) (location 0 0.5) (location 0 0.75) (location 0 1.0))', 'na'), ]
+prb = [A.cable_probe_ion_int_concentration_cell('na'),]
 cel = A.cable_cell(tree, A.label_dict(), dec)
 rec = recipe(cel, prb)
 ctx = A.context()
 dom = A.partition_load_balance(rec, ctx)
 sim = A.simulation(rec, dom, ctx)
-hdl = sim.sample((0, 0), A.regular_schedule(0.1))
+hdl = sim.sample((0, 0), A.regular_schedule(0.1)),
+
 sim.run(tfinal=30)
 
-# Plot ion concentrations
 sns.set_theme()
 fg, ax = plt.subplots()
-df = pd.DataFrame()
-for d, m in sim.samples(hdl):
-    lbl = f'Na_i@{m}'
-    nai = d[:, 1]
-    df[lbl] = nai
-    df['t/ms'] = d[:, 0]
-    print(f"{lbl}: {nai.min()}--{nai.max()}")
-print(df.columns)
-sns.scatterplot(data=df, ax=ax)
+for h in hdl:
+    for d, m in sim.samples(h):
+        xs = d[:, 0]
+        for lbl, ix in zip(m, range(1, d.shape[1])):
+            ys = d[:, ix]
+            print(lbl, ys.min(), ys.max())
+            ax.plot(xs, ys, label=lbl)
+ax.legend()
 fg.savefig('results.pdf')

@@ -36,8 +36,6 @@
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
-#include <iostream>
-
 namespace arb {
 
 template <class Backend>
@@ -470,7 +468,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     // Discretize mechanism data.
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
-    std::cout << "After Build: Has diffusion? Na=" << mech_data.ions["na"].has_diffusivity << '\n';
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
@@ -507,7 +504,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
 
     // Instantiate mechanisms, ions, and stimuli.
-
     auto mk_diff_solver = [&](const auto& fd) {
         // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
         return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
@@ -516,15 +512,12 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                                                                           D.cv_area,
                                                                           fvm_info.cell_to_intdom);
     };
+
     for (const auto& [ion, data]: mech_data.ions) {
-        std::cerr << "Should make iffusion solver? " << ion << ": " << data.has_diffusivity << "\n";
         if (auto charge = value_by_key(global_props.ion_species, ion)) {
             state_->add_ion(ion, *charge, data);
-            if (data.has_diffusivity) {
-                std::cerr << "Diffusion solver: " << ion << "\n";
+            if (data.is_diffusive) {
                 state_->ion_data[ion].solver = mk_diff_solver(data.face_diffusivity);
-            } else {
-                std::cerr << "NO Diffusion solver: " << ion << "\n";
             }
         }
         else {

@@ -60,12 +60,11 @@ struct diffusion_solver {
         invariant_d = array(n, 0);
         if (n >= 1) { // skip empty matrix, ie cell with empty morphology
             for (auto i: util::make_span(1u, n)) {
-                const auto gij = face_diffusivity[i];
-                u[i] = -gij;
-                invariant_d[i] += gij;
-                if (p[i]!=-1) { // root
-                    invariant_d[p[i]] += gij;
-                }
+                auto gij = face_diffusivity[i];
+                u[i]           =  -gij;
+                invariant_d[i] +=  gij;
+                // Also add to our parent, if present
+                if (auto pi = p[i]; pi != -1) invariant_d[pi] += gij;
             }
         }
     }
@@ -84,22 +83,22 @@ struct diffusion_solver {
     //   current density [A.m^-2]  (per control volume and species)
     //   diffusivity     [???]     (per control volume)
     void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity) {
-        const auto cell_cv_part = util::partition_view(cell_cv_divs);
-        const index_type ncells = cell_cv_part.size();
+        auto cell_cv_part = util::partition_view(cell_cv_divs);
+        index_type ncells = cell_cv_part.size();
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
-            const auto dt = dt_intdom[cell_to_intdom[m]];
+            auto dt = dt_intdom[cell_to_intdom[m]];
             if (dt>0) {
-                const value_type oodt_factor = 1e-3/dt; // [1/µs]
+                value_type _1_dt = 1e-3/dt; // [1/µs]
                 for (auto i: util::make_span(cell_cv_part[m])) {
-                    const auto u = voltage[i];        //
-                    const auto g = conductivity[i];   //
-                    const auto J = current[i];        //
-                    const auto A = 1e-3*cv_area[i];   // [1e-9·m²]
-                    const auto X = concentration[i];  //
+                    auto u = voltage[i];        //
+                    auto g = conductivity[i];   //
+                    auto J = current[i];        //
+                    auto A = 1e-3*cv_area[i];   // [1e-9·m²]
+                    auto X = concentration[i];  //
 
-                    d[i]   = oodt_factor + invariant_d[i];
-                    rhs[i] = X*oodt_factor + g*u - A*J;
+                    d[i]   = _1_dt + A*g + invariant_d[i];
+                    rhs[i] = _1_dt*X + g*u - A*J;
                 }
             }
             else {
@@ -118,9 +117,10 @@ struct diffusion_solver {
             if (d[first]!=0) {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {
-                    const auto factor = u[i] / d[i];
-                    d[parent_index[i]]   -= factor * u[i];
-                    rhs[parent_index[i]] -= factor * rhs[i];
+                    auto pi = parent_index[i];
+                    auto factor = -u[i] / d[i];
+                    d[pi]   = std::fma(factor, u[i],   d[i]);
+                    rhs[pi] = std::fma(factor, rhs[i], rhs[pi]);
                 }
                 // solve root
                 rhs[first] /= d[first];
