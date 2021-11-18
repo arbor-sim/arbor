@@ -40,10 +40,10 @@ struct diffusion_solver {
     diffusion_solver& operator=(diffusion_solver&&) = default;
 
     diffusion_solver(const std::vector<index_type>& p,
-                 const std::vector<index_type>& cell_cv_divs,
-                 const std::vector<value_type>& diff,
-                 const std::vector<value_type>& area,
-                 const std::vector<index_type>& cell_to_intdom):
+                     const std::vector<index_type>& cell_cv_divs,
+                     const std::vector<value_type>& diff,
+                     const std::vector<value_type>& area,
+                     const std::vector<index_type>& cell_to_intdom):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()),
@@ -82,14 +82,14 @@ struct diffusion_solver {
     //   voltage         [mV]      (per control volume)
     //   current density [A.m^-2]  (per control volume and species)
     //   diffusivity     [???]     (per control volume)
-    void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity) {
+    void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity, fvm_value_type q) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
             auto dt = dt_intdom[cell_to_intdom[m]];
             if (dt>0) {
-                value_type _1_dt = 1e-3/dt; // [1/µs]
+                value_type _1_dt = 1e-3/dt;     // [1/µs]
                 for (auto i: util::make_span(cell_cv_part[m])) {
                     auto u = voltage[i];        //
                     auto g = conductivity[i];   //
@@ -97,8 +97,8 @@ struct diffusion_solver {
                     auto A = 1e-3*cv_area[i];   // [1e-9·m²]
                     auto X = concentration[i];  //
 
-                    d[i]   = _1_dt + A*g + invariant_d[i];
-                    rhs[i] = _1_dt*X + g*u - A*J;
+                    d[i]   = _1_dt + A*g/q + invariant_d[i];
+                    rhs[i] = _1_dt*X + (u*g - A*J)/q;
                 }
             }
             else {

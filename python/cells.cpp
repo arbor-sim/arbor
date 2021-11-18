@@ -596,7 +596,7 @@ void register_cells(pybind11::module& m) {
                 if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
-                if (diff) {
+                if (diff && (*diff != 0.0)) {
                     std::cout << "Got finite diffusivity: " << name << " " << *diff << '\n';
                     dec.paint(r, arb::ion_diffusivity{name, *diff});
                 }

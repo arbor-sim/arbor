@@ -411,8 +411,11 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
 
     // Remap diffusivity to resistivity
     for (auto& [ion, data]: diffusive_ions) {
-        for (const auto& [k, v]: diffusivity_map.at(ion)) {
-            inverse_diffusivity_map[ion].insert(k, 1.0/v.value);
+        if (auto map = diffusivity_map.find(ion); map != diffusivity_map.end()) {
+            const auto [i, vs] = *map;
+            for (const auto& [k, v]: vs) {
+                inverse_diffusivity_map[ion].insert(k, 1.0/v.value);
+            }
         }
     }
 
