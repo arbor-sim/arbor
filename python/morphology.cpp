@@ -199,7 +199,14 @@ void register_morphology(py::module& m) {
                 return self.all_segments(cables);
             },
             "Return maximal list of non-overlapping full or partial msegments whose union is coterminous "
-            "with the extent of the given list of cables.");
+            "with the extent of the given list of cables.")
+        .def("closest",
+            [](const arb::place_pwlin& self, double x, double y, double z) {
+                auto [l, d] = self.closest(x, y, z);
+                return pybind11::make_tuple(l, d);
+            },
+            "Find the location on the morphology that is closest to a 3d point. "
+            "Returns the location and its distance from the point.");
 
     //
     // Higher-level data structures (segment_tree, morphology)

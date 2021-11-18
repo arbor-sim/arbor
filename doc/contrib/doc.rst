@@ -23,7 +23,7 @@ Update policy
 
 How to we decide if documentation is good? By observing how effective it is used
 in practice. If a question on Arbor (regardless of medium) is satisfactorily
-resolved (on both sides!) by with a pointer to the (relevant section in the) docs,
+resolved (on both sides!) with a pointer to the (relevant section in the) docs,
 the documentation was good. If, on the other hand, explanation was needed, the
 documentation was bad.
 
