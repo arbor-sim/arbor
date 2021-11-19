@@ -66,7 +66,9 @@ namespace {
 
     class gj_symmetric: public recipe {
     public:
-        gj_symmetric(unsigned num_ranks): ncopies_(num_ranks){}
+        gj_symmetric(unsigned num_ranks, bool fully_connected):
+            ncopies_(num_ranks),
+            fully_connected_(fully_connected) {}
 
         cell_size_type num_cells() const override {
             return size_*ncopies_;
@@ -82,19 +84,30 @@ namespace {
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             unsigned shift = (gid/size_)*size_;
             switch (gid % size_) {
-                case 1 :  return { gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)};
-                case 2 :  return {
-                    gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({9 + shift, "gj"}, {"gj"}, 0.1)
-                };
+                case 1 :  {
+                    if (!fully_connected_) return {};
+                    return {gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)};
+                }
+                case 2 :  {
+                    if (!fully_connected_) return {};
+                    return {
+                        gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
+                        gap_junction_connection({9 + shift, "gj"}, {"gj"}, 0.1)
+                    };
+                }
                 case 6 :  return {
                     gap_junction_connection({2 + shift, "gj"}, {"gj"}, 0.1),
                     gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)
                 };
-                case 7 :  return {
-                    gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({1 + shift, "gj"}, {"gj"}, 0.1)
-                };
+                case 7 :  {
+                    if (!fully_connected_)  {
+                        return {gap_junction_connection({1 + shift, "gj"}, {"gj"}, 0.1)};
+                    }
+                    return {
+                        gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
+                        gap_junction_connection({1 + shift, "gj"}, {"gj"}, 0.1)
+                    };
+                }
                 case 9 :  return { gap_junction_connection({2 + shift, "gj"}, {"gj"}, 0.1)};
                 default : return {};
             }
@@ -103,11 +116,15 @@ namespace {
     private:
         cell_size_type size_ = 10;
         unsigned ncopies_;
+        bool fully_connected_;
     };
 
     class gj_non_symmetric: public recipe {
     public:
-        gj_non_symmetric(unsigned num_ranks): groups_(num_ranks), size_(num_ranks){}
+        gj_non_symmetric(unsigned num_ranks, bool fully_connected):
+            groups_(num_ranks),
+            size_(num_ranks),
+            fully_connected_(fully_connected) {}
 
         cell_size_type num_cells() const override {
             return size_*groups_;
@@ -126,7 +143,7 @@ namespace {
             if (id == group && group != (groups_ - 1)) {
                 return {gap_junction_connection({gid + size_, "gj"}, {"gj"}, 0.1)};
             }
-            else if (id == group - 1) {
+            else if (id == group - 1 && fully_connected_) {
                 return {gap_junction_connection({gid - size_, "gj"}, {"gj"}, 0.1)};
             }
             else {
@@ -137,6 +154,7 @@ namespace {
     private:
         unsigned groups_;
         cell_size_type size_;
+        bool fully_connected_;
     };
 }
 
@@ -300,64 +318,65 @@ TEST(domain_decomposition, symmetric_groups)
 #else
     auto ctx = make_context(resources);
 #endif
-    auto R = gj_symmetric(nranks);
-    const auto D0 = partition_load_balance(R, ctx);
-    EXPECT_EQ(6u, D0.groups.size());
+    std::vector<gj_symmetric> recipes = {gj_symmetric(nranks, true), gj_symmetric(nranks, false)};
+    for (const auto& R: recipes) {
+        const auto D0 = partition_load_balance(R, ctx);
+        EXPECT_EQ(6u, D0.groups.size());
 
-    unsigned shift = rank*R.num_cells()/nranks;
-    std::vector<std::vector<cell_gid_type>> expected_groups0 =
-            { {0 + shift},
-              {3 + shift},
-              {4 + shift},
-              {5 + shift},
-              {8 + shift},
-              {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}
-            };
+        unsigned shift = rank * R.num_cells() / nranks;
+        std::vector<std::vector<cell_gid_type>> expected_groups0 =
+                {{0 + shift},
+                 {3 + shift},
+                 {4 + shift},
+                 {5 + shift},
+                 {8 + shift},
+                 {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}
+                };
 
-    for (unsigned i = 0; i < 6; i++){
-        EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+        for (unsigned i = 0; i < 6; i++) {
+            EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+        }
+
+        unsigned cells_per_rank = R.num_cells() / nranks;
+        for (unsigned i = 0; i < R.num_cells(); i++) {
+            EXPECT_EQ(i / cells_per_rank, (unsigned) D0.gid_domain(i));
+        }
+
+        // Test different group_hints
+        partition_hint_map hints;
+        hints[cell_kind::cable].cpu_group_size = R.num_cells();
+        hints[cell_kind::cable].prefer_gpu = false;
+
+        const auto D1 = partition_load_balance(R, ctx, hints);
+        EXPECT_EQ(1u, D1.groups.size());
+
+        std::vector<cell_gid_type> expected_groups1 =
+                {0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift,
+                 1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift};
+
+        EXPECT_EQ(expected_groups1, D1.groups[0].gids);
+
+        for (unsigned i = 0; i < R.num_cells(); i++) {
+            EXPECT_EQ(i / cells_per_rank, (unsigned) D1.gid_domain(i));
+        }
+
+        hints[cell_kind::cable].cpu_group_size = cells_per_rank / 2;
+        hints[cell_kind::cable].prefer_gpu = false;
+
+        const auto D2 = partition_load_balance(R, ctx, hints);
+        EXPECT_EQ(2u, D2.groups.size());
+
+        std::vector<std::vector<cell_gid_type>> expected_groups2 =
+                {{0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift},
+                 {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}};
+
+        for (unsigned i = 0; i < 2u; i++) {
+            EXPECT_EQ(expected_groups2[i], D2.groups[i].gids);
+        }
+        for (unsigned i = 0; i < R.num_cells(); i++) {
+            EXPECT_EQ(i / cells_per_rank, (unsigned) D2.gid_domain(i));
+        }
     }
-
-    unsigned cells_per_rank = R.num_cells()/nranks;
-    for (unsigned i = 0; i < R.num_cells(); i++) {
-        EXPECT_EQ(i/cells_per_rank, (unsigned)D0.gid_domain(i));
-    }
-
-    // Test different group_hints
-    partition_hint_map hints;
-    hints[cell_kind::cable].cpu_group_size = R.num_cells();
-    hints[cell_kind::cable].prefer_gpu = false;
-
-    const auto D1 = partition_load_balance(R, ctx, hints);
-    EXPECT_EQ(1u, D1.groups.size());
-
-    std::vector<cell_gid_type> expected_groups1 =
-            { 0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift,
-              1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift };
-
-    EXPECT_EQ(expected_groups1, D1.groups[0].gids);
-
-    for (unsigned i = 0; i < R.num_cells(); i++) {
-        EXPECT_EQ(i/cells_per_rank, (unsigned)D1.gid_domain(i));
-    }
-
-    hints[cell_kind::cable].cpu_group_size = cells_per_rank/2;
-    hints[cell_kind::cable].prefer_gpu = false;
-
-    const auto D2 = partition_load_balance(R, ctx, hints);
-    EXPECT_EQ(2u, D2.groups.size());
-
-    std::vector<std::vector<cell_gid_type>> expected_groups2 =
-            { { 0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift },
-              { 1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift } };
-
-    for (unsigned i = 0; i < 2u; i++) {
-        EXPECT_EQ(expected_groups2[i], D2.groups[i].gids);
-    }
-    for (unsigned i = 0; i < R.num_cells(); i++) {
-        EXPECT_EQ(i/cells_per_rank, (unsigned)D2.gid_domain(i));
-    }
-
 }
 
 TEST(domain_decomposition, non_symmetric_groups)
@@ -376,38 +395,36 @@ TEST(domain_decomposition, non_symmetric_groups)
         return;
     }*/
 
-    auto R = gj_non_symmetric(nranks);
-    const auto D = partition_load_balance(R, ctx);
+    std::vector<gj_non_symmetric> recipes = {gj_non_symmetric(nranks, true), gj_non_symmetric(nranks, false)};
+    for (const auto& R: recipes) {
+        const auto D = partition_load_balance(R, ctx);
 
-    unsigned cells_per_rank = nranks;
-    // check groups
-    unsigned i = 0;
-    for (unsigned gid = rank*cells_per_rank; gid < (rank + 1)*cells_per_rank; gid++) {
-        if (gid % nranks == (unsigned)rank - 1) {
-            continue;
+        unsigned cells_per_rank = nranks;
+        // check groups
+        unsigned i = 0;
+        for (unsigned gid = rank * cells_per_rank; gid < (rank + 1) * cells_per_rank; gid++) {
+            if (gid % nranks == (unsigned) rank - 1) {
+                continue;
+            } else if (gid % nranks == (unsigned) rank && rank != nranks - 1) {
+                std::vector<cell_gid_type> cg = {gid, gid + cells_per_rank};
+                EXPECT_EQ(cg, D.groups[D.groups.size() - 1].gids);
+            } else {
+                std::vector<cell_gid_type> cg = {gid};
+                EXPECT_EQ(cg, D.groups[i++].gids);
+            }
         }
-        else if (gid % nranks == (unsigned)rank && rank != nranks - 1) {
-            std::vector<cell_gid_type> cg = {gid, gid+cells_per_rank};
-            EXPECT_EQ(cg, D.groups[D.groups.size()-1].gids);
-        }
-        else {
-            std::vector<cell_gid_type> cg = {gid};
-            EXPECT_EQ(cg, D.groups[i++].gids);
-        }
-    }
-    // check gid_domains
-    for (unsigned gid = 0; gid < R.num_cells(); gid++) {
-        auto group = gid/cells_per_rank;
-        auto idx = gid % cells_per_rank;
-        unsigned ngroups = nranks;
-        if (idx == group - 1) {
-            EXPECT_EQ(group - 1, (unsigned)D.gid_domain(gid));
-        }
-        else if (idx == group && group != ngroups - 1) {
-            EXPECT_EQ(group, (unsigned)D.gid_domain(gid));
-        }
-        else {
-            EXPECT_EQ(group, (unsigned)D.gid_domain(gid));
+        // check gid_domains
+        for (unsigned gid = 0; gid < R.num_cells(); gid++) {
+            auto group = gid / cells_per_rank;
+            auto idx = gid % cells_per_rank;
+            unsigned ngroups = nranks;
+            if (idx == group - 1) {
+                EXPECT_EQ(group - 1, (unsigned) D.gid_domain(gid));
+            } else if (idx == group && group != ngroups - 1) {
+                EXPECT_EQ(group, (unsigned) D.gid_domain(gid));
+            } else {
+                EXPECT_EQ(group, (unsigned) D.gid_domain(gid));
+            }
         }
     }
 }
