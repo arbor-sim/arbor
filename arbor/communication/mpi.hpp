@@ -186,6 +186,38 @@ inline std::vector<std::string> gather_all(const std::vector<std::string>& value
     return string_buffer;
 }
 
+template <typename T>
+std::vector<std::vector<T>> gather_all(const std::vector<std::vector<T>>& values, MPI_Comm comm) {
+    std::vector<int> counts_internal, displs_internal;
+
+    // Vector of individual vector sizes
+    std::vector<int> internal_sizes(values.size());
+    std::transform(values.begin(), values.end(), internal_sizes.begin(), [](const auto& val){return int(val.size());});
+
+    counts_internal = gather_all(internal_sizes, comm);
+    auto displs_internal_part = util::make_partition(displs_internal, counts_internal);
+
+    // Concatenate all internal vector data
+    std::vector<T> values_concat;
+    for (const auto& v: values) {
+        values_concat.insert(values_concat.end(), v.begin(), v.end());
+    }
+
+    // Gather all concatenated vector data
+    auto global_vec_concat = gather_all(values_concat, comm);
+
+    // Construct the vector of vectors
+    std::vector<std::vector<T>> global_vec;
+    global_vec.reserve(displs_internal_part.size());
+
+    for (const auto& internal_vec_range: displs_internal_part) {
+        global_vec.emplace_back(global_vec_concat.begin()+internal_vec_range.first,
+                                global_vec_concat.begin()+internal_vec_range.second);
+    }
+
+    return global_vec;
+}
+
 /// Gather all of a distributed vector
 /// Retains the meta data (i.e. vector partition)
 template <typename T>

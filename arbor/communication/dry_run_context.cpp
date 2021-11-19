@@ -70,6 +70,19 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    std::vector<std::vector<cell_gid_type>> gather_connections(const std::vector<std::vector<cell_gid_type>> & local_connections) const {
+        std::vector<std::vector<cell_gid_type>> global_connections;
+        for (unsigned i = 0; i < num_ranks_; i++) {
+            auto copy = local_connections;
+            for (auto& v: copy) {
+                for (auto& gid: v) {
+                    gid += i*num_cells_per_tile_;
+                }
+            }
+            global_connections.insert(global_connections.end(), copy.begin(), copy.end());
+        }
+    }
+
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         cell_label_range global_ranges;
         for (unsigned i = 0; i < num_ranks_; i++) {
