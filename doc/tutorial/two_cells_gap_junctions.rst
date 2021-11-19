@@ -3,7 +3,7 @@
 Two cells connected via a gap junction
 ==============================
 
-In this example, we will set up a two cells connected via a gap junction.
+In this example, we will set up two cells connected via a gap junction.
 The cells have different leak potentials.
 We will investigate how the equilibrium potentials of the two cells change because of the gap junction connection.
 
