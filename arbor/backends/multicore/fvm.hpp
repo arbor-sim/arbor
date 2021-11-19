@@ -42,7 +42,7 @@ struct backend {
     }
 
     using cable_solver             = arb::multicore::cable_solver;
-    using diffusion_solver         = arb::multicore::cable_solver;
+    using diffusion_solver         = arb::multicore::diffusion_solver;
     using threshold_watcher        = arb::multicore::threshold_watcher;
     using deliverable_event_stream = arb::multicore::deliverable_event_stream;
     using sample_event_stream      = arb::multicore::sample_event_stream;

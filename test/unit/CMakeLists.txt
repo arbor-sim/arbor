@@ -122,6 +122,7 @@ set(unit_sources
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
+    test_diffusion_solver.cpp
     test_mcable_map.cpp
     test_mc_cell_group.cpp
     test_mechanisms.cpp

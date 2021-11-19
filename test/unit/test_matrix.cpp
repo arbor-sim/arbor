@@ -158,7 +158,14 @@ TEST(matrix, zero_diagonal_assembled)
     // x = [ 4 5 6 7 8 9 10 ]
 
     solver_type m(p, c, Cm, g, area, s);
+    std::cout << "Invariant diagonal:\n";
+    for (int ix = 0; ix < m.size(); ++ix) std::cout << m.invariant_d[ix] << ' ';
+    std::cout << "\n";
+
     m.assemble(dt, v, i, mg);
+    std::cout << "Assembled diagonal:\n";
+    for (int ix = 0; ix < m.size(); ++ix) std::cout << m.d[ix] << ' ';
+    std::cout << "\n";
 
     auto x = array({0, 0, 0, 0, 0, 0, 0});
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};

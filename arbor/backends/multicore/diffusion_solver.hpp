@@ -94,11 +94,10 @@ struct diffusion_solver {
                     auto u = voltage[i];        //
                     auto g = conductivity[i];   //
                     auto J = current[i];        //
-                    auto A = 1e-3*cv_area[i];   // [1e-9·m²]
+                    auto A = 1e-3*cv_area[i]/q; // [1e-9·m²]
                     auto X = concentration[i];  //
-
-                    d[i]   = _1_dt + A*g/q + invariant_d[i];
-                    rhs[i] = _1_dt*X + (u*g - A*J)/q;
+                    d[i]   = _1_dt   + A*g + invariant_d[i];
+                    rhs[i] = _1_dt*X + A*(u*g - J);
                 }
             }
             else {
@@ -117,17 +116,16 @@ struct diffusion_solver {
             if (d[first]!=0) {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {
-                    auto pi = parent_index[i];
-                    auto factor = -u[i] / d[i];
-                    d[pi]   = std::fma(factor, u[i],   d[i]);
-                    rhs[pi] = std::fma(factor, rhs[i], rhs[pi]);
+                    auto pi  = parent_index[i];
+                    auto fac = -u[i] / d[i];
+                    d[pi]    = std::fma(fac, u[i],   d[pi]);
+                    rhs[pi]  = std::fma(fac, rhs[i], rhs[pi]);
                 }
                 // solve root
                 rhs[first] /= d[first];
                 // forward sweep
                 for(auto i=first+1; i<last; ++i) {
-                    rhs[i] -= u[i] * rhs[parent_index[i]];
-                    rhs[i] /= d[i];
+                    rhs[i] = std::fma(-u[i], rhs[parent_index[i]], rhs[i])/d[i];
                 }
             }
         }
