@@ -6,7 +6,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 
-#include <arborenv/gpu_env.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "util/span.hpp"
 

@@ -349,6 +349,10 @@ Cable cell morphology
        union is coterminous with the sub-region of the morphology covered by
        the given cables in the placement.
 
+    .. py:method:: closest(x: real, y: real, z: real) -> tuple[mpoint, real]
+
+        Find the closest location to p. Returns the location and its distance from the input coordinates.
+
 .. py:class:: isometry
 
     Isometries represent rotations and translations in space, and can be used with

@@ -18,8 +18,7 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
-
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
@@ -135,22 +134,14 @@ int main(int argc, char** argv) {
     bool is_root = true;
 
     try {
-        arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
-
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
-        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        auto num_threads = arbenv::default_concurrency();
+        auto gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context({num_threads, gpu_id}, MPI_COMM_WORLD);
         is_root = arb::rank(context) == 0;
 #else
-        resources.gpu_id = arbenv::default_gpu();
-        auto context = arb::make_context(resources);
+        auto context = arb::make_context(arbenv::default_allocation());
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context);

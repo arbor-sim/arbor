@@ -20,10 +20,9 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/util/any_ptr.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "backends/multicore/fvm.hpp"
-#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 #include "util/meta.hpp"
@@ -189,14 +188,7 @@ private:
 
 TEST(fvm_lowered, matrix_init)
 {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     auto isnan = [](auto v) { return std::isnan(v); };
     auto ispos = [](auto v) { return v>0; };
@@ -206,7 +198,7 @@ TEST(fvm_lowered, matrix_init)
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 10, "dend"); // 10 compartments
     cable_cell cell = builder.make_cell();
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     fvcell.initialize({0}, cable1d_recipe(cell));
 
     auto& S = fvcell.*private_state_ptr;
@@ -228,16 +220,7 @@ TEST(fvm_lowered, matrix_init)
 }
 
 TEST(fvm_lowered, target_handles) {
-    using namespace arb;
-
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context(proc_allocation(arbenv::default_concurrency(), -1));
 
     cable_cell_description descriptions[] = {
         make_cell_ball_and_stick(),
@@ -285,11 +268,11 @@ TEST(fvm_lowered, target_handles) {
         EXPECT_EQ(1u, targets[3].intdom_index);
     };
 
-    fvm_cell fvcell0(context);
+    fvm_cell fvcell0(*context);
     auto fvm_info0 = fvcell0.initialize({0, 1}, cable1d_recipe(cells, true));
     test_target_handles(fvcell0, fvm_info0.target_handles);
 
-    fvm_cell fvcell1(context);
+    fvm_cell fvcell1(*context);
     auto fvm_info1 = fvcell1.initialize({0, 1}, cable1d_recipe(cells, false));
     test_target_handles(fvcell1, fvm_info1.target_handles);
 
@@ -306,14 +289,7 @@ TEST(fvm_lowered, stimulus) {
     // amplitude | 0.3  |  0.1
     // CV        |   5  |    0
 
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     auto desc = make_cell_ball_and_stick(false);
 
@@ -333,10 +309,10 @@ TEST(fvm_lowered, stimulus) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters, context);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters, *context);
     const auto& A = D.cv_area;
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     fvcell.initialize({0}, cable1d_recipe(cells));
 
     auto& state = *(fvcell.*private_state_ptr).get();
@@ -378,7 +354,7 @@ TEST(fvm_lowered, stimulus) {
 TEST(fvm_lowered, ac_stimulus) {
     // Simple cell (one CV) with oscillating stimulus.
 
-    arb::execution_context context; // Just use default context for this one!
+    auto context = make_context(); // Just use default context for this one!
 
     decor dec;
     segment_tree tree;
@@ -396,10 +372,10 @@ TEST(fvm_lowered, ac_stimulus) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters, context);
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters, *context);
     const auto& A = D.cv_area;
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     fvcell.initialize({0}, cable1d_recipe(cells));
 
     auto& state = *(fvcell.*private_state_ptr).get();
@@ -438,13 +414,7 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     std::vector<cable_cell> cells;
     cells.reserve(3);
@@ -480,8 +450,7 @@ TEST(fvm_lowered, derived_mechs) {
     {
         // Test initialization and global parameter values.
 
-        arb::execution_context context(resources);
-        fvm_cell fvcell(context);
+        fvm_cell fvcell(*context);
         fvcell.initialize({0, 1, 2}, rec);
 
         // Both mechanisms will have the same internal name, "test_kin1".
@@ -515,9 +484,8 @@ TEST(fvm_lowered, derived_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        auto ctx = make_context(resources);
-        auto decomp = partition_load_balance(rec, ctx);
-        simulation sim(rec, decomp, ctx);
+        auto decomp = partition_load_balance(rec, context);
+        simulation sim(rec, decomp, context);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 
@@ -534,13 +502,7 @@ TEST(fvm_lowered, derived_mechs) {
 }
 
 TEST(fvm_lowered, null_region) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     soma_cell_builder builder(6);
     builder.add_branch(0, 100, 0.5, 0.5, 4, "dend");
@@ -553,9 +515,8 @@ TEST(fvm_lowered, null_region) {
     rec.catalogue() = make_unit_test_catalogue();
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
-    auto ctx = make_context(resources);
-    auto decomp = partition_load_balance(rec, ctx);
-    simulation sim(rec, decomp, ctx);
+    auto decomp = partition_load_balance(rec, context);
+    simulation sim(rec, decomp, context);
     EXPECT_NO_THROW(sim.run(30.0, 1.f/1024));
 }
 
@@ -563,13 +524,7 @@ TEST(fvm_lowered, null_region) {
 // Test that ion charge is propagated into mechanism variable.
 
 TEST(fvm_lowered, read_valence) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     {
         std::vector<cable_cell> cells(1);
@@ -580,8 +535,7 @@ TEST(fvm_lowered, read_valence) {
         cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
 
-        arb::execution_context context(resources);
-        fvm_cell fvcell(context);
+        fvm_cell fvcell(*context);
         fvcell.initialize({0}, rec);
 
         // test_ca_read_valence initialization should write ca ion valence
@@ -605,8 +559,7 @@ TEST(fvm_lowered, read_valence) {
         rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
         rec.add_ion("mn", 7, 0, 0, 0);
 
-        arb::execution_context context(resources);
-        fvm_cell fvcell(context);
+        fvm_cell fvcell(*context);
         fvcell.initialize({0}, rec);
 
         auto cr_mech_ptr = find_mechanism(fvcell, 0);
@@ -680,14 +633,7 @@ TEST(fvm_lowered, ionic_concentrations) {
 }
 
 TEST(fvm_lowered, ionic_currents) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     soma_cell_builder b(6);
 
@@ -715,7 +661,7 @@ TEST(fvm_lowered, ionic_currents) {
     cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     fvcell.initialize({0}, rec);
 
     auto& state = *(fvcell.*private_state_ptr).get();
@@ -735,14 +681,7 @@ TEST(fvm_lowered, ionic_currents) {
 // Test correct scaling of an ionic current updated via a point mechanism
 
 TEST(fvm_lowered, point_ionic_current) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     double r = 6.0; // [µm]
     soma_cell_builder b(r);
@@ -756,7 +695,7 @@ TEST(fvm_lowered, point_ionic_current) {
     cable1d_recipe rec({cable_cell{c}});
     rec.catalogue() = make_unit_test_catalogue();
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     fvcell.initialize({0}, rec);
 
     // Only one target, corresponding to our point process on soma.
@@ -804,14 +743,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     // the same as a 100 µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     soma_cell_builder b(5);
     b.add_branch(0, 100, 0.5, 0.5, 1, "dend");
@@ -833,7 +765,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     rec.catalogue() = make_unit_test_catalogue();
     rec.add_ion("ca", 2, con_int, con_ext, 0.0);
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     fvcell.initialize({0}, rec);
 
     auto& state = *(fvcell.*private_state_ptr).get();
@@ -873,8 +805,8 @@ TEST(fvm_lowered, weighted_write_ion) {
 
 TEST(fvm_lowered, integration_domains) {
     {
-        execution_context context;
-        fvm_cell fvcell(context);
+        auto context = make_context();
+        fvm_cell fvcell(*context);
 
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         std::vector<fvm_index_type> cell_to_intdom;
@@ -886,8 +818,8 @@ TEST(fvm_lowered, integration_domains) {
         EXPECT_EQ(expected_doms, cell_to_intdom);
     }
     {
-        execution_context context;
-        fvm_cell fvcell(context);
+        auto context = make_context();
+        fvm_cell fvcell(*context);
 
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
         std::vector<fvm_index_type> cell_to_intdom;
@@ -899,8 +831,8 @@ TEST(fvm_lowered, integration_domains) {
         EXPECT_EQ(expected_doms, cell_to_intdom);
     }
     {
-        execution_context context;
-        fvm_cell fvcell(context);
+        auto context = make_context();
+        fvm_cell fvcell(*context);
 
         std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
         std::vector<fvm_index_type> cell_to_intdom;
@@ -914,13 +846,7 @@ TEST(fvm_lowered, integration_domains) {
 }
 
 TEST(fvm_lowered, post_events_shared_state) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    } else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     class detector_recipe: public arb::recipe {
     public:
@@ -987,7 +913,7 @@ TEST(fvm_lowered, post_events_shared_state) {
     for (const auto& detectors_per_cell: detectors_per_cell_vec) {
         detector_recipe rec(cv_per_cell, detectors_per_cell, "post_events_syn");
 
-        fvm_cell fvcell(context);
+        fvm_cell fvcell(*context);
         fvcell.initialize(gids, rec);
 
         auto& S = fvcell.*private_state_ptr;
@@ -1008,7 +934,7 @@ TEST(fvm_lowered, post_events_shared_state) {
     for (const auto& detectors_per_cell: detectors_per_cell_vec) {
         detector_recipe rec(cv_per_cell, detectors_per_cell, "expsyn");
 
-        fvm_cell fvcell(context);
+        fvm_cell fvcell(*context);
         fvcell.initialize(gids, rec);
 
         auto& S = fvcell.*private_state_ptr;
@@ -1020,13 +946,7 @@ TEST(fvm_lowered, post_events_shared_state) {
 }
 
 TEST(fvm_lowered, label_data) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    } else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     class decorated_recipe: public arb::recipe {
     public:
@@ -1099,7 +1019,7 @@ TEST(fvm_lowered, label_data) {
     std::vector<target_handle> targets;
     probe_association_map probe_map;
 
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     auto fvm_info = fvcell.initialize(gids, rec);
 
     for (auto gid: gids) {

@@ -10,7 +10,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "util/span.hpp"
 
@@ -94,14 +94,7 @@ namespace {
 
 TEST(recipe, gap_junctions)
 {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    auto context = make_context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     auto cell_0 = custom_cell(0, 0, 3);
     auto cell_1 = custom_cell(0, 0, 3);
@@ -140,14 +133,7 @@ TEST(recipe, gap_junctions)
 
 TEST(recipe, connections)
 {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    auto context = make_context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     auto cell_0 = custom_cell(1, 2, 0);
     auto cell_1 = custom_cell(2, 1, 0);
@@ -211,14 +197,7 @@ TEST(recipe, connections)
 }
 
 TEST(recipe, event_generators) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    auto context = make_context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     auto cell_0 = custom_cell(1, 2, 0);
     auto cell_1 = custom_cell(2, 1, 0);
