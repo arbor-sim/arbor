@@ -71,10 +71,11 @@ domain_decomposition partition_load_balance(
     // Global connection table
 
     // Generate a local connection table and communicate with other ranks
-    std::vector<std::vector<cell_gid_type>> local_connection_table(gid_part[domain_id].second-gid_part[domain_id].first);
+    const auto dom_range = gid_part[domain_id];
+    std::vector<std::vector<cell_gid_type>> local_connection_table(dom_range.second-dom_range.first);
     for (auto gid: make_span(gid_part[domain_id])) {
-        for (auto c: rec.gap_junctions_on(gid)) {
-            local_connection_table[gid].push_back(c.peer.gid);
+        for (const auto& c: rec.gap_junctions_on(gid)) {
+            local_connection_table[gid-dom_range.first].push_back(c.peer.gid);
         }
     }
     // Sort per cell connections
