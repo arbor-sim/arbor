@@ -323,7 +323,7 @@ TEST(domain_decomposition, symmetric_groups)
         const auto D0 = partition_load_balance(R, ctx);
         EXPECT_EQ(6u, D0.groups.size());
 
-        unsigned shift = rank * R.num_cells() / nranks;
+        unsigned shift = rank * R.num_cells()/nranks;
         std::vector<std::vector<cell_gid_type>> expected_groups0 =
                 {{0 + shift},
                  {3 + shift},
@@ -337,9 +337,9 @@ TEST(domain_decomposition, symmetric_groups)
             EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
         }
 
-        unsigned cells_per_rank = R.num_cells() / nranks;
+        unsigned cells_per_rank = R.num_cells()/nranks;
         for (unsigned i = 0; i < R.num_cells(); i++) {
-            EXPECT_EQ(i / cells_per_rank, (unsigned) D0.gid_domain(i));
+            EXPECT_EQ(i/cells_per_rank, (unsigned) D0.gid_domain(i));
         }
 
         // Test different group_hints
@@ -357,10 +357,10 @@ TEST(domain_decomposition, symmetric_groups)
         EXPECT_EQ(expected_groups1, D1.groups[0].gids);
 
         for (unsigned i = 0; i < R.num_cells(); i++) {
-            EXPECT_EQ(i / cells_per_rank, (unsigned) D1.gid_domain(i));
+            EXPECT_EQ(i/cells_per_rank, (unsigned) D1.gid_domain(i));
         }
 
-        hints[cell_kind::cable].cpu_group_size = cells_per_rank / 2;
+        hints[cell_kind::cable].cpu_group_size = cells_per_rank/2;
         hints[cell_kind::cable].prefer_gpu = false;
 
         const auto D2 = partition_load_balance(R, ctx, hints);
@@ -374,7 +374,7 @@ TEST(domain_decomposition, symmetric_groups)
             EXPECT_EQ(expected_groups2[i], D2.groups[i].gids);
         }
         for (unsigned i = 0; i < R.num_cells(); i++) {
-            EXPECT_EQ(i / cells_per_rank, (unsigned) D2.gid_domain(i));
+            EXPECT_EQ(i/cells_per_rank, (unsigned) D2.gid_domain(i));
         }
     }
 }

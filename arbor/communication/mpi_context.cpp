@@ -40,7 +40,7 @@ struct mpi_context_impl {
     }
 
     std::vector<std::vector<cell_gid_type>>
-    gather_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
+    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
         return mpi::gather_all(local_connections, comm_);
     }
 

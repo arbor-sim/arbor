@@ -44,7 +44,7 @@ class distributed_context {
 public:
     using spike_vector = std::vector<arb::spike>;
     using gid_vector = std::vector<cell_gid_type>;
-    using connection_vector = std::vector<gid_vector>;
+    using gj_connection_vector = std::vector<gid_vector>;
 
     // default constructor uses a local context: see below.
     distributed_context();
@@ -65,8 +65,8 @@ public:
         return impl_->gather_gids(local_gids);
     }
 
-    connection_vector gather_connections(const connection_vector& local_connections) const {
-        return impl_->gather_connections(local_connections);
+    gj_connection_vector gather_gj_connections(const gj_connection_vector& local_connections) const {
+        return impl_->gather_gj_connections(local_connections);
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
@@ -105,8 +105,8 @@ private:
             gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
             gather_gids(const gid_vector& local_gids) const = 0;
-        virtual connection_vector
-            gather_connections(const connection_vector& local_connections) const = 0;
+        virtual gj_connection_vector
+            gather_gj_connections(const gj_connection_vector& local_connections) const = 0;
         virtual cell_label_range
             gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
         virtual cell_labels_and_gids
@@ -137,8 +137,8 @@ private:
             return wrapped.gather_gids(local_gids);
         }
         std::vector<std::vector<cell_gid_type>>
-        gather_connections(const connection_vector& local_connections) const override {
-            return wrapped.gather_connections(local_connections);
+        gather_gj_connections(const gj_connection_vector& local_connections) const override {
+            return wrapped.gather_gj_connections(local_connections);
         }
         cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const override {
@@ -191,7 +191,7 @@ struct local_context {
         );
     }
     std::vector<std::vector<cell_gid_type>>
-    gather_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
+    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
         return local_connections;
     }
     cell_label_range

@@ -71,7 +71,7 @@ struct dry_run_context_impl {
     }
 
     std::vector<std::vector<cell_gid_type>>
-    gather_connections(const std::vector<std::vector<cell_gid_type>> & local_connections) const {
+    gather_gj_connections(const std::vector<std::vector<cell_gid_type>> & local_connections) const {
         auto local_size = local_connections.size();
         std::vector<std::vector<cell_gid_type>> global_connections;
         global_connections.reserve(local_size*num_ranks_);
@@ -82,11 +82,12 @@ struct dry_run_context_impl {
 
         for (unsigned i = 0; i < num_ranks_; i++) {
             for (unsigned j = i*local_size; j < (i+1)*local_size; j++){
-                for (auto& conn: global_connections[j]) {
-                    conn += num_cells_per_tile_*i;
+                for (auto& conn_gid: global_connections[j]) {
+                    conn_gid += num_cells_per_tile_*i;
                 }
             }
         }
+        return global_connections;
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
