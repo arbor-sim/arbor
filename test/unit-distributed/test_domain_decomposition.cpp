@@ -140,12 +140,27 @@ namespace {
         }
 
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            // Example topology on 4 ranks of 4 cells each
+            // Fully connected             Not fully connected
+            // 0  1  2  3                  0  1  2  3
+            // ^                           |
+            // |                           |
+            // v                           v
+            // 4  5  6  7                  4  5  6  7
+            //    ^                           |
+            //    |                           |
+            //    v                           v
+            // 8  9  10 11                 8  9  10 11
+            //       ^                           |
+            //       |                           |
+            //       v                           v
+            // 12 13 14 15                 12 13 14 15
             unsigned group = gid/groups_;
             unsigned id = gid%size_;
-            if (id == group && group != (groups_ - 1)) {
+            if (id == group && group != (groups_ - 1) && fully_connected_) {
                 return {gap_junction_connection({gid + size_, "gj"}, {"gj"}, 0.1)};
             }
-            else if (id == group - 1 && fully_connected_) {
+            else if (id == group - 1) {
                 return {gap_junction_connection({gid - size_, "gj"}, {"gj"}, 0.1)};
             }
             else {
@@ -178,6 +193,17 @@ namespace {
         }
 
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            // Example topology on 4 ranks of 4 cells each
+            // 0  1  2  3
+            //    |
+            //    v
+            // 4  5  6  7
+            //    |
+            //    v
+            // 8  9  10 11
+            //    |
+            //    v
+            // 12 13 14 15
             unsigned group = gid/groups_;
             unsigned id = gid%size_;
             if (group!= 0 && id == 1) {
