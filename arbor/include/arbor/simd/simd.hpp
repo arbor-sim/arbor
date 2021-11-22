@@ -175,6 +175,7 @@ namespace detail {
 
         indirect_indexed_expression& operator=(V s) {
             static thread_local std::vector<typename simd_traits<ImplIndex>::scalar_type> idx(width);
+            ids.resize(width);
             ImplIndex::copy_to(index.value_, idx.data());
             for (unsigned i = 0; i < width; ++i) {
                 p[idx[i]] = s;
@@ -245,9 +246,11 @@ namespace detail {
             case index_constraint::none:
             {
                 static thread_local std::vector<typename ImplIndex::scalar_type> o(width);
+                o.resize(width);
                 ImplIndex::copy_to(index.value_, o.data());
 
                 static thread_local std::vector<V> a(width);
+                a.resize(width);
                 Impl::copy_to(s.value_, a.data());
 
                 V temp = 0;
