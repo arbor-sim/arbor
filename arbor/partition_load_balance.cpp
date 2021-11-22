@@ -126,7 +126,7 @@ domain_decomposition partition_load_balance(
                     cg.push_back(element);
                     // Adjacency list
                     auto conns = global_gj_connection_table[element];
-                    for (auto peer: conns) {
+                    for (const auto& peer: conns) {
                         if (!visited.count(peer)) {
                             visited.insert(peer);
                             q.push(peer);
