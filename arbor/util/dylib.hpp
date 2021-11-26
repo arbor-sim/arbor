@@ -23,4 +23,4 @@ T dl_get_symbol(const std::string& filename, const std::string& symbol) {
 }
 
 } // namespace util
-} // namespace arbo
+} // namespace arbor
