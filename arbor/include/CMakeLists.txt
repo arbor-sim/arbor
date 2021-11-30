@@ -34,19 +34,28 @@ if(ARB_WITH_MPI)
     # define ARB_MPI_ENABLED in version.hpp
     list(APPEND arb_features MPI)
 endif()
-if(ARB_WITH_CUDA)
+if(ARB_WITH_GPU)
     # define ARB_GPU_ENABLED in version.hpp
     list(APPEND arb_features GPU)
+endif()
+if(ARB_WITH_NEUROML)
+    # define ARB_NEUROML_ENABLED in version.hpp
+    list(APPEND arb_features NEUROML)
 endif()
 if(ARB_WITH_PROFILING)
     # define ARB_PROFILE_ENABLED in version.hpp
     list(APPEND arb_features PROFILE)
 endif()
+if(ARB_VECTORIZE)
+    list(APPEND arb_features VECTORIZE)
+endif()
+
+string(TOUPPER "${CMAKE_BUILD_TYPE}" arb_config_str)
 
 add_custom_command(
     OUTPUT version.hpp-test
     DEPENDS _always_rebuild
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${arb_features} > version.hpp-test
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${ARB_ARCH} ${arb_config_str} ${arb_features} > version.hpp-test
 )
 
 set(version_hpp_path arbor/version.hpp)
@@ -61,6 +70,7 @@ add_dependencies(arbor-public-headers generate_version_hpp)
 
 install(DIRECTORY arbor ${CMAKE_CURRENT_BINARY_DIR}/arbor
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING PATTERN "*.hpp")
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h" PATTERN "*.inc"
+    )
 
 install(TARGETS arbor-public-headers EXPORT arbor-targets)

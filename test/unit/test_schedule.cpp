@@ -186,7 +186,7 @@ struct skew_adaptor {
 
     explicit skew_adaptor(double power): power_(power) {}
     result_type operator()() {
-        constexpr double scale = max()-min();
+        constexpr double scale = (double)(max()-min());
         constexpr double ooscale = 1./scale;
 
         double x = ooscale*(G_()-min());
@@ -346,5 +346,19 @@ TEST(schedule, poisson_offset_reset) {
     std::mt19937_64 G;
     G.discard(400);
     run_reset_check(poisson_schedule(3.3, 9.1, G), 1, 10, 7);
+}
+
+TEST(schedule, poisson_tstop) {
+    SCOPED_TRACE("poisson_tstop");
+    std::mt19937_64 G;
+    G.discard(500);
+
+    const double tstop = 50;
+
+    auto const times = as_vector(poisson_schedule(0, .234, G, tstop).events(0., 100.));
+    auto const max = std::max_element(begin(times), end(times));
+
+    EXPECT_TRUE(max != end(times));
+    EXPECT_TRUE(*max <= tstop);
 }
 

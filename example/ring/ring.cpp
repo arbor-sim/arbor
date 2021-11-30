@@ -3,11 +3,15 @@
  *
  */
 
+#include <any>
+#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 
 #include <nlohmann/json.hpp>
+
+#include <arborio/label_parse.hpp>
 
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
@@ -22,35 +26,19 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
 
+#include "branch_cell.hpp"
+
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
 #include <arborenv/with_mpi.hpp>
 #endif
-
-// Parameters used to generate the random cell morphologies.
-struct cell_parameters {
-    cell_parameters() = default;
-
-    //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 5;
-
-    // The following parameters are described as ranges.
-    // The first value is at the soma, and the last value is used on the last level.
-    // Values at levels in between are found by linear interpolation.
-    std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
-    std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
-    std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
-
-    // The number of synapses per cell.
-    unsigned synapses = 1;
-};
 
 struct ring_params {
     ring_params() = default;
@@ -58,7 +46,7 @@ struct ring_params {
     std::string name = "default";
     unsigned num_cells = 10;
     double min_delay = 10;
-    double duration = 100;
+    double duration = 200;
     cell_parameters cell;
 };
 
@@ -69,7 +57,6 @@ using arb::cell_size_type;
 using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
-using arb::cell_probe_address;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const arb::trace_data<double>& trace);
@@ -99,20 +86,12 @@ public:
         return cell_kind::cable;
     }
 
-    // Each cell has one spike detector (at the soma).
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
-    }
-
-    // The cell has one target synapse, which will be connected to cell gid-1.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        return 1;
-    }
-
     // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        return {arb::cell_connection({src, 0}, {gid, 0}, event_weight_, min_delay_)};
+        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_));
+        return cons;
     }
 
     // Return one event generator on gid 0. This generates a single event that will
@@ -120,26 +99,18 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({{{"primary_syn"}, 1.0, event_weight_}}));
         }
         return gens;
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell.
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        return 1;
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        // Measure membrane voltage at end of soma.
+        arb::mlocation loc{0, 0.0};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    arb::probe_info get_probe(cell_member_type id) const override {
-        // Get the appropriate kind for measuring voltage.
-        cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
-        // Measure at the soma.
-        arb::segment_location loc(0, 0.0);
-
-        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
-    }
-
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         return gprop_;
     }
 
@@ -152,59 +123,12 @@ private:
     arb::cable_cell_global_properties gprop_;
 };
 
-struct cell_stats {
-    using size_type = unsigned;
-    size_type ncells = 0;
-    size_type nsegs = 0;
-    size_type ncomp = 0;
-
-    cell_stats(arb::recipe& r) {
-#ifdef ARB_MPI_ENABLED
-        int nranks, rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &nranks);
-        ncells = r.num_cells();
-        size_type cells_per_rank = ncells/nranks;
-        size_type b = rank*cells_per_rank;
-        size_type e = (rank==nranks-1)? ncells: (rank+1)*cells_per_rank;
-        size_type nsegs_tmp = 0;
-        size_type ncomp_tmp = 0;
-        for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs_tmp += c.num_segments();
-            ncomp_tmp += c.num_compartments();
-        }
-        MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-#else
-        ncells = r.num_cells();
-        for (size_type i=0; i<ncells; ++i) {
-            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs += c.num_segments();
-            ncomp += c.num_compartments();
-        }
-#endif
-    }
-
-    friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
-        return o << "cell stats: "
-                 << s.ncells << " cells; "
-                 << s.nsegs << " segments; "
-                 << s.ncomp << " compartments.";
-    }
-};
-
 int main(int argc, char** argv) {
     try {
         bool root = true;
 
         arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
+        resources.num_threads = arbenv::default_concurrency();
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
@@ -235,8 +159,6 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
-        cell_stats stats(recipe);
-        std::cout << stats << "\n";
 
         auto decomp = arb::partition_load_balance(recipe, context);
 
@@ -248,9 +170,9 @@ int main(int argc, char** argv) {
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
         auto probe_id = cell_member_type{0, 0};
         // The schedule for sampling is 10 samples every 1 ms.
-        auto sched = arb::regular_schedule(0.1);
+        auto sched = arb::regular_schedule(1);
         // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_data<double> voltage;
+        arb::trace_vector<double> voltage;
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
@@ -293,7 +215,12 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if (root) write_trace_json(voltage);
+        if (root) {
+            write_trace_json(voltage.at(0));
+        }
+
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
@@ -327,70 +254,43 @@ void write_trace_json(const arb::trace_data<double>& trace) {
     file << std::setw(1) << json << "\n";
 }
 
-// Helper used to interpolate in branch_cell.
-template <typename T>
-double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
-    double p = i * 1./(n-1);
-    double r0 = r[0];
-    double r1 = r[1];
-    return r[0] + p*(r1-r0);
-}
+ring_params read_options(int argc, char** argv) {
+    using sup::param_from_json;
 
-arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    arb::cable_cell cell;
-    cell.default_parameters.axial_resistivity = 100; // [Ω·cm]
-
-    // Add soma.
-    auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².
-    soma->add_mechanism("hh");
-
-    std::vector<std::vector<unsigned>> levels;
-    levels.push_back({0});
-
-    // Standard mersenne_twister_engine seeded with gid.
-    std::mt19937 gen(gid);
-    std::uniform_real_distribution<double> dis(0, 1);
-
-    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
-
-    unsigned nsec = 1;
-    for (unsigned i=0; i<params.max_depth; ++i) {
-        // Branch prob at this level.
-        double bp = interp(params.branch_probs, i, params.max_depth);
-        // Length at this level.
-        double l = interp(params.lengths, i, params.max_depth);
-        // Number of compartments at this level.
-        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
-
-        std::vector<unsigned> sec_ids;
-        for (unsigned sec: levels[i]) {
-            for (unsigned j=0; j<2; ++j) {
-                if (dis(gen)<bp) {
-                    sec_ids.push_back(nsec++);
-                    auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
-                    dend->set_compartments(nc);
-                    dend->add_mechanism("pas");
-                }
-            }
-        }
-        if (sec_ids.empty()) {
-            break;
-        }
-        levels.push_back(sec_ids);
+    ring_params params;
+    if (argc<2) {
+        std::cout << "Using default parameters.\n";
+        return params;
+    }
+    if (argc>2) {
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
-    // Add spike threshold detector at the soma.
-    cell.add_detector({0,0}, 10);
+    std::string fname = argv[1];
+    std::cout << "Loading parameters from file: " << fname << "\n";
+    std::ifstream f(fname);
 
-    // Add a synapse to the mid point of the first dendrite.
-    cell.add_synapse({1, 0.5}, "expsyn");
-
-    // Add additional synapses that will not be connected to anything.
-    for (unsigned i=1u; i<params.synapses; ++i) {
-        cell.add_synapse({1, 0.5}, "expsyn");
+    if (!f.good()) {
+        throw std::runtime_error("Unable to open input parameter file: "+fname);
     }
 
-    return cell;
+    nlohmann::json json;
+    f >> json;
+
+    param_from_json(params.name, "name", json);
+    param_from_json(params.num_cells, "num-cells", json);
+    param_from_json(params.duration, "duration", json);
+    param_from_json(params.min_delay, "min-delay", json);
+    params.cell = parse_cell_parameters(json);
+
+    if (!json.empty()) {
+        for (auto it=json.begin(); it!=json.end(); ++it) {
+            std::cout << "  Warning: unused input parameter: \"" << it.key() << "\"\n";
+        }
+        std::cout << "\n";
+    }
+
+    return params;
 }
 
 ring_params read_options(int argc, char** argv) {

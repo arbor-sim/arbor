@@ -1,118 +1,170 @@
 Arbor
 =====
 
-.. image:: https://travis-ci.org/arbor-sim/arbor.svg?branch=master
-    :target: https://travis-ci.org/arbor-sim/arbor
+|testbadge| |zlatest|
+
+.. |testbadge| image:: https://github.com/arbor-sim/arbor/actions/workflows/basic.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/basic.yml
+
+Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
+
+You can find out how to :ref:`get Arbor<in_install>`; get started quickly with our :ref:`tutorials<tutorial>`; or continue reading to learn more about Arbor.
 
 What is Arbor?
 --------------
 
-Arbor is a high-performance library for computational neuroscience simulations.
+`Arbor <https://arbor-sim.org>`_ is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
+from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to
+help neuroscientists effectively use contemporary and future HPC systems to meet their simulation needs.
 
-The development team is from from high-performance computing (HPC) centers:
+Arbor supports NVIDIA and AMD GPUs as well as explicit vectorization on CPUs from Intel (AVX, AVX2 and AVX512) and ARM (Neon and SVE).
+When coupled with low memory overheads, this makes Arbor an order of magnitude faster than the most widely-used comparable simulation software.
 
-    * Swiss National Supercomputing Center (CSCS), Jülich and BSC in work package 7.5.4 of the HBP.
-    * Aim to prepare neuroscience users for new HPC architectures;
+Arbor is open source and openly developed, and we use development practices such as unit testing, continuous integration, and validation.
 
-Arbor is designed from the ground up for **many core**  architectures:
+Documentation organisation
+--------------------------
 
-    * Written in C++11 and CUDA;
-    * Distributed parallelism using MPI;
-    * Multithreading with TBB and C++11 threads;
-    * **Open source** and **open development**;
-    * Sound development practices: **unit testing**, **continuous Integration**,
-      and **validation**.
-
-Features
---------
-
-We are actively developing `Arbor <https://github.com/arbor-sim/arbor>`_, improving performance and adding features.
-Some key features include:
-
-    * Optimized back end for CUDA
-    * Optimized vector back ends for Intel (KNL, AVX, AVX2) and Arm (ARMv8-A NEON) intrinsics.
-    * Asynchronous spike exchange that overlaps compute and communication.
-    * Efficient sampling of voltage and current on all back ends.
-    * Efficient implementation of all features on GPU.
-    * Reporting of memory and energy consumption (when available on platform).
-    * An API for addition of new cell types, e.g. LIF and Poisson spike generators.
-    * Validation tests against numeric/analytic models and NEURON.
+* :ref:`tutorial` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
+* :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
+* The API section details our :ref:`pyoverview` and :ref:`cppoverview` API. :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
+* Contributions to Arbor are very welcome! Under :ref:`contribindex` describe conventions and procedures for all kinds of contributions.
 
 Citing Arbor
 ------------
 
-.. |DOI-v0.1| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg
-     :target: https://doi.org/10.5281/zenodo.1459679
+The Arbor software can be cited by version via Zenodo or via Arbors introductory paper.
 
-.. |DOI-v0.2| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg
+Latest version
+    |zlatest|
+
+Version 0.5.2
+    |z052|
+
+    .. code-block:: latex
+
+        @software{nora_abi_akar_2021_4428108,
+        author       = {Nora {Abi Akar} and
+                        John Biddiscombe and
+                        Benjamin Cumming and
+                        Felix Huber and
+                        Marko Kabic and
+                        Vasileios Karakasis and
+                        Wouter Klijn and
+                        Anne Küsters and
+                        Alexander Peyser and
+                        Stuart Yates and
+                        Thorsten Hater and
+                        Brent Huisman and
+                        Sebastian Schmitt},
+        title        = {arbor-sim/arbor: Arbor Library v0.5},
+        month        = jan,
+        year         = 2021,
+        publisher    = {Zenodo},
+        version      = {v0.5},
+        doi          = {10.5281/zenodo.4428108},
+        url          = {https://doi.org/10.5281/zenodo.4428108}
+        }
+
+Version 0.2
+    |z02|
+
+Version 0.1
+    |z01|
+
+Introductory paper
+    .. code-block:: latex
+
+        @INPROCEEDINGS{
+            paper:arbor2019,
+            author={N. {Abi Akar} and B. {Cumming} and V. {Karakasis} and A. {Küsters} and W. {Klijn} and A. {Peyser} and S. {Yates}},
+            booktitle={2019 27th Euromicro International Conference on Parallel, Distributed and Network-Based Processing (PDP)},
+            title={{Arbor --- A Morphologically-Detailed Neural Network Simulation Library for Contemporary High-Performance Computing Architectures}},
+            year={2019}, month={feb}, volume={}, number={},
+            pages={274--282},
+            doi={10.1109/EMPDP.2019.8671560},
+            ISSN={2377-5750}}
+
+    Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
+
+
+.. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
+    :target: https://doi.org/10.5281/zenodo.1459678
+
+.. |z052| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5031633.svg
+    :target: https://doi.org/10.5281/zenodo.5031633
+
+.. |z05| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4428108.svg
+    :target: https://doi.org/10.5281/zenodo.4428108
+
+.. |z02| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.2583709.svg
     :target: https://doi.org/10.5281/zenodo.2583709
 
-Specific versions of Arbor can be cited via Zenodo:
+.. |z01| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459679.svg
+    :target: https://doi.org/10.5281/zenodo.1459679
 
-   * v0.2:  |DOI-v0.2|
-   * v0.1:  |DOI-v0.1|
+Acknowledgements
+----------------
 
-The following BibTeX can be used to cite Arbor:
+This research has received funding from the European Unions Horizon 2020 Framework Programme for Research and
+Innovation under the Specific Grant Agreement No. 720270 (Human Brain Project SGA1), Specific Grant Agreement
+No. 785907 (Human Brain Project SGA2), and Specific Grant Agreement No. 945539 (Human Brain Project SGA3).
 
-.. code-block:: latex
+Arbor is an `eBrains project <https://ebrains.eu/service/arbor/>`_.
 
-    @INPROCEEDINGS{
-        paper:arbor2019,
-        author={N. A. {Akar} and B. {Cumming} and V. {Karakasis} and A. {Küsters} and W. {Klijn} and A. {Peyser} and S. {Yates}},
-        booktitle={2019 27th Euromicro International Conference on Parallel, Distributed and Network-Based Processing (PDP)},
-        title={{Arbor --- A Morphologically-Detailed Neural Network Simulation Library for Contemporary High-Performance Computing Architectures}},
-        year={2019}, month={feb}, volume={}, number={},
-        pages={274--282},
-        doi={10.1109/EMPDP.2019.8671560},
-        ISSN={2377-5750}}
-
-Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
+A full list of our software attributions can be found `here <https://github.com/arbor-sim/arbor/blob/master/ATTRIBUTIONS.md>`_.
 
 .. toctree::
-   :caption: Getting Stared:
+   :caption: Get started:
+   :maxdepth: 1
 
-   install
-
-.. toctree::
-   :caption: Arbor Models:
-
-   model_intro
-   model_concepts
-   model_hardware
-   model_recipe
-   model_domdec
-   model_simulation
+   install/index
+   tutorial/index
 
 .. toctree::
-   :caption: Python:
-   
-   py_intro
-   py_common
-   py_recipe
-   py_cable_cell
-   py_hardware
-   py_domdec
-   py_simulation
-   py_profiler
+   :caption: Concepts:
+   :maxdepth: 1
+
+   concepts/index
+   concepts/recipe
+   concepts/cell
+   concepts/interconnectivity
+   concepts/hardware
+   concepts/domdec
+   concepts/simulation
+   concepts/cable_cell
+   concepts/lif_cell
+   concepts/spike_source_cell
+   concepts/benchmark_cell
 
 .. toctree::
-   :caption: C++ API:
+   :caption: File formats:
+   :maxdepth: 1
 
-   cpp_intro
-   cpp_common
-   cpp_hardware
-   cpp_recipe
-   cpp_domdec
-   cpp_simulation
-   cpp_cable_cell
+   fileformat/swc
+   fileformat/neuroml
+   fileformat/asc
+   fileformat/nmodl
+   fileformat/cable_cell
 
 .. toctree::
-   :caption: Developers:
+   :caption: API reference:
+   :maxdepth: 1
 
-   library
-   simd_api
-   profiler
-   sampling_api
-   cpp_distributed_context
-   cpp_dry_run
+   python/index
+   cpp/index
+   internals/index
 
+.. toctree::
+   :caption: Contributing:
+   :maxdepth: 1
+
+   contrib/index
+   contrib/pr
+   contrib/coding-style
+   contrib/doc
+   contrib/example
+   contrib/test
+
+.. meta::
+   :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo

@@ -4,7 +4,8 @@
 NEURON  {
     THREADSAFE
     SUFFIX test
-    USEION ca WRITE ik READ ki, cai
+    USEION ca READ cai
+    USEION k WRITE ik READ ki
     RANGE  gkbar, ik, ek, ki, cai
     GLOBAL minf, mtau, hinf, htau
 }
@@ -30,9 +31,9 @@ PARAMETER {
     v       (mV)           ? another style of comment
     vhalfm  =-43   (mV)
     km      =8
-    vhalfh  =-67   (mV)
+    vhalfh  =-67 (mV)  <0,1000>
     kh      =7.3
-    q10     =2.3
+    q10     =2.3 <0,42>
 }
 
 ASSIGNED {
@@ -48,12 +49,13 @@ BREAKPOINT {
 }
 
 INITIAL {
-    trates(v)
+    trates(v, celsius)
     m=minf
     h=hinf
+    ik = h
 }
 
-PROCEDURE trates(v) {
+PROCEDURE trates(v, celsius) {
     LOCAL qt
     qt=q10^((celsius-22)/10)
     minf=1-1/(1+exp((v-vhalfm)/km))
@@ -86,7 +88,7 @@ PROCEDURE foo3() {}
 : should states be a procedure with special declaration syntax (takes no arguments by default)?
 
 DERIVATIVE states {
-    trates(v)
+    trates(v, celsius)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
 }

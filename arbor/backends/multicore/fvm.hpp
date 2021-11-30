@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <arbor/mechanism.hpp>
+
 #include "backends/event.hpp"
 #include "backends/multicore/matrix_state.hpp"
 #include "backends/multicore/multi_event_stream.hpp"
@@ -28,6 +30,8 @@ struct backend {
     using array  = arb::multicore::array;
     using iarray = arb::multicore::iarray;
 
+    static constexpr arb_backend_kind kind = arb_backend_kind_cpu;
+
     static util::range<const value_type*> host_view(const array& v) {
         return util::range_pointer_view(v);
     }
@@ -43,22 +47,26 @@ struct backend {
     using sample_event_stream = arb::multicore::sample_event_stream;
 
     using shared_state = arb::multicore::shared_state;
+    using ion_state = arb::multicore::ion_state;
 
     static threshold_watcher voltage_watcher(
-        const shared_state& state,
+        shared_state& state,
         const std::vector<index_type>& cv,
         const std::vector<value_type>& thresholds,
         const execution_context& context)
     {
         return threshold_watcher(
             state.cv_to_intdom.data(),
-            state.time.data(),
-            state.time_to.data(),
             state.voltage.data(),
+            state.src_to_spike.data(),
+            &state.time,
+            &state.time_to,
             cv,
             thresholds,
             context);
     }
+
+    static fvm_value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
 };
 
 } // namespace multicore

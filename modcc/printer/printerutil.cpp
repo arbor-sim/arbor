@@ -45,7 +45,8 @@ std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
 
     for (auto& sym: m.symbols()) {
         auto proc = sym.second->is_procedure();
-        if (proc && proc->kind()==procedureKind::normal && !proc->is_api_method() && !proc->is_net_receive()) {
+        if (proc && proc->kind()==procedureKind::normal && !proc->is_api_method()
+            && !proc->is_net_receive() && !proc->is_post_event()) {
             procs.push_back(proc);
         }
     }
@@ -113,46 +114,81 @@ NetReceiveExpression* find_net_receive(const Module& m) {
     return it==m.symbols().end()? nullptr: it->second->is_net_receive();
 }
 
+PostEventExpression* find_post_event(const Module& m) {
+    auto it = m.symbols().find("post_event");
+    return it==m.symbols().end()? nullptr: it->second->is_post_event();
+}
+
+bool indexed_variable_info::scalar() const { return index_var_kind==index_kind::none; }
+
+std::string indexed_variable_info::inner_index_var() const {
+    if (index_var_kind == index_kind::cell) return node_index_var;
+    return {};
+}
+
+std::string indexed_variable_info::outer_index_var() const {
+    switch(index_var_kind) {
+        case index_kind::node: return node_index_var;
+        case index_kind::cell: return cell_index_var;
+        case index_kind::other: return other_index_var;
+        default: return {};
+    }
+}
+
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     indexed_variable_info v;
-    v.index_var = "node_index_";
+    v.node_index_var = "node_index";
+    v.index_var_kind = index_kind::node;
     v.scale = 1;
     v.accumulate = true;
     v.readonly = true;
 
     std::string ion_pfx;
     if (sym->is_ion()) {
-        ion_pfx = "ion_"+sym->ion_channel()+"_";
-        v.index_var = ion_pfx+"index_";
+        ion_pfx = "ion_"+sym->ion_channel();
+        v.node_index_var = ion_pfx+"_index";
     }
 
     switch (sym->data_source()) {
     case sourceKind::voltage:
-        v.data_var="vec_v_";
+        v.data_var="vec_v";
+        v.readonly = true;
+        break;
+    case sourceKind::peer_voltage:
+        v.data_var="vec_v";
+        v.other_index_var = "peer_index";
+        v.node_index_var = "";
+        v.index_var_kind = index_kind::other;
         v.readonly = true;
         break;
     case sourceKind::current_density:
-        v.data_var = "vec_i_";
+        v.data_var = "vec_i";
         v.readonly = false;
         v.scale = 0.1;
         break;
     case sourceKind::current:
         // unit scale; sourceKind for point processes updating current variable.
-        v.data_var = "vec_i_";
+        v.data_var = "vec_i";
         v.readonly = false;
         break;
     case sourceKind::conductivity:
-        v.data_var = "vec_g_";
+        v.data_var = "vec_g";
         v.readonly = false;
         v.scale = 0.1;
         break;
     case sourceKind::conductance:
         // unit scale; sourceKind for point processes updating conductivity.
-        v.data_var = "vec_g_";
+        v.data_var = "vec_g";
         v.readonly = false;
         break;
     case sourceKind::dt:
-        v.data_var = "vec_dt_";
+        v.data_var = "vec_dt";
+        v.readonly = true;
+        break;
+    case sourceKind::time:
+        v.data_var = "vec_t";
+        v.cell_index_var = "vec_di";
+        v.index_var_kind = index_kind::cell;
         v.readonly = true;
         break;
     case sourceKind::ion_current_density:
@@ -180,12 +216,16 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         break;
     case sourceKind::ion_valence:
         v.data_var = ion_pfx+".ionic_charge";
-        v.index_var = ""; // scalar global
+        v.node_index_var = ""; // scalar global
+        v.index_var_kind = index_kind::none;
         v.readonly = true;
         break;
     case sourceKind::temperature:
-        v.data_var = "temperature_degC_";
-        v.index_var = ""; // scalar global
+        v.data_var = "temperature_degC";
+        v.readonly = true;
+        break;
+    case sourceKind::diameter:
+        v.data_var = "diam_um";
         v.readonly = true;
         break;
     default:

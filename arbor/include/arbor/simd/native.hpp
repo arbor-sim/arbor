@@ -65,14 +65,19 @@ ARB_DEF_NATIVE_SIMD_(double, 8, avx512)
 
 #endif
 
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_FEATURE_SVE)
+
+#include "sve.hpp"
+ARB_DEF_NATIVE_SIMD_(int, 0, sve)
+ARB_DEF_NATIVE_SIMD_(double, 0, sve)
+
+#elif defined(__ARM_NEON)
 
 #include <arbor/simd/neon.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 2, neon)
 ARB_DEF_NATIVE_SIMD_(double, 2, neon)
 
 #endif
-
 
 namespace arb {
 namespace simd {
@@ -87,15 +92,15 @@ struct native_width;
 
 template <typename Value, int k>
 struct native_width {
-   static constexpr int value =
-        std::is_same<void, typename native<Value, k>::type>::value?
-        native_width<Value, k/2>::value:
-        k;
+    static constexpr int value =
+            std::is_same<void, typename native<Value, k>::type>::value?
+            native_width<Value, k/2>::value:
+            k;
 };
 
 template <typename Value>
 struct native_width<Value, 1> {
-    static constexpr int value = 1;
+    static constexpr int value = std::is_same<void, typename native<Value, 0>::type>::value;
 };
 
 } // namespace simd_abi

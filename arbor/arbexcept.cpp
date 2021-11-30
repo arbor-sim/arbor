@@ -10,10 +10,26 @@ namespace arb {
 
 using arb::util::pprintf;
 
+bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
+    arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
+    gid(gid),
+    kind(kind)
+{}
+
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, kind, gid)),
     gid(gid),
     kind(kind)
+{}
+
+bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
+    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are only {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
+    gid(gid), src_gid(src_gid), num_cells(num_cells)
+{}
+
+bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg):
+    arbor_exception(pprintf("Model building error on cell {}: connection endpoint label \"{}\": {}.", gid, label, msg)),
+    gid(gid), label(label)
 {}
 
 bad_global_property::bad_global_property(cell_kind kind):
@@ -30,6 +46,12 @@ gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gi
     arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
     gid_0(gid_0),
     gid_1(gid_1)
+{}
+
+gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
+    arbor_exception(pprintf("Model building error on cell {}: gap junction site label \"{}\" must be univalent.", gid, label)),
+    gid(gid),
+    label(label)
 {}
 
 gj_kind_mismatch::gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1):
@@ -100,6 +122,27 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
     arbor_exception(pprintf("range check failure: {} with value {}", whatstr, value)),
     value(value)
 {}
+
+file_not_found_error::file_not_found_error(const std::string &fn)
+    : arbor_exception(pprintf("Could not find readable file at '{}'", fn)),
+      filename{fn}
+{}
+
+bad_catalogue_error::bad_catalogue_error(const std::string& msg)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg))
+{}
+
+bad_catalogue_error::bad_catalogue_error(const std::string& msg, const std::any& pe)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(pe)
+{}
+
+unsupported_abi_error::unsupported_abi_error(size_t v):
+    arbor_exception(pprintf("ABI version is not supported by this version of arbor '{}'", v)),
+    version{v} {}
+
+bad_alignment::bad_alignment(size_t a):
+    arbor_exception(pprintf("Mechanism reported unsupported alignment '{}'", a)),
+    alignment{a} {}
 
 } // namespace arb
 

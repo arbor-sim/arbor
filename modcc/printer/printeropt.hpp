@@ -6,6 +6,7 @@
 #include <string>
 
 #include "simd.hpp"
+
 struct printer_options {
     // C++ namespace for generated code.
     std::string cpp_namespace;
@@ -17,4 +18,5 @@ struct printer_options {
     // Currently only supported for C printer.
 
     bool profile = false;
+    bool trace_codegen = false;
 };

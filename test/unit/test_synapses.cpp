@@ -6,56 +6,54 @@
 
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/optional.hpp>
+#include <arbor/mechanism.hpp>
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
-#include "backends/multicore/mechanism.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
+#include "../common_cells.hpp"
 #include "common.hpp"
 #include "mech_private_field_access.hpp"
 
 using namespace arb;
 
-using backend = ::arb::multicore::backend;
+using backend = multicore::backend;
 using shared_state = backend::shared_state;
 using value_type = backend::value_type;
 using size_type = backend::size_type;
 
-// Access to more mechanism protected data:
-
-ACCESS_BIND(const value_type* multicore::mechanism::*, vec_v_ptr, &multicore::mechanism::vec_v_)
-ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanism::vec_i_)
+ACCESS_BIND(arb_mechanism_ppack mechanism::*, get_ppack, &mechanism::ppack_);
 
 TEST(synapses, add_to_cell) {
     using namespace arb;
 
-    cable_cell cell;
+    auto description = make_cell_soma_only(false);
 
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism("hh");
+    description.decorations.place(mlocation{0, 0.1}, synapse("expsyn"), "synapse0");
+    description.decorations.place(mlocation{0, 0.2}, synapse("exp2syn"), "synapse1");
+    description.decorations.place(mlocation{0, 0.3}, synapse("expsyn"), "synapse2");
 
-    cell.add_synapse({0, 0.1}, "expsyn");
-    cell.add_synapse({1, 0.2}, "exp2syn");
-    cell.add_synapse({0, 0.3}, "expsyn");
+    cable_cell cell(description);
 
-    EXPECT_EQ(3u, cell.synapses().size());
-    const auto& syns = cell.synapses();
+    auto syns = cell.synapses();
 
-    EXPECT_EQ(syns[0].location.segment, 0u);
-    EXPECT_EQ(syns[0].location.position, 0.1);
-    EXPECT_EQ(syns[0].mechanism.name(), "expsyn");
+    ASSERT_EQ(2u, syns["expsyn"].size());
+    ASSERT_EQ(1u, syns["exp2syn"].size());
 
-    EXPECT_EQ(syns[1].location.segment, 1u);
-    EXPECT_EQ(syns[1].location.position, 0.2);
-    EXPECT_EQ(syns[1].mechanism.name(), "exp2syn");
+    EXPECT_EQ((mlocation{0, 0.1}), syns["expsyn"][0].loc);
+    EXPECT_EQ("expsyn", syns["expsyn"][0].item.mech.name());
 
-    EXPECT_EQ(syns[2].location.segment, 0u);
-    EXPECT_EQ(syns[2].location.position, 0.3);
-    EXPECT_EQ(syns[2].mechanism.name(), "expsyn");
+    EXPECT_EQ((mlocation{0, 0.3}), syns["expsyn"][1].loc);
+    EXPECT_EQ("expsyn", syns["expsyn"][1].item.mech.name());
+
+    EXPECT_EQ((mlocation{0, 0.2}), syns["exp2syn"][0].loc);
+    EXPECT_EQ("exp2syn", syns["exp2syn"][0].item.mech.name());
+
+    // adding a synapse to an invalid branch location should throw.
+    description.decorations.place(mlocation{1, 0.3}, synapse("expsyn"), "synapse3");
+    EXPECT_THROW((cell=description), std::runtime_error);
 }
 
 template <typename Seq>
@@ -81,20 +79,23 @@ TEST(synapses, syn_basic_state) {
 
     value_type temp_K = *neuron_parameter_defaults.temperature_K;
 
-    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn").mech);
+    auto expsyn = unique_cast<mechanism>(global_default_catalogue().instance(backend::kind, "expsyn").mech);
     ASSERT_TRUE(expsyn);
 
-    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn").mech);
+    auto exp2syn = unique_cast<mechanism>(global_default_catalogue().instance(backend::kind, "exp2syn").mech);
     ASSERT_TRUE(exp2syn);
 
-    std::vector<fvm_gap_junction> gj = {};
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
     shared_state state(num_intdom,
+        num_intdom,
+        0,
         std::vector<index_type>(num_comp, 0),
-        {},
+        std::vector<index_type>(num_comp, 0),
         std::vector<value_type>(num_comp, -65),
         std::vector<value_type>(num_comp, temp_K),
+        std::vector<value_type>(num_comp, 1.),
+        std::vector<index_type>(0),
         align);
 
     state.reset();
@@ -106,8 +107,8 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    expsyn->instantiate(0, state, {}, {syn_cv, syn_weight, syn_mult});
-    exp2syn->instantiate(1, state, {}, {syn_cv, syn_weight, syn_mult});
+    state.instantiate(*expsyn,  0, {}, {syn_cv, {}, syn_weight, syn_mult});
+    state.instantiate(*exp2syn, 1, {}, {syn_cv, {}, syn_weight, syn_mult});
 
     // Parameters initialized to default values?
 
@@ -122,19 +123,18 @@ TEST(synapses, syn_basic_state) {
     EXPECT_TRUE(all_equal_to(mechanism_field(exp2syn, "B"),    NAN));
 
     // Current and voltage views correctly hooked up?
-
     const value_type* v_ptr;
-    v_ptr = expsyn.get()->*vec_v_ptr;
+    v_ptr = (expsyn.get()->*get_ppack).vec_v;
     EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
 
-    v_ptr = exp2syn.get()->*vec_v_ptr;
+    v_ptr = (exp2syn.get()->*get_ppack).vec_v;
     EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
 
     const value_type* i_ptr;
-    i_ptr = expsyn.get()->*vec_i_ptr;
+    i_ptr = (expsyn.get()->*get_ppack).vec_i;
     EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
 
-    i_ptr = exp2syn.get()->*vec_i_ptr;
+    i_ptr = (exp2syn.get()->*get_ppack).vec_i;
     EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
 
     // Initialize state then check g, A, B have been set to zero.
@@ -158,8 +158,15 @@ TEST(synapses, syn_basic_state) {
     state.deliverable_events.init(events);
     state.deliverable_events.mark_until_after(state.time);
 
-    expsyn->deliver_events();
-    exp2syn->deliver_events();
+    auto marked = state.deliverable_events.marked_events();
+    arb_deliverable_event_stream evts;
+    evts.n_streams = marked.n;
+    evts.begin     = marked.begin_offset;
+    evts.end       = marked.end_offset;
+    evts.events    = (arb_deliverable_event_data*) marked.ev_data; // FIXME(TH): This relies on bit-castability
+
+    expsyn->deliver_events(evts);
+    exp2syn->deliver_events(evts);
 
     using fvec = std::vector<fvm_value_type>;
 

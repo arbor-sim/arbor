@@ -1,56 +1,43 @@
 include(BuildModules.cmake)
 
-# The list of library-provided mechanisms used to populate the default catalogue:
-set(mechanisms pas hh expsyn exp2syn nernst test_kin1 test_kinlva test_ca nax kdrmt kamt)
+# Define catalogues
+make_catalogue(
+  NAME bbp
+  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/bbp"
+  OUTPUT "CAT_BBP_SOURCES"
+  MECHS CaDynamics_E2 Ca_HVA Ca_LVAst Ih Im K_Pst K_Tst Nap_Et2 NaTa_t NaTs2_t SK_E2 SKv3_1
+  PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
+  CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"
+  STANDALONE FALSE
+  VERBOSE ${ARB_CAT_VERBOSE})
 
-set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
+make_catalogue(
+  NAME allen
+  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/allen"
+  OUTPUT "CAT_ALLEN_SOURCES"
+  MECHS CaDynamics Ca_HVA Ca_LVA Ih Im Im_v2 K_P K_T Kd Kv2like Kv3_1 NaTa NaTs NaV Nap SK
+  PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
+  CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"
+  STANDALONE FALSE
+  VERBOSE ${ARB_CAT_VERBOSE})
 
-# Generate mechanism implementations.
+make_catalogue(
+  NAME default
+  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/default"
+  OUTPUT "CAT_DEFAULT_SOURCES"
+  MECHS exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas gj
+  PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
+  CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"
+  STANDALONE FALSE
+  VERBOSE ${ARB_CAT_VERBOSE})
 
-set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(MAKE_DIRECTORY "${mech_dir}")
+# Join sources
+set(arbor_mechanism_sources
+  ${CAT_BBP_SOURCES}
+  ${CAT_ALLEN_SOURCES}
+  ${CAT_DEFAULT_SOURCES}
+  PARENT_SCOPE)
 
-set(external_modcc)
-if(ARB_WITH_EXTERNAL_MODCC)
-    set(external_modcc MODCC ${modcc})
+if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
 endif()
-
-build_modules(
-    ${mechanisms}
-    SOURCE_DIR "${mod_srcdir}"
-    DEST_DIR "${mech_dir}"
-    ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
-    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
-    TARGET build_all_mods
-)
-
-# Generate source for default mechanism catalogue.
-
-set(catsrc ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
-set(default_catalogue_options -A arbor -I ${mech_dir} -o ${catsrc} -B multicore)
-if(ARB_WITH_CUDA)
-    list(APPEND default_catalogue_options -B gpu)
-endif()
-
-add_custom_command(
-    OUTPUT ${catsrc}
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_default_catalogue ${default_catalogue_options} ${mechanisms}
-    DEPENDS generate_default_catalogue
-)
-
-add_custom_target(default_catalogue_cpp_target DEPENDS ${catsrc})
-add_dependencies(build_all_mods default_catalogue_cpp_target)
-
-# Make libraries with the implementations of the mechanism kernels.
-
-set(mech_sources ${catsrc})
-foreach(mech ${mechanisms})
-    list(APPEND mech_sources ${mech_dir}/${mech}_cpu.cpp)
-    if(ARB_WITH_CUDA)
-        list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cpp)
-        list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cu)
-    endif()
-endforeach()
-
-set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)

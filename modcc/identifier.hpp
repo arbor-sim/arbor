@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 enum class moduleKind {
-    point, density, revpot
+    point, density, junction, revpot
 };
 
 /// indicate how a variable is accessed
@@ -16,7 +16,8 @@ enum class moduleKind {
 enum class accessKind {
     read,
     write,
-    readwrite
+    readwrite,
+    noaccess
 };
 
 /// describes the scope of a variable
@@ -40,11 +41,13 @@ enum class linkageKind {
 /// possible external data source for indexed variables
 enum class sourceKind {
     voltage,
+    peer_voltage,
     current_density,
     current,
     conductivity,
     conductance,
     dt,
+    time,
     ion_current,
     ion_current_density,
     ion_revpot,
@@ -52,6 +55,7 @@ enum class sourceKind {
     ion_econc,
     ion_valence,
     temperature,
+    diameter,
     no_source
 };
 
@@ -83,6 +87,7 @@ inline std::string to_string(linkageKind v) {
 inline std::string to_string(sourceKind v) {
     switch(v) {
     case sourceKind::voltage:             return "voltage";
+    case sourceKind::peer_voltage:        return "peer_voltage";
     case sourceKind::current_density:     return "current_density";
     case sourceKind::current:             return "current";
     case sourceKind::conductivity:        return "conductivity";
@@ -114,7 +119,7 @@ inline std::ostream& operator<< (std::ostream& os, linkageKind l) {
 
 inline sourceKind ion_source(const std::string& ion, const std::string& var, moduleKind mkind) {
     if (ion.empty()) return sourceKind::no_source;
-    else if (var=="i"+ion) return mkind==moduleKind::point? sourceKind::ion_current: sourceKind::ion_current_density;
+    else if (var=="i"+ion) return mkind==moduleKind::density? sourceKind::ion_current_density: sourceKind::ion_current;
     else if (var=="e"+ion) return sourceKind::ion_revpot;
     else if (var==ion+"i") return sourceKind::ion_iconc;
     else if (var==ion+"o") return sourceKind::ion_econc;

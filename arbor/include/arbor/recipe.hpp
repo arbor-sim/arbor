@@ -1,11 +1,9 @@
 #pragma once
 
-#include <cstddef>
-#include <memory>
-#include <unordered_map>
-#include <stdexcept>
+#include <any>
+#include <utility>
+#include <vector>
 
-#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/util/unique_any.hpp>
@@ -13,16 +11,24 @@
 namespace arb {
 
 struct probe_info {
-    cell_member_type id;
     probe_tag tag;
 
     // Address type will be specific to cell kind of cell `id.gid`.
-    util::any address;
+    std::any address;
+
+    probe_info(probe_info&) = default;
+    probe_info(const probe_info&) = default;
+    probe_info(probe_info&&) = default;
+
+    // Implicit ctor uses tag of zero.
+    template <typename X>
+    probe_info(X&& x, probe_tag tag = 0):
+        tag(tag), address(std::forward<X>(x)) {}
 };
 
 /* Recipe descriptions are cell-oriented: in order that the building
- * phase can be done distributedly and in order that the recipe
- * description can be built indepdently of any runtime execution environment.
+ * phase can be distributed, and in order that the recipe description
+ * can be built indepedently of any runtime execution environment.
  */
 
 // Note: `cell_connection` and `connection` have essentially the same data
@@ -34,26 +40,24 @@ struct probe_info {
 struct cell_connection {
     // Connection end-points are represented by pairs
     // (cell index, source/target index on cell).
-    using cell_connection_endpoint = cell_member_type;
 
-    cell_connection_endpoint source;
-    cell_connection_endpoint dest;
+    cell_global_label_type source;
+    cell_local_label_type dest;
 
     float weight;
-    time_type delay;
+    float delay;
 
-    cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, time_type d):
-        source(src), dest(dst), weight(w), delay(d)
-    {}
+    cell_connection(cell_global_label_type src, cell_local_label_type dst, float w, float d):
+        source(std::move(src)), dest(std::move(dst)), weight(w), delay(d) {}
 };
 
 struct gap_junction_connection {
-    cell_member_type local;
-    cell_member_type peer;
-    double ggap;
+    cell_global_label_type peer;
+    cell_local_label_type local;
+    double weight; //unit-less
 
-    gap_junction_connection(cell_member_type local, cell_member_type peer, double g):
-            local(local), peer(peer), ggap(g) {}
+    gap_junction_connection(cell_global_label_type peer, cell_local_label_type local, double g):
+        peer(std::move(peer)), local(std::move(local)), weight(g) {}
 };
 
 class recipe {
@@ -64,12 +68,6 @@ public:
     virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
 
-    virtual cell_size_type num_sources(cell_gid_type) const { return 0; }
-    virtual cell_size_type num_targets(cell_gid_type) const { return 0; }
-    virtual cell_size_type num_probes(cell_gid_type)  const { return 0; }
-    virtual cell_size_type num_gap_junction_sites(cell_gid_type gid)  const {
-        return gap_junctions_on(gid).size();
-    }
     virtual std::vector<event_generator> event_generators(cell_gid_type) const {
         return {};
     }
@@ -80,12 +78,12 @@ public:
         return {};
     }
 
-    virtual probe_info get_probe(cell_member_type probe_id) const {
-        throw bad_probe_id(probe_id);
+    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
+        return {};
     }
 
     // Global property type will be specific to given cell kind.
-    virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
+    virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
 
     virtual ~recipe() {}
 };

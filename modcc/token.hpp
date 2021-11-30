@@ -16,7 +16,7 @@ enum class tok {
     // infix binary ops
 
     // = + - * / ^
-    eq, plus, minus, times, divide, pow,
+    eq, plus, minus, times, divide, pow, land, lor,
     // comparison
     lnot,    // !   named logical not, to avoid clash with C++ not keyword
     lt,      // <
@@ -54,22 +54,23 @@ enum class tok {
     neuron, units, parameter,
     constant, assigned, state, breakpoint,
     derivative, kinetic, procedure, initial, function, linear,
-    net_receive,
+    net_receive, post_event,
 
     // keywoards inside blocks
     unitsoff, unitson,
     suffix, nonspecific_current, useion,
     read, write, valence,
-    range, local, conserve,
-    solve, method,
+    range, local, conserve, compartment,
+    solve, method, steadystate,
     threadsafe, global,
-    point_process,
+    point_process, junction_process,
+    from, to,
 
     // prefix binary operators
     min, max,
 
     // unary operators
-    exp, sin, cos, log, abs,
+    exp, sin, cos, log, abs, safeinv,
     exprelr, // equivalent to x/(exp(x)-1) with exprelr(0)=1
 
     // logical keywords

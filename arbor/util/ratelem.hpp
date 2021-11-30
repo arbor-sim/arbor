@@ -1,0 +1,178 @@
+#pragma once
+
+// An element representing a segment of a rational polynomial function
+// of order p, q, as determined by its values on n = p+q+1 nodes at
+// [0, 1/n, ..., 1].
+//
+// Rational polynomial interpolation scheme from:
+// F. M. Larkin (1967). Some techniques for rational interpolation.
+// The Computer Journal 10(2), pp. 178–187.
+//
+// TODO: Consider implementing a more generally robust scheme, e.g.
+// S. L. Loi and A. W. McInnes (1983). An algorithm for generalized
+// rational interpolation. BIT Numerical Mathematics 23(1),
+// pp. 105–117. doi:10.1007/BF01937330
+//
+// Current implementation should be sufficient for interpolation of
+// monotonic ratpoly functions of low order, but we can revisit
+// this is if the limitations of the Larkin method bite us.
+
+#include <algorithm>
+#include <array>
+#include <functional>
+#include <type_traits>
+#include <utility>
+
+#include <arbor/math.hpp>
+
+namespace arb {
+namespace util {
+
+namespace impl {
+
+template <unsigned n, unsigned sz>
+struct array_init_n {
+    template <typename A, typename X, typename... Tail>
+    static void set(A& array, X value, Tail... tail) {
+        array[sz-n] = std::move(value);
+        array_init_n<n-1, sz>::set(array, std::forward<Tail>(tail)...);
+    }
+};
+
+template <unsigned sz>
+struct array_init_n<0, sz> {
+    template <typename A>
+    static void set(A& array) {}
+};
+
+template <unsigned k, bool upper, std::size_t m>
+void rat_interpolate(std::array<double, m>& h, const std::array<double, m+1>& g, double x) {
+    constexpr double ook = 1./k;
+    for (unsigned i = 0; i<m; ++i) {
+        if (upper) {
+            h[i] = ook*((x - i)*g[i+1] + (i+k - x)*g[i]);
+        }
+        else {
+            // singularities, but the expense should not be necessary if we stick
+            // to strictly monotonic elements for rational polynomials.
+            h[i] = k*g[i]*g[i+1]/(g[i]*(x - i) + g[i+1]*(i+k - x));
+        }
+    }
+}
+
+template <unsigned a, unsigned c, unsigned k, bool upper>
+double recursive_rat_eval(const std::array<double, 1+a+c>& g, const std::array<double, 2+a+c>& p, double x) {
+    if constexpr (a==0 && c==0) {
+        return g[0];
+    }
+    else if constexpr (a==0) {
+        // 'rhombus' interpolation
+        std::array<double, c> h;
+        for (unsigned i = 0; i<c; ++i) {
+            h[i] = p[i+1] + k/((x - i)/(g[i+1]-p[i+1]) + (i+k - x)/(g[i]-p[i+1]));
+        }
+
+        return recursive_rat_eval<0, c-1, k+1, upper>(h, g, x);
+    }
+    else {
+        std::array<double, a+c> h;
+        rat_interpolate<k, upper>(h, g, x);
+        return recursive_rat_eval<a-1, c, k+1, upper>(h, g, x);
+    }
+}
+
+template <unsigned p, unsigned q>
+double rat_eval(const std::array<double, 1+p+q>& data, double x) {
+    // upper => interpolate polynomials first;
+    // !upper => interpolate reciprocal polynomials first;
+    // a is the number of (reciprocal) polynomial interpolation steps;
+    // c is the number of 'rhombus' interpolation steps.
+
+    constexpr bool upper = p>=q;
+    constexpr unsigned a = upper? p-q+(q>0): q-p+(p>0);
+    constexpr unsigned c = p+q-a;
+
+    if constexpr (a==0 && c==0) {
+        return data[0];
+    }
+    else if constexpr (a==1 && c==1) {
+        // Special case when p==1 and q==1 so that we can have
+        // well-defined behaviour in the case where the interpolants
+        // are strictly monotonic, but might take non-finite values.
+        // (Used for ixa interpolation in embed_pwlin.cpp).
+
+        double y0 = data[0];
+        double y1 = data[1];
+        double y2 = data[2];
+
+        return y1+(2*x-1)/(x/(y2-y1)+(1-x)/(y1-y0));
+    }
+    else {
+        x *= p+q;
+        std::array<double, a+c> h;
+        rat_interpolate<1, upper>(h, data, x);
+        return recursive_rat_eval<a-1, c, 2, upper>(h, data, x);
+    }
+}
+
+} // namespace impl
+
+template <unsigned p, unsigned q>
+struct rat_element {
+    // Construct from function evaluated on nodes.
+    template <
+        typename F,
+        typename _ = std::enable_if_t<std::is_convertible<decltype(std::declval<F>()(0.0)), double>::value>
+    >
+    explicit rat_element(F&& fn, _* = nullptr) {
+        if (size()>1) {
+            for (unsigned i = 0; i<size(); ++i) data_[i] = fn(i/(size()-1.0));
+        }
+        else {
+            data_[0] = fn(0);
+        }
+    }
+
+    // Construct from node values.
+    template <typename... Tail>
+    rat_element(double y0, Tail... tail) {
+        impl::array_init_n<p+q+1, p+q+1>::set(data_, y0, tail...);
+    }
+
+    // Construct from node values in array or std::array.
+    template <typename Y>
+    rat_element(const std::array<Y, 1+p+q>& a) { unchecked_range_init(a); }
+
+    template <typename Y>
+    rat_element(Y (&a)[1+p+q]) { unchecked_range_init(a); }
+
+    // Number of nodes.
+    static constexpr unsigned size() { return 1+p+q; }
+
+    // Rational interpolation at x.
+    double operator()(double x) const {
+        return impl::rat_eval<p, q>(data_, x);
+    }
+
+    // Node values.
+    double operator[](unsigned i) const {
+        return data_.at(i);
+    }
+
+    double& operator[](unsigned i) {
+        return data_.at(i);
+    }
+
+private:
+    template <typename C>
+    void unchecked_range_init(const C& a) {
+        using std::begin;
+        using std::end;
+        std::copy(begin(a), end(a), data_.begin());
+    }
+
+    std::array<double, 1+p+q> data_;
+};
+
+} // namespace util
+} // namespace arb

@@ -6,11 +6,15 @@
  * event generators, one inhibitory, and one excitatory, are attached.
  */
 
+#include <any>
+#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 
 #include <nlohmann/json.hpp>
+
+#include <arborio/label_parse.hpp>
 
 #include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
@@ -28,7 +32,8 @@ using arb::cell_size_type;
 using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
-using arb::cell_probe_address;
+
+using namespace arborio::literals;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const arb::trace_data<double>& trace);
@@ -47,39 +52,38 @@ public:
     //    capacitance: 0.01 F/m² [default]
     //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::cable_cell c;
+        arb::segment_tree tree;
+        double r = 18.8/2.0; // convert 18.8 μm diameter to radius
+        tree.append(arb::mnpos, {0,0,-r,r}, {0,0,r,r}, 1);
 
-        c.add_soma(18.8/2.0); // convert 18.8 μm diameter to radius
-        c.soma()->add_mechanism("pas");
+        arb::label_dict labels;
+        labels.set("soma", arb::reg::tagged(1));
+
+        arb::decor decor;
+        decor.paint("soma"_lab, arb::density("pas"));
 
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        c.add_synapse({0, 0.5}, "expsyn");
+        decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
 
-        return std::move(c);
+        return arb::cable_cell(tree, labels, decor);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        arb_assert(gid==0); // There is only one cell in the model
+        assert(gid==0); // There is only one cell in the model
         return cell_kind::cable;
     }
 
-    arb::util::any get_global_properties(arb::cell_kind) const override {
+    std::any get_global_properties(arb::cell_kind) const override {
         arb::cable_cell_global_properties gprop;
         gprop.default_parameters = arb::neuron_parameter_defaults;
         return gprop;
     }
 
-    // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        arb_assert(gid==0); // There is only one cell in the model
-        return 1;
-    }
-
     // Return two generators attached to the one cell.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        arb_assert(gid==0); // There is only one cell in the model
+        assert(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
 
@@ -97,35 +101,25 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            poisson_generator(cell_member_type{0,0}, // Target synapse (gid, local_id).
-                              w_e,                   // Weight of events to deliver
-                              t0,                    // Events start being delivered from this time
-                              lambda_e,              // Expected frequency (kHz)
-                              RNG(29562872)));       // Random number generator to use
+            arb::poisson_generator({"syn"},               // Target synapse index on cell `gid`
+                                   w_e,                   // Weight of events to deliver
+                                   t0,                    // Events start being delivered from this time
+                                   lambda_e,              // Expected frequency (kHz)
+                                   RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
-            poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i,  RNG(86543891)));
+            arb::poisson_generator({"syn"}, w_i, t0, lambda_i,  RNG(86543891)));
 
         return gens;
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        arb_assert(gid==0); // There is only one cell in the model
-        return 1;
-    }
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        assert(gid==0);     // There is only one cell,
 
-    arb::probe_info get_probe(cell_member_type id) const override {
-        arb_assert(id.gid==0);     // There is one cell,
-        arb_assert(id.index==0);   // with one probe.
-
-        // Get the appropriate kind for measuring voltage
-        cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
-        // Measure at the soma
-        arb::segment_location loc(0, 0.0);
-
-        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
+        // Measure membrane voltage at end of soma.
+        arb::mlocation loc{0, 0.0};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 };
 
@@ -151,7 +145,7 @@ int main() {
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1);
     // This is where the voltage samples will be stored as (time, value) pairs
-    arb::trace_data<double> voltage;
+    arb::trace_vector<double> voltage;
     // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
     sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
@@ -159,7 +153,7 @@ int main() {
     sim.run(100, 0.01);
 
     // Write the samples to a json file.
-    write_trace_json(voltage);
+    write_trace_json(voltage.at(0));
 }
 
 void write_trace_json(const arb::trace_data<double>& trace) {

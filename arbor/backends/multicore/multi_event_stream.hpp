@@ -13,7 +13,6 @@
 
 #include "backends/event.hpp"
 #include "backends/multi_event_stream_state.hpp"
-#include "algorithms.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
@@ -81,7 +80,7 @@ public:
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
-            arb_assert(std::is_sorted(&ev_time_[ev_begin_i], &ev_time_[ev_i]));
+            arb_assert(util::is_sorted(util::subrange_view(ev_time_, ev_begin_i, ev_i)));
             mark_[s] = ev_begin_i;
             span_begin_[s] = ev_begin_i;
             span_end_[s] = ev_i;
@@ -97,7 +96,7 @@ public:
     void mark_until_after(const TimeSeq& t_until) {
         using ::arb::event_time;
 
-        arb_assert(n_streams()==util::size(t_until));
+        arb_assert(n_streams()==std::size(t_until));
 
         // note: operation on each `i` is independent.
         for (size_type i = 0; i<n_streams(); ++i) {
@@ -118,7 +117,7 @@ public:
     void mark_until(const TimeSeq& t_until) {
         using ::arb::event_time;
 
-        arb_assert(n_streams()==util::size(t_until));
+        arb_assert(n_streams()==std::size(t_until));
 
         // note: operation on each `i` is independent.
         for (size_type i = 0; i<n_streams(); ++i) {
@@ -173,14 +172,14 @@ public:
         out << "\n[";
         unsigned i = 0;
         for (unsigned ev_i = 0; ev_i<n_ev; ++ev_i) {
-            while (m.span_end_[i]<=ev_i && i<n) ++i;
+            while (i<n && m.span_end_[i]<=ev_i) ++i;
             out << (i<n? util::strprintf(" % 7d ", i): "      ?");
         }
         out << "]\n[";
 
         i = 0;
         for (unsigned ev_i = 0; ev_i<n_ev; ++ev_i) {
-            while (m.span_end_[i]<=ev_i && i<n) ++i;
+            while (i<n && m.span_end_[i]<=ev_i) ++i;
 
             bool discarded = i<n && m.span_begin_[i]>ev_i;
             bool marked = i<n && m.mark_[i]>ev_i;

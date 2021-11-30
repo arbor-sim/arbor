@@ -1,12 +1,12 @@
-// CUDA kernels and wrappers for shared state methods.
+// GPU kernels and wrappers for shared state methods.
 
 #include <cstdint>
 
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 
-#include "cuda_atomic.hpp"
-#include "cuda_common.hpp"
+#include <arbor/gpu/gpu_api.hpp>
+#include <arbor/gpu/gpu_common.hpp>
 
 namespace arb {
 namespace gpu {
@@ -14,7 +14,11 @@ namespace gpu {
 namespace kernel {
 
 template <typename T>
-__global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt, T tmax) {
+__global__ void update_time_to_impl(unsigned n,
+                                    T* __restrict__ const time_to,
+                                    const T* __restrict__ const time,
+                                    T dt,
+                                    T tmax) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         auto t = time[i]+dt;
@@ -22,47 +26,38 @@ __global__ void update_time_to_impl(unsigned n, T* time_to, const T* time, T dt,
     }
 }
 
-template <typename T, typename I>
-__global__ void add_gj_current_impl(unsigned n, const T* gj_info, const I* voltage, I* current_density) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    if (i<n) {
-        auto gj = gj_info[i];
-        auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
-        cuda_atomic_sub(current_density + gj.loc.first, curr);
-    }
-}
-
 // Vector/scalar addition: x[i] += v ∀i
 template <typename T>
-__global__ void add_scalar(unsigned n, T* x, fvm_value_type v) {
+__global__ void add_scalar(unsigned n,
+                           T* __restrict__ const x,
+                           fvm_value_type v) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         x[i] += v;
     }
 }
 
-// Vector minus: x = y - z
-template <typename T>
-__global__ void vec_minus(unsigned n, T* x, const T* y, const T* z) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    if (i<n) {
-        x[i] = y[i]-z[i];
-    }
-}
-
-// Vector gather: x[i] = y[index[i]]
 template <typename T, typename I>
-__global__ void gather(unsigned n, T* x, const T* y, const I* index) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    if (i<n) {
-        x[i] = y[index[i]];
+__global__ void set_dt_impl(      T* __restrict__ dt_intdom,
+                            const T* __restrict__ time_to,
+                            const T* __restrict__ time,
+                            const unsigned ncomp,
+                                  T* __restrict__ dt_comp,
+                            const I* __restrict__ cv_to_intdom) {
+    auto idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (idx < ncomp) {
+        const auto ind = cv_to_intdom[idx];
+        const auto dt = time_to[ind] - time[ind];
+        dt_intdom[ind] = dt;
+        dt_comp[idx] = dt;
     }
 }
 
 __global__ void take_samples_impl(
     multi_event_stream_state<raw_probe_info> s,
-    const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value)
+    const fvm_value_type* __restrict__ const time,
+    fvm_value_type* __restrict__ const sample_time,
+    fvm_value_type* __restrict__ const sample_value)
 {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<s.n) {
@@ -70,7 +65,7 @@ __global__ void take_samples_impl(
         auto end = s.ev_data+s.end_offset[i];
         for (auto p = begin; p!=end; ++p) {
             sample_time[p->offset] = time[i];
-            sample_value[p->offset] = *p->handle;
+            sample_value[p->offset] = p->handle? *p->handle: 0;
         }
     }
 }
@@ -105,21 +100,8 @@ void set_dt_impl(
     if (!nintdom || !ncomp) return;
 
     constexpr int block_dim = 128;
-    int nblock = block_count(nintdom, block_dim);
-    kernel::vec_minus<<<nblock, block_dim>>>(nintdom, dt_intdom, time_to, time);
-
-    nblock = block_count(ncomp, block_dim);
-    kernel::gather<<<nblock, block_dim>>>(ncomp, dt_comp, dt_intdom, cv_to_intdom);
-}
-
-void add_gj_current_impl(
-    fvm_size_type n_gj, const fvm_gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
-{
-    if (!n_gj) return;
-
-    constexpr int block_dim = 128;
-    int nblock = block_count(n_gj, block_dim);
-    kernel::add_gj_current_impl<<<nblock, block_dim>>>(n_gj, gj_info, voltage, current_density);
+    const int nblock = block_count(ncomp, block_dim);
+    kernel::set_dt_impl<<<nblock, block_dim>>>(dt_intdom, time_to, time, ncomp, dt_comp, cv_to_intdom);
 }
 
 void take_samples_impl(

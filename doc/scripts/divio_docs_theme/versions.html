@@ -1,0 +1,183 @@
+{% if READTHEDOCS %}
+{# Add rst-badge after rst-versions for small badge style. #}
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+    <span>Documentation</span>
+    <span>
+      v: {{ current_version }}
+      <span class="fa fa-chevron-down"></span>
+  </span>
+    </span>
+    <div class="rst-other-versions">
+      <dl>
+        <dt>{{ _('Versions') }}</dt>
+        {% for slug, url in versions %}
+          <dd><a href="{{ url }}">{{ slug }}</a></dd>
+        {% endfor %}
+      </dl>
+      <dl>
+        <dt>{{ _('Downloads') }}</dt>
+        {% for type, url in downloads %}
+          <dd><a href="{{ url }}">{{ type }}</a></dd>
+        {% endfor %}
+      </dl>
+    </div>
+  </div>
+{% else %}
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+    <span>Documentation</span>
+    <span>
+      v: latest
+      <span class="fa fa-chevron-down"></span>
+  </span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+<div class="injected">
+
+
+  <div class="rst-versions rst-badge " data-toggle="rst-versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book">&nbsp;</span>
+      v: latest
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+
+
+
+
+
+      <dl>
+        <dt>Versions</dt>
+
+         <strong>
+        <dd><a href="http://docs.django-cms.org/en/latest/">latest</a></dd>
+         </strong>
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-3.5.x/">release-3.5.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-3.4.x/">release-3.4.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-3.3.x/">release-3.3.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-3.2.x/">release-3.2.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-3.1.x/">release-3.1.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-3.0.x/">release-3.0.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-2.4.x/">release-2.4.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-2.3.x/">release-2.3.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-2.2.x/">release-2.2.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/release-2.1.x/">release-2.1.x</a></dd>
+
+
+
+        <dd><a href="http://docs.django-cms.org/en/develop/">develop</a></dd>
+
+
+      </dl>
+
+
+
+
+
+      <dl>
+        <dt>Downloads</dt>
+
+        <dd><a href="//readthedocs.org/projects/django-cms/downloads/pdf/latest/">PDF</a></dd>
+
+        <dd><a href="//readthedocs.org/projects/django-cms/downloads/htmlzip/latest/">HTML</a></dd>
+
+        <dd><a href="//readthedocs.org/projects/django-cms/downloads/epub/latest/">Epub</a></dd>
+
+      </dl>
+
+
+
+
+      <dl>
+        <!-- These are kept as relative links for internal installs that are http -->
+        <dt>On Read the Docs</dt>
+        <dd>
+          <a href="//readthedocs.org/projects/django-cms/">Project Home</a>
+        </dd>
+        <dd>
+          <a href="//readthedocs.org/projects/django-cms/builds/">Builds</a>
+        </dd>
+        <dd>
+          <a href="//readthedocs.org/projects/django-cms/downloads/">Downloads</a>
+        </dd>
+      </dl>
+
+
+
+
+
+      <dl>
+        <dt>On GitHub</dt>
+        <dd>
+          <a href="https://github.com/divio/django-cms/blob/release/3.5.x/docs/index.rst">View</a>
+        </dd>
+
+      </dl>
+
+
+
+
+      <dl>
+        <dt>Search</dt>
+        <dd>
+          <div style="padding: 6px;">
+            <form id="flyout-search-form" class="wy-form" target="_blank" action="//readthedocs.org/projects/django-cms/search/" method="get">
+              <input type="text" name="q" placeholder="Search docs">
+              </form>
+          </div>
+        </dd>
+      </dl>
+
+
+
+
+      <hr>
+
+        <small>
+          <span>Hosted by <a href="https://readthedocs.org">Read the Docs</a></span>
+          <span> · </span>
+          <a href="https://docs.readthedocs.io/en/latest/privacy-policy.html">Privacy Policy</a>
+        </small>
+
+
+
+    </div>
+  </div>
+
+
+</div>
+</div>
+  </div>
+{% endif %}
+

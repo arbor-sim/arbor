@@ -17,17 +17,17 @@ struct dry_run_info {
 // By default, a proc_allocation will comprise one thread and no GPU.
 
 struct proc_allocation {
-    unsigned num_threads;
+    unsigned long num_threads;
 
     // The gpu id corresponds to the `int device` parameter used by
-    // CUDA API calls to identify gpu devices.
+    // CUDA/HIP API calls to identify gpu devices.
     // A gpud id of -1 indicates no GPU device is to be used.
-    // See CUDA documenation for cudaSetDevice and cudaDeviceGetAttribute.
+    // See documenation for cuda[/hip]SetDevice and cuda[/hip]DeviceGetAttribute.
     int gpu_id;
 
     proc_allocation(): proc_allocation(1, -1) {}
 
-    proc_allocation(unsigned threads, int gpu):
+    proc_allocation(unsigned long threads, int gpu):
         num_threads(threads),
         gpu_id(gpu)
     {}
@@ -49,7 +49,10 @@ struct execution_context;
 //
 // As execution_context is an incomplete type, an explicit deleter must be
 // provided.
-using context = std::unique_ptr<execution_context, void (*)(execution_context*)>;
+struct execution_context_deleter {
+    void operator()(execution_context*) const;
+};
+using context = std::unique_ptr<execution_context, execution_context_deleter>;
 
 // Helpers for creating contexts. These are implemented in the back end.
 

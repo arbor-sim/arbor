@@ -3,12 +3,20 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cassert>
 
+#include <arbor/version.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/mechanism_abi.h>
+#include <arbor/mechanism.hpp>
+#include <arbor/util/expected.hpp>
 
-#include "util/either.hpp"
+#include "util/dylib.hpp"
 #include "util/maputil.hpp"
+#include "util/rangeutil.hpp"
+#include "util/span.hpp"
+#include "util/strprintf.hpp"
 
 /* Notes on implementation:
  *
@@ -53,15 +61,14 @@
  * mechanism.
  *
  * The private implementation class catalogue_state does not throw any (catalogue
- * related) exceptions, but instead propagates errors via util::either to the
+ * related) exceptions, but instead propagates errors via util::expected to the
  * mechanism_catalogue methods for handling.
  */
 
 namespace arb {
 
-using util::value_by_key;
-using util::optional;
-using util::nullopt;
+using util::ptr_by_key;
+using util::unexpected;
 
 using std::make_unique;
 using std::make_exception_ptr;
@@ -72,42 +79,26 @@ template <typename V>
 using string_map = std::unordered_map<std::string, V>;
 
 template <typename T>
-struct hopefully_typemap {
-    using type = util::either<T, std::exception_ptr>;
-};
+using hopefully = util::expected<T, std::exception_ptr>;
 
-template <>
-struct hopefully_typemap<void> {
-    struct placeholder_type {};
-    using type = util::either<placeholder_type, std::exception_ptr>;
-};
-
-template <typename T>
-using hopefully = typename hopefully_typemap<T>::type;
-
+namespace {
 // Convert hopefully<T> to T or throw.
-
 template <typename T>
-const T& value(const util::either<T, std::exception_ptr>& x) {
-    if (!x) {
-        std::rethrow_exception(x.second());
-    }
-    return x.first();
+const T& value(const hopefully<T>& x) {
+    if (!x) std::rethrow_exception(x.error());
+    return x.value();
 }
 
 template <typename T>
-T value(util::either<T, std::exception_ptr>&& x) {
-    if (!x) {
-        std::rethrow_exception(x.second());
-    }
-    return std::move(x.first());
+T value(hopefully<T>&& x) {
+    if (!x) std::rethrow_exception(std::move(x).error());
+    return std::move(x).value();
 }
 
-void value(const hopefully<void>& x) {
-    if (!x) {
-        std::rethrow_exception(x.second());
-    }
-}
+// Conveniently make an unexpected exception_ptr:
+template <typename X>
+auto unexpected_exception_ptr(X x) { return unexpected(make_exception_ptr(std::move(x))); }
+} // anonymous namespace
 
 struct derivation {
     std::string parent;
@@ -123,25 +114,44 @@ struct catalogue_state {
     catalogue_state() = default;
 
     catalogue_state(const catalogue_state& other) {
-        info_map_.clear();
+        import(other, "");
+    }
+
+    void import(const catalogue_state& other, const std::string& prefix) {
+        // Do all checks before adding anything, otherwise we might get inconsistent state.
+        auto assert_undefined = [&](const std::string& key) {
+            auto pkey = prefix+key;
+            if (defined(pkey)) {
+                throw duplicate_mechanism(pkey);
+            }
+        };
+
         for (const auto& kv: other.info_map_) {
-            info_map_[kv.first] = make_unique<mechanism_info>(*kv.second);
+            assert_undefined(kv.first);
         }
 
-        derived_map_.clear();
         for (const auto& kv: other.derived_map_) {
-            const derivation& v = kv.second;
-            derived_map_[kv.first] = {v.parent, v.globals, v.ion_remap, make_unique<mechanism_info>(*v.derived_info)};
+            assert_undefined(kv.first);
         }
 
-        impl_map_.clear();
+        for (const auto& kv: other.info_map_) {
+            auto key = prefix + kv.first;
+            info_map_[key] = make_unique<mechanism_info>(*kv.second);
+        }
+
+        for (const auto& kv: other.derived_map_) {
+            auto key = prefix + kv.first;
+            const derivation& v = kv.second;
+            derived_map_[key] = {prefix + v.parent, v.globals, v.ion_remap, make_unique<mechanism_info>(*v.derived_info)};
+        }
+
         for (const auto& name_impls: other.impl_map_) {
-            std::unordered_map<std::type_index, std::unique_ptr<mechanism>> impls;
+            std::unordered_map<arb_backend_kind, std::unique_ptr<mechanism>> impls;
             for (const auto& tidx_mptr: name_impls.second) {
                 impls[tidx_mptr.first] = tidx_mptr.second->clone();
             }
-
-            impl_map_[name_impls.first] = std::move(impls);
+            auto key = prefix + name_impls.first;
+            impl_map_[key] = std::move(impls);
         }
     }
 
@@ -166,19 +176,18 @@ struct catalogue_state {
     }
 
     // Register concrete mechanism for a back-end type.
-    hopefully<void> register_impl(std::type_index tidx, const std::string& name, std::unique_ptr<mechanism> mech) {
+    hopefully<void> register_impl(arb_backend_kind kind, const std::string& name, std::unique_ptr<mechanism> mech) {
         if (auto fptr = fingerprint_ptr(name)) {
-            if (mech->fingerprint()!=*fptr.first()) {
-                return make_exception_ptr(fingerprint_mismatch(name));
+            if (mech->fingerprint()!=*fptr.value()) {
+                return unexpected_exception_ptr(fingerprint_mismatch(name));
             }
 
-            impl_map_[name][tidx] = std::move(mech);
+            impl_map_[name][kind] = std::move(mech);
+            return {};
         }
         else {
-            return fptr.second();
+            return unexpected(fptr.error());
         }
-
-        return {};
     }
 
     // Remove mechanism and its derivations and implementations.
@@ -208,17 +217,17 @@ struct catalogue_state {
     // Retrieve mechanism info for mechanism, derived mechanism, or implicitly
     // derived mechanism.
     hopefully<mechanism_info> info(const std::string& name) const {
-        if (const auto& deriv = value_by_key(derived_map_, name)) {
+        if (const auto* deriv = ptr_by_key(derived_map_, name)) {
             return *(deriv->derived_info.get());
         }
-        else if (auto p = value_by_key(info_map_, name)) {
+        else if (auto* p = ptr_by_key(info_map_, name)) {
             return *(p->get());
         }
         else if (auto deriv = derive(name)) {
-            return *(deriv.first().derived_info.get());
+            return *(deriv->derived_info.get());
         }
         else {
-            return deriv.second();
+            return unexpected(deriv.error());
         }
     }
 
@@ -229,20 +238,20 @@ struct catalogue_state {
         const std::string* base = &name;
 
         if (!defined(name)) {
-            if (implicit_deriv = derive(name)) {
-                base = &implicit_deriv.first().parent;
+            if ((implicit_deriv = derive(name))) {
+                base = &implicit_deriv->parent;
             }
             else {
-                return implicit_deriv.second();
+                return unexpected(implicit_deriv.error());
             }
         }
 
-        while (auto maybe_deriv = value_by_key(derived_map_, *base)) {
-            base = &maybe_deriv->parent;
+        while (auto* deriv = ptr_by_key(derived_map_, *base)) {
+            base = &deriv->parent;
         }
 
-        if (const auto& p = value_by_key(info_map_, *base)) {
-            return &p.value()->fingerprint;
+        if (const auto* p = ptr_by_key(info_map_, *base)) {
+            return &p->get()->fingerprint;
         }
 
         throw arbor_internal_error("inconsistent catalogue map state");
@@ -255,10 +264,10 @@ struct catalogue_state {
         const std::vector<std::pair<std::string, std::string>>& ion_remap_vec) const
     {
         if (defined(name)) {
-            return make_exception_ptr(duplicate_mechanism(name));
+            return unexpected_exception_ptr(duplicate_mechanism(name));
         }
         else if (!defined(parent)) {
-            return make_exception_ptr(no_such_mechanism(parent));
+            return unexpected_exception_ptr(no_such_mechanism(parent));
         }
 
         string_map<std::string> ion_remap_map(ion_remap_vec.begin(), ion_remap_vec.end());
@@ -266,10 +275,10 @@ struct catalogue_state {
 
         mechanism_info_ptr new_info;
         if (auto parent_info = info(parent)) {
-            new_info.reset(new mechanism_info(parent_info.first()));
+            new_info.reset(new mechanism_info(parent_info.value()));
         }
         else {
-            return parent_info.second();
+            return unexpected(parent_info.error());
         }
 
         // Update global parameter values in info for derived mechanism.
@@ -278,13 +287,13 @@ struct catalogue_state {
             const auto& param = kv.first;
             const auto& value = kv.second;
 
-            if (auto p = value_by_key(new_info->globals, param)) {
+            if (auto* p = ptr_by_key(new_info->globals, param)) {
                 if (!p->valid(value)) {
-                    return make_exception_ptr(invalid_parameter_value(name, param, value));
+                    return unexpected_exception_ptr(invalid_parameter_value(name, param, value));
                 }
             }
             else {
-                return make_exception_ptr(no_such_parameter(name, param));
+                return unexpected_exception_ptr(no_such_parameter(name, param));
             }
 
             deriv.globals[param] = value;
@@ -293,7 +302,7 @@ struct catalogue_state {
 
         for (const auto& kv: ion_remap_vec) {
             if (!new_info->ions.count(kv.first)) {
-                return make_exception_ptr(invalid_ion_remap(name, kv.first, kv.second));
+                return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, kv.second));
             }
         }
 
@@ -301,9 +310,9 @@ struct catalogue_state {
 
         string_map<ion_dependency> new_ions;
         for (const auto& kv: new_info->ions) {
-            if (auto new_ion = value_by_key(ion_remap_map, kv.first)) {
+            if (auto* new_ion = ptr_by_key(ion_remap_map, kv.first)) {
                 if (!new_ions.insert({*new_ion, kv.second}).second) {
-                    return make_exception_ptr(invalid_ion_remap(name, kv.first, *new_ion));
+                    return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, *new_ion));
                 }
             }
             else {
@@ -311,7 +320,7 @@ struct catalogue_state {
                     // (find offending remap to report in exception)
                     for (const auto& entry: ion_remap_map) {
                         if (entry.second==kv.first) {
-                            return make_exception_ptr(invalid_ion_remap(name, kv.first, entry.second));
+                            return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, entry.second));
                         }
                     }
                     throw arbor_internal_error("inconsistent catalogue ion remap state");
@@ -327,17 +336,17 @@ struct catalogue_state {
     // Implicit derivation.
     hopefully<derivation> derive(const std::string& name) const {
         if (defined(name)) {
-            return make_exception_ptr(duplicate_mechanism(name));
+            return unexpected_exception_ptr(duplicate_mechanism(name));
         }
 
         auto i = name.find_last_of('/');
         if (i==std::string::npos) {
-            return make_exception_ptr(no_such_mechanism(name));
+            return unexpected_exception_ptr(no_such_mechanism(name));
         }
 
         std::string base = name.substr(0, i);
         if (!defined(base)) {
-            return make_exception_ptr(no_such_mechanism(base));
+            return unexpected_exception_ptr(no_such_mechanism(base));
         }
 
         std::string suffix = name.substr(i+1);
@@ -366,7 +375,7 @@ struct catalogue_state {
             auto eq = assign.find('=');
             if (eq==std::string::npos) {
                 if (!single_ion) {
-                    return make_exception_ptr(invalid_ion_remap(assign));
+                    return unexpected_exception_ptr(invalid_ion_remap(assign));
                 }
 
                 k = info->ions.begin()->first;
@@ -384,7 +393,7 @@ struct catalogue_state {
                 char* end = 0;
                 double v_value = std::strtod(v.c_str(), &end);
                 if (!end || *end) {
-                    return make_exception_ptr(invalid_parameter_value(name, k, v));
+                    return unexpected_exception_ptr(invalid_parameter_value(name, k, v));
                 }
                 global_params.push_back({k, v_value});
             }
@@ -394,31 +403,31 @@ struct catalogue_state {
     }
 
     // Retrieve implementation for this mechanism name or closest ancestor.
-    hopefully<std::unique_ptr<mechanism>> implementation(std::type_index tidx, const std::string& name) const {
+    hopefully<std::unique_ptr<mechanism>> implementation(arb_backend_kind kind, const std::string& name) const {
         const std::string* impl_name = &name;
         hopefully<derivation> implicit_deriv;
 
         if (!defined(name)) {
             implicit_deriv = derive(name);
             if (!implicit_deriv) {
-                return implicit_deriv.second();
+                return unexpected(implicit_deriv.error());
             }
-            impl_name = &implicit_deriv.first().parent;
+            impl_name = &implicit_deriv->parent;
         }
 
         for (;;) {
-            if (const auto mech_impls = value_by_key(impl_map_, *impl_name)) {
-                if (auto p = value_by_key(mech_impls.value(), tidx)) {
+            if (const auto* mech_impls = ptr_by_key(impl_map_, *impl_name)) {
+                if (auto* p = ptr_by_key(*mech_impls, kind)) {
                     return p->get()->clone();
                 }
             }
 
             // Try parent instead.
-            if (const auto p = value_by_key(derived_map_, *impl_name)) {
+            if (const auto* p = ptr_by_key(derived_map_, *impl_name)) {
                 impl_name = &p->parent;
             }
             else {
-                return make_exception_ptr(no_such_implementation(name));
+                return unexpected_exception_ptr(no_such_implementation(name));
             }
         }
     }
@@ -435,13 +444,13 @@ struct catalogue_state {
             if (!deriv.ion_remap.empty()) {
                 string_map<std::string> new_rebind = deriv.ion_remap;
                 for (auto& kv: over.ion_rebind) {
-                    if (auto opt_v = value_by_key(deriv.ion_remap, kv.second)) {
+                    if (auto* v = ptr_by_key(deriv.ion_remap, kv.second)) {
                         new_rebind.erase(kv.second);
-                        new_rebind[kv.first] = *opt_v;
+                        new_rebind[kv.first] = *v;
                     }
                 }
                 for (auto& kv: over.ion_rebind) {
-                    if (!value_by_key(deriv.ion_remap, kv.second)) {
+                    if (!ptr_by_key(deriv.ion_remap, kv.second)) {
                         new_rebind[kv.first] = kv.second;
                     }
                 }
@@ -454,19 +463,19 @@ struct catalogue_state {
         // requested mechanism.
 
         auto apply_globals = [this, &apply_deriv](auto& self, const std::string& name, mechanism_overrides& over) -> void {
-            if (auto p = value_by_key(derived_map_, name)) {
+            if (auto* p = ptr_by_key(derived_map_, name)) {
                 self(self, p->parent, over);
                 apply_deriv(over, *p);
             }
         };
 
-        util::optional<derivation> implicit_deriv;
+        std::optional<derivation> implicit_deriv;
         if (!defined(name)) {
             if (auto deriv = derive(name)) {
-                implicit_deriv = std::move(deriv.first());
+                implicit_deriv = std::move(deriv.value());
             }
             else {
-                return deriv.second();
+                return unexpected(deriv.error());
             }
         }
 
@@ -478,6 +487,14 @@ struct catalogue_state {
         return over;
     }
 
+    // Collect all mechanism names present in this catalogue
+    std::vector<std::string> mechanism_names() const {
+        std::vector<std::string> result;
+        util::assign(result, util::keys(info_map_));
+        util::append(result, util::keys(derived_map_));
+        return result;
+    }
+
     // Schemata for (un-derived) mechanisms.
     string_map<mechanism_info_ptr> info_map_;
 
@@ -485,7 +502,7 @@ struct catalogue_state {
     string_map<derivation> derived_map_;
 
     // Prototype register, keyed on mechanism name, then backend type (index).
-    string_map<std::unordered_map<std::type_index, mechanism_ptr>> impl_map_;
+    string_map<std::unordered_map<arb_backend_kind, mechanism_ptr>> impl_map_;
 };
 
 // Mechanism catalogue method implementations.
@@ -493,6 +510,10 @@ struct catalogue_state {
 mechanism_catalogue::mechanism_catalogue():
     state_(new catalogue_state)
 {}
+
+std::vector<std::string> mechanism_catalogue::mechanism_names() const {
+    return state_->mechanism_names();
+}
 
 mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) = default;
 mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) = default;
@@ -502,7 +523,9 @@ mechanism_catalogue::mechanism_catalogue(const mechanism_catalogue& other):
 {}
 
 mechanism_catalogue& mechanism_catalogue::operator=(const mechanism_catalogue& other) {
-    state_.reset(new catalogue_state(*other.state_));
+    if (this != &other) {
+        state_.reset(new catalogue_state(*other.state_));
+    }
     return *this;
 }
 
@@ -536,6 +559,14 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
     state_->bind(name, value(state_->derive(name, parent, global_params, ion_remap_vec)));
 }
 
+void mechanism_catalogue::derive(const std::string& name, const std::string& parent) {
+    state_->bind(name, value(state_->derive(parent)));
+}
+
+void mechanism_catalogue::import(const mechanism_catalogue& other, const std::string& prefix) {
+    state_->import(*other.state_, prefix);
+}
+
 void mechanism_catalogue::remove(const std::string& name) {
     if (!has(name)) {
         throw no_such_mechanism(name);
@@ -543,18 +574,33 @@ void mechanism_catalogue::remove(const std::string& name) {
     state_->remove(name);
 }
 
-void mechanism_catalogue::register_impl(std::type_index tidx, const std::string& name, std::unique_ptr<mechanism> mech) {
-    value(state_->register_impl(tidx, name, std::move(mech)));
+void mechanism_catalogue::register_impl(arb_backend_kind kind, const std::string& name, mechanism_ptr mech) {
+    value(state_->register_impl(kind, name, std::move(mech)));
 }
 
-std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl(std::type_index tidx, const std::string& name) const {
-    std::pair<mechanism_ptr, mechanism_overrides> result;
-    result.first = value(state_->implementation(tidx, name));
-    result.second = value(state_->overrides(name));
-
-    return result;
+std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl(arb_backend_kind kind, const std::string& name) const {
+    return {value(state_->implementation(kind, name)), value(state_->overrides(name))};
 }
 
 mechanism_catalogue::~mechanism_catalogue() = default;
+
+const mechanism_catalogue& load_catalogue(const std::string& fn) {
+    typedef const void* global_catalogue_t();
+    global_catalogue_t* get_catalogue = nullptr;
+    try {
+        get_catalogue = util::dl_get_symbol<global_catalogue_t*>(fn, "get_catalogue");
+    } catch(util::dl_error& e) {
+        throw bad_catalogue_error{e.what(), {e}};
+    }
+    if (!get_catalogue) {
+        throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
+    }
+    /* The DSO handle is not freed here: handles will be retained until
+     * termination since the mechanisms provided by the catalogue may have a
+     * different lifetime than the actual catalogue itfself. This is not a leak,
+     * as `dlopen` caches handles for us.
+     */
+    return *((const mechanism_catalogue*)get_catalogue());
+}
 
 } // namespace arb

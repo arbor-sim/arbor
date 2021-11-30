@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#include "cuda_wrappers.hpp"
+#include "gpu_wrappers.hpp"
 #include "definitions.hpp"
 #include "util.hpp"
 
@@ -89,7 +89,7 @@ namespace impl {
         }
     };
 
-    namespace cuda {
+    namespace gpu {
         template <size_type Alignment>
         class pinned_policy {
         public:
@@ -102,8 +102,8 @@ namespace impl {
                     return nullptr;
                 }
 
-                // register the memory with CUDA
-                if (!cuda_host_register(ptr, size)) {
+                // register the memory
+                if (!gpu_host_register(ptr, size)) {
                     free(ptr);
                     ptr = nullptr;
                 }
@@ -115,7 +115,7 @@ namespace impl {
                 if (!ptr) {
                     return;
                 }
-                cuda_host_unregister(ptr);
+                gpu_host_unregister(ptr);
                 free(ptr);
             }
 
@@ -127,53 +127,30 @@ namespace impl {
             }
         };
 
-        // bare bones implementation of standard compliant allocator for managed memory
-        template <size_type Alignment=1024>
-        struct managed_policy {
-            // Managed memory is aligned on 1024 byte boundaries.
-            // So the Alignment parameter must be a factor of 1024
-            static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
-
-            void* allocate_policy(std::size_t n) {
-                if (!n) {
-                    return nullptr;
-                }
-                return cuda_malloc_managed(n);
-            }
-
-            static constexpr size_type alignment() {
-                return Alignment;
-            }
-
-            // managed memory can be used with standard memcpy
-            static constexpr bool is_malloc_compatible() {
-                return true;
-            }
-
-            void free_policy(void* p) {
-                cuda_free(p);
-            }
-        };
-
         class device_policy {
         public:
             void *allocate_policy(size_type size) {
-                return cuda_malloc(size);
+                return gpu_malloc(size);
             }
 
             void free_policy(void *ptr) {
-                cuda_free(ptr);
+                gpu_free(ptr);
             }
 
             // memory allocated using cudaMalloc has alignment of 256 bytes
+            // memory allocated using hipMalloc has alignment of 128 bytes
             static constexpr size_type alignment() {
+#ifdef ARB_HIP
+                return 128;
+#else
                 return 256;
+#endif
             }
             static constexpr bool is_malloc_compatible() {
                 return true;
             }
         };
-    } // namespace cuda
+    } // namespace gpu
 } // namespace impl
 
 template<typename T, typename Policy >
@@ -207,7 +184,7 @@ public:
         return &r;
     }
 
-    pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
+    pointer allocate(size_type cnt) {
         if (cnt) {
             return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
         }
@@ -252,7 +229,7 @@ namespace util {
     };
 
     template <size_t Alignment>
-    struct type_printer<impl::cuda::pinned_policy<Alignment>>{
+    struct type_printer<impl::gpu::pinned_policy<Alignment>>{
         static std::string print() {
             std::stringstream str;
             str << "pinned_policy<" << Alignment << ">";
@@ -261,16 +238,9 @@ namespace util {
     };
 
     template <>
-    struct type_printer<impl::cuda::device_policy>{
+    struct type_printer<impl::gpu::device_policy>{
         static std::string print() {
             return std::string("device_policy");
-        }
-    };
-
-    template <>
-    struct type_printer<impl::cuda::managed_policy<>>{
-        static std::string print() {
-            return std::string("managed_policy");
         }
     };
 
@@ -294,14 +264,11 @@ using aligned_allocator = allocator<T, impl::aligned_policy<alignment>>;
 // page boundaries. It is allocated at page boundaries (typically 4k),
 // however in practice it will return pointers that are 1k aligned.
 template <class T, size_t alignment=1024>
-using pinned_allocator = allocator<T, impl::cuda::pinned_policy<alignment>>;
-
-template <class T, size_t alignment=1024>
-using managed_allocator = allocator<T, impl::cuda::managed_policy<alignment>>;
+using pinned_allocator = allocator<T, impl::gpu::pinned_policy<alignment>>;
 
 // use 256 as default alignment, because that is the default for cudaMalloc
 template <class T, size_t alignment=256>
-using cuda_allocator = allocator<T, impl::cuda::device_policy>;
+using gpu_allocator = allocator<T, impl::gpu::device_policy>;
 
 } // namespace memory
 } // namespace arb

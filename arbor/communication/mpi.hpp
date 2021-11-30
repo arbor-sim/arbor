@@ -10,10 +10,10 @@
 #include <arbor/assert.hpp>
 #include <arbor/communication/mpi_error.hpp>
 
-#include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
 #include "profile/profiler_macro.hpp"
-
+#include "util/rangeutil.hpp"
+#include "util/partition.hpp"
 
 namespace arb {
 namespace mpi {
@@ -58,9 +58,10 @@ MAKE_TRAITS(unsigned long,      MPI_UNSIGNED_LONG)
 MAKE_TRAITS(long long,          MPI_LONG_LONG)
 MAKE_TRAITS(unsigned long long, MPI_UNSIGNED_LONG_LONG)
 
-static_assert(std::is_same<std::size_t, unsigned long>::value ||
+static_assert(std::is_same<std::size_t, unsigned>::value ||
+              std::is_same<std::size_t, unsigned long>::value ||
               std::is_same<std::size_t, unsigned long long>::value,
-              "size_t is not the same as unsigned long or unsigned long long");
+              "size_t is not the same as any MPI unsigned type");
 
 // Gather individual values of type T from each rank into a std::vector on
 // the root rank.
@@ -99,8 +100,9 @@ std::vector<T> gather_all(T value, MPI_Comm comm) {
 inline std::vector<std::string> gather(std::string str, int root, MPI_Comm comm) {
     using traits = mpi_traits<char>;
 
-    auto counts = gather_all(int(str.size()), comm);
-    auto displs = algorithms::make_index(counts);
+    std::vector<int> counts, displs;
+    counts = gather_all(int(str.size()), comm);
+    util::make_partition(displs, counts);
 
     std::vector<char> buffer(displs.back());
 
@@ -126,11 +128,12 @@ template <typename T>
 std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
 
     using traits = mpi_traits<T>;
-    auto counts = gather_all(int(values.size()), comm);
+    std::vector<int> counts, displs;
+    counts = gather_all(int(values.size()), comm);
     for (auto& c : counts) {
         c *= traits::count();
     }
-    auto displs = algorithms::make_index(counts);
+    util::make_partition(displs, counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
     MPI_OR_THROW(MPI_Allgatherv,
@@ -140,6 +143,47 @@ std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
             comm);
 
     return buffer;
+}
+
+inline std::vector<std::string> gather_all(const std::vector<std::string>& values, MPI_Comm comm) {
+    using traits = mpi_traits<char>;
+    std::vector<int> counts_individual, counts_total, displs_individual, displs_total;
+
+    // vector of individual string sizes
+    std::vector<int> individual_sizes(values.size());
+    std::transform(values.begin(), values.end(), individual_sizes.begin(), [](const std::string& val){return int(val.size());});
+
+    counts_individual = gather_all(individual_sizes, comm);
+    counts_total      = gather_all(util::sum(individual_sizes, 0), comm);
+
+    util::make_partition(displs_total, counts_total);
+    std::vector<char> buffer(displs_total.back());
+
+    // Concatenate string data
+    std::string values_concat;
+    for (const auto& v: values) {
+        values_concat += v;
+    }
+
+    // Cast to ptr
+    // const_cast required for MPI implementations that don't use const* in
+    // their interfaces.
+    std::string::value_type* ptr = const_cast<std::string::value_type*>(values_concat.data());
+    MPI_OR_THROW(MPI_Allgatherv,
+                 ptr, counts_total[rank(comm)], traits::mpi_type(),  // send buffer
+                 buffer.data(), counts_total.data(), displs_total.data(), traits::mpi_type(), // receive buffer
+                 comm);
+
+    // Construct the vector of strings
+    std::vector<std::string> string_buffer;
+    string_buffer.reserve(counts_individual.size());
+
+    auto displs_individual_part = util::make_partition(displs_individual, counts_individual);
+    for (const auto& str_range: displs_individual_part) {
+        string_buffer.emplace_back(buffer.begin()+str_range.first, buffer.begin()+str_range.second);
+    }
+
+    return string_buffer;
 }
 
 /// Gather all of a distributed vector
@@ -153,11 +197,12 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
     // We have to use int for the count and displs vectors instead
     // of count_type because these are used as arguments to MPI_Allgatherv
     // which expects int arguments.
-    auto counts = gather_all(int(values.size()), comm);
+    std::vector<int> counts, displs;
+    counts = gather_all(int(values.size()), comm);
     for (auto& c : counts) {
         c *= traits::count();
     }
-    auto displs = algorithms::make_index(counts);
+    util::make_partition(displs, counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
 

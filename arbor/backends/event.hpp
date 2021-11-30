@@ -13,7 +13,7 @@ namespace arb {
 struct target_handle {
     cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
     cell_local_size_type mech_index; // instance of the mechanism
-    cell_size_type intdom_index;       // which integration domain (acts as index into e.g. vec_t)
+    cell_size_type intdom_index;     // which integration domain (acts as index into e.g. vec_t)
 
     target_handle() {}
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type intdom_index):
@@ -21,14 +21,13 @@ struct target_handle {
 };
 
 struct deliverable_event {
-    time_type time;
+    time_type time = 0;
+    float weight = 0;
     target_handle handle;
-    float weight;
 
-    deliverable_event() {}
+    deliverable_event() = default;
     deliverable_event(time_type time, target_handle handle, float weight):
-        time(time), handle(handle), weight(weight)
-    {}
+        time(time), weight(weight), handle(handle) {}
 };
 
 // Stream index accessor function for multi_event_stream:
@@ -49,7 +48,7 @@ inline deliverable_event_data event_data(const deliverable_event& ev) {
 }
 
 
-// Sample events (scalar values)
+// Sample events (raw values from back-end state).
 
 using probe_handle = const fvm_value_type*;
 
@@ -60,8 +59,8 @@ struct raw_probe_info {
 
 struct sample_event {
     time_type time;
-    cell_size_type cell_index;  // which cell probe is on
-    raw_probe_info raw;         // event payload: what gets put where on sample
+    cell_size_type intdom_index;  // which integration domain probe is on
+    raw_probe_info raw;           // event payload: what gets put where on sample
 };
 
 inline raw_probe_info event_data(const sample_event& ev) {
@@ -69,7 +68,7 @@ inline raw_probe_info event_data(const sample_event& ev) {
 }
 
 inline cell_size_type event_index(const sample_event& ev) {
-    return ev.cell_index;
+    return ev.intdom_index;
 }
 
 

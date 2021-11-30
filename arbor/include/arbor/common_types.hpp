@@ -6,12 +6,15 @@
  */
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <iosfwd>
+#include <string>
 #include <type_traits>
 
 #include <arbor/util/lexcmp_def.hpp>
+#include <arbor/util/hash_def.hpp>
 
 namespace arb {
 
@@ -29,6 +32,9 @@ using cell_size_type = std::make_unsigned_t<cell_gid_type>;
 // zero-based and numbered contiguously.
 
 using cell_lid_type = std::uint32_t;
+
+// Local labels for items within a particular cell-local collection
+using cell_tag_type = std::string;
 
 // For counts of cell-local data.
 
@@ -49,11 +55,52 @@ struct cell_member_type {
     cell_lid_type index;
 };
 
+// Pair of indexes that describe range of local indices.
+
+struct lid_range {
+    cell_lid_type begin = 0;
+    cell_lid_type end = 0;
+    lid_range() = default;
+    lid_range(cell_lid_type b, cell_lid_type e):
+        begin(b), end(e) {}
+};
+
+// Policy for selecting a cell_lid_type from a range of possible values.
+
+enum class lid_selection_policy {
+    round_robin,
+    assert_univalent // throw if the range of possible lids is wider than 1
+};
+
+// For referring to a labeled placement on an unspecified cell.
+// The placement may be associated with multiple locations, the policy
+// is used to select a specific location.
+
+struct cell_local_label_type {
+    cell_tag_type tag;
+    lid_selection_policy policy;
+
+    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent):
+        tag(std::move(tag)), policy(policy) {}
+};
+
+// For referring to a labeled placement on a cell identified by gid.
+
+struct cell_global_label_type {
+    cell_gid_type gid;
+    cell_local_label_type label;
+
+    cell_global_label_type(cell_gid_type gid, cell_local_label_type label): gid(gid), label(std::move(label)) {}
+    cell_global_label_type(cell_gid_type gid, cell_tag_type tag): gid(gid), label(std::move(tag)) {}
+    cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
+};
+
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
 
 // For storing time values [ms]
 
-using time_type = float;
+using time_type = double;
 constexpr time_type terminal_time = std::numeric_limits<time_type>::max();
 
 // Extra contextual information associated with a probe.
@@ -89,21 +136,11 @@ enum class binning_kind {
     following, // => round times down to previous event if within binning interval.
 };
 
+std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
 std::ostream& operator<<(std::ostream& o, cell_member_type m);
 std::ostream& operator<<(std::ostream& o, cell_kind k);
 std::ostream& operator<<(std::ostream& o, backend_kind k);
 
 } // namespace arb
 
-namespace std {
-    template <> struct hash<arb::cell_member_type> {
-        std::size_t operator()(const arb::cell_member_type& m) const {
-            using namespace arb;
-            static_assert(sizeof(std::size_t)>sizeof(cell_gid_type), "invalid size assumptions for hash of cell_member_type");
-
-            std::size_t k = ((std::size_t)m.gid << (8*sizeof(cell_gid_type))) + m.index;
-            return std::hash<std::size_t>{}(k);
-        }
-    };
-}
-
+ARB_DEFINE_HASH(arb::cell_member_type, a.gid, a.index)

@@ -6,12 +6,16 @@
 #include <string>
 #include <vector>
 
+#include "io/ostream_wrappers.hpp"
 #include "blocks.hpp"
 #include "error.hpp"
 #include "expression.hpp"
 #include "module.hpp"
 
 std::vector<std::string> namespace_components(const std::string& qualified_namespace);
+
+// Can use this in a namespace. No __ allowed anywhere, neither _[A-Z], and in _global namespace_ _ followed by anything is verboten.
+const static std::string pp_var_pfx = "_pp_var_";
 
 inline const char* arb_header_prefix() {
     static const char* prefix = "arbor/";
@@ -53,9 +57,13 @@ struct namespace_declaration_close {
 // Enum representation:
 
 inline const char* module_kind_str(const Module& m) {
-    return m.kind()==moduleKind::density?
-        "::arb::mechanismKind::density":
-        "::arb::mechanismKind::point";
+    switch (m.kind()) {
+    case moduleKind::density:   return "arb_mechanism_kind_density";
+    case moduleKind::point:     return "arb_mechanism_kind_point";
+    case moduleKind::revpot:    return "arb_mechanism_kind_reversal_potential";
+    case moduleKind::junction:  return "arb_mechanism_kind_gap_junction";
+    default: throw compiler_exception("Unknown module kind " + std::to_string((int)m.kind()));
+    }
 }
 
 // Check expression non-null and scoped, or else throw.
@@ -114,9 +122,29 @@ APIMethod* find_api_method(const Module& m, const char* which);
 
 NetReceiveExpression* find_net_receive(const Module& m);
 
+PostEventExpression* find_post_event(const Module& m);
+
+// For generating vectorized code for reading and writing data sources.
+// node: The data source uses the CV index which is categorized into
+//       one of four constraints to optimize memory accesses.
+// cell: The data source uses the cell index, which is in turn indexed
+//       according to the CV index.
+// other: The data source is indexed according to some other index.
+//        Vector optimizations should be skipped.
+// none: The data source is scalar.
+enum class index_kind {
+    node,
+    cell,
+    other,
+    none
+};
+
 struct indexed_variable_info {
     std::string data_var;
-    std::string index_var;
+    std::string node_index_var;
+    std::string cell_index_var;
+    std::string other_index_var;
+    index_kind  index_var_kind;
 
     bool accumulate = true; // true => add with weight_ factor on assignment
     bool readonly = false;  // true => can never be assigned to by a mechanism
@@ -124,7 +152,22 @@ struct indexed_variable_info {
     // Scale is the conversion factor from the data variable
     // to the NMODL value.
     double scale = 1;
-    bool scalar() const { return index_var.empty(); }
+    bool scalar() const;
+    std::string inner_index_var() const;
+    std::string outer_index_var() const;
 };
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
+
+template<typename C>
+size_t emit_array(std::ostream& out, const C& vars) {
+    auto n = 0ul;
+    io::separator sep("", ", ");
+    out << "{ ";
+    for (const auto& var: vars) {
+        out << sep << var;
+        ++n;
+    }
+    out << " }";
+    return n;
+}

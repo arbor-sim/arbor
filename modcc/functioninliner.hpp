@@ -5,48 +5,60 @@
 #include "scope.hpp"
 #include "visitor.hpp"
 
-expression_ptr inline_function_call(Expression* e);
+expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block);
 
-class VariableReplacer : public Visitor {
-
+class FunctionInliner : public BlockRewriterBase {
 public:
+    using BlockRewriterBase::visit;
+    FunctionInliner(std::string calling_func) : BlockRewriterBase(), calling_func_(calling_func) {};
+    FunctionInliner(scope_ptr s): BlockRewriterBase(s) {}
 
-    VariableReplacer(std::string const& source, std::string const& target)
-    :   source_(source),
-        target_(target)
-    {}
+    virtual void visit(Expression *e)            override;
+    virtual void visit(CallExpression *e)        override;
+    virtual void visit(ConserveExpression *e)    override;
+    virtual void visit(CompartmentExpression *e) override;
+    virtual void visit(LinearExpression *e)      override;
+    virtual void visit(AssignmentExpression* e)  override;
+    virtual void visit(BinaryExpression* e)      override;
+    virtual void visit(UnaryExpression* e)       override;
+    virtual void visit(IfExpression* e)          override;
+    virtual void visit(LocalDeclaration* e)      override;
+    virtual void visit(NumberExpression* e)      override {};
+    virtual void visit(IdentifierExpression* e)  override {};
 
-    void visit(Expression *e)           override;
-    void visit(UnaryExpression *e)      override;
-    void visit(BinaryExpression *e)     override;
-    void visit(NumberExpression *e)     override {};
+    bool return_val_set() {return return_set_;};
+    bool finished_inlining() {return !inlining_executed_;};
 
-    ~VariableReplacer() {}
+    ~FunctionInliner() {}
 
 private:
+    std::string inlining_func_, calling_func_;
+    expression_ptr lhs_;
+    std::map<std::string, expression_ptr> call_arg_map_;
+    std::map<std::string, expression_ptr> local_arg_map_;
+    scope_ptr scope_;
 
-    std::string source_;
-    std::string target_;
-};
+    // Tracks whether the return value of a function has been set
+    bool return_set_ = true;
 
-class ValueInliner : public Visitor {
+    // Tracks whether a function is being inlined
+    bool inlining_in_progress_ = false;
 
-public:
+    // Tracks whether a function has been inlined
+    bool inlining_executed_ = false;
 
-    ValueInliner(std::string const& source, long double value)
-    :   source_(source),
-        value_(value)
-    {}
+    void replace_args(Expression* e);
 
-    void visit(Expression *e)           override;
-    void visit(UnaryExpression *e)      override;
-    void visit(BinaryExpression *e)     override;
-    void visit(NumberExpression *e)     override {};
-
-    ~ValueInliner() {}
-
-private:
-
-    std::string source_;
-    long double value_;
+protected:
+    virtual void reset() override {
+        inlining_func_.clear();
+        lhs_ = nullptr;
+        call_arg_map_.clear();
+        local_arg_map_.clear();
+        scope_.reset();
+        return_set_ = true;
+        inlining_in_progress_ = false;
+        inlining_executed_ = false;
+        BlockRewriterBase::reset();
+    }
 };

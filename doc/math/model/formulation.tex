@@ -93,7 +93,7 @@ The current, which is the conserved quantity in our conservation law, over the s
 This is derived from a thin film approximation to the cell membrane, whereby the membrane is treated as an infinitesimally thin interface between the intra and extra cellular regions.
 
 Note that some information is lost when going from a three-dimensional description of a neuron to a system of branching one-dimensional cable segments.
-If the cell is represented by cylinders or frustrums\footnote{a frustrum is a truncated cone, where the truncation plane is parallel to the base of the cone.}, the three-dimensional values for volume and surface area at branch points can't be retrieved from the one-dimensional description.
+If the cell is represented by cylinders or frustums\footnote{a frustum is a truncated cone, where the truncation plane is parallel to the base of the cone.}, the three-dimensional values for volume and surface area at branch points can't be retrieved from the one-dimensional description.
 
 \begin{figure}
     \begin{center}
@@ -201,14 +201,14 @@ The current terms are an average per unit area, therefore the total flux
 \end{equation}
 where $\sigma_i$ is the surface area the of the exterior of the cable segment, i.e. the surface corresponding to the cell membrane.
 
-Each cable segment is a conical frustrum, as illustrated in \fig{fig:segment}.
-The lateral surface area of a frustrum with height $\Delta x_i$ and radii of  is
+Each cable segment is a conical frustum, as illustrated in \fig{fig:segment}.
+The lateral surface area of a frustum with height $\Delta x_i$ and radii of  is
 The area of the external surface $\Gamma_{i}$ is
 \begin{equation}
     \sigma_i = \pi (a_{i,\ell} + a_{i,r}) \sqrt{\Delta x_i^2 + (a_{i,\ell} - a_{i,r})^2},
     \label{eq:cv_volume}
 \end{equation}
-where $a_{i,\ell}$ and $a_{i,r}$ are the radii of at the left and right end of the segment respectively (see~\eq{eq:frustrum_area} for derivation of this formula).
+where $a_{i,\ell}$ and $a_{i,r}$ are the radii of at the left and right end of the segment respectively (see~\eq{eq:frustum_area} for derivation of this formula).
 %-------------------------------------------------------------------------------
 \subsubsection{Putting it all together}
 %-------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ is the area of the surface between two adjacent segments $i$ and $j$, and
     \sigma_{i}   = \pi(a_{i,\ell} + a_{i,r}) \sqrt{\Delta x_i^2 + (a_{i,\ell} - a_{i,r})^2},
     \label{eq:sigma_i}
 \end{equation}
-is the lateral area of the conical frustrum describing segment $i$.
+is the lateral area of the conical frustum describing segment $i$.
 
 %-------------------------------------------------------------------------------
 \subsubsection{Time Stepping}
@@ -275,7 +275,7 @@ Furthermore, because $\alpha_{i,j} > 0$, the linear system is diagonally dominan
 \subsubsection{The Soma}
 %-------------------------------------------------------------------------------
 We model the soma as a sphere with a centre $\vv{x}_s$ and a radius $r_s$.
-The soma is conceptually treated as the center of the cell: the point from which all other parts of the cell branch.
+The soma is conceptually treated as the centre of the cell: the point from which all other parts of the cell branch.
 It requires special treatment, because of its size relative to the radius of the dendrites and axons that branch off from it.
 
 Though the soma is usually visualized as a sphere, it is \emph{worth noting} that Neuron models the soma as a cylinder
@@ -306,7 +306,7 @@ This effectivly of ``collapses'' the node that defines the start of dendrites at
 This requires a little slight of hand when loading the cell description from file (for example a \verb!.swc! file).
 In such file formats there would be 5 points used to describe the cell in \fig{fig:soma}:
 \begin{itemize}
-    \item 1 to describe the center of the soma.
+    \item 1 to describe the centre of the soma.
     \item 2 for each dendrite: 1 describing where the dendrite is attached to the soma, and 1 for the terminal end.
 \end{itemize}
 However, in the mathematical formulation there are only 3 values that are solved for: the soma and one for each of the dendrites.

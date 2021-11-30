@@ -45,18 +45,6 @@ T constexpr volume_frustrum(T L, T r1, T r2) {
     return pi<T>/T(3) * (square(r1+r2) - r1*r2) * L;
 }
 
-// Volume of a sphere radius r.
-template <typename T>
-T constexpr volume_sphere(T r) {
-    return T(4)/T(3) * pi<T> * cube(r);
-}
-
-// Surface area of a sphere radius r.
-template <typename T>
-T constexpr area_sphere(T r) {
-    return T(4) * pi<T> * square(r);
-}
-
 // Linear interpolation by u in interval [a,b]: (1-u)*a + u*b.
 template <typename T, typename U>
 T constexpr lerp(T a, T b, U u) {
@@ -114,6 +102,14 @@ template <
 C round_up(T v, U b) {
     C m = v%b;
     return v-m+signum(m)*impl::abs_if_signed(b, Signed{});
+}
+
+// Returns 1/x if x != 0; 0 otherwise
+template <typename T>
+inline
+T safeinv(T x) {
+    // If abs(x) is less than epsilon return epsilon, else calculate the result directly.
+    return (T(1)==T(1)+x)? 1/std::numeric_limits<T>::epsilon(): 1/x;
 }
 
 // Value of x/(exp(x)-1) with care taken to handle x=0 case

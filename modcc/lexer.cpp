@@ -19,9 +19,6 @@ inline bool is_alpha(char c) {
 inline bool is_alphanumeric(char c) {
     return (is_numeric(c) || is_alpha(c) );
 }
-inline bool is_whitespace(char c) {
-    return (c==' ' || c=='\t' || c=='\v' || c=='\f');
-}
 inline bool is_eof(char c) {
     return (c==0);
 }
@@ -97,14 +94,40 @@ Token Lexer::parse() {
             // identifier or keyword
             case 'a' ... 'z':
             case 'A' ... 'Z':
-            case '_':
+            case '_': {
                 // get std::string of the identifier
-                t.spelling = identifier();
-                t.type
-                    = status_==lexerStatus::error
-                    ? tok::reserved
-                    : get_identifier_type(t.spelling);
+                auto id = identifier();
+                if (id == "UNITSON" || id == "UNITSOFF") continue;
+                if (id == "COMMENT") {
+                    while (!is_eof(*current_)) {
+                        while ((*current_ != '\n') && (*current_ != '\r') && !is_alpha(*current_)) {
+                            current_++;
+                        }
+                        if (*current_ == '\n') {
+                            current_++;
+                            line_ = current_;
+                            location_.line++;
+                        }
+                        else if (*current_ == '\r') {
+                            current_++;
+                            if(*current_ != '\n') {
+                                error_string_ = pprintf("bad line ending: \\n must follow \\r");
+                                return t;
+                            }
+                            current_++;
+                            line_ = current_;
+                            location_.line++;
+                        }
+                        else if (identifier() == "ENDCOMMENT") break;
+                    }
+                    continue;
+                }
+                t.spelling = id;
+                t.type = status_ == lexerStatus::error
+                          ? tok::reserved
+                          : get_identifier_type(t.spelling);
                 return t;
+            }
             case '(':
                 t.type = tok::lparen;
                 t.spelling += character();
@@ -192,6 +215,40 @@ Token Lexer::parse() {
                 }
                 else {
                     t.type = tok::gt;
+                }
+                return t;
+            }
+            case '&': {
+                bool valid = false;
+                t.spelling += character();
+                if (*current_ == '&') {
+                    t.spelling += character();
+                    if (*current_ != '&') {
+                        t.type = tok::land;
+                        valid = true;
+                    }
+                }
+                if (!valid) {
+                    error_string_ = pprintf("& must be in pairs");
+                    status_ = lexerStatus::error;
+                    t.type = tok::reserved;
+                }
+                return t;
+            }
+            case '|': {
+                bool valid = false;
+                t.spelling += character();
+                if (*current_ == '|') {
+                    t.spelling += character();
+                    if (*current_ != '|') {
+                        t.type = tok::lor;
+                        valid = true;
+                    }
+                }
+                if (!valid) {
+                    error_string_ = pprintf("| must be in pairs");
+                    status_ = lexerStatus::error;
+                    t.type = tok::reserved;
                 }
                 return t;
             }
@@ -378,19 +435,21 @@ void Lexer::binop_prec_init() {
         return;
 
     // I have taken the operator precedence from C++
-    // Note that only infix operators require precidence.
-    binop_prec_[tok::eq]       = 2;
+    // Note that only infix operators require precedence.
+    binop_prec_[tok::eq]       = 1;
+    binop_prec_[tok::lor]      = 2;
+    binop_prec_[tok::land]     = 3;
     binop_prec_[tok::equality] = 4;
     binop_prec_[tok::ne]       = 4;
     binop_prec_[tok::lt]       = 5;
     binop_prec_[tok::lte]      = 5;
     binop_prec_[tok::gt]       = 5;
     binop_prec_[tok::gte]      = 5;
-    binop_prec_[tok::plus]     = 10;
-    binop_prec_[tok::minus]    = 10;
-    binop_prec_[tok::times]    = 20;
-    binop_prec_[tok::divide]   = 20;
-    binop_prec_[tok::pow]      = 30;
+    binop_prec_[tok::plus]     = 6;
+    binop_prec_[tok::minus]    = 6;
+    binop_prec_[tok::times]    = 7;
+    binop_prec_[tok::divide]   = 7;
+    binop_prec_[tok::pow]      = 8;
 }
 
 int Lexer::binop_precedence(tok tok) {

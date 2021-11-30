@@ -1,0 +1,6 @@
+# ball and stick model with
+#   - soma with radius 12.6157/2
+#   - dendrite with length 200 and radius 0.5
+1 1     0.0     0.0     0.0     6.30785 -1
+2 3     6.30785 0.0     0.0     0.5      1
+3 3   206.30785 0.0     0.0     0.5      2

@@ -6,8 +6,8 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
+#include <include/arbor/arbexcept.hpp>
 
-#include "algorithms.hpp"
 #include "communication/gathered_vector.hpp"
 #include "connection.hpp"
 #include "distributed_context.hpp"
@@ -23,8 +23,10 @@
 namespace arb {
 
 communicator::communicator(const recipe& rec,
-                          const domain_decomposition& dom_dec,
-                          execution_context& ctx)
+                           const domain_decomposition& dom_dec,
+                           const label_resolution_map& source_resolution_map,
+                           const label_resolution_map& target_resolution_map,
+                           execution_context& ctx)
 {
     distributed_ = ctx.distributed;
     thread_pool_ = ctx.thread_pool;
@@ -32,6 +34,7 @@ communicator::communicator(const recipe& rec,
     num_domains_ = distributed_->size();
     num_local_groups_ = dom_dec.groups.size();
     num_local_cells_ = dom_dec.num_local_cells;
+    auto num_total_cells = rec.num_cells();
 
     // For caching information about each cell
     struct gid_info {
@@ -75,9 +78,13 @@ communicator::communicator(const recipe& rec,
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
-    for (const auto& g: gid_infos) {
-        for (auto con: g.conns) {
-            const auto src = dom_dec.gid_domain(con.source.gid);
+
+    for (const auto& cell: gid_infos) {
+        for (auto c: cell.conns) {
+            if (c.source.gid >= num_total_cells) {
+                throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
+            }
+            const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
             src_counts[src]++;
         }
@@ -87,13 +94,17 @@ communicator::communicator(const recipe& rec,
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
     connections_.resize(n_cons);
-    connection_part_ = algorithms::make_index(src_counts);
+    util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
     std::size_t pos = 0;
+    auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
-        for (auto c: cell.conns) {
+        auto source_resolver = resolver(&source_resolution_map);
+        for (const auto& c: cell.conns) {
             const auto i = offsets[src_domains[pos]]++;
-            connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
+            auto src_lid = source_resolver.resolve(c.source);
+            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+            connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
             ++pos;
         }
     }

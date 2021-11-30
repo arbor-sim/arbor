@@ -262,7 +262,7 @@ private:
     std::string id_;
 };
 
-long double expr_value(Expression* e) {
+double expr_value(Expression* e) {
     return e && e->is_number()? e->is_number()->value(): NAN;
 }
 
@@ -273,7 +273,7 @@ private:
     static bool is_number(Expression* e) { return e && e->is_number(); }
     static bool is_number(const expression_ptr& e) { return is_number(e.get()); }
 
-    void as_number(Location loc, long double v) {
+    void as_number(Location loc, double v) {
         result_ = make_expression<NumberExpression>(loc, v);
     }
 
@@ -293,7 +293,7 @@ public:
         result_ = nullptr;
     }
 
-    long double value() const { return expr_value(result_); }
+    double value() const { return expr_value(result_); }
 
     bool is_number() const { return is_number(result_); }
 
@@ -328,8 +328,11 @@ public:
         auto cond_expr = result();
         e->true_branch()->accept(this);
         auto true_expr = result();
-        e->false_branch()->accept(this);
-        auto false_expr = result();
+        expression_ptr false_expr;
+        if (e->false_branch()) {
+            e->false_branch()->accept(this);
+            false_expr = result()->clone();
+        }
 
         if (!is_number(cond_expr)) {
             result_ = make_expression<IfExpression>(loc,
@@ -426,6 +429,9 @@ public:
         }
         else if (expr_value(rhs)==1) {
             result_ = e->lhs()->clone();
+        }
+        else if (is_number(rhs)) {
+            result_ = make_expression<MulBinaryExpression>(loc, std::move(lhs), make_expression<NumberExpression>(loc, 1.0/expr_value(rhs)));
         }
         else {
             result_ = make_expression<DivBinaryExpression>(loc, std::move(lhs), std::move(rhs));
@@ -526,7 +532,11 @@ public:
                 return;
             case tok::gte:
                 as_number(loc, lval>=rval);
-                return;
+            case tok::land:
+                as_number(loc, lval&&rval);
+            case tok::lor:
+                as_number(loc, lval||rval);
+                    return;
             default: ;
                 // unrecognized, fall through to non-numeric case below
             }
@@ -551,6 +561,8 @@ expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
 
     SymPDiffVisitor pdiff_visitor(id);
     e->accept(&pdiff_visitor);
+
+    if (pdiff_visitor.has_error()) return nullptr;
 
     return constant_simplify(pdiff_visitor.result());
 }
@@ -654,6 +666,9 @@ linear_test_result linear_test(Expression* e, const std::vector<std::string>& va
     result.constant = e->clone();
     for (const auto& id: vars) {
         auto coef = symbolic_pdiff(e, id);
+        if (!coef) {
+            return linear_test_result{};
+        }
         if (!is_zero(coef)) result.coef[id] = std::move(coef);
 
         result.constant = substitute(result.constant, id, zero());
@@ -671,8 +686,8 @@ linear_test_result linear_test(Expression* e, const std::vector<std::string>& va
 
         for (unsigned j = i; j<vars.size(); ++j) {
             auto v2 = vars[j];
-
-            if (!is_zero(symbolic_pdiff(result.coef[v1].get(), v2).get())) {
+            auto coef = symbolic_pdiff(result.coef[v1].get(), v2);
+            if (!coef || !is_zero(coef.get())) {
                 result.is_linear = false;
                 goto done;
             }

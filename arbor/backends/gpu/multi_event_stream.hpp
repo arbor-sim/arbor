@@ -94,7 +94,7 @@ protected:
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
-            arb_assert(std::is_sorted(&tmp_ev_time_[ev_begin_i], &tmp_ev_time_[ev_i]));
+            arb_assert(util::is_sorted(util::subrange_view(tmp_ev_time_, ev_begin_i, ev_i)));
             n_nonempty += (tmp_divs_.back()!=ev_i);
             tmp_divs_.push_back(ev_i);
             ev_begin_i = ev_i;

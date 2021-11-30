@@ -1,0 +1,184 @@
+name: Arbor
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: "Default"
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config:
+        - {
+            name:  "Linux Min GCC",
+            os:    "ubuntu-18.04",
+            cc:    "gcc-8",
+            cxx:   "g++-8",
+            py:    "3.6",
+            cmake: "3.12.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "Linux Min Clang",
+            os:    "ubuntu-18.04",
+            cc:    "clang-8",
+            cxx:   "clang++-8",
+            py:    "3.6",
+            cmake: "3.12.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "MacOS Min",
+            os:    "macos-10.15",
+            cc:    "clang",
+            cxx:   "clang++",
+            py:    "3.6",
+            cmake: "3.12.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "Linux Max GCC",
+            os:    "ubuntu-20.04",
+            cc:    "gcc-10",
+            cxx:   "g++-10",
+            py:    "3.9",
+            cmake: "3.19.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "Linux SIMD",
+            os:    "ubuntu-20.04",
+            cc:    "gcc-10",
+            cxx:   "g++-10",
+            py:    "3.9",
+            cmake: "3.19.x",
+            mpi:   "OFF",
+            simd:  "ON"
+          }
+        - {
+            name:  "Linux Max Clang",
+            os:    "ubuntu-20.04",
+            cc:    "clang-10",
+            cxx:   "clang++-10",
+            py:    "3.9",
+            cmake: "3.19.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "MacOS Max",
+            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
+            cc:    "clang",
+            cxx:   "clang++",
+            py:    "3.9",
+            cmake: "3.19.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+    env:
+        CC:         ${{ matrix.config.cc }}
+        CXX:        ${{ matrix.config.cxx }}
+        # We set PYTHONPATH instead of installing arbor to avoid distribution/OS specific behaviour.
+        PYTHONPATH: ${{ github.workspace }}/build/python
+        # This is a workaround for the unfortunate interaction of MacOS and OpenMPI 4
+        # See https://github.com/open-mpi/ompi/issues/6518
+        OMPI_MCA_btl: "self,tcp"
+    steps:
+      - name: Get clang/gcc 8
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
+      - name: Set up cmake
+        uses: jwlawson/actions-setup-cmake@v1.7
+        with:
+          cmake-version: ${{ matrix.config.cmake }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.config.py }}
+      - name: OpenMPI cache
+        uses: actions/cache@v2
+        id:   cache-ompi
+        with:
+          path: ~/openmpi-4.0.2
+          key:  ${{ matrix.config.os }}-openmpi-4.0.2-${{ matrix.config.cxx }}
+      - name: Build OpenMPI
+        if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
+        run: |
+           echo cache-hit='${{ steps.cache-ompi.outputs.cache-hit }}'
+           cd ~
+           wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
+           tar -xvf ./openmpi-4.0.2.tar.gz
+           cd openmpi-4.0.2
+           ./configure --disable-mpi-fortran
+           make -j4
+      - name: Install OpenMPI
+        run: |
+           echo "Going to install ompi"
+           cd ~
+           cd openmpi-4.0.2
+           sudo make install
+           cd -
+      - name: Update shared library cache
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+        run: sudo ldconfig
+      - name: Install Python packages
+        run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
+      - name: Clone w/ submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Check config
+        run: |
+          $CC --version
+          $CXX --version
+          python --version
+          mpic++ --show
+          mpicc --show
+          echo $PYTHONPATH
+      - name: Build arbor
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          make -j4 tests examples pyarb html
+          cd -
+      - name: Install arbor
+        run: |
+          cd build
+          sudo make install
+          cd -
+      - name: Run unit tests
+        run: |
+          build/bin/unit
+          build/bin/unit-modcc
+      - if:   ${{ matrix.config.mpi == 'ON' }}
+        name: Run MPI tests
+        run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
+      - if:   ${{ matrix.config.mpi == 'OFF' }}
+        name: Run examples
+        run: scripts/run_cpp_examples.sh
+      - if:   ${{ matrix.config.mpi == 'ON' }}
+        name: Run examples with MPI
+        run: scripts/run_cpp_examples.sh "mpirun -n 4 -oversubscribe"
+      - name: Run python tests
+        run: |
+          python3 -m unittest discover -v -s python
+      - if:   ${{ matrix.config.mpi == 'ON' }}
+        name: Run python+MPI tests
+        run:  mpirun -n 4 -oversubscribe python3 -m unittest discover -v -s python
+      - name: Run Python examples
+        run: scripts/run_python_examples.sh
+      - name: Build and test a catalogue
+        run: |
+          build-catalogue -v default mechanisms/default
+          ./scripts/test-catalogue.py ./default-catalogue.so

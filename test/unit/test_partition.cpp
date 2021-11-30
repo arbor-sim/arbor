@@ -83,7 +83,7 @@ TEST(partition, partition_view_non_numeric) {
 
 TEST(partition, make_partition_in_place) {
     unsigned sizes[] = { 7, 3, 0, 2 };
-    unsigned part_store[util::size(sizes)+1];
+    unsigned part_store[std::size(sizes)+1];
 
     auto p = util::make_partition(util::partition_in_place, part_store, sizes, 10u);
     ASSERT_EQ(4u, p.size());

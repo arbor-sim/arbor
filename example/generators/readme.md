@@ -36,10 +36,6 @@ Every user-defined recipe must provide implementations for the following three m
 * `recipe::get_cell_description(gid)`: return a description of the cell with `gid`.
 * `recipe::get_cell_kind(gid)`:  return an `arb::cell_kind` enum value for the cell type.
 
-In addition to these three, we also need to implement
-`recipe::num_targets(gid)` to return 1, to indicate that there is one target
-(i.e. synapse) on the cell.
-
 This single cell model has no connections for spike communication, so the
 default `recipe::connections_on(gid)` method can use the default implementation,
 which returns an empty list of connections for a cell.
@@ -52,27 +48,25 @@ compartment cell with one synapse, and a `arb::cell_kind::cable` respectively:
     // Return an arb::cell that describes a single compartment cell with
     // passive dynamics, and a single expsyn synapse.
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::cell c;
+        arb::segment_tree tree;
+        double r = 18.8/2.0; // convert 18.8 μm diameter to radius
+        tree.append(arb::mnpos, {0,0,-r,r}, {0,0,r,r}, 1);
 
-        c.add_soma(18.8/2.0);
-        c.soma()->add_mechanism("pas");
+        arb::label_dict labels;
+        labels.set("soma", arb::reg::tagged(1));
 
-        // Add one synapse at the soma.
+        arb::decor decor;
+        decor.paint("\"soma\"", "pas");
+
+        // Add one synapse labeled "syn" at the soma.
         // This synapse will be the target for all events, from both event_generators.
-        auto syn_spec = arb::mechanism_spec("expsyn");
-        c.add_synapse({0, 0.5}, syn_spec);
+        decor.place(arb::mlocation{0, 0.5}, "expsyn", "syn");
 
-        return std::move(c); // move into unique_any wrapper
+        return arb::cable_cell(tree, labels, decor);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         return cell_kind::cable;
-    }
-
-    // There is one synapse, i.e. target, on the cell.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
-        return 1;
     }
 ```
 
@@ -105,18 +99,16 @@ The implementation of this with hard-coded frequencies and weights is:
         std::vector<arb::event_generator> gens;
 
         // Add excitatory generator
-        gens.emplace_back(
-	    arb::poisson_generator(
-                 cell_member_type{0,0}, // Target synapse (gid, local_id).
-                 w_e,                   // Weight of events to deliver
-                 t0,                    // Events start being delivered from this time
-                 lambda_e,              // Expected frequency (events per ms)
-                 RNG(29562872)));       // Random number generator to use
+         gens.push_back(
+            arb::poisson_generator(
+                {"syn"},               // Target synapse index on cell `gid`
+                w_e,                   // Weight of events to deliver
+                t0,                    // Events start being delivered from this time
+                lambda_e,              // Expected frequency (kHz)
+                RNG(29562872)));       // Random number generator to use
 
-        // Add inhibitory generator
-        gens.emplace_back(
-            arb::poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i, RNG(86543891)));
-
+                // Add inhibitory generator
+        gens.emplace_back(arb::poisson_generator({"syn"}, w_i, t0, lambda_i,  RNG(86543891)));
         return gens;
     }
 ```
@@ -153,15 +145,15 @@ In our case, the cell has one probe, which refers to the voltage at the soma.
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        // Get the appropriate kind for measuring voltage
-        cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
+        // The location at which we measure: position 0 on branch 0.
+        // The cell has only one branch, branch 0, which is the soma.
+        arb::mlocation loc{0, 0.0};
 
-        // The location at which we measure: position 0 on segment 0.
-        // The cell has only one segment, segment 0, which is the soma.
-        arb::segment_location loc(0, 0.0);
+        // The thing we are measuring is the membrane potential.
+        arb::cable_probe_membrane_voltage address{loc};
 
-        // Put this together into a `probe_info`
-        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
+        // Put this together into a `probe_info`; the tag value 0 is not used.
+        return arb::probe_info{id, 0, address};
     }
 ```
 

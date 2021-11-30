@@ -212,7 +212,7 @@ TEST(Lexer, symbols) {
 }
 
 TEST(Lexer, comparison_operators) {
-    char string[] = "< <= > >= == != !";
+    char string[] = "< <= > >= == != ! && ||";
     VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
@@ -229,9 +229,12 @@ TEST(Lexer, comparison_operators) {
     EXPECT_EQ(t6.type, tok::ne);
     auto t7 = lexer.parse();
     EXPECT_EQ(t7.type, tok::lnot);
-
     auto t8 = lexer.parse();
-    EXPECT_EQ(t8.type, tok::eof);
+    EXPECT_EQ(t8.type, tok::land);
+    auto t9 = lexer.parse();
+    EXPECT_EQ(t9.type, tok::lor);
+    auto t10 = lexer.parse();
+    EXPECT_EQ(t10.type, tok::eof);
 }
 
 // test braces
@@ -251,26 +254,53 @@ TEST(Lexer, braces) {
 
 // test comments
 TEST(Lexer, comments) {
-    char string[] = "foo:this is one line\n"
-                    "bar : another comment\n"
-                    "foobar ? another comment\n";
-    VerboseLexer lexer(string, string+sizeof(string));
+    {
+        char string[] = "foo:this is one line\n"
+                        "bar : another comment\n"
+                        "foobar ? another comment\n";
+        VerboseLexer lexer(string, string + sizeof(string));
 
-    auto t1 = lexer.parse();
-    EXPECT_EQ(t1.type, tok::identifier);
+        auto t1 = lexer.parse();
+        EXPECT_EQ(t1.type, tok::identifier);
 
-    auto t2 = lexer.parse();
-    EXPECT_EQ(t2.type, tok::identifier);
-    EXPECT_EQ(t2.spelling, "bar");
-    EXPECT_EQ(t2.location.line, 2);
+        auto t2 = lexer.parse();
+        EXPECT_EQ(t2.type, tok::identifier);
+        EXPECT_EQ(t2.spelling, "bar");
+        EXPECT_EQ(t2.location.line, 2);
 
-    auto t3 = lexer.parse();
-    EXPECT_EQ(t3.type, tok::identifier);
-    EXPECT_EQ(t3.spelling, "foobar");
-    EXPECT_EQ(t3.location.line, 3);
+        auto t3 = lexer.parse();
+        EXPECT_EQ(t3.type, tok::identifier);
+        EXPECT_EQ(t3.spelling, "foobar");
+        EXPECT_EQ(t3.location.line, 3);
 
-    auto t4 = lexer.parse();
-    EXPECT_EQ(t4.type, tok::eof);
+        auto t4 = lexer.parse();
+        EXPECT_EQ(t4.type, tok::eof);
+    }
+    {
+        char string[] = "COMMENT line 1\n"
+                        "comment line 2\n"
+                        "ENDCOMMENT \n"
+                        "foo\n"
+                        "COMMENT <some special comment.> ENDCOMMENT\n"
+                        "bar\n"
+                        "COMMENT\n"
+                        "some info here! ENDCOMMENT";
+        VerboseLexer lexer(string, string + sizeof(string));
+
+        auto t1 = lexer.parse();
+        EXPECT_EQ(t1.type, tok::identifier);
+        EXPECT_EQ(t1.spelling, "foo");
+        EXPECT_EQ(t1.location.line, 4);
+
+        auto t2 = lexer.parse();
+        EXPECT_EQ(t2.type, tok::identifier);
+        EXPECT_EQ(t2.spelling, "bar");
+        EXPECT_EQ(t2.location.line, 6);
+
+        auto t3 = lexer.parse();
+        EXPECT_EQ(t3.type, tok::eof);
+        EXPECT_EQ(t3.location.line, 8);
+    }
 }
 
 // test numbers
@@ -338,6 +368,23 @@ TEST(Lexer, numbers) {
     EXPECT_EQ(lexerStatus::error, lexer.status());
 
     lexer = VerboseLexer("1.2E4.3");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    // single or triple & or | should give errors
+    lexer = VerboseLexer("&");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("&&&");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("|");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("|||");
     lexer.parse();
     EXPECT_EQ(lexerStatus::error, lexer.status());
 }

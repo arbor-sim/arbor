@@ -7,20 +7,18 @@ MIT license.
 
 https://github.com/nlohmann/json
 
-## Templatized C++ Command Line Parser Library (TCLAP)
+## tinyopt
 
-A header only C++ library for command line argument parsing, written by Michael E. Smoot.
-MIT license.
+A header only C++ library for command line argument parsing, written by Stuart Yates.
+BSD license.
 
-https://sourceforge.net/projects/tclap
+https://github.com/halfflat/tinyopt
 
-## TBB module for CMake
+##  Random123
+A header only counter-based random number generator, written by DE Shaw research
+BSD license.
 
-The CMake scripts provided in the Intel Threading Building Blocks respository are
-to configure TBB. These are located in the cmake/tbb path.
-Apache 2.0 license.
-
-https://github.com/01org/tbb/blob/tbb_2017/LICENSE
+https://www.deshawresearch.com/downloads/download_random123.cgi/
 
 ## Sphinx module for CMake
 
@@ -47,3 +45,25 @@ Custom license (as it appears in the original `readme` from the project's page):
 >commercial product. In either event, it is copyrighted by the author.
 >What you see here may be used freely but it comes with no support or
 >guarantee.
+
+## Example SWC morphology
+
+The complex SWC file 'pyramidal.swc' used for testing is taken from NeuroMorpho.org,
+with NeuroMorpho ID NMO_49821. The morphology comes from the paper:
+
+> Hönigsperger, C., Marosi, M., Murphy, R., and Storm, J. F. (2015).
+> Dorsoventral differences in Kv7/M-current and its impact on resonance,
+> temporal summation and excitability in rat hippocampal pyramidal cells.
+> _The Journal of Physiology_, 593(7), 1551–1580. doi:10.1113/jphysiol.2014.280826
+
+NeuroMorpho.org is described in:
+
+> Ascoli, G. A., Donohue, D. E., and Halavi, M. (2007).
+> NeuroMorpho.Org: a central resource for neuronal morphologies.
+> _Journal of Neuroscience_ 27(35), 9247–9251. doi:10.1523/JNEUROSCI.2055-07.2007
+
+## Acknowledgements
+
+This research has received funding from the European Unions Horizon 2020 Framework Programme for Research and
+Innovation under the Specific Grant Agreement No. 720270 (Human Brain Project SGA1), Specific Grant Agreement
+No. 785907 (Human Brain Project SGA2), and Specific Grant Agreement No. 945539 (Human Brain Project SGA3).

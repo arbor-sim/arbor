@@ -37,6 +37,7 @@ class LinearExpression;
 class ReactionExpression;
 class StoichExpression;
 class StoichTermExpression;
+class CompartmentExpression;
 class ConditionalExpression;
 class InitialBlock;
 class SolveExpression;
@@ -44,8 +45,8 @@ class Symbol;
 class ConductanceExpression;
 class PDiffExpression;
 class VariableExpression;
-class ProcedureExpression;
 class NetReceiveExpression;
+class PostEventExpression;
 class APIMethod;
 class IndexedVariable;
 class LocalVariable;
@@ -78,6 +79,7 @@ enum class procedureKind {
     api,         ///< API PROCEDURE
     initial,     ///< INITIAL
     net_receive, ///< NET_RECEIVE
+    post_event,  ///< POST_EVENT
     breakpoint,  ///< BREAKPOINT
     kinetic,     ///< KINETIC
     derivative,  ///< DERIVATIVE
@@ -100,6 +102,11 @@ enum class solverMethod {
     cnexp, // for diagonal linear ODE systems.
     sparse, // for non-diagonal linear ODE systems.
     none
+};
+
+enum class solverVariant {
+    regular,
+    steadystate
 };
 
 static std::string to_string(solverMethod m) {
@@ -175,6 +182,7 @@ public:
     virtual StoichExpression*      is_stoich()            {return nullptr;}
     virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
     virtual ConditionalExpression* is_conditional()       {return nullptr;}
+    virtual CompartmentExpression* is_compartment()       {return nullptr;}
     virtual InitialBlock*          is_initial_block()     {return nullptr;}
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
     virtual Symbol*                is_symbol()            {return nullptr;}
@@ -227,6 +235,7 @@ public :
     virtual VariableExpression*   is_variable()          {return nullptr;}
     virtual ProcedureExpression*  is_procedure()         {return nullptr;}
     virtual NetReceiveExpression* is_net_receive()       {return nullptr;}
+    virtual PostEventExpression*  is_post_event()        {return nullptr;}
     virtual APIMethod*            is_api_method()        {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
@@ -323,11 +332,11 @@ public:
         : Expression(loc), value_(std::stold(value))
     {}
 
-    NumberExpression(Location loc, long double value)
+    NumberExpression(Location loc, double value)
         : Expression(loc), value_(value)
     {}
 
-    virtual long double value() const {return value_;};
+    virtual double value() const {return value_;};
 
     std::string to_string() const override {
         return purple(pprintf("%", value_));
@@ -343,7 +352,7 @@ public:
 
     void accept(Visitor *v) override;
 private:
-    long double value_;
+    double value_;
 };
 
 // an integral number
@@ -354,7 +363,7 @@ public:
     {}
 
     IntegerExpression(Location loc, long long integer)
-        : NumberExpression(loc, static_cast<long double>(integer)), integer_(integer)
+        : NumberExpression(loc, static_cast<double>(integer)), integer_(integer)
     {}
 
     long long integer_value() const {return integer_;}
@@ -429,7 +438,7 @@ public:
     const std::string& spelling() const {
         return token_.spelling;
     }
-
+    expression_ptr clone() const override;
     ~ArgumentExpression() {}
     void accept(Visitor *v) override;
 private:
@@ -626,8 +635,9 @@ public:
     SolveExpression(
             Location loc,
             std::string name,
-            solverMethod method)
-    :   Expression(loc), name_(std::move(name)), method_(method), procedure_(nullptr)
+            solverMethod method,
+            solverVariant variant)
+    :   Expression(loc), name_(std::move(name)), method_(method), variant_(variant), procedure_(nullptr)
     {}
 
     std::string to_string() const override {
@@ -641,6 +651,10 @@ public:
 
     solverMethod method() const {
         return method_;
+    }
+
+    solverVariant variant() const {
+        return variant_;
     }
 
     ProcedureExpression* procedure() const {
@@ -665,6 +679,7 @@ private:
     /// pointer to the variable symbol for the state variable to be solved for
     std::string name_;
     solverMethod method_;
+    solverVariant variant_;
 
     ProcedureExpression* procedure_;
 };
@@ -784,6 +799,8 @@ public:
     expression_ptr clone() const override;
 
     std::string to_string() const override;
+
+    void replace_condition(expression_ptr&& other);
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor* v) override;
@@ -858,6 +875,33 @@ private:
     expression_ptr rhs_;
     expression_ptr fwd_rate_;
     expression_ptr rev_rate_;
+};
+
+class CompartmentExpression : public Expression {
+public:
+    CompartmentExpression(Location loc,
+                          expression_ptr&& scale_factor,
+                          std::vector<expression_ptr>&& state_vars)
+    : Expression(loc), scale_factor_(std::move(scale_factor)), state_vars_(std::move(state_vars)) {}
+
+    CompartmentExpression* is_compartment() override {return this;}
+
+    std::string to_string() const override;
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& scale_factor() { return scale_factor_; }
+    const expression_ptr& scale_factor() const { return scale_factor_; }
+
+    std::vector<expression_ptr>& state_vars() { return state_vars_; }
+    const std::vector<expression_ptr>& state_vars() const { return state_vars_; }
+
+    ~CompartmentExpression() {}
+
+private:
+    expression_ptr scale_factor_;
+    std::vector<expression_ptr> state_vars_;
 };
 
 class StoichTermExpression : public Expression {
@@ -1078,6 +1122,24 @@ protected:
     InitialBlock* initial_block_ = nullptr;
 };
 
+/// handle PostEventExpression as a special case of ProcedureExpression
+class PostEventExpression : public ProcedureExpression {
+public:
+    PostEventExpression( Location loc,
+                          std::string name,
+                          std::vector<expression_ptr>&& args,
+                          expression_ptr&& body)
+            :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::post_event)
+    {}
+
+    void semantic(scope_type::symbol_map &scp) override;
+    PostEventExpression* is_post_event() override {return this;}
+    /// hard code the kind
+    procedureKind kind() {return procedureKind::post_event;}
+
+    void accept(Visitor *v) override;
+};
+
 class FunctionExpression : public Symbol {
 public:
     FunctionExpression( Location loc,
@@ -1101,6 +1163,16 @@ public:
     }
     BlockExpression* body() {
         return body_->is_block();
+    }
+    void body(expression_ptr&& new_body) {
+        if(!new_body->is_block()) {
+            Location loc = new_body? new_body->location(): Location{};
+            throw compiler_exception(
+                    " attempt to set FunctionExpression body with non-block expression, i.e.\n"
+                    + new_body->to_string(),
+                    loc);
+        }
+        body_ = std::move(new_body);
     }
 
     FunctionExpression* is_function() override {return this;}
@@ -1181,6 +1253,15 @@ class AbsUnaryExpression : public UnaryExpression {
 public:
     AbsUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::abs, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+class SafeInvUnaryExpression : public UnaryExpression {
+public:
+    SafeInvUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::safeinv, std::move(e))
     {}
 
     void accept(Visitor *v) override;
@@ -1359,6 +1440,9 @@ public:
     PowBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::pow, std::move(lhs), std::move(rhs))
     {}
+
+    // pow is a prefix binop
+    bool is_infix() const override {return false;}
 
     void accept(Visitor *v) override;
 };

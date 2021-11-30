@@ -5,20 +5,11 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures, cases
 
 # check Arbor's configuration of mpi and gpu
-config = arb.config()
-gpu_enabled = config["gpu"]
-mpi_enabled = config["mpi"]
+mpi_enabled = arb.__config__["mpi"]
+gpu_enabled = arb.__config__["gpu"]
 
 """
 all tests for distributed arb.domain_decomposition
@@ -50,19 +41,17 @@ class hetero_recipe (arb.recipe):
         return self.ncells
 
     def cell_description(self, gid):
-        return []
+        tree = arb.segment_tree()
+        tree.append(arb.mnpos, arb.mpoint(-3, 0, 0, 3), arb.mpoint(3, 0, 0, 3), tag=1)
+        decor = arb.decor()
+        decor.place('(location 0 0.5)', arb.gap_junction_site(), "gj")
+        return arb.cable_cell(tree, arb.label_dict(), decor)
 
     def cell_kind(self, gid):
         if (gid%2):
             return arb.cell_kind.spike_source
         else:
             return arb.cell_kind.cable
-
-    def num_sources(self, gid):
-        return 0
-
-    def num_targets(self, gid):
-        return 0
 
     def connections_on(self, gid):
         return []
@@ -80,22 +69,22 @@ class gj_switch:
         return getattr(self, 'case_' + str(arg), lambda: default)()
 
     def case_1(self):
-        return [arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection((7 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_2(self):
-        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1),
-                arb.gap_junction_connection(arb.cell_member(9 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection((6 + self.shift_, "gj"), "gj", 0.1),
+                arb.gap_junction_connection((9 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_6(self):
-        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1),
-                arb.gap_junction_connection(arb.cell_member(7 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection((2 + self.shift_, "gj"), "gj", 0.1),
+                arb.gap_junction_connection((7 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_7(self):
-        return [arb.gap_junction_connection(arb.cell_member(6 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1),
-                arb.gap_junction_connection(arb.cell_member(1 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection((6 + self.shift_, "gj"), "gj", 0.1),
+                arb.gap_junction_connection((1 + self.shift_, "gj"), "gj", 0.1)]
 
     def case_9(self):
-        return [arb.gap_junction_connection(arb.cell_member(2 + self.shift_, 0), arb.cell_member(self.gid_, 0), 0.1)]
+        return [arb.gap_junction_connection((2 + self.shift_, "gj"), "gj", 0.1)]
 
 class gj_symmetric (arb.recipe):
     def __init__(self, num_ranks):
@@ -128,7 +117,11 @@ class gj_non_symmetric (arb.recipe):
         return self.size*self.groups
 
     def cell_description(self, gid):
-        return []
+        tree = arb.segment_tree()
+        tree.append(arb.mnpos, arb.mpoint(-3, 0, 0, 3), arb.mpoint(3, 0, 0, 3), tag=1)
+        decor = arb.decor()
+        decor.place('(location 0 0.5)', arb.gap_junction_site(), "gj")
+        return arb.cable_cell(tree, arb.label_dict(), decor)
 
     def cell_kind(self, gid):
         return arb.cell_kind.cable
@@ -138,14 +131,14 @@ class gj_non_symmetric (arb.recipe):
         id = gid%self.size
 
         if (id == group and group != (self.groups - 1)):
-            return [arb.gap_junction_connection(arb.cell_member(gid + self.size, 0), arb.cell_member(gid, 0), 0.1)]
+            return [arb.gap_junction_connection((gid + self.size, "gj"), "gj", 0.1)]
         elif (id == group - 1):
-            return [arb.gap_junction_connection(arb.cell_member(gid - self.size, 0), arb.cell_member(gid, 0), 0.1)]
+            return [arb.gap_junction_connection((gid - self.size, "gj"), "gj", 0.1)]
         else:
             return []
 
-@unittest.skipIf(mpi_enabled == False, "MPI not enabled")
-class Domain_Decompositions_Distributed(unittest.TestCase):
+@cases.skipIfNotDistributed()
+class TestDomain_Decompositions_Distributed(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
     @classmethod
     def setUpClass(self):
@@ -431,34 +424,3 @@ class Domain_Decompositions_Distributed(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,
             "unable to perform load balancing because cell_kind::cable has invalid suggested gpu_cell_group size of 0"):
             decomp2 = arb.partition_load_balance(recipe, context, hints2)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Domain_Decompositions_Distributed, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-
-    if not arb.mpi_is_initialized():
-        arb.mpi_init()
-
-    comm = arb.mpi_comm()
-        
-    alloc = arb.proc_allocation()
-    ctx = arb.context(alloc, comm)
-    rank = ctx.rank
-
-    if rank == 0:
-        runner = unittest.TextTestRunner(verbosity = v)
-    else:
-        sys.stdout = open(os.devnull, 'w')
-        runner = unittest.TextTestRunner(stream=sys.stdout)
-
-    runner.run(suite())
-
-    if not arb.mpi_is_finalized():
-        arb.mpi_finalize()
-
-if __name__ == "__main__":
-    run()

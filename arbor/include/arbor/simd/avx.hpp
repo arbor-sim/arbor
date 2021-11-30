@@ -18,9 +18,12 @@ namespace detail {
 struct avx_int4;
 struct avx_double4;
 
+static constexpr unsigned avx_min_align = 16;
+
 template <>
 struct simd_traits<avx_int4> {
     static constexpr unsigned width = 4;
+    static constexpr unsigned min_align = avx_min_align;
     using scalar_type = std::int32_t;
     using vector_type = __m128i;
     using mask_impl = avx_int4;
@@ -29,6 +32,7 @@ struct simd_traits<avx_int4> {
 template <>
 struct simd_traits<avx_double4> {
     static constexpr unsigned width = 4;
+    static constexpr unsigned min_align = avx_min_align;
     using scalar_type = double;
     using vector_type = __m256d;
     using mask_impl = avx_double4;
@@ -74,7 +78,7 @@ struct avx_int4: implbase<avx_int4> {
         return _mm_cvtsi128_si32(a);
     }
 
-    static __m128i negate(const __m128i& a) {
+    static __m128i neg(const __m128i& a) {
         __m128i zero = _mm_setzero_si128();
         return _mm_sub_epi32(zero, a);
     }
@@ -163,7 +167,7 @@ struct avx_int4: implbase<avx_int4> {
         // bottom 4 bytes.
 
         __m128i s = _mm_setr_epi32(0x0c080400ul,0,0,0);
-        __m128i p = _mm_shuffle_epi8(negate(m), s);
+        __m128i p = _mm_shuffle_epi8(neg(m), s);
         std::memcpy(y, &p, 4);
     }
 
@@ -172,7 +176,7 @@ struct avx_int4: implbase<avx_int4> {
         std::memcpy(&r, w, 4);
 
         __m128i s = _mm_setr_epi32(0x80808000ul, 0x80808001ul, 0x80808002ul, 0x80808003ul);
-        return negate(_mm_shuffle_epi8(r, s));
+        return neg(_mm_shuffle_epi8(r, s));
     }
 
     static __m128i max(const __m128i& a, const __m128i& b) {
@@ -245,7 +249,7 @@ struct avx_double4: implbase<avx_double4> {
         return _mm_cvtsd_f64(_mm256_castpd256_pd128(a));
     }
 
-    static __m256d negate(const __m256d& a) {
+    static __m256d neg(const __m256d& a) {
         return _mm256_sub_pd(zero(), a);
     }
 
@@ -328,11 +332,11 @@ struct avx_double4: implbase<avx_double4> {
         return _mm256_castsi256_pd(combine_m128i(bu, bl));
     }
 
-    static void mask_set_element(__m256d& u, int i, bool b) {
-        char data[256];
-        _mm256_storeu_pd((double*)data, u);
-        ((int64*)data)[i] = -(int64)b;
-        u = _mm256_loadu_pd((double*)data);
+    static void mask_set_element(__m256d& u, const int i, bool b) {
+        int64 data[4];
+        _mm256_storeu_si256((__m256i*)data, _mm256_castpd_si256(u));
+        data[i] = -(int64)b;
+        u = _mm256_castsi256_pd(_mm256_loadu_si256((__m256i*)data));
     }
 
     static void mask_copy_to(const __m256d& m, bool* y) {
@@ -694,6 +698,7 @@ struct avx2_double4;
 template <>
 struct simd_traits<avx2_int4> {
     static constexpr unsigned width = 4;
+    static constexpr unsigned min_align = avx_min_align;
     using scalar_type = std::int32_t;
     using vector_type = __m128i;
     using mask_impl = avx_int4;
@@ -702,6 +707,7 @@ struct simd_traits<avx2_int4> {
 template <>
 struct simd_traits<avx2_double4> {
     static constexpr unsigned width = 4;
+    static constexpr unsigned min_align = avx_min_align;
     using scalar_type = double;
     using vector_type = __m256d;
     using mask_impl = avx2_double4;

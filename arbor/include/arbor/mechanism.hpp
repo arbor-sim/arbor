@@ -3,79 +3,79 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/mechanism_abi.h>
 #include <arbor/mechinfo.hpp>
 
 namespace arb {
 
-enum class mechanismKind {point, density, revpot};
-
 class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
-template <typename B> class concrete_mechanism;
-template <typename B>
-using concrete_mech_ptr = std::unique_ptr<concrete_mechanism<B>>;
+struct ion_state_view {
+    fvm_value_type* current_density;
+    fvm_value_type* reversal_potential;
+    fvm_value_type* internal_concentration;
+    fvm_value_type* external_concentration;
+    fvm_value_type* ionic_charge;
+};
 
 class mechanism {
 public:
+    using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
+    using size_type  = fvm_size_type;
+
+    mechanism(const arb_mechanism_type m,
+              const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
+        if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
+    }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
+    ~mechanism() = default;
 
     // Return fingerprint of mechanism dynamics source description for validation/replication.
-    virtual const mechanism_fingerprint& fingerprint() const = 0;
+    const mechanism_fingerprint fingerprint() const { return mech_.fingerprint; };
 
     // Name as given in mechanism source.
-    virtual std::string internal_name() const { return ""; }
+    std::string internal_name() const { return mech_.name; }
 
     // Density or point mechanism?
-    virtual mechanismKind kind() const = 0;
+    arb_mechanism_kind kind() const { return mech_.kind; };
 
-    // Does the implementation require padding and alignment of shared data structures?
-    virtual unsigned data_alignment() const { return 1; }
+    // Minimum expected alignment of allocated vectors and shared state data.
+    unsigned data_alignment() const { return iface_.alignment; }
 
-    // Memory use in bytes.
-    virtual std::size_t memory() const = 0;
+    // Make a new object of the mechanism type, but does not copy any state, so
+    // the result must be instantiated.
+    mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
-    // Width of an instance: number of CVs (density mechanism) or sites (point mechanism)
-    // that the mechanism covers.
-    virtual std::size_t size() const = 0;
-
-    // Cloning makes a new object of the derived concrete mechanism type, but does not
-    // copy any state.
-    virtual mechanism_ptr clone() const = 0;
-
-    // Non-global parameters can be set post-instantiation:
-    virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
-
-    // Simulation interfaces:
-    virtual void initialize() = 0;
-    virtual void nrn_state() = 0;
-    virtual void nrn_current() = 0;
-    virtual void deliver_events() {};
-    virtual void write_ions() = 0;
-
-    virtual ~mechanism() = default;
+    // Forward to interface methods
+    void initialize()     { ppack_.vec_t = *time_ptr_ptr; iface_.init_mechanism(&ppack_); }
+    void update_current() { ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); }
+    void update_state()   { ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_); }
+    void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
+    void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
+    void deliver_events(arb_deliverable_event_stream& stream) { ppack_.vec_t  = *time_ptr_ptr; iface_.apply_events(&ppack_, &stream); }
 
     // Per-cell group identifier for an instantiated mechanism.
-    unsigned  mechanism_id() const { return mechanism_id_; }
+    unsigned mechanism_id() const { return ppack_.mechanism_id; }
 
-protected:
-    // Per-cell group identifier for an instantiation of a mechanism; set by
-    // concrete_mechanism<B>::instantiate()
-    unsigned  mechanism_id_ = -1;
+    arb_mechanism_type  mech_;
+    arb_mechanism_interface iface_;
+    arb_mechanism_ppack ppack_;
+    arb_value_type** time_ptr_ptr = nullptr;
 };
-
-// Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
-// likely via an intermediate class that captures common behaviour for that backend.
-//
-// `concrete_mechanism` provides the `instantiate` method, which takes the backend-specific shared state,
-// together with a layout derived from the discretization, and any global parameter overrides.
 
 struct mechanism_layout {
     // Maps in-instance index to CV index.
     std::vector<fvm_index_type> cv;
+
+    // Maps in-instance index to peer CV index (only for gap-junctions).
+    std::vector<fvm_index_type> peer_cv;
 
     // Maps in-instance index to compartment contribution.
     std::vector<fvm_value_type> weight;
@@ -87,22 +87,12 @@ struct mechanism_layout {
 
 struct mechanism_overrides {
     // Global scalar parameters (any value down-conversion to fvm_value_type is the
-    // responsibility of the concrete mechanism).
+    // responsibility of the mechanism).
     std::unordered_map<std::string, double> globals;
 
     // Ion renaming: keys are ion dependency names as
     // reported by the mechanism info.
     std::unordered_map<std::string, std::string> ion_rebind;
 };
-
-template <typename Backend>
-class concrete_mechanism: public mechanism {
-public:
-    using backend = Backend;
-
-    // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(unsigned  id, typename backend::shared_state&, const mechanism_overrides&, const mechanism_layout&) = 0;
-};
-
 
 } // namespace arb

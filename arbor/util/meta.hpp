@@ -2,82 +2,15 @@
 
 /* Type utilities and convenience expressions.  */
 
+#include <array>
 #include <cstddef>
 #include <iterator>
+#include <tuple>
+#include <utility>
 #include <type_traits>
 
 namespace arb {
 namespace util {
-
-// The following classes and functions can be replaced
-// with std functions when we migrate to later versions of C++.
-//
-// C++17:
-// void_t, empty, data, as_const
-
-template <class...>
-using void_t = void;
-
-template <typename X>
-constexpr std::size_t size(const X& x) { return x.size(); }
-
-template <typename X, std::size_t N>
-constexpr std::size_t size(X (&)[N]) noexcept { return N; }
-
-template <typename C>
-constexpr auto data(C& c) { return c.data(); }
-
-template <typename C>
-constexpr auto data(const C& c) { return c.data(); }
-
-template <typename T, std::size_t N>
-constexpr T* data(T (&a)[N]) noexcept { return a; }
-
-template <typename T>
-void as_const(T&& t) = delete;
-
-template <typename T>
-constexpr std::add_const_t<T>& as_const(T& t) {
-    return t;
-}
-
-// Use sequence `empty() const` method if exists, otherwise
-// compare begin and end.
-
-namespace impl_empty {
-    template <typename C>
-    struct has_const_empty_method {
-        template <typename T>
-        static decltype(std::declval<const T>().empty(), std::true_type{}) test(int);
-        template <typename T>
-        static std::false_type test(...);
-
-        using type = decltype(test<C>(0));
-    };
-
-    using std::begin;
-    using std::end;
-
-    template <typename Seq>
-    constexpr bool empty(const Seq& seq, std::false_type) {
-        return begin(seq)==end(seq);
-    }
-
-    template <typename Seq>
-    constexpr bool empty(const Seq& seq, std::true_type) {
-        return seq.empty();
-    }
-}
-
-template <typename Seq>
-constexpr bool empty(const Seq& seq) {
-    return impl_empty::empty(seq, typename impl_empty::has_const_empty_method<Seq>::type{});
-}
-
-template <typename T, std::size_t N>
-constexpr bool empty(const T (& c)[N]) noexcept {
-    return false; // N cannot be zero
-}
 
 // Types associated with a container or sequence
 
@@ -92,8 +25,18 @@ namespace impl_seqtrait {
     struct data_returns_pointer<T (&)[N], void>: public std::true_type {};
 
     template <typename T>
-    struct data_returns_pointer<T, void_t<decltype(std::declval<T>().data())>>:
+    struct data_returns_pointer<T, std::void_t<decltype(std::declval<T>().data())>>:
         public std::is_pointer<decltype(std::declval<T>().data())>::type {};
+
+    template <typename Seq, typename=void>
+    struct size_type_ {
+        using type = void;
+    };
+
+    template <typename Seq>
+    struct size_type_<Seq, std::void_t<decltype(std::size(std::declval<Seq&>()))>> {
+        using type = decltype(std::size(std::declval<Seq&>()));
+    };
 
     template <typename Seq>
     struct sequence_traits {
@@ -102,7 +45,7 @@ namespace impl_seqtrait {
         using value_type = typename std::iterator_traits<iterator>::value_type;
         using reference = typename std::iterator_traits<iterator>::reference;
         using difference_type = typename std::iterator_traits<iterator>::difference_type;
-        using size_type = decltype(size(std::declval<Seq&>()));
+        using size_type = typename size_type_<Seq>::type;
         // For use with heterogeneous ranges:
         using sentinel = decltype(end(std::declval<Seq&>()));
         using const_sentinel = decltype(end(std::declval<const Seq&>()));
@@ -116,7 +59,7 @@ namespace impl_seqtrait {
         std::false_type {};
 
     template<typename T>
-    struct is_sequence<T, void_t<decltype(begin(std::declval<T>()))>>:
+    struct is_sequence<T, std::void_t<decltype(begin(std::declval<T>()))>>:
         std::true_type {};
 
 }
@@ -130,13 +73,22 @@ template <typename T>
 using is_sequence = impl_seqtrait::is_sequence<T>;
 
 template <typename T>
+inline constexpr bool is_sequence_v = is_sequence<T>::value;
+
+template <typename T>
 using enable_if_sequence_t = std::enable_if_t<util::is_sequence<T>::value>;
 
 template <typename T>
 using is_contiguous = std::integral_constant<bool, sequence_traits<T>::is_contiguous>;
 
 template <typename T>
+inline constexpr bool is_contiguous_v = is_contiguous<T>::value;
+
+template <typename T>
 using is_regular_sequence = std::integral_constant<bool, sequence_traits<T>::is_regular>;
+
+template <typename T>
+inline constexpr bool is_regular_sequence_v = is_regular_sequence<T>::value;
 
 // Convenience short cuts for `enable_if`
 
@@ -175,11 +127,11 @@ template <typename T, typename = void>
 struct is_iterator: public std::false_type {};
 
 template <typename T>
-struct is_iterator<T, void_t<typename std::iterator_traits<T>::iterator_category>>:
+struct is_iterator<T, std::void_t<typename std::iterator_traits<T>::iterator_category>>:
     public std::true_type {};
 
 template <typename T>
-using is_iterator_t = typename util::is_iterator<T>::type;
+inline constexpr bool is_iterator_v = is_iterator<T>::value;
 
 // Random access iterator test
 
@@ -194,7 +146,7 @@ struct is_random_access_iterator<T, std::enable_if_t<
     >> : public std::true_type {};
 
 template <typename T>
-using is_random_access_iterator_t = typename util::is_random_access_iterator<T>::type;
+inline constexpr bool is_random_access_iterator_v = is_random_access_iterator<T>::value;
 
 // Bidirectional iterator test
 
@@ -213,7 +165,7 @@ struct is_bidirectional_iterator<T, std::enable_if_t<
     >> : public std::true_type {};
 
 template <typename T>
-using is_bidirectional_iterator_t = typename util::is_bidirectional_iterator<T>::type;
+inline constexpr bool is_bidirectional_iterator_v = is_bidirectional_iterator<T>::value;
 
 // Forward iterator test
 
@@ -236,8 +188,7 @@ struct is_forward_iterator<T, std::enable_if_t<
     >> : public std::true_type {};
 
 template <typename T>
-using is_forward_iterator_t = typename util::is_forward_iterator<T>::type;
-
+inline constexpr bool is_forward_iterator_v = is_forward_iterator<T>::value;
 
 template <typename I, typename E, typename = void, typename = void>
 struct common_random_access_iterator {};
@@ -246,7 +197,7 @@ template <typename I, typename E>
 struct common_random_access_iterator<
     I,
     E,
-    void_t<decltype(false? std::declval<I>(): std::declval<E>())>,
+    std::void_t<decltype(false? std::declval<I>(): std::declval<E>())>,
     std::enable_if_t<
         is_random_access_iterator<
             std::decay_t<decltype(false? std::declval<I>(): std::declval<E>())>
@@ -259,44 +210,26 @@ struct common_random_access_iterator<
 };
 
 template <typename I, typename E>
-using common_random_access_iterator_t = typename util::common_random_access_iterator<I, E>::type;
+using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
 
 template <typename I, typename E, typename V=void>
 struct has_common_random_access_iterator:
     std::false_type {};
 
 template <typename I, typename E>
-struct has_common_random_access_iterator<I, E, void_t<util::common_random_access_iterator_t<I, E>>>:
+struct has_common_random_access_iterator<I, E, std::void_t<util::common_random_access_iterator_t<I, E>>>:
     std::true_type {};
 
-// No generic lambdas in C++11, so some convenience accessors for pairs that
-// are type-generic
+template <typename I, typename E>
+inline constexpr bool has_common_random_access_iterator_v = has_common_random_access_iterator<I, E>::value;
 
-struct first_t {
-    template <typename U, typename V>
-    U& operator()(std::pair<U, V>& p) {
-        return p.first;
-    }
+// Generic accessors:
+//    * first and second for pairs and tuples;
+//    * util::get<I> to forward to std::get<I> where applicable, but
+//      is otherwise extensible to non-std types.
 
-    template <typename U, typename V>
-    const U& operator()(const std::pair<U, V>& p) const {
-        return p.first;
-    }
-};
-constexpr first_t first{};
-
-struct second_t {
-    template <typename U, typename V>
-    V& operator()(std::pair<U, V>& p) {
-        return p.second;
-    }
-
-    template <typename U, typename V>
-    const V& operator()(const std::pair<U, V>& p) const {
-        return p.second;
-    }
-};
-constexpr second_t second{};
+static auto first = [](auto&& pair) -> decltype(auto) { return std::get<0>(std::forward<decltype(pair)>(pair)); };
+static auto second = [](auto&& pair) -> decltype(auto) { return std::get<1>(std::forward<decltype(pair)>(pair)); };
 
 } // namespace util
 } // namespace arb

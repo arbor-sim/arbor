@@ -3,11 +3,14 @@
  *
  */
 
+#include <any>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 
 #include <nlohmann/json.hpp>
+
+#include <arborio/label_parse.hpp>
 
 #include <arbor/assert_macro.hpp>
 #include <arbor/cable_cell.hpp>
@@ -22,12 +25,16 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
+
+using namespace arborio::literals;
+
+gap_params read_options(int argc, char** argv);
 
 struct gap_params {
     std::string name = "default";
@@ -48,10 +55,9 @@ using arb::cell_size_type;
 using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
-using arb::cell_probe_address;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank);
+void write_trace_json(const std::vector<arb::trace_vector<double>>& trace, unsigned rank);
 
 // Generate a cell.
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
@@ -72,38 +78,20 @@ public:
         return cell_kind::cable;
     }
 
-    // Each cell has one spike detector (at the soma).
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
-    }
-
-    // The cell has one target synapse, which will be connected to a cell in another cable.
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        return 1;
-    }
-
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
             return{};
         }
-        return {arb::cell_connection({gid - 1, 0}, {gid, 0}, params_.event_weight, params_.event_min_delay)};
+        return {arb::cell_connection({gid - 1, "detector"}, {"syn"}, params_.event_weight, params_.event_min_delay)};
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell.
-    cell_size_type num_probes(cell_gid_type gid)  const override {
-        return 1;
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
+        // Measure membrane voltage at end of soma.
+        arb::mlocation loc{0, 1.};
+        return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    arb::probe_info get_probe(cell_member_type id) const override {
-        // Get the appropriate kind for measuring voltage.
-        cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
-        // Measure at the soma.
-        arb::segment_location loc(0, 1);
-
-        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
-    }
-
-    arb::util::any get_global_properties(cell_kind k) const override {
+    std::any get_global_properties(cell_kind k) const override {
         arb::cable_cell_global_properties a;
         a.default_parameters = arb::neuron_parameter_defaults;
         a.default_parameters.temperature_K = 308.15;
@@ -111,6 +99,7 @@ public:
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+        using policy = arb::lid_selection_policy;
         std::vector<arb::gap_junction_connection> conns;
 
         int cable_begin = (gid/params_.n_cells_per_cable) * params_.n_cells_per_cable;
@@ -124,10 +113,12 @@ public:
         // Gap junction conductance in μS
 
         if (next_cell < cable_end) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, 0}, {gid, 1}, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)next_cell, "local_0", policy::assert_univalent},
+                                                         {"local_1", policy::assert_univalent}, 0.015));
         }
         if (prev_cell >= cable_begin) {
-            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, 1}, {gid, 0}, 0.015));
+            conns.push_back(arb::gap_junction_connection({(cell_gid_type)prev_cell, "local_1", policy::assert_univalent},
+                                                         {"local_0", policy::assert_univalent}, 0.015));
         }
 
         return conns;
@@ -137,73 +128,22 @@ private:
     gap_params params_;
 };
 
-struct cell_stats {
-    using size_type = unsigned;
-    size_type ncells = 0;
-    size_type nsegs = 0;
-    size_type ncomp = 0;
-
-    cell_stats(arb::recipe& r) {
-#ifdef ARB_MPI_ENABLED
-        int nranks, rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &nranks);
-        ncells = r.num_cells();
-        size_type cells_per_rank = ncells/nranks;
-        size_type b = rank*cells_per_rank;
-        size_type e = (rank==nranks-1)? ncells: (rank+1)*cells_per_rank;
-        size_type nsegs_tmp = 0;
-        size_type ncomp_tmp = 0;
-        for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs_tmp += c.num_segments();
-            ncomp_tmp += c.num_compartments();
-        }
-        MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-#else
-        ncells = r.num_cells();
-        for (size_type i=0; i<ncells; ++i) {
-            auto c = arb::util::any_cast<arb::cable_cell>(r.get_cell_description(i));
-            nsegs += c.num_segments();
-            ncomp += c.num_compartments();
-        }
-#endif
-    }
-
-    friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
-        return o << "cell stats: "
-                 << s.ncells << " cells; "
-                 << s.nsegs << " segments; "
-                 << s.ncomp << " compartments.";
-    }
-};
-
-
 int main(int argc, char** argv) {
     try {
         bool root = true;
 
-        arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
-
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
-        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        unsigned nt = arbenv::default_concurrency();
+        int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(arb::proc_allocation{nt, gpu_id}, MPI_COMM_WORLD);
         {
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             root = rank==0;
         }
 #else
-        resources.gpu_id = arbenv::default_gpu();
-        auto context = arb::make_context(resources);
+        auto context = arb::make_context(arbenv::default_allocation());
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
@@ -226,9 +166,6 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         gj_recipe recipe(params);
 
-        cell_stats stats(recipe);
-        std::cout << stats << "\n";
-
         auto decomp = arb::partition_load_balance(recipe, context);
 
         // Construct the model.
@@ -238,14 +175,13 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_data<double>> voltage(decomp.num_local_cells);
+        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells);
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
         for (auto g : decomp.groups) {
             for (auto i : g.gids) {
-                auto t = recipe.get_probe({i, 0});
-                sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[j++]));
+                sim.add_sampler(arb::one_probe({i, 0}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }
         }
 
@@ -289,7 +225,7 @@ int main(int argc, char** argv) {
 
         // Write the samples to a json file.
         if (params.print_all) {
-            write_trace_json(voltage, arb::rank(context));
+            write_trace_json(voltage_traces, arb::rank(context));
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
@@ -303,8 +239,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigned rank) {
-    for (unsigned i = 0; i < trace.size(); i++) {
+void write_trace_json(const std::vector<arb::trace_vector<double>>& traces, unsigned rank) {
+    for (unsigned i = 0; i < traces.size(); i++) {
         std::string path = "./voltages_" + std::to_string(rank) +
                            "_" + std::to_string(i) + ".json";
 
@@ -318,7 +254,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
         auto &jt = json["data"]["time"];
         auto &jy = json["data"]["voltage"];
 
-        for (const auto &sample: trace[i]) {
+        for (const auto &sample: traces[i].at(0)) {
             jt.push_back(sample.t);
             jy.push_back(sample.v);
         }
@@ -329,54 +265,56 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace, unsigne
 }
 
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration) {
-    arb::cable_cell cell;
-    cell.default_parameters.axial_resistivity = 100;       // [Ω·cm]
-    cell.default_parameters.membrane_capacitance = 0.018;  // [F/m²]
+    // Create the sample tree that defines the morphology.
+    arb::segment_tree tree;
+    double soma_rad = 22.360679775/2.0; // convert diameter to radius in μm
+    tree.append(arb::mnpos, {0,0,0,soma_rad}, {0,0,2*soma_rad,soma_rad}, 1); // soma
+    double dend_rad = 3./2; // μm
+    tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
+    arb::decor decor;
+
+    decor.set_default(arb::axial_resistivity{100});       // [Ω·cm]
+    decor.set_default(arb::membrane_capacitance{0.018});  // [F/m²]
+
+    // Define the density channels and their parameters.
     arb::mechanism_desc nax("nax");
+    nax["gbar"] = 0.04;
+    nax["sh"] = 10;
+
     arb::mechanism_desc kdrmt("kdrmt");
+    kdrmt["gbar"] = 0.0001;
+
     arb::mechanism_desc kamt("kamt");
-    arb::mechanism_desc pas("pas");
+    kamt["gbar"] = 0.004;
 
-    auto set_reg_params = [&]() {
-        nax["gbar"] = 0.04;
-        nax["sh"] = 10;
-        kdrmt["gbar"] = 0.0001;
-        kamt["gbar"] = 0.004;
-        pas["g"] =  1.0/12000.0;
-        pas["e"] =  -65;
-    };
+    arb::mechanism_desc pas("pas/e=-65.0");
+    pas["g"] =  1.0/12000.0;
 
-    auto setup_seg = [&](auto seg) {
-        seg->add_mechanism(nax);
-        seg->add_mechanism(kdrmt);
-        seg->add_mechanism(kamt);
-        seg->add_mechanism(pas);
-    };
+    // Paint density channels on all parts of the cell
+    decor.paint("(all)"_reg, arb::density{nax});
+    decor.paint("(all)"_reg, arb::density{kdrmt});
+    decor.paint("(all)"_reg, arb::density{kamt});
+    decor.paint("(all)"_reg, arb::density{pas});
 
-    auto soma = cell.add_soma(22.360679775/2.0);
-    set_reg_params();
-    setup_seg(soma);
+    // Add a spike detector to the soma.
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
 
-    auto dend = cell.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300); //cable 1
-    dend->set_compartments(1);
-    set_reg_params();
-    setup_seg(dend);
+    // Add two gap junction sites.
+    decor.place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1");
+    decor.place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0");
 
-    cell.add_detector({0,0}, 10);
-
-    cell.add_gap_junction({0, 1});
-    cell.add_gap_junction({1, 1});
-
+    // Attach a stimulus to the first cell of the first group
     if (!gid) {
-        arb::i_clamp stim(0, stim_duration, 0.4);
-        cell.add_stimulus({0, 0.5}, stim);
+        auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
+        decor.place(arb::mlocation{0, 0.5}, stim, "stim");
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    cell.add_synapse({1, 0.5}, "expsyn");
+    decor.place(arb::mlocation{0, 0.5}, arb::synapse{"expsyn"}, "syn");
 
-    return cell;
+    // Create the cell and set its electrical properties.
+    return arb::cable_cell(tree, {}, decor);
 }
 
 gap_params read_options(int argc, char** argv) {
@@ -388,7 +326,7 @@ gap_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];
@@ -400,7 +338,7 @@ gap_params read_options(int argc, char** argv) {
     }
 
     nlohmann::json json;
-    json << f;
+    f >> json;
 
     param_from_json(params.name, "name", json);
     param_from_json(params.n_cables, "n-cables", json);

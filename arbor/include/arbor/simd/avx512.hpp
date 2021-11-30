@@ -19,9 +19,12 @@ struct avx512_double8;
 struct avx512_int8;
 struct avx512_mask8;
 
+static constexpr unsigned avx512_min_align = 16;
+
 template <>
 struct simd_traits<avx512_mask8> {
     static constexpr unsigned width = 8;
+    static constexpr unsigned min_align = avx512_min_align;
     using scalar_type = bool;
     using vector_type = __mmask8;
     using mask_impl = avx512_mask8;
@@ -30,6 +33,7 @@ struct simd_traits<avx512_mask8> {
 template <>
 struct simd_traits<avx512_double8> {
     static constexpr unsigned width = 8;
+    static constexpr unsigned min_align = avx512_min_align;
     using scalar_type = double;
     using vector_type = __m512d;
     using mask_impl = avx512_mask8;
@@ -38,6 +42,7 @@ struct simd_traits<avx512_double8> {
 template <>
 struct simd_traits<avx512_int8> {
     static constexpr unsigned width = 8;
+    static constexpr unsigned min_align = avx512_min_align;
     using scalar_type = std::int32_t;
     using vector_type = __m512i;
     using mask_impl = avx512_mask8;
@@ -98,7 +103,7 @@ struct avx512_mask8: implbase<avx512_mask8> {
     //     max(a, b)                  a | b
     //     min(a, b)                  a & b
 
-    static __mmask8 negate(const __mmask8& a) {
+    static __mmask8 neg(const __mmask8& a) {
         return a;
     }
 
@@ -249,7 +254,7 @@ struct avx512_int8: implbase<avx512_int8> {
         return _mm_cvtsi128_si32(_mm512_castsi512_si128(a));
     }
 
-    static __m512i negate(const __m512i& a) {
+    static __m512i neg(const __m512i& a) {
         return sub(_mm512_setzero_epi32(), a);
     }
 
@@ -445,7 +450,7 @@ struct avx512_double8: implbase<avx512_double8> {
         return _mm_cvtsd_f64(_mm512_castpd512_pd128(a));
     }
 
-    static __m512d negate(const __m512d& a) {
+    static __m512d neg(const __m512d& a) {
         return _mm512_sub_pd(_mm512_setzero_pd(), a);
     }
 

@@ -1,33 +1,48 @@
 #include <chrono>
 #include <exception>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 
-#include "cell_group.hpp"
-#include "profile/profiler_macro.hpp"
 #include "benchmark_cell_group.hpp"
+#include "cell_group.hpp"
+#include "label_resolution.hpp"
+#include "profile/profiler_macro.hpp"
 
 #include "util/span.hpp"
 
 namespace arb {
 
 benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gids,
-                                           const recipe& rec):
+                                           const recipe& rec,
+                                           cell_label_range& cg_sources,
+                                           cell_label_range& cg_targets):
     gids_(gids)
 {
+    for (auto gid: gids_) {
+        if (!rec.get_probes(gid).empty()) {
+            throw bad_cell_probe(cell_kind::benchmark, gid);
+        }
+    }
+
     cells_.reserve(gids_.size());
     for (auto gid: gids_) {
         cells_.push_back(util::any_cast<benchmark_cell>(rec.get_cell_description(gid)));
+    }
+
+    for (const auto& c: cells_) {
+        cg_sources.add_cell();
+        cg_targets.add_cell();
+        cg_sources.add_label(c.source, {0, 1});
+        cg_targets.add_label(c.target, {0, 1});
     }
 
     reset();
 }
 
 void benchmark_cell_group::reset() {
-    t_ = 0;
-
     for (auto& c: cells_) {
         c.time_sequence.reset();
     }
@@ -48,7 +63,7 @@ void benchmark_cell_group::advance(epoch ep,
 
     PE(advance_bench_cell);
     // Micro-seconds to advance in this epoch.
-    auto us = 1e3*(ep.tfinal-t_);
+    auto us = 1e3*(ep.duration());
     for (auto i: util::make_span(0, gids_.size())) {
         // Expected time to complete epoch in micro seconds.
         const double duration_us = cells_[i].realtime_ratio*us;
@@ -57,7 +72,7 @@ void benchmark_cell_group::advance(epoch ep,
         // Start timer.
         auto start = high_resolution_clock::now();
 
-        auto spike_times = util::make_range(cells_[i].time_sequence.events(t_, ep.tfinal));
+        auto spike_times = util::make_range(cells_[i].time_sequence.events(ep.t0, ep.t1));
         for (auto t: spike_times) {
             spikes_.push_back({{gid, 0u}, t});
         }
@@ -67,7 +82,6 @@ void benchmark_cell_group::advance(epoch ep,
         // has elapsed, to emulate a "real" cell.
         while (duration_type(high_resolution_clock::now()-start).count() < duration_us);
     }
-    t_ = ep.tfinal;
 
     PL();
 };
@@ -84,9 +98,6 @@ void benchmark_cell_group::add_sampler(sampler_association_handle h,
                                    cell_member_predicate probe_ids,
                                    schedule sched,
                                    sampler_function fn,
-                                   sampling_policy policy)
-{
-    std::logic_error("A benchmark_cell group doen't support sampling of internal state!");
-}
+                                   sampling_policy policy) {}
 
 } // namespace arb

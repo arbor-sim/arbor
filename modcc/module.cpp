@@ -48,20 +48,40 @@ class NrnCurrentRewriter: public BlockRewriterBase {
     }
 
     bool has_current_update_ = false;
-    std::set<std::string> ion_current_vars_;
+    std::set<std::string> current_vars_;
+    std::set<expression_ptr> conductivity_exps_;
 
 public:
     using BlockRewriterBase::visit;
 
     virtual void finalize() override {
         if (has_current_update_) {
-            // Initialize conductivity_ as first statement.
-            statements_.push_front(make_expression<AssignmentExpression>(loc_,
-                    id("conductivity_"),
-                    make_expression<NumberExpression>(loc_, 0.0)));
-            statements_.push_front(make_expression<AssignmentExpression>(loc_,
-                    id("current_"),
-                    make_expression<NumberExpression>(loc_, 0.0)));
+            expression_ptr current_sum, conductivity_sum;
+            for (auto& curr: current_vars_) {
+                auto curr_id = make_expression<IdentifierExpression>(Location{}, curr);
+                if (!current_sum) {
+                    current_sum = std::move(curr_id);
+                } else {
+                    current_sum = make_expression<AddBinaryExpression>(
+                            Location{}, std::move(current_sum), std::move(curr_id));
+                }
+            }
+            for (auto& cond: conductivity_exps_) {
+                if (!conductivity_sum) {
+                    conductivity_sum = cond->clone();
+                } else {
+                    conductivity_sum = make_expression<AddBinaryExpression>(
+                            Location{}, std::move(conductivity_sum), cond->clone());
+                }
+            }
+            if (current_sum) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                        id("current_"), std::move(current_sum)));
+            }
+            if (conductivity_sum) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                        id("conductivity_"), std::move(conductivity_sum)));
+            }
         }
     }
 
@@ -69,42 +89,17 @@ public:
     virtual void visit(ConductanceExpression *e) override {}
     virtual void visit(AssignmentExpression *e) override {
         statements_.push_back(e->clone());
-        auto loc = e->location();
 
         sourceKind current_source = current_update(e);
         if (current_source != sourceKind::no_source) {
             has_current_update_ = true;
 
-            if (current_source==sourceKind::ion_current_density || current_source==sourceKind::ion_current) {
-                ion_current_vars_.insert(e->lhs()->is_identifier()->name());
-            }
-            else {
-                // A 'nonspecific' current contribution.
-                // Remove data source; currents accumulated into `current_` instead.
-
-                e->lhs()->is_identifier()->symbol()->is_local_variable()
-                    ->external_variable()->data_source(sourceKind::no_source);
-            }
+            auto visited_current = current_vars_.count(e->lhs()->is_identifier()->name());
+            current_vars_.insert(e->lhs()->is_identifier()->name());
 
             linear_test_result L = linear_test(e->rhs(), {"v"});
-            if (!L.is_linear) {
-                error({"current update expressions must be linear in v: "+e->rhs()->to_string(),
-                       e->location()});
-                return;
-            }
-            else {
-                statements_.push_back(make_expression<AssignmentExpression>(loc,
-                    id("current_", loc),
-                    make_expression<AddBinaryExpression>(loc,
-                        id("current_", loc),
-                        e->lhs()->clone())));
-                if (L.coef.count("v")) {
-                    statements_.push_back(make_expression<AssignmentExpression>(loc,
-                        id("conductivity_", loc),
-                        make_expression<AddBinaryExpression>(loc,
-                            id("conductivity_", loc),
-                            L.coef.at("v")->clone())));
-                }
+            if (L.coef.count("v") && !visited_current) {
+                conductivity_exps_.insert(L.coef.at("v")->clone());
             }
         }
     }
@@ -156,7 +151,7 @@ bool Module::semantic() {
     // symbol table.
     // Returns false if a symbol name clashes with the name of a symbol that
     // is already in the symbol table.
-    bool linear = true;
+    bool linear_homogeneous = true;
     std::vector<std::string> state_vars;
     auto move_symbols = [this] (std::vector<symbol_ptr>& symbol_list) {
         for(auto& symbol: symbol_list) {
@@ -187,6 +182,23 @@ bool Module::semantic() {
     // move functions and procedures to the symbol table
     if(!move_symbols(callables_))  return false;
 
+    // Before starting the inlining process, look for the BREAKPOINT block:
+    // if it includes a SOLVE statement, check that it is the first statement
+    // in the block.
+    if (has_symbol("breakpoint", symbolKind::procedure)) {
+        bool found_non_solve = false;
+        auto breakpoint = symbols_["breakpoint"]->is_procedure();
+        for (const auto& s: breakpoint->body()->statements()) {
+            if(!s->is_solve_statement()) {
+                found_non_solve = true;
+            }
+            else if (found_non_solve) {
+                error("SOLVE statements must come first in BREAKPOINT block", s->location());
+                return false;
+            }
+        }
+    }
+
     // perform semantic analysis and inlining on function and procedure bodies
     if(auto errors = semantic_func_proc()) {
         error("There were "+std::to_string(errors)+" errors in the semantic analysis");
@@ -194,9 +206,9 @@ bool Module::semantic() {
     }
 
     // All API methods are generated from statements in one of the special procedures
-    // defined in NMODL, e.g. the nrn_init() API call is based on the INITIAL block.
+    // defined in NMODL, e.g. the init() API call is based on the INITIAL block.
     // When creating an API method, the first task is to look up the source procedure,
-    // i.e. the INITIAL block for nrn_init(). This lambda takes care of this repetative
+    // i.e. the INITIAL block for init(). This lambda takes care of this repetative
     // lookup work, with error checking.
     auto make_empty_api_method = [this]
             (std::string const& name, std::string const& source_name)
@@ -217,10 +229,13 @@ bool Module::semantic() {
                   symbols_.find(name)->second->location());
             return std::make_pair(nullptr, source);
         }
-
+        std::vector<expression_ptr> args;
+        for (auto& a: source->args()) {
+            args.push_back(a->clone());
+        }
         symbols_[name] = make_symbol<APIMethod>(
                           loc, name,
-                          std::vector<expression_ptr>(), // no arguments
+                          std::move(args),
                           make_expression<BlockExpression>
                             (loc, expr_list_type(), false)
                          );
@@ -262,7 +277,7 @@ bool Module::semantic() {
         make_expression<BlockExpression>(Location{}, std::move(ion_assignments), false));
 
     //.........................................................................
-    // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
+    // init : based on the INITIAL block (i.e. the 'initial' procedure
     //.........................................................................
 
     // insert an empty INITIAL block if none was defined in the .mod file.
@@ -274,27 +289,47 @@ bool Module::semantic() {
                 procedureKind::initial
         );
     }
-    auto initial_api = make_empty_api_method("nrn_init", "initial");
+    auto initial_api = make_empty_api_method("init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+
     auto& init_body = api_init->body()->statements();
+
+    api_init->semantic(symbols_);
+    scope_ptr init_scope = api_init->scope();
 
     for(auto& e : *proc_init->body()) {
         auto solve_expression = e->is_solve_statement();
         if (solve_expression) {
             // Grab SOLVE statements, put them in `body` after translation.
             std::set<std::string> solved_ids;
-            std::unique_ptr<SolverVisitorBase> solver = std::make_unique<SparseSolverVisitor>();
+            std::unique_ptr<SolverVisitorBase> solver;
 
             // The solve expression inside an initial block can only refer to a linear block
             auto solve_proc = solve_expression->procedure();
 
             if (solve_proc->kind() == procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(solve_proc->body(), state_vars)->accept(solver.get());
+                auto rewrite_body = linear_rewrite(solve_proc->body(), state_vars);
+                if (!rewrite_body) {
+                    error("An error occured while compiling the LINEAR block. "
+                          "Check whether the statements are in fact linear.");
+                    return false;
+                }
+
+                rewrite_body->semantic(init_scope);
+                rewrite_body->accept(solver.get());
+            } else if (solve_proc->kind() == procedureKind::kinetic &&
+                       solve_expression->variant() == solverVariant::steadystate) {
+                solver = std::make_unique<SparseSolverVisitor>(solverVariant::steadystate);
+                auto rewrite_body = kinetic_rewrite(solve_proc->body());
+
+                rewrite_body->semantic(init_scope);
+                rewrite_body->accept(solver.get());
             } else {
-                error("A SOLVE expression in an INITIAL block can only be used to solve a LINEAR block, which" +
-                      solve_expression->name() + "is not.", solve_expression->location());
+                error("A SOLVE expression in an INITIAL block can only be used to solve a "
+                      "LINEAR block or a KINETIC block at steadystate and " +
+                      solve_expression->name() + " is neither.", solve_expression->location());
                 return false;
             }
 
@@ -307,7 +342,10 @@ bool Module::semantic() {
                     }
                     solved_ids.insert(id);
                 }
-                // Copy body into nrn_init.
+
+                solve_block = remove_unused_locals(solve_block->is_block());
+
+                // Copy body into init.
                 for (auto &stmt: solve_block->is_block()->statements()) {
                     init_body.emplace_back(stmt->clone());
                 }
@@ -326,169 +364,181 @@ bool Module::semantic() {
     // Look in the symbol table for a procedure with the name "breakpoint".
     // This symbol corresponds to the BREAKPOINT block in the .mod file
     // There are two APIMethods generated from BREAKPOINT.
-    // The first is nrn_state, which is the first case handled below.
-    // The second is nrn_current, which is handled after this block
-    auto state_api  = make_empty_api_method("nrn_state", "breakpoint");
+    // The first is advance_state, which is the first case handled below.
+    // The second is compute_currents, which is handled after this block
+    auto state_api  = make_empty_api_method("advance_state", "breakpoint");
     auto api_state  = state_api.first;
-    auto breakpoint = state_api.second; // implies we are building the `nrn_state()` method.
+    auto breakpoint = state_api.second; // implies we are building the `advance_state()` method.
 
-    api_state->semantic(symbols_);
-    scope_ptr nrn_state_scope = api_state->scope();
-
-    if(breakpoint) {
-        // Grab SOLVE statements, put them in `nrn_state` after translation.
-        bool found_solve = false;
-        bool found_non_solve = false;
-        std::set<std::string> solved_ids;
-
-        for(auto& e: (breakpoint->body()->statements())) {
-            SolveExpression* solve_expression = e->is_solve_statement();
-            if(!solve_expression) {
-                found_non_solve = true;
-                continue;
-            }
-            if(found_non_solve) {
-                error("SOLVE statements must come first in BREAKPOINT block",
-                    e->location());
-                return false;
-            }
-
-            found_solve = true;
-            std::unique_ptr<SolverVisitorBase> solver;
-
-            switch(solve_expression->method()) {
-            case solverMethod::cnexp:
-                solver = std::make_unique<CnexpSolverVisitor>();
-                break;
-            case solverMethod::sparse:
-                solver = std::make_unique<SparseSolverVisitor>();
-                break;
-            case solverMethod::none:
-                solver = std::make_unique<DirectSolverVisitor>();
-                break;
-            }
-
-            // If the derivative block is a kinetic block, perform kinetic
-            // rewrite first.
-
-            auto deriv = solve_expression->procedure();
-
-            if (deriv->kind()==procedureKind::kinetic) {
-                kinetic_rewrite(deriv->body())->accept(solver.get());
-            }
-            else if (deriv->kind()==procedureKind::linear) {
-                solver = std::make_unique<LinearSolverVisitor>(state_vars);
-                linear_rewrite(deriv->body(), state_vars)->accept(solver.get());
-            }
-            else {
-                deriv->body()->accept(solver.get());
-                for (auto& s: deriv->body()->statements()) {
-                    if(s->is_assignment() && !state_vars.empty()) {
-                        linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                        linear &= r.is_linear;
-                        linear &= r.is_homogeneous;
-                    }
-                }
-            }
-
-            if (auto solve_block = solver->as_block(false)) {
-                // Check that we didn't solve an already solved variable.
-                for (const auto& id: solver->solved_identifiers()) {
-                    if (solved_ids.count(id)>0) {
-                        error("Variable "+id+" solved twice!", e->location());
-                        return false;
-                    }
-                    solved_ids.insert(id);
-                }
-
-                // May have now redundant local variables; remove these first.
-                solve_block->semantic(nrn_state_scope);
-                solve_block = remove_unused_locals(solve_block->is_block());
-
-                // Copy body into nrn_state.
-                for (auto& stmt: solve_block->is_block()->statements()) {
-                    api_state->body()->statements().push_back(std::move(stmt));
-                }
-            }
-            else {
-                // Something went wrong: copy errors across.
-                append_errors(solver->errors());
-                return false;
-            }
-        }
-
-        // handle the case where there is no SOLVE in BREAKPOINT
-        if(!found_solve) {
-            warning(" there is no SOLVE statement, required to update the"
-                    " state variables, in the BREAKPOINT block",
-                    breakpoint->location());
-        }
-        else {
-            // Redo semantic pass in order to elimate any removed local symbols.
-            api_state->semantic(symbols_);
-        }
-
-        // Run remove locals pass again on the whole body in case `dt` was never used.
-        api_state->body(remove_unused_locals(api_state->body()));
-        api_state->semantic(symbols_);
-
-        //..........................................................
-        // nrn_current : update contributions to currents
-        //..........................................................
-        NrnCurrentRewriter nrn_current_rewriter;
-        breakpoint->accept(&nrn_current_rewriter);
-
-        for (auto& s: breakpoint->body()->statements()) {
-            if(s->is_assignment() && !state_vars.empty()) {
-                linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                linear &= r.is_linear;
-                linear &= r.is_homogeneous;
-            }
-        }
-
-        auto nrn_current_block = nrn_current_rewriter.as_block();
-        if (!nrn_current_block) {
-            append_errors(nrn_current_rewriter.errors());
-            return false;
-        }
-
-        symbols_["nrn_current"] =
-            make_symbol<APIMethod>(
-                    breakpoint->location(), "nrn_current",
-                    std::vector<expression_ptr>(),
-                    constant_simplify(nrn_current_block));
-        symbols_["nrn_current"]->semantic(symbols_);
-    }
-    else {
+    if(!breakpoint) {
         error("a BREAKPOINT block is required");
         return false;
     }
 
+    api_state->semantic(symbols_);
+    scope_ptr advance_state_scope = api_state->scope();
+
+    // Grab SOLVE statements, put them in `advance_state` after translation.
+    bool found_solve = false;
+    std::set<std::string> solved_ids;
+
+    for(auto& e: (breakpoint->body()->statements())) {
+        SolveExpression* solve_expression = e->is_solve_statement();
+        if(!solve_expression) {
+            continue;
+        }
+        found_solve = true;
+
+        // If the derivative block is a kinetic block, perform kinetic rewrite first.
+        auto deriv = solve_expression->procedure();
+        auto solve_body = deriv->body()->clone();
+        if (deriv->kind()==procedureKind::kinetic) {
+            solve_body = kinetic_rewrite(deriv->body());
+        }
+        else if (deriv->kind()==procedureKind::linear) {
+            solve_body = linear_rewrite(deriv->body(), state_vars);
+        }
+
+        // Calculate linearity and homogeneity of the statements in the derivative block.
+        bool linear = true;
+        bool homogeneous = true;
+        for (auto& s: solve_body->is_block()->statements()) {
+            if(s->is_assignment() && !state_vars.empty()) {
+                linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                linear &= r.is_linear;
+                homogeneous &= r.is_homogeneous;
+            }
+        }
+        linear_homogeneous &= (linear & homogeneous);
+
+        // Construct solver based on system kind, linearity and solver method.
+        std::unique_ptr<SolverVisitorBase> solver;
+        switch(solve_expression->method()) {
+        case solverMethod::cnexp:
+            solver = std::make_unique<CnexpSolverVisitor>();
+            break;
+        case solverMethod::sparse: {
+            if (linear) {
+                solver = std::make_unique<SparseSolverVisitor>(solve_expression->variant());
+            }
+            else {
+                solver = std::make_unique<SparseNonlinearSolverVisitor>();
+            }
+            break;
+        }
+        case solverMethod::none:
+            if (deriv->kind()==procedureKind::linear) {
+                solver = std::make_unique<LinearSolverVisitor>(state_vars);
+            }
+            else {
+                solver = std::make_unique<DirectSolverVisitor>();
+            }
+            break;
+        }
+        // Perform semantic analysis on the solve block statements and solve them.
+        solve_body->semantic(advance_state_scope);
+        solve_body->accept(solver.get());
+
+        if (auto solve_block = solver->as_block(false)) {
+            // Check that we didn't solve an already solved variable.
+            for (const auto& id: solver->solved_identifiers()) {
+                if (solved_ids.count(id)>0) {
+                    error("Variable "+id+" solved twice!", e->location());
+                    return false;
+                }
+                solved_ids.insert(id);
+            }
+
+            // May have now redundant local variables; remove these first.
+            solve_block->semantic(advance_state_scope);
+            solve_block = remove_unused_locals(solve_block->is_block());
+
+            // Copy body into advance_state.
+            for (auto& stmt: solve_block->is_block()->statements()) {
+                api_state->body()->statements().push_back(std::move(stmt));
+
+            }
+        }
+        else {
+            // Something went wrong: copy errors across.
+            append_errors(solver->errors());
+            return false;
+        }
+    }
+
+    // handle the case where there is a SOLVE in BREAKPOINT (which is the typical case)
+    if (found_solve) {
+        // Redo semantic pass in order to eliminate any removed local symbols.
+        api_state->semantic(symbols_);
+    }
+
+    // Run remove locals pass again on the whole body in case `dt` was never used.
+    api_state->body(remove_unused_locals(api_state->body()));
+    api_state->semantic(symbols_);
+
+    //..........................................................
+    // compute_currents : update contributions to currents
+    //..........................................................
+    NrnCurrentRewriter compute_currents_rewriter;
+    breakpoint->accept(&compute_currents_rewriter);
+
+    for (auto& s: breakpoint->body()->statements()) {
+        if(s->is_assignment() && !state_vars.empty()) {
+            linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+            linear_homogeneous &= r.is_linear;
+            linear_homogeneous &= r.is_homogeneous;
+        }
+    }
+
+    auto compute_currents_block = compute_currents_rewriter.as_block();
+    if (!compute_currents_block) {
+        append_errors(compute_currents_rewriter.errors());
+        return false;
+    }
+
+    symbols_["compute_currents"] =
+        make_symbol<APIMethod>(
+                breakpoint->location(), "compute_currents",
+                std::vector<expression_ptr>(),
+                constant_simplify(compute_currents_block));
+    symbols_["compute_currents"]->semantic(symbols_);
+
     if (has_symbol("net_receive", symbolKind::procedure)) {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
+        net_rec_api.first->body(net_rec_api.second->body()->clone());
         if (net_rec_api.second) {
             for (auto &s: net_rec_api.second->body()->statements()) {
                 if (s->is_assignment()) {
                     for (const auto &id: state_vars) {
                         auto coef = symbolic_pdiff(s->is_assignment()->rhs(), id);
+                        if(!coef) {
+                            linear_homogeneous = false;
+                            continue;
+                        }
                         if(coef->is_number()) {
                             if (!s->is_assignment()->lhs()->is_identifier()) {
                                 error(pprintf("Left hand side of assignment is not an identifier"));
                                 return false;
                             }
-                            linear &= s->is_assignment()->lhs()->is_identifier()->name() == id ?
-                                      coef->is_number()->value() == 1 :
-                                      coef->is_number()->value() == 0;
+                            linear_homogeneous &= s->is_assignment()->lhs()->is_identifier()->name() == id ?
+                                                  coef->is_number()->value() == 1 :
+                                                  coef->is_number()->value() == 0;
                         }
                         else {
-                            linear = false;
+                            linear_homogeneous = false;
                         }
                     }
                 }
             }
         }
     }
-    linear_ = linear;
+    linear_ = linear_homogeneous;
+
+    post_events_ = has_symbol("post_event", symbolKind::procedure);
+    if (post_events_) {
+        auto post_events_api = make_empty_api_method("post_event_api", "post_event");
+        post_events_api.first->body(post_events_api.second->body()->clone());
+    }
 
     // Are we writing an ionic reversal potential? If so, change the moduleKind to
     // `revpot` and assert that the mechanism is 'pure': it has no state variables;
@@ -531,13 +581,14 @@ void Module::add_variables_to_symbols() {
             make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
     };
 
-    sourceKind current_kind = kind_==moduleKind::point? sourceKind::current: sourceKind::current_density;
-    sourceKind conductance_kind = kind_==moduleKind::point? sourceKind::conductance: sourceKind::conductivity;
+    sourceKind current_kind = kind_==moduleKind::density? sourceKind::current_density: sourceKind::current;
+    sourceKind conductance_kind = kind_==moduleKind::density? sourceKind::conductivity: sourceKind::conductance;
 
     create_indexed_variable("current_", current_kind, accessKind::write, "", Location());
     create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
-    create_indexed_variable("v", sourceKind::voltage, accessKind::read,  "", Location());
-    create_indexed_variable("dt", sourceKind::dt, accessKind::read,  "", Location());
+    create_indexed_variable("v",      sourceKind::voltage, accessKind::read,  "", Location());
+    create_indexed_variable("v_peer", sourceKind::peer_voltage, accessKind::read,  "", Location());
+    create_indexed_variable("dt",     sourceKind::dt, accessKind::read,  "", Location());
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -549,17 +600,23 @@ void Module::add_variables_to_symbols() {
             accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range, true);
     }
 
-    // Add parameters, ignoring built-in voltage variable "v".
+    // Add parameters, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: parameter_block_) {
-        if (id.name() == "v") {
+        if (id.name() == "v" || id.name() == "v_peer") {
             continue;
         }
 
-        // Special case: 'celsius' is an external indexed-variable with a special
-        // data source. Retrieval of value is handled especially by printers.
+        // Special cases: 'celsius', 'diam' and 't' are external indexed-variables with special
+        // data sources. Retrieval of their values is handled especially by printers.
 
         if (id.name() == "celsius") {
             create_indexed_variable("celsius", sourceKind::temperature, accessKind::read, "", Location());
+        }
+        else if (id.name() == "diam") {
+            create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
+        }
+        else if (id.name() == "t") {
+            create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
         }
         else {
             // Parameters are scalar by default, but may later be changed to range.
@@ -573,16 +630,28 @@ void Module::add_variables_to_symbols() {
         }
     }
 
-    // Remove `celsius` from the parameter block, as it is not a true parameter anymore.
+    // Remove `celsius`, `diam` and `t` from the parameter block, as they are not true parameters anymore.
     parameter_block_.parameters.erase(
         std::remove_if(parameter_block_.begin(), parameter_block_.end(),
             [](const Id& id) { return id.name() == "celsius"; }),
         parameter_block_.end()
     );
 
-    // Add 'assigned' variables, ignoring built-in voltage variable "v".
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+            [](const Id& id) { return id.name() == "diam"; }),
+        parameter_block_.end()
+    );
+
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+            [](const Id& id) { return id.name() == "t"; }),
+        parameter_block_.end()
+    );
+
+    // Add 'assigned' variables, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: assigned_block_) {
-        if (id.name() == "v") {
+        if (id.name() == "v" || id.name() == "v_peer") {
             continue;
         }
 
@@ -634,12 +703,11 @@ void Module::add_variables_to_symbols() {
     // Nonspecific current variables are represented by an indexed variable
     // with a 'current' data source. Assignments in the NrnCurrent block will
     // later be rewritten so that these contributions are accumulated in `current_`
-    // (potentially saving some weight multiplications); at that point the
-    // data source for the nonspecific current variable will be reset to 'no_source'.
+    // (potentially saving some weight multiplications);
 
     if( neuron_block_.has_nonspecific_current() ) {
         auto const& i = neuron_block_.nonspecific_current;
-        create_indexed_variable(i.spelling, sourceKind::current, accessKind::write, "", i.location);
+        create_indexed_variable(i.spelling, current_kind, accessKind::noaccess, "", i.location);
     }
 
     for(auto const& ion : neuron_block_.ions) {
@@ -659,7 +727,7 @@ void Module::add_variables_to_symbols() {
 
     // then GLOBAL variables
     for(auto const& var : neuron_block_.globals) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as GLOBAL, but has not been declared in the" +
                    " ASSIGNED block",
@@ -679,7 +747,7 @@ void Module::add_variables_to_symbols() {
 
     // then RANGE variables
     for(auto const& var : neuron_block_.ranges) {
-        if(!symbols_[var.spelling]) {
+        if(!symbols_.count(var.spelling)) {
             error( yellow(var.spelling) +
                    " is declared as RANGE, but has not been declared in the" +
                    " ASSIGNED or PARAMETER block",
@@ -706,109 +774,107 @@ int Module::semantic_func_proc() {
     //  -   generate local variable table for each function/procedure
     //  -   inlining function calls
     ////////////////////////////////////////////////////////////////////////////
-#ifdef LOGGING
-    std::cout << white("===================================\n");
-    std::cout << cyan("        Function Inlining\n");
-    std::cout << white("===================================\n");
-#endif
+
+    // Before, make sure there are no errors
     int errors = 0;
     for(auto& e : symbols_) {
-        auto& s = e.second;
-
-        if(    s->kind() == symbolKind::function
-            || s->kind() == symbolKind::procedure)
-        {
-#ifdef LOGGING
-            std::cout << "\nfunction inlining for " << s->location() << "\n"
-                      << s->to_string() << "\n"
-                      << green("\n-call site lowering-\n\n");
-#endif
-            // first perform semantic analysis
+        auto &s = e.second;
+        if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
             s->semantic(symbols_);
-
-            // then use an error visitor to print out all the semantic errors
             ErrorVisitor v(source_name());
             s->accept(&v);
             errors += v.num_errors();
-
-            // inline function calls
-            // this requires that the symbol table has already been built
-            if(v.num_errors()==0) {
-                auto &b = s->kind()==symbolKind::function ?
-                    s->is_function()->body()->statements() :
-                    s->is_procedure()->body()->statements();
-
-                // lower function call sites so that all function calls are of
-                // the form : variable = call(<args>)
-                // e.g.
-                //      a = 2 + foo(2+x, y, 1)
-                // becomes
-                //      ll0_ = foo(2+x, y, 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    b.splice(e, lower_function_calls((*e).get()));
-                }
-#ifdef LOGGING
-                std::cout << "body after call site lowering\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                std::cout << green("\n-argument lowering-\n\n");
-#endif
-
-                // lower function arguments that are not identifiers or literals
-                // e.g.
-                //      ll0_ = foo(2+x, y, 1)
-                //      a = 2 + ll0_
-                // becomes
-                //      ll1_ = 2+x
-                //      ll0_ = foo(ll1_, y, 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    if(auto be = (*e)->is_binary()) {
-                        // only apply to assignment expressions where rhs is a
-                        // function call because the function call lowering step
-                        // above ensures that all function calls are of this form
-                        if(auto rhs = be->rhs()->is_function_call()) {
-                            b.splice(e, lower_function_arguments(rhs->args()));
-                        }
-                    }
-                }
+        }
+    }
+    if (errors > 0) {
+        return errors;
+    }
 
 #ifdef LOGGING
-                std::cout << "body after argument lowering\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
-                std::cout << green("\n-inlining-\n\n");
+    std::cout << white("===================================\n");
+        std::cout << cyan("        Function Inlining\n");
+        std::cout << white("===================================\n");
 #endif
-
-                // Do the inlining, which currently only works for functions
-                // that have a single statement in their body
-                // e.g. if the function foo in the examples above is defined as follows
-                //
-                //  function foo(a, b, c) {
-                //      foo = a*(b + c)
-                //  }
-                //
-                // the full inlined example is
-                //      ll1_ = 2+x
-                //      ll0_ = ll1_*(y + 1)
-                //      a = 2 + ll0_
-                for(auto e=b.begin(); e!=b.end(); ++e) {
-                    if(auto ass = (*e)->is_assignment()) {
-                        if(ass->rhs()->is_function_call()) {
-                            ass->replace_rhs(inline_function_call(ass->rhs()));
-                        }
-                    }
-                }
-
+    for (auto& e: symbols_) {
+        auto& s = e.second;
+        if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
+            // perform semantic analysis
+            s->semantic(symbols_);
 #ifdef LOGGING
-                std::cout << "body after inlining\n";
-                for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
+            std::cout << "\nfunction lowering for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
 #endif
-                // Finally, run a constant simplification pass.
-                if (auto proc = s->is_procedure()) {
-                    proc->body(constant_simplify(proc->body()));
-                    s->semantic(symbols_);
-                }
+
+            if (s->kind() == symbolKind::function) {
+                auto rewritten = lower_functions(s->is_function()->body());
+                s->is_function()->body(std::move(rewritten));
+            } else {
+                auto rewritten = lower_functions(s->is_procedure()->body());
+                s->is_procedure()->body(std::move(rewritten));
             }
+#ifdef LOGGING
+            std::cout << "body after function lowering\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
+
+    auto inline_and_simplify = [&](auto&& caller) {
+        auto rewritten = inline_function_calls(caller->name(), caller->body());
+        caller->body(std::move(rewritten));
+        caller->body(constant_simplify(caller->body()));
+    };
+
+    // First, inline all function calls inside the bodies of each function
+    // This catches recursions
+    for(auto& e : symbols_) {
+        auto& s = e.second;
+
+        if (s->kind() == symbolKind::function) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
+            inline_and_simplify(s->is_function());
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
+
+    // Once all functions are inlined internally; we can inline
+    // function calls in the bodies of procedures
+    for(auto& e : symbols_) {
+        auto& s = e.second;
+
+        if(s->kind() == symbolKind::procedure) {
+            // perform semantic analysis
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "function inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n\n";
+#endif
+            inline_and_simplify(s->is_procedure());
+            s->semantic(symbols_);
+#ifdef LOGGING
+            std::cout << "body after inlining\n"
+                      << s->to_string() << "\n\n";
+#endif
+        }
+    }
+
+    errors = 0;
+    for(auto& e : symbols_) {
+        auto& s = e.second;
+        if(s->kind() == symbolKind::procedure) {
+            s->semantic(symbols_);
+            ErrorVisitor v(source_name());
+            s->accept(&v);
+            errors += v.num_errors();
         }
     }
     return errors;
@@ -852,5 +918,3 @@ void Module::check_revpot_mechanism() {
 
     kind_ = moduleKind::revpot;
 }
-
-

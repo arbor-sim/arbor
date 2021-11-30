@@ -12,7 +12,7 @@
 template <typename EPtr>
 void verbose_print(const EPtr& e, Parser& p, const char* text) {
     verbose_print(e);
-    if (p.status()==lexerStatus::error) {
+    if (p.status() == lexerStatus::error) {
         verbose_print("in ", red(text), "\t", p.error_message());
     }
 }
@@ -21,22 +21,21 @@ template <typename Derived, typename RetUniqPtr>
 ::testing::AssertionResult check_parse(
     std::unique_ptr<Derived>& derived,
     RetUniqPtr (Parser::*pmemfn)(),
-    const char* text)
-{
+    const char* text) {
     Parser p(text);
     auto e = (p.*pmemfn)();
     verbose_print(e, p, text);
 
-    if (e==nullptr) {
+    if (e == nullptr) {
         return ::testing::AssertionFailure() << "failed to parse '" << text << "'";
     }
 
-    if (p.status()!=lexerStatus::happy) {
+    if (p.status() != lexerStatus::happy) {
         return ::testing::AssertionFailure() << "parser status is not happy";
     }
 
-    Derived *ptr = e? dynamic_cast<Derived*>(e.get()): nullptr;
-    if (ptr==nullptr) {
+    Derived* ptr = e ? dynamic_cast<Derived*>(e.get()) : nullptr;
+    if (ptr == nullptr) {
         return ::testing::AssertionFailure() << "failed to cast to derived type";
     }
     else {
@@ -59,11 +58,11 @@ template <typename RetUniqPtr>
     auto e = (p.*pmemfn)();
     verbose_print(e, p, text);
 
-    if (p.status()!=lexerStatus::error) {
+    if (p.status() != lexerStatus::error) {
         return ::testing::AssertionFailure() << "parser status is not error";
     }
 
-    if (e!=nullptr) {
+    if (e != nullptr) {
         return ::testing::AssertionFailure() << "parser returned non-null expression";
     }
 
@@ -72,7 +71,7 @@ template <typename RetUniqPtr>
 
 TEST(Parser, full_file) {
     Module m(io::read_all(DATADIR "/mod_files/test0.mod"), "test0.mod");
-    if (m.buffer().size()==0) {
+    if (m.buffer().size() == 0) {
         std::cout << "skipping Parser.full_file test because unable to open input file" << std::endl;
         return;
     }
@@ -91,17 +90,15 @@ TEST(Parser, procedure) {
         "  y = x + y * 2\n"
         "  y = a + b +c + a + b\n"
         "  y = a + b *c + a + b\n"
-        "}"
-        ,
-        "PROCEDURE trates(v) {\n"
+        "}",
+        "PROCEDURE trates(v (mV)) {\n"
         "    LOCAL qt\n"
         "    qt=q10^((celsius-22)/10)\n"
         "    minf=1-1/(1+exp((v-vhalfm)/km))\n"
         "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
         "    mtau = 0.6\n"
         "    htau = 1500\n"
-        "}"
-    };
+        "}"};
 
     for (const auto& str: calls) {
         EXPECT_TRUE(check_parse(&Parser::parse_procedure, str));
@@ -110,17 +107,16 @@ TEST(Parser, procedure) {
 
 TEST(Parser, load_constant) {
     char str[] = {
-            "CONSTANT {\n"
-            "  t0 = -1.2\n"
-            "  t1 = 0.5\n"
-            "  t2 = -t0\n"
-            "  t3 = -t1\n"
-            "}"
-    };
+        "CONSTANT {\n"
+        "  t0 = -1.2\n"
+        "  t1 = 0.5\n"
+        "  t2 = -t0\n"
+        "  t3 = -t1\n"
+        "}"};
 
     Parser p(str);
     p.parse_constant_block();
-    EXPECT_TRUE(p.status()==lexerStatus::happy);
+    EXPECT_TRUE(p.status() == lexerStatus::happy);
 
     EXPECT_TRUE(p.constants_map_.find("t0") != p.constants_map_.end());
     EXPECT_EQ("-1.2", p.constants_map_.at("t0"));
@@ -137,16 +133,16 @@ TEST(Parser, load_constant) {
 
 TEST(Parser, parameters_from_constant) {
     const char str[] =
-            "PARAMETER {   \n"
-            "  tau = -t0   \n"
-            "  e = t1      \n"
-            "}";
+        "PARAMETER {   \n"
+        "  tau = -t0   \n"
+        "  e = t1      \n"
+        "}";
 
     expression_ptr null;
-    Module m(str, str+std::strlen(str), "");
+    Module m(str, str + std::strlen(str), "");
     Parser p(m, false);
-    p.constants_map_.insert({"t0","-0.5"});
-    p.constants_map_.insert({"t1","1.2"});
+    p.constants_map_.insert({"t0", "-0.5"});
+    p.constants_map_.insert({"t1", "1.2"});
     p.parse_parameter_block();
 
     EXPECT_EQ(lexerStatus::happy, p.status());
@@ -157,6 +153,34 @@ TEST(Parser, parameters_from_constant) {
     EXPECT_EQ("0.5", param_block.parameters[0].value);
     EXPECT_EQ("e", param_block.parameters[1].name());
     EXPECT_EQ("1.2", param_block.parameters[1].value);
+}
+
+TEST(Parser, parameters_range) {
+    const char str[] =
+        "PARAMETER {   \n"
+        "  tau = 0.2 <0,1000>  \n"
+        "  rho = 0.2 \n"
+        "  gamma = 0.2 <-1000,1000>  \n"
+        "  sigma = 3 <-2.71,3.14>  \n"
+        "}";
+
+    expression_ptr null;
+    Module m(str, str + std::strlen(str), "");
+    Parser p(m, false);
+    p.parse_parameter_block();
+
+    EXPECT_EQ(lexerStatus::happy, p.status());
+    verbose_print(null, p, str);
+
+    auto param_block = m.parameter_block();
+    EXPECT_EQ("tau", param_block.parameters[0].name());
+    EXPECT_EQ("0.2", param_block.parameters[0].value);
+    EXPECT_EQ("0", param_block.parameters[0].range.first);
+    EXPECT_EQ("1000", param_block.parameters[0].range.second);
+    EXPECT_EQ("rho", param_block.parameters[1].name());
+    EXPECT_EQ("0.2", param_block.parameters[1].value);
+    EXPECT_EQ("", param_block.parameters[1].range.first);
+    EXPECT_EQ("", param_block.parameters[1].range.second);
 }
 
 TEST(Parser, net_receive) {
@@ -181,17 +205,46 @@ TEST(Parser, net_receive) {
 }
 
 TEST(Parser, function) {
-    char str[] =
-        "FUNCTION foo(x, y) {"
-        "  LOCAL a\n"
-        "  a = 3\n"
-        "  b = x * y + 2\n"
-        "  y = x + y * 2\n"
-        "  foo = a * x + y\n"
-        "}";
+    {
+        char str[] =
+            "FUNCTION foo(x, y) {"
+            "  LOCAL a\n"
+            "  a = 3\n"
+            "  b = x * y + 2\n"
+            "  y = x + y * 2\n"
+            "  foo = a * x + y\n"
+            "}";
 
-    std::unique_ptr<Symbol> sym;
-    EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+        std::unique_ptr<Symbol> sym;
+        EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+    }
+    {
+        char str[] =
+            "FUNCTION foo(x (mv), y (/mA)) {"
+            "  foo = x * y\n"
+            "}";
+
+        std::unique_ptr<Symbol> sym;
+        EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+    }
+    {
+        char str[] =
+            "FUNCTION foo(x (mv), y (/mA)) (mv/mA) {"
+            "  foo = x * y\n"
+            "}";
+
+        std::unique_ptr<Symbol> sym;
+        EXPECT_TRUE(check_parse(sym, &Parser::parse_function, str));
+    }
+    {
+        char str[] =
+            "FUNCTION foo(x (mv), y (/mA)) (mv-mA) {"
+            "  foo = x * y\n"
+            "}";
+
+        std::unique_ptr<Symbol> sym;
+        EXPECT_FALSE(check_parse(sym, &Parser::parse_function, str));
+    }
 }
 
 TEST(Parser, parse_solve) {
@@ -229,44 +282,51 @@ TEST(Parser, parse_conductance) {
 TEST(Parser, parse_if) {
     std::unique_ptr<IfExpression> s;
 
-    EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(a<b) {      \n"
-        "       a = 2+b    \n"
-        "       b = 4^b    \n"
-        "   }              \n"
-    ));
+    EXPECT_TRUE(check_parse(s, &Parser::parse_if, "   if(a<b) {      \n"
+                                                  "       a = 2+b    \n"
+                                                  "       b = 4^b    \n"
+                                                  "   }              \n"));
     if (s) {
         EXPECT_NE(s->condition()->is_binary(), nullptr);
         EXPECT_NE(s->true_branch()->is_block(), nullptr);
         EXPECT_EQ(s->false_branch(), nullptr);
     }
 
-    EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(a<b) {      \n"
-        "       a = 2+b    \n"
-        "   } else {       \n"
-        "       a = 2+b    \n"
-        "   }                "
-    ));
+    EXPECT_TRUE(check_parse(s, &Parser::parse_if, "   if(a<b) {      \n"
+                                                  "       a = 2+b    \n"
+                                                  "   } else {       \n"
+                                                  "       a = 2+b    \n"
+                                                  "   }                "));
     if (s) {
         EXPECT_NE(s->condition()->is_binary(), nullptr);
         EXPECT_NE(s->true_branch()->is_block(), nullptr);
         EXPECT_NE(s->false_branch(), nullptr);
     }
 
-    EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(abs(a-b)) {      \n"
-        "       a = 2+b    \n"
-        "   } else if(b>a){\n"
-        "       a = 2+b    \n"
-        "   }              "
-    ));
+    EXPECT_TRUE(check_parse(s, &Parser::parse_if, "   IF(a<b) {      \n"
+                                                  "       a = 2+b    \n"
+                                                  "   } ELSE {       \n"
+                                                  "       a = 2+b    \n"
+                                                  "   }                "));
+    if (s) {
+        EXPECT_NE(s->condition()->is_binary(), nullptr);
+        EXPECT_NE(s->true_branch()->is_block(), nullptr);
+        EXPECT_NE(s->false_branch(), nullptr);
+    }
+
+    EXPECT_TRUE(check_parse(s, &Parser::parse_if, "   if(fabs(a-b)) {      \n"
+                                                  "       a = 2+b    \n"
+                                                  "   } else if(b>a){\n"
+                                                  "       a = 2+b    \n"
+                                                  "   }              "));
     if (s) {
         EXPECT_NE(s->condition()->is_unary(), nullptr);
         EXPECT_NE(s->true_branch()->is_block(), nullptr);
         ASSERT_NE(s->false_branch(), nullptr);
-        ASSERT_NE(s->false_branch()->is_if(), nullptr);
-        EXPECT_EQ(s->false_branch()->is_if()->false_branch(), nullptr);
+        ASSERT_NE(s->false_branch()->is_block(), nullptr);
+
+        auto false_if_branch = s->false_branch()->is_block()->statements().front()->clone();
+        EXPECT_EQ(false_if_branch->is_if()->false_branch(), nullptr);
     }
 }
 
@@ -296,8 +356,7 @@ TEST(Parser, parse_unary_expression) {
         "(x + -y)       ",
         "-(x - + -y)    ",
         "exp(x + y)     ",
-        "-exp(x + -y)   "
-    };
+        "-exp(x + -y)   "};
 
     for (auto& text: good_expr) {
         EXPECT_TRUE(check_parse(&Parser::parse_unaryop, text));
@@ -323,8 +382,8 @@ TEST(Parser, parse_parenthesis_expression) {
         "(x             ",
         "((x+3)         ",
         "(x+ +)         ",
-        "(x=3)          ",  // assignment inside parenthesis isn't allowed
-        "(a + (b*2^(x)) ",  // missing closing parenthesis
+        "(x=3)          ", // assignment inside parenthesis isn't allowed
+        "(a + (b*2^(x)) ", // missing closing parenthesis
     };
 
     for (auto& text: bad_expr) {
@@ -358,14 +417,14 @@ TEST(Parser, parse_line_expression) {
     }
 
     const char* bad_expr[] = {
-        "x=2+        ",      // incomplete binary expression on rhs
-        "x=          ",      // missing rhs of assignment
+        "x=2+        ", // incomplete binary expression on rhs
+        "x=          ", // missing rhs of assignment
         "x=)y + 2 * z",
         "x=(y + 2    ",
         "x=(y ++ z   ",
-        "x/=3        ",      // compound binary expressions not supported
-        "foo+8       ",      // missing assignment
-        "foo()=8     ",      // lhs of assingment must be an lvalue
+        "x/=3        ", // compound binary expressions not supported
+        "foo+8       ", // missing assignment
+        "foo()=8     ", // lhs of assingment must be an lvalue
     };
 
     for (auto& text: bad_expr) {
@@ -375,8 +434,7 @@ TEST(Parser, parse_line_expression) {
 
 TEST(Parser, parse_stoich_term) {
     const char* good_pos_expr[] = {
-        "B", "B3", "3B3", "0A", "12A", "4E"
-    };
+        "B", "B3", "3B3", "0A", "12A", "4E"};
 
     for (auto& text: good_pos_expr) {
         std::unique_ptr<StoichTermExpression> s;
@@ -385,8 +443,7 @@ TEST(Parser, parse_stoich_term) {
     }
 
     const char* good_neg_expr[] = {
-        "-3B3", "-A", "-12A"
-    };
+        "-3B3", "-A", "-12A"};
 
     for (auto& text: good_neg_expr) {
         std::unique_ptr<StoichTermExpression> s;
@@ -404,8 +461,7 @@ TEST(Parser, parse_stoich_term) {
 
 TEST(Parser, parse_stoich_expression) {
     const char* single_expr[] = {
-        "B", "B3", "3xy"
-    };
+        "B", "B3", "3xy"};
 
     for (auto& text: single_expr) {
         std::unique_ptr<StoichExpression> s;
@@ -414,8 +470,7 @@ TEST(Parser, parse_stoich_expression) {
     }
 
     const char* double_expr[] = {
-        "B+A", "a1 + 2bn", "4c+d"
-    };
+        "B+A", "a1 + 2bn", "4c+d"};
 
     for (auto& text: double_expr) {
         std::unique_ptr<StoichExpression> s;
@@ -424,8 +479,7 @@ TEST(Parser, parse_stoich_expression) {
     }
 
     const char* other_good_expr[] = {
-        "", "a+b+c", "1a-2b+3c+4d"
-    };
+        "", "a+b+c", "1a-2b+3c+4d"};
 
     for (auto& text: other_good_expr) {
         std::unique_ptr<StoichExpression> s;
@@ -437,16 +491,15 @@ TEST(Parser, parse_stoich_expression) {
         std::unique_ptr<StoichExpression> s;
         EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_expression, check_coeff));
         EXPECT_EQ(4u, s->terms().size());
-        std::vector<int> confirm = {-3,2,-1,1};
-        for (unsigned i = 0; i<4; ++i) {
+        std::vector<int> confirm = {-3, 2, -1, 1};
+        for (unsigned i = 0; i < 4; ++i) {
             auto term = s->terms()[i]->is_stoich_term();
             EXPECT_EQ(confirm[i], term->coeff()->is_integer()->integer_value());
         }
     }
 
     const char* bad_expr[] = {
-        "A+B+", "A+5+B"
-    };
+        "A+B+", "A+5+B"};
 
     for (auto& text: bad_expr) {
         EXPECT_TRUE(check_parse_fail(&Parser::parse_stoich_expression, text));
@@ -461,8 +514,7 @@ TEST(Parser, parse_reaction_expression) {
         "~ <-> C + D + 7 E (k1, f(a,b)-2)",
         "~ <-> C + D + 7E+F (k1, f(a,b)-2)",
         "~ <-> (f,g)",
-        "~ A + 3B + C<-> (f,g)"
-    };
+        "~ A + 3B + C<-> (f,g)"};
 
     for (auto& text: good_expr) {
         std::unique_ptr<ReactionExpression> s;
@@ -531,41 +583,47 @@ TEST(Parser, parse_conserve) {
         "CONSERVE a + 3*b -c = 1",
         "CONSERVE a + 3b -c = ",
         "a+b+c = 2",
-        "CONSERVE a + 3b +c"
-    };
+        "CONSERVE a + 3b +c"};
 
     for (auto& text: bad_expr) {
         EXPECT_TRUE(check_parse_fail(&Parser::parse_conserve_expression, text));
     }
 }
 
-long double eval(Expression *e) {
+double eval(Expression* e) {
     if (auto n = e->is_number()) {
         return n->value();
     }
     if (auto b = e->is_binary()) {
         auto lhs = eval(b->lhs());
         auto rhs = eval(b->rhs());
-        switch(b->op()) {
-            case tok::plus  : return lhs+rhs;
-            case tok::minus : return lhs-rhs;
-            case tok::times : return lhs*rhs;
-            case tok::divide: return lhs/rhs;
-            case tok::pow   : return std::pow(lhs,rhs);
-            case tok::min   : return std::min(lhs,rhs);
-            case tok::max   : return std::max(lhs,rhs);
-            default:;
+        switch (b->op()) {
+        case tok::plus: return lhs + rhs;
+        case tok::minus: return lhs - rhs;
+        case tok::times: return lhs * rhs;
+        case tok::divide: return lhs / rhs;
+        case tok::lt:    return lhs < rhs;
+        case tok::lte:   return lhs <= rhs;
+        case tok::gt:    return lhs > rhs;
+        case tok::gte:   return lhs >= rhs;
+        case tok::lnot:  return lhs != rhs;
+        case tok::land:  return lhs && rhs;
+        case tok::lor:   return lhs || rhs;
+        case tok::pow: return std::pow(lhs, rhs);
+        case tok::min: return std::min(lhs, rhs);
+        case tok::max: return std::max(lhs, rhs);
+        default:;
         }
     }
     if (auto u = e->is_unary()) {
         auto val = eval(u->expression());
-        switch(u->op()) {
-            case tok::plus  : return  val;
-            case tok::minus : return -val;
-            default:;
+        switch (u->op()) {
+        case tok::plus: return val;
+        case tok::minus: return -val;
+        default:;
         }
     }
-    return std::numeric_limits<long double>::quiet_NaN();
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 // test parsing of expressions for correctness
@@ -575,10 +633,10 @@ TEST(Parser, parse_binop) {
 
     std::pair<const char*, double> tests[] = {
         // simple
-        {"2+3", 2.+3.},
-        {"2-3", 2.-3.},
-        {"2*3", 2.*3.},
-        {"2/3", 2./3.},
+        {"2+3", 2. + 3.},
+        {"2-3", 2. - 3.},
+        {"2*3", 2. * 3.},
+        {"2/3", 2. / 3.},
         {"2^3", pow(2., 3.)},
         {"min(2,3)", 2.},
         {"min(3,2)", 2.},
@@ -586,40 +644,49 @@ TEST(Parser, parse_binop) {
         {"max(3,2)", 3.},
 
         // more complicated
-        {"2+3*2", 2.+(3*2)},
-        {"2*3-5", (2.*3)-5.},
-        {"2+3*(-2)", 2.+(3*-2)},
-        {"2+3*(-+2)", 2.+(3*-+2)},
-        {"2/3*4", (2./3.)*4.},
-        {"min(2+3, 4/2)", 4./2},
-        {"max(2+3, 4/2)", 2.+3.},
+        {"2+3*2", 2. + (3 * 2)},
+        {"2*3-5", (2. * 3) - 5.},
+        {"2+3*(-2)", 2. + (3 * -2)},
+        {"2+3*(-+2)", 2. + (3 * -+2)},
+        {"2/3*4", (2. / 3.) * 4.},
+        {"min(2+3, 4/2)", 4. / 2},
+        {"max(2+3, 4/2)", 2. + 3.},
         {"max(2+3, min(12, 24))", 12.},
         {"max(min(12, 24), 2+3)", 12.},
-        {"2 * 7 - 3 * 11 + 4 * 13", 2.*7.-3.*11.+4.*13.},
+        {"2 * 7 - 3 * 11 + 4 * 13", 2. * 7. - 3. * 11. + 4. * 13.},
 
         // right associative
-        {"2^3^1.5", pow(2.,pow(3.,1.5))},
-        {"2^3^1.5^2", pow(2.,pow(3.,pow(1.5,2.)))},
-        {"2^2^3", pow(2.,pow(2.,3.))},
-        {"(2^2)^3", pow(pow(2.,2.),3.)},
-        {"3./2^7.", 3./pow(2.,7.)},
-        {"3^2*5.", pow(3.,2.)*5.},
+        {"2^3^1.5", pow(2., pow(3., 1.5))},
+        {"2^3^1.5^2", pow(2., pow(3., pow(1.5, 2.)))},
+        {"2^2^3", pow(2., pow(2., 3.))},
+        {"(2^2)^3", pow(pow(2., 2.), 3.)},
+        {"3./2^7.", 3. / pow(2., 7.)},
+        {"3^2*5.", pow(3., 2.) * 5.},
 
         // multilevel
         {"1-2*3^4*5^2^3-3^2^3/4/8-5",
-            1.-2*pow(3.,4.)*pow(5.,pow(2.,3.))-pow(3,pow(2.,3.))/4./8.-5}
-    };
+            1. - 2 * pow(3., 4.) * pow(5., pow(2., 3.)) - pow(3, pow(2., 3.)) / 4. / 8. - 5}};
 
     for (const auto& test_case: tests) {
         std::unique_ptr<Expression> e;
         EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
-
-        // A loose tolerance of 1e-10 is required here because the eval()
-        // function uses long double for intermediate results (like constant
-        // folding in modparser).  For expressions with transcendental
-        // operations this can see relatively large divergence between the
-        // double and long double results.
         EXPECT_NEAR(eval(e.get()), test_case.second, 1e-10);
+    }
+
+    std::pair<const char*, bool> bool_tests[] = {
+        {"0 && 0 || 1", true},
+        {"(0 && 0) || 1", true},
+        {"0 && (0 || 1)", false},
+        {"3<2 && 1 || 4>1", true},
+        {"(3<2 && 1) || 4>1", true},
+        {"3<2 && (1 || 4>1)", false},
+        {"(3<2) && (1 || (4>1))", false},
+    };
+
+    for (const auto& test_case: bool_tests) {
+        std::unique_ptr<Expression> e;
+        EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
+        EXPECT_EQ(eval(e.get()), test_case.second);
     }
 }
 
@@ -644,12 +711,15 @@ TEST(Parser, parse_state_block) {
         "STATE {\n"
         "    h (nA)\n"
         "    m (nA) r (uA)\n"
-        "}"
-    };
+        "}",
+        "STATE {\n"
+        "    h FROM 0 TO 1\n"
+        "    m r (uA)\n"
+        "}"};
 
     expression_ptr null;
     for (const auto& text: state_blocks) {
-        Module m(text, text+std::strlen(text), "");
+        Module m(text, text + std::strlen(text), "");
         Parser p(m, false);
         p.parse_state_block();
         EXPECT_EQ(lexerStatus::happy, p.status());

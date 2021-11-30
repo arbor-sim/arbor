@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <functional>
 #include <list>
@@ -64,7 +65,7 @@ TEST(range, pointer) {
     util::range<int *> s(&xs[l], &xs[r]);
     auto s_deduced = util::make_range(xs+l, xs+r);
 
-    EXPECT_TRUE((std::is_same<decltype(s), decltype(s_deduced)>::value));
+    EXPECT_TRUE((std::is_same_v<decltype(s), decltype(s_deduced)>));
     EXPECT_EQ(s.left, s_deduced.left);
     EXPECT_EQ(s.right, s_deduced.right);
 
@@ -141,11 +142,11 @@ TEST(range, input_iterator) {
 TEST(range, const_iterator) {
     std::vector<int> xs = { 1, 2, 3, 4, 5 };
     auto r = util::make_range(xs.begin(), xs.end());
-    EXPECT_TRUE((std::is_same<int&, decltype(r.front())>::value));
+    EXPECT_TRUE((std::is_same_v<int&, decltype(r.front())>));
 
     const auto& xs_const = xs;
     auto r_const = util::make_range(xs_const.begin(), xs_const.end());
-    EXPECT_TRUE((std::is_same<const int&, decltype(r_const.front())>::value));
+    EXPECT_TRUE((std::is_same_v<const int&, decltype(r_const.front())>));
 }
 
 TEST(range, view) {
@@ -187,7 +188,7 @@ TEST(range, strictify) {
     auto cstr_range = util::make_range(cstr, null_terminated);
 
     auto ptr_range = util::strict_view(cstr_range);
-    EXPECT_TRUE((std::is_same<decltype(ptr_range), util::range<const char *>>::value));
+    EXPECT_TRUE((std::is_same_v<decltype(ptr_range), util::range<const char *>>));
     EXPECT_EQ(cstr, ptr_range.left);
     EXPECT_EQ(cstr+11, ptr_range.right);
 
@@ -258,7 +259,7 @@ TEST(range, max_element_by) {
     auto i = util::max_element_by(cstr_range,
         [](char c) -> int { return -c; });
 
-    EXPECT_TRUE((std::is_same<const char *, decltype(i)>::value));
+    EXPECT_TRUE((std::is_same_v<const char *, decltype(i)>));
     EXPECT_EQ('d', *i);
     EXPECT_EQ(cstr+9, i);
 
@@ -420,7 +421,7 @@ TEST(range, assign_from) {
 
     {
         std::vector<int> copy = util::assign_from(in);
-        for (auto i=0u; i<util::size(in); ++i) {
+        for (auto i=0u; i<std::size(in); ++i) {
             EXPECT_EQ(in[i], copy[i]);
         }
     }
@@ -428,7 +429,7 @@ TEST(range, assign_from) {
     {
         std::vector<int> copy = util::assign_from(
             util::transform_view(in, [](int i) {return 2*i;}));
-        for (auto i=0u; i<util::size(in); ++i) {
+        for (auto i=0u; i<std::size(in); ++i) {
             EXPECT_EQ(2*in[i], copy[i]);
         }
     }
@@ -476,6 +477,26 @@ TEST(range, sort) {
     EXPECT_EQ(X, (std::vector<foo>{{5, 0}, {4, 1}, {3, 2}, {2, 3}, {1, 4}, {0, 5}}));
     util::sort(X, [](const foo& l, const foo& r) {return l.x<r.x;});
     EXPECT_EQ(X, (std::vector<foo>{{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}}));
+}
+
+TEST(range, sum) {
+    std::string words[] = { "fish", "cakes", "!" };
+
+    auto result = util::sum(words);
+    EXPECT_EQ("fishcakes!", result);
+
+    result = util::sum(words, "tasty"s);
+    EXPECT_EQ("tastyfishcakes!", result);
+
+    struct uwrap {
+        unsigned value = 0;
+        uwrap(unsigned v): value(v) {}
+
+        uwrap operator+(const std::string& s) { return value+s.size(); }
+    };
+
+    auto count = util::sum(words, uwrap{3});
+    EXPECT_EQ(3u+4u+5u+1u, count.value);
 }
 
 TEST(range, sum_by) {
@@ -648,6 +669,63 @@ TEST(range, is_sorted_by) {
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
 }
 
+template <typename V>
+struct repeat_iterator {
+    typedef std::input_iterator_tag iterator_category;
+    typedef const V& reference;
+    typedef const V* pointer;
+    typedef V value_type;
+    typedef std::ptrdiff_t difference_type;
+
+    V v;
+    repeat_iterator(V v): v(std::move(v)) {}
+
+    bool operator==(const repeat_iterator<V>& i) const { return true; }
+    bool operator!=(const repeat_iterator<V>& i) const { return false; }
+    reference operator*() const { return v; }
+    repeat_iterator& operator++() { return *this; }
+    repeat_iterator& operator++(int) { return *this; }
+    pointer operator->() const { return &v; }
+};
+
+struct never_t {
+    template <typename X> friend bool operator==(never_t, const X&) { return false; }
+    template <typename X> friend bool operator==(const X&, never_t) { return false; }
+
+    template <typename X> friend bool operator!=(never_t, const X&) { return true; }
+    template <typename X> friend bool operator!=(const X&, never_t) { return true; }
+};
+static never_t never;
+
+template <typename V>
+auto repeat(V v) { return util::make_range(repeat_iterator<V>(std::move(v)), never); }
+
+TEST(range, equal) {
+    // Finite containers
+    unsigned a[5] = { 1, 3, 2, 5, 4};
+    std::array<unsigned, 5> b = { 1, 3, 2, 5, 4};
+
+    EXPECT_TRUE(util::equal(a, b));
+
+    a[3] = 10;
+    EXPECT_FALSE(util::equal(a, b));
+
+    unsigned abis[6] = { 1, 3, 2, 5, 4, 6};
+    EXPECT_FALSE(util::equal(abis, b));
+
+    std::vector<std::string> empty1;
+    std::vector<std::string> empty2;
+    EXPECT_TRUE(util::equal(empty1, empty2));
+
+    empty2.push_back("hello");
+    EXPECT_FALSE(util::equal(empty1, empty2));
+
+    // Infinite sequence
+    unsigned c[3] = { 2, 2, 2 };
+    EXPECT_FALSE(util::equal(c, repeat(2u)));
+    EXPECT_FALSE(util::equal(repeat(5u), repeat(2u)));
+}
+
 TEST(range, reverse) {
     // make a C string into a sentinel-terminated range
     auto cstr = [](const char* s) { return util::make_range(s, null_terminated); };
@@ -656,4 +734,34 @@ TEST(range, reverse) {
     util::assign(rev, util::reverse_view(cstr("hello")));
 
     EXPECT_EQ("olleh"s, rev);
+}
+
+TEST(range, foldl) {
+    // Check invocation order:
+    int xs[] = {1, 2, 3, 4};
+    int result = util::foldl(
+        [](int l, int r) { return 10*l+r; },
+        0,
+        xs);
+
+    EXPECT_EQ(1234, result);
+
+    // Check mutability permission:
+    result = util::foldl(
+        [](int l, int& r) { return ++r, 10*l+r; },
+        0,
+        xs);
+    EXPECT_EQ(2345, result);
+    EXPECT_EQ(5,xs[3]);
+
+    // Check works with move-only values:
+    nocopy<int> ns[] = {1, 2, 3, 4};
+    auto plus = [](nocopy<int> a, nocopy<int> b) { return nocopy<int>(10*a.value + b.value); };
+    auto nc_result = util::foldl(
+        [&plus](auto a, auto& b) { return plus(std::move(a), std::move(b)); },
+        nocopy<int>(0),
+        ns);
+
+    EXPECT_EQ(1234, nc_result.value);
+    EXPECT_EQ(0, ns[3].value);
 }

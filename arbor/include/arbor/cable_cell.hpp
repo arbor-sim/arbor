@@ -1,7 +1,9 @@
 #pragma once
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -9,270 +11,291 @@
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/morph/label_dict.hpp>
+#include <arbor/morph/mcable_map.hpp>
+#include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/segment.hpp>
+#include <arbor/morph/primitives.hpp>
+#include <arbor/util/hash_def.hpp>
+#include <arbor/util/typed_map.hpp>
 
 namespace arb {
 
-// Location specification for point processes.
+// `cable_sample_range` is simply a pair of `const double*` pointers describing the sequence
+// of double values associated with the cell-wide sample.
 
-struct segment_location {
-    segment_location(cell_lid_type s, double l):
-        segment(s), position(l)
-    {
-        arb_assert(position>=0. && position<=1.);
-    }
+using cable_sample_range = std::pair<const double*, const double*>;
 
-     bool operator==(segment_location other) const {
-        return segment==other.segment && position==other.position;
-    }
 
-    cell_lid_type segment;
-    double position;
+// Each kind of probe has its own type for representing its address, as below.
+//
+// Probe address specifications can be for _scalar_ data, associated with a fixed
+// location or synapse on a cell, or _vector_ data, associated with multiple
+// sites or sub-sections of a cell.
+//
+// Sampler functions receive an `any_ptr` to sampled data. The underlying pointer
+// type is a const pointer to:
+//     * `double` for scalar data;
+//     * `cable_sample_range*` for vector data (see definition above).
+//
+// The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
+// the underlying pointer will be a const pointer to one of the following metadata types:
+//     * `mlocation` for most scalar queries;
+//     * `cable_probe_point_info` for point mechanism state queries;
+//     * `mcable_list` for most vector queries;
+//     * `std::vector<cable_probe_point_info>` for cell-wide point mechanism state queries.
+//
+// Scalar probes which are described by a locset expression will generate multiple
+// calls to an attached sampler, one per valid location matched by the expression.
+//
+// Metadata for point process probes.
+struct cable_probe_point_info {
+    cell_lid_type target;   // Target number of point process instance on cell.
+    unsigned multiplicity;  // Number of combined instances at this site.
+    mlocation loc;          // Point on cell morphology where instance is placed.
 };
 
-// Current clamp description for stimulus specification.
-
-struct i_clamp {
-    using value_type = double;
-
-    value_type delay = 0;      // [ms]
-    value_type duration = 0;   // [ms]
-    value_type amplitude = 0;  // [nA]
-
-    i_clamp(value_type delay, value_type duration, value_type amplitude):
-        delay(delay), duration(duration), amplitude(amplitude)
-    {}
+// Voltage estimate [mV] at `location`, interpolated.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct cable_probe_membrane_voltage {
+    locset locations;
 };
 
-// Probe type for cell descriptions.
+// Voltage estimate [mV], reported against each cable in each control volume. Not interpolated.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_membrane_voltage_cell {};
 
-struct cell_probe_address {
-    enum probe_kind {
-        membrane_voltage, membrane_current
-    };
-
-    segment_location location;
-    probe_kind kind;
+// Axial current estimate [nA] at `location`, interpolated.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct cable_probe_axial_current {
+    locset locations;
 };
 
-/// high-level abstract representation of a cell and its segments
+// Total current density [A/m²] across membrane _excluding_ capacitive and stimulus current at `location`.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mlocation`
+struct cable_probe_total_ion_current_density {
+    locset locations;
+};
+
+// Total ionic current [nA] across membrane _excluding_ capacitive current across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_total_ion_current_cell {};
+
+// Total membrane current [nA] across components of the cell _excluding_ stimulus currents.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_total_current_cell {};
+
+// Stimulus currents [nA] across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_stimulus_current_cell {};
+
+// Value of state variable `state` in density mechanism `mechanism` in CV at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct cable_probe_density_state {
+    locset locations;
+    std::string mechanism;
+    std::string state;
+};
+
+// Value of state variable `state` in density mechanism `mechanism` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_density_state_cell {
+    std::string mechanism;
+    std::string state;
+};
+
+// Value of state variable `key` in point mechanism `source` at target `target`.
+// Sample value type: `double`
+// Sample metadata type: `cable_probe_point_info`
+struct cable_probe_point_state {
+    cell_lid_type target;
+    std::string mechanism;
+    std::string state;
+};
+
+// Value of state variable `key` in point mechanism `source` at every target with this mechanism.
+// Metadata has one entry of type cable_probe_point_info for each matched (possibly coalesced) instance.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `std::vector<cable_probe_point_info>`
+struct cable_probe_point_state_cell {
+    std::string mechanism;
+    std::string state;
+};
+
+// Current density [A/m²] across membrane attributed to the ion `source` at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct cable_probe_ion_current_density {
+    locset locations;
+    std::string ion;
+};
+
+// Total ionic current [nA] attributed to the ion `source` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_ion_current_cell {
+    std::string ion;
+};
+
+// Ionic internal concentration [mmol/L] of ion `source` at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct cable_probe_ion_int_concentration {
+    locset locations;
+    std::string ion;
+};
+
+// Ionic internal concentration [mmol/L] of ion `source` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_ion_int_concentration_cell {
+    std::string ion;
+};
+
+// Ionic external concentration [mmol/L] of ion `source` at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct cable_probe_ion_ext_concentration {
+    locset locations;
+    std::string ion;
+};
+
+// Ionic external concentration [mmol/L] of ion `source` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct cable_probe_ion_ext_concentration_cell {
+    std::string ion;
+};
+
+// Forward declare the implementation, for PIMPL.
+struct cable_cell_impl;
+
+
+// Typed maps for access to painted and placed assignments:
+//
+// Mechanisms and initial ion data are further keyed by
+// mechanism name and ion name respectively.
+
+template <typename T>
+using region_assignment =
+    std::conditional_t<
+        std::is_same<T, density>::value || std::is_same<T, init_int_concentration>::value ||
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
+        std::unordered_map<std::string, mcable_map<T>>,
+        mcable_map<T>>;
+
+template <typename T>
+struct placed {
+    mlocation loc;
+    cell_lid_type lid;
+    T item;
+};
+
+// Note: lid fields of elements of mlocation_map used in cable_cell are strictly increasing.
+template <typename T>
+using mlocation_map = std::vector<placed<T>>;
+
+template <typename T>
+using location_assignment =
+    std::conditional_t<
+        std::is_same<T, synapse>::value || std::is_same<T, junction>::value,
+        std::unordered_map<std::string, mlocation_map<T>>,
+        mlocation_map<T>>;
+
+using cable_cell_region_map = static_typed_map<region_assignment,
+    density, init_membrane_potential, axial_resistivity,
+    temperature_K, membrane_capacitance, init_int_concentration,
+    init_ext_concentration, init_reversal_potential>;
+
+using cable_cell_location_map = static_typed_map<location_assignment,
+    synapse, junction, i_clamp, threshold_detector>;
+
+// High-level abstract representation of a cell.
 class cable_cell {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
-    using point_type = point<value_type>;
 
-    using gap_junction_instance = segment_location;
-
-    struct synapse_instance {
-        segment_location location;
-        mechanism_desc mechanism;
-    };
-
-    struct stimulus_instance {
-        segment_location location;
-        i_clamp clamp;
-    };
-
-    struct detector_instance {
-        segment_location location;
-        double threshold;
-    };
-
-    cable_cell_parameter_set default_parameters;
-
-    /// Default constructor
+    // Default constructor.
     cable_cell();
 
-    /// Copy constructor
-    cable_cell(const cable_cell& other):
-        default_parameters(other.default_parameters),
-        parents_(other.parents_),
-        stimuli_(other.stimuli_),
-        synapses_(other.synapses_),
-        gap_junction_sites_(other.gap_junction_sites_),
-        spike_detectors_(other.spike_detectors_)
-    {
-        // unique_ptr's cannot be copy constructed, do a manual assignment
-        segments_.reserve(other.segments_.size());
-        for (const auto& s: other.segments_) {
-            segments_.push_back(s->clone());
-        }
-    }
-
-    /// Move constructor
+    // Copy and move constructors.
+    cable_cell(const cable_cell& other);
     cable_cell(cable_cell&& other) = default;
 
-    /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind get_cell_kind() const  {
-        return cell_kind::cable;
+    // Copy and move assignment operators.
+    cable_cell& operator=(cable_cell&&) = default;
+    cable_cell& operator=(const cable_cell& other) {
+        return *this = cable_cell(other);
     }
 
-    /// add a soma to the cell
-    /// radius must be specified
-    soma_segment* add_soma(value_type radius, point_type center=point_type());
+    /// Construct from morphology, label and decoration descriptions.
+    cable_cell(const class morphology&, const label_dict&, const decor&);
+    cable_cell(const class morphology& m):
+        cable_cell(m, {}, {})
+    {}
 
-    /// add a cable
-    /// parent is the index of the parent segment for the cable section
-    /// cable is the segment that will be moved into the cell
-    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
+    /// Access to labels
+    const label_dict& labels() const;
 
-    /// add a cable by constructing it in place
-    /// parent is the index of the parent segment for the cable section
-    /// args are the arguments to be used to consruct the new cable
-    template <typename... Args>
-    cable_segment* add_cable(index_type parent, Args&&... args);
+    /// Access to morphology and embedding
+    const concrete_embedding& embedding() const;
+    const arb::morphology& morphology() const;
+    const mprovider& provider() const;
 
-    /// the number of segments in the cell
-    size_type num_segments() const;
+    // Convenience access to placed items.
 
-    bool has_soma() const;
-
-    class segment* segment(index_type index);
-    const class segment* parent(index_type index) const;
-    const class segment* segment(index_type index) const;
-
-    /// access pointer to the soma
-    /// returns nullptr if the cell has no soma
-    soma_segment* soma();
-    const soma_segment* soma() const;
-
-    /// access pointer to a cable segment
-    /// will throw an cable_cell_error exception if
-    /// the cable index is not valid
-    cable_segment* cable(index_type index);
-    const cable_segment* cable(index_type index) const;
-
-    /// the total number of compartments over all segments
-    size_type num_compartments() const;
-
-    std::vector<segment_ptr> const& segments() const {
-        return segments_;
+    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const {
+        return location_assignments().get<synapse>();
     }
 
-    /// return a vector with the compartment count for each segment in the cell
-    std::vector<size_type> compartment_counts() const;
-
-    //////////////////
-    // stimuli
-    //////////////////
-    void add_stimulus(segment_location loc, i_clamp stim);
-
-    std::vector<stimulus_instance>&
-    stimuli() {
-        return stimuli_;
+    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const {
+        return location_assignments().get<junction>();
     }
 
-    const std::vector<stimulus_instance>&
-    stimuli() const {
-        return stimuli_;
+    const mlocation_map<threshold_detector>& detectors() const {
+        return location_assignments().get<threshold_detector>();
     }
 
-    //////////////////
-    // synapses
-    //////////////////
-    void add_synapse(segment_location loc, mechanism_desc p)
-    {
-        synapses_.push_back(synapse_instance{loc, std::move(p)});
-    }
-    const std::vector<synapse_instance>& synapses() const {
-        return synapses_;
+    const mlocation_map<i_clamp>& stimuli() const {
+        return location_assignments().get<i_clamp>();
     }
 
-    //////////////////
-    // gap-junction
-    //////////////////
-    void add_gap_junction(segment_location location)
-    {
-        gap_junction_sites_.push_back(location);
-    }
-    const std::vector<gap_junction_instance>& gap_junction_sites() const {
-        return gap_junction_sites_;
-    }
+    // Access to a concrete list of locations for a locset.
+    mlocation_list concrete_locset(const locset&) const;
 
-    //////////////////
-    // spike detectors
-    //////////////////
-    void add_detector(segment_location loc, double threshold);
+    // Access to a concrete list of cable segments for a region.
+    mextent concrete_region(const region&) const;
 
-    std::vector<detector_instance>&
-    detectors() {
-        return spike_detectors_;
-    }
+    // Generic access to painted and placed items.
+    const cable_cell_region_map& region_assignments() const;
+    const cable_cell_location_map& location_assignments() const;
 
-    const std::vector<detector_instance>&
-    detectors() const {
-        return spike_detectors_;
-    }
+    // The decorations on the cell.
+    const decor& decorations() const;
 
-    // Checks that two cells have the same
-    //  - number and type of segments
-    //  - volume and area properties of each segment
-    //  - number of compartments in each segment
-    // (note: just used for testing: move to test code?)
-    friend bool cell_basic_equality(const cable_cell&, const cable_cell&);
+    // The default parameter and ion settings on the cell.
+    const cable_cell_parameter_set& default_parameters() const;
 
-    // Public view of parent indices vector.
-    const std::vector<index_type>& parents() const {
-        return parents_;
-    }
-
-    // Approximate per-segment mean attenuation b(f) at given frequency f,
-    // ignoring membrane resistance [1/µm].
-    value_type segment_mean_attenuation(value_type frequency, index_type segidx,
-        const cable_cell_parameter_set& global_defaults) const;
-
-    // Estimate of length constant λ(f) = 1/2 · 1/b(f), following
-    // Hines and Carnevale (2001), "NEURON: A Tool for Neuroscientists",
-    // Neuroscientist 7, pp. 123-135.
-    value_type segment_length_constant(value_type frequency, index_type segidx,
-        const cable_cell_parameter_set& global_defaults) const
-    {
-        return 0.5/segment_mean_attenuation(frequency, segidx, global_defaults);
-    }
+    // The labeled lid_ranges of sources, targets and gap_junctions on the cell;
+    const std::unordered_multimap<cell_tag_type, lid_range>& detector_ranges() const;
+    const std::unordered_multimap<cell_tag_type, lid_range>& synapse_ranges() const;
+    const std::unordered_multimap<cell_tag_type, lid_range>& junction_ranges() const;
 
 private:
-    void assert_valid_segment(index_type) const;
-
-    // storage for connections
-    std::vector<index_type> parents_;
-
-    // the segments
-    std::vector<segment_ptr> segments_;
-
-    // the stimuli
-    std::vector<stimulus_instance> stimuli_;
-
-    // the synapses
-    std::vector<synapse_instance> synapses_;
-
-    // the gap_junctions
-    std::vector<gap_junction_instance> gap_junction_sites_;
-
-    // the sensors
-    std::vector<detector_instance> spike_detectors_;
+    std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 
-// create a cable by forwarding cable construction parameters provided by the user
-template <typename... Args>
-cable_segment* cable_cell::add_cable(cable_cell::index_type parent, Args&&... args)
-{
-    // check for a valid parent id
-    if (parent>=num_segments()) {
-        throw cable_cell_error("parent index of cell segment is out of range");
-    }
-    segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
-    parents_.push_back(parent);
-
-    return segments_.back()->as_cable();
-}
-
-// Create a cable cell from a morphology specification.
-// If compartments_from_discretization is true, set number of compartments
-// in each segment to be the number of piecewise linear sections in the
-// corresponding section of the morphology.
-cable_cell make_cable_cell(const morphology& morph, bool compartments_from_discretization);
-
 } // namespace arb
+
+ARB_DEFINE_HASH(arb::cable_probe_point_info, a.target, a.multiplicity, a.loc);

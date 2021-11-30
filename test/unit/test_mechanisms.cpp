@@ -77,7 +77,7 @@ void mech_update(T* mech, unsigned num_iters) {
     std::map<ionKind, ion<typename T::backend>> ions;
 
     mech->set_params();
-    mech->nrn_init();
+    mech->init();
     for (auto ion_kind : ion_kinds()) {
         auto ion_indexes = util::make_copy<std::vector<typename T::size_type>>(
             mech->node_index_
@@ -102,8 +102,8 @@ void mech_update(T* mech, unsigned num_iters) {
     }
 
     for (auto i=0u; i<num_iters; ++i) {
-        mech->nrn_current();
-        mech->nrn_state();
+        mech->update_current();
+        mech->update_state();
     }
 }
 

@@ -18,8 +18,7 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
-
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
@@ -87,31 +86,19 @@ public:
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
         std::mt19937_64 rng(gid);
-        arb::benchmark_cell cell;
-        cell.realtime_ratio = params_.cell.realtime_ratio;
 
         // The time_sequence of the cell produces the series of time points at
         // which it will spike. We use a poisson_schedule with a random sequence
         // seeded with the gid. In this way, a cell's random stream depends only
         // on its gid, and will hence give reproducable results when run with
         // different MPI ranks and threads.
-        cell.time_sequence = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, rng);
-        return std::move(cell);
+        auto sched = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, rng);
+
+        return arb::benchmark_cell("src", "tgt", sched, params_.cell.realtime_ratio);
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {
         return arb::cell_kind::benchmark;
-    }
-
-    arb::cell_size_type num_targets(arb::cell_gid_type gid) const override {
-        // Only one target, to which all incoming connections connect.
-        // This could be parameterized, in which case the connections
-        // generated in connections_on should end on random cell-local targets.
-        return 1;
-    }
-
-    arb::cell_size_type num_sources(arb::cell_gid_type gid) const override {
-        return 1;
     }
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
@@ -133,8 +120,7 @@ public:
             // Draw random source and adjust to avoid self-connections if neccesary.
             arb::cell_gid_type src = dist(rng);
             if (src>=gid) ++src;
-            // Note: target is {gid, 0}, i.e. the first (and only) target on the cell.
-            arb::cell_connection con({src, 0}, {gid, 0}, 1.f, params_.network.min_delay);
+            arb::cell_connection con({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay);
             cons.push_back(con);
         }
 
@@ -148,22 +134,14 @@ int main(int argc, char** argv) {
     bool is_root = true;
 
     try {
-        arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
-
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
-        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        auto num_threads = arbenv::default_concurrency();
+        auto gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context({num_threads, gpu_id}, MPI_COMM_WORLD);
         is_root = arb::rank(context) == 0;
 #else
-        resources.gpu_id = arbenv::default_gpu();
-        auto context = arb::make_context(resources);
+        auto context = arb::make_context(arbenv::default_allocation());
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context);
@@ -213,6 +191,7 @@ int main(int argc, char** argv) {
     }
     catch (std::exception& e) {
         std::cerr << "exception caught running benchmark miniapp:\n" << e.what() << std::endl;
+        return 1;
     }
 }
 
@@ -243,7 +222,7 @@ bench_params read_options(int argc, char** argv) {
         return params;
     }
     if (argc>2) {
-        throw std::runtime_error("More than command line one option not permitted.");
+        throw std::runtime_error("More than one command line option is not permitted.");
     }
 
     std::string fname = argv[1];
@@ -255,7 +234,7 @@ bench_params read_options(int argc, char** argv) {
     }
 
     nlohmann::json json;
-    json << f;
+    f >> json;
 
     param_from_json(params.name, "name", json);
     param_from_json(params.num_cells, "num-cells", json);

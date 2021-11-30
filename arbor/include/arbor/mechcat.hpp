@@ -8,7 +8,7 @@
 
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
-#include <arbor/util/optional.hpp>
+#include <arbor/mechanism_abi.h>
 
 // Mechanism catalogue maintains:
 //
@@ -17,18 +17,14 @@
 // 2. A further hierarchy of 'derived' mechanisms, that allow specialization of
 //    global parameters, ion bindings, and implementations.
 //
-// 3. A map taking mechanism names x back-end class -> mechanism implementation
+// 3. A map taking mechanism names x back-end kind -> mechanism implementation
 //    prototype object.
-//
-// Implementations for a backend `B` are represented by a pointer to a 
-// `concrete_mechanism<B>` object.
 //
 // References to mechanism_info and mechanism_fingerprint objects are invalidated
 // after any modification to the catalogue.
 //
 // There is in addition a global default mechanism catalogue object that is
-// populated with any builtin mechanisms and mechanisms generated from
-// module files included with arbor.
+// populated with any mechanisms generated from module files included with arbor.
 //
 // When a mechanism name of the form "mech/param=value,..." is requested, if the
 // mechanism of that name does not already exist in the catalogue, it will be
@@ -75,47 +71,52 @@ public:
                 const std::vector<std::pair<std::string, double>>& global_params,
                 const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
 
+    void derive(const std::string& name, const std::string& parent);
+
     // Remove mechanism from catalogue, together with any derivations of it.
     void remove(const std::string& name);
 
     // Clone the implementation associated with name (search derivation hierarchy starting from
     // most derived) and return together with any global overrides.
-    template <typename B>
     struct cat_instance {
-        std::unique_ptr<concrete_mechanism<B>> mech;
+        mechanism_ptr mech;
         mechanism_overrides overrides;
     };
 
-    template <typename B>
-    cat_instance<B> instance(const std::string& name) const {
-        auto mech = instance_impl(std::type_index(typeid(B)), name);
-
-        return cat_instance<B>{
-            std::unique_ptr<concrete_mechanism<B>>(dynamic_cast<concrete_mechanism<B>*>(mech.first.release())),
-            std::move(mech.second)
-        };
+    cat_instance instance(arb_backend_kind kind, const std::string& name) const {
+        auto mech = instance_impl(kind, name);
+        return { std::move(mech.first), std::move(mech.second) };
     }
 
-    // Associate a concrete (prototype) mechanism for a given back-end B with a (possibly derived)
-    // mechanism name.
-    template <typename B>
-    void register_implementation(const std::string& name, std::unique_ptr<concrete_mechanism<B>> proto) {
-        mechanism_ptr generic_proto = mechanism_ptr(proto.release());
-        register_impl(std::type_index(typeid(B)), name, std::move(generic_proto));
+    void register_implementation(const std::string& name, mechanism_ptr proto) {
+        auto be = proto->iface_.backend;
+        register_impl(be, name, std::move(proto));
     }
+
+    // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
+    void import(const mechanism_catalogue& other, const std::string& prefix);
 
     ~mechanism_catalogue();
+
+    // Grab a collection of all mechanism names in the catalogue.
+    std::vector<std::string> mechanism_names() const;
 
 private:
     std::unique_ptr<catalogue_state> state_;
 
-    std::pair<mechanism_ptr, mechanism_overrides> instance_impl(std::type_index, const std::string&) const;
-    void register_impl(std::type_index, const std::string&, mechanism_ptr);
+    std::pair<mechanism_ptr, mechanism_overrides> instance_impl(arb_backend_kind, const std::string&) const;
+    void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
 
 // Reference to global default mechanism catalogue.
 
 const mechanism_catalogue& global_default_catalogue();
+const mechanism_catalogue& global_allen_catalogue();
+const mechanism_catalogue& global_bbp_catalogue();
+
+// Load catalogue from disk.
+
+const mechanism_catalogue& load_catalogue(const std::string&);
 
 } // namespace arb

@@ -9,6 +9,7 @@
 #include <arbor/spike.hpp>
 
 #include "cell_group.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 
@@ -19,7 +20,7 @@ public:
     lif_cell_group() = default;
 
     // Constructor containing gid of first cell in a group and a container of all cells.
-    lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec);
+    lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
     virtual cell_kind get_cell_kind() const override;
     virtual void reset() override;

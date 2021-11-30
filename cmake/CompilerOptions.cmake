@@ -1,11 +1,17 @@
-# Compiler-aware compiler options
+include(CheckCXXSourceCompiles)
+include(CheckCXXSourceRuns)
+include(CMakePushCheckState)
 
+# Compiler-aware compiler options
 set(CXXOPT_DEBUG "-g")
 set(CXXOPT_CXX11 "-std=c++11")
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-    # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
-    string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+if(${ARBDEV_COLOR})
+    set(colorflags
+        $<IF:$<CXX_COMPILER_ID:Clang>,-fcolor-diagnostics,>
+        $<IF:$<CXX_COMPILER_ID:AppleClang>,-fcolor-diagnostics,>
+        $<IF:$<CXX_COMPILER_ID:GNU>,-fdiagnostics-color=always,>)
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${colorflags}>")
 endif()
 
 # Warning options: disable specific spurious warnings as required.
@@ -30,6 +36,15 @@ set(CXXOPT_WALL
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
     $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-potentially-evaluated-expression,>
+
+    # Clang (Apple):
+    #
+    # * Disable 'range-loop-analysis' warning: disabled by default in
+    #   clang, but enabled in Apple clang, this will flag loops of the form
+    #   `for (auto& x: y)` where iterators for `y` dereference to proxy objects.
+    #   Such code is correct, and the warning is spurious.
+
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-range-loop-analysis,>
 
     # Clang:
     #
@@ -62,6 +77,12 @@ set(CXXOPT_WALL
 
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-maybe-uninitialized,>
 
+    # * Disable comments that point out that an ABI bug has been patched, which
+    #   could lead to bugs when linking against code compiled an older compiler,
+    #   because there is nothing to fix on our side.
+
+    $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-psabi,>
+
     # Intel:
     #
     # Disable warning for unused template parameter
@@ -91,57 +112,10 @@ function(set_arch_target optvar arch)
 
         # Use -mcpu for all supported targets _except_ for x86, where it should be -march.
 
-        if(target_model MATCHES "x86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
-            set(arch_opt "-march=${arch}")
-        else()
+        if("${target}" MATCHES "aarch64-apple-darwin")
             set(arch_opt "-mcpu=${arch}")
-        endif()
-
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-        # Translate target architecture names to Intel-compatible names.
-        # icc 17 recognizes the following specific microarchitecture names for -mtune:
-        #     broadwell, haswell, ivybridge, knl, sandybridge, skylake
-
-        if(arch MATCHES "sandybridge")
-            set(tune "${arch}")
-            set(arch "AVX")
-        elseif(arch MATCHES "ivybridge")
-            set(tune "${arch}")
-            set(arch "CORE-AVX-I")
-        elseif(arch MATCHES "broadwell|haswell|skylake")
-            set(tune "${arch}")
-            set(arch "CORE-AVX2")
-        elseif(arch MATCHES "knl")
-            set(tune "${arch}")
-            set(arch "MIC-AVX512")
-        elseif(arch MATCHES "nehalem|westmere")
-            set(tune "corei7")
-            set(arch "SSE4.2")
-        elseif(arch MATCHES "core2")
-            set(tune "core2")
-            set(arch "SSSE3")
-        elseif(arch MATCHES "native")
-            unset(tune)
-            set(arch "Host")
-        else()
-            set(tune "generic")
-            set(arch "SSE2") # default for icc
-        endif()
-
-        if(tune)
-            set(arch_opt "-x${arch};-mtune=${tune}")
-        else()
-            set(arch_opt "-x${arch}")
-        endif()
-
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-        # xlC 13 for Linux uses -mcpu. Not even attempting to get xlC 12 for BG/Q right
-        # at this point: use CXXFLAGS as required!
-        #
-        # xlC, gcc, and clang all recognize power8 and power9 as architecture keywords.
-
-        if(arch MATCHES "native")
-            set(arch_opt "-qarch=auto")
+        elseif(target_model MATCHES "x86|i[3456]86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
+            set(arch_opt "-march=${arch}")
         else()
             set(arch_opt "-mcpu=${arch}")
         endif()

@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+import subprocess as sp
+import sys
+from tempfile import mkdtemp, TemporaryDirectory
+import os
+from pathlib import Path
+import shutil
+import stat
+import string
+import argparse
+import re
+def parse_arguments():
+    def append_slash(s):
+        return s+'/' if s and not s.endswith('/') else s
+
+    class ConciseHelpFormatter(argparse.HelpFormatter):
+        def __init__(self, **kwargs):
+            super(ConciseHelpFormatter, self).__init__(max_help_position=20, **kwargs)
+
+        def _format_action_invocation(self, action):
+            if not action.option_strings:
+                return super(ConciseHelpFormatter, self)._format_action_invocation(action)
+            else:
+                optstr = ', '.join(action.option_strings)
+                if action.nargs==0:
+                    return optstr
+                else:
+                    return optstr+' '+self._format_args(action, action.dest.upper())
+
+    parser = argparse.ArgumentParser(
+        description = 'Generate dynamic catalogue and build it into a shared object.',
+        usage = '%(prog)s catalogue_name mod_source_dir',
+        add_help = False,
+        formatter_class = ConciseHelpFormatter)
+
+    parser.add_argument('name',
+                        metavar='name',
+                        type=str,
+                        help='Catalogue name.')
+
+    parser.add_argument('modpfx',
+                        metavar='modpfx',
+                        type=str,
+                        help='Directory name where *.mod files live.')
+
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        help='Verbose.')
+
+    parser.add_argument('-q', '--quiet',
+                        action='store_true',
+                        help='Less output.')
+
+    parser.add_argument('-d', '--debug',
+                        nargs="?",
+                        metavar="path",
+                        const=True,
+                        default=False,
+                        help='Don\'t clean up the generated temp cpp code.'
+                        + ' Can be a target path for the generated code.')
+
+    parser.add_argument('-h', '--help',
+                        action='help',
+                        help='Display this help and exit.')
+
+
+    return vars(parser.parse_args())
+
+args    = parse_arguments()
+pwd     = Path.cwd()
+name    = re.sub(r'_+', r'_',
+                 re.sub(r'[^a-zA-Z0-9_]', r'_',
+                        args['name']))
+
+mod_dir = pwd / Path(args['modpfx'])
+mods    = [ f[:-4] for f in os.listdir(mod_dir) if f.endswith('.mod') ]
+verbose = args['verbose'] and not args['quiet']
+quiet   = args['quiet']
+debug   = args['debug']
+
+cmake = f"""
+cmake_minimum_required(VERSION 3.9)
+project({name}-cat LANGUAGES CXX)
+
+find_package(arbor REQUIRED)
+
+set(CMAKE_BUILD_TYPE release)
+set(CMAKE_CXX_COMPILER ${{ARB_CXX}})
+set(CMAKE_CXX_FLAGS    ${{ARB_CXX_FLAGS}})
+
+include(BuildModules.cmake)
+
+set(ARB_WITH_EXTERNAL_MODCC true)
+find_program(modcc NAMES modcc)
+
+make_catalogue(
+  NAME {name}
+  SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
+  OUTPUT "CAT_{name.upper()}_SOURCES"
+  MECHS {' '.join(mods)}
+  PREFIX @ARB_INSTALL_DATADIR@
+  CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
+  STANDALONE ON
+  VERBOSE {"ON" if verbose else "OFF"})
+"""
+
+if not quiet:
+    print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
+    if debug:
+        print("Debug mode enabled.")
+    for m in mods:
+        print(" *", m)
+
+if debug:
+    # Overwrite the local reference to `TemporaryDirectory` with a context
+    # manager that doesn't clean up the build folder so that the generated cpp
+    # code can be debugged
+    class TemporaryDirectory:
+        def __enter__(*args, **kwargs):
+            if isinstance(debug, str):
+                path = os.path.abspath(debug)
+                try:
+                    os.makedirs(path, exist_ok=False)
+                except FileExistsError:
+                    sys.stderr.write(f"Error: Debug destination '{path}' already exists.\n")
+                    sys.stderr.flush()
+                    exit(1)
+            else:
+                path = mkdtemp()
+            print(f"Building debug code in '{path}'.")
+            return path
+
+        def __exit__(*args, **kwargs):
+            pass
+
+with TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    shutil.copytree(mod_dir, tmp / 'mod')
+    os.mkdir(tmp / 'build')
+    os.chdir(tmp / 'build')
+    with open(tmp / 'CMakeLists.txt', 'w') as fd:
+        fd.write(cmake)
+    shutil.copy2(f'@ARB_INSTALL_DATADIR@/BuildModules.cmake', tmp)
+    shutil.copy2(f'@ARB_INSTALL_DATADIR@/generate_catalogue', tmp)
+    cmake_cmd = 'cmake ..'
+    make_cmd = 'make'
+    if verbose:
+        out, err = (None, None)
+        make_cmd += ' VERBOSE=1'
+    else:
+        out, err = (sp.PIPE, sp.PIPE)
+    try:
+        sp.run(cmake_cmd, shell=True, check=True, stdout=out, stderr=err)
+        sp.run(make_cmd,  shell=True, check=True, stdout=out, stderr=err)
+        shutil.copy2(f'{name}-catalogue.so', pwd)
+    except sp.CalledProcessError as e:
+        import sys, traceback as tb
+
+        if not verbose:
+            # Not in verbose mode, so we have captured the
+            # `stdout` and `stderr` and can print it to the user.
+            sys.stdout.write("Build log:\n")
+            sys.stdout.write(e.stdout.decode())
+            sys.stderr.write(tb.format_exc() + " Error:\n\n")
+            sys.stderr.write(e.stderr.decode())
+        else:
+            # In verbose mode the outputs weren't captured and
+            # have been streamed to `stdout` and `stderr` already.
+            sys.stderr.write(
+                "Catalogue building error occurred."
+                + " Check stdout log for underlying error,"
+                + " or omit verbose flag to capture it."
+            )
+        sys.stdout.flush()
+        sys.stderr.flush()
+        exit(e.returncode)
+
+    if not quiet:
+        print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')

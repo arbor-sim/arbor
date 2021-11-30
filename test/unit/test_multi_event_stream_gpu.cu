@@ -1,3 +1,7 @@
+#ifdef ARB_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 

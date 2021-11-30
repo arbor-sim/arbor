@@ -16,12 +16,7 @@
 
 #include "threshold_watcher.hpp"
 
-
-#ifdef ARB_HAVE_GPU_FINE_MATRIX
-    #include "matrix_state_fine.hpp"
-#else
-    #include "matrix_state_interleaved.hpp"
-#endif
+#include "matrix_state_fine.hpp"
 
 namespace arb {
 namespace gpu {
@@ -37,6 +32,8 @@ struct backend {
     using array  = arb::gpu::array;
     using iarray = arb::gpu::iarray;
 
+    static constexpr arb_backend_kind kind = arb_backend_kind_gpu;
+
     static memory::host_vector<value_type> host_view(const array& v) {
         return memory::on_host(v);
     }
@@ -45,29 +42,27 @@ struct backend {
         return memory::on_host(v);
     }
 
-#ifdef ARB_HAVE_GPU_FINE_MATRIX
     using matrix_state = arb::gpu::matrix_state_fine<value_type, index_type>;
-#else
-    using matrix_state = arb::gpu::matrix_state_interleaved<value_type, index_type>;
-#endif
     using threshold_watcher = arb::gpu::threshold_watcher;
 
     using deliverable_event_stream = arb::gpu::deliverable_event_stream;
     using sample_event_stream = arb::gpu::sample_event_stream;
 
     using shared_state = arb::gpu::shared_state;
+    using ion_state = arb::gpu::ion_state;
 
     static threshold_watcher voltage_watcher(
-        const shared_state& state,
+        shared_state& state,
         const std::vector<index_type>& cv,
         const std::vector<value_type>& thresholds,
         const execution_context& context)
     {
         return threshold_watcher(
             state.cv_to_intdom.data(),
-            state.time.data(),
-            state.time_to.data(),
             state.voltage.data(),
+            state.src_to_spike.data(),
+            &state.time,
+            &state.time_to,
             cv,
             thresholds,
             context);

@@ -33,10 +33,16 @@ public:
     explicit prefixbuf(std::streambuf* inner, bool prefix_empty_lines=false):
         inner_(inner), prefix_empty_lines_(prefix_empty_lines) {}
 
-    prefixbuf(prefixbuf&&) = default;
+    prefixbuf(prefixbuf&& other): std::streambuf(other) {
+        prefix = std::move(other.prefix);
+        inner_ = other.inner_;
+        prefix_empty_lines_ = other.prefix_empty_lines_;
+        bol_ = other.bol_;
+    }
+
     prefixbuf(const prefixbuf&) = delete;
 
-    prefixbuf& operator=(prefixbuf&&) = default;
+    prefixbuf& operator=(prefixbuf&&) = delete;
     prefixbuf& operator=(const prefixbuf&) = delete;
 
     std::streambuf* inner() { return inner_; }
@@ -109,20 +115,27 @@ inline indent_manip settab(unsigned w) {
     return indent_manip{indent_manip::settab, w};
 }
 
-// Wrap an stringbuf with a prefixbuf, and present as a stream.
+// Wrap a stringbuf with a prefixbuf, and present as a stream.
 // Acts very much like a `std::ostringstream`, but with prefix
 // and indent functionality.
 
 class pfxstringstream: public std::ostream {
 public:
     pfxstringstream():
-        std::ostream(&pbuf_),
+        std::ostream(nullptr),
         sbuf_(std::ios_base::out),
         pbuf_(&sbuf_)
-    {}
+    {
+        std::ostream::rdbuf(&pbuf_);
+    }
 
-    pfxstringstream(pfxstringstream&&) = default;
-    pfxstringstream& operator=(pfxstringstream&&) = default;
+    pfxstringstream(pfxstringstream&& other):
+        std::ostream(std::move(other)),
+        sbuf_(std::move(other.sbuf_)),
+        pbuf_(std::move(other.pbuf_))
+    {
+        std::ostream::rdbuf(&pbuf_);
+    }
 
     std::string str() const { return sbuf_.str(); }
     void str(const std::string& s) { sbuf_.str(s); }

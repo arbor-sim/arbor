@@ -39,6 +39,10 @@ public:
 
     void remove_all_samplers();
 
+    // Return probe metadata, one entry per probe associated with supplied probe id,
+    // or an empty vector if no local match for probe id.
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const;
+
     std::size_t num_spikes() const;
 
     // Set event binning policy on all our groups.
@@ -55,7 +59,7 @@ public:
     // Add events directly to targets.
     // Must be called before calling simulation::run, and must contain events that
     // are to be delivered at or after the current simulation time.
-    void inject_events(const pse_vector& events);
+    void inject_events(const cse_vector& events);
 
     ~simulation();
 

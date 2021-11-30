@@ -14,9 +14,9 @@
 //
 // Function | Default implemention by
 // ----------------------------------
-// min      | negate, cmp_gt, ifelse
-// max      | negate, cmp_gt, ifelse
-// abs      | negate, max
+// min      | neg, cmp_gt, ifelse
+// max      | neg, cmp_gt, ifelse
+// abs      | neg, max
 // sin      | lane-wise std::sin
 // cos      | lane-wise std::cos
 // exp      | lane-wise std::exp
@@ -75,6 +75,7 @@ namespace detail {
 template <typename I>
 struct simd_traits {
     static constexpr unsigned width = 0;
+    static constexpr unsigned min_align = 0;
     using scalar_type = void;
     using vector_type = void;
     using mask_impl = void;
@@ -90,6 +91,7 @@ struct tag {};
 template <typename I>
 struct implbase {
     constexpr static unsigned width = simd_traits<I>::width;
+    constexpr static unsigned min_align = simd_traits<I>::min_align;
     using scalar_type = typename simd_traits<I>::scalar_type;
     using vector_type = typename simd_traits<I>::vector_type;
 
@@ -181,7 +183,7 @@ struct implbase {
         return I::copy_from(a);
     }
 
-    static vector_type negate(const vector_type& u) {
+    static vector_type neg(const vector_type& u) {
         store a, r;
         I::copy_to(u, a);
 

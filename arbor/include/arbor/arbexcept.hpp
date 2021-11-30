@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <stdexcept>
 #include <string>
 
@@ -29,10 +30,28 @@ struct arbor_exception: std::runtime_error {
 
 // Recipe errors:
 
+struct bad_cell_probe: arbor_exception {
+    bad_cell_probe(cell_kind kind, cell_gid_type gid);
+    cell_gid_type gid;
+    cell_kind kind;
+};
+
 struct bad_cell_description: arbor_exception {
     bad_cell_description(cell_kind kind, cell_gid_type gid);
     cell_gid_type gid;
     cell_kind kind;
+};
+
+struct bad_connection_source_gid: arbor_exception {
+    bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells);
+    cell_gid_type gid, src_gid;
+    cell_size_type num_cells;
+};
+
+struct bad_connection_label: arbor_exception {
+    bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg);
+    cell_gid_type gid;
+    cell_tag_type label;
 };
 
 struct bad_global_property: arbor_exception {
@@ -48,6 +67,12 @@ struct bad_probe_id: arbor_exception {
 struct gj_kind_mismatch: arbor_exception {
     gj_kind_mismatch(cell_gid_type gid_0, cell_gid_type gid_1);
     cell_gid_type gid_0, gid_1;
+};
+
+struct gj_unsupported_lid_selection_policy: arbor_exception {
+    gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label);
+    cell_gid_type gid;
+    cell_tag_type label;
 };
 
 // Domain decomposition errors:
@@ -114,6 +139,30 @@ struct no_such_implementation: arbor_exception {
 struct range_check_failure: arbor_exception {
     explicit range_check_failure(const std::string& whatstr, double value);
     double value;
+};
+
+struct file_not_found_error: arbor_exception {
+    file_not_found_error(const std::string& fn);
+    std::string filename;
+};
+
+//
+struct bad_catalogue_error: arbor_exception {
+    bad_catalogue_error(const std::string&);
+    bad_catalogue_error(const std::string&, const std::any&);
+    std::any platform_error;
+};
+
+// ABI errors
+
+struct bad_alignment: arbor_exception {
+    bad_alignment(size_t);
+    size_t alignment;
+};
+
+struct unsupported_abi_error: arbor_exception {
+    unsupported_abi_error(size_t);
+    size_t version;
 };
 
 } // namespace arb

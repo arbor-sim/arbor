@@ -5,6 +5,7 @@
 #include <ostream>
 #include <vector>
 
+#include <arbor/util/hash_def.hpp>
 #include <arbor/util/lexcmp_def.hpp>
 
 //
@@ -21,56 +22,102 @@ struct mpoint {
     double x, y, z;  // [µm]
     double radius;   // [μm]
 
+    friend bool operator==(const mpoint& l, const mpoint& r);
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
+    friend bool operator==(const mpoint& a, const mpoint& b) {
+        return a.x==b.x && a.y==b.y && a.z==b.z && a.radius==b.radius;
+    }
+    friend bool operator!=(const mpoint& a, const mpoint& b) {
+        return !(a==b);
+    }
 };
 
 mpoint lerp(const mpoint& a, const mpoint& b, double u);
 bool is_collocated(const mpoint& a, const mpoint& b);
 double distance(const mpoint& a, const mpoint& b);
 
-// A morphology sample consists of a location and an integer tag.
-// When loaded from an SWC file, the tag will correspond to the SWC label,
-// which are standardised as follows:
-//  1 - soma
-//  2 - axon
-//  3 - (basal) dendrite
-//  4 - apical dendrite
-// http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html
-// However, any positive integer tag can be provided and labelled dynamically.
+// Indicate allowed comparison operations for classifying regions
+enum class comp_op {
+    lt,
+    le,
+    gt,
+    ge
+};
 
-struct msample {
-    mpoint loc;
+// Describe a cable segment between two adjacent samples.
+struct msegment {
+    msize_t id;
+    mpoint prox;
+    mpoint dist;
     int tag;
 
-    friend std::ostream& operator<<(std::ostream&, const msample&);
+    friend std::ostream& operator<<(std::ostream&, const msegment&);
 };
 
-bool is_collocated(const msample& a, const msample& b);
-double distance(const msample& a, const msample& b);
 
-using point_prop = std::uint8_t;
-enum point_prop_mask: point_prop {
-    point_prop_mask_none = 0,
-    point_prop_mask_root = 1,
-    point_prop_mask_fork = 2,
-    point_prop_mask_terminal = 4,
-    point_prop_mask_collocated = 8
+// Describe a specific location on a morpholology.
+struct mlocation {
+    // The id of the branch.
+    msize_t branch;
+    // The relative position on the branch ∈ [0,1].
+    double pos;
+
+    friend std::ostream& operator<<(std::ostream&, const mlocation&);
 };
 
-#define ARB_PROP(prop) \
-constexpr bool is_##prop(point_prop p) {\
-    return p&point_prop_mask_##prop;\
-} \
-inline void set_##prop(point_prop& p) {\
-    p |= point_prop_mask_##prop;\
-} \
-inline void unset_##prop(point_prop& p) {\
-    p &= ~point_prop_mask_##prop;\
-}
+// branch ≠ npos and 0 ≤ pos ≤ 1
+bool test_invariants(const mlocation&);
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mlocation, (a.branch,a.pos), (b.branch,b.pos));
 
-ARB_PROP(root)
-ARB_PROP(fork)
-ARB_PROP(terminal)
-ARB_PROP(collocated)
+using mlocation_list = std::vector<mlocation>;
+std::ostream& operator<<(std::ostream& o, const mlocation_list& l);
+
+// Tests whether each location in the list satisfies the invariants for a location,
+// and that the locations in the vector are ordered.
+bool test_invariants(const mlocation_list&);
+
+// Multiset operations on location lists.
+mlocation_list sum(const mlocation_list&, const mlocation_list&);
+mlocation_list join(const mlocation_list&, const mlocation_list&);
+mlocation_list intersection(const mlocation_list&, const mlocation_list&);
+mlocation_list support(mlocation_list);
+
+// Describe an unbranched cable in the morphology.
+//
+// Cables are a representation of a closed interval of a branch in a morphology.
+// They may be zero-length, and fork points in the morphology may have multiple,
+// equivalent zero-length cable representations.
+
+struct mcable {
+    // The id of the branch on which the cable lies.
+    msize_t branch;
+
+    // Relative location of the end points on the branch.
+    // 0 ≤ prox_pos ≤ dist_pos ≤ 1
+    double prox_pos; // ∈ [0,1]
+    double dist_pos; // ∈ [0,1]
+
+    friend mlocation prox_loc(const mcable& c) {
+        return {c.branch, c.prox_pos};
+    }
+    friend mlocation dist_loc(const mcable& c) {
+        return {c.branch, c.dist_pos};
+    }
+
+    // branch ≠ npos, and 0 ≤ prox_pos ≤ dist_pos ≤ 1
+    friend bool test_invariants(const mcable&);
+    friend std::ostream& operator<<(std::ostream&, const mcable&);
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mcable, (a.branch,a.prox_pos,a.dist_pos), (b.branch,b.prox_pos,b.dist_pos));
+
+using mcable_list = std::vector<mcable>;
+std::ostream& operator<<(std::ostream& o, const mcable_list& c);
+// Tests whether each cable in the list satisfies the invariants for a cable,
+// and that the cables in the vector are ordered.
+bool test_invariants(const mcable_list&);
 
 } // namespace arb
+
+ARB_DEFINE_HASH(arb::mcable, a.branch, a.prox_pos, a.dist_pos);
+ARB_DEFINE_HASH(arb::mlocation, a.branch, a.pos);

@@ -19,8 +19,9 @@
 #include "matrix_state.hpp"
 #include "multi_event_stream.hpp"
 #include "threshold_watcher.hpp"
-
+#include "fvm_layout.hpp"
 #include "multicore_common.hpp"
+#include "partition_by_constraint.hpp"
 
 namespace arb {
 namespace multicore {
@@ -48,6 +49,8 @@ struct ion_state {
 
     array init_Xi_;         // (mM) area-weighted initial internal concentration
     array init_Xo_;         // (mM) area-weighted initial external concentration
+    array reset_Xi_;        // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;        // (mM) area-weighted user-set internal concentration
     array init_eX_;         // (mV) initial reversal potential
 
     array charge;           // charge of ionic species (global value, length 1)
@@ -56,10 +59,7 @@ struct ion_state {
 
     ion_state(
         int charge,
-        const std::vector<fvm_index_type>& cv,
-        const std::vector<fvm_value_type>& init_Xi,
-        const std::vector<fvm_value_type>& init_Xo,
-        const std::vector<fvm_value_type>& init_eX,
+        const fvm_ion_config& ion_data,
         unsigned align
     );
 
@@ -69,21 +69,62 @@ struct ion_state {
     // Set ionic current density to zero.
     void zero_current();
 
-    // Zero currents, reset concentrations, and reset reversal potential from
-    // initial values.
+    // Zero currents, reset concentrations, and reset reversal potential from initial values.
     void reset();
 };
 
+struct istim_state {
+    unsigned alignment = 1; // Alignment and padding multiple.
+
+    // Immutable data (post initialization):
+    iarray accu_index_;     // Instance to accumulator index (accu_stim_ index) map.
+    iarray accu_to_cv_;     // Accumulator index to CV map.
+
+    array frequency_;       // (kHz) stimulus frequency per instance.
+    array phase_;           // (rad) stimulus waveform phase at t=0.
+    array envl_amplitudes_; // (A/m²) stimulus envelope amplitudes, partitioned by instance.
+    array envl_times_;      // (A/m²) stimulus envelope timepoints, partitioned by instance.
+    iarray envl_divs_;      // Partition divisions for envl_ arrays,
+
+    // Mutable data:
+    array accu_stim_;       // (A/m²) accumulated stim current / CV area, one per CV with a stimulus.
+    iarray envl_index_;     // Per instance index into envl_ arrays, corresponding to last sample time.
+
+    // Zero stim current.
+    void zero_current();
+
+    // Zero stim current, reset indices.
+    void reset();
+
+    // Contribute to current density:
+    void add_current(const array& time, const iarray& cv_to_intdom, array& current_density);
+
+    // Construct state from i_clamp data:
+    istim_state(const fvm_stimulus_config& stim_data, unsigned align);
+
+    istim_state() = default;
+};
+
 struct shared_state {
+    struct mech_storage {
+        array data_;
+        iarray indices_;
+        constraint_partition constraints_;
+        std::vector<arb_value_type>  globals_;
+        std::vector<arb_value_type*> parameters_;
+        std::vector<arb_value_type*> state_vars_;
+        std::vector<arb_ion_state>   ion_states_;
+    };
+
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
 
     fvm_size_type n_intdom = 0; // Number of integration domains.
+    fvm_size_type n_detector = 0; // Max number of detectors on all cells.
     fvm_size_type n_cv = 0;   // Total number of CVs.
-    fvm_size_type n_gj = 0;   // Total number of GJs.
 
     iarray cv_to_intdom;      // Maps CV index to integration domain index.
-    gjarray  gap_junctions;   // Stores gap_junction info.
+    iarray cv_to_cell;        // Maps CV index to the first spike
     array time;               // Maps intdom index to integration start time [ms].
     array time_to;            // Maps intdom index to integration stop time [ms].
     array dt_intdom;          // Maps  index to (stop time) - (start time) [ms].
@@ -94,29 +135,45 @@ struct shared_state {
 
     array init_voltage;       // Maps CV index to initial membrane voltage [mV].
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].
+    array diam_um;            // Maps CV to local diameter (read only) [µm].
 
+    array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
+    iarray src_to_spike;      // Maps spike source index to spike index
+
+    arb_value_type* time_ptr;
+
+    istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-
     deliverable_event_stream deliverable_events;
+    std::unordered_map<unsigned, mech_storage> storage;
 
     shared_state() = default;
 
     shared_state(
         fvm_size_type n_intdom,
+        fvm_size_type n_cell,
+        fvm_size_type n_detector,
         const std::vector<fvm_index_type>& cv_to_intdom_vec,
-        const std::vector<fvm_gap_junction>& gj_vec,
+        const std::vector<fvm_index_type>& cv_to_cell_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,
         const std::vector<fvm_value_type>& temperature_K,
+        const std::vector<fvm_value_type>& diam,
+        const std::vector<fvm_index_type>& src_to_spike,
         unsigned align
     );
+
+    void instantiate(mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
+
+    void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+
+    const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const std::vector<fvm_index_type>& cv,
-        const std::vector<fvm_value_type>& init_iconc,
-        const std::vector<fvm_value_type>& init_econc,
-        const std::vector<fvm_value_type>& init_erev);
+        const fvm_ion_config& ion_data);
+
+    void configure_stimulus(const fvm_stimulus_config&);
 
     void zero_currents();
 
@@ -130,8 +187,8 @@ struct shared_state {
     // Set the per-integration domain and per-compartment dt from time_to - time.
     void set_dt();
 
-    // Update gap_junction state
-    void add_gj_current();
+    // Update stimulus state and add current contributions.
+    void add_stimulus_current();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

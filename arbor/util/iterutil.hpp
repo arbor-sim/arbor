@@ -89,10 +89,14 @@ decltype(auto) back(Seq& seq) {
  * present rvalues on dereference.
  */
 template <typename V>
-struct pointer_proxy: public V {
-    pointer_proxy(const V& v): V(v) {}
-    pointer_proxy(V&& v): V(std::move(v)) {}
-    const V* operator->() const { return this; }
+struct pointer_proxy {
+    V v;
+
+    template <typename... Args>
+    pointer_proxy(Args&&... args): v(std::forward<Args>(args)...) {}
+
+    V* operator->() { return &v; }
+    const V* operator->() const { return &v; }
 };
 
 /*

@@ -28,7 +28,6 @@
 
 #include <arbor/assert.hpp>
 
-#include "util/either.hpp"
 #include "util/counter.hpp"
 #include "util/iterutil.hpp"
 #include "util/meta.hpp"
@@ -144,6 +143,12 @@ range<U, V> make_range(const U& left, const V& right) {
 template <typename U, typename V>
 range<U, V> make_range(const std::pair<U, V>& iterators) {
     return range<U, V>(iterators.first, iterators.second);
+}
+
+// From pointer and length
+template <typename T>
+range<T, T> range_n(T t, size_t n) {
+    return {t, t + n};
 }
 
 // Present a possibly sentinel-terminated range as an STL-compatible sequence

@@ -4,10 +4,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <tclap/CmdLine.h>
+#include <tinyopt/tinyopt.h>
 
 #include "printer/cprinter.hpp"
-#include "printer/cudaprinter.hpp"
+#include "printer/gpuprinter.hpp"
 #include "printer/infoprinter.hpp"
 #include "printer/printeropt.hpp"
 #include "printer/simd.hpp"
@@ -47,6 +47,8 @@ std::unordered_map<std::string, targetKind> targetKindMap = {
 
 std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
     {"none", simd_spec::none},
+    {"neon", simd_spec::neon},
+    {"sve", simd_spec::sve},
     {"avx",  simd_spec::avx},
     {"avx2", simd_spec::avx2},
     {"avx512", simd_spec::avx512},
@@ -66,7 +68,7 @@ struct Options {
     std::string outprefix;
     std::string modfile;
     std::string modulename;
-    bool verbose = true;
+    bool verbose = false;
     bool analysis = false;
     std::unordered_set<targetKind> targets;
 };
@@ -113,112 +115,77 @@ std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
         table_prefix{"simd"} << popt.simd << line_end;
 }
 
-// Constraints for TCLAP arguments that are names for enumertion values.
-struct MapConstraint: private std::vector<std::string>, public TCLAP::ValuesConstraint<std::string> {
-    template <typename Map>
-    MapConstraint(const Map& map):
-        std::vector<std::string>(keys(map)),
-        TCLAP::ValuesConstraint<std::string>(static_cast<std::vector<std::string>&>(*this)) {}
-
-    template <typename Map>
-    static std::vector<std::string> keys(const Map& map) {
-        std::vector<std::string> ks;
-        for (auto& kv: map) ks.push_back(kv.first);
-        return ks;
-    }
-};
-
-simd_spec parse_simd_spec(std::string spec) {
+std::istream& operator>> (std::istream& i, simd_spec& spec) {
     auto npos = std::string::npos;
-    unsigned width = 0;
+    std::string s;
+    i >> s;
+    unsigned width = no_size;
 
-    auto suffix = spec.find_last_of('/');
+    auto suffix = s.find_last_of('/');
     if (suffix!=npos) {
-        width = stoul(spec.substr(suffix+1));
-        spec = spec.substr(0, suffix);
+        width = stoul(s.substr(suffix+1));
+        s = s.substr(0, suffix);
     }
 
-    return simd_spec(simdAbiMap.at(spec.c_str()), width);
+    spec = simd_spec(simdAbiMap.at(s.c_str()), width);
+    return i;
 }
 
-struct SimdAbiConstraint: public TCLAP::Constraint<std::string> {
-    std::string description() const override {
-        return "simd_abi[/n]";
-    }
-    std::string shortID() const override {
-        return description();
-    }
-    bool check(const std::string& spec) const override {
-        try {
-            (void)parse_simd_spec(spec);
-            return true;
-        }
-        catch (...) {
-            return false;
-        }
-    }
-};
+const char* usage_str =
+        "\n"
+        "-o|--output            [Prefix for output file names]\n"
+        "-N|--namespace         [Namespace for generated code]\n"
+        "-t|--target            [Build module for target; Avaliable targets: 'cpu', 'gpu']\n"
+        "-s|--simd              [Generate code with explicit SIMD vectorization]\n"
+        "-S|--simd-abi          [Override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...]\n"
+        "-P|--profile           [Build with profiled kernels]\n"
+        "-V|--verbose           [Toggle verbose mode]\n"
+        "-A|--analyse           [Toggle analysis mode]\n"
+        "-T|--trace-codegen     [Leave trace marks in generated source]\n"
+        "<filename>             [File to be compiled]\n";
 
 int main(int argc, char **argv) {
+    using namespace to;
+
     Options opt;
     printer_options popt;
-
     try {
-        TCLAP::CmdLine cmd("modcc code generator for arbor", ' ', "0.1");
+        std::vector<std::string> targets;
 
-        TCLAP::UnlabeledValueArg<std::string>
-            fin_arg("input_file", "the name of the .mod file to compile", true, "", "filename", cmd);
+        auto help = [argv0 = argv[0]] {
+            to::usage(argv0, usage_str);
+        };
 
-        TCLAP::ValueArg<std::string>
-            fout_arg("o", "output", "prefix for output file names", false, "", "filename", cmd);
-
-        TCLAP::ValueArg<std::string>
-            namespace_arg("N", "namespace", "namespace for generated code", false, "arb", "name", cmd);
-
-        MapConstraint targets_arg_constraint(targetKindMap);
-        TCLAP::MultiArg<std::string>
-            target_arg("t", "target", "build module for cpu or gpu back-end", false, &targets_arg_constraint, cmd);
-
-        TCLAP::SwitchArg
-            simd_arg("s", "simd", "generate code with explicit SIMD vectorization", cmd, false);
-
-        SimdAbiConstraint simd_abi_constraint;
-        TCLAP::ValueArg<std::string>
-            simd_abi_arg("S", "simd-abi", "override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...", false, "", &simd_abi_constraint, cmd);
-
-        TCLAP::SwitchArg profile_arg("P","profile","build with profiled kernels", cmd, false);
-
-        TCLAP::SwitchArg verbose_arg("V","verbose","toggle verbose mode", cmd, false);
-
-        TCLAP::SwitchArg analysis_arg("A","analyse","toggle analysis mode", cmd, false);
-
-        TCLAP::ValueArg<std::string>
-            module_arg("m", "module", "module name to use (default taken from input .mod file)", false, "", "module", cmd);
-
-        cmd.parse(argc, argv);
-
-        opt.outprefix = fout_arg.getValue();
-        opt.modfile = fin_arg.getValue();
-        opt.modulename = module_arg.getValue();
-        opt.verbose = verbose_arg.getValue();
-        opt.analysis = analysis_arg.getValue();
-
-        popt.cpp_namespace = namespace_arg.getValue();
-        popt.profile = profile_arg.getValue();
-
-        if (simd_arg.getValue()) {
-            popt.simd = simd_spec(simd_spec::native);
-            if (!simd_abi_arg.getValue().empty()) {
-                popt.simd = parse_simd_spec(simd_abi_arg.getValue());
+        auto enable_simd = [&popt] {
+            if (popt.simd.abi==simd_spec::none) {
+                popt.simd = simd_spec(simd_spec::native);
             }
-        }
+        };
 
-        for (auto& target: target_arg.getValue()) {
-            opt.targets.insert(targetKindMap.at(target));
-        }
+        auto add_target = [&opt](targetKind t) {
+            opt.targets.insert(t);
+        };
+
+        to::option options[] = {
+                { opt.modfile,  to::mandatory},
+                { opt.outprefix,                                         "-o", "--output" },
+                { to::set(opt.verbose),  to::flag,                       "-V", "--verbose" },
+                { to::set(opt.analysis), to::flag,                       "-A", "--analyse" },
+                { opt.modulename,                                        "-m", "--module" },
+                { to::set(popt.profile), to::flag,                       "-P", "--profile" },
+                { popt.cpp_namespace,                                    "-N", "--namespace" },
+                { to::action(enable_simd), to::flag,                     "-s", "--simd" },
+                { popt.simd,                                             "-S", "--simd-abi" },
+                { to::set(popt.trace_codegen), to::flag,                 "-T", "--trace-codegen"},
+                { {to::action(add_target, to::keywords(targetKindMap))}, "-t", "--target" },
+                { to::action(help), to::flag, to::exit,                  "-h", "--help" }
+        };
+
+        if (!to::run(options, argc, argv+1)) return 0;
     }
-    catch(TCLAP::ArgException &e) {
-        return report_error(pprintf("% for argument %", e.error(), e.argId()));
+    catch (to::option_error& e) {
+        to::usage_error(argv[0], usage_str, e.what());
+        return 1;
     }
 
     try {
@@ -273,13 +240,16 @@ int main(int argc, char **argv) {
         // If no output prefix given, use the module name.
         std::string prefix = opt.outprefix.empty()? m.module_name(): opt.outprefix;
 
-        io::write_all(build_info_header(m, popt), prefix+".hpp");
+        bool have_cpu = opt.targets.find(targetKind::cpu) != opt.targets.end();
+        bool have_gpu = opt.targets.find(targetKind::gpu) != opt.targets.end();
+
+        io::write_all(build_info_header(m, popt, have_cpu, have_gpu), prefix+".hpp");
         for (targetKind target: opt.targets) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
-                io::write_all(emit_cuda_cpp_source(m, popt), outfile+"_gpu.cpp");
-                io::write_all(emit_cuda_cu_source(m, popt), outfile+"_gpu.cu");
+                io::write_all(emit_gpu_cpp_source(m, popt), outfile+"_gpu.cpp");
+                io::write_all(emit_gpu_cu_source(m, popt), outfile+"_gpu.cu");
                 break;
             case targetKind::cpu:
                 io::write_all(emit_cpp_source(m, popt), outfile+"_cpu.cpp");

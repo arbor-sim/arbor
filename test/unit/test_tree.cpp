@@ -1,6 +1,3 @@
-#include <fstream>
-#include <iostream>
-#include <numeric>
 #include <vector>
 
 #include "../gtest.h"
@@ -10,6 +7,72 @@
 using namespace arb;
 using int_type = tree::int_type;
 using iarray = tree::iarray;
+
+TEST(tree, minimal_degree)
+{
+    {
+        std::vector<int> v = {0};
+        EXPECT_TRUE(is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 0, 1, 2, 3, 4};
+        EXPECT_TRUE(is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 0, 1, 2, 0, 4};
+        EXPECT_TRUE(is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 0, 1, 2, 0, 4, 5, 4};
+        EXPECT_TRUE(is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {1};
+        EXPECT_FALSE(is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 2};
+        EXPECT_FALSE(is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 1, 2};
+        EXPECT_FALSE(is_minimal_degree(v));
+    }
+}
+
+TEST(tree, child_count)
+{
+    {
+        //
+        //        0
+        //       /|\.
+        //      1 4 6
+        //     /  |  \.
+        //    2   5   7
+        //   /         \.
+        //  3           8
+        //             / \.
+        //            9   11
+        //           /     \.
+        //          10      12
+        //                   \.
+        //                    13
+        //
+        std::vector<int> parent_index =
+            { 0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12 };
+        std::vector<int> expected_child_count =
+            { 3, 1, 1, 0, 1, 0, 1, 1, 2, 1, 0, 1, 1, 0 };
+
+        EXPECT_EQ(expected_child_count,child_count(parent_index));
+    }
+
+}
 
 TEST(tree, from_segment_index) {
     auto no_parent = tree::no_parent;
@@ -256,4 +319,3 @@ TEST(tree, depth_from_root) {
         EXPECT_EQ(expected, depth_from_root(tree(parent_index)));
     }
 }
-

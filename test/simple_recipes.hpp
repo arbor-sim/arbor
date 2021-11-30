@@ -2,6 +2,7 @@
 
 // Simple recipe classes for use in unit and validation tests.
 
+#include <any>
 #include <unordered_map>
 #include <vector>
 
@@ -9,6 +10,9 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/util/unique_any.hpp>
+
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -24,27 +28,21 @@ public:
         cell_gprop_.default_parameters = neuron_parameter_defaults;
     }
 
-    cell_size_type num_probes(cell_gid_type i) const override {
-        return probes_.count(i)? probes_.at(i).size(): 0;
+    std::vector<probe_info> get_probes(cell_gid_type i) const override {
+        if (!probes_.count(i)) return {};
+        return probes_.at(i);
     }
 
-    virtual probe_info get_probe(cell_member_type probe_id) const override {
-        return probes_.at(probe_id.gid).at(probe_id.index);
+    virtual void add_probe(cell_gid_type gid, probe_tag tag, std::any address) {
+        probes_[gid].emplace_back(std::move(address), tag);
     }
 
-    virtual void add_probe(cell_gid_type gid, probe_tag tag, util::any address) {
-        auto& pvec_ = probes_[gid];
-
-        cell_member_type probe_id{gid, cell_lid_type(pvec_.size())};
-        pvec_.push_back({probe_id, tag, std::move(address)});
-    }
-
-    util::any get_global_properties(cell_kind k) const override {
+    std::any get_global_properties(cell_kind k) const override {
         switch (k) {
         case cell_kind::cable:
             return cell_gprop_;
         default:
-            return util::any{};
+            return std::any{};
         }
     }
 
@@ -117,14 +115,6 @@ public:
 
     cell_size_type num_cells() const override { return cells_.size(); }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
-
-    cell_size_type num_sources(cell_gid_type i) const override {
-        return cells_.at(i).detectors().size();
-    }
-
-    cell_size_type num_targets(cell_gid_type i) const override {
-        return cells_.at(i).synapses().size();
-    }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
         return util::make_unique_any<cable_cell>(cells_[i]);

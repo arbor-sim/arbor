@@ -2,7 +2,7 @@
 
 // NEON SIMD intrinsics implementation.
 
-#if defined(__ARM_NEON__) || defined(__aarch64__)
+#if defined(__ARM_NEON)
 #include <arm_neon.h>
 #include <cmath>
 #include <cstdint>
@@ -24,6 +24,7 @@ struct simd_traits<neon_double2> {
     using scalar_type = double;
     using vector_type = float64x2_t;
     using mask_impl = neon_double2;  // int64x2_t?
+    static constexpr unsigned min_align = alignof(vector_type);
 };
 
 template <>
@@ -32,6 +33,7 @@ struct simd_traits<neon_int2> {
     using scalar_type = int32_t;
     using vector_type = int32x2_t;
     using mask_impl = neon_int2;  // int64x2_t
+    static constexpr unsigned min_align = alignof(vector_type);
 };
 
 struct neon_int2 : implbase<neon_int2> {
@@ -68,7 +70,7 @@ struct neon_int2 : implbase<neon_int2> {
         return a;
     }
 
-    static int32x2_t negate(const int32x2_t& a) { return vneg_s32(a); }
+    static int32x2_t neg(const int32x2_t& a) { return vneg_s32(a); }
 
     static int32x2_t add(const int32x2_t& a, const int32x2_t& b) {
         return vadd_s32(a, b);
@@ -222,7 +224,7 @@ struct neon_double2 : implbase<neon_double2> {
         return a;
     }
 
-    static float64x2_t negate(const float64x2_t& a) { return vnegq_f64(a); }
+    static float64x2_t neg(const float64x2_t& a) { return vnegq_f64(a); }
 
     static float64x2_t add(const float64x2_t& a, const float64x2_t& b) {
         return vaddq_f64(a, b);
@@ -395,12 +397,7 @@ struct neon_double2 : implbase<neon_double2> {
 
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
-
-        bool a[2];
-        a[0] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-        a[1] = isnan(vgetq_lane_f64(x, 1)) == 0 ? 0 : 1;
-
-        auto is_nan = mask_copy_from(a);
+        auto is_not_nan = cmp_eq(x, x);
 
         // Compute n and g.
 
@@ -430,7 +427,7 @@ struct neon_double2 : implbase<neon_double2> {
 
         return ifelse(is_large, broadcast(HUGE_VAL),
                       ifelse(is_small, broadcast(0),
-                             ifelse(is_nan, broadcast(NAN), result)));
+                             ifelse(is_not_nan, result, broadcast(NAN))));
     }
 
     // Use same rational polynomial expansion as for exp(x), without
@@ -443,12 +440,7 @@ struct neon_double2 : implbase<neon_double2> {
     static float64x2_t expm1(const float64x2_t& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(expm1_minarg));
-
-        bool a[2];
-        a[0] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-        a[1] = isnan(vgetq_lane_f64(x, 1)) == 0 ? 0 : 1;
-
-        auto is_nan = mask_copy_from(a);
+        auto is_not_nan = cmp_eq(x, x);
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
@@ -484,8 +476,7 @@ struct neon_double2 : implbase<neon_double2> {
 
         return ifelse(is_large, broadcast(HUGE_VAL),
                       ifelse(is_small, broadcast(-1),
-                             ifelse(is_nan, broadcast(NAN),
-                                    ifelse(nzero, expgm1, scaled))));
+                             ifelse(is_not_nan, ifelse(nzero, expgm1, scaled), broadcast(NAN))));
     }
 
     // Natural logarithm:
@@ -514,11 +505,7 @@ struct neon_double2 : implbase<neon_double2> {
         auto is_small = cmp_lt(x, broadcast(log_minarg));
         auto is_domainerr = cmp_lt(x, broadcast(0));
 
-        bool a[2];
-        a[0] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-        a[1] = isnan(vgetq_lane_f64(x, 0)) == 0 ? 0 : 1;
-
-        auto is_nan = mask_copy_from(a);
+        auto is_nan = logical_not(cmp_eq(x, x));
         is_domainerr = logical_or(is_nan, is_domainerr);
 
         float64x2_t g = vcvt_f64_f32(vcvt_f32_s32(logb_normal(x)));
@@ -662,4 +649,4 @@ struct neon<int, 2> {
 }  // namespace simd
 }  // namespace arb
 
-#endif  // def __ARM_NEON__
+#endif  // def __ARM_NEON

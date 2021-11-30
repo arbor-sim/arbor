@@ -1,0 +1,3 @@
+sphinx>=2.4.0
+svgwrite
+docutils >= 0.17

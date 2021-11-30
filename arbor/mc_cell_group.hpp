@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -17,12 +18,8 @@
 #include "event_binner.hpp"
 #include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
-#include "profile/profiler_macro.hpp"
+#include "label_resolution.hpp"
 #include "sampler_map.hpp"
-#include "util/double_buffer.hpp"
-#include "util/filter.hpp"
-#include "util/partition.hpp"
-#include "util/range.hpp"
 
 namespace arb {
 
@@ -30,7 +27,11 @@ class mc_cell_group: public cell_group {
 public:
     mc_cell_group() = default;
 
-    mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
+    mc_cell_group(const std::vector<cell_gid_type>& gids,
+                  const recipe& rec,
+                  cell_label_range& cg_sources,
+                  cell_label_range& cg_targets,
+                  fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable;
@@ -56,6 +57,8 @@ public:
     void remove_sampler(sampler_association_handle h) override;
 
     void remove_all_samplers() override;
+
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const override;
 
 private:
     // List of the gids of the cells in the group.
@@ -89,10 +92,13 @@ private:
     std::vector<target_handle> target_handles_;
 
     // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
-    probe_association_map<probe_handle> probe_map_;
+    probe_association_map probe_map_;
 
     // Collection of samplers to be run against probes in this group.
     sampler_association_map sampler_map_;
+
+    // Mutex for thread-safe access to sampler associations.
+    std::mutex sampler_mex_;
 
     // Lookup table for target ids -> local target handle indices.
     std::vector<std::size_t> target_handle_divisions_;

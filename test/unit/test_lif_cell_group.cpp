@@ -1,5 +1,7 @@
 #include "../gtest.h"
 
+#include <arbor/arbexcept.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
@@ -39,17 +41,15 @@ public:
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
-        cell_member_type source{(gid - 1) % n_lif_cells_, 0};
-        cell_member_type target{gid, 0};
-        cell_connection conn(source, target, weight_, delay_);
+        auto src_gid = (gid - 1) % n_lif_cells_;
+        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
         // If first LIF cell, then add
         // the connection from the last LIF cell as well
         if (gid == 1) {
-            cell_member_type source{n_lif_cells_, 0};
-            cell_member_type target{gid, 0};
-            cell_connection conn(source, target, weight_, delay_);
+            auto src_gid = n_lif_cells_;
+            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
             connections.push_back(conn);
         }
 
@@ -60,26 +60,11 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{explicit_schedule({0.f})};
+            return spike_source_cell("src", explicit_schedule({0.f}));
         }
         // LIF cell.
-        return lif_cell();
-    }
-
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_probes(cell_gid_type) const override {
-        return 0;
-    }
-    probe_info get_probe(cell_member_type probe_id) const override {
-        return {};
-    }
-    std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {};
+        auto cell = lif_cell("src", "tgt");
+        return cell;
     }
 
 private:
@@ -107,38 +92,49 @@ public:
             return {};
         }
         std::vector<cell_connection> connections;
-        cell_member_type source{gid - 1, 0};
-        cell_member_type target{gid, 0};
-        cell_connection conn(source, target, weight_, delay_);
+        cell_connection conn({gid-1, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
         return connections;
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell();
-    }
-
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_targets(cell_gid_type) const override {
-        return 1;
-    }
-    cell_size_type num_probes(cell_gid_type) const override {
-        return 0;
-    }
-    probe_info get_probe(cell_member_type probe_id) const override {
-        return {};
-    }
-    std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {};
+        auto cell = lif_cell("src", "tgt");
+        return cell;
     }
 
 private:
     cell_size_type ncells_;
     float weight_, delay_;
 };
+
+// LIF cell with probe
+class probe_recipe: public arb::recipe {
+public:
+    probe_recipe() {}
+
+    cell_size_type num_cells() const override {
+        return 1;
+    }
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::lif;
+    }
+    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        return {};
+    }
+    util::unique_any get_cell_description(cell_gid_type gid) const override {
+        return lif_cell("src", "tgt");
+    }
+    std::vector<probe_info> get_probes(cell_gid_type gid) const override{
+        return {arb::cable_probe_membrane_voltage{mlocation{0, 0}}};
+    }
+};
+TEST(lif_cell_group, throw) {
+    probe_recipe rec;
+    auto context = make_context();
+    auto decomp = partition_load_balance(rec, context);
+    EXPECT_THROW(simulation(rec, decomp, context), bad_cell_probe);
+}
 
 TEST(lif_cell_group, recipe)
 {
@@ -159,18 +155,18 @@ TEST(lif_cell_group, spikes) {
     auto decomp = partition_load_balance(recipe, context);
     simulation sim(recipe, decomp, context);
 
-    std::vector<spike_event> events;
+    cse_vector events;
 
     // First event to trigger the spike (first neuron).
-    events.push_back({{0, 0}, 1, 1000});
+    events.push_back({0, {{0, 1, 1000}}});
 
     // This event happens inside the refractory period of the previous
     // event, thus, should be ignored (first neuron)
-    events.push_back({{0, 0}, 1.1, 1000});
+    events.push_back({0, {{0, 1.1, 1000}}});
 
     // This event happens long after the refractory period of the previous
     // event, should thus trigger new spike (first neuron).
-    events.push_back({{0, 0}, 50, 1000});
+    events.push_back({0, {{0, 50, 1000}}});
 
     sim.inject_events(events);
 

@@ -1,14 +1,22 @@
-#include <lif_cell_group.hpp>
+#include <arbor/arbexcept.hpp>
 
+#include "label_resolution.hpp"
+#include "lif_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
-lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets):
     gids_(gids)
 {
+    for (auto gid: gids_) {
+        if (!rec.get_probes(gid).empty()) {
+            throw bad_cell_probe(cell_kind::lif, gid);
+        }
+    }
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
@@ -17,6 +25,13 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
 
     for (auto lid: util::make_span(gids_.size())) {
         cells_.push_back(util::any_cast<lif_cell>(rec.get_cell_description(gids_[lid])));
+    }
+
+    for (const auto& c: cells_) {
+        cg_sources.add_cell();
+        cg_targets.add_cell();
+        cg_sources.add_label(c.source, {0, 1});
+        cg_targets.add_label(c.target, {0, 1});
     }
 }
 
@@ -29,7 +44,7 @@ void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& 
     if (event_lanes.size() > 0) {
         for (auto lid: util::make_span(gids_.size())) {
             // Advance each cell independently.
-            advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
+            advance_cell(ep.t1, dt, lid, event_lanes[lid]);
         }
     }
     PL();
@@ -55,7 +70,7 @@ void lif_cell_group::set_binning_policy(binning_kind policy, time_type bin_inter
 
 void lif_cell_group::reset() {
     spikes_.clear();
-    last_time_updated_.clear();
+    util::fill(last_time_updated_, 0.);
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).

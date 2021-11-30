@@ -1,0 +1,155 @@
+
+stages:
+  - build
+  - allocate
+  - test
+  - upload_reports
+  - cleanup
+
+# instead of including parameters from here:
+#       https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.cscs.yml
+# hard code them here, to make it easier to also use runners on other systems
+## Piz Daint slurm stuff
+
+.daint:
+  tags:
+    - daint-container
+  variables:
+    CRAY_CUDA_MPS: 1
+    USE_MPI: 'YES'
+    DISABLE_AFTER_SCRIPT: 'YES'
+    PULL_IMAGE: 'NO'
+    SLURM_CONSTRAINT: gpu
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_PARTITION: normal
+    SLURM_TIMELIMIT: '15:00'
+    SLURM_EXCLUSIVE: '' # make sure resources are not shared
+
+.daint_alloc:
+  extends: .daint
+  variables:
+    ONLY_ALLOCATE: 1
+    GIT_STRATEGY: none
+  script: nothing
+
+.daint_dealloc:
+  extends: .daint
+  variables:
+    ONLY_DEALLOCATE: 1
+    GIT_STRATEGY: none
+  script: nothing
+  when: always
+
+## Kubernetes for building docker images
+.dind:
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: 1
+    BUILDKIT_PROGRESS: plain
+  image: docker:19.03.12
+  tags:
+    - kubernetes
+  services:
+    - docker:19.03.12-dind
+
+# Builds a docker image on kubernetes
+.build_docker_images:
+  extends: .dind
+  stage: build
+  only: ['master', 'staging', 'trying']
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - docker login -u $CSCS_REGISTRY_USER -p $CSCS_REGISTRY_PASSWORD $CSCS_REGISTRY
+    - docker build -f $BUILD_DOCKERFILE --network=host --cache-from $BUILD_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 -t $BUILD_IMAGE .
+    - docker push $BUILD_IMAGE
+    - docker build -f $DEPLOY_DOCKERFILE --network=host --build-arg BUILD_ENV=$BUILD_IMAGE -t $DEPLOY_IMAGE .
+    - docker push $DEPLOY_IMAGE
+
+build_release:
+  extends: .build_docker_images
+  variables:
+    BUILD_DOCKERFILE: ci/release/build.Dockerfile
+    BUILD_IMAGE: $CSCS_REGISTRY_IMAGE/release/build:latest
+    DEPLOY_DOCKERFILE: ci/release/deploy.Dockerfile
+    DEPLOY_IMAGE: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+
+notify_github_start:
+  stage: build
+  allow_failure: true
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh pending
+
+
+### Release tests ###
+allocate_release:
+  stage: allocate
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  only: ['master', 'staging', 'trying']
+  extends: .daint_alloc
+  variables:
+    PULL_IMAGE: 'YES'
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+single_node_release:
+  extends: .daint
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  only: ['master', 'staging', 'trying']
+  stage: test
+  script:
+    - unit
+    - unit-local
+    - unit-modcc
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+multi_node_release:
+  extends: .daint
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  only: ['master', 'staging', 'trying']
+  stage: test
+  script:
+    - unit-mpi
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 2
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+test_ault_fujitsu:
+    needs: []
+    tags:
+        - arm-a64fx
+    stage: test
+    script:
+        - chmod +x ci/test-ault-fujitsu.sh
+        - srun --partition=a64fx -c48 ci/test-ault-fujitsu.sh "$(pwd)"
+
+deallocate_release:
+  only: ['master', 'staging', 'trying']
+  image: $CSCS_REGISTRY_IMAGE/release/deploy:$CI_COMMIT_SHA
+  stage: cleanup
+  extends: .daint_dealloc
+  variables:
+    ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
+
+notify_github_success:
+  stage: cleanup
+  when: on_success
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh success
+
+notify_github_failure:
+  stage: cleanup
+  when: on_failure
+  only: ['master', 'staging', 'trying']
+  tags: ['kubernetes']
+  image: stabbles/git-curl
+  script: ./ci/set_github_status.sh failure

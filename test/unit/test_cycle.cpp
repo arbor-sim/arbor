@@ -113,7 +113,7 @@ TEST(cycle_iterator, carray) {
     int values[] = { 4, 2, 3 };
     auto cycle_iter = util::make_cyclic_iterator(std::cbegin(values),
                                                  std::cend(values));
-    auto values_size = util::size(values);
+    auto values_size = std::size(values);
     for (auto i = 0u; i < 2*values_size; ++i) {
         EXPECT_EQ(values[i % values_size], *cycle_iter++);
     }
@@ -201,7 +201,7 @@ TEST(cycle_iterator, order) {
     EXPECT_TRUE(c1 <= c2);
     EXPECT_TRUE(c1 >= c2);
 
-    c2 += util::size(values);
+    c2 += std::size(values);
 
     EXPECT_TRUE(c1 < c2);
     EXPECT_FALSE(c2 < c1);

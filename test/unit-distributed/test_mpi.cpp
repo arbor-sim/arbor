@@ -79,12 +79,12 @@ TEST(mpi, gather_all_with_partition) {
         if (i%2) {
             int rank_data[] = { i, i+7, i+8 };
             util::append(expected_values, rank_data);
-            expected_divisions.push_back(expected_divisions.back()+util::size(rank_data));
+            expected_divisions.push_back(expected_divisions.back()+std::size(rank_data));
         }
         else {
             int rank_data[] = { i };
             util::append(expected_values, rank_data);
-            expected_divisions.push_back(expected_divisions.back()+util::size(rank_data));
+            expected_divisions.push_back(expected_divisions.back()+std::size(rank_data));
         }
     }
 
@@ -119,6 +119,40 @@ TEST(mpi, gather_string) {
         ASSERT_TRUE(size==(int)gathered.size());
         for (std::size_t i=0; i<gathered.size(); ++i) {
             EXPECT_EQ(make_string(i), gathered[i]);
+        }
+    }
+}
+
+TEST(mpi, gather_string_vec) {
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
+
+    // Make a vector of strings of variable length:
+    // rank strings
+    //  0   a
+    //  1   b; bb
+    //  2   c; cc; ccc
+    //  3   d; dd; ddd; dddd
+    //   ...
+    // 25   z; zz; ...; zzzz...zzz   (26 times z)
+    // 26   a; aa; ...; aaaa...aaaa  (27 times a)
+    auto make_string = [](int length, int id) {
+      return std::string(length, 'a'+char(id%26));};
+
+    std::vector<std::string> string_vec(id+1);
+    for (int i = 0; i < id+1; ++i) {
+        string_vec[i] = make_string(i+1, id);
+    }
+
+    auto gathered = mpi::gather_all(string_vec, MPI_COMM_WORLD);
+
+    int expected_size = size*(size+1)/2;
+    ASSERT_TRUE(expected_size==(int)gathered.size());
+
+    int idx = 0;
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < i+1; ++j) {
+            EXPECT_EQ(make_string(j+1, i), gathered[idx++]);
         }
     }
 }

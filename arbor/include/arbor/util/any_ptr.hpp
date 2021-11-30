@@ -1,27 +1,35 @@
 #pragma once
 
-/* Specialied type erasure for pointer types.
- *
- * `any_ptr` represents a non-owning pointer to an arbitrary type
- * that can be confirmed at run-time.
- *
- * Semantics:
- *
- * 1. An `any_ptr` value p represents either a null pointer, or
- *    a non-null pointer of a specific but arbitrary type T.
- *
- * 2. The value of the pointer as a `void*` value can be retrieved
- *    with the member function `as<void*>()`.
- *
- * 3. The value of the pointer as a type T which is not `void*` is
- *    retrieved with the member function `as<T>()`. If the represented
- *    pointer is the null pointer or a pointer to a different type,
- *    `as<T>()` will return the null pointer.
- */
+// Specialied type erasure for pointer types.
+//
+// `any_ptr` represents a non-owning pointer to an arbitrary type
+// that can be confirmed at run-time.
+//
+// Semantics:
+//
+// 1. An `any_ptr` value p represents either a null pointer, or
+//    a non-null pointer of a specific but arbitrary type T.
+//
+// 2. The value of the pointer as a `void*` value can be retrieved
+//    with the member function `as<void*>()`.
+//
+// 3. The value of the pointer as a pointer of type T is retrieved
+//    with the member function `as<T>()`.
+//
+// 4. When U is not `void *` and is not the type T, the member function
+//    will return `nullptr`.
+//
+// Overloads are provided for `util::any_cast`, with
+// `util::any_cast<U>(anyp)` equal to `anyp.as<U>()` for a value
+// `anyp` of type `util::any_ptr.
+//
+// `any_ptr` values are ordered by the value of the corresponding
+// `void*` pointer.
 
 #include <cstddef>
 #include <type_traits>
 
+#include <arbor/util/any_cast.hpp>
 #include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {

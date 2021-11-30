@@ -7,9 +7,21 @@
 
 #include <cmath>
 #include <string>
+#include <type_traits>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "../gtest.h"
+
+// Pair printer.
+
+namespace std {
+    template <typename A, typename B>
+    ::std::ostream& operator<<(::std::ostream& out, const ::std::pair<A, B>& p) {
+        return out << '(' << p.first << ',' << p.second << ')';
+    }
+}
 
 namespace testing {
 
@@ -35,29 +47,48 @@ struct null_terminated_t {
 
 constexpr null_terminated_t null_terminated;
 
+template <typename... A>
+struct matches_cvref_impl: std::false_type {};
+
+template <typename X>
+struct matches_cvref_impl<X, X>: std::true_type {};
+
+template <typename... A>
+using matches_cvref = matches_cvref_impl<std::remove_cv_t<std::remove_reference_t<A>>...>;
+
 // Wrap a value type, with copy operations disabled.
 
 template <typename V>
 struct nocopy {
     V value;
 
-    nocopy(): value{} {}
-    nocopy(V v): value(v) {}
+    template <typename... A>
+    using is_self = matches_cvref<nocopy, A...>;
+
+    template <typename... A, typename = std::enable_if_t<!is_self<A...>::value>>
+    nocopy(A&&... a): value(std::forward<A>(a)...) {}
+
+    nocopy(nocopy& n) = delete;
     nocopy(const nocopy& n) = delete;
 
-    nocopy(nocopy&& n) {
-        value=n.value;
-        n.value=V{};
+    nocopy(nocopy&& n): value(std::move(n.value)) {
+        n.clear();
         ++move_ctor_count;
     }
 
     nocopy& operator=(const nocopy& n) = delete;
     nocopy& operator=(nocopy&& n) {
-        value=n.value;
-        n.value=V{};
+        value = std::move(n.value);
+        n.clear();
         ++move_assign_count;
         return *this;
     }
+
+    template <typename U = V>
+    std::enable_if_t<std::is_default_constructible<U>::value> clear() { value = V{}; }
+
+    template <typename U = V>
+    std::enable_if_t<!std::is_default_constructible<U>::value> clear() {}
 
     bool operator==(const nocopy& them) const { return them.value==value; }
     bool operator!=(const nocopy& them) const { return !(*this==them); }
@@ -82,18 +113,19 @@ template <typename V>
 struct nomove {
     V value;
 
-    nomove(): value{} {}
-    nomove(V v): value(v) {}
-    nomove(nomove&& n) = delete;
+    template <typename... A>
+    using is_self = matches_cvref<nomove, A...>;
 
-    nomove(const nomove& n): value(n.value) {
-        ++copy_ctor_count;
-    }
+    template <typename... A, typename = std::enable_if_t<!is_self<A...>::value>>
+    nomove(A&&... a): value(std::forward<A>(a)...) {}
+
+    nomove(nomove& n): value(n.value) { ++copy_ctor_count; }
+    nomove(const nomove& n): value(n.value) { ++copy_ctor_count; }
 
     nomove& operator=(nomove&& n) = delete;
 
     nomove& operator=(const nomove& n) {
-        value=n.value;
+        value = n.value;
         ++copy_assign_count;
         return *this;
     }

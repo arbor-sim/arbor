@@ -7,7 +7,7 @@
 
 #include "gpu_context.hpp"
 #include "memory/allocator.hpp"
-#include "memory/cuda_wrappers.hpp"
+#include "memory/gpu_wrappers.hpp"
 #include "stack_storage.hpp"
 
 namespace arb {
@@ -31,7 +31,7 @@ class stack {
     using value_type = T;
 
     template <typename U>
-    using allocator = memory::cuda_allocator<U>;
+    using allocator = memory::gpu_allocator<U>;
 
     using storage_type = stack_storage<value_type>;
 
@@ -56,7 +56,7 @@ private:
         host_storage_.data = n>0u ? allocator<value_type>().allocate(n): nullptr;
 
         device_storage_ = allocator<storage_type>().allocate(1);
-        memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
+        memory::gpu_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
     }
 
 public:
@@ -96,18 +96,18 @@ public:
     // After this call both host and device storage are synchronized to the GPU
     // state before the call.
     void update_host() {
-        memory::cuda_memcpy_d2h(&host_storage_, device_storage_, sizeof(storage_type));
+        memory::gpu_memcpy_d2h(&host_storage_, device_storage_, sizeof(storage_type));
 
         auto num = size();
         data_.resize(num);
         auto bytes = num*sizeof(T);
-        memory::cuda_memcpy_d2h(data_.data(), host_storage_.data, bytes);
+        memory::gpu_memcpy_d2h(data_.data(), host_storage_.data, bytes);
     }
 
     // After this call both host and device storage are synchronized to empty state.
     void clear() {
         host_storage_.stores = 0u;
-        memory::cuda_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
+        memory::gpu_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
         data_.clear();
     }
 

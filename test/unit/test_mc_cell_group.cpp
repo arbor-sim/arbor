@@ -2,6 +2,8 @@
 
 #include <arbor/common_types.hpp>
 
+#include <arborio/label_parse.hpp>
+
 #include "epoch.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"
@@ -12,6 +14,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
+using namespace arborio::literals;
 
 namespace {
     execution_context context;
@@ -20,13 +23,15 @@ namespace {
         return make_fvm_lowered_cell(backend_kind::multicore, context);
     }
 
-    cable_cell make_cell() {
-        auto c = make_cell_ball_and_stick();
-
-        c.add_detector({0, 0}, 0);
-        c.segment(1)->set_compartments(101);
-
-        return c;
+    cable_cell_description make_cell() {
+        soma_cell_builder builder(12.6157/2.0);
+        builder.add_branch(0, 200, 0.5, 0.5, 101, "dend");
+        auto d = builder.make_cell();
+        d.decorations.paint("soma"_lab, density("hh"));
+        d.decorations.paint("dend"_lab, density("pas"));
+        d.decorations.place(builder.location({1,1}), i_clamp::box(5, 80, 0.3), "clamp0");
+        d.decorations.place(builder.location({0, 0}), threshold_detector{0}, "detector0");
+        return d;
     }
 }
 
@@ -36,19 +41,23 @@ ACCESS_BIND(
     &mc_cell_group::spike_sources_)
 
 TEST(mc_cell_group, get_kind) {
-    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
+    cable_cell cell = make_cell();
+    cell_label_range srcs, tgts;
+    mc_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
-    auto rec = cable1d_recipe(make_cell());
+    cable_cell cell = make_cell();
+    auto rec = cable1d_recipe({cell});
     rec.nernst_ion("na");
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    mc_cell_group group{{0}, rec, lowered_cell()};
-    group.advance(epoch(0, 50), 0.01, {});
+    cell_label_range srcs, tgts;
+    mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
+    group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
     // fixed stimulus over 50 ms.
@@ -61,10 +70,11 @@ TEST(mc_cell_group, sources) {
     std::vector<cable_cell> cells;
 
     for (int i=0; i<20; ++i) {
-        cells.push_back(make_cell());
+        auto desc = make_cell();
         if (i==0 || i==3 || i==17) {
-            cells.back().add_detector({1, 0.3}, 2.3);
+            desc.decorations.place(mlocation{0, 0.3}, threshold_detector{2.3}, "detector1");
         }
+        cells.emplace_back(desc);
 
         EXPECT_EQ(1u + (i==0 || i==3 || i==17), cells.back().detectors().size());
     }
@@ -75,7 +85,8 @@ TEST(mc_cell_group, sources) {
     rec.nernst_ion("ca");
     rec.nernst_ion("k");
 
-    mc_cell_group group{gids, rec, lowered_cell()};
+    cell_label_range srcs, tgts;
+    mc_cell_group group{gids, rec, srcs, tgts, lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.

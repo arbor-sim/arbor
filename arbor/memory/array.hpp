@@ -87,12 +87,12 @@ template <typename T, typename Coord>
 class array :
     public array_view<T, Coord> {
 public:
-    using value_type = T;
-    using base       = array_view<value_type, Coord>;
-    using view_type  = array_view<value_type, Coord>;
-    using const_view_type = const_array_view<value_type, Coord>;
+    using base       = array_view<T, Coord>;
+    using view_type  = base;
+    using const_view_type = const_array_view<T, Coord>;
 
-    using coordinator_type = typename Coord::template rebind<value_type>;
+    using typename base::value_type;
+    using typename base::coordinator_type;
 
     using typename base::size_type;
     using typename base::difference_type;
@@ -152,7 +152,7 @@ public:
                   << "\n  this  " << util::pretty_printer<array>::print(*this)
                   << "\n  other " << util::pretty_printer<array>::print(other) << "\n";
 #endif
-        coordinator_.copy(const_view_type(other), view_type(*this));
+        base::coordinator_.copy(const_view_type(other), view_type(*this));
     }
 
     // move constructor
@@ -179,7 +179,7 @@ public:
                   << "\n  this  " << util::pretty_printer<array>::print(*this)
                   << "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
 #endif
-        coordinator_.copy(typename Other::const_view_type(other), view_type(*this));
+        base::coordinator_.copy(typename Other::const_view_type(other), view_type(*this));
     }
 
     array& operator=(const array& other) {
@@ -188,10 +188,10 @@ public:
                   << "\n  this  "  << util::pretty_printer<array>::print(*this)
                   << "\n  other " << util::pretty_printer<array>::print(other) << "\n";
 #endif
-        coordinator_.free(*this);
+        base::coordinator_.free(*this);
         auto ptr = coordinator_type().allocate(other.size());
         base::reset(ptr.data(), other.size());
-        coordinator_.copy(const_view_type(other), view_type(*this));
+        base::coordinator_.copy(const_view_type(other), view_type(*this));
         return *this;
     }
 
@@ -211,7 +211,7 @@ public:
         std::cerr << util::red("~") + util::green("array()")
                   << "\n  this " << util::pretty_printer<array>::print(*this) << "\n";
 #endif
-        coordinator_.free(*this);
+        base::coordinator_.free(*this);
     }
 
     template <
@@ -232,7 +232,7 @@ public:
         arb_assert(&*b+(e-b)==&*e);
 
         using V = typename std::iterator_traits<iterator>::value_type;
-        coordinator_.copy(const_array_view<V, host_coordinator<V, aligned_allocator<V>>>(&*b, e-b), view_type(*this));
+        base::coordinator_.copy(const_array_view<V, host_coordinator<V, aligned_allocator<V>>>(&*b, e-b), view_type(*this));
     }
 
     // use the accessors provided by array_view
@@ -241,16 +241,12 @@ public:
     using base::operator();
 
     const coordinator_type& coordinator() const {
-        return coordinator_;
+        return base::coordinator_;
     }
 
     using base::size;
 
     using base::alignment;
-
-private:
-
-    coordinator_type coordinator_;
 };
 
 } // namespace memory

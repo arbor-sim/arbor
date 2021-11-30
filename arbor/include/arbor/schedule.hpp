@@ -4,12 +4,13 @@
 #include <iterator>
 #include <memory>
 #include <random>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/compat.hpp>
+#include <arbor/util/extra_traits.hpp>
 
 // Time schedules for probe–sampler associations.
 
@@ -18,11 +19,11 @@ namespace arb {
 using time_event_span = std::pair<const time_type*, const time_type*>;
 
 inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
-    return {&v[0], &v[0]+v.size()};
+    return {v.data(), v.data()+v.size()};
 }
 
 // A schedule describes a sequence of time values used for sampling. Schedules
-// are queried monotonically in time: if two method calls `events(t0, t1)` 
+// are queried monotonically in time: if two method calls `events(t0, t1)`
 // and `events(t2, t3)` are made without an intervening call to `reset()`,
 // then 0 ≤ _t0_ ≤ _t1_ ≤ _t2_ ≤ _t3_.
 
@@ -30,11 +31,11 @@ class schedule {
 public:
     schedule();
 
-    template <typename Impl>
+    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(const Impl& impl):
         impl_(new wrap<Impl>(impl)) {}
 
-    template <typename Impl>
+    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(Impl&& impl):
         impl_(new wrap<Impl>(std::move(impl))) {}
 
@@ -175,10 +176,11 @@ inline schedule explicit_schedule(const std::initializer_list<time_type>& seq) {
 template <typename RandomNumberEngine>
 class poisson_schedule_impl {
 public:
-    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng):
-        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart)
+    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop):
+        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart), tstop_(tstop)
     {
         arb_assert(tstart_>=0);
+        arb_assert(tstart_ <= tstop_);
         step();
     }
 
@@ -189,6 +191,14 @@ public:
     }
 
     time_event_span events(time_type t0, time_type t1) {
+        // if we start after the maximal allowed time, we have nothing to do
+        if (t0 >= tstop_) {
+            return {};
+        }
+
+        // restrict by maximal allowed time
+        t1 = std::min(t1, tstop_);
+
         times_.clear();
 
         while (next_<t0) {
@@ -214,16 +224,17 @@ private:
     RandomNumberEngine reset_state_;
     time_type next_;
     std::vector<time_type> times_;
+    time_type tstop_;
 };
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng));
+inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop=terminal_time) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng, tstop));
 }
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng));
+inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop=terminal_time) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng, tstop));
 }
 
 } // namespace arb

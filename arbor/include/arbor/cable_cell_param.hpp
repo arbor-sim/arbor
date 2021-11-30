@@ -1,11 +1,16 @@
 #pragma once
 
-#include <arbor/arbexcept.hpp>
-#include <arbor/mechcat.hpp>
-#include <arbor/util/optional.hpp>
-
+#include <cmath>
+#include <memory>
+#include <optional>
 #include <unordered_map>
 #include <string>
+#include <variant>
+
+#include <arbor/arbexcept.hpp>
+#include <arbor/cv_policy.hpp>
+#include <arbor/mechcat.hpp>
+#include <arbor/morph/locset.hpp>
 
 namespace arb {
 
@@ -14,6 +19,106 @@ namespace arb {
 struct cable_cell_error: arbor_exception {
     cable_cell_error(const std::string& what):
         arbor_exception("cable_cell: "+what) {}
+};
+
+// Ion inital concentration and reversal potential
+// parameters, as used in cable_cell_parameter_set,
+// and set locally via painting init_int_concentration,
+// init_ext_concentration and init_reversal_potential
+// separately (see below).
+
+struct cable_cell_ion_data {
+    std::optional<double> init_int_concentration;
+    std::optional<double> init_ext_concentration;
+    std::optional<double> init_reversal_potential;
+};
+
+// Clamp current is described by a sine wave with amplitude governed by a
+// piecewise linear envelope. A frequency of zero indicates that the current is
+// simply that given by the envelope.
+//
+// The envelope is given by a series of envelope_point values:
+// * The time points must be monotonically increasing.
+// * Onset and initial amplitude is given by the first point.
+// * The amplitude for time after the last time point is that of the last
+//   amplitude point; an explicit zero amplitude point must be provided if the
+//   envelope is intended to have finite support.
+//
+// Periodic envelopes are not supported, but may well be a feature worth
+// considering in the future.
+
+struct i_clamp {
+    struct envelope_point {
+        double t;         // [ms]
+        double amplitude; // [nA]
+    };
+
+    std::vector<envelope_point> envelope;
+    double frequency = 0; // [kHz] 0 => constant
+    double phase = 0;     // [rad]
+
+    // A default constructed i_clamp, with empty envelope, describes
+    // a trivial stimulus, providing no current at all.
+    i_clamp() = default;
+
+    // The simple constructor describes a constant amplitude stimulus starting from t=0.
+    explicit i_clamp(double amplitude, double frequency = 0, double phase = 0):
+        envelope({{0., amplitude}}),
+        frequency(frequency),
+        phase(phase)
+    {}
+
+    // Describe a stimulus by envelope and frequency.
+    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0, double phase = 0):
+        envelope(std::move(envelope)),
+        frequency(frequency),
+        phase(phase)
+    {}
+
+    // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
+    static i_clamp box(double onset, double duration, double amplitude, double frequency = 0, double phase = 0) {
+        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency, phase);
+    }
+
+};
+
+// Threshold detector description.
+struct threshold_detector {
+    double threshold;
+};
+
+// Setter types for painting physical and ion parameters or setting
+// cell-wide default:
+
+struct init_membrane_potential {
+    double value = NAN; // [mV]
+};
+
+struct temperature_K {
+    double value = NAN; // [K]
+};
+
+struct axial_resistivity {
+    double value = NAN; // [Ω·cm]
+};
+
+struct membrane_capacitance {
+    double value = NAN; // [F/m²]
+};
+
+struct init_int_concentration {
+    std::string ion = "";
+    double value = NAN; // [mM]
+};
+
+struct init_ext_concentration {
+    std::string ion = "";
+    double value = NAN; // [mM]
+};
+
+struct init_reversal_potential {
+    std::string ion = "";
+    double value = NAN; // [mV]
 };
 
 // Mechanism description, viz. mechanism name and
@@ -79,39 +184,111 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
+// Tagged mechanism types for dispatching decor::place() and decor::paint() calls
+struct junction {
+    mechanism_desc mech;
+    explicit junction(mechanism_desc m): mech(std::move(m)) {}
+    junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
+struct synapse {
+    mechanism_desc mech;
+    explicit synapse(mechanism_desc m): mech(std::move(m)) {}
+    synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
+struct density {
+    mechanism_desc mech;
+    explicit density(mechanism_desc m): mech(std::move(m)) {}
+    density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
+struct ion_reversal_potential_method {
+    std::string ion;
+    mechanism_desc method;
+};
+
+using paintable =
+    std::variant<init_membrane_potential,
+                 axial_resistivity,
+                 temperature_K,
+                 membrane_capacitance,
+                 init_int_concentration,
+                 init_ext_concentration,
+                 init_reversal_potential,
+                 density>;
+
+using placeable =
+    std::variant<i_clamp,
+                 threshold_detector,
+                 synapse,
+                 junction>;
+
+using defaultable =
+    std::variant<init_membrane_potential,
+                 axial_resistivity,
+                 temperature_K,
+                 membrane_capacitance,
+                 init_int_concentration,
+                 init_ext_concentration,
+                 init_reversal_potential,
+                 ion_reversal_potential_method,
+                 cv_policy>;
+
 // Cable cell ion and electrical defaults.
+
+// Parameters can be given as per-cell and global defaults via
+// cable_cell::default_parameters and cable_cell_global_properties::default_parameters
+// respectively.
 //
-// Parameters can be overridden with `cable_cell_local_parameter_set`
-// on unbranched segments within a cell; per-cell and global defaults
-// use `cable_cell_parameter_set`, which extends the parameter set
-// to supply per-cell or global ion reversal potential calculation
-// mechanisms.
+// With the exception of `reversal_potential_method`, these properties can
+// be set locally witihin a cell using the `cable_cell::paint()`, and the
+// cell defaults can be individually set with `cable_cell:set_default()`.
 
-struct cable_cell_ion_data {
-    double init_int_concentration = NAN;
-    double init_ext_concentration = NAN;
-    double init_reversal_potential = NAN;
-};
+struct cable_cell_parameter_set {
+    std::optional<double> init_membrane_potential; // [mV]
+    std::optional<double> temperature_K;           // [K]
+    std::optional<double> axial_resistivity;       // [Ω·cm]
+    std::optional<double> membrane_capacitance;    // [F/m²]
 
-struct cable_cell_local_parameter_set {
     std::unordered_map<std::string, cable_cell_ion_data> ion_data;
-    util::optional<double> init_membrane_potential; // [mV]
-    util::optional<double> temperature_K;           // [K]
-    util::optional<double> axial_resistivity;       // [Ω·cm]
-    util::optional<double> membrane_capacitance;    // [F/m²]
-};
-
-struct cable_cell_parameter_set: public cable_cell_local_parameter_set {
     std::unordered_map<std::string, mechanism_desc> reversal_potential_method;
 
-    // We'll need something like this until C++17, for sane initialization syntax.
-    cable_cell_parameter_set() = default;
-    cable_cell_parameter_set(cable_cell_local_parameter_set p, std::unordered_map<std::string, mechanism_desc> m = {}):
-        cable_cell_local_parameter_set(std::move(p)), reversal_potential_method(std::move(m))
-    {}
+    std::optional<cv_policy> discretization;
+
+    std::vector<defaultable> serialize() const;
 };
 
-extern cable_cell_local_parameter_set neuron_parameter_defaults;
+// A flat description of defaults, paintings and placings that
+// are to be applied to a morphology in a cable_cell.
+class decor {
+    std::vector<std::pair<region, paintable>> paintings_;
+    std::vector<std::tuple<locset, placeable, cell_tag_type>> placements_;
+    cable_cell_parameter_set defaults_;
+
+public:
+    const auto& paintings()  const {return paintings_;  }
+    const auto& placements() const {return placements_; }
+    const auto& defaults()   const {return defaults_;   }
+
+    void paint(region, paintable);
+    void place(locset, placeable, cell_tag_type);
+    void set_default(defaultable);
+};
+
+extern cable_cell_parameter_set neuron_parameter_defaults;
 
 // Global cable cell data.
 

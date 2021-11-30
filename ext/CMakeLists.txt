@@ -1,12 +1,21 @@
 # Niels Lohmann's json library (single-header version).
 
-add_library(ext-json INTERFACE)
-target_include_directories(ext-json INTERFACE json/single_include)
+if(ARB_USE_BUNDLED_JSON)
+  add_library(ext-json INTERFACE)
+  target_include_directories(ext-json INTERFACE json/single_include)
+  set(json_library_name ext-json PARENT_SCOPE)
+endif()
 
-# TCLAP command line parsing libary (header-only).
+# tinyopt command line parsing libary (header-only).
 
-add_library(ext-tclap INTERFACE)
-target_include_directories(ext-tclap INTERFACE tclap/include)
+add_library(ext-tinyopt INTERFACE)
+target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
+
+# Random123 (DE Shaw Research) counter-based random number generators (header-only)
+
+add_library(ext-random123 INTERFACE)
+target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/random123/include)
+install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Google benchmark for microbenchmarks:
 
@@ -43,15 +52,3 @@ add_library(ext-benchmark INTERFACE)
 add_dependencies(ext-benchmark gbench-build)
 target_include_directories(ext-benchmark INTERFACE "${gbench_install_dir}/include")
 target_link_libraries(ext-benchmark INTERFACE "${gbench_install_dir}/lib/libbenchmark.a")
-
-# Sphinx RTD theme
-
-check_git_submodule(rtdtheme sphinx_rtd_theme)
-add_target_if(rtdtheme_avail
-    check-sphinx_rtd_theme
-    "Checking for Read the Docs Sphinx theme"
-    "The git submodule for read the docs is not available")
-
-add_library(ext-sphinx_rtd_theme INTERFACE)
-add_dependencies(ext-sphinx_rtd_theme check-sphinx_rtd_theme)
-target_include_directories(ext-sphinx_rtd_theme INTERFACE sphinx_rtd_theme)
