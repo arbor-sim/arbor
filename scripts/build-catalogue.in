@@ -52,6 +52,10 @@ def parse_arguments():
                         action='store_true',
                         help='Less output.')
 
+    parser.add_argument('-g', '--gpu',
+                        metavar='gpu',
+                        help='Enable GPU support, valid options: cuda|hip|cuda-clang.')
+
     parser.add_argument('-d', '--debug',
                         nargs="?",
                         metavar="path",
@@ -79,15 +83,26 @@ verbose = args['verbose'] and not args['quiet']
 quiet   = args['quiet']
 debug   = args['debug']
 
+if args['gpu']:
+    if args['gpu'] == 'cuda':
+        gpu_support = """set(ARB_WITH_NVCC TRUE)
+set(ARB_WITH_GPU TRUE)
+set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+enable_language(CUDA)
+find_package(CUDA 10 REQUIRED)"""
+    else:
+        print(f"Unsupported GPU target: {args['gpu']}")
+else:
+    gpu_support = "# NONE"
+
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
 
 find_package(arbor REQUIRED)
 
-if(ARB_WITH_GPU)
-    enable_language(CUDA)
-endif()
+{gpu_support}
 
 set(CMAKE_BUILD_TYPE release)
 set(CMAKE_CXX_COMPILER  ${{ARB_CXX}})
