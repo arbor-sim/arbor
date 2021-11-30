@@ -10,6 +10,10 @@ enable_language(CXX)
 
 include(GNUInstallDirs)
 
+# Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
 
@@ -111,18 +115,19 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
 
-    # CMake 18 and later set the default CUDA architecture for
-    # each target according to CMAKE_CUDA_ARCHITECTURES.
-    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        # set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-    endif()
-
     # This fixes nvcc picking up a wrong host compiler for linking, causing issues
     # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
     # all calls to enable_language(CUDA)
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 
     enable_language(CUDA)
+
+    # CMake 3.18 and later set the default CUDA architecture for
+    # each target according to CMAKE_CUDA_ARCHITECTURES. Not setting
+    # this will constitute an error from now on.
+    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70) # Compatible with CUDA 10.
+    endif()
 
     # Despite native CUDA support, the CUDA package is still required to export
     # the cuda library dependencies from the installed target.
@@ -301,9 +306,6 @@ if(ARB_WITH_PYTHON)
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
     endif()
 
-    # Required to link the dynamic libraries for python modules.
-    # Effectively adds '-fpic' flag to CXX_FLAGS.
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 else()
     # If not building the Python module, the interpreter is still required
     # to build some targets, e.g. when building the documentation.

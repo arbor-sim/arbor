@@ -85,12 +85,10 @@ debug   = args['debug']
 
 if args['gpu']:
     if args['gpu'] == 'cuda':
-        gpu_support = """set(ARB_WITH_NVCC TRUE)
-set(ARB_WITH_GPU TRUE)
-set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-enable_language(CUDA)
-find_package(CUDA 10 REQUIRED)"""
+        gpu_support = """add_compile_definitions(ARB_CUDA)
+set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CXX_COMPILER@)
+set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)
+enable_language(CUDA)"""
     else:
         print(f"Unsupported GPU target: {args['gpu']}")
 else:
@@ -100,6 +98,7 @@ cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
 
+set(arbor_DIR @CMAKE_INSTALL_FULL_LIBDIR@/cmake/arbor)
 find_package(arbor REQUIRED)
 
 {gpu_support}
@@ -111,7 +110,7 @@ set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 include(BuildModules.cmake)
 
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc)
+find_program(modcc NAMES modcc PATHS @CMAKE_INSTALL_FULL_BINDIR@)
 
 make_catalogue(
   NAME {name}
