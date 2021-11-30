@@ -41,7 +41,7 @@ dec.discretization(A.cv_policy('(max-extent 5)'))
 # Set up ion diffusion
 # TODO(TH) figure out diff scale
 dec.set_ion('na', int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
-dec.paint('(tag 1)', ion_name="na", int_con=100.0, diff=0.0)
+dec.paint('(tag 1)', ion_name="na", int_con=100.0, diff=0.01)
 
 prb = [A.cable_probe_ion_int_concentration_cell('na'),]
 cel = A.cable_cell(tree, A.label_dict(), dec)
@@ -51,7 +51,7 @@ dom = A.partition_load_balance(rec, ctx)
 sim = A.simulation(rec, dom, ctx)
 hdl = sim.sample((0, 0), A.regular_schedule(0.1)),
 
-sim.run(tfinal=30)
+sim.run(tfinal=0.5)
 
 sns.set_theme()
 fg, ax = plt.subplots()

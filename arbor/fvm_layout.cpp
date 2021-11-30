@@ -13,6 +13,8 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
 
+#include <iostream>
+
 #include "fvm_layout.hpp"
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
@@ -413,7 +415,9 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     for (auto& [ion, data]: diffusive_ions) {
         if (auto map = diffusivity_map.find(ion); map != diffusivity_map.end()) {
             const auto [i, vs] = *map;
+            std::cout << "Ion " << ion << " diffusivity\n";
             for (const auto& [k, v]: vs) {
+                std::cout << k.branch << ": " << v.value << "\n";
                 inverse_diffusivity_map[ion].insert(k, 1.0/v.value);
             }
         }
@@ -421,13 +425,18 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
 
     for (auto& [ion, data]: diffusive_ions) {
         // Fetch defaults, either global or per cell
-        auto gd = *(value_by_key(global_dflt.ion_data, ion).value().diffusivity
-                  | value_by_key(dflt.ion_data,        ion).value().diffusivity);
+        auto gd = *(value_by_key(dflt.ion_data,        ion).value().diffusivity
+                  | value_by_key(global_dflt.ion_data, ion).value().diffusivity);
         data.face_diffusivity.resize(n_cv);
         auto& id = data.axial_inv_diffusivity;
         id.resize(1);
         msize_t n_branch = D.geometry.n_branch(0);
         id.reserve(n_branch);
+        std::cout << "Ion " << ion << " default diffusivity: " << gd << '\n';
+        std::cout << "Ion " << ion << " inverse diffusivity\n";
+        for (auto [c, d]: inverse_diffusivity_map[ion]) {
+            std::cout << c.branch << ": " << d << "\n";
+        }
         for (msize_t i = 0; i<n_branch; ++i) {
             auto pw = pw_over_cable(inverse_diffusivity_map[ion],
                                     mcable{i, 0., 1.},
@@ -487,7 +496,9 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
             D.face_conductance[i] = 100/resistance; // 100 scales to µS.
             for (auto& [ion, info]: diffusive_ions) {
                 double resistance = embedding.integrate_ixa(span, info.axial_inv_diffusivity[0].at(bid));
+
                 info.face_diffusivity[i] = 1.0/resistance; // TODO: figure out scaling
+                std::cout << resistance << '\t' << info.face_diffusivity[i] << '\n';
             }
         }
 

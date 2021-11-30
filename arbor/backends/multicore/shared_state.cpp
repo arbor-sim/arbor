@@ -246,13 +246,49 @@ void shared_state::integrate_voltage() {
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
+            std::cout << " * Gij: ";
+            for (auto xi: data.solver->face_diffusivity) std::cout << xi << ' ';
+            std::cout << '\n';
+
             data.solver->assemble(dt_intdom,
                                   data.Xi_,
                                   voltage,
                                   data.iX_,
                                   data.gX_,
                                   data.charge[0]);
+            std::cout << "Before:\n";
+            std::cout << " * Xi: ";
+            for (auto xi: data.Xi_) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * RHS: ";
+            for (auto xi: data.solver->rhs) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * d: ";
+            for (auto xi: data.solver->d) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * u: ";
+            for (auto xi: data.solver->u) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * invariant: ";
+            for (auto xi: data.solver->invariant_d) std::cout << xi << ' ';
+            std::cout << '\n';
             data.solver->solve(data.Xi_);
+            std::cout << "After:\n";
+            std::cout << " * Xi: ";
+            for (auto xi: data.Xi_) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * RHS: ";
+            for (auto xi: data.solver->rhs) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * d: ";
+            for (auto xi: data.solver->d) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * u: ";
+            for (auto xi: data.solver->u) std::cout << xi << ' ';
+            std::cout << '\n';
+            std::cout << " * invariant: ";
+            for (auto xi: data.solver->invariant_d) std::cout << xi << ' ';
+            std::cout << '\n';
         }
     }
 }
