@@ -115,19 +115,19 @@ set(THREADS_PREFER_PTHREAD_FLAG OFF)
 if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
 
-    # This fixes nvcc picking up a wrong host compiler for linking, causing issues
-    # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
-    # all calls to enable_language(CUDA)
-    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-
-    enable_language(CUDA)
-
     # CMake 3.18 and later set the default CUDA architecture for
     # each target according to CMAKE_CUDA_ARCHITECTURES. Not setting
     # this will constitute an error from now on.
     if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         set(CMAKE_CUDA_ARCHITECTURES 60 70) # Compatible with CUDA 10.
     endif()
+
+    # This fixes nvcc picking up a wrong host compiler for linking, causing issues
+    # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
+    # all calls to enable_language(CUDA)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+
+    enable_language(CUDA)
 
     # Despite native CUDA support, the CUDA package is still required to export
     # the cuda library dependencies from the installed target.
@@ -224,8 +224,8 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
 
-configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
