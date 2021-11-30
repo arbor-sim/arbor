@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <type_traits>
+#include <vector>
 
 #include <arbor/simd/implbase.hpp>
 #include <arbor/simd/generic.hpp>
