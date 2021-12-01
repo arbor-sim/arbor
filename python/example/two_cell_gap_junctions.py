@@ -16,7 +16,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
         """
         probes -- list of probes
 
-        Vm -- membrane leak potential
+        Vms -- membrane leak potentials of the two cells
         length -- length of cable in μm
         radius -- radius of cable in μm
         cm -- membrane capacitance in F/m^2
@@ -27,7 +27,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
         cv_policy_max_extent -- maximum extent of control volume in μm
         """
 
-        # (4.1) The base C++ class constructor must be called first, to ensure that
+        # The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
 
@@ -58,6 +58,13 @@ class TwoCellsWithGapJunction(arbor.recipe):
         assert gid in [0, 1]
         return arbor.cell_kind.cable
 
+    def probes(self, gid):
+        assert gid in [0, 1]
+        return self.the_probes
+
+    def global_properties(self, kind):
+        return self.the_props
+
     def cell_description(self, gid):
         """A high level description of the cell with global identifier gid.
 
@@ -80,8 +87,9 @@ class TwoCellsWithGapJunction(arbor.recipe):
         decor.set_property(cm=self.cm)
         decor.set_property(rL=self.rL)
 
+        # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
         junction_mech = arbor.junction('gj', {"g" : 1})
-        decor.place('"gj_site"', junction_mech, 'gj')
+        decor.place('"gj_site"', junction_mech, 'gj_label')
         decor.paint('"cell"', arbor.density(f'pas/e={self.Vms[gid]}', {'g': self.g}))
 
         if self.cv_policy_max_extent is not None:
@@ -92,17 +100,11 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
         return arbor.cable_cell(tree, labels, decor)
 
-    def probes(self, gid):
-        assert gid in [0, 1]
-        return self.the_probes
-
-    def global_properties(self, kind):
-        return self.the_props
-
     def gap_junctions_on(self, gid):
         assert gid in [0, 1]
 
-        return [arbor.gap_junction_connection((1 if gid == 0 else 0, 'gj'), 'gj', self.gj_g)]
+        # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
+        return [arbor.gap_junction_connection((1 if gid == 0 else 0, 'gj_label'), 'gj_label', self.gj_g)]
 
 
 if __name__ == "__main__":
