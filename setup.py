@@ -1,10 +1,6 @@
 import os
 import sys
-import setuptools
-import pathlib
-from setuptools import Extension
-from setuptools.command.build_ext import build_ext
-from setuptools.command.install import install
+from skbuild import setup
 import subprocess
 try:
     from wheel.bdist_wheel import bdist_wheel
@@ -57,14 +53,6 @@ with open(os.path.join(here, 'VERSION')) as version_file:
 with open(os.path.join(here, 'python/readme.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-def check_cmake():
-    try:
-        out = subprocess.check_output(['cmake', '--version'])
-        return True
-    except OSError:
-        return False
-
-
 class _command_template:
     """
     Override a setuptools-like command to augment the command line options.
@@ -85,7 +73,6 @@ class _command_template:
               # Both here and in `mixin1`, a `super` call is required
               super().initialize_options()
               # ...
-
     """
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -135,80 +122,8 @@ class _command_template:
 
         super().run()
 
-
-class install_command(_command_template, install):
-    pass
-
-if WHEEL_INSTALLED:
-    class bdist_wheel_command(_command_template, bdist_wheel):
-        pass
-
-
-class cmake_extension(Extension):
-    def __init__(self, name):
-        Extension.__init__(self, name, sources=[])
-
-
-class cmake_build(build_ext):
-    def run(self):
-        if not check_cmake():
-            raise RuntimeError('CMake is not available. CMake 3.12 is required.')
-
-        # The path where CMake will be configured and Arbor will be built.
-        build_directory = os.path.abspath(self.build_temp)
-        # The path where the package will be copied after building.
-        lib_directory = os.path.abspath(self.build_lib)
-        # The path where the Python package will be compiled.
-        source_path = build_directory + '/python/arbor'
-        # Where to copy the package after it is built, so that whatever the next phase is
-        # can copy it into the target 'prefix' path.
-        dest_path = lib_directory + '/arbor'
-
-        opt = cl_opt()
-        cmake_args = [
-            '-DARB_WITH_PYTHON=on',
-            '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
-            '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
-            '-DARB_ARCH={}'.format(opt['arch']),
-            '-DARB_GPU={}'.format(opt['gpu']),
-            '-DARB_WITH_NEUROML={}'.format( 'on' if opt['neuroml'] else 'off'),
-            '-DARB_USE_BUNDLED_LIBS={}'.format('on' if opt['bundled'] else 'off'),
-            '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
-        ]
-
-        print('-'*5, 'command line arguments: {}'.format(opt))
-        print('-'*5, 'cmake arguments: {}'.format(cmake_args))
-
-        build_args = ['--config', 'Release']
-
-        # Assuming Makefiles
-        build_args += ['--', f'-j{opt["makejobs"]}']
-
-        env = os.environ.copy()
-        env['CXXFLAGS'] = '{}'.format(env.get('CXXFLAGS', ''))
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
-
-        # CMakeLists.txt is in the same directory as this setup.py file
-        cmake_list_dir = os.path.abspath(os.path.dirname(__file__))
-        print('-'*20, 'Configure CMake')
-        subprocess.check_call(['cmake', cmake_list_dir] + cmake_args,
-                              cwd=self.build_temp, env=env)
-
-        print('-'*20, 'Build')
-        cmake_cmd = ['cmake', '--build', '.'] + build_args
-        subprocess.check_call(cmake_cmd,
-                              cwd=self.build_temp)
-
-        # Copy from build path to some other place from whence it will later be installed.
-        # ... or something like that
-        # ... setuptools is an enigma monkey patched on a mystery
-        if not os.path.exists(dest_path):
-            os.makedirs(dest_path, exist_ok=True)
-        self.copy_tree(source_path, dest_path)
-
-setuptools.setup(
+opt = cl_opt()
+setup(
     name='arbor',
     version=version_,
     python_requires='>=3.6',
@@ -216,16 +131,17 @@ setuptools.setup(
     install_requires=['numpy'],
     setup_requires=[],
     zip_safe=False,
-    ext_modules=[cmake_extension('arbor')],
-    cmdclass={
-        'build_ext':   cmake_build,
-        'install':     install_command,
-        'bdist_wheel': bdist_wheel_command,
-    } if WHEEL_INSTALLED else {
-        'build_ext':   cmake_build,
-        'install':     install_command,
-    },
-
+    cmake_args = [
+        '-DARB_WITH_PYTHON=on',
+        '-DPYTHON_EXECUTABLE=' + sys.executable,
+        '-DARB_WITH_MPI={}'.format( 'on' if opt['mpi'] else 'off'),
+        '-DARB_VECTORIZE={}'.format('on' if opt['vec'] else 'off'),
+        '-DARB_ARCH={}'.format(opt['arch']),
+        '-DARB_GPU={}'.format(opt['gpu']),
+        '-DARB_WITH_NEUROML={}'.format( 'on' if opt['neuroml'] else 'off'),
+        '-DARB_USE_BUNDLED_LIBS={}'.format('on' if opt['bundled'] else 'off'),
+        '-DCMAKE_BUILD_TYPE=Release' # we compile with debug symbols in release mode.
+    ],
     author='The Arbor dev team.',
     url='https://github.com/arbor-sim/arbor',
     description='High performance simulation of networks of multicompartment neurons.',
