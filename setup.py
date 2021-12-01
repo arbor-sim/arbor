@@ -2,13 +2,6 @@ import os
 import sys
 from skbuild import setup
 import subprocess
-try:
-    from wheel.bdist_wheel import bdist_wheel
-    WHEEL_INSTALLED = True
-except:
-    #wheel package not installed.
-    WHEEL_INSTALLED = False
-    pass
 
 # Singleton class that holds the settings configured using command line
 # options. This information has to be stored in a singleton so that it
