@@ -147,7 +147,7 @@ cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
     return data;
 }
 
-std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& geom) {
+std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& geom, bool by_length) {
     const auto& mp = cell.provider();
     const auto& embedding = cell.embedding();
 
@@ -162,13 +162,19 @@ std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region
     }
 
     for (auto cv: util::make_span(geom.size())) {
-        double cv_area = 0, reg_area_on_cv = 0;
+        double cv_total = 0, reg_on_cv = 0;
         for (mcable c: geom.cables(cv)) {
-            cv_area += embedding.integrate_area(c);
-            reg_area_on_cv += embedding.integrate_area(c.branch, util::pw_over_cable(support, c, 0.));
+            if (by_length) {
+                cv_total += embedding.integrate_length(c);
+                reg_on_cv += embedding.integrate_length(c.branch, util::pw_over_cable(support, c, 0.));
+            }
+            else {
+                cv_total += embedding.integrate_area(c);
+                reg_on_cv += embedding.integrate_area(c.branch, util::pw_over_cable(support, c, 0.));
+            }
         }
-        if (reg_area_on_cv>0) {
-            intersection.push_back({cv, reg_area_on_cv/cv_area});
+        if (reg_on_cv>0) {
+            intersection.push_back({cv, reg_on_cv/cv_total});
         }
     }
     return intersection;

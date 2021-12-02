@@ -131,6 +131,19 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
             md.name(), util::dictionary_csv(md.values()));
 }
 
+class cell_cv_data_shim {
+private:
+    arb::cell_cv_data cell_cv_data_;
+public:
+    cell_cv_data_shim(arb::cell_cv_data d): cell_cv_data_(std::move(d)), size(cell_cv_data_.size()) {}
+    auto cables(arb_size_type index) const { return cell_cv_data_.cables(index); }
+    auto children(arb_size_type index) const { return cell_cv_data_.children(index); };
+    auto parent(arb_size_type index) const { return cell_cv_data_.parent(index); };
+    auto cv_data() const {return cell_cv_data_;}
+
+    int size;
+};
+
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
     using std::optional;
@@ -346,25 +359,28 @@ void register_cells(pybind11::module& m) {
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to use the same number of CVs for each branch.");
 
-    // arb::cv_data
-    pybind11::class_<arb::cell_cv_data> cell_cv_data(m, "cell_cv_data",
+    // arb::cell_cv_data
+    pybind11::class_<cell_cv_data_shim> cell_cv_data(m, "cell_cv_data",
             "Provides information on the CVs representing the discretization of a cable-cell.");
     cell_cv_data
-            .def(pybind11::init<>())
-            .def(pybind11::init<const arb::cell_cv_data&>())
-            .def("num_cv", &arb::cell_cv_data::size,
+            .def(pybind11::init<const cell_cv_data_shim&>())
+            .def_readonly("num_cv", &cell_cv_data_shim::size,
                  "Return the number of CVs in the cell.")
-            .def("cables", &arb::cell_cv_data::cables, "index"_a,
+            .def("cables", &cell_cv_data_shim::cables, "index"_a,
                  "Return a list of cables representing the CV at the given index.")
-            .def("children", &arb::cell_cv_data::children, "index"_a,
+            .def("children", &cell_cv_data_shim::children, "index"_a,
                  "Return a list of indices of the CVs representing the children of the CV at the given index.")
-            .def("parent", &arb::cell_cv_data::parent, "index"_a,
+            .def("parent", &cell_cv_data_shim::parent, "index"_a,
                  "Return the index of the CV representing the parent of the CV at the given index.")
             .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
             .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});
 
     m.def("cv_data",
-          &arb::cv_data,
+          [](const arb::cable_cell& cell) {
+              std::optional<cell_cv_data_shim> wrapped_data;
+              auto data = arb::cv_data(cell);
+              return data? cell_cv_data_shim(data.value()): wrapped_data;
+          },
           "cell"_a, "the cable cell",
           "Returns a cell_cv_data object representing the CVs comprising the cable-cell according to the "
           "discretization policy provided in the decor of the cell. Returns None if no CV-policy was provided "
@@ -372,8 +388,14 @@ void register_cells(pybind11::module& m) {
           );
 
     m.def("intersect_region",
-          [](const arb::cable_cell& cell, const char* reg, const arb::cell_cv_data& cvs) {
-              auto object_vec = arb::intersect_region(cell, arborio::parse_region_expression(reg).unwrap(), cvs);
+          [](const arb::cable_cell& cell, const char* reg, const cell_cv_data_shim& cvs, const std::string& integrate_along) {
+              bool integrate_area;
+              if (integrate_along == "area") integrate_area = true;
+              else if (integrate_along == "length") integrate_area = false;
+              else throw pyarb_error(util::pprintf("{} does not name a valid integration axis. "
+                                                   "Only 'area' and 'length' are supported)", integrate_along));
+
+              auto object_vec = arb::intersect_region(cell, arborio::parse_region_expression(reg).unwrap(), cvs.cv_data(), integrate_area);
               auto tuple_vec = std::vector<pybind11::tuple>(object_vec.size());
               std::transform(object_vec.begin(), object_vec.end(), tuple_vec.begin(),
                              [](const auto& t)  { return pybind11::make_tuple(t.idx, t.proportion); });
@@ -382,9 +404,10 @@ void register_cells(pybind11::module& m) {
           "cell"_a, "the cable cell",
           "reg"_a,  "the region",
           "data"_a, "the data representing the CVs of the given cell.",
+          "integrate_along"_a, "the axis of integration used to determine the proportion of the CV belonging to the region.",
           "Returns a list of [index, proportion] tuples identifying the CVs present in the region.\n"
           "`index` is the index of the CV in the cell_cv_data object provided as an argument.\n"
-          "`proportion` is the proportion of the CV (by area) included in the region."
+          "`proportion` is the proportion of the CV (itegrated by area or length) included in the region."
     );
 
     // arb::density

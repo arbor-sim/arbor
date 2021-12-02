@@ -51,6 +51,6 @@ std::optional<cell_cv_data> cv_data(const cable_cell& cell);
 // Construct cell_cv_geometry for cell from locset describing CV boundary points.
 cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
 
-std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs);
+std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs, bool intergrate_by_length = false);
 
 } //namespace arb
