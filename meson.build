@@ -1,11 +1,23 @@
 project('arbor', 'cpp',
-  version: '0.2.1dev',
+  version: '0.5.3-dev',
   license: 'BSD')
 
-with_assertions = get_option('arb_assertions')
+arb_with_assertions = get_option('arb_assertions')
+arb_with_bundled_libs = get_option('arb_use_bundled_libs')
 
-inc_tclap = include_directories('ext/tclap/include')
-inc_json  = include_directories('ext/json/single_include')
+#
+# find dependencies
+#
+if arb_with_bundled_libs
+  libjson   = declare_dependency(include_directories: 'ext/json/single_include')
+  libfmt    = declare_dependency(include_directories: 'ext/fmt/include')
+else
+  libjson   = dependency('nlohmann_json', required : true)
+  libfmt    = dependency('fmt', required : true)
+endif
+
+random123 = declare_dependency(include_directories: 'ext/random123/include')
+tinyopt   = declare_dependency(include_directories: 'ext/tinyopt/include')
 
 inc_arbprivate = include_directories('arbor')
 inc_arbpublic  = include_directories('arbor/include')
@@ -16,10 +28,8 @@ dep_threads = dependency('threads')
 
 subdir('modcc')
 subdir('mechanisms')
-subdir('arbor')
-subdir('arborenv')
-subdir('sup')
+#subdir('arbor')
+#subdir('arborenv')
+#subdir('sup')
 
-subdir('example')
-#subdir('example/ring')
-#subdir('example/single')
+#subdir('example')

@@ -1,6 +1,2 @@
-[ ] all examples
-[ ] mpi
-[ ] cuda
-[ ] vectorization
-[ ] installation
-[ ] compiler-specific flags
+- make all dependencies like fmt and random123 real dependencies, not just include files
+-

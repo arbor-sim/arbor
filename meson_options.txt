@@ -1,1 +1,2 @@
-option('arb_assertions', type : 'feature', value : 'disabled')
+option('arb_assertions',   type : 'boolean', value : false)
+option('arb_use_bundled_libs', type : 'boolean', value : false)
