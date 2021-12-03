@@ -188,16 +188,16 @@ struct lsys_sampler {
 };
 
 struct section_point {
-	double x;
-	double y;
-	double z;
-	double r;
-	friend std::ostream& operator<<(std::ostream& os, const section_point& obj);
+    double x;
+    double y;
+    double z;
+    double r;
+    friend std::ostream& operator<<(std::ostream& os, const section_point& obj);
 };
 
 std::ostream& operator<<(std::ostream& os, const section_point& obj) {
-	os << obj.x << " " << obj.y << " " << obj.z << " " << obj.r << '\n';
-	return os;
+    os << obj.x << " " << obj.y << " " << obj.z << " " << obj.r << '\n';
+    return os;
 }
 
 struct section_tip {
@@ -219,19 +219,19 @@ struct section_geometry {
         id(id), parent_id(parent_id), terminal(terminal), points(std::move(points)), length(length)
     {}
 
-	friend std::ostream& operator<<(std::ostream& os, const section_geometry& obj);
+    friend std::ostream& operator<<(std::ostream& os, const section_geometry& obj);
 };
 
 std::ostream& operator<<(std::ostream& os, const section_geometry& obj) {
-	os << "id: " << obj.id << '\n';
-	os << "parent_id: " << obj.parent_id << '\n';
-	os << "terminal: " << obj.terminal << '\n';
-	os << "length: " << obj.length << '\n';
-	os << "points: " << '\n';
-	for (auto& p : obj.points) {
-		os << p << '\n';
-	}
-	return os;
+    os << "id: " << obj.id << '\n';
+    os << "parent_id: " << obj.parent_id << '\n';
+    os << "terminal: " << obj.terminal << '\n';
+    os << "length: " << obj.length << '\n';
+    os << "points: " << '\n';
+    for (auto& p : obj.points) {
+        os << p << '\n';
+    }
+    return os;
 }
 
 struct grow_result {
@@ -305,9 +305,9 @@ grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
 }
 
 std::vector<section_geometry> generate_sections(double soma_radius, lsys_param P, lsys_generator &g) {
-	constexpr quaternion xaxis = {0, 1, 0, 0};
+    constexpr quaternion xaxis = {0, 1, 0, 0};
 
-	lsys_sampler S(P);
+    lsys_sampler S(P);
 
     struct section_start {
         section_tip tip;
@@ -332,7 +332,7 @@ std::vector<section_geometry> generate_sections(double soma_radius, lsys_param P
         starts.push({tip, 0u});
     }
 
-	std::vector<section_geometry> sections;
+    std::vector<section_geometry> sections;
 
     while (!starts.empty() && sections.size() < P.max_sections) {
         auto start = starts.top();
@@ -345,10 +345,10 @@ std::vector<section_geometry> generate_sections(double soma_radius, lsys_param P
             starts.push({child, section.id});
         }
 
-		sections.push_back(std::move(section));
+        sections.push_back(std::move(section));
     }
 
-	return sections;
+    return sections;
 }
 
 arb::segment_tree generate_morphology(const lsys_distribution_param& soma, std::vector<lsys_param> Ps, lsys_generator &g) {
@@ -356,47 +356,47 @@ arb::segment_tree generate_morphology(const lsys_distribution_param& soma, std::
     double const soma_diameter = lsys_distribution(soma)(g);
     double const soma_radius = 0.5*soma_diameter;
 
-	arb::segment_tree morph;
-	morph.append(
-				arb::mnpos, arb::mpoint{-soma_diameter, 0, 0, soma_diameter},
-				arb::mpoint{soma_diameter, 0, 0, soma_diameter}, 1);
+    arb::segment_tree morph;
+    morph.append(
+                arb::mnpos, arb::mpoint{-soma_diameter, 0, 0, soma_diameter},
+                arb::mpoint{soma_diameter, 0, 0, soma_diameter}, 1);
 
-	for(auto P : Ps) {
-		auto sections = generate_sections(soma_radius, P, g);
+    for(auto P : Ps) {
+        auto sections = generate_sections(soma_radius, P, g);
 
-		// map from internal representation to Arbor ids
-		std::map<size_t, arb::msize_t> parent_end_id;
+        // map from internal representation to Arbor ids
+        std::map<size_t, arb::msize_t> parent_end_id;
 
-		// soma
-		parent_end_id[0] = 0;
+        // soma
+        parent_end_id[0] = 0;
 
-		// dendrites:
-		for (auto& sec: sections) {
+        // dendrites:
+        for (auto& sec: sections) {
 
-			// the first section must have the soma as parent
-			size_t parent = parent_end_id.at(sec.parent_id);
+            // the first section must have the soma as parent
+            size_t parent = parent_end_id.at(sec.parent_id);
 
-			const auto& points = sec.points;
-			if (points.size() < 2) {
-				throw std::runtime_error("segment has only 1 point");
-			}
+            const auto& points = sec.points;
+            if (points.size() < 2) {
+                throw std::runtime_error("segment has only 1 point");
+            }
 
-			// Include first point only for dendrites segments attached to soma.
-			if (sec.parent_id==0) {
-				parent = morph.append(parent,
-									  arb::mpoint{points[0].x, points[0].y, points[0].z, points[0].r},
-									  arb::mpoint{points[1].x, points[1].y, points[1].z, points[1].r}, P.tag);
-			}
+            // Include first point only for dendrites segments attached to soma.
+            if (sec.parent_id==0) {
+                parent = morph.append(parent,
+                                      arb::mpoint{points[0].x, points[0].y, points[0].z, points[0].r},
+                                      arb::mpoint{points[1].x, points[1].y, points[1].z, points[1].r}, P.tag);
+            }
 
-			// Remaining points.
-			for (unsigned i = 1; i < points.size(); ++i) {
-				const auto& p = points[i];
-				parent = morph.append(parent, arb::mpoint{p.x, p.y, p.z, p.r}, P.tag);
-			}
+            // Remaining points.
+            for (unsigned i = 1; i < points.size(); ++i) {
+                const auto& p = points[i];
+                parent = morph.append(parent, arb::mpoint{p.x, p.y, p.z, p.r}, P.tag);
+            }
 
-			parent_end_id[sec.id] = parent;
-		}
-	}
+            parent_end_id[sec.id] = parent;
+        }
+    }
 
     return morph;
 }

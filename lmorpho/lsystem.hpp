@@ -129,6 +129,6 @@ struct lsys_param {
     // Absolute maximum number of unbranched sections. (Forces termination of algorithm)
     unsigned max_sections = 10000;
 
-	size_t tag = 0;
+    size_t tag = 0;
 };
 

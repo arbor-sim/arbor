@@ -184,7 +184,7 @@ lsys_param make_apical_lsys() {
     // Absolute maximum dendritic extent [µm].
     L.max_extent = 2000;
 
-	L.tag = 4;
+    L.tag = 4;
 
     return L;
 }
@@ -244,7 +244,7 @@ lsys_param make_basal_lsys() {
     // Absolute maximum dendritic extent [µm].
     L.max_extent = 1000;
 
-	L.tag = 3;
+    L.tag = 3;
 
     return L;
 }
