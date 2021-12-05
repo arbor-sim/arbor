@@ -24,11 +24,11 @@ libmodcc_src = [
 
 libmodcc = library('modcc',
               sources: [libmodcc_src],
-              dependencies: [libfmt])
+              dependencies: [dep_libfmt])
 
 
 modcc = executable('modcc',
                    sources: ['modcc.cpp', ],
-                   dependencies: tinyopt,
+                   dependencies: dep_tinyopt,
                    link_with: [libmodcc],
                    install: true)

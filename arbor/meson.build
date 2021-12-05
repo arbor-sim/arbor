@@ -1,16 +1,15 @@
 arb_src = [
     'arbexcept.cpp',
     'assert.cpp',
-    'backends/multicore/mechanism.cpp',
     'backends/multicore/shared_state.cpp',
-    'backends/multicore/stimulus.cpp',
-    'communication/dry_run_context.cpp',
     'communication/communicator.cpp',
+    'communication/dry_run_context.cpp',
     'benchmark_cell_group.cpp',
-    'builtin_mechanisms.cpp',
+    'cable_cell.cpp',
     'cable_cell_param.cpp',
     'cell_group_factory.cpp',
     'common_types_io.cpp',
+    'cv_policy.cpp',
     'execution_context.cpp',
     'gpu_context.cpp',
     'event_binner.cpp',
@@ -20,17 +19,26 @@ arb_src = [
     'hardware/power.cpp',
     'io/locked_ostream.cpp',
     'io/serialize_hex.cpp',
+    'label_resolution.cpp',
     'lif_cell_group.cpp',
-    'cable_cell.cpp',
     'mc_cell_group.cpp',
     'mechcat.cpp',
-    'memory/cuda_wrappers.cpp',
+    'mechinfo.cpp',
+    'memory/gpu_wrappers.cpp',
     'memory/util.cpp',
+    'morph/embed_pwlin.cpp',
+    'morph/label_dict.cpp',
+    'morph/locset.cpp',
+    'morph/morphexcept.cpp',
+    'morph/morphology.cpp',
+    'morph/mprovider.cpp',
+    'morph/place_pwlin.cpp',
+    'morph/primitives.cpp',
+    'morph/region.cpp',
+    'morph/segment_tree.cpp',
+    'morph/stitch.cpp',
     'merge_events.cpp',
     'simulation.cpp',
-    'morph/morphology.cpp',
-    'morph/sample_tree.cpp',
-    'morph/primitives.cpp',
     'partition_load_balance.cpp',
     'profile/clock.cpp',
     'profile/memory_meter.cpp',
@@ -40,27 +48,25 @@ arb_src = [
     'schedule.cpp',
     'spike_event_io.cpp',
     'spike_source_cell_group.cpp',
-    'swcio.cpp',
+    's_expr.cpp',
+    'symmetric_recipe.cpp',
     'threading/threading.cpp',
     'thread_private_spike_store.cpp',
     'tree.cpp',
+    'util/dylib.cpp',
     'util/hostname.cpp',
     'util/unwind.cpp',
-    'version.cpp']
+    'version.cpp',
+    ]
 
 # todo: mpi files
 # todo: cuda files
 
-# FILES FOR MPI:
-#   'communication/mpi.cpp'
-#   'communication/mpi_context.cpp'
-#   'communication/mpi_error.cpp'
-
-
 subdir('include/arbor')
 
 arb = library('arbor',
-              sources: [arb_src, mech_srcs, mech_catalogue],
-              include_directories: [inc_arbpublic, inc_arbprivate],
-              dependencies : dep_threads)
+              #sources: [arb_src, mech_srcs, mech_catalogue],
+              sources: [arb_src],
+              include_directories: [inc_arb_public, inc_arb_private],
+              dependencies : [dep_threads, dep_random123, dep_dl])
 

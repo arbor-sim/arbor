@@ -1,14 +1,32 @@
 #pragma once
 
-#define ARB_VERSION "@version@"
-#define ARB_SOURCE_ID "@gitlog@"
-
 namespace arb {
-extern const char version[];
-extern const char source_id[];
+extern const char* source_id;
+extern const char* arch;
+extern const char* build_config;
+extern const char* version;
+extern const char* full_build_id;
+constexpr int version_major = @version_major@;
+constexpr int version_minor = @version_minor@;
+constexpr int version_patch = @version_patch@;
+extern const char* version_dev;
 }
 
-#mesondefine ARB_ASSERTIONS_ENABLED
+#mesondefine ARB_SOURCE_ID
+#mesondefine ARB_FULL_BUILD_ID
+#mesondefine ARB_BUILD_CONFIG
+
+#mesondefine ARB_VERSION
+#mesondefine ARB_VERSION_MAJOR
+#mesondefine ARB_VERSION_MINOR
+#mesondefine ARB_VERSION_PATCH
+#mesondefine ARB_VERSION_DEV
+
+#mesondefine ARB_ARCH
+
+#mesondefine ARB_VECTORIZE_ENABLED
+#mesondefine ARB_ASSERT_ENABLED
 #mesondefine ARB_MPI_ENABLED
-#mesondefine ARB_CUDA_ENABLED
-#mesondefine ARB_PROFILING_ENABLED
+#mesondefine ARB_GPU_ENABLED
+#mesondefine ARB_NEUROML_ENABLED
+#mesondefine ARB_PROFILE_ENABLED
