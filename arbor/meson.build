@@ -66,7 +66,7 @@ subdir('include/arbor')
 
 arb = library('arbor',
               #sources: [arb_src, mech_srcs, mech_catalogue],
-              sources: [arb_src, mech_srcs],
+              sources: [arb_src, catalogue_sources],
               include_directories: [inc_arb_public, inc_arb_private],
               dependencies : [dep_threads, dep_random123, dep_dl])
 
