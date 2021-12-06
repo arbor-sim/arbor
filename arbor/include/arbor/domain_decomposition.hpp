@@ -35,7 +35,7 @@ struct domain_decomposition {
     /// Return the domain id of cell with gid.
     /// Supplied by the load balancing algorithm that generates the domain
     /// decomposition.
-    std::function<int(cell_gid_type)> gid_domain; //
+    std::function<int(cell_gid_type)> gid_domain;
 
     /// Number of distrubuted domains
     int num_domains;
@@ -44,13 +44,13 @@ struct domain_decomposition {
     int domain_id;
 
     /// Total number of cells in the local domain
-    cell_size_type num_local_cells; //
+    cell_size_type num_local_cells;
 
     /// Total number of cells in the global model (sum over all domains)
-    cell_size_type num_global_cells; //
+    cell_size_type num_global_cells;
 
     /// Descriptions of the cell groups on the local domain
-    std::vector<group_description> groups; //
+    std::vector<group_description> groups;
 };
 
 } // namespace arb

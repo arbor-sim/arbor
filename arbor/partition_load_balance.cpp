@@ -230,7 +230,8 @@ domain_decomposition partition_by_group(const recipe& rec, const context& ctx, c
                 for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
                     if (gid_map.count(gid)) {
                         throw arbor_exception(arb::util::pprintf("unable to perform load balancing because cell {} "
-                                                                 "is present multiple times on the same ranks or accross ranks.", gid));
+                                                                 "is present multiple times on the same rank or across "
+                                                                 "multiple ranks.", gid));
                     }
                     gid_map[gid] = rank;
                 }
