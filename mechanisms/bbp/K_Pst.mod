@@ -35,6 +35,7 @@ DERIVATIVE states {
     qt = 2.3^((34-21)/10)
 
     mInf = m_inf(v)
+    mTau = 0
     if (v < -60){
         mTau = 1.25 + 175.03*exp( (v + 10)*0.026)
     } else {

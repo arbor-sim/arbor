@@ -1,6 +1,6 @@
 project('arbor', 'cpp',
   version: '0.5.3-dev',
-  default_options : ['buildtype=release'],
+  default_options : ['buildtype=release', 'cpp_std=c++17', 'default_library=both'],
   license: 'BSD')
 
 # Initialize up configurable options
@@ -19,12 +19,6 @@ endif
 if arb_with_gpu
   error('unable to configure gpu')
 endif
-if arb_with_neuroml
-  error('unable to configure neuroml')
-endif
-if arb_with_vectorize
-  error('unable to configure vectorization')
-endif
 if arb_with_profiling
   error('unable to configure profiling')
 endif
@@ -42,7 +36,18 @@ arb_version_major = arb_version_array[0].to_int()
 arb_version_minor = arb_version_array[1].to_int()
 arb_version_patch = arb_version_array[2].to_int()
 
-message('version', arb_version_major, arb_version_minor, arb_version_patch)
+arb_modcc_flags = []
+if arb_with_profiling
+  arb_modcc_flags += '--profile'
+endif
+if arb_with_vectorize
+  arb_modcc_flags += '--simd'
+endif
+
+# the following command can be used to determine whether we are looking for march or mcpu
+# see cmake/CompilerOptions.cmake
+# g++ --verbose dummy.cpp |& grep ^Target | sed 's/^Target: //' | sed 's/-.*//'
+add_global_arguments(f'-march=@arb_arch@', language : 'cpp')
 
 # find dependencies
 if arb_with_bundled_libs
@@ -51,6 +56,9 @@ if arb_with_bundled_libs
 else
   dep_libjson   = dependency('nlohmann_json', required : true)
   dep_libfmt    = dependency('fmt', required : true)
+endif
+if arb_with_neuroml
+  dep_libxml2 = dependency('libxml2', required: true)
 endif
 
 dep_random123 = declare_dependency(include_directories: 'ext/random123/include')
@@ -65,8 +73,8 @@ dep_dl = meson.get_compiler('cpp').find_library('dl', required : true)
 subdir('modcc')
 subdir('mechanisms')
 subdir('arbor')
-#subdir('arborenv')
-#subdir('arborio)
-#subdir('sup')
+subdir('arborio')
+subdir('arborenv')
+subdir('sup')
 
-#subdir('example')
+subdir('example')

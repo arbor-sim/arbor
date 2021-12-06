@@ -1,5 +1,3 @@
 single = executable('single',
                   sources: 'single.cpp',
-                  include_directories: [inc_json, inc_arbpublic, inc_arbenv, inc_arbsup],
-                  link_with: [arb, arbenv, arbsup])
-
+                  dependencies: [dep_arb, dep_arborio, dep_arborsup, dep_arborenv, dep_tinyopt])

@@ -1,8 +1,20 @@
-arbenv_src = ['affinity.cpp',
-              'concurrency.cpp',
-              'default_gpu.cpp',
-              'private_gpu.cpp']
+arborenv_src = [
+  'affinity.cpp',
+  'arbenvexcept.cpp',
+  'concurrency.cpp',
+  'default_env.cpp',
+  'read_envvar.cpp']
 
-arbenv = library('arbenv',
-                 sources: arbenv_src,
-                 include_directories: [inc_arbpublic, inc_arbenv])
+if arb_with_gpu
+  arborenv_src += ['gpu_uuid.cpp', 'private_gpu.cpp']
+endif
+
+lib_arborenv = library('arbenv',
+                 sources: arborenv_src,
+                 include_directories: 'include',
+                 dependencies: [dep_arb])
+
+dep_arborenv = declare_dependency(
+              include_directories: ['include'],
+              link_with: lib_arborenv,
+              dependencies: [])

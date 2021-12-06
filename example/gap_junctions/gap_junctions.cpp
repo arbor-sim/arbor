@@ -34,7 +34,10 @@
 
 using namespace arborio::literals;
 
-gap_params read_options(int argc, char** argv);
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
+#include <arborenv/with_mpi.hpp>
+#endif
 
 struct gap_params {
     std::string name = "default";

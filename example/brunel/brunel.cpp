@@ -20,7 +20,6 @@
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/util/optional.hpp>
 #include <arbor/version.hpp>
 
 #include <arborenv/default_env.hpp>

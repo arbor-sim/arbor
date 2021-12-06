@@ -1,10 +1,12 @@
-arbsup_src = ['glob_basic.cpp',
-              'glob_posix.cpp',
-              'ioutil.cpp',
-              'json_meter.cpp',
-              'path.cpp']
+arborsup_src = ['ioutil.cpp', 'json_meter.cpp', 'path.cpp']
 
-arbsup = library('arbsup',
-                 sources: arbsup_src,
-                 include_directories: [inc_arbpublic, inc_arbsup, inc_json])
+lib_arborsup = library('arbsup',
+                 sources: arborsup_src,
+                 include_directories: ['include'],
+                 dependencies: [dep_arb, dep_libjson])
+
+dep_arborsup = declare_dependency(
+              include_directories: ['include'],
+              link_with: lib_arborsup,
+              dependencies: [dep_libjson])
 
