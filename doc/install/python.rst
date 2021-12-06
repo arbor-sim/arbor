@@ -8,6 +8,9 @@ Arbor's Python API will be the most convenient interface for most users.
 .. note::
     Arbor requires Python version 3.6 and later. It is advised that you update `pip` as well.
 
+.. note::
+   We assume ``pip`` is used to install Arbor. See later for using ``setup.py``.
+
 Getting Arbor
 -------------
 
@@ -71,6 +74,10 @@ Every time you make changes to the code, you'll have to repeat the second step.
 Advanced options
 ^^^^^^^^^^^^^^^^
 
+.. note:: When installing via ``setup.py install`` directly instead of using
+   ``pip install .``, you will have to install the build-time dependencies
+   listed in ``pyproject.toml`` on your own.
+
 By default Arbor is installed with multi-threading enabled. To enable more advanced forms of parallelism,
 Arbor comes with a few compilation options. These can be used on both local (``pip3 install ./arbor``) and
 remote (``pip3 install arbor``) copies of Arbor. Below we assume you are working off a local copy.
@@ -84,7 +91,7 @@ The following optional flags can be used to configure the installation:
   See :ref:`install-architecture` for details.
 * ``--arch``: CPU micro-architecture to target. The advised default is ``native``.
   See `here <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of options.
-* ``--makejobs``: Specify the amount of jobs to ``make`` the project with for faster build times on multicore systems. By default set to ``2``.
+* ``-j``: Specify the amount of concurrent jobs for building the project with for faster build times on multicore systems. By default set to ``2``.
 
 **Vanilla install** with no additional features enabled:
 
