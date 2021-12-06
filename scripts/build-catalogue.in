@@ -97,12 +97,12 @@ set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)"""
 else:
     gpu_support = "# NONE"
 
-this = Path(__file__).parent
-data_path = (this / "@ARB_REL_DATADIR@").resolve()
-pack_path = (this / "@ARB_REL_PACKAGEDIR@").resolve()
-exec_path = this.resolve()
+this_path = Path(__file__).parent
+data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
+pack_path = (this_path / "@ARB_REL_PACKAGEDIR@").resolve()
+exec_path = this_path.resolve()
 
-if verbose:
+if debug:
     print(f"Expecting generate_catalogue, BuildModules here: {data_path}")
     print(f"Expecting arbor.cmake here: {pack_path}")
     print(f"Expecting modcc here: {exec_path}")
