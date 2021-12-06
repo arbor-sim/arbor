@@ -228,20 +228,13 @@ domain_decomposition partition_by_group(const recipe& rec, const context& ctx, c
             auto rank_part = util::partition_view(divs.partition());
             for (auto rank: count_along(rank_part)) {
                 for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    if (gid_map.count(gid)) {
-                        throw arbor_exception(arb::util::pprintf("unable to perform load balancing because cell {} "
-                                                                 "is present multiple times on the same rank or across "
-                                                                 "multiple ranks.", gid));
-                    }
                     gid_map[gid] = rank;
                 }
             }
         }
-
         int operator()(cell_gid_type gid) const {
             return gid_map.at(gid);
         }
-
         std::unordered_map<cell_gid_type, int> gid_map;
     };
 
@@ -251,24 +244,11 @@ domain_decomposition partition_by_group(const recipe& rec, const context& ctx, c
 
     std::vector<cell_gid_type> local_gids;
     for (const auto& g: groups) {
-        auto gid_vec = g.gids;
-        util::sort(gid_vec);
-        for (const auto& gid: gid_vec) {
-            for (const auto& gj: rec.gap_junctions_on(gid)) {
-                if (!std::binary_search(gid_vec.begin(), gid_vec.end(), gj.peer.gid)) {
-                    throw arbor_exception(arb::util::pprintf("invalid partitioning, cell {} needs to be in the same group as "
-                                                             "cell {} because they are connected via gap-junction.", gid, gj.peer.gid));
-                }
-            }
-        }
         local_gids.insert(local_gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_size_type num_local_cells = local_gids.size();
 
     auto global_gids = ctx->distributed->gather_gids(local_gids);
-    if (global_gids.size() != num_global_cells) {
-        throw arbor_exception(arb::util::pprintf("invalid partitioning, not all gids are assigned to ranks."));
-    }
 
     domain_decomposition d;
     d.num_domains = num_domains;
@@ -279,6 +259,82 @@ domain_decomposition partition_by_group(const recipe& rec, const context& ctx, c
     d.gid_domain = partition_gid_domain(global_gids, num_domains);
 
     return d;
+}
+
+void check_domain_decomposition(const recipe& rec, const execution_context& ctx, const domain_decomposition& d) {
+    unsigned num_domains = ctx.distributed->size();
+    unsigned domain_id = ctx.distributed->id();
+    auto num_global_cells = rec.num_cells();
+    if (d.num_domains != (int)num_domains) {
+        throw arbor_exception(arb::util::pprintf("invalid domain decomposition, provided num_domains {} is not "
+                                                 "equal to the actual number of domains in the simulation {}.",
+                                                 d.num_domains, num_domains));
+    }
+    if (d.domain_id != (int)domain_id) {
+        throw arbor_exception(arb::util::pprintf("invalid domain decomposition, provided domain_id {} is not "
+                                                 "equal to the actual domain id of the simulation {}.",
+                                                 d.domain_id, num_domains));
+    }
+    std::vector<cell_gid_type> local_gids;
+    for (const auto& g: d.groups) {
+        std::unordered_set<int> gid_set(g.gids.begin(), g.gids.end());
+        for (const auto& gid: g.gids) {
+            for (const auto& gj: rec.gap_junctions_on(gid)) {
+                if (!gid_set.count(gj.peer.gid)) {
+                    throw arbor_exception(
+                            arb::util::pprintf("invalid domain decomposition, cell {} needs to be in the same "
+                                               "group as cell {} because they are connected via gap-junction.",
+                                               gid, gj.peer.gid));
+                }
+            }
+        }
+        local_gids.insert(local_gids.end(), g.gids.begin(), g.gids.end());
+    }
+    cell_size_type num_local_cells = local_gids.size();
+
+    if (d.num_local_cells != num_local_cells) {
+        throw arbor_exception(arb::util::pprintf("invalid domain decomposition, provided num_local_cells {} "
+                                                 "on rank {} is not equal to the actual num_local_cells {}.",
+                                                 d.num_local_cells, d.domain_id, num_domains));
+    }
+
+    util::sort(local_gids);
+    for (unsigned i = 1; i < local_gids.size(); ++i) {
+        if (local_gids[i] == local_gids[i-1]) {
+            throw arbor_exception(arb::util::pprintf("invalid domain decomposition, gid {} is present multiple times "
+                                                     "on rank {}", local_gids[i], domain_id));
+        }
+    }
+
+    auto global_gids = ctx.distributed->gather_gids(local_gids);
+    if (global_gids.size() != num_global_cells) {
+        throw arbor_exception(arb::util::pprintf("invalid domain decomposition, sum of local cells on the individual "
+                                                 "ranks {} is not equal to the total number of cells in the recipe {}",
+                                                 global_gids.size(), num_global_cells));
+    }
+
+    if (d.num_global_cells != num_global_cells) {
+        throw arbor_exception(arb::util::pprintf("invalid domain decomposition, provided num_global_cell {} is not "
+                                                 "equal to the total number of cells in the recipe {}.",
+                                                 d.num_global_cells, num_global_cells));
+    }
+
+    auto global_gid_vals = global_gids.values();
+    util::sort(global_gid_vals);
+    for (unsigned i = 1; i < global_gid_vals.size(); ++i) {
+        if (global_gid_vals[i] == global_gid_vals[i-1]) {
+            throw arbor_exception(arb::util::pprintf("invalid domain decomposition, gid {} is present on "
+                                                     "on multiple ranks", global_gid_vals[i]));
+        }
+    }
+
+    for (unsigned i = 0; i < num_global_cells; ++i) {
+        auto dom = d.gid_domain(i);
+        if (dom > (int)num_domains - 1) {
+            throw arbor_exception(arb::util::pprintf("invalid domain decomposition, gid {} is assigned to a "
+                                                     "non-existent rank", i, dom));
+        }
+    }
 }
 
 } // namespace arb

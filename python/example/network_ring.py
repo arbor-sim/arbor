@@ -112,7 +112,7 @@ recipe = ring_recipe(ncells)
 
 # (12) Create a default execution context, domain decomposition and simulation
 context = arbor.context()
-decomp = arbor.partition_load_balance(recipe, context)
+decomp = arbor.partition_by_group(recipe, context, [arbor.group_description(arbor.cell_kind.cable, [0, 1, 2, 4], arbor.backend.multicore)])
 sim = arbor.simulation(recipe, decomp, context)
 
 # (13) Set spike generators to record

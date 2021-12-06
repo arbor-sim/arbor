@@ -7,6 +7,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
+#include <arbor/recipe.hpp>
 
 namespace arb {
 
@@ -52,5 +53,7 @@ struct domain_decomposition {
     /// Descriptions of the cell groups on the local domain
     std::vector<group_description> groups;
 };
+
+void check_domain_decomposition(const recipe& rec, const execution_context& ctx, const domain_decomposition& d);
 
 } // namespace arb

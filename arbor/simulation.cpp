@@ -186,6 +186,7 @@ simulation_state::simulation_state(
     task_system_(ctx.thread_pool),
     local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
 {
+    check_domain_decomposition(rec, ctx, decomp);
     // Generate the cell groups in parallel, with one task per cell group.
     cell_groups_.resize(decomp.groups.size());
     std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
