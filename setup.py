@@ -10,7 +10,7 @@ P.add_argument('--mpi',     dest='mpi',        action='store_const', const='on',
 P.add_argument('--bundled', metavar='bundled', action='store_const', const='on', default='off',  help='Use bundled libs.')
 P.add_argument('--gpu',     metavar='gpu',                                       default='none', help='Enable GPU support.')
 P.add_argument('--arch',    metavar='arch',                                      default='',     help='Set processor architecture.')
-opt = P.parse_known_args()
+opt, _ = P.parse_known_args()
 
 print(f"Options {opt}")
 
@@ -31,12 +31,12 @@ setup(name='arbor',
       zip_safe=False,
       cmake_args = ['-DARB_WITH_PYTHON=on',
                     '-DPYTHON_EXECUTABLE=' + sys.executable,
-                    f'-DARB_WITH_MPI={opt["mpi"]}',
-                    f'-DARB_VECTORIZE={opt["vec"]}'
-                    f'-DARB_ARCH={opt["arch"]}',
-                    f'-DARB_GPU={opt["gpu"]}',
-                    f'-DARB_WITH_NEUROML={opt["nml"]}',
-                    f'-DARB_USE_BUNDLED_LIBS={opt["bundled"]}',
+                    f'-DARB_WITH_MPI={opt.mpi}',
+                    f'-DARB_VECTORIZE={opt.vec}'
+                    f'-DARB_ARCH={opt.arch}',
+                    f'-DARB_GPU={opt.gpu}',
+                    f'-DARB_WITH_NEUROML={opt.nml}',
+                    f'-DARB_USE_BUNDLED_LIBS={opt.bundled}',
                     '-DCMAKE_BUILD_TYPE=Release'],
       author='The Arbor dev team.',
       url='https://github.com/arbor-sim/arbor',
