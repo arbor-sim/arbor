@@ -95,17 +95,21 @@ set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)"""
     else:
         print(f"Unsupported GPU target: {args['gpu']}. If you need support for HIP or Clang-CUDA, please check here: https://github.com/arbor-sim/arbor/issues/1783")
 else:
-    gpu_support = "# NONE"
+    gpu_support = "# GPU: Disabled"
 
 this_path = Path(__file__).parent
 data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
 pack_path = (this_path / "@ARB_REL_PACKAGEDIR@").resolve()
 exec_path = this_path.resolve()
 
-if debug:
-    print(f"Expecting generate_catalogue, BuildModules here: {data_path}")
-    print(f"Expecting arbor.cmake here: {pack_path}")
-    print(f"Expecting modcc here: {exec_path}")
+for i,p in [(exec_path, 'modcc'),
+            (data_path, 'generate_catalogue'),
+            (data_path, 'BuildModules.cmake'),
+            (pack_path, 'arbor-config.cmake'),
+            ]:
+    path = p / i
+    if not path.exists():
+        print(f'Could not find required tool: {path}. Please check your installation.')
 
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
@@ -174,8 +178,6 @@ with TemporaryDirectory() as tmp:
         fd.write(cmake)
     shutil.copy2(f'{data_path}/BuildModules.cmake', tmp)
     shutil.copy2(f'{data_path}/generate_catalogue', tmp)
-
-    print(f"Pulling files from: {data_path}")
 
     cmake_cmd = 'cmake ..'
     make_cmd = 'make'
