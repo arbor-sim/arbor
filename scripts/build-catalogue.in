@@ -10,6 +10,7 @@ import stat
 import string
 import argparse
 import re
+
 def parse_arguments():
     def append_slash(s):
         return s+'/' if s and not s.endswith('/') else s
@@ -96,11 +97,21 @@ set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)"""
 else:
     gpu_support = "# NONE"
 
+this = Path(__file__).parent
+data_path = (this / "@ARB_REL_DATADIR@").resolve()
+pack_path = (this / "@ARB_REL_PACKAGEDIR@").resolve()
+exec_path = this.resolve()
+
+if verbose:
+    print(f"Expecting generate_catalogue, BuildModules here: {data_path}")
+    print(f"Expecting arbor.cmake here: {pack_path}")
+    print(f"Expecting modcc here: {exec_path}")
+
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
 
-set(arbor_DIR @CMAKE_INSTALL_FULL_LIBDIR@/cmake/arbor)
+set(arbor_DIR {pack_path})
 find_package(arbor REQUIRED)
 
 {gpu_support}
@@ -112,14 +123,14 @@ set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 include(BuildModules.cmake)
 
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS @CMAKE_INSTALL_FULL_BINDIR@)
+find_program(modcc NAMES modcc PATHS {exec_path})
 
 make_catalogue(
   NAME {name}
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
   OUTPUT "CAT_{name.upper()}_SOURCES"
   MECHS {' '.join(mods)}
-  PREFIX @ARB_INSTALL_DATADIR@
+  PREFIX {data_path}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   STANDALONE ON
   VERBOSE {"ON" if verbose else "OFF"})
@@ -161,8 +172,11 @@ with TemporaryDirectory() as tmp:
     os.chdir(tmp / 'build')
     with open(tmp / 'CMakeLists.txt', 'w') as fd:
         fd.write(cmake)
-    shutil.copy2(f'@ARB_INSTALL_DATADIR@/BuildModules.cmake', tmp)
-    shutil.copy2(f'@ARB_INSTALL_DATADIR@/generate_catalogue', tmp)
+    shutil.copy2(f'{data_path}/BuildModules.cmake', tmp)
+    shutil.copy2(f'{data_path}/generate_catalogue', tmp)
+
+    print(f"Pulling files from: {data_path}")
+
     cmake_cmd = 'cmake ..'
     make_cmd = 'make'
     if verbose:

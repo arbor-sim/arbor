@@ -180,6 +180,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Data and internal scripts go here
 set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+# Derived paths for arbor-build-catalogue
+file(RELATIVE_PATH ARB_REL_DATADIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
