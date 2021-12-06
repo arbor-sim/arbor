@@ -222,5 +222,63 @@ domain_decomposition partition_load_balance(
     return d;
 }
 
+domain_decomposition partition_by_group(const recipe& rec, const context& ctx, const std::vector<group_description>& groups) {
+    struct partition_gid_domain {
+        partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
+            auto rank_part = util::partition_view(divs.partition());
+            for (auto rank: count_along(rank_part)) {
+                for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
+                    if (gid_map.count(gid)) {
+                        throw arbor_exception(arb::util::pprintf("unable to perform load balancing because cell {} "
+                                                                 "is present multiple times on the same ranks or accross ranks.", gid));
+                    }
+                    gid_map[gid] = rank;
+                }
+            }
+        }
+
+        int operator()(cell_gid_type gid) const {
+            return gid_map.at(gid);
+        }
+
+        std::unordered_map<cell_gid_type, int> gid_map;
+    };
+
+    unsigned num_domains = ctx->distributed->size();
+    unsigned domain_id = ctx->distributed->id();
+    auto num_global_cells = rec.num_cells();
+
+    std::vector<cell_gid_type> local_gids;
+    for (const auto& g: groups) {
+        auto gid_vec = g.gids;
+        util::sort(gid_vec);
+        for (const auto& gid: gid_vec) {
+            for (const auto& gj: rec.gap_junctions_on(gid)) {
+                if (!std::binary_search(gid_vec.begin(), gid_vec.end(), gj.peer.gid)) {
+                    throw arbor_exception(arb::util::pprintf("invalid partitioning, cell {} needs to be in the same group as "
+                                                             "cell {} because they are connected via gap-junction.", gid, gj.peer.gid));
+                }
+            }
+        }
+        local_gids.insert(local_gids.end(), g.gids.begin(), g.gids.end());
+    }
+    cell_size_type num_local_cells = local_gids.size();
+
+    auto global_gids = ctx->distributed->gather_gids(local_gids);
+    if (global_gids.size() != num_global_cells) {
+        throw arbor_exception(arb::util::pprintf("invalid partitioning, not all gids are assigned to ranks."));
+    }
+
+    domain_decomposition d;
+    d.num_domains = num_domains;
+    d.domain_id = domain_id;
+    d.num_local_cells = num_local_cells;
+    d.num_global_cells = num_global_cells;
+    d.groups = groups;
+    d.gid_domain = partition_gid_domain(global_gids, num_domains);
+
+    return d;
+}
+
 } // namespace arb
 

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <any>
 #include <cstddef>
 #include <optional>
@@ -10,6 +11,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include <arborio/cv_policy_parse.hpp>
 #include <arborio/label_parse.hpp>
@@ -34,6 +36,7 @@
 #include "proxy.hpp"
 #include "pybind11/cast.h"
 #include "pybind11/pytypes.h"
+#include "pybind11/embed.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
 
@@ -316,6 +319,18 @@ void register_cells(pybind11::module& m) {
             ss << p;
             return ss.str();
         });
+
+    m.def("execute",
+          [](pybind11::object o){
+              std::function<int(int)> callback;
+              try {
+                  callback = pybind11::cast<std::function<int(int)>>(o);
+              }
+              catch (...) {
+                  throw pyarb_error("Well well buddy you found it.");
+              }
+              std::cout << callback(42) << std::endl;
+          });
 
     m.def("cv_policy_explicit",
           &make_cv_policy_explicit,
