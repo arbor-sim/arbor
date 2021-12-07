@@ -3,18 +3,18 @@
 PR workflow
 ===========
 
-The PR, short for Pull Request, is a way to merge code on Github, where the main Arbor-repo is hosted.
+The PR, short for Github Pull Request, is a way to merge code on Github, where the main Arbor-repo is hosted.
 
 .. _contribpr-issue:
 
 Issues
 ------
 
-New features, bugfixes or other kinds of contributions ideally start their lives as an Issue on our
-`Issue tracker <https://github.com/arbor-sim/arbor/issues>`_. We distinguish two broad categories of
+New features, bugfixes or other kinds of contributions ideally start their lives as an Issue (short for Github Issue)
+on our `Issue tracker <https://github.com/arbor-sim/arbor/issues>`_. We distinguish two broad categories of
 issues: feature requests to add new functionality to arbor and bugs pointing out mistakes, inaccuracies,
-and plain faults in Arbor. Having an Issue before an implementation
-addressing the Issue (code contribution or otherwise) gives others the chance to weigh in and help
+and plain faults in Arbor. Having a formal Github Issue before an implementation addressing a request or bug
+(as a PR containing a code contribution or otherwise) gives others the chance to weigh in and help
 find a solution that fits Arbor and its design, which makes it easier to integrate your contribution.
 Especially for new features, this is a helpful process. Have a look at our
 `blogpost on this subject <https://arbor-sim.org/how-to-file-an-issue/>`_ for some more rationale for
@@ -79,7 +79,7 @@ here the steps for how to do this (with just ``git``).
 Alongside the instruction, an example situation will be given assuming you have the Arbor main
 repo setup as a remote called ``upstream``, you want to commit to pull request number ``321``, opened by a 
 Github user called ``github_user_007``, who named the branch they're trying to merge ``my_special_branch``,
-in their fork of the Arbor repo called ```arbor-sim`` (which is the default when you fork on Github).
+in their fork of the Arbor repo called ``arbor-sim`` (which is the default when you fork on Github).
 
 For the table inclined
 ~~~~~~~~~~~~~~~~~~~~~~
