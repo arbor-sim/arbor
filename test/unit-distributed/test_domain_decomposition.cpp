@@ -158,7 +158,10 @@ TEST(domain_decomposition, homogeneous_population_mc) {
     // 10 cells per domain
     unsigned n_local = 10;
     unsigned n_global = n_local*N;
-    const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), ctx);
+
+    auto rec = homo_recipe(n_global, dummy_cell{});
+    const auto D = partition_load_balance(rec, ctx);
+    EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, D));
 
     EXPECT_EQ(D.num_global_cells, n_global);
     EXPECT_EQ(D.num_local_cells, n_local);
@@ -209,7 +212,9 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
     // 10 cells per domain
     unsigned n_local = 10;
     unsigned n_global = n_local*N;
-    const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), ctx);
+    auto rec = homo_recipe(n_global, dummy_cell{});
+    const auto D = partition_load_balance(rec, ctx);
+    EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, D));
 
     EXPECT_EQ(D.num_global_cells, n_global);
     EXPECT_EQ(D.num_local_cells, n_local);
@@ -256,6 +261,7 @@ TEST(domain_decomposition, heterogeneous_population) {
     const unsigned n_local_grps = n_local; // 1 cell per group
     auto R = hetero_recipe(n_global);
     const auto D = partition_load_balance(R, ctx);
+    EXPECT_NO_THROW(check_domain_decomposition(R, *ctx, D));
 
     EXPECT_EQ(D.num_global_cells, n_global);
     EXPECT_EQ(D.num_local_cells, n_local);
@@ -302,6 +308,7 @@ TEST(domain_decomposition, symmetric_groups)
 #endif
     auto R = gj_symmetric(nranks);
     const auto D0 = partition_load_balance(R, ctx);
+    EXPECT_NO_THROW(check_domain_decomposition(R, *ctx, D0));
     EXPECT_EQ(6u, D0.groups.size());
 
     unsigned shift = rank*R.num_cells()/nranks;
@@ -329,6 +336,7 @@ TEST(domain_decomposition, symmetric_groups)
     hints[cell_kind::cable].prefer_gpu = false;
 
     const auto D1 = partition_load_balance(R, ctx, hints);
+    EXPECT_NO_THROW(check_domain_decomposition(R, *ctx, D1));
     EXPECT_EQ(1u, D1.groups.size());
 
     std::vector<cell_gid_type> expected_groups1 =
@@ -345,6 +353,7 @@ TEST(domain_decomposition, symmetric_groups)
     hints[cell_kind::cable].prefer_gpu = false;
 
     const auto D2 = partition_load_balance(R, ctx, hints);
+    EXPECT_NO_THROW(check_domain_decomposition(R, *ctx, D2));
     EXPECT_EQ(2u, D2.groups.size());
 
     std::vector<std::vector<cell_gid_type>> expected_groups2 =
@@ -378,6 +387,7 @@ TEST(domain_decomposition, non_symmetric_groups)
 
     auto R = gj_non_symmetric(nranks);
     const auto D = partition_load_balance(R, ctx);
+    EXPECT_NO_THROW(check_domain_decomposition(R, *ctx, D));
 
     unsigned cells_per_rank = nranks;
     // check groups
@@ -409,5 +419,60 @@ TEST(domain_decomposition, non_symmetric_groups)
         else {
             EXPECT_EQ(group, (unsigned)D.gid_domain(gid));
         }
+    }
+}
+
+TEST(domain_decomposition, invalid)
+{
+    proc_allocation resources{1, -1};
+    int nranks = 1;
+    int rank = 0;
+#ifdef TEST_MPI
+    auto ctx = make_context(resources, MPI_COMM_WORLD);
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#else
+    auto ctx = make_context(resources);
+#endif
+
+    {
+        auto rec = homo_recipe(10*nranks, dummy_cell{});
+        auto d = domain_decomposition();
+        d.num_domains = nranks*2;
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_domains);
+
+        d.num_domains = nranks;
+        d.domain_id = rank+1;
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_domain_id);
+
+        d.domain_id = rank;
+        d.num_local_cells = 12;
+        d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8}, backend_kind::multicore}};
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_local_cells);
+
+        d.num_local_cells = 10;
+        d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, (unsigned)nranks*10}, backend_kind::multicore}};
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_out_of_bounds);
+
+        d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::multicore}};
+        d.num_global_cells = nranks*10 + 2;
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_global_cells);
+
+        d.num_global_cells = nranks*10;
+        std::vector<cell_gid_type> gids;
+        for (unsigned i = 0; i < 10; ++i) {
+            gids.push_back(rank*10 + i);
+        }
+        if (rank == 0) gids.back() = 0;
+        d.groups = {{cell_kind::cable, gids, backend_kind::multicore}};
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_duplicate_gid);
+
+        if (rank == 0) gids.back() = 9;
+        d.groups = {{cell_kind::cable, gids, backend_kind::multicore}};
+        d.gid_domain = [&nranks](cell_gid_type) { return nranks; };
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_non_existent_rank);
+
+        d.gid_domain = [](cell_gid_type gid) { return gid/10; };
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
     }
 }
