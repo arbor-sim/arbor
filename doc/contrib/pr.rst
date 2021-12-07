@@ -11,9 +11,12 @@ Issues
 ------
 
 New features, bugfixes or other kinds of contributions ideally start their lives as an Issue on our
-`Issue tracker <https://github.com/arbor-sim/arbor/issues>`_. Having an Issue before an implementation
+`Issue tracker <https://github.com/arbor-sim/arbor/issues>`_. We distinguish two broad categories of
+issues: feature requests to add new functionality to arbor and bugs pointing out mistakes, inaccuracies,
+and plain faults in Arbor. Having an Issue before an implementation
 addressing the Issue (code contribution or otherwise) gives others the chance to weigh in and help
-find the best solution. Especially for new features, this is a helpful process. Have a look at our
+find a solution that fits Arbor and its design, which makes it easier to integrate your contribution.
+Especially for new features, this is a helpful process. Have a look at our
 `blogpost on this subject <https://arbor-sim.org/how-to-file-an-issue/>`_ for some more rationale for
 this process.
 
@@ -74,10 +77,27 @@ also add commits to a PR opened by someone else. Since the correct procedure for
 here the steps for how to do this (with just ``git``).
 
 Alongside the instruction, an example situation will be given assuming you have the Arbor main
-repo setup as a remote called ``upsteam``, you want to commit to pull request number ``321``, opened by a 
+repo setup as a remote called ``upstream``, you want to commit to pull request number ``321``, opened by a 
 Github user called ``github_user_007``, who named the branch they're trying to merge ``my_special_branch``,
-in their fork of the Arbor repo called ```arbor-sim`` (which is the default when you fork on Github):
+in their fork of the Arbor repo called ```arbor-sim`` (which is the default when you fork on Github).
 
+For the table inclined
+~~~~~~~~~~~~~~~~~~~~~~
+
+=============================== ========================= ======================
+description                     variable                  example
+remote for Arbor main repo      ``$REMOTE``               ``upstream``
+PR you want to contribute to    ``#PR``                   ``321``
+Github user that opened the PR  ``$PR_AUTHOR``            ``github_user_007``
+branch name of the PR           ``$REMOTE_BRANCH_NAME``   ``my_special_branch``
+repo name of the above branch   ``$REPO``                 ``arbor-sim``
+=============================== ========================= ======================
+
+Steps
+~~~~~
+
+0. In case your ``origin`` is your own Github fork, add the ``upstream`` remote like so:
+   ``git remote add upstream https://github.com/arbor-sim/arbor``
 1. ``git fetch $REMOTE pull/#PR/head:$REMOTE_BRANCH_NAME``
 
    Example: ``git fetch upstream pull/321/head:my_special_branch``
@@ -86,7 +106,7 @@ in their fork of the Arbor repo called ```arbor-sim`` (which is the default when
    Example: ``git switch my_special_branch``
 3. Make commits to that local branch.
 4. Push to the PR-branch with the following incantation:
-   ``git push git@github.com:$USER/$REPO $LOCAL_BRANCH_NAME:$REMOTE_BRANCH_NAME``
+   ``git push git@github.com:$PR_AUTHOR/$REPO $LOCAL_BRANCH_NAME:$REMOTE_BRANCH_NAME``
 
    Example: ``git push git@github.com:github_user_007/arbor-sim my_special_branch:my_special_branch``
 5. The commit should now show up on the PR. When the PR is going to be merged, Github will add a
