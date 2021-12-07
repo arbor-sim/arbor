@@ -669,7 +669,7 @@ fvm_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
 
             for (auto gj: rec.gap_junctions_on(g)) {
                 if (!gid_to_loc.count(gj.peer.gid)) {
-                    throw gj_unsupported_domain_decomposition(g, gj.peer.gid);
+                    throw dom_dec_invalid_gj_cell_group(g, gj.peer.gid);
                 }
 
                 if (!visited.count(gj.peer.gid)) {
