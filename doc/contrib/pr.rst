@@ -81,8 +81,8 @@ repo setup as a remote called ``upstream``, you want to commit to pull request n
 Github user called ``github_user_007``, who named the branch they're trying to merge ``my_special_branch``,
 in their fork of the Arbor repo called ``arbor-sim`` (which is the default when you fork on Github).
 
-For the table inclined
-~~~~~~~~~~~~~~~~~~~~~~
+Situation as a table
+~~~~~~~~~~~~~~~~~~~~
 
 =============================== ========================= ======================
 description                     variable                  example
