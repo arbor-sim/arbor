@@ -12,8 +12,9 @@ Load balancers
 
 Load balancing generates a :class:`domain_decomposition` given an :class:`arbor.recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
-two load balancer, :func:`partition_load_balance`, and :func:`partition_by_group`.
-More will be added over time.
+one load balancer, :func:`partition_load_balance`; and a function for creating
+custom decompositions, :func:`partition_by_group`.
+More load balancers will be added over time.
 
 If the model is distributed with MPI, the partitioning algorithm for cells is
 distributed with MPI communication. The returned :class:`domain_decomposition`

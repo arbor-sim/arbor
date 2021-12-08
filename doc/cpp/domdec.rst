@@ -12,8 +12,7 @@ Load balancers
 
 Load balancing generates a :cpp:class:`domain_decomposition` given an :cpp:class:`arb::recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
-one load balancer, :cpp:func:`partition_load_balance`, and :cpp:func:`partition_by_group`.
-More will be added over time.
+one load balancer, :cpp:func:`partition_load_balance`, and more will be added over time.
 
 If the model is distributed with MPI, the partitioning algorithm for cells is
 distributed with MPI communication. The returned :cpp:class:`domain_decomposition`
@@ -71,7 +70,7 @@ describes the cell groups on the local MPI rank.
 
     .. Note::
        This function is a wrapper around describing your own :cpp:class:`domain_decomposition`.
-       The supplied vector of :cpp:class:`group_description` will be copied as it. Therefore
+       The supplied vector of :cpp:class:`group_description` will be copied as is. Therefore
        the same :ref:`considerations <domdecnotes>` apply for this function as for creating your
        own :cpp:class:`domain_decomposition`.
 

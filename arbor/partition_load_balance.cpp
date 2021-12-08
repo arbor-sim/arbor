@@ -274,7 +274,6 @@ void check_domain_decomposition(const recipe& rec, const execution_context& ctx,
         throw dom_dec_invalid_domain_id(d.domain_id, domain_id);
     }
 
-    // Check that groups satisfy the one cell_group per gap-junction-connected cells requirement.
     std::vector<cell_gid_type> local_gids;
     for (const auto& g: d.groups) {
         if (!has_gpu && g.backend == backend_kind::gpu) {

@@ -128,10 +128,10 @@ void register_domain_decomposition(pybind11::module& m) {
                   throw;
               }
           },
-          "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
-          "over the distributed and local hardware resources described by context.\n"
-          "The cell_groups rovided as argument are guaranteed to be present on the calling rank.",
-          "recipe"_a, "context"_a, "hints"_a);
+          "Construct a domain_decomposition that assigned the groups of cell provided as argument \n"
+          "to the local hardware resources described by context on the calling rank.\n"
+          "The cell_groups are guaranteed to be present on the calling rank.",
+          "recipe"_a, "context"_a, "groups"_a);
 }
 
 } // namespace pyarb
