@@ -76,8 +76,10 @@ also add commits to a PR opened by someone else. Since the correct procedure for
 `Github specific <https://docs.github.com/en/github/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork>`_,
 here the steps for how to do this (with just ``git``).
 
-Alongside the instruction, an example situation will be given assuming you have the Arbor main
-repo setup as a remote called ``upstream``, you want to commit to pull request number ``321``, opened by a 
+Alongside the instruction, an example situation will be given. Here, it is assumed that you've created your own
+Github fork of the Arbor repo, and that you have this cloned to disk (and the ``origin`` remote points to your
+fork of Arbor on Github). We'll setup a new remote called ``upstream``, pointing to the ``arbor-sim/arbor`` repo.
+The example situation is that you want to commit to pull request number ``321``, opened by a 
 Github user called ``github_user_007``, who named the branch they're trying to merge ``my_special_branch``,
 in their fork of the Arbor repo called ``arbor-sim`` (which is the default when you fork on Github).
 
@@ -87,7 +89,7 @@ Situation as a table
 =============================== ========================= ======================
 description                     variable                  example
 remote for Arbor main repo      ``$REMOTE``               ``upstream``
-PR you want to contribute to    ``#PR``                   ``321``
+PR you want to contribute to    ``$PR``                   ``321``
 Github user that opened the PR  ``$PR_AUTHOR``            ``github_user_007``
 branch name of the PR           ``$REMOTE_BRANCH_NAME``   ``my_special_branch``
 repo name of the above branch   ``$REPO``                 ``arbor-sim``
@@ -96,9 +98,9 @@ repo name of the above branch   ``$REPO``                 ``arbor-sim``
 Steps
 ~~~~~
 
-0. In case your ``origin`` is your own Github fork, add the ``upstream`` remote like so:
+0. Add the ``upstream`` remote like so:
    ``git remote add upstream https://github.com/arbor-sim/arbor``
-1. ``git fetch $REMOTE pull/#PR/head:$REMOTE_BRANCH_NAME``
+1. ``git fetch $REMOTE pull/$PR/head:$REMOTE_BRANCH_NAME``
 
    Example: ``git fetch upstream pull/321/head:my_special_branch``
 2. This should have made a local branch with the same name, tracking the PR-branch. Switch to the new local branch.
