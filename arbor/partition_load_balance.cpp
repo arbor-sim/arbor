@@ -265,6 +265,7 @@ void check_domain_decomposition(const recipe& rec, const execution_context& ctx,
     int num_domains = ctx.distributed->size();
     int domain_id = ctx.distributed->id();
     auto num_global_cells = rec.num_cells();
+    auto has_gpu = ctx.gpu->has_gpu();
 
     if (d.num_domains != (int)num_domains) {
         throw dom_dec_invalid_num_domains(d.num_domains, num_domains);
@@ -276,6 +277,13 @@ void check_domain_decomposition(const recipe& rec, const execution_context& ctx,
     // Check that groups satisfy the one cell_group per gap-junction-connected cells requirement.
     std::vector<cell_gid_type> local_gids;
     for (const auto& g: d.groups) {
+        if (!has_gpu && g.backend == backend_kind::gpu) {
+            throw dom_dec_invalid_backend(domain_id);
+        }
+        if (g.backend == backend_kind::gpu && g.kind != cell_kind::cable) {
+            throw dom_dec_incompatible_backend(domain_id, g.kind);
+        }
+
         std::unordered_set<cell_gid_type> gid_set(g.gids.begin(), g.gids.end());
         for (const auto& gid: g.gids) {
             if (gid >= num_global_cells) {

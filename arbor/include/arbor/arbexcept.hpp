@@ -125,6 +125,17 @@ struct dom_dec_out_of_bounds: arbor_exception {
     unsigned num_cells;
 };
 
+struct dom_dec_invalid_backend: arbor_exception {
+    dom_dec_invalid_backend(int rank);
+    int rank;
+};
+
+struct dom_dec_incompatible_backend: arbor_exception {
+    dom_dec_incompatible_backend(int rank, cell_kind kind);
+    int rank;
+    cell_kind kind;
+};
+
 // Simulation errors:
 
 struct bad_event_time: arbor_exception {

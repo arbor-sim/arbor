@@ -104,6 +104,19 @@ dom_dec_out_of_bounds::dom_dec_out_of_bounds(cell_gid_type gid, unsigned num_cel
     num_cells(num_cells)
 {}
 
+dom_dec_invalid_backend::dom_dec_invalid_backend(int rank):
+    arbor_exception(pprintf("Invalid domain decomposition, rank {} contains a group meant to run on GPU, but "
+                            "no GPU backend was detected in the context.", rank)),
+    rank(rank)
+{}
+
+dom_dec_incompatible_backend::dom_dec_incompatible_backend(int rank, cell_kind kind):
+    arbor_exception(pprintf("Invalid domain decomposition, rank {} contains a group with cells of kind {} "
+                            "meant to run on the GPU backend, but no backend support exists for {}", rank, kind, kind)),
+    rank(rank),
+    kind(kind)
+{}
+
 gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
     arbor_exception(pprintf("Model building error on cell {}: gap junction site label \"{}\" must be univalent.", gid, label)),
     gid(gid),

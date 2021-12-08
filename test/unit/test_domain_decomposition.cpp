@@ -321,11 +321,10 @@ TEST(domain_decomposition, hints) {
     EXPECT_EQ(expected_ss_groups, ss_groups);
 }
 
-TEST(domain_decomposition, compulsory_groups)
-{
+TEST(domain_decomposition, compulsory_groups) {
     proc_allocation resources;
     resources.num_threads = 1;
-    resources.gpu_id = -1; // disable GPU if available
+    resources.gpu_id = arbenv::default_gpu();
     auto ctx = make_context(resources);
 
     auto R = gap_recipe();
@@ -370,8 +369,81 @@ TEST(domain_decomposition, compulsory_groups)
 
 }
 
-TEST(domain_decomposition, invalid)
-{
+TEST(domain_decomposition, partition_by_groups) {
+    proc_allocation resources;
+    resources.num_threads = 1;
+    resources.gpu_id = arbenv::default_gpu();
+    auto ctx = make_context(resources);
+
+    {
+        const unsigned ncells = 10;
+        auto rec = homo_recipe(ncells, dummy_cell{});
+        std::vector<cell_gid_type> gids(ncells);
+        std::iota(gids.begin(), gids.end(), 0);
+
+#ifdef ARB_GPU_ENABLED
+        auto d = partition_by_group(rec, ctx, {{cell_kind::cable, gids, backend_kind::gpu}});
+#else
+        auto d = partition_by_group(rec, ctx, {{cell_kind::cable, gids, backend_kind::multicore}});
+#endif
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
+
+        EXPECT_EQ(1, d.num_domains);
+        EXPECT_EQ(0, d.domain_id);
+        EXPECT_EQ(ncells, d.num_local_cells);
+        EXPECT_EQ(ncells, d.num_global_cells);
+        EXPECT_EQ(1u,     d.groups.size());
+        EXPECT_EQ(gids,   d.groups.front().gids);
+        EXPECT_EQ(cell_kind::cable, d.groups.front().kind);
+#ifdef ARB_GPU_ENABLED
+        EXPECT_EQ(backend_kind::gpu, d.groups.front().backend);
+#else
+        EXPECT_EQ(backend_kind::multicore, d.groups.front().backend);
+#endif
+        for (unsigned i = 0; i < ncells; ++i) {
+            EXPECT_EQ(0, d.gid_domain(i));
+        }
+    }
+    {
+        const unsigned ncells = 10;
+        auto rec = homo_recipe(ncells, dummy_cell{});
+        std::vector<group_description> groups;
+        for (unsigned i = 0; i < ncells; ++i) {
+            groups.push_back({cell_kind::cable, {i}, backend_kind::multicore});
+        }
+        auto d = partition_by_group(rec, ctx, groups);
+
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
+
+        EXPECT_EQ(1, d.num_domains);
+        EXPECT_EQ(0, d.domain_id);
+        EXPECT_EQ(ncells, d.num_local_cells);
+        EXPECT_EQ(ncells, d.num_global_cells);
+        EXPECT_EQ(ncells, d.groups.size());
+        for (unsigned i = 0; i < ncells; ++i) {
+            EXPECT_EQ(std::vector<cell_gid_type>{i}, d.groups[i].gids);
+            EXPECT_EQ(cell_kind::cable, d.groups[i].kind);
+            EXPECT_EQ(backend_kind::multicore, d.groups[i].backend);
+        }
+        for (unsigned i = 0; i < ncells; ++i) {
+            EXPECT_EQ(0, d.gid_domain(i));
+        }
+    }
+    {
+        auto rec = gap_recipe();
+        std::vector<cell_gid_type> gids(rec.num_cells());
+        std::iota(gids.begin(), gids.end(), 0);
+        auto d0 = partition_by_group(rec, ctx,  {{cell_kind::cable, gids, backend_kind::multicore}});
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d0));
+
+        auto d1 = partition_by_group(rec, ctx, {{cell_kind::cable, {0, 13}, backend_kind::multicore},
+                                                {cell_kind::cable, {2, 7, 11}, backend_kind::multicore},
+                                                {cell_kind::cable, {1, 3, 4, 5, 6, 8, 9, 10, 12, 14}, backend_kind::multicore}});
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d1));
+    }
+}
+
+TEST(domain_decomposition, invalid) {
     proc_allocation resources;
     resources.num_threads = 1;
     resources.gpu_id = -1; // disable GPU if available
@@ -395,6 +467,16 @@ TEST(domain_decomposition, invalid)
         d.num_local_cells = 10;
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 10}, backend_kind::multicore}};
         EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_out_of_bounds);
+
+        d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::gpu}};
+#ifdef ARB_GPU_ENABLED
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
+
+        d.groups = {{cell_kind::lif, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::gpu}};
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_incompatible_backend);
+#else
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_backend);
+#endif
 
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::multicore}};
         d.num_global_cells = 12;

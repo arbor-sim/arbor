@@ -68,6 +68,10 @@ namespace {
     public:
         gj_symmetric(unsigned num_ranks): ncopies_(num_ranks){}
 
+        cell_size_type num_cells_per_rank() const {
+            return size_;
+        }
+
         cell_size_type num_cells() const override {
             return size_*ncopies_;
         }
@@ -418,6 +422,92 @@ TEST(domain_decomposition, non_symmetric_groups)
         }
         else {
             EXPECT_EQ(group, (unsigned)D.gid_domain(gid));
+        }
+    }
+}
+
+TEST(domain_decomposition, partition_by_group)
+{
+    proc_allocation resources{1, -1};
+    int nranks = 1;
+    int rank = 0;
+#ifdef TEST_MPI
+    auto ctx = make_context(resources, MPI_COMM_WORLD);
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#else
+    auto ctx = make_context(resources);
+#endif
+
+    {
+        const unsigned cells_per_rank = 10;
+        auto rec = homo_recipe(cells_per_rank*nranks, dummy_cell{});
+        std::vector<cell_gid_type> gids;
+        for (unsigned i = 0; i < cells_per_rank; ++i) {
+            gids.push_back(rank*cells_per_rank + i);
+        }
+#ifdef ARB_GPU_ENABLED
+        auto d = partition_by_group(rec, ctx, {{cell_kind::cable, gids, backend_kind::gpu}});
+#else
+        auto d = partition_by_group(rec, ctx, {{cell_kind::cable, gids, backend_kind::multicore}});
+#endif
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
+
+        EXPECT_EQ(nranks, d.num_domains);
+        EXPECT_EQ(rank,   d.domain_id);
+        EXPECT_EQ(cells_per_rank,        d.num_local_cells);
+        EXPECT_EQ(cells_per_rank*nranks, d.num_global_cells);
+        EXPECT_EQ(1u,     d.groups.size());
+        EXPECT_EQ(gids,   d.groups.front().gids);
+        EXPECT_EQ(cell_kind::cable,      d.groups.front().kind);
+#ifdef ARB_GPU_ENABLED
+        EXPECT_EQ(backend_kind::gpu, d.groups.front().backend);
+#else
+        EXPECT_EQ(backend_kind::multicore, d.groups.front().backend);
+#endif
+        for (unsigned i = 0; i < cells_per_rank*nranks; ++i) {
+            EXPECT_EQ((int)(i/cells_per_rank), d.gid_domain(i));
+        }
+    }
+    {
+        auto rec = gj_symmetric(nranks);
+        const unsigned cells_per_rank = rec.num_cells_per_rank();
+        const unsigned shift = cells_per_rank*rank;
+
+        std::vector<cell_gid_type> gids0 = {1+shift, 2+shift, 6+shift, 7+shift, 9+shift};
+        std::vector<cell_gid_type> gids1 = {3+shift};
+        std::vector<cell_gid_type> gids2 = {0+shift, 4+shift, 5+shift, 8+shift};
+
+        group_description g0 = {cell_kind::lif,   gids0, backend_kind::multicore};
+        group_description g1 = {cell_kind::cable, gids1, backend_kind::multicore};
+#ifdef ARB_GPU_ENABLED
+        group_description g2 = {cell_kind::cable, gids2, backend_kind::gpu};
+#else
+        group_description g2 = {cell_kind::cable, gids2, backend_kind::multicore};
+#endif
+        auto d = partition_by_group(rec, ctx, {g0, g1, g2});
+
+        EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
+        EXPECT_EQ(nranks, d.num_domains);
+        EXPECT_EQ(rank,   d.domain_id);
+        EXPECT_EQ(cells_per_rank,         d.num_local_cells);
+        EXPECT_EQ(cells_per_rank*nranks,  d.num_global_cells);
+        EXPECT_EQ(3u,     d.groups.size());
+        EXPECT_EQ(gids0,  d.groups[0].gids);
+        EXPECT_EQ(gids1,  d.groups[1].gids);
+        EXPECT_EQ(gids2,  d.groups[2].gids);
+        EXPECT_EQ(cell_kind::lif,          d.groups[0].kind);
+        EXPECT_EQ(cell_kind::cable,        d.groups[1].kind);
+        EXPECT_EQ(cell_kind::cable,        d.groups[2].kind);
+        EXPECT_EQ(backend_kind::multicore, d.groups[0].backend);
+        EXPECT_EQ(backend_kind::multicore, d.groups[1].backend);
+#ifdef ARB_GPU_ENABLED
+        EXPECT_EQ(backend_kind::gpu,       d.groups[2].backend);
+#else
+        EXPECT_EQ(backend_kind::multicore, d.groups[2].backend);
+#endif
+        for (unsigned i = 0; i < cells_per_rank*nranks; ++i) {
+            EXPECT_EQ((int)(i/cells_per_rank), d.gid_domain(i));
         }
     }
 }
