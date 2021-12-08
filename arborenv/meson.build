@@ -12,7 +12,10 @@ endif
 lib_arborenv = library('arbenv',
                  sources: arborenv_src,
                  include_directories: 'include',
-                 dependencies: [dep_arb])
+                 dependencies: [dep_arb],
+                 install: true)
+
+install_subdir('include/arborenv', install_dir: 'include')
 
 dep_arborenv = declare_dependency(
               include_directories: ['include'],

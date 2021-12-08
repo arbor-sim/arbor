@@ -11,6 +11,7 @@ arb_with_gpu          = get_option('arb_with_gpu')
 arb_with_neuroml      = get_option('arb_with_neuroml')
 arb_with_profiling    = get_option('arb_with_profiling')
 arb_with_vectorize    = get_option('arb_with_vectorize')
+arb_with_python       = get_option('arb_with_python')
 arb_arch              = get_option('arb_arch')
 
 if arb_with_mpi
@@ -47,7 +48,7 @@ endif
 # the following command can be used to determine whether we are looking for march or mcpu
 # see cmake/CompilerOptions.cmake
 # g++ --verbose dummy.cpp |& grep ^Target | sed 's/^Target: //' | sed 's/-.*//'
-add_global_arguments(f'-march=@arb_arch@', language : 'cpp')
+add_project_arguments(f'-march=@arb_arch@', language : 'cpp')
 
 # find dependencies
 if arb_with_bundled_libs
@@ -76,5 +77,9 @@ subdir('arbor')
 subdir('arborio')
 subdir('arborenv')
 subdir('sup')
+
+if arb_with_python
+  subdir('python')
+endif
 
 subdir('example')

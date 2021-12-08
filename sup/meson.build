@@ -3,7 +3,8 @@ arborsup_src = ['ioutil.cpp', 'json_meter.cpp', 'path.cpp']
 lib_arborsup = library('arbsup',
                  sources: arborsup_src,
                  include_directories: ['include'],
-                 dependencies: [dep_arb, dep_libjson])
+                 dependencies: [dep_arb, dep_libjson],
+                 install: true)
 
 dep_arborsup = declare_dependency(
               include_directories: ['include'],

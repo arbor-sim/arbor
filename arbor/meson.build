@@ -69,7 +69,19 @@ dep_arb_internal = [dep_threads, dep_random123, dep_dl]
 lib_arb = library('arbor',
               sources: [arb_src, catalogue_sources],
               include_directories: [inc_arb_public, inc_arb_private],
-              dependencies : dep_arb_internal)
+              dependencies: dep_arb_internal,
+              install: true)
+
+install_subdir(
+  'include/arbor',
+  install_dir: 'include',
+  exclude_files: [
+    'arb_types.inc',
+    'assert_macro.hpp.disabled',
+    'assert_macro.hpp.enabled',
+    'meson.build',
+    'version.hpp.in'])
+
 
 dep_arb = declare_dependency(
               include_directories: [inc_arb_public],

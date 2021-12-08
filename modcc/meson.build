@@ -24,7 +24,8 @@ libmodcc_src = [
 
 libmodcc = library('modcc',
               sources: [libmodcc_src],
-              dependencies: [dep_libfmt])
+              dependencies: [dep_libfmt],
+              install: true)
 
 
 modcc = executable('modcc',
