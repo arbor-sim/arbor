@@ -12,7 +12,8 @@ Load balancers
 
 Load balancing generates a :class:`domain_decomposition` given an :class:`arbor.recipe`
 and a description of the hardware on which the model will run. Currently Arbor provides
-one load balancer, :func:`partition_load_balance`, and more will be added over time.
+two load balancer, :func:`partition_load_balance`, and :func:`partition_by_group`.
+More will be added over time.
 
 If the model is distributed with MPI, the partitioning algorithm for cells is
 distributed with MPI communication. The returned :class:`domain_decomposition`
@@ -37,6 +38,64 @@ describes the cell groups on the local MPI rank.
         The partitioning assumes that all cells of the same kind have equal
         computational cost, hence it may not produce a balanced partition for
         models with cells that have a large variance in computational costs.
+
+.. function:: partition_by_group(recipe, context, groups)
+
+   Construct a :class:`domain_decomposition` that assigns the groups described by
+   the provided list of :class:`group_description` to the local hardware of the calling rank.
+
+   The function expects to be called by each rank in a distributed simulation with the
+   selected groups for that rank. For example, in a simulation of 10 cells on 2 MPI ranks
+   where cells {0, 2, 4, 6, 8} of kind :class:`cable_cell` are expected to be in a single group executed
+   on the GPU on rank 0; and cells {1, 3, 5, 7, 9} of kind :class:`lif_cell` are expected to be in a single
+   group executed on the CPU on rank 1:
+
+   Rank 0 should run:
+
+   .. code-block:: python
+
+        import arbor
+
+        # Get a communication context (with 4 threads, and 1 GPU with id 0)
+        context = arbor.context(threads=4, gpu_id=0)
+
+        # Initialise a recipe of user defined type my_recipe with 10 cells.
+        n_cells = 10
+        recipe = my_recipe(n_cells)
+
+        groups = [arbor.group_description(arbor.cell_kind.cable, [0, 2, 4, 6, 8], arbor.backend.gpu)]
+        decomp = arb.partition_by_group(recipe, context, groups)
+
+   And Rank 1 should run:
+
+   .. code-block:: python
+
+        import arbor
+
+        # Get a communication context (with 4 threads, and no GPU)
+        context = arbor.context(threads=4, gpu_id=-1)
+
+        # Initialise a recipe of user defined type my_recipe with 10 cells.
+        n_cells = 10
+        recipe = my_recipe(n_cells)
+
+        groups = [arbor.group_description(arbor.cell_kind.lif, [1, 3, 5, 7, 9], arbor.backend.multicore)]
+        decomp = arb.partition_by_group(recipe, context, groups)
+
+   The function doesn't perform any checks on the validity of the generated :class:`domain_decomposition`.
+   The validity is only checked when a :class:`simulation` object is constructed using that :class:`domain_decomposition`.
+
+   .. Note::
+        This function is intended for users who have a good understanding of the computational
+        cost of simulating the cells in their network and want fine-grained control over the
+        partitioning of cells across ranks. It is recommended to start off by using
+        :func:`partition_load_balance` and switch to this function if the observed performance across
+        ranks is unbalanced.
+
+   .. Note::
+        This function relies on the user to decide the size of the cell groups. It is therefore important
+        to keep in mind that smaller cell groups have better performance on the multicore backend and
+        larger cell groups have better performance on the GPU backend.
 
 .. class:: partition_hint
 
