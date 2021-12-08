@@ -71,13 +71,6 @@ decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
 decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
 decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
 
-def foo(x): 
-  a = {1: 5, 2: 6, 42: 102}
-  return b[x]
-
-#arbor.execute(lambda x:x+y)
-arbor.execute(foo)
-
 # Single CV for the "soma" region
 soma_policy = arbor.cv_policy_single('"soma"')
 # Single CV for the "soma" region
