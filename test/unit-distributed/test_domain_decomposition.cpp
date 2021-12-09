@@ -12,6 +12,8 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/version.hpp>
 
+#include <arborenv/default_env.hpp>
+
 #include "util/span.hpp"
 
 #include "../simple_recipes.hpp"
@@ -428,7 +430,7 @@ TEST(domain_decomposition, non_symmetric_groups)
 
 TEST(domain_decomposition, partition_by_group)
 {
-    proc_allocation resources{1, -1};
+    proc_allocation resources{1,  arbenv::default_gpu()};
     int nranks = 1;
     int rank = 0;
 #ifdef TEST_MPI
