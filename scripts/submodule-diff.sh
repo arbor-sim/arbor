@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Check any git submodule remotes for updates, and print difference with current Arbor repo state to `diff.log`
 
 git submodule foreach 'git describe HEAD --tags' > current_state_of_git_submodules_in_arbor_repo.log | tee current_state_of_git_submodules_in_arbor_repo.log
 git submodule foreach 'git fetch'
