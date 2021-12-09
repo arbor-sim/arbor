@@ -324,7 +324,7 @@ TEST(domain_decomposition, hints) {
 TEST(domain_decomposition, compulsory_groups) {
     proc_allocation resources;
     resources.num_threads = 1;
-    resources.gpu_id = arbenv::default_gpu();
+    resources.gpu_id = -1;
     auto ctx = make_context(resources);
 
     auto R = gap_recipe();
