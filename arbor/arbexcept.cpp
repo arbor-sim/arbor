@@ -65,7 +65,7 @@ dom_dec_invalid_domain_id::dom_dec_invalid_domain_id(int id_wrong, int id_right)
 
 dom_dec_invalid_num_local_cells::dom_dec_invalid_num_local_cells(int rank, unsigned lc_wrong, unsigned lc_right):
     arbor_exception(pprintf("Invalid domain decomposition, provided num_local_cells ({}) on rank {} is not equal to "
-                            "the actual num_local_cells ({}).", lc_wrong, rank, lc_right)),
+                            "the actual number of local cells detected ({}).", lc_wrong, rank, lc_right)),
     rank(rank),
     lc_wrong(lc_wrong),
     lc_right(lc_right)
@@ -112,7 +112,7 @@ dom_dec_invalid_backend::dom_dec_invalid_backend(int rank):
 
 dom_dec_incompatible_backend::dom_dec_incompatible_backend(int rank, cell_kind kind):
     arbor_exception(pprintf("Invalid domain decomposition, rank {} contains a group with cells of kind {} "
-                            "meant to run on the GPU backend, but no backend support exists for {}", rank, kind, kind)),
+                            "meant to run on the GPU backend, but no GPU backend support exists for {}", rank, kind, kind)),
     rank(rank),
     kind(kind)
 {}

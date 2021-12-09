@@ -488,17 +488,21 @@ TEST(domain_decomposition, partition_by_group)
         auto d = partition_by_group(rec, ctx, {g0, g1, g2});
 
         EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
+
         EXPECT_EQ(nranks, d.num_domains);
         EXPECT_EQ(rank,   d.domain_id);
         EXPECT_EQ(cells_per_rank,         d.num_local_cells);
         EXPECT_EQ(cells_per_rank*nranks,  d.num_global_cells);
         EXPECT_EQ(3u,     d.groups.size());
+
         EXPECT_EQ(gids0,  d.groups[0].gids);
         EXPECT_EQ(gids1,  d.groups[1].gids);
         EXPECT_EQ(gids2,  d.groups[2].gids);
+
         EXPECT_EQ(cell_kind::lif,          d.groups[0].kind);
         EXPECT_EQ(cell_kind::cable,        d.groups[1].kind);
         EXPECT_EQ(cell_kind::cable,        d.groups[2].kind);
+
         EXPECT_EQ(backend_kind::multicore, d.groups[0].backend);
         EXPECT_EQ(backend_kind::multicore, d.groups[1].backend);
 #ifdef ARB_GPU_ENABLED

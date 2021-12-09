@@ -321,7 +321,7 @@ void check_domain_decomposition(const recipe& rec, const execution_context& ctx,
 
     for (unsigned i = 0; i < num_global_cells; ++i) {
         auto dom = d.gid_domain(i);
-        if (dom > (int)num_domains - 1) {
+        if (dom > (int)num_domains - 1 || dom < 0) {
             throw dom_dec_non_existent_rank(i, dom);
         }
     }
