@@ -65,7 +65,7 @@ describes the cell groups on the local MPI rank.
         recipe = my_recipe(n_cells)
 
         groups = [arbor.group_description(arbor.cell_kind.cable, [0, 2, 4, 6, 8], arbor.backend.gpu)]
-        decomp = arb.partition_by_group(recipe, context, groups)
+        decomp = arbor.partition_by_group(recipe, context, groups)
 
    And Rank 1 should run:
 
@@ -81,7 +81,7 @@ describes the cell groups on the local MPI rank.
         recipe = my_recipe(n_cells)
 
         groups = [arbor.group_description(arbor.cell_kind.lif, [1, 3, 5, 7, 9], arbor.backend.multicore)]
-        decomp = arb.partition_by_group(recipe, context, groups)
+        decomp = arbor.partition_by_group(recipe, context, groups)
 
    The function doesn't perform any checks on the validity of the generated :class:`domain_decomposition`.
    The validity is only checked when a :class:`simulation` object is constructed using that :class:`domain_decomposition`.

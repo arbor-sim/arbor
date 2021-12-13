@@ -66,7 +66,31 @@ describes the cell groups on the local MPI rank.
     of the calling rank.
 
     The function expects to be called by each rank in a distributed simulation with the
-    selected groups for that rank.
+    selected groups for that rank. For example, in a simulation of 10 cells on 2 MPI ranks
+    where cells {0, 2, 4, 6, 8} of kind :class:`cable_cell` are expected to be in a single group executed
+    on the GPU on rank 0; and cells {1, 3, 5, 7, 9} of kind :class:`lif_cell` are expected to be in a single
+    group executed on the CPU on rank 1:
+
+    Rank 0 should run:
+
+    .. code-block:: c++
+
+        std::vector<arb::group_description> groups = {
+            {arb::cell_kind::cable, {0, 2, 4, 6, 8}, arb::backend_kind::gpu}
+        };
+        auto decomp = arb::partition_by_group(recipe, context, groups);
+
+    And Rank 1 should run:
+
+    .. code-block:: c++
+
+        std::vector<arb::group_description> groups = {
+            {arb::cell_kind::lif,   {1, 3, 5, 7, 9}, arb::backend_kind::multicore}
+        };
+        auto decomp = arb::partition_by_group(recipe, context, groups);
+
+    The function doesn't perform any checks on the validity of the generated :cpp:class:`domain_decomposition`.
+    The validity is only checked when a :cpp:class:`simulation` object is constructed using that :cpp:class:`domain_decomposition`.
 
     .. Note::
        This function is a wrapper around describing your own :cpp:class:`domain_decomposition`.
