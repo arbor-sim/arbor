@@ -75,67 +75,6 @@ struct gj_unsupported_lid_selection_policy: arbor_exception {
     cell_tag_type label;
 };
 
-// Domain decomposition errors:
-
-struct dom_dec_invalid_gj_cell_group: arbor_exception {
-    dom_dec_invalid_gj_cell_group(cell_gid_type gid_0, cell_gid_type gid_1);
-    cell_gid_type gid_0, gid_1;
-};
-
-struct dom_dec_invalid_num_domains: arbor_exception {
-    dom_dec_invalid_num_domains(int domains_wrong, int domains_right);
-    int domains_wrong, domains_right;
-};
-
-struct dom_dec_invalid_domain_id: arbor_exception {
-    dom_dec_invalid_domain_id(int id_wrong, int id_right);
-    int id_wrong, id_right;
-};
-
-struct dom_dec_invalid_num_local_cells: arbor_exception {
-    dom_dec_invalid_num_local_cells(int rank, unsigned lc_wrong, unsigned lc_right);
-    int rank;
-    unsigned lc_wrong, lc_right;
-};
-
-struct dom_dec_invalid_num_global_cells: arbor_exception {
-    dom_dec_invalid_num_global_cells(unsigned gc_wrong, unsigned gc_right);
-    unsigned gc_wrong, gc_right;
-};
-
-struct dom_dec_invalid_sum_local_cells: arbor_exception {
-    dom_dec_invalid_sum_local_cells(unsigned gc_wrong, unsigned gc_right);
-    unsigned gc_wrong, gc_right;
-};
-
-struct dom_dec_duplicate_gid: arbor_exception {
-    dom_dec_duplicate_gid(cell_gid_type gid);
-    cell_gid_type gid;
-};
-
-struct dom_dec_non_existent_rank: arbor_exception {
-    dom_dec_non_existent_rank(cell_gid_type gid, int rank);
-    cell_gid_type gid;
-    int rank;
-};
-
-struct dom_dec_out_of_bounds: arbor_exception {
-    dom_dec_out_of_bounds(cell_gid_type gid, unsigned num_cells);
-    cell_gid_type gid;
-    unsigned num_cells;
-};
-
-struct dom_dec_invalid_backend: arbor_exception {
-    dom_dec_invalid_backend(int rank);
-    int rank;
-};
-
-struct dom_dec_incompatible_backend: arbor_exception {
-    dom_dec_incompatible_backend(int rank, cell_kind kind);
-    int rank;
-    cell_kind kind;
-};
-
 // Simulation errors:
 
 struct bad_event_time: arbor_exception {

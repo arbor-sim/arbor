@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <arbor/context.hpp>
+#include <arbor/domdecexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/version.hpp>
@@ -535,24 +536,24 @@ TEST(domain_decomposition, invalid)
         auto rec = homo_recipe(10*nranks, dummy_cell{});
         auto d = domain_decomposition();
         d.num_domains = nranks*2;
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_domains);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_num_domains);
 
         d.num_domains = nranks;
         d.domain_id = rank+1;
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_domain_id);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_domain_id);
 
         d.domain_id = rank;
         d.num_local_cells = 12;
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8}, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_local_cells);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_num_local_cells);
 
         d.num_local_cells = 10;
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, (unsigned)nranks*10}, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_out_of_bounds);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), out_of_bounds);
 
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::multicore}};
         d.num_global_cells = nranks*10 + 2;
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_global_cells);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_num_global_cells);
 
         d.num_global_cells = nranks*10;
         std::vector<cell_gid_type> gids;
@@ -561,12 +562,12 @@ TEST(domain_decomposition, invalid)
         }
         if (rank == 0) gids.back() = 0;
         d.groups = {{cell_kind::cable, gids, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_duplicate_gid);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), duplicate_gid);
 
         if (rank == 0) gids.back() = 9;
         d.groups = {{cell_kind::cable, gids, backend_kind::multicore}};
         d.gid_domain = [&nranks](cell_gid_type) { return nranks; };
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_non_existent_rank);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), non_existent_rank);
 
         d.gid_domain = [](cell_gid_type gid) { return gid/10; };
         EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));

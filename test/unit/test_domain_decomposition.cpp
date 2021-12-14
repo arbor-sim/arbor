@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include <arbor/context.hpp>
+#include <arbor/domdecexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 
@@ -453,42 +454,42 @@ TEST(domain_decomposition, invalid) {
         auto rec = homo_recipe(10, dummy_cell{});
         auto d = domain_decomposition();
         d.num_domains = 2;
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_domains);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_num_domains);
 
         d.num_domains = 1;
         d.domain_id = 1;
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_domain_id);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_domain_id);
 
         d.domain_id = 0;
         d.num_local_cells = 12;
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8}, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_local_cells);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_num_local_cells);
 
         d.num_local_cells = 10;
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 10}, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_out_of_bounds);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), out_of_bounds);
 
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::gpu}};
 #ifdef ARB_GPU_ENABLED
         EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
 
         d.groups = {{cell_kind::lif, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::gpu}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_incompatible_backend);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), incompatible_backend);
 #else
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_backend);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_backend);
 #endif
 
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::multicore}};
         d.num_global_cells = 12;
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_num_global_cells);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_num_global_cells);
 
         d.num_global_cells = 10;
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 8}, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_duplicate_gid);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), duplicate_gid);
 
         d.groups = {{cell_kind::cable, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, backend_kind::multicore}};
         d.gid_domain = [](cell_gid_type) { return 1; };
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_non_existent_rank);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), non_existent_rank);
 
         d.gid_domain = [](cell_gid_type) { return 0; };
         EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, d));
@@ -512,6 +513,6 @@ TEST(domain_decomposition, invalid) {
         d.groups = {{cell_kind::cable, {0}, backend_kind::multicore},
                     {cell_kind::cable, {2, 7, 11, 13}, backend_kind::multicore},
                     {cell_kind::cable, {1, 3, 4, 5, 6, 8, 9, 10, 12, 14}, backend_kind::multicore}};
-        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), dom_dec_invalid_gj_cell_group);
+        EXPECT_THROW(check_domain_decomposition(rec, *ctx, d), invalid_gj_cell_group);
     }
 }

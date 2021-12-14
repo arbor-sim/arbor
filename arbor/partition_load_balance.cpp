@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <arbor/arbexcept.hpp>
+#include <arbor/domdecexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
@@ -268,29 +268,29 @@ void check_domain_decomposition(const recipe& rec, const execution_context& ctx,
     auto has_gpu = ctx.gpu->has_gpu();
 
     if (d.num_domains != (int)num_domains) {
-        throw dom_dec_invalid_num_domains(d.num_domains, num_domains);
+        throw invalid_num_domains(d.num_domains, num_domains);
     }
     if (d.domain_id != (int)domain_id) {
-        throw dom_dec_invalid_domain_id(d.domain_id, domain_id);
+        throw invalid_domain_id(d.domain_id, domain_id);
     }
 
     std::vector<cell_gid_type> local_gids;
     for (const auto& g: d.groups) {
         if (!has_gpu && g.backend == backend_kind::gpu) {
-            throw dom_dec_invalid_backend(domain_id);
+            throw invalid_backend(domain_id);
         }
         if (g.backend == backend_kind::gpu && g.kind != cell_kind::cable) {
-            throw dom_dec_incompatible_backend(domain_id, g.kind);
+            throw incompatible_backend(domain_id, g.kind);
         }
 
         std::unordered_set<cell_gid_type> gid_set(g.gids.begin(), g.gids.end());
         for (const auto& gid: g.gids) {
             if (gid >= num_global_cells) {
-                throw dom_dec_out_of_bounds(gid, num_global_cells);
+                throw out_of_bounds(gid, num_global_cells);
             }
             for (const auto& gj: rec.gap_junctions_on(gid)) {
                 if (!gid_set.count(gj.peer.gid)) {
-                    throw dom_dec_invalid_gj_cell_group(gid, gj.peer.gid);
+                    throw invalid_gj_cell_group(gid, gj.peer.gid);
                 }
             }
         }
@@ -299,30 +299,30 @@ void check_domain_decomposition(const recipe& rec, const execution_context& ctx,
     cell_size_type num_local_cells = local_gids.size();
 
     if (d.num_local_cells != num_local_cells) {
-        throw dom_dec_invalid_num_local_cells(d.domain_id, d.num_local_cells, num_local_cells);
+        throw invalid_num_local_cells(d.domain_id, d.num_local_cells, num_local_cells);
     }
 
     auto global_gids = ctx.distributed->gather_gids(local_gids);
     if (global_gids.size() != num_global_cells) {
-        throw dom_dec_invalid_sum_local_cells(global_gids.size(), num_global_cells);
+        throw invalid_sum_local_cells(global_gids.size(), num_global_cells);
     }
 
     if (d.num_global_cells != num_global_cells) {
-        throw dom_dec_invalid_num_global_cells(d.num_global_cells, num_global_cells);
+        throw invalid_num_global_cells(d.num_global_cells, num_global_cells);
     }
 
     auto global_gid_vals = global_gids.values();
     util::sort(global_gid_vals);
     for (unsigned i = 1; i < global_gid_vals.size(); ++i) {
         if (global_gid_vals[i] == global_gid_vals[i-1]) {
-            throw dom_dec_duplicate_gid(global_gid_vals[i]);
+            throw duplicate_gid(global_gid_vals[i]);
         }
     }
 
     for (unsigned i = 0; i < num_global_cells; ++i) {
         auto dom = d.gid_domain(i);
         if (dom > (int)num_domains - 1 || dom < 0) {
-            throw dom_dec_non_existent_rank(i, dom);
+            throw non_existent_rank(i, dom);
         }
     }
 }
