@@ -9,7 +9,7 @@ if arb_with_gpu
   arborenv_src += ['gpu_uuid.cpp', 'private_gpu.cpp']
 endif
 
-lib_arborenv = library('arbenv',
+lib_arborenv = library('arborenv',
                  sources: arborenv_src,
                  include_directories: 'include',
                  dependencies: [dep_arb],

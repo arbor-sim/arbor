@@ -1,6 +1,6 @@
 project('arbor', 'cpp',
   version: '0.5.3-dev',
-  default_options : ['buildtype=release', 'cpp_std=c++17', 'default_library=both'],
+  default_options : ['buildtype=debug', 'cpp_std=c++17', 'default_library=static'],
   license: 'BSD')
 
 # Initialize up configurable options
@@ -14,15 +14,14 @@ arb_with_vectorize    = get_option('arb_with_vectorize')
 arb_with_python       = get_option('arb_with_python')
 arb_arch              = get_option('arb_arch')
 
-if arb_with_mpi
-  error('unable to configure mpi')
-endif
 if arb_with_gpu
   error('unable to configure gpu')
 endif
 if arb_with_profiling
   error('unable to configure profiling')
 endif
+
+add_project_arguments(f'-fvisibility=hidden', language : 'cpp')
 
 # Extract version information
 arb_version = meson.project_version()
@@ -43,6 +42,18 @@ if arb_with_profiling
 endif
 if arb_with_vectorize
   arb_modcc_flags += '--simd'
+endif
+
+arb_private_defines = []
+if arb_with_mpi
+  dep_mpi = dependency('mpi', language: 'cpp')
+  arb_private_defines += '-DARB_HAVE_MPI'
+endif
+if arb_with_gpu
+  arb_private_defines += '-DARB_HAVE_GPU'
+endif
+if arb_with_profiling
+  arb_private_defines += '-DARB_HAVE_PROFIILING'
 endif
 
 # the following command can be used to determine whether we are looking for march or mcpu
@@ -67,6 +78,7 @@ dep_tinyopt   = declare_dependency(include_directories: 'ext/tinyopt/include')
 
 inc_arb_private = include_directories('arbor')
 inc_arb_public  = include_directories('arbor/include')
+inc_arborio_private = include_directories('arborio') # used in the unit tests
 
 dep_threads = dependency('threads')
 dep_dl = meson.get_compiler('cpp').find_library('dl', required : true)
@@ -82,4 +94,11 @@ if arb_with_python
   subdir('python')
 endif
 
+subdir('test')
 subdir('example')
+
+pkg = import('pkgconfig')
+pkg.generate(lib_arb)
+pkg.generate(lib_arborio)
+pkg.generate(lib_arborenv)
+

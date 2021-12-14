@@ -19,16 +19,25 @@ pyarb_srcs = [
   'single_cell_model.cpp',
 ]
 
-dep_pybind   = dependency('pybind11', version : '>=2.8.1', required : true)
+if arb_with_bundled_libs
+  dep_pybind   = declare_dependency(include_directories: ['pybind11/include'])
+else
+  dep_pybind   = dependency('pybind11', version : '>=2.8.1', required : true)
+endif
 
-py3_inst = import('python').find_installation('python3')
-python3 = dependency('python3')
+python3 = import('python').find_installation('python3')
+dep_python = dependency('python3', required: true)
 
-pyarb = py3_inst.extension_module('arbor',
+pyarb = python3.extension_module('_arbor',
     sources: pyarb_srcs,
-    dependencies : [python3, dep_pybind, dep_arborio, dep_arb],
+    dependencies : [dep_python, dep_pybind, dep_arborio, dep_arb],
     link_language : 'cpp',
     override_options: [
         'cpp_rtti=true',
-    ]
+    ],
+    install: true,
+    subdir: 'arbor'
 )
+
+python3.install_sources(['__init__.py', '../VERSION'], subdir: 'arbor')
+

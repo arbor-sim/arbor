@@ -51,7 +51,7 @@ set(test_mech_dir ${CMAKE_CURRENT_BINARY_DIR}/mechanisms)
 
 build_modules(
     ${test_mechanisms}
-    SOURCE_DIR mod
+    SOURCE_DIR mechanisms
     DEST_DIR "${test_mech_dir}"
     ${external_modcc}
     MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N testing
@@ -256,6 +256,7 @@ endif()
 
 target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
-target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
+target_compile_definitions(unit PRIVATE "-DCATALOGUEDIR=\"${PROJECT_BINARY_DIR}/lib\"")
+target_compile_definitions(unit PRIVATE "-DBUILDDIR=\"${CMAKE_CURRENT_BINARY_DIR}\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

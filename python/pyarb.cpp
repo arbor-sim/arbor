@@ -34,7 +34,7 @@ void register_mpi(pybind11::module& m);
 
 } // namespace pyarb
 
-PYBIND11_MODULE(arbor, m) {
+PYBIND11_MODULE(_arbor, m) {
     pyarb::pyarb_global_ptr global_ptr(new pyarb::pyarb_global);
 
     // Register NumPy structured datatypes for Arbor structures used in NumPy array outputs.

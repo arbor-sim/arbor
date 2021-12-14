@@ -60,13 +60,13 @@ if not fs.is_file(version_path)
   conf.set_quoted('ARB_VERSION_DEV', arb_version_dev)
 
   gitlog = run_command('../gitlog').stdout().strip()
-  buildtype = get_option('buildtype')
+  buildtype = get_option('buildtype').to_upper()
   optionstring = ';'.join(options)
   conf.set_quoted('ARB_VERSION', arb_version)
   conf.set_quoted('ARB_SOURCE_ID', gitlog)
   conf.set_quoted('ARB_ARCH', arb_arch)
   conf.set_quoted('ARB_BUILD_CONFIG', buildtype)
-  build_id = f'@gitlog@;version=@arb_version@;arch=@arb_arch@;config=@buildtype@;@optionstring@'
+  build_id = f'source_id=@gitlog@;version=@arb_version@;arch=@arb_arch@;config=@buildtype@;@optionstring@'
   conf.set_quoted('ARB_FULL_BUILD_ID', build_id)
 
   configure_file(input : 'version.hpp.in',
@@ -74,5 +74,5 @@ if not fs.is_file(version_path)
                  configuration : conf)
 endif
 
-install_headers([assert_macro_path, version_path], install_dir: 'arbor')
+install_headers([assert_macro_path, version_path], install_dir: 'include/arbor')
 
