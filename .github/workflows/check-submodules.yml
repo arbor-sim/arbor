@@ -2,7 +2,8 @@ name: Update submodules
 
 on:
   schedule:
-    - cron: '0 2 * * 0' # run at 2 AM every sunday
+    # - cron: '0 2 * * 0' # run at 2 AM every sunday
+    - cron: '5 4 2 * *' # 04:05 every 2nd of month
   push:
     branches: [ 'ci/auto-update-submodules' ]
     
