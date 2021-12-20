@@ -10,14 +10,15 @@ if arb_with_gpu
 endif
 
 lib_arborenv = library('arborenv',
-                 sources: arborenv_src,
-                 include_directories: 'include',
-                 dependencies: [dep_arb],
-                 install: true)
+  sources: arborenv_src,
+  include_directories: 'include',
+  dependencies: [dep_arb],
+  cpp_args : arbor_private_args,
+  install: true)
 
 install_subdir('include/arborenv', install_dir: 'include')
 
 dep_arborenv = declare_dependency(
-              include_directories: ['include'],
-              link_with: lib_arborenv,
-              dependencies: [])
+  include_directories: ['include'],
+  link_with: lib_arborenv,
+  dependencies: [])

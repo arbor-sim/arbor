@@ -80,7 +80,7 @@ endif
 lib_arb = library('arbor',
               sources: [arb_src, catalogue_sources],
               include_directories: [inc_arb_public, inc_arb_private],
-              cpp_args : arb_private_defines,
+              cpp_args : arbor_private_args,
               dependencies: dep_arb_internal,
               install: true)
 

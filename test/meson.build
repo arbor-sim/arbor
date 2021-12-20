@@ -10,3 +10,5 @@ dep_gtest = declare_dependency(
               dependencies: dep_threads)
 
 subdir('unit')
+subdir('unit-modcc')
+subdir('unit-distributed')

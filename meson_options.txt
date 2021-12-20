@@ -8,3 +8,4 @@ option('arb_with_vectorize',    type: 'boolean', value: false)
 option('arb_with_python',       type: 'boolean', value: false)
 
 option('arb_arch', type: 'string', value: 'native')
+option('arb_target_flags', type: 'string', value: '')

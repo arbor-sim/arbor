@@ -103,11 +103,8 @@ endif
 unit_data_dir = meson.current_source_dir() + '/../swc'
 unit_dummy_catalogue_dir = meson.current_build_dir() + '/dummy'
 unit_build_dir = meson.current_build_dir()
-message(unit_data_dir)
-message(unit_dummy_catalogue_dir)
-message(unit_build_dir)
 
-arb_unit_defines = [
+arbor_unit_defines = [
   f'-DDATADIR="@unit_data_dir@"',
   f'-DBUILDDIR="@unit_build_dir@"',
   f'-DCATALOGUEDIR="@unit_dummy_catalogue_dir@"',
@@ -117,7 +114,7 @@ arb_unit_defines = [
 unit = executable('unit',
                   sources: [unit_sources, unit_mech_sources],
                   include_directories: [inc_arb_public, inc_arb_private, inc_arborio_private],
-                  cpp_args : arb_private_defines + arb_unit_defines,
+                  cpp_args : arbor_private_args + arbor_unit_defines,
                   dependencies: [dep_arb, dep_arborio, dep_arborsup, dep_arborenv, dep_gtest, dep_arb_internal],
                   link_with: [dummy_catalogue],
                   build_by_default: false,

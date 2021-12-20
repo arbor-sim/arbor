@@ -23,13 +23,17 @@ libmodcc_src = [
     'printer/printerutil.cpp']
 
 libmodcc = library('modcc',
-              sources: [libmodcc_src],
-              dependencies: [dep_libfmt],
-              install: true)
+    sources: [libmodcc_src],
+    dependencies: [dep_libfmt],
+    install: true)
+
+dep_libmodcc = declare_dependency(
+    include_directories: ['.'],
+    link_with: [libmodcc])
 
 
 modcc = executable('modcc',
-                   sources: ['modcc.cpp', ],
-                   dependencies: dep_tinyopt,
-                   link_with: [libmodcc],
-                   install: true)
+     sources: ['modcc.cpp', ],
+     dependencies: dep_tinyopt,
+     link_with: [libmodcc],
+     install: true)

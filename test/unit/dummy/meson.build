@@ -19,7 +19,7 @@ dummy_catalogue = shared_library('dummy-catalogue',
                             name_prefix: '',
                             sources: [dummy_mech_sources, dummy_catalogue_source],
                             dependencies: [dep_arb],
-                            cpp_args : ['-DSTANDALONE'],
+                            cpp_args : ['-DSTANDALONE'] + arbor_private_args,
                             install: false,
                             build_by_default: true)
 
