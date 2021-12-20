@@ -1,9 +1,9 @@
 project('arbor', 'cpp',
+  'cuda',
   version: '0.5.3-dev',
   default_options : ['buildtype=debug', 'cpp_std=c++17', 'default_library=static'],
   license: 'BSD')
 
-# Initialize up configurable options
 arb_with_assertions   = get_option('arb_with_assertions')
 arb_with_bundled_libs = get_option('arb_with_bundled_libs')
 arb_with_mpi          = get_option('arb_with_mpi')
@@ -15,13 +15,10 @@ arb_with_python       = get_option('arb_with_python')
 arb_arch              = get_option('arb_arch')
 arb_target_flags      = get_option('arb_target_flags')
 
-if arb_with_gpu
-  error('unable to configure gpu')
-endif
-
 #
 # Extract version information
 #
+
 arb_version = meson.project_version()
 arb_version_array = arb_version.split('-')
 if arb_version_array.length()==2

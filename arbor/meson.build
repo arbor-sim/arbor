@@ -67,6 +67,24 @@ if arb_with_mpi
   ]
 endif
 
+if arb_with_gpu
+  arb_src += [
+    'backends/gpu/shared_state.cpp',
+    'backends/gpu/stimulus.cu',
+    'backends/gpu/threshold_watcher.cu',
+    'backends/gpu/matrix_assemble.cu',
+    'backends/gpu/matrix_fine.cu',
+    'backends/gpu/matrix_solve.cu',
+    'backends/gpu/multi_event_stream.cpp',
+    'backends/gpu/multi_event_stream.cu',
+    'backends/gpu/shared_state.cu',
+    'backends/gpu/forest.cpp',
+    'backends/gpu/stimulus.cu',
+    'backends/gpu/threshold_watcher.cu',
+    'memory/fill.cu',
+  ]
+endif
+
 # todo: mpi files
 # todo: cuda files
 
