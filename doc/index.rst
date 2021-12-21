@@ -111,6 +111,12 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/benchmark_cell
 
 .. toctree::
+   :caption: Modelling:
+   :maxdepth: 1
+
+   modelling/index
+
+.. toctree::
    :caption: File formats:
    :maxdepth: 1
 
