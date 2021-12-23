@@ -2,18 +2,15 @@ import os
 import sys
 from skbuild import setup
 
-import argparse
-
-P = argparse.ArgumentParser(description='Arbor build options.')
-P.add_argument('--vec',     dest='vec',        action='store_const', const='on', default='off',  help='Enable SIMD.')
-P.add_argument('--nml',     dest='nml',        action='store_const', const='on', default='off',  help='Enable NeuroML2 support. Requires libxml2.')
-P.add_argument('--mpi',     dest='mpi',        action='store_const', const='on', default='off',  help='Enable MPI.')
-P.add_argument('--bundled', metavar='bundled', action='store_const', const='on', default='off',  help='Use bundled libs.')
-P.add_argument('--gpu',     metavar='gpu',                                       default='none', help='Enable GPU support.')
-P.add_argument('--arch',    metavar='arch',                                      default='',     help='Set processor architecture.')
-opt, _ = P.parse_known_args()
-
-print(f"Options {opt}")
+# Hard coded, because scikit-build does not do build options.
+# Override by instructing CMAKE, e.g.:
+# pip install . -- -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_MPI=ON -DARB_GPU=cuda
+opt = {'mpi': False,
+       'gpu': 'none',
+       'vec': False,
+       'arch': 'none',
+       'neuroml': True,
+       'bundled': True}
 
 # VERSION is in the same path as setup.py
 here = os.path.abspath(os.path.dirname(__file__))
@@ -32,12 +29,12 @@ setup(name='arbor',
       zip_safe=False,
       cmake_args = ['-DARB_WITH_PYTHON=on',
                     '-DPYTHON_EXECUTABLE=' + sys.executable,
-                    f'-DARB_WITH_MPI={opt.mpi}',
-                    f'-DARB_VECTORIZE={opt.vec}'
-                    f'-DARB_ARCH={opt.arch}',
-                    f'-DARB_GPU={opt.gpu}',
-                    f'-DARB_WITH_NEUROML={opt.nml}',
-                    f'-DARB_USE_BUNDLED_LIBS={opt.bundled}',
+                    f'-DARB_WITH_MPI={opt["mpi"]}',
+                    f'-DARB_VECTORIZE={opt["vec"]}'
+                    f'-DARB_ARCH={opt["arch"]}',
+                    f'-DARB_GPU={opt["gpu"]}',
+                    f'-DARB_WITH_NEUROML={opt["neuroml"]}',
+                    f'-DARB_USE_BUNDLED_LIBS={opt["bundled"]}',
                     '-DCMAKE_BUILD_TYPE=Release'],
       author='The Arbor dev team.',
       url='https://github.com/arbor-sim/arbor',
@@ -52,6 +49,7 @@ setup(name='arbor',
           'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.10',
           'Programming Language :: C++',
       ],
       project_urls={'Source': 'https://github.com/arbor-sim/arbor',
