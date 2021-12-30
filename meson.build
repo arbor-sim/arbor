@@ -1,6 +1,7 @@
-project('arbor', 'cpp',
-  'cuda',
-  version: '0.5.3-dev',
+project('arbor',
+  ['cpp'],
+  version: files('VERSION'),
+  meson_version: '>=0.60',
   default_options : ['buildtype=debug', 'cpp_std=c++17', 'default_library=static'],
   license: 'BSD')
 
@@ -43,21 +44,23 @@ if arb_with_vectorize
   arb_modcc_flags += '--simd'
 endif
 
-# arb_config_defs collects configure-time defines for arbor, arborenv,
-# arborio, of the form ARB_HAVE_XXX.
-# These defines should _not_ be used in any installed public headers.
-arb_config_defs = []
+# set configure-time defines for arbor, arborenv and arborio
+# of the form ARB_HAVE_XXX (private) and ARB_XXX (public)
+arb_public_defs = []
+arb_private_defs = []
 if arb_with_mpi
-  arb_config_defs += '-DARB_HAVE_MPI'
+  arb_public_defs += '-DARB_HAVE_MPI'
 endif
+# TODO: configuration of hip-clang and cuda-clang
 if arb_with_gpu
-  arb_config_defs += '-DARB_HAVE_GPU'
+  arb_public_defs += '-DARB_HAVE_GPU'
+  arb_public_defs += '-DARB_CUDA'
 endif
 if arb_with_profiling
-  arb_config_defs += '-DARB_HAVE_PROFIILING'
+  arb_public_defs += '-DARB_HAVE_PROFIILING'
 endif
 if arb_with_assertions
-  arb_config_defs += '-DARB_HAVE_ASSERTIONS'
+  arb_public_defs += '-DARB_HAVE_ASSERTIONS'
 endif
 
 # Set optimization/target-specific architecture flags
@@ -77,16 +80,31 @@ else
   arb_target_args = arb_target_flags.strip().split()
 endif
 
-arbor_private_args = ['-fvisibility=hidden'] + arb_target_args + arb_config_defs
+# Append the target arguments with '-Xcompiler=' for passing through the nvcc compiler wrapper
+cuda_target_args = []
+foreach arg: arb_target_args
+  cuda_target_args += '-Xcompiler=' + arg
+endforeach
 
-message('arbor target flags:', arb_target_args)
-message('arbor defines     :', arb_config_defs)
-message('arbor moddcc flags:', arb_modcc_flags)
-message('arbor full flags  :', arbor_private_args)
+arbor_private_args = ['-fvisibility=hidden'] + arb_target_args + arb_private_defs + arb_public_defs
+arbor_cuda_private_args = ['-Xcompiler=-fvisibility=hidden'] + cuda_target_args + arb_private_defs + arb_public_defs
+
+message('arbor target flags   :', arb_target_args)
+message('arbor public defines :', arb_public_defs)
+message('arbor private defines:', arb_private_defs)
+message('arbor moddcc flags   :', arb_modcc_flags)
+message('arbor full flags     :', arbor_private_args)
+message('arbor cuda flags     :', arbor_cuda_private_args)
 
 #
 # Set up all dependencies
 #
+#
+
+if arb_with_gpu
+  add_languages('cuda', native: false, required: true)
+  dep_cuda = dependency('cuda', version : '>=10', modules : [])
+endif
 
 # find dependencies
 if arb_with_bundled_libs
@@ -138,8 +156,8 @@ endif
 pkg = import('pkgconfig')
 pkg.generate(lib_arb,
   # we can append additional flags for the compilers here (like our optimization flags)
-  extra_cflags: arb_target_args,
+  extra_cflags: arb_target_args + arb_public_defs,
   # The variables and unescaped_variables can be used to pass additional flags and configuration for downstream consumers.
   #unescaped_variables: ['CFLAGS_GPU=-sm80 -O2'],
-  variables: ['configured_options=GPU;MPI'])
+  variables: ['configured_options=CUDA,MPI'])
 pkg.generate(lib_arborio)

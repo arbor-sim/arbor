@@ -85,20 +85,21 @@ if arb_with_gpu
   ]
 endif
 
-# todo: mpi files
-# todo: cuda files
-
 subdir('include/arbor')
 
 dep_arb_internal = [dep_threads, dep_random123, dep_dl]
 if arb_with_mpi
   dep_arb_internal += dep_mpi
 endif
+if arb_with_gpu
+  dep_arb_internal += dep_cuda
+endif
 
 lib_arb = library('arbor',
               sources: [arb_src, catalogue_sources],
               include_directories: [inc_arb_public, inc_arb_private],
-              cpp_args : arbor_private_args,
+              cpp_args: arbor_private_args,
+              cuda_args: arbor_cuda_private_args,
               dependencies: dep_arb_internal,
               install: true)
 

@@ -44,9 +44,13 @@ name = 'unit'
 unit_mech_sources = []
 foreach m: unit_mechs
   modfile = meson.current_source_dir()+f'/@m@.mod'
+  generated_files = [f'@m@.hpp', f'@m@_cpu.cpp']
+  if arb_with_gpu
+    generated_files += [f'@m@_gpu.cu', f'@m@_gpu.cpp']
+  endif
   unit_mech_sources += custom_target(f'mechanism:@name@:@m@',
                              input : modfile,
-                             output : [f'@m@.hpp', f'@m@_cpu.cpp'],
+                             output : generated_files,
                              command : [modcc, modfile, '-N', 'testing', '-o', meson.current_build_dir()+'/'+m, arb_modcc_flags])
 endforeach
 

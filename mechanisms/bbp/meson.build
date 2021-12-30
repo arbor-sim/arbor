@@ -4,9 +4,13 @@ mechs = ['CaDynamics_E2', 'Ca_HVA', 'Ca_LVAst', 'Ih', 'Im', 'K_Pst', 'K_Tst', 'N
 mech_srcs = []
 foreach m: mechs
   modfile = meson.current_source_dir()+f'/@m@.mod'
+  generated_files = [f'@m@.hpp', f'@m@_cpu.cpp']
+  if arb_with_gpu
+    generated_files += [f'@m@_gpu.cu', f'@m@_gpu.cpp']
+  endif
   mech_srcs += custom_target(f'mechanism:@name@:@m@',
                              input : modfile,
-                             output : [f'@m@.hpp', f'@m@_cpu.cpp'],
+                             output : generated_files,
                              command : [modcc, modfile, '-N', f'arb::@name@_catalogue', '-o', meson.current_build_dir()+'/'+m, arb_modcc_flags])
 endforeach
 
