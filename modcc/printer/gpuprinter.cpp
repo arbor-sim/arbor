@@ -4,7 +4,6 @@
 #include <set>
 #include <regex>
 
-#define FMT_HEADER_ONLY YES
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/compile.h>
