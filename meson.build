@@ -2,7 +2,7 @@ project('arbor',
   ['cpp'],
   version: files('VERSION'),
   meson_version: '>=0.60',
-  default_options : ['buildtype=debug', 'cpp_std=c++17', 'default_library=static'],
+  default_options : ['buildtype=release', 'cpp_std=c++17', 'default_library=static'],
   license: 'BSD')
 
 arb_with_assertions   = get_option('arb_with_assertions')

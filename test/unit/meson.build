@@ -1,7 +1,7 @@
 subdir('mechanisms')
 subdir('dummy')
 
-unit_sources = [
+unit_sources = files(
   'test_abi.cpp',
   'test_asc.cpp',
   'test_any_cast.cpp',
@@ -94,10 +94,25 @@ unit_sources = [
   'mech_private_field_access.cpp',
   'stats.cpp',
   'unit_test_catalogue.cpp'
-]
+)
 
 if arb_with_neuroml
-    unit_sources += 'test_nml_morphology.cpp'
+    unit_sources += files('test_nml_morphology.cpp')
+endif
+
+if arb_with_gpu
+    unit_sources += files(
+      'test_intrin.cu',
+      'test_gpu_stack.cu',
+      'test_multi_event_stream_gpu.cu',
+      'test_reduce_by_key.cu',
+      'test_matrix_cpuvsgpu.cpp',
+      'test_matrix_gpu.cpp',
+      'test_mc_cell_group_gpu.cpp',
+      'test_multi_event_stream_gpu.cpp',
+      'test_spikes_gpu.cpp',
+      'test_vector_gpu.cpp'
+    )
 endif
 
 unit_data_dir = meson.current_source_dir() + '/../swc'
