@@ -23,35 +23,14 @@ version_path=meson.current_build_dir()+'/version.hpp'
 if not fs.is_file(version_path)
   conf = configuration_data()
 
-  # todo: get this version number either from VERSION file, or from project options
   conf.set('version', arb_version)
   conf.set('version_major', arb_version_major)
   conf.set('version_minor', arb_version_minor)
   conf.set('version_patch', arb_version_patch)
   conf.set('version_dev', arb_version_dev)
 
-  options = []
-  if arb_with_assertions
-    options += 'ASSERT'
-  endif
-  if arb_with_mpi
-    options += 'MPI'
-  endif
-  if arb_with_gpu
-    options += 'GPU'
-  endif
-  if arb_with_neuroml
-    options += 'NEUROML'
-  endif
-  if arb_with_profiling
-    options += 'PROFILE'
-  endif
-  if arb_with_vectorize
-    options += 'VECTORIZE'
-  endif
-
   # set all of the #defined values
-  foreach opt: options
+  foreach opt: arb_configurations
     conf.set(f'ARB_@opt@_ENABLED', true)
   endforeach
   conf.set('ARB_VERSION_MAJOR', arb_version_major)
@@ -61,12 +40,12 @@ if not fs.is_file(version_path)
 
   gitlog = run_command('../gitlog').stdout().strip()
   buildtype = get_option('buildtype').to_upper()
-  optionstring = ';'.join(options)
+  configstring = ';'.join(arb_configurations)
   conf.set_quoted('ARB_VERSION', arb_version)
   conf.set_quoted('ARB_SOURCE_ID', gitlog)
   conf.set_quoted('ARB_ARCH', arb_arch)
   conf.set_quoted('ARB_BUILD_CONFIG', buildtype)
-  build_id = f'source_id=@gitlog@;version=@arb_version@;arch=@arb_arch@;config=@buildtype@;@optionstring@'
+  build_id = f'source_id=@gitlog@;version=@arb_version@;arch=@arb_arch@;config=@buildtype@;@configstring@'
   conf.set_quoted('ARB_FULL_BUILD_ID', build_id)
 
   configure_file(input : 'version.hpp.in',

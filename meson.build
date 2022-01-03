@@ -46,21 +46,33 @@ endif
 
 # set configure-time defines for arbor, arborenv and arborio
 # of the form ARB_HAVE_XXX (private) and ARB_XXX (public)
+# TODO: the ARB_HAVE_XXX are currently public
 arb_public_defs = []
 arb_private_defs = []
+arb_configurations = []
 if arb_with_mpi
   arb_public_defs += '-DARB_HAVE_MPI'
+  arb_configurations += 'MPI'
 endif
 # TODO: configuration of hip-clang and cuda-clang
 if arb_with_gpu
   arb_public_defs += '-DARB_HAVE_GPU'
   arb_public_defs += '-DARB_CUDA'
+  arb_configurations += 'GPU'
 endif
 if arb_with_profiling
   arb_public_defs += '-DARB_HAVE_PROFIILING'
+  arb_configurations += 'PROFILE'
 endif
 if arb_with_assertions
   arb_public_defs += '-DARB_HAVE_ASSERTIONS'
+  arb_configurations += 'ASSERT'
+endif
+if arb_with_neuroml
+  arb_configurations += 'NEUROML'
+endif
+if arb_with_vectorize
+  arb_configurations += 'VECTORIZE'
 endif
 
 # Set optimization/target-specific architecture flags
@@ -98,7 +110,6 @@ message('arbor cuda flags     :', arbor_cuda_private_args)
 
 #
 # Set up all dependencies
-#
 #
 
 if arb_with_gpu
@@ -153,11 +164,21 @@ endif
 # set up pkgconfig
 #
 
+# TODO: output all flags etc
+pkg_config_variables = ['arbconfiguration='+','.join(arb_configurations)]
+pkg_config_unescaped_variables = []
+if arb_with_gpu
+  pkg_config_unescaped_variables += 'CudaCflags='+' '.join(cuda_target_args+arbor_cuda_private_args)
+endif
+
 pkg = import('pkgconfig')
 pkg.generate(lib_arb,
+  description: 'A high-performance library for computational neuroscience simulations',
+  url: 'https://arbor-sim.org/',
   # we can append additional flags for the compilers here (like our optimization flags)
   extra_cflags: arb_target_args + arb_public_defs,
   # The variables and unescaped_variables can be used to pass additional flags and configuration for downstream consumers.
-  #unescaped_variables: ['CFLAGS_GPU=-sm80 -O2'],
-  variables: ['configured_options=CUDA,MPI'])
+  unescaped_variables: pkg_config_unescaped_variables,
+  variables: pkg_config_variables
+)
 pkg.generate(lib_arborio)
