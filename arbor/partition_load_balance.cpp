@@ -79,7 +79,7 @@ domain_decomposition partition_load_balance(
             local_gj_connection_table[gid-dom_range.first].push_back(c.peer.gid);
         }
     }
-    // Sort the inner vectors of gj_connections.
+    // Sort the gj connections of each local cell.
     for (auto& gid_conns: local_gj_connection_table) {
         util::sort(gid_conns);
     }
@@ -88,20 +88,23 @@ domain_decomposition partition_load_balance(
     // The global gj_connection table after gathering is indexed by gid.
     auto global_gj_connection_table = ctx->distributed->gather_gj_connections(local_gj_connection_table);
 
-    // Modify the global gj_connection table to make all gj_connections bidirectional.
+    // Make all gj_connections bidirectional.
+    std::vector<std::unordered_set<cell_gid_type>> missing_peers(global_gj_connection_table.size());
     for (auto gid: make_span(global_gj_connection_table.size())) {
         const auto& local_conns = global_gj_connection_table[gid];
         for (auto peer: local_conns) {
             auto& peer_conns = global_gj_connection_table[peer];
-            // If gid is not in the peer connection table insert it such that
-            // the vector remains sorted.
-            auto it = std::lower_bound(peer_conns.begin(), peer_conns.end(), gid);
-            if (it == peer_conns.end() || *it != gid) {
-                peer_conns.insert(it, gid);
+            // If gid is not in the peer connection table insert it into the
+            // missing_peers set
+            if (!std::binary_search(peer_conns.begin(), peer_conns.end(), gid)) {
+                missing_peers[peer].insert(gid);
             }
         }
     }
-
+    // Append the missing peers into the global_gj_connections table
+    for (unsigned i = 0; i < global_gj_connection_table.size(); ++i) {
+        std::move(missing_peers[i].begin(), missing_peers[i].end(), std::back_inserter(global_gj_connection_table[i]));
+    }
     // Local load balance
 
     std::vector<std::vector<cell_gid_type>> super_cells; //cells connected by gj
@@ -125,10 +128,8 @@ domain_decomposition partition_load_balance(
                     q.pop();
                     cg.push_back(element);
                     // Adjacency list
-                    auto conns = global_gj_connection_table[element];
-                    for (const auto& peer: conns) {
-                        if (!visited.count(peer)) {
-                            visited.insert(peer);
+                    for (const auto& peer: global_gj_connection_table[element]) {
+                        if (visited.insert(peer).second) {
                             q.push(peer);
                         }
                     }

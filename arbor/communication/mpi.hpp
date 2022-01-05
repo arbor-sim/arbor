@@ -188,10 +188,10 @@ inline std::vector<std::string> gather_all(const std::vector<std::string>& value
 
 template <typename T>
 std::vector<std::vector<T>> gather_all(const std::vector<std::vector<T>>& values, MPI_Comm comm) {
-    std::vector<int> counts_internal, displs_internal;
+    std::vector<unsigned long> counts_internal, displs_internal;
 
     // Vector of individual vector sizes
-    std::vector<int> internal_sizes(values.size());
+    std::vector<unsigned long> internal_sizes(values.size());
     std::transform(values.begin(), values.end(), internal_sizes.begin(), [](const auto& val){return int(val.size());});
 
     counts_internal = gather_all(internal_sizes, comm);
