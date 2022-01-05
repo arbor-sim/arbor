@@ -71,7 +71,7 @@ domain_decomposition partition_load_balance(
 
     // Generate a local gj_connection table.
     // The table is indexed by the index of the target gid in the gid_part of that domain.
-    // If gid_part[domain_id] = [a, b[; local_gj_connection of gid `x` is at index `x-a`.
+    // If gid_part[domain_id] = [a, b); local_gj_connection of gid `x` is at index `x-a`.
     const auto dom_range = gid_part[domain_id];
     std::vector<std::vector<cell_gid_type>> local_gj_connection_table(dom_range.second-dom_range.first);
     for (auto gid: make_span(gid_part[domain_id])) {
