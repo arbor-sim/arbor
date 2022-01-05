@@ -3,7 +3,7 @@
 Modelling
 =========
 
-Arbor is a new project, and our first serious users are getting their hands dirty writing the first non-toy models. With time, best practices, tips and tricks and a collection of howtos for common features should become apparent, and will then be shown here.
+Arbor is feature complete for real world modeling, and the user community is busy collaborating with us to build complex models. Best practices, tips, tricks and howtos will be documented here as the community gains experience.
 
 In the meantime, we encouraged the use of our Github Discussions board for public discussions on modelling: `Github Discussions <https://github.com/arbor-sim/arbor/discussions>`_.
 
