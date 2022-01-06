@@ -74,7 +74,7 @@ TEST(cv_geom, empty) {
     using namespace common_morphology;
 
     cable_cell empty_cell{m_empty};
-    cv_geometry geom = cv_data_from_locset(empty_cell, ls::nil());
+    cv_geometry geom(empty_cell, ls::nil());
     EXPECT_TRUE(verify_cv_children(geom));
 
     EXPECT_TRUE(geom.cv_parent.empty());
@@ -100,8 +100,8 @@ TEST(cv_geom, trivial) {
         auto& m = cell.morphology();
 
         // Equivalent ways of specifying one CV comprising whole cell:
-        cv_geometry geom1 = cv_data_from_locset(cell, ls::nil());
-        cv_geometry geom2 = cv_data_from_locset(cell, ls::terminal());
+        cv_geometry geom1(cell, ls::nil());
+        cv_geometry geom2(cell, ls::terminal());
 
         EXPECT_TRUE(verify_cv_children(geom1));
         EXPECT_TRUE(verify_cv_children(geom2));
@@ -110,8 +110,8 @@ TEST(cv_geom, trivial) {
         EXPECT_EQ(geom1.cv_cables, geom2.cv_cables);
 
         // These are equivalent too, if there is a single root branch.
-        cv_geometry geom3 = cv_data_from_locset(cell, ls::root());
-        cv_geometry geom4 = cv_data_from_locset(cell, join(ls::root(), ls::terminal()));
+        cv_geometry geom3(cell, ls::root());
+        cv_geometry geom4(cell, join(ls::root(), ls::terminal()));
 
         EXPECT_TRUE(verify_cv_children(geom3));
         EXPECT_TRUE(verify_cv_children(geom4));
@@ -140,7 +140,7 @@ TEST(cv_geom, one_cv_per_branch) {
         cable_cell cell{p.second};
         auto& m = cell.morphology();
 
-        auto cell_cv_geom = cv_data_from_locset(cell, sum(ls::on_branches(0), ls::on_branches(1)));
+        auto cell_cv_geom = cv_geometry(cell, sum(ls::on_branches(0), ls::on_branches(1)));
         auto geom = cv_geometry(cell_cv_geom);
         EXPECT_TRUE(verify_cv_children(geom));
 
@@ -195,7 +195,7 @@ TEST(cv_geom, midpoints) {
         cable_cell cell{p.second};
         auto& m = cell.morphology();
 
-        cv_geometry geom = cv_data_from_locset(cell, ls::on_branches(0.5));
+        cv_geometry geom(cell, ls::on_branches(0.5));
         EXPECT_TRUE(verify_cv_children(geom));
 
         // Expect CVs to be either: covering fork points, with one cable per branch
@@ -286,7 +286,7 @@ TEST(cv_geom, weird) {
     using testing::seq_eq;
 
     cable_cell cell{common_morphology::m_reg_b6};
-    cv_geometry geom = cv_data_from_locset(cell, mlocation_list{{1, 0}, {4,0}});
+    cv_geometry geom(cell, mlocation_list{{1, 0}, {4,0}});
 
     EXPECT_TRUE(verify_cv_children(geom));
     ASSERT_EQ(3u, geom.size());
@@ -318,7 +318,7 @@ TEST(cv_geom, location_cv) {
     };
 
     // Two CVs per branch, plus trivial CV at forks.
-    cv_geometry geom = cv_data_from_locset(cell,
+    cv_geometry geom(cell,
        join(ls::on_branches(0.), ls::on_branches(0.5), ls::on_branches(1.)));
 
     // Confirm CVs are either trivial or a single cable covering half a branch.
@@ -453,7 +453,7 @@ TEST(cv_geom, multicell) {
 
     cable_cell cell = cable_cell(m_reg_b6);
 
-    cv_geometry geom = cv_data_from_locset(cell, ls::on_branches(0.5));
+    cv_geometry geom(cell, ls::on_branches(0.5));
     unsigned n_cv = geom.size();
 
     cv_geometry geom2 = geom;
@@ -490,12 +490,12 @@ TEST(region_cv, empty) {
     using namespace common_morphology;
 
     cable_cell empty_cell{m_empty};
-    auto cell_geom = cv_data_from_locset(empty_cell, ls::nil());
+    cell_cv_data cv_data(empty_cell, ls::nil());
 
-    auto all_cv = intersect_region(empty_cell, reg::all(), cell_geom);
+    auto all_cv = intersect_region(reg::all(), cv_data);
     EXPECT_EQ(0u, all_cv.size());
 
-    auto tag1_cv = intersect_region(empty_cell, reg::tagged(1), cell_geom);
+    auto tag1_cv = intersect_region(reg::tagged(1), cv_data);
     EXPECT_EQ(0u, tag1_cv.size());
 }
 
@@ -509,11 +509,11 @@ TEST(region_cv, trivial) {
         cable_cell cell{p.second};
 
         // One CV comprising whole cell:
-        cell_cv_data cell_geom1 = cv_data_from_locset(cell, ls::nil());
+        cell_cv_data cell_geom1(cell, ls::nil());
 
-        auto all_cv  = intersect_region(cell, reg::all(), cell_geom1);
-        auto tag1_cv = intersect_region(cell, reg::tagged(1), cell_geom1);
-        auto tag2_cv = intersect_region(cell, reg::tagged(2), cell_geom1);
+        auto all_cv  = intersect_region(reg::all(), cell_geom1);
+        auto tag1_cv = intersect_region(reg::tagged(1), cell_geom1);
+        auto tag2_cv = intersect_region(reg::tagged(2), cell_geom1);
 
         EXPECT_EQ(1u,  all_cv.size());
         EXPECT_EQ(0u, all_cv.front().idx);
@@ -596,33 +596,33 @@ TEST(region_cv, custom_geometry) {
         auto cv3 = cv_proportion{4, 1};
         auto cv2_half = cv_proportion{3, 0.5};
 
-        auto all_cv = intersect_region(cell, "all"_lab, geom.value());
+        auto all_cv = intersect_region("all"_lab, geom.value());
         EXPECT_EQ(4u,  all_cv.size());
         EXPECT_TRUE(almost_eq(cv0, all_cv[0]));
         EXPECT_TRUE(almost_eq(cv1, all_cv[1]));
         EXPECT_TRUE(almost_eq(cv2, all_cv[2]));
         EXPECT_TRUE(almost_eq(cv3, all_cv[3]));
 
-        auto soma_cv = intersect_region(cell, "soma"_lab, geom.value());
+        auto soma_cv = intersect_region("soma"_lab, geom.value());
         EXPECT_EQ(1u, soma_cv.size());
         EXPECT_TRUE(almost_eq(cv0, soma_cv[0]));
 
-        auto dend_cv = intersect_region(cell, "dend"_lab, geom.value());
+        auto dend_cv = intersect_region("dend"_lab, geom.value());
         EXPECT_EQ(3u, dend_cv.size());
         EXPECT_TRUE(almost_eq(cv1, dend_cv[0]));
         EXPECT_TRUE(almost_eq(cv2, dend_cv[1]));
         EXPECT_TRUE(almost_eq(cv3, dend_cv[2]));
 
-        auto c0_cv = intersect_region(cell, "custom0"_lab, geom.value());
+        auto c0_cv = intersect_region("custom0"_lab, geom.value());
         EXPECT_EQ(2u, c0_cv.size());
         EXPECT_TRUE(almost_eq(cv0, c0_cv[0]));
         EXPECT_TRUE(almost_eq(cv1_quarter, c0_cv[1]));
 
-        auto c1_cv = intersect_region(cell, "custom1"_lab, geom.value());
+        auto c1_cv = intersect_region("custom1"_lab, geom.value());
         EXPECT_EQ(1u, c1_cv.size());
         EXPECT_TRUE(almost_eq(cv2_half, c1_cv[0]));
 
-        auto c2_cv = intersect_region(cell, "custom2"_lab, geom.value());
+        auto c2_cv = intersect_region("custom2"_lab, geom.value());
         EXPECT_EQ(3u, c2_cv.size());
         EXPECT_TRUE(almost_eq(cv0, c2_cv[0]));
         EXPECT_TRUE(almost_eq(cv1_quarter, c2_cv[1]));
@@ -661,7 +661,7 @@ TEST(region_cv, custom_geometry) {
         auto cv5_part = cv_proportion{5, 15./27.};
         auto cv6 = cv_proportion{6, 1};
 
-        auto all_cv = intersect_region(cell, "all"_lab, geom.value());
+        auto all_cv = intersect_region("all"_lab, geom.value());
         EXPECT_EQ(7u,  all_cv.size());
         EXPECT_TRUE(almost_eq(cv0, all_cv[0]));
         EXPECT_TRUE(almost_eq(cv1, all_cv[1]));
@@ -671,12 +671,12 @@ TEST(region_cv, custom_geometry) {
         EXPECT_TRUE(almost_eq(cv5, all_cv[5]));
         EXPECT_TRUE(almost_eq(cv6, all_cv[6]));
 
-        auto soma_cv = intersect_region(cell, "soma"_lab, geom.value());
+        auto soma_cv = intersect_region("soma"_lab, geom.value());
         EXPECT_EQ(2u, soma_cv.size());
         EXPECT_TRUE(almost_eq(cv0, soma_cv[0]));
         EXPECT_TRUE(almost_eq(cv1_part0, soma_cv[1]));
 
-        auto dend_cv = intersect_region(cell, "dend"_lab, geom.value());
+        auto dend_cv = intersect_region("dend"_lab, geom.value());
         EXPECT_EQ(6u, dend_cv.size());
         EXPECT_TRUE(almost_eq(cv1_part1, dend_cv[0]));
         EXPECT_TRUE(almost_eq(cv2, dend_cv[1]));
@@ -686,18 +686,18 @@ TEST(region_cv, custom_geometry) {
         EXPECT_TRUE(almost_eq(cv6, dend_cv[5]));
         EXPECT_TRUE(almost_eq(cv6, dend_cv[5]));
 
-        auto c2_cv = intersect_region(cell, "custom2"_lab, geom.value());
+        auto c2_cv = intersect_region("custom2"_lab, geom.value());
         EXPECT_EQ(3u, c2_cv.size());
         EXPECT_TRUE(almost_eq(cv0, c2_cv[0]));
         EXPECT_TRUE(almost_eq(cv1, c2_cv[1]));
         EXPECT_TRUE(almost_eq(cv5_part, c2_cv[2]));
 
-        auto c3_cv = intersect_region(cell, "custom3"_lab, geom.value());
+        auto c3_cv = intersect_region("custom3"_lab, geom.value());
         EXPECT_EQ(2u, c3_cv.size());
         EXPECT_TRUE(almost_eq(cv1_part2, c3_cv[0]));
         EXPECT_TRUE(almost_eq(cv2_part, c3_cv[1]));
 
-        auto c4_cv = intersect_region(cell, "custom4"_lab, geom.value());
+        auto c4_cv = intersect_region("custom4"_lab, geom.value());
         EXPECT_EQ(3u, c2_cv.size());
         EXPECT_TRUE(almost_eq(cv2_part, c4_cv[0]));
         EXPECT_TRUE(almost_eq(cv3, c4_cv[1]));

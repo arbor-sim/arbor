@@ -10,7 +10,8 @@
 #include <arbor/morph/region.hpp>
 
 namespace arb {
-class cv_geometry;
+
+struct cell_cv_data_impl;
 
 // Stores info about the CV geometry of a discretized cable-cell
 class cell_cv_data {
@@ -27,16 +28,17 @@ public:
     // Returns total number of CVs.
     fvm_size_type size() const;
 
+    cell_cv_data(const cable_cell& cell, const locset& lset);
+
+    const mprovider& provider() const {
+        return provider_;
+    }
+
 private:
-    std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
-    std::vector<fvm_index_type> cv_cables_divs;   // Partitions cv_cables by CV index.
+    std::unique_ptr<cell_cv_data_impl> impl_;
 
-    std::vector<fvm_index_type> cv_parent;        // Index of CV parent or size_type(-1) for a cell root CV.
-    std::vector<fvm_index_type> cv_children;      // CV child indices, partitioned by CV, and then in order.
-    std::vector<fvm_index_type> cv_children_divs; // Paritions cv_children by CV index.
-
-    friend cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
-    friend cv_geometry;
+    // Embedded morphology and labelled region/locset lookup.
+    mprovider provider_;
 };
 
 struct cv_proportion {
@@ -48,9 +50,6 @@ struct cv_proportion {
 // Construct cell_cv_geometry for cell from default cell discretization if it exists.
 std::optional<cell_cv_data> cv_data(const cable_cell& cell);
 
-// Construct cell_cv_geometry for cell from locset describing CV boundary points.
-cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
-
-std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs, bool intergrate_by_length = false);
+std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& cvs, bool intergrate_by_length = false);
 
 } //namespace arb

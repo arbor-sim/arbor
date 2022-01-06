@@ -12,6 +12,7 @@
 #include <arbor/morph/cv_data.hpp>
 
 #include "execution_context.hpp"
+#include "morph/cv_data.hpp"
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -54,16 +55,11 @@ namespace cv_prefer {
     };
 }
 
-struct cv_geometry {
+struct cv_geometry: public cell_cv_data_impl {
+    using base = cell_cv_data_impl;
+
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
-
-    std::vector<mcable> cv_cables;           // CV unbranched sections, partitioned by CV.
-    std::vector<index_type> cv_cables_divs;  // Partitions cv_cables by CV index.
-    std::vector<index_type> cv_parent;       // Index of CV parent or size_type(-1) for a cell root CV.
-
-    std::vector<index_type> cv_children;     // CV child indices, partitioned by CV, and then in order.
-    std::vector<index_type> cv_children_divs;   // Paritions cv_children by CV index.
 
     std::vector<index_type> cv_to_cell;      // Maps CV index to cell index.
     std::vector<index_type> cell_cv_divs;    // Partitions CV indices by cell.
@@ -151,12 +147,17 @@ struct cv_geometry {
         return cv_base+pw_cv_offset.value(i);
     }
 
+    // TODO
+        /*
     cv_geometry(cell_cv_data data) :
         cv_cables(std::move(data.cv_cables)),
         cv_cables_divs(std::move(data.cv_cables_divs)),
         cv_parent(std::move(data.cv_parent)),
         cv_children(std::move(data.cv_children)),
         cv_children_divs(std::move(data.cv_children_divs))
+        */
+    cv_geometry(const cable_cell& cell, const locset& ls):
+        base(cell, ls)
     {
         // Build location query map.
         auto n_cv = cv_parent.size();

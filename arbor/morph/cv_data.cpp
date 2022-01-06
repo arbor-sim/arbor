@@ -4,6 +4,7 @@
 #include <arbor/morph/cv_data.hpp>
 #include <arbor/morph/embed_pwlin.hpp>
 
+#include "morph/cv_data.hpp"
 #include "util/partition.hpp"
 #include "util/pw_over_cable.hpp"
 #include "util/rangeutil.hpp"
@@ -12,43 +13,14 @@
 
 namespace arb {
 
-mcable_list cell_cv_data::cables(fvm_size_type cv_index) const {
-    auto partn = util::partition_view(cv_cables_divs);
-    auto view = util::subrange_view(cv_cables, partn[cv_index]);
-    return mcable_list{view.begin(), view.end()};
-}
-
-std::vector<fvm_index_type> cell_cv_data::children(fvm_size_type cv_index) const {
-    auto partn = util::partition_view(cv_children_divs);
-    auto view = util::subrange_view(cv_children, partn[cv_index]);
-    return std::vector<fvm_index_type>{view.begin(), view.end()};
-}
-
-fvm_index_type cell_cv_data::parent(fvm_size_type cv_index) const {
-    return cv_parent[cv_index];
-}
-
-fvm_size_type cell_cv_data::size() const {
-    return cv_parent.size();
-}
-
-std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
-    if (auto policy = cell.decorations().defaults().discretization) {
-        return cv_data_from_locset(cell, policy->cv_boundary_points(cell));
-    } else {
-        return {};
-    }
-}
-
-cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
+cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset) {
     auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
 
-    cell_cv_data data;
     const auto& mp = cell.provider();
     const auto& m = mp.morphology();
 
     if (m.empty()) {
-        return data;
+        return;
     }
 
     mlocation_list locs = thingify(lset, mp);
@@ -75,7 +47,7 @@ cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
 
     mcable_list cables;
     std::vector<msize_t> branches;
-    data.cv_cables_divs.push_back(0);
+    cv_cables_divs.push_back(0);
     fvm_index_type cv_index = 0;
 
     while (!next_cv_head.empty()) {
@@ -85,7 +57,7 @@ cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
         cables.clear();
         branches.clear();
         branches.push_back(h.branch);
-        data.cv_parent.push_back(next.second);
+        cv_parent.push_back(next.second);
 
         while (!branches.empty()) {
             msize_t b = pop(branches);
@@ -116,40 +88,72 @@ cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset) {
         }
 
         util::sort(cables);
-        util::append(data.cv_cables, std::move(cables));
-        data.cv_cables_divs.push_back(data.cv_cables.size());
+        util::append(cv_cables, std::move(cables));
+        cv_cables_divs.push_back(cv_cables.size());
         ++cv_index;
     }
 
     auto n_cv = cv_index;
     arb_assert(n_cv>0);
-    arb_assert(data.cv_parent.front()==-1);
-    arb_assert(util::all_of(util::subrange_view(data.cv_parent, 1, n_cv),
+    arb_assert(cv_parent.front()==-1);
+    arb_assert(util::all_of(util::subrange_view(cv_parent, 1, n_cv),
                             [](auto v) { return v!=no_parent; }));
 
     // Construct CV children mapping by sorting CV indices by parent.
-    assign(data.cv_children, util::make_span(1, n_cv));
-    util::stable_sort_by(data.cv_children, [&data](auto cv) { return data.cv_parent[cv]; });
+    assign(cv_children, util::make_span(1, n_cv));
+    util::stable_sort_by(cv_children, [this](auto cv) { return cv_parent[cv]; });
 
-    data.cv_children_divs.reserve(n_cv+1);
-    data.cv_children_divs.push_back(0);
+    cv_children_divs.reserve(n_cv+1);
+    cv_children_divs.push_back(0);
 
-    auto b = data.cv_children.begin();
-    auto e = data.cv_children.end();
+    auto b = cv_children.begin();
+    auto e = cv_children.end();
     auto from = b;
 
     for (fvm_index_type cv = 0; cv<n_cv; ++cv) {
         from = std::partition_point(from, e,
-                                    [cv, &data](auto i) { return data.cv_parent[i]<=cv; });
-        data.cv_children_divs.push_back(from-b);
+                                    [cv, this](auto i) { return cv_parent[i]<=cv; });
+        cv_children_divs.push_back(from-b);
     }
-
-    return data;
 }
 
-std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& geom, bool by_length) {
-    const auto& mp = cell.provider();
-    const auto& embedding = cell.embedding();
+mcable_list cell_cv_data::cables(fvm_size_type cv_index) const {
+    auto partn = util::partition_view(impl_->cv_cables_divs);
+    auto view = util::subrange_view(impl_->cv_cables, partn[cv_index]);
+    return mcable_list{view.begin(), view.end()};
+}
+
+std::vector<fvm_index_type> cell_cv_data::children(fvm_size_type cv_index) const {
+    auto partn = util::partition_view(impl_->cv_children_divs);
+    auto view = util::subrange_view(impl_->cv_children, partn[cv_index]);
+    return std::vector<fvm_index_type>{view.begin(), view.end()};
+}
+
+fvm_index_type cell_cv_data::parent(fvm_size_type cv_index) const {
+    return impl_->cv_parent[cv_index];
+}
+
+fvm_size_type cell_cv_data::size() const {
+    return impl_->cv_parent.size();
+}
+
+std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
+    if (auto policy = cell.decorations().defaults().discretization) {
+        return cell_cv_data(cell, policy->cv_boundary_points(cell));
+    }
+    return {};
+}
+
+cell_cv_data::cell_cv_data(const cable_cell& cell, const locset& lset):
+    //impl_(std::make_unique<cell_cv_data_impl>(cell, lset)),
+    provider_(cell.provider())
+{
+    impl_ = std::make_unique<cell_cv_data_impl>(cell, lset);
+}
+
+std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& geom, bool by_length) {
+    const auto& mp = geom.provider();
+    const auto& embedding = mp.embedding();
 
     std::vector<cv_proportion> intersection;
     auto extent = thingify(reg, mp);
