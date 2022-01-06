@@ -501,11 +501,10 @@ constitute part of the CV boundary point set.
 CV discretization as mcables
 ----------------------------
 
-The :ref:`cv-policy <pymorph-cv-policies>` assigned to a cable-cell determines the
-discretization of the cell in a way that is obscure to the user. It is often useful
-for the user to have a detailed view of the CVs generated for a given morphology and
-cv-policy. Specifically, it is useful to know how many CVs a cable-cell is comprised
-of, or how many CVs lie on a certain region of the cell.
+It is often useful for the user to have a detailed view of the CVs generated for a
+given morphology and :ref:`cv-policy <pymorph-cv-policies>`. For example, while
+debugging and fine-tuning model implementations, it can be helpful to know how many CVs
+a cable-cell is comprised of, or how many CVs lie on a certain region of the cell.
 
 The following classes and functions allow the user to inspect the CVs of a cell or
 region.
@@ -527,7 +526,7 @@ region.
 
       Returns the index of the CV representing the parent of the CV at index ``idx``.
 
-   .. py:method:: num_cv() -> int
+   .. py:attribute:: int num_cv
 
       Returns the total number of CVs on the cell.
 
@@ -540,16 +539,18 @@ region.
    :param cable_cell cell: The cable-cell.
    :rtype: optional<:py:class:`cell_cv_data`>
 
-.. py:function:: intersect_region(cell, reg, cv_data) -> list[idx, proportion]
+.. py:function:: intersect_region(reg, cv_data, integrate_along) -> list[idx, proportion]
 
    Returns a list of tuples ``[idx, proportion]`` identifying the indices (``idx``) of the CVs from the
-   ``cv_data`` argument that lie in the provided region on the provided cell, and how much of each CV
-   by area belongs to that region (``proportion``).
+   ``cv_data`` argument that lie in the provided region ``reg``, and how much of each CV belongs to that
+   region (``proportion``). The ``proportion`` is either the area proportion or the length proportion,
+   chosen according to the ``integrate_along`` argument.
 
-   :param cable_cell cell: The cable-cell.
    :param str reg: The region on the cable-cell represented as s-expression or a label from the
-                   label-dictionary of the cell.
-   :param cell_cv_data cv_data: The cv_data associated with the cell.
+       label-dictionary of the cell.
+   :param cell_cv_data cv_data: The cv_data of a cell.
+   :param string integrate_along: Either "area" or "length". Decides whether the proportion of a
+       CV is measured according to the area or length of the CV.
    :rtype: list[idx, proportion]
 
 .. _pyswc:

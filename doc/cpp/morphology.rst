@@ -339,10 +339,10 @@ CV will have an extent on the branch longer than ``max_extent`` micrometres.
 CV discretization as mcables
 ----------------------------
 
-The :ref:`cv-policy <cv-policies>` assigned to a cable-cell determines the discretization of the cell in a way
-that is obscure to the user. It is often useful for the user to have a detailed view of the CVs generated for
-a given morphology and cv-policy. Specifically, it is useful to know how many CVs a cable-cell is comprised of,
-or how many CVs lie on a certain region of the cell.
+It is often useful for the user to have a detailed view of the CVs generated for a given morphology
+and :ref:`cv-policy <cv-policies>`. For example, while debugging and fine-tuning model implementations,
+it can be helpful to know how many CVs a cable-cell is comprised of, or how many CVs lie on a certain
+region of the cell.
 
 The following classes and functions allow the user to inspect the CVs of a cell or region.
 
@@ -373,11 +373,6 @@ The following classes and functions allow the user to inspect the CVs of a cell 
    to the :cpp:class:`cv_policy` provided in the :cpp:class:`decor` of the cell. Returns ``std::nullopt_t``
    if no :cpp:class:`cv_policy` was provided in the decor.
 
-.. cpp:function:: cell_cv_data cv_data_from_locset(const cable_cell& cell, const locset& lset);
-
-   Constructs a :cpp:class:`cell_cv_data` object representing the CVs comprising the cable-cell according
-   to a given :cpp:class:`locset`.
-
 .. cpp:class:: cv_proportion
 
    .. cpp:member:: unsigned idx
@@ -388,11 +383,11 @@ The following classes and functions allow the user to inspect the CVs of a cell 
 
       Proportion of the CV by area.
 
-.. cpp:function:: std::vector<cv_proportion> intersect_region(const cable_cell& cell, const region& reg, const cell_cv_data& cvs)
+.. cpp:function:: std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& cvs, bool integrate_by_length=false)
 
    Returns a vector of :cpp:class:`cv_proportion` identifying the indices of the CVs from the :cpp:class:`cell_cv_data`
-   argument that lie in the provided region on the provided cell, and how much of each CV by area belongs to
-   that region.
+   argument that lie in the provided region, and how much of each CV belongs to that region. The proportion of CV lying
+   in the region is the area proportion if ``integrate_by_length`` is false, otherwise, it is the length proportion.
 
 Supported morphology formats
 ============================

@@ -352,11 +352,25 @@ void register_cells(pybind11::module& m) {
     cell_cv_data
             .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
                  "Return the number of CVs in the cell.")
-            .def("cables", &arb::cell_cv_data::cables, "index"_a,
-                 "Return a list of cables representing the CV at the given index.")
-            .def("children", &arb::cell_cv_data::children, "index"_a,
+            .def("cables",
+                 [](const arb::cell_cv_data& d, unsigned index) {
+                    if (index >= d.size()) throw pybind11::index_error("index out of range");
+                    return d.cables(index);
+                 },
+                 "index"_a, "Return a list of cables representing the CV at the given index.")
+            .def("children",
+                 [](const arb::cell_cv_data& d, unsigned index) {
+                     if (index >= d.size()) throw pybind11::index_error("index out of range");
+                     return d.children(index);
+                 },
+                 "index"_a,
                  "Return a list of indices of the CVs representing the children of the CV at the given index.")
-            .def("parent", &arb::cell_cv_data::parent, "index"_a,
+            .def("parent",
+                 [](const arb::cell_cv_data& d, unsigned index) {
+                     if (index >= d.size()) throw pybind11::index_error("index out of range");
+                     return d.parent(index);
+                 },
+                 "index"_a,
                  "Return the index of the CV representing the parent of the CV at the given index.")
             .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
             .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});

@@ -82,6 +82,64 @@ std::vector<V> unique_union(const std::vector<V>& a, const std::vector<V>& b) {
 // Building CV geometry
 // --------------------
 
+// CV geometry
+
+cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
+        base(cell, ls)
+{
+    // Build location query map.
+    auto n_cv = cv_parent.size();
+    branch_cv_map.resize(1);
+    std::vector<util::pw_elements<fvm_size_type>>& bmap = branch_cv_map.back();
+    for (auto cv: util::make_span(n_cv)) {
+        for (auto cable: cables(cv)) {
+            if (cable.branch>=bmap.size()) {
+                bmap.resize(cable.branch+1);
+            }
+
+            // Ordering of CV ensures CV cables on any given branch are found sequentially.
+            bmap[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
+        }
+    }
+    cv_to_cell.assign(n_cv, 0);
+    cell_cv_divs = {0, (fvm_index_type)n_cv};
+}
+
+fvm_size_type cv_geometry::location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
+    auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
+    auto zero_extent = [&pw_cv_offset](auto j) {
+        return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
+    };
+
+    auto i = pw_cv_offset.index_of(loc.pos);
+    auto i_max = pw_cv_offset.size()-1;
+    auto cv_prox = pw_cv_offset.extent(i).first;
+
+    // index_of() should have returned right-most matching interval.
+    arb_assert(i==i_max || loc.pos<pw_cv_offset.extent(i+1).first);
+
+    using namespace cv_prefer;
+    switch (prefer) {
+        case cv_distal:
+            break;
+        case cv_proximal:
+            if (loc.pos==cv_prox && i>0) --i;
+            break;
+        case cv_nonempty:
+            if (zero_extent(i)) {
+                if (i>0 && !zero_extent(i-1)) --i;
+                else if (i<i_max && !zero_extent(i+1)) ++i;
+            }
+            break;
+        case cv_empty:
+            if (loc.pos==cv_prox && i>0 && zero_extent(i-1)) --i;
+            break;
+    }
+
+    index_type cv_base = cell_cv_divs.at(cell_idx);
+    return cv_base+pw_cv_offset.value(i);
+}
+
 namespace impl {
     using std::begin;
     using std::end;
