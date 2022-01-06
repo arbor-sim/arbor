@@ -2,7 +2,9 @@
 
 #include <vector>
 
+#include <arbor/cable_cell.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphology.hpp>
 
 namespace arb {

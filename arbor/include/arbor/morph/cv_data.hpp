@@ -35,7 +35,7 @@ public:
     }
 
 private:
-    std::unique_ptr<cell_cv_data_impl> impl_;
+    std::unique_ptr<cell_cv_data_impl, void (*)(cell_cv_data_impl*)> impl_;
 
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider_;

@@ -144,12 +144,15 @@ std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
     return {};
 }
 
-cell_cv_data::cell_cv_data(const cable_cell& cell, const locset& lset):
-    //impl_(std::make_unique<cell_cv_data_impl>(cell, lset)),
-    provider_(cell.provider())
-{
-    impl_ = std::make_unique<cell_cv_data_impl>(cell, lset);
+using impl_ptr = std::unique_ptr<cell_cv_data_impl, void (*)(cell_cv_data_impl*)>;
+impl_ptr make_impl(cell_cv_data_impl* c) {
+    return impl_ptr(c, [](cell_cv_data_impl* p){delete p;});
 }
+
+cell_cv_data::cell_cv_data(const cable_cell& cell, const locset& lset):
+    impl_(make_impl(new cell_cv_data_impl(cell, lset))),
+    provider_(cell.provider())
+{}
 
 std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& geom, bool by_length) {
     const auto& mp = geom.provider();

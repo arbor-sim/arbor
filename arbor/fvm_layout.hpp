@@ -147,15 +147,6 @@ struct cv_geometry: public cell_cv_data_impl {
         return cv_base+pw_cv_offset.value(i);
     }
 
-    // TODO
-        /*
-    cv_geometry(cell_cv_data data) :
-        cv_cables(std::move(data.cv_cables)),
-        cv_cables_divs(std::move(data.cv_cables_divs)),
-        cv_parent(std::move(data.cv_parent)),
-        cv_children(std::move(data.cv_children)),
-        cv_children_divs(std::move(data.cv_children_divs))
-        */
     cv_geometry(const cable_cell& cell, const locset& ls):
         base(cell, ls)
     {
