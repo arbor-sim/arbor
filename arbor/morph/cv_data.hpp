@@ -8,7 +8,7 @@
 namespace arb {
 
 struct cell_cv_data_impl {
-    std::vector<mcable> cv_cables;                // CV unbranched sections, partitioned by CV.
+    mcable_list cv_cables;                        // CV unbranched sections, partitioned by CV.
     std::vector<fvm_index_type> cv_cables_divs;   // Partitions cv_cables by CV index.
 
     std::vector<fvm_index_type> cv_parent;        // Index of CV parent or size_type(-1) for a cell root CV.
