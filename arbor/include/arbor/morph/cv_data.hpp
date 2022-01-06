@@ -44,7 +44,6 @@ private:
 struct cv_proportion {
     fvm_size_type idx;
     fvm_value_type proportion;
-    cv_proportion(fvm_size_type idx, fvm_value_type prop): idx(idx), proportion(prop) {}
 };
 
 // Construct cell_cv_geometry for cell from default cell discretization if it exists.
