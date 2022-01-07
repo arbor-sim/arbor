@@ -14,6 +14,25 @@ except:
     WHEEL_INSTALLED = False
     pass
 
+# Hard coded, because scikit-build does not do build options.
+# Override by instructing CMAKE, e.g.:
+# pip install . -- -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_MPI=ON -DARB_GPU=cuda
+opt = {'mpi': False,
+       'gpu': 'none',
+       'vec': False,
+       'arch': 'none',
+       'neuroml': True,
+       'bundled': True}
+
+# VERSION is in the same path as setup.py
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, 'VERSION')) as version_file:
+    version_ = version_file.read().strip()
+
+# Get the contents of the readme
+with open(os.path.join(here, 'python/readme.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 # Singleton class that holds the settings configured using command line
 # options. This information has to be stored in a singleton so that it
 # can be passed between different stages of the build, and because pip
@@ -47,15 +66,6 @@ user_options_ = [
         ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.'),
         ('makejobs=', None, 'the amount of jobs to run `make` with.')
     ]
-
-# VERSION is in the same path as setup.py
-here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'VERSION')) as version_file:
-    version_ = version_file.read().strip()
-
-# Get the contents of the readme
-with open(os.path.join(here, 'python/readme.md'), encoding='utf-8') as f:
-    long_description = f.read()
 
 def check_cmake():
     try:
