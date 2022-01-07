@@ -35,7 +35,7 @@ jobs:
           CIBW_SKIP: "cp35-*"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS_LINUX: x86_64
-          CIBW_TEST_COMMAND: python -m unittest discover -v -s python
+          CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       - name: Build wheels macos
         if: ${{ startsWith(matrix.os, 'macos') }}
@@ -48,7 +48,7 @@ jobs:
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_ARCHS_MACOS: x86_64 universal2
-          CIBW_TEST_COMMAND: python -m unittest discover -v -s python
+          CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       # this action runs auditwheel automatically with the following args:
       # https://cibuildwheel.readthedocs.io/en/stable/options/#repair-wheel-command
