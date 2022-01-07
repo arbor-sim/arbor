@@ -14,15 +14,7 @@ except:
     WHEEL_INSTALLED = False
     pass
 
-# Hard coded, because scikit-build does not do build options.
-# Override by instructing CMAKE, e.g.:
-# pip install . -- -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_MPI=ON -DARB_GPU=cuda
-opt = {'mpi': False,
-       'gpu': 'none',
-       'vec': False,
-       'arch': 'none',
-       'neuroml': True,
-       'bundled': True}
+opt = {} #global placeholder for install options. Wheels can not depend on any flags passed/options set, so the defaults in this file must match the instructions for building a Wheel
 
 # VERSION is in the same path as setup.py
 here = os.path.abspath(os.path.dirname(__file__))
@@ -33,28 +25,6 @@ with open(os.path.join(here, 'VERSION')) as version_file:
 with open(os.path.join(here, 'python/readme.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-# Singleton class that holds the settings configured using command line
-# options. This information has to be stored in a singleton so that it
-# can be passed between different stages of the build, and because pip
-# has strange behavior between different versions.
-class CL_opt:
-    instance = None
-    def __init__(self):
-        if not CL_opt.instance:
-            CL_opt.instance = {'mpi': False,
-                               'gpu': 'none',
-                               'vec': False,
-                               'arch': 'none',
-                               'neuroml': True,
-                               'bundled': True,
-                               'makejobs': 2}
-
-    def settings(self):
-        return CL_opt.instance
-
-def cl_opt():
-    return CL_opt().settings()
-
 # extend user_options the same way for all Command()s
 user_options_ = [
         ('mpi',   None, 'enable mpi support (requires MPI library)'),
@@ -62,8 +32,8 @@ user_options_ = [
                         'none, cuda, cuda-clang, hip'),
         ('vec',   None, 'enable vectorization'),
         ('arch=', None, 'cpu architecture, e.g. haswell, skylake, armv8.2-a+sve, znver2 (default native).'),
-        ('neuroml', None, 'enable parsing neuroml morphologies in Arbor (requires libxml)'),
-        ('sysdeps', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.'),
+        ('noneuroml', None, 'disable neuroml support (set if you don\'t have libxml)'),
+        ('nobundled', None, 'don\'t use bundled 3rd party C++ dependencies (pybind11 and json). This flag forces use of dependencies installed on the system.'),
         ('makejobs=', None, 'the amount of jobs to run `make` with.')
     ]
 
@@ -104,12 +74,14 @@ class _command_template:
 
     def initialize_options(self):
         super().initialize_options()
+        # for k,v in opt.items():
+        #     setattr(self, k, v)
         self.mpi  = None
         self.gpu  = None
         self.arch = None
         self.vec  = None
-        self.neuroml = None
-        self.sysdeps = None
+        self.noneuroml = None
+        self.nobundled = None
         self.makejobs = 2
 
     def finalize_options(self):
@@ -124,8 +96,7 @@ class _command_template:
             raise AssertionError('makejobs must be a strictly positive integer')
 
     def run(self):
-        # The options are stored in global variables:
-        opt = cl_opt()
+        global opt
         #   mpi  : build with MPI support (boolean).
         opt['mpi']  = self.mpi is not None
         #   gpu  : compile for AMD/NVIDIA GPUs and choose compiler (string).
@@ -135,13 +106,16 @@ class _command_template:
         #   arch : target CPU micro-architecture (string).
         opt['arch'] = 'none' if self.arch is None else self.arch
         #   neuroml : compile with neuroml support for morphologies.
-        opt['neuroml'] = self.neuroml is not None
+        opt['neuroml'] = self.noneuroml is None
         #   bundled : use bundled/git-submoduled 3rd party libraries.
         #             By default use bundled libs.
-        opt['bundled'] = self.sysdeps is None
+        opt['bundled'] = self.nobundled is None
         #   makejobs : specify amount of jobs.
         #              By default 2.
         opt['makejobs'] = int(self.makejobs)
+
+        print(self)
+        print(opt)
 
         super().run()
 
@@ -174,7 +148,6 @@ class cmake_build(build_ext):
         # can copy it into the target 'prefix' path.
         dest_path = lib_directory + '/arbor'
 
-        opt = cl_opt()
         cmake_args = [
             '-DARB_WITH_PYTHON=on',
             '-DPYTHON_EXECUTABLE=' + sys.executable,

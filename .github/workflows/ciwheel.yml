@@ -6,6 +6,9 @@ on:
     tags:
       - v*
 
+  schedule:
+    - cron: '0 2 * * 0' # run at 2 AM every sunday
+
 jobs:
   build_binary_wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -22,29 +25,30 @@ jobs:
 
       - name: Build wheels Linux
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        uses: pypa/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v2.3.0
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
+          CIBW_BEFORE_ALL: yum -y install libxml2-devel
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools cmake
           CIBW_BUILD: "cp3?-manylinux_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS_LINUX: x86_64
-          # CIBW_TEST_COMMAND: TODO
+          CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       - name: Build wheels macos
         if: ${{ startsWith(matrix.os, 'macos') }}
-        uses: pypa/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v2.3.0
         with:
           output-dir: dist
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
-          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools cmake
           CIBW_BUILD: "cp3?-macosx_x86_64"
           CIBW_SKIP: "cp35-*"
           CIBW_ARCHS_MACOS: x86_64 universal2
-          # CIBW_TEST_COMMAND: TODO
+          CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       # this action runs auditwheel automatically with the following args:
       # https://cibuildwheel.readthedocs.io/en/stable/options/#repair-wheel-command
@@ -61,6 +65,8 @@ jobs:
     steps:
       - name: Set up Python
         uses: actions/setup-python@v2
+      - name: Get packages
+        run: python -m pip install numpy setuptools cmake
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
