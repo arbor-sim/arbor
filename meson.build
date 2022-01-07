@@ -46,26 +46,25 @@ endif
 
 # set configure-time defines for arbor, arborenv and arborio
 # of the form ARB_HAVE_XXX (private) and ARB_XXX (public)
-# TODO: the ARB_HAVE_XXX are currently public
 arb_public_defs = []
 arb_private_defs = []
 arb_configurations = []
 if arb_with_mpi
-  arb_public_defs += '-DARB_HAVE_MPI'
+  arb_private_defs += '-DARB_HAVE_MPI'
   arb_configurations += 'MPI'
 endif
 # TODO: configuration of hip-clang and cuda-clang
 if arb_with_gpu
-  arb_public_defs += '-DARB_HAVE_GPU'
+  arb_private_defs += '-DARB_HAVE_GPU'
   arb_public_defs += '-DARB_CUDA'
   arb_configurations += 'GPU'
 endif
 if arb_with_profiling
-  arb_public_defs += '-DARB_HAVE_PROFIILING'
+  arb_private_defs += '-DARB_HAVE_PROFIILING'
   arb_configurations += 'PROFILE'
 endif
 if arb_with_assertions
-  arb_public_defs += '-DARB_HAVE_ASSERTIONS'
+  arb_private_defs += '-DARB_HAVE_ASSERTIONS'
   arb_configurations += 'ASSERT'
 endif
 if arb_with_neuroml
