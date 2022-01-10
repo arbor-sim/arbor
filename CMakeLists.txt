@@ -561,3 +561,4 @@ install(
         cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
+add_subdirectory(lmorpho)

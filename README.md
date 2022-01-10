@@ -14,4 +14,4 @@ An installation guide and library documentation are available online at [Read th
 
 ### Citing Arbor
 
-Please refer to [our documentation](https://docs.arbor-sim.org/en/latest/index.html#citing-arbor).
+The Arbor introductory paper and entry on Zenodo can be cited, see [CITATION.bib](CITATION.bib). Please refer to [our documentation](https://docs.arbor-sim.org/en/latest/index.html#citing-arbor) for more information.

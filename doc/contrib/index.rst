@@ -34,6 +34,17 @@ repository and nearly all of its infrastructure.
 -  Make sure you have a `GitHub
    account <https://github.com/signup/free>`__.
 
+.. _contribindex-model:
+
+Model
+~~~~~
+
+Sharing research and findings that used Arbor is the best contribution you can make to the project.
+
+- We encourage the use of our Github Discussions board for public discussions on modelling: `Github Discussions <https://github.com/arbor-sim/arbor/discussions>`_.
+
+- Users can share their models by adding them to the model collection on GitHub at `arbor-contrib <https://github.com/arbor-contrib/>`_.
+
 .. _contribindex-discuss:
 
 Start a discussion
