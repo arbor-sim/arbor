@@ -58,7 +58,7 @@ function(build_modules)
 endfunction()
 
 function("make_catalogue")
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;PREFIX;STANDALONE;VERBOSE" "CXX_FLAGS_TARGET;MECHS" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;OUTPUT;PREFIX;STANDALONE;VERBOSE" "CXX_FLAGS_TARGET;MECHS;EXTRA" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
 
   # Need to set ARB_WITH_EXTERNAL_MODCC *and* modcc
@@ -70,6 +70,7 @@ function("make_catalogue")
   if(MK_CAT_VERBOSE)
     message("Catalogue name:       ${MK_CAT_NAME}")
     message("Catalogue mechanisms: ${MK_CAT_MECHS}")
+    message("Extra cxx files:      ${MK_CAT_EXTRA}")
     message("Catalogue sources:    ${MK_CAT_SOURCES}")
     message("Catalogue output:     ${MK_CAT_OUT_DIR}")
     message("Build as standalone:  ${MK_CAT_STANDALONE}")
@@ -102,7 +103,7 @@ function("make_catalogue")
 
   add_custom_command(
     OUTPUT  ${catalogue_${MK_CAT_NAME}_source}
-    COMMAND ${MK_CAT_PREFIX}/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS}
+    COMMAND ${MK_CAT_PREFIX}/generate_catalogue ${catalogue_${MK_CAT_NAME}_options} ${MK_CAT_MECHS} ${MK_CAT_EXTRA}
     COMMENT "Building catalogue ${MK_CAT_NAME}"
     DEPENDS ${MK_CAT_PREFIX}/generate_catalogue)
 
@@ -111,6 +112,12 @@ function("make_catalogue")
   add_dependencies(build_all_mods build_catalogue_${MK_CAT_NAME}_mods)
 
   foreach(mech ${MK_CAT_MECHS})
+    list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_cpu.cpp)
+    if(ARB_WITH_GPU)
+      list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
+    endif()
+  endforeach()
+  foreach(mech ${MK_CAT_EXTRA})
     list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_cpu.cpp)
     if(ARB_WITH_GPU)
       list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
