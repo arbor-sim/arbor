@@ -74,8 +74,6 @@ class _command_template:
 
     def initialize_options(self):
         super().initialize_options()
-        # for k,v in opt.items():
-        #     setattr(self, k, v)
         self.mpi  = None
         self.gpu  = None
         self.arch = None
@@ -195,7 +193,6 @@ setuptools.setup(
     name='arbor',
     version=version_,
     python_requires='>=3.6',
-
     install_requires=['numpy'],
     setup_requires=[],
     zip_safe=False,
@@ -210,7 +207,7 @@ setuptools.setup(
     },
 
     author='The Arbor dev team.',
-    url='https://github.com/arbor-sim/arbor',
+    url='https://arbor-sim.org',
     description='High performance simulation of networks of multicompartment neurons.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -222,6 +219,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: C++',
     ],
     project_urls={
