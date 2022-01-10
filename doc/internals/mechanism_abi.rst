@@ -487,12 +487,21 @@ The ``--raw`` flag must go last due to the argument parsing.
 For this to compile, the following must be upheld:
 
 - For each mechanism ``M`` these files must be present
+
   - ``M.hpp`` must define the mechanism metadata and declare the used interfaces.
+
   - ``M_cpu.cpp`` must define the CPU interface.
+
   - If GPU support is used
-      - ``M_gpu.cpp`` must define the GPU interface.
-      - ``M_gpu.cu``  must defile CUDA kernels.
+
+    - ``M_gpu.cpp`` must define the GPU interface.
+
+    - ``M_gpu.cu``  must define CUDA kernels.
+
 - The interface names must adhere to the chosen catalogue name, eg here ``make_arb_my_catalogue_B_interface_multicore();``
+
   - names may only contain alphanumeric characters and underscores.
+
   - names must not contain multiple successive underscores.
+
   - in general, a valid C variable name should be used.
