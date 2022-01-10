@@ -1,24 +1,23 @@
 from pathlib import Path
-import sys
+from sys import executable as python
 from skbuild import setup
-from argparse import ArgumentParser
 
-P = ArgumentParser(description='Arbor build options.')
-P.add_argument('--vec',     dest='vec',        action='store_const', const='on', default='off',  help='Enable SIMD.')
-P.add_argument('--nml',     dest='nml',        action='store_const', const='on', default='off',  help='Enable NeuroML2 support. Requires libxml2.')
-P.add_argument('--mpi',     dest='mpi',        action='store_const', const='on', default='off',  help='Enable MPI.')
-P.add_argument('--bundled', metavar='bundled', action='store_const', const='on', default='off',  help='Use bundled libs.')
-P.add_argument('--gpu',     metavar='gpu',                                       default='none', help='Enable GPU support.')
-P.add_argument('--arch',    metavar='arch',                                      default='',     help='Set processor architecture.')
-opt, _ = P.parse_known_args()
+# Hard coded options, because scikit-build does not do build options.
+# Override by instructing CMAKE, e.g.:
+# pip install . -- -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_MPI=ON -DARB_GPU=cuda
+with_mpi   = False
+with_gpu   = 'none'
+with_vec   = False
+arch       = 'none'
+with_nml   = True
+use_libs   = True
+build_type = 'Release' # this is ok even for debugging, as we always produce info
 
-# Get directory in which this script resides
+# Find our dir; *should* be the arbor checkout
 here = Path(__file__).resolve().parent
-
 # Read version file
 with open(here / 'VERSION') as fd:
     arbor_version = fd.read().strip()
-
 # Get the contents of the readme
 with open(here / 'python' / 'readme.md', encoding='utf-8') as fd:
     long_description = fd.read()
@@ -29,16 +28,15 @@ setup(name='arbor',
       install_requires=['numpy'],
       setup_requires=[],
       zip_safe=False,
-      cmake_args = ['-DARB_WITH_PYTHON=on',
-                    '-DCMAKE_BUILD_TYPE=Release'
-                    f'-DPYTHON_EXECUTABLE={sys.executable}',
-                    f'-DARB_WITH_MPI={opt.mpi}',
-                    f'-DARB_VECTORIZE={opt.vec}'
-                    f'-DARB_ARCH={opt.arch}',
-                    f'-DARB_GPU={opt.gpu}',
-                    f'-DARB_WITH_NEUROML={opt.nml}',
-                    f'-DARB_USE_BUNDLED_LIBS={opt.bundled}',],
-      packages=['arbor'],
+      cmake_args=['-DARB_WITH_PYTHON=on',
+                  f'-DPYTHON_EXECUTABLE={python}',
+                  f'-DARB_WITH_MPI={with_mpi}',
+                  f'-DARB_VECTORIZE={with_vec}'
+                  f'-DARB_ARCH={arch}',
+                  f'-DARB_GPU={with_gpu}',
+                  f'-DARB_WITH_NEUROML={with_nml}',
+                  f'-DARB_USE_BUNDLED_LIBS={use_libs}',
+                  f'-DCMAKE_BUILD_TYPE={build_type}',],
       author='The Arbor dev team.',
       url='https://github.com/arbor-sim/arbor',
       description='High performance simulation of networks of multicompartment neurons.',
@@ -51,6 +49,7 @@ setup(name='arbor',
                    'Programming Language :: Python :: 3.7',
                    'Programming Language :: Python :: 3.8',
                    'Programming Language :: Python :: 3.9',
+                   'Programming Language :: Python :: 3.10',
                    'Programming Language :: C++',],
       project_urls={'Source': 'https://github.com/arbor-sim/arbor',
                     'Documentation': 'https://docs.arbor-sim.org',
