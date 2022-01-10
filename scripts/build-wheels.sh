@@ -2,7 +2,7 @@
 # A script that can be ran in the PyPA manywheel containers if you want to produce uploadable wheels for PyPI.
 # Steps:
 # 1. Prepare a (temporary) working directory (referred to as $LOCAL_WORK_DIR). 
-# 2. Have the version of Arbor available at $LOCAL_WORK_DIR/arbor
+# 2. Have the version of Arbor you want to build manylinux compliant wheels for available at $LOCAL_WORK_DIR/arbor
 # 3. Start an instance of the docker image with $LOCAL_WORK_DIR mounted at /src_dir
 #    Then, run /src_dir/arbor/scripts/build-wheels.sh
 #    Using podman, the follow command can be used:
