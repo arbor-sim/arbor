@@ -84,6 +84,11 @@ The following optional flags can be used to configure the installation:
   See :ref:`install-architecture` for details.
 * ``--arch``: CPU micro-architecture to target. The advised default is ``native``.
   See `here <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of options.
+* ``--nobundled``: Disable use of Arbor supplied libraries. See ``/ext`` for which ones. This flag can be used if you wish to supply your own
+  versions of these libraries.
+* ``--noneuroml``: Disable NeuroML support. By default, Arbor will build with the widest range of fileformats available, including NeuroML.
+  NeuroML requires a ``libxml2`` development package to be available. If you do not need NeuroML support and/or do not have access to ``libxml2``
+  source code, you can disable the requirement with this flag.
 * ``--makejobs``: Specify the amount of jobs to ``make`` the project with for faster build times on multicore systems. By default set to ``2``.
 
 **Vanilla install** with no additional features enabled:
