@@ -39,12 +39,12 @@ def parse_arguments():
                         type=str,
                         help='Catalogue name.')
 
-    parser.add_argument('--extra',
-                        metavar='extra',
+    parser.add_argument('--raw',
+                        metavar='raw',
                         nargs='+',
                         default=[],
                         type=str,
-                        help='''Advanced: Extra mechanisms as C++ files. Per <name> the
+                        help='''Advanced: Raw mechanisms as C++ files. Per <name> the
 files <name>.hpp, <name>_cpu.cpp must be present
 in the target directory and with GPU support
 also <name>_gpu.cpp and <name>_gpu.cu''')
@@ -91,7 +91,7 @@ mods    = [f[:-4] for f in os.listdir(mod_dir) if f.endswith('.mod')]
 quiet   = args['quiet']
 verbose = args['verbose'] and not quiet
 debug   = args['debug']
-extra   = args['extra']
+raw   = args['raw']
 gpu     = args['gpu']
 
 if gpu:
@@ -145,7 +145,7 @@ make_catalogue(
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
   OUTPUT "CAT_{name.upper()}_SOURCES"
   MECHS {' '.join(mods)}
-  EXTRA {' '.join(extra)}
+  EXTRA {' '.join(raw)}
   PREFIX {data_path}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   STANDALONE ON
@@ -156,8 +156,14 @@ if not quiet:
     print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
     if debug:
         print("Debug mode enabled.")
-    for m in mods:
-        print(" *", m)
+    if mods:
+        print(" * NMODL")
+        for m in mods:
+            print("   *", m)
+    if raw:
+        print(" * Raw")
+        for m in raw:
+            print("   *", m)
 
 if debug:
     # Overwrite the local reference to `TemporaryDirectory` with a context
@@ -191,19 +197,19 @@ with TemporaryDirectory() as tmp:
     shutil.copy2(f'{data_path}/BuildModules.cmake', tmp)
     shutil.copy2(f'{data_path}/generate_catalogue', tmp)
 
-    out = 'generated'
-    os.mkdir(out)
+    out = tmp / 'build' / 'generated' / name
+    os.makedirs(out, exist_ok=True)
     sfx = [".hpp", "_cpu.cpp"]
     if gpu:
         sfx += ["_gpu.cpp", "_gpu.cu"]
-        for e in extra:
-            for s in sfx:
-                fn = mod_dir / (e + s)
-                if not fn.exists():
-                    print(f'Could not find required file: {fn}. Please check your C++ mechanisms.')
-                    exit(-1)
-                else:
-                    shutil.copy2(fn, out / fn)
+    for e in raw:
+        for s in sfx:
+            fn = mod_dir / (e + s)
+            if not fn.exists():
+                print(f'Could not find required file: {fn}. Please check your C++ mechanisms.')
+                exit(-1)
+            else:
+                shutil.copy2(fn, out / (e + s))
 
     cmake_cmd = 'cmake ..'
     make_cmd = 'make'

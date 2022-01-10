@@ -32,6 +32,7 @@ produce a catalogue of the same level of integration as the built-in catalogues
        SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/default"                  # Directory name (added above)
        OUTPUT "CAT_DEFAULT_SOURCES"                                   # Variable name to store C++ files into (see below)
        MECHS exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas  # Space separated list of mechanisms w/o .mod suffix.
+       EXTRA                                                          # Not needed, see below.
        PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"                      # where does 'generate_catalogue' live, do not change
        STANDALONE FALSE                                               # build as shared object, must be OFF
        VERBOSE OFF)                                                   # Print debug info at configuration time
@@ -50,3 +51,8 @@ produce a catalogue of the same level of integration as the built-in catalogues
 7. Bind this function in ``python/mechanisms.cpp``.
 
 All steps can be more or less copied from the surrounding code.
+
+.. note::
+
+   If you are sure of your understanding you can write mechanisms in C/C++
+   directly against Arbor's ABI. See :ref:`here <mechanisms_dynamic>` for more.
