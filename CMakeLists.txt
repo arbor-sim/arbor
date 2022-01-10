@@ -77,8 +77,9 @@ option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 # NeuroML support library:
 #----------------------------------------------------------
 
-option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
-
+option(ARB_WITH_NEUROML  "build NeuroML support library" OFF)
+option(ARB_LIBXML        "path to XML library to link, use with care" "")
+mark_as_advanced(ARB_LIBXML_STATIC)
 #----------------------------------------------------------
 # Python front end for Arbor:
 #----------------------------------------------------------
