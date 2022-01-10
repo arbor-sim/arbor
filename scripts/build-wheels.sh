@@ -4,11 +4,12 @@
 # 1. Prepare a (temporary) working directory (referred to as $LOCAL_WORK_DIR). 
 # 2. Have the version of Arbor available at $LOCAL_WORK_DIR/arbor
 # 3. Start an instance of the docker image with $LOCAL_WORK_DIR mounted at /src_dir
-#    Using podman, the follow command would suffice. as follows:
+#    Then, run /src_dir/arbor/scripts/build-wheels.sh
+#    Using podman, the follow command can be used:
 #    podman run -v $LOCAL_WORK_DIR:/src_dir:Z -ti quay.io/pypa/manylinux2014_x86_64 /src_dir/arbor/scripts/build-wheels.sh
-# 4. On the prompt in the machine, execute this script.
-#    /src_dir/arbor/scripts/build-wheels.sh
-# 5. After the run is complete, find in $LOCAL_WORK_DIR/wheelhouse the wheels ready for PyPI.
+# 4. After the run is complete, find in $LOCAL_WORK_DIR/wheelhouse the wheels ready for PyPI.
+#    $LOCAL_WORK_DIR/builtwheel contains the wheel before auditwheel has processed them. Can be discarded,
+#    or used for analysis in case of build failure.
 
 set -e -u -x
 
