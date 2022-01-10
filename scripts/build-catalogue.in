@@ -39,9 +39,10 @@ def parse_arguments():
                         type=str,
                         help='Catalogue name.')
 
-    parser.add_argument('extra',
+    parser.add_argument('--extra',
                         metavar='extra',
                         nargs='+',
+                        default=[],
                         type=str,
                         help='''Advanced: Extra mechanisms as C++ files. Per <name> the
 files <name>.hpp, <name>_cpu.cpp must be present
