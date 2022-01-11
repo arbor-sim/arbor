@@ -29,7 +29,7 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_ALL: yum -y install libxml2-devel
+          CIBW_BEFORE_ALL: yum -y install libxml2-devel libxml2-static
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools scikit-build ninja cmake
           CIBW_BUILD: "cp3?-manylinux_x86_64"
           CIBW_SKIP: "cp35-*"
