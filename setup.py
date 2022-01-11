@@ -8,7 +8,7 @@ from skbuild import setup
 with_mpi   = False
 with_gpu   = 'none'
 with_vec   = False
-arch       = 'native'
+arch       = 'none'
 with_nml   = True
 use_libs   = True
 build_type = 'Release' # this is ok even for debugging, as we always produce info
