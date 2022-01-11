@@ -31,7 +31,7 @@ setup(name='arbor',
       zip_safe=False,
       cmake_args=['-DARB_WITH_PYTHON=on',
                   # if env var CIBUILDWHEEL set, then assume in PyPA image building wheels and use static libxml2
-                  f'-DARB_LIBXML=/usr/lib64/libxml2.a' if os.environ.get('CIBUILDWHEEL') not None else '',
+                  f'-DARB_LIBXML=/usr/lib64/libxml2.a' if os.environ.get('CIBUILDWHEEL') is not None else '',
                   f'-DPYTHON_EXECUTABLE={python}',
                   f'-DARB_WITH_MPI={with_mpi}',
                   f'-DARB_VECTORIZE={with_vec}'
