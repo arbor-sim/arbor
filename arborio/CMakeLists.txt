@@ -12,7 +12,7 @@ if(ARB_WITH_NEUROML)
             nml_parse_morphology.cpp
             xml.cpp
             xmlwrap.cpp)
-    if(${ARB_LIBXML} STREQUAL "")
+    if(NOT ${ARB_LIBXML} STREQUAL "")
         set(LIBXML2_LIBRARY ${ARB_LIBXML})
     endif()
     find_package(LibXml2 REQUIRED)
