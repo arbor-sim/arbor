@@ -15,6 +15,7 @@ if(ARB_WITH_NEUROML)
     if(NOT ${ARB_LIBXML} STREQUAL "")
         set(LIBXML2_LIBRARY ${ARB_LIBXML})
     endif()
+    message("-lxml = ${ARB_LIBXML}")
     find_package(LibXml2 REQUIRED)
 endif()
 
