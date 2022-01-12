@@ -88,7 +88,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
         decor.set_property(rL=self.rL)
 
         # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
-        junction_mech = arbor.junction('gj', {"g" : 1})
+        junction_mech = arbor.junction('gj', {"g" : self.gj_g})
         decor.place('"gj_site"', junction_mech, 'gj_label')
         decor.paint('"cell"', arbor.density(f'pas/e={self.Vms[gid]}', {'g': self.g}))
 
@@ -104,7 +104,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
         assert gid in [0, 1]
 
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
-        return [arbor.gap_junction_connection((1 if gid == 0 else 0, 'gj_label'), 'gj_label', self.gj_g)]
+        return [arbor.gap_junction_connection((1 if gid == 0 else 0, 'gj_label'), 'gj_label', 1)]
 
 
 if __name__ == "__main__":
