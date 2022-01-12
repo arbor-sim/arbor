@@ -23,10 +23,6 @@ cmake_args = ['-DARB_WITH_PYTHON=on',
                 f'-DARB_WITH_NEUROML={with_nml}',
                 f'-DARB_USE_BUNDLED_LIBS={use_libs}',
                 f'-DCMAKE_BUILD_TYPE={build_type}']
-# For cibuildwheel builds, which build the Python wheels meant for PyPI, we use the static library of libxml2.
-# This gets us around this issue with skbuild: https://github.com/pypa/auditwheel/issues/363
-if 'linux' in str(platform.system()).lower() and os.environ.get('CIBUILDWHEEL') is not None:
-    cmake_args.append(f'-DARB_LIBXML=/usr/lib64/libxml2.a')
 
 # Find our dir; *should* be the arbor checkout
 here = Path(__file__).resolve().parent
