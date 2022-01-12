@@ -13,7 +13,7 @@
 
 set -e -u -x
 
-yum -y install libxml2-devel libxml2-static
+yum -y install libxml2-devel
 /opt/python/cp39-cp39/bin/pip install ninja cmake
 rm -rf /opt/python/cp35-cp35m #skip building for Python 3.5
 
