@@ -13,7 +13,7 @@ def dir_path(path):
     if Path.is_dir(path):
         return path
     else:
-        raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
+        raise argparse.ArgumentTypeError(f"{path} is not a valid path")
 
 parsed_args = parse_arguments()
 Path.mkdir(parsed_args.path / 'old', exist_ok=True)
@@ -39,6 +39,7 @@ for inwheel in parsed_args.path.glob("*.whl"):
     outwheel = Path(shutil.make_archive(inwheel, 'zip', zipdir))
     Path.rename(inwheel, parsed_args.path / 'old' / inwheel.name)
     Path.rename(outwheel, parsed_args.path / inwheel.name)
+    shutil.rmtree(zipdir)
 
 if not parsed_args.keepold:
-    Path.rmdir(parsed_args.path / 'old')
+    shutil.rmtree(parsed_args.path / 'old')
