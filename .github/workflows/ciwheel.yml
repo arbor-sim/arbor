@@ -32,9 +32,9 @@ jobs:
           CIBW_BEFORE_ALL: yum -y install libxml2-devel
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools scikit-build ninja cmake
           CIBW_BUILD: "cp3?-manylinux_x86_64"
-          CIBW_SKIP: "cp35-*"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS_LINUX: x86_64
+          CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair -w {dest_dir} {wheel} && python {project}/script/patchwheel.py {dest_dir}'
           CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       - name: Build wheels macos
@@ -46,7 +46,6 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools scikit-build ninja cmake
           CIBW_BUILD: "cp3?-macosx_x86_64"
-          CIBW_SKIP: "cp35-*"
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
