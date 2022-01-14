@@ -20,18 +20,13 @@ Path.mkdir(parsed_args.path / 'old', exist_ok=True)
 
 for inwheel in parsed_args.path.glob("*.whl"):
     zipdir = Path(f"{inwheel}.unzip")
-    shutil.unpack_archive(inwheel,zipdir,'zip')
+    # shutil.unpack_archive(inwheel,zipdir,'zip') # Disabled, because shutil (and ZipFile) don't preserve filemodes
+    subprocess.check_call(f"unzip {inwheel} -d {zipdir}",shell=True)
 
     arborn = list(zipdir.glob("**/_arbor.cpython*.so"))[0]
     libxml2n = list(zipdir.glob("**/libxml2*.so*"))[0]
-    try:
-        subprocess.check_call(f"patchelf --set-rpath '$ORIGIN/../arbor.libs' {arborn}",shell=True)
-    except subprocess.CalledProcessError as e:
-        print(f"shit hit the fan executing patchelf on {arborn}")
-    try:
-        subprocess.check_call(f"patchelf --set-rpath '$ORIGIN' {libxml2n}",shell=True)
-    except subprocess.CalledProcessError as e:
-        print(f"shit hit the fan executing patchelf on {libxml2n}")
+    subprocess.check_call(f"patchelf --set-rpath '$ORIGIN/../arbor.libs' {arborn}",shell=True)
+    subprocess.check_call(f"patchelf --set-rpath '$ORIGIN' {libxml2n}",shell=True)
 
     # TODO? correct checksum/bytecounts in *.dist-info/RECORD.
     # So far, Python does not report mismatches
