@@ -138,7 +138,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.readonly = true;
         break;
     case sourceKind::peer_voltage:
-        v.data_var="vec_v";
+        v.data_var="vec_v_peer";
         v.node_index_var = "peer_index";
         v.readonly = true;
         break;

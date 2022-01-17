@@ -274,6 +274,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "[[maybe_unused]] auto* {0}vec_t             = pp->vec_t;\\\n"
                                    "[[maybe_unused]] auto* {0}vec_dt            = pp->vec_dt;\\\n"
                                    "[[maybe_unused]] auto* {0}vec_v             = pp->vec_v;\\\n"
+                                   "[[maybe_unused]] auto* {0}vec_v_peer        = pp->vec_v_peer;\\\n"
                                    "[[maybe_unused]] auto* {0}vec_i             = pp->vec_i;\\\n"
                                    "[[maybe_unused]] auto* {0}vec_g             = pp->vec_g;\\\n"
                                    "[[maybe_unused]] auto* {0}temperature_degC  = pp->temperature_degC;\\\n"

@@ -7,6 +7,7 @@
 // implementation details may be tested in the unit tests.
 // It should otherwise only be used in `fvm_lowered_cell.cpp`.
 
+#include <array>
 #include <cmath>
 #include <iterator>
 #include <memory>
@@ -188,6 +189,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     threshold_watcher_.reset();
 }
 
+
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tfinal,
@@ -218,116 +220,184 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // per-compartment dt probably not a win on GPU), possibly rumbling
     // complete fvm state into shared state object.
 
-    while (remaining_steps) {
-        // Update any required reversal potentials based on ionic concs.
+    // Assume that: 
+    // - all gap junctions are subject to WR
+    // - we only have a single cell group
 
-        for (auto& m: revpot_mechanisms_) {
-            m->update_current();
-        }
+    //(LK) Store times for remaining_steps reset before each WR iteration
+    value_type t_lower = tmin_;
+    value_type t_upper = tfinal;
+    value_type dt_reset = dt_max;
 
-        // Deliver events and accumulate mechanism current contributions.
+    //traces:            gj mech id                                values               
+    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
+    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_t, traces_t_prev;
+    
+    //count time steps for feeding back traces array
+    int step = 0;
 
-        PE(advance_integrate_events);
-        state_->deliverable_events.mark_until_after(state_->time);
-        PL();
+    //WR iterations
+    int wr_max_it = 20;
+    for (int wr_it = 0; wr_it < wr_max_it; wr_it++){
 
-        PE(advance_integrate_current_zero);
-        state_->zero_currents();
-        PL();
-        for (auto& m: mechanisms_) {
-            auto state = state_->deliverable_events.marked_events();
-            arb_deliverable_event_stream events;
-            events.n_streams = state.n;
-            events.begin     = state.begin_offset;
-            events.end       = state.end_offset;
-            events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-            m->deliver_events(events);
-            m->update_current();
-        }
-
-        PE(advance_integrate_events);
-        state_->deliverable_events.drop_marked_events();
-
-        // Update event list and integration step times.
-
-        state_->update_time_to(dt_max, tfinal);
-        state_->deliverable_events.event_time_if_before(state_->time_to);
-        state_->set_dt();
-        PL();
-
-        // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we
-        // want to use mean current contributions as opposed to point
-        // sample.)
-
-        PE(advance_integrate_stimuli)
-        state_->add_stimulus_current();
-        PL();
-
-        // Take samples at cell time if sample time in this step interval.
-
-        PE(advance_integrate_samples);
-        sample_events_.mark_until(state_->time_to);
-        state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
-        sample_events_.drop_marked_events();
-        PL();
-
-        // Integrate voltage by matrix solve.
-
-        PE(advance_integrate_matrix_build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
-        PL();
-        PE(advance_integrate_matrix_solve);
-        matrix_.solve(state_->voltage);
-        PL();
-
-        // Integrate mechanism state.
-
-        for (auto& m: mechanisms_) {
-            m->update_state();
-        }
-
-        // Update ion concentrations.
-
-        PE(advance_integrate_ionupdate);
-        update_ion_state();
-        PL();
-
-        // Update time and test for spike threshold crossings.
-
-        PE(advance_integrate_threshold);
-        threshold_watcher_.test(&state_->time_since_spike);
-        PL();
-
-        PE(advance_integrate_post)
-        if (post_events_) {
-            for (auto& m: mechanisms_) {
-                m->post_event();
-            }
-        }
-        PL();
-
-        std::swap(state_->time_to, state_->time);
-        state_->time_ptr = state_->time.data();
-
-        // Check for non-physical solutions:
-
-        if (check_voltage_mV_>0) {
-            PE(advance_integrate_physicalcheck);
-            assert_voltage_bounded(check_voltage_mV_);
-            PL();
-        }
-
-        // Check for end of integration.
-
-        PE(advance_integrate_stepsupdate);
-        if (!--remaining_steps) {
-            tmin_ = state_->time_bounds().first;
+        //reset remaining_steps
+        //(LK) FIXME is this okay to do?
+        if (wr_it > 0) {
+            tmin_ = t_lower;
+            tfinal = t_upper;
+            dt_max = dt_reset;
             remaining_steps = dt_steps(tmin_, tfinal, dt_max);
         }
-        PL();
-    }
 
+        //(LK) FIXME could maybe calculate step with remaining steps
+        step = 0;
+        while (remaining_steps) {
+            // Update any required reversal potentials based on ionic concs.
+            for (auto& m: revpot_mechanisms_) {
+                m->update_current();
+            }
+
+            // Deliver events and accumulate mechanism current contributions.
+
+            PE(advance_integrate_events);
+            state_->deliverable_events.mark_until_after(state_->time);
+            PL();
+
+            PE(advance_integrate_current_zero);
+            state_->zero_currents();
+            PL();
+            for (auto& m: mechanisms_) {
+                auto state = state_->deliverable_events.marked_events();
+                arb_deliverable_event_stream events;
+                events.n_streams = state.n;
+                events.begin     = state.begin_offset;
+                events.end       = state.end_offset;
+                events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
+                m->deliver_events(events);
+
+                //feed back previous traces to vec_v_peer for WR
+                //vec_v_peer defaults to vec_v                
+                if (m->kind() == arb_mechanism_kind_gap_junction && wr_it > 0) {
+                    auto gj = m->mechanism_id();
+                    auto& v_peer = traces_v_prev[gj];
+                    m->ppack_.vec_v_peer = v_peer[step].data();
+                }
+                
+                m->update_current();
+
+                //update traces
+                if (m->kind() == arb_mechanism_kind_gap_junction) {
+                    auto gj = m->mechanism_id();
+                    std::vector<value_type> v_step = {};
+                    std::vector<value_type> t_step = {};
+
+                    for(int ix = 0; ix < state_->voltage.size(); ++ix) {
+                        v_step.push_back(state_->voltage[ix]);
+                        t_step.push_back(state_->dt_cv[ix]);
+                    }
+
+                    traces_v[gj].push_back(v_step);
+                    traces_t[gj].push_back(t_step);
+                }
+            }
+        
+
+            PE(advance_integrate_events);
+            state_->deliverable_events.drop_marked_events();
+
+            // Update event list and integration step times.
+
+            state_->update_time_to(dt_max, tfinal);
+            state_->deliverable_events.event_time_if_before(state_->time_to);
+            state_->set_dt();
+            PL();
+
+            // Add stimulus current contributions.
+            // (Note: performed after dt, time_to calculation, in case we
+            // want to use mean current contributions as opposed to point
+            // sample.)
+
+            PE(advance_integrate_stimuli)
+            state_->add_stimulus_current();
+            PL();
+
+            // Take samples at cell time if sample time in this step interval.
+
+            PE(advance_integrate_samples);
+            sample_events_.mark_until(state_->time_to);
+            state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
+            sample_events_.drop_marked_events();
+            PL();
+
+            // Integrate voltage by matrix solve.
+
+            PE(advance_integrate_matrix_build);
+            matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
+            PL();
+            PE(advance_integrate_matrix_solve);
+            matrix_.solve(state_->voltage);
+            PL();
+
+            // Integrate mechanism state.
+
+            for (auto& m: mechanisms_) {
+                m->update_state();
+            }
+
+            // Update ion concentrations.
+
+            PE(advance_integrate_ionupdate);
+            update_ion_state();
+            PL();
+
+            // Update time and test for spike threshold crossings.
+
+            PE(advance_integrate_threshold);
+            threshold_watcher_.test(&state_->time_since_spike);
+            PL();
+
+            PE(advance_integrate_post)
+            if (post_events_) {
+                for (auto& m: mechanisms_) {
+                    m->post_event();
+                }
+            }
+            PL();
+
+            std::swap(state_->time_to, state_->time);
+            state_->time_ptr = state_->time.data();
+
+            // Check for non-physical solutions:
+
+            if (check_voltage_mV_>0) {
+                PE(advance_integrate_physicalcheck);
+                assert_voltage_bounded(check_voltage_mV_);
+                PL();
+            }
+
+            // Check for end of integration.
+
+            PE(advance_integrate_stepsupdate);
+            if (!--remaining_steps) {
+                tmin_ = state_->time_bounds().first;
+                remaining_steps = dt_steps(tmin_, tfinal, dt_max);
+            }
+            PL();
+
+            ++step;
+        }
+
+        
+        //(LK) add break condition for WR
+
+        //reset traces
+        traces_v_prev = traces_v;
+        traces_t_prev = traces_t;
+        
+        traces_v = {};
+        traces_t = {};
+    }
+    
     set_tmin(tfinal);
 
     const auto& crossings = threshold_watcher_.crossings();
