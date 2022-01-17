@@ -27,3 +27,4 @@ Tutorials
    single_cell_cable
    network_ring
    network_ring_mpi
+   two_cells_gap_junctions

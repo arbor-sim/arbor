@@ -174,7 +174,7 @@ namespace detail {
         {}
 
         indirect_indexed_expression& operator=(V s) {
-            typename simd_traits<ImplIndex>::scalar_type idx[width];
+            typename simd_traits<ImplIndex>::scalar_type idx[simd_traits<ImplIndex>::width];
             ImplIndex::copy_to(index.value_, idx);
             for (unsigned i = 0; i < width; ++i) {
                 p[idx[i]] = s;
@@ -244,10 +244,10 @@ namespace detail {
         switch (constraint) {
             case index_constraint::none:
             {
-                typename ImplIndex::scalar_type o[width];
+                typename ImplIndex::scalar_type o[simd_traits<ImplIndex>::width];
                 ImplIndex::copy_to(index.value_, o);
 
-                V a[width];
+                V a[simd_traits<Impl>::width];
                 Impl::copy_to(s.value_, a);
 
                 V temp = 0;

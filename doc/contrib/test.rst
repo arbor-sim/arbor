@@ -7,7 +7,7 @@ C++ tests are located in ``/tests`` and Python (binding) tests in ``/python/test
 See the documentation on :ref:`building <building>` for the C++ tests and ``/python/test/readme.md`` for the latter.
 
 Python tests
-============
+------------
 
 The Python tests uses the `unittest
 <https://docs.python.org/3/library/unittest.html>`_ and its test discovery

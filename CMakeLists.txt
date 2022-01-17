@@ -186,13 +186,7 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # Interface library `arbor-private-deps` collects dependencies, options etc.
 # for the arbor library.
 add_library(arbor-private-deps INTERFACE)
-target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123)
-if (UNIX)
-    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_DL)
-    target_link_libraries(arbor-private-deps INTERFACE ${CMAKE_DL_LIBS})
-else()
-    message(FATAL_ERROR "No support for dynamic loading on current platform.")
-endif ()
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS})
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
@@ -562,3 +556,4 @@ install(
         cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
+add_subdirectory(lmorpho)
