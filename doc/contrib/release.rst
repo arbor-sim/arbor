@@ -6,18 +6,18 @@ Release cycle
 
 0. release every 3 months (at time ``T``)
 1. ``T-11`` weeks: ``all`` add your favorite Issues to the next-rel column
-2. ``T-10`` weeks: ``AK`` prep dev meet (internal)
+2. ``T-10`` weeks: ``Scrum Master`` prep dev meet (internal)
 
    * Update/trim next-release column in Kanban
    * Prepare agenda, include possible additions not covered by Kanban/Issues
    * Add milestone tags (nextver, nextver+1, etc.)
-3. ``T-8`` weeks: ``BH`` dev meet (external/public)
+3. ``T-8`` weeks: ``Release Manager`` dev meet (external/public)
 
    * Use Kanban as starter
    * Move issues around based on input
    * Add milestone tags, for this release or future releases
-4. ``T±0``: ``BH`` release!
-5. ``T+1`` weeks: ``AK`` retrospective
+4. ``T±0``: ``Release Manager`` release!
+5. ``T+1`` weeks: ``Scrum Master`` retrospective
    
    * set date for next release
 
