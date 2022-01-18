@@ -103,17 +103,21 @@ cpu     = args['cpu']
 
 if gpu:
     if gpu == 'cuda':
-        gpu_support = """add_compile_definitions(ARB_CUDA)
+        gpu_support = """
+add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
 
 enable_language(CUDA)
 set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CXX_COMPILER@)
-set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)"""
+set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)
+"""
     else:
         print(f"Unsupported GPU target: {gpu}. If you need support for HIP or Clang-CUDA, please check here: https://github.com/arbor-sim/arbor/issues/1783")
         exit(-1)
 else:
-    gpu_support = "# GPU: Disabled"
+    gpu_support = """
+# GPU: Disabled
+"""
 
 this_path = Path(__file__).parent
 data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
@@ -134,9 +138,7 @@ project({name}-cat LANGUAGES CXX)
 
 set(arbor_DIR {pack_path})
 find_package(arbor REQUIRED)
-
 {gpu_support}
-
 set(CMAKE_BUILD_TYPE release)
 set(CMAKE_CXX_COMPILER  ${{ARB_CXX}})
 set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
