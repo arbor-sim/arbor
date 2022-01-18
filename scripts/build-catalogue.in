@@ -67,7 +67,6 @@ also <name>_gpu.cpp and <name>_gpu.cu''')
                         help='Enable GPU support, valid options: cuda|hip|cuda-clang.')
 
     parser.add_argument('-C', '--no-cpu',
-                        metavar='cpu',
                         action='store_false',
                         default=True,
                         help='Disable CPU support.')
@@ -99,7 +98,7 @@ verbose = args['verbose'] and not quiet
 debug   = args['debug']
 raw     = args['raw']
 gpu     = args['gpu']
-cpu     = args['cpu']
+cpu     = not args['no_cpu']
 
 if gpu:
     if gpu == 'cuda':
