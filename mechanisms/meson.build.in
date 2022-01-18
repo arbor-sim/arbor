@@ -1,0 +1,55 @@
+project('${cat-name}',
+  ['cpp'],
+  version: '@arb_version@',
+  meson_version: '>=0.60',
+  default_options: ['buildtype=release', 'cpp_std=c++17', 'default_library=shared']
+)
+
+gen_cat = find_program('generate_catalogue')
+modcc   = find_program('modcc')
+
+ipaths = ['@prefix_source@'/'include', '@prefix@'/'include']
+
+arb_modcc_flags = [@modcc_flags@]
+
+arb_with_gpu = @with_gpu@
+if arb_with_gpu
+  add_languages('cuda', native: false, required: true)
+  dep_cuda = dependency('cuda', version: '>=10', modules: [])
+endif
+
+arbor_private_args      = [@private_args@]
+arbor_cuda_private_args = [@cuda_private_args@]
+
+catalogue_options = [@catalogue_options@]
+
+
+mechs = [${mech-list}]
+name = '${name}'
+
+
+mech_sources = []
+foreach m: mechs
+  modfile = meson.current_source_dir() / f'@m@.mod'
+  generated_files = [f'@m@.hpp', f'@m@_cpu.cpp']
+  if arb_with_gpu
+    generated_files += [f'@m@_gpu.cu', f'@m@_gpu.cpp']
+  endif
+  mech_sources += custom_target(f'mechanism:@name@:@m@',
+                             input : modfile,
+                             output : generated_files,
+                             command : [modcc, modfile, '-N', f'arb::${name}_catalogue', '-o', meson.current_build_dir() / m, arb_modcc_flags])
+endforeach
+
+catalogue_source = f'${name}_catalogue.cpp'
+mech_catalogue = custom_target(catalogue_source,
+                               output: catalogue_source,
+                               command : [gen_cat, catalogue_options, '-C', name, '-N', f'arb::@name@_catalogue', mechs, '-o', '@OUTPUT@'])
+catalogue = shared_library(f'@name@-catalogue',
+                            name_prefix: '',
+                            sources: [mech_sources, mech_catalogue],
+                            include_directories: [ipaths],
+                            cpp_args : ['-DSTANDALONE'] + arbor_private_args,
+                            cuda_args: arbor_cuda_private_args,
+                            build_by_default: true)
+

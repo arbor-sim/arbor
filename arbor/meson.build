@@ -26,6 +26,7 @@ arb_src = [
   'mechinfo.cpp',
   'memory/gpu_wrappers.cpp',
   'memory/util.cpp',
+  'morph/cv_data.cpp',
   'morph/embed_pwlin.cpp',
   'morph/label_dict.cpp',
   'morph/locset.cpp',
@@ -59,34 +60,39 @@ arb_src = [
   'version.cpp',
 ]
 
+mpi_src = [
+  'communication/mpi.cpp',
+  'communication/mpi_error.cpp',
+  'communication/mpi_context.cpp',
+]
+
+gpu_src = [
+  'backends/gpu/shared_state.cpp',
+  'backends/gpu/stimulus.cu',
+  'backends/gpu/threshold_watcher.cu',
+  'backends/gpu/matrix_assemble.cu',
+  'backends/gpu/matrix_fine.cu',
+  'backends/gpu/matrix_solve.cu',
+  'backends/gpu/multi_event_stream.cpp',
+  'backends/gpu/multi_event_stream.cu',
+  'backends/gpu/shared_state.cu',
+  'backends/gpu/forest.cpp',
+  'backends/gpu/stimulus.cu',
+  'backends/gpu/threshold_watcher.cu',
+  'memory/fill.cu',
+]
+
 if arb_with_mpi
-  arb_src += [
-    'communication/mpi.cpp',
-    'communication/mpi_error.cpp',
-    'communication/mpi_context.cpp',
-  ]
+  arb_src += mpi_src
 endif
-
 if arb_with_gpu
-  arb_src += [
-    'backends/gpu/shared_state.cpp',
-    'backends/gpu/stimulus.cu',
-    'backends/gpu/threshold_watcher.cu',
-    'backends/gpu/matrix_assemble.cu',
-    'backends/gpu/matrix_fine.cu',
-    'backends/gpu/matrix_solve.cu',
-    'backends/gpu/multi_event_stream.cpp',
-    'backends/gpu/multi_event_stream.cu',
-    'backends/gpu/shared_state.cu',
-    'backends/gpu/forest.cpp',
-    'backends/gpu/stimulus.cu',
-    'backends/gpu/threshold_watcher.cu',
-    'memory/fill.cu',
-  ]
+  arb_src += gpu_src
 endif
 
+# generate version.hpp header
 subdir('include/arbor')
 
+# set dependencies for libarbor
 dep_arb_internal = [dep_threads, dep_random123, dep_dl]
 if arb_with_mpi
   dep_arb_internal += dep_mpi

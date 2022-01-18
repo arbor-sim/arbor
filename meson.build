@@ -2,7 +2,7 @@ project('arbor',
   ['cpp'],
   version: files('VERSION'),
   meson_version: '>=0.60',
-  default_options : ['buildtype=release', 'cpp_std=c++17', 'default_library=static'],
+  default_options : ['buildtype=debug', 'cpp_std=c++17', 'default_library=static'],
   license: 'BSD')
 
 arb_with_assertions   = get_option('arb_with_assertions')
@@ -112,9 +112,11 @@ message('arbor cuda flags     :', arbor_cuda_private_args)
 #
 
 if arb_with_gpu
+  dep_cuda = dependency('cuda', version: '>=10', modules: [], required: true)
   add_languages('cuda', native: false, required: true)
-  dep_cuda = dependency('cuda', version : '>=10', modules : [])
 endif
+
+#message('xxxxxxxxxxxxxxxxxx: '+dep_cuda.get_variable(internal: 'libdir'))
 
 # find dependencies
 if arb_with_bundled_libs

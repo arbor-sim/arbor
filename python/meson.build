@@ -28,9 +28,14 @@ endif
 python3 = import('python').find_installation('python3')
 dep_python = dependency('python3', required: true)
 
+py_dependencies = [dep_python, dep_pybind, dep_arborio, dep_arb]
+if arb_with_gpu
+  py_dependencies += dep_cuda
+endif
+
 pyarb = python3.extension_module('_arbor',
     sources: pyarb_srcs,
-    dependencies : [dep_python, dep_pybind, dep_arborio, dep_arb],
+    dependencies : py_dependencies,
     link_language : 'cpp',
     override_options: [
         'cpp_rtti=true',
