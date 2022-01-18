@@ -1,11 +1,33 @@
 # Dryrun Example
 
 A miniapp that demonstrates how to use dry-run mode to simulate the effect of communication scaling
-with benchmark cells. This is useful for evaluating the communication overheads as a model
-is weak-scaled over MPI.
+with benchmark cells, useful for evaluating the communication overheads associated with
+is weak-scaled a model.
+The overheads of processing spikes and generating local events do not weak scale perfectly: the cost
+of traversing the global spike list increases with global model size.
+Whether these overheads contribute significantly to total run time depends on the computational complexity
+of the local model and the size of the global model.
 
+## How it works
 
-It uses the `arb::tile` to build a network of `num_cells` cells per rank of type
+The dry run mode mimics running a distributed model on a single node or laptop by creating a local model
+and generating fake spike information for the other "ranks" in the larger distributed model.
+
+The benchmark allows the user to tune three key parameters
+    1. the number of ranks in the global model, which can be used to simulate weak scaling
+    2. the size number and computational complexity of cells in the local model
+    3. the complexity of the network (fan in and min-delay).
+
+By tuning the parameters above to match those of a target distributed model, it is possible to replicate
+the spike and event processing overheads without having to run resource-intensive benchmarks at scale.
+
+**Note**: instead of performing MPI communication to gather the global spike list, the dry run mode
+creates a fake global spike list using the local spike data as a template. As such, the scaling of the MPI library
+is not captured, which would have to be benchmarked separately if it is a relevant.
+
+## Configuration
+
+The benchmark uses an `arb::tile` to build a network of `num_cells` local cells of type
 `arb::benchmark_cell`. The network is translated over `ranks` domains using `arb::symmetric_recipe`.
 
 The model of the *tile* can be configured using a json configuration file:
