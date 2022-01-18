@@ -83,6 +83,9 @@ describes the cell groups on the local MPI rank.
         groups = [arbor.group_description(arbor.cell_kind.lif, [1, 3, 5, 7, 9], arbor.backend.multicore)]
         decomp = arbor.partition_by_group(recipe, context, groups)
 
+   The function expects that cells connected by gap-junction are in the same group. An exception will be raised
+   if this is not the case.
+
    The function doesn't perform any checks on the validity of the generated :class:`domain_decomposition`.
    The validity is only checked when a :class:`simulation` object is constructed using that :class:`domain_decomposition`.
 
@@ -90,8 +93,9 @@ describes the cell groups on the local MPI rank.
         This function is intended for users who have a good understanding of the computational
         cost of simulating the cells in their network and want fine-grained control over the
         partitioning of cells across ranks. It is recommended to start off by using
-        :func:`partition_load_balance` and switch to this function if the observed performance across
-        ranks is unbalanced.
+        :func:`partition_load_balance` and switch to this function if the observed performance
+        across ranks is unbalanced (for example, if the performance of the network is not scaling
+        well with the number of nodes.)
 
    .. Note::
         This function relies on the user to decide the size of the cell groups. It is therefore important
