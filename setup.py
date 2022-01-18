@@ -1,6 +1,7 @@
 from pathlib import Path
 from sys import executable as python
 from skbuild import setup
+import os,platform
 
 # Hard coded options, because scikit-build does not do build options.
 # Override by instructing CMAKE, e.g.:
