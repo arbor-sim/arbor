@@ -66,6 +66,12 @@ also <name>_gpu.cpp and <name>_gpu.cu''')
                         metavar='gpu',
                         help='Enable GPU support, valid options: cuda|hip|cuda-clang.')
 
+    parser.add_argument('-C', '--no-cpu',
+                        metavar='cpu',
+                        action='store_false',
+                        default=True,
+                        help='Disable CPU support.')
+
     parser.add_argument('-d', '--debug',
                         nargs="?",
                         metavar="path",
@@ -91,8 +97,9 @@ mods    = [f[:-4] for f in os.listdir(mod_dir) if f.endswith('.mod')]
 quiet   = args['quiet']
 verbose = args['verbose'] and not quiet
 debug   = args['debug']
-raw   = args['raw']
+raw     = args['raw']
 gpu     = args['gpu']
+cpu     = args['cpu']
 
 if gpu:
     if gpu == 'cuda':
@@ -113,11 +120,10 @@ data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
 pack_path = (this_path / "@ARB_REL_PACKAGEDIR@").resolve()
 exec_path = this_path.resolve()
 
-for i, p in [(exec_path, 'modcc'),
-             (data_path, 'generate_catalogue'),
-             (data_path, 'BuildModules.cmake'),
-             (pack_path, 'arbor-config.cmake'),]:
-    path = p / i
+for path in [exec_path / 'modcc',
+             data_path / 'generate_catalogue',
+             data_path / 'BuildModules.cmake',
+             pack_path / 'arbor-config.cmake',]:
     if not path.exists():
         print(f'Could not find required tool: {path}. Please check your installation.')
         exit(-1)
@@ -199,7 +205,9 @@ with TemporaryDirectory() as tmp:
 
     out = tmp / 'build' / 'generated' / name
     os.makedirs(out, exist_ok=True)
-    sfx = [".hpp", "_cpu.cpp"]
+    sfx = [".hpp"]
+    if cpu:
+        sfx += ["_cpu.cpp"]
     if gpu:
         sfx += ["_gpu.cpp", "_gpu.cu"]
     for e in raw:
