@@ -305,8 +305,8 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
 
     std::vector<mcable> L;
 
-    auto start = thingify(reg.end, p);
-    auto distance = reg.distance;
+    const auto start = thingify(reg.end, p);
+    const auto distance = reg.distance;
 
     for (auto c: start) {
         auto branch = c.branch;

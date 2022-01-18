@@ -6,7 +6,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 
-#include <arborenv/gpu_env.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "util/span.hpp"
 
@@ -60,7 +60,7 @@ namespace {
 
     class gap_recipe: public recipe {
     public:
-        gap_recipe() {}
+        gap_recipe(bool full_connected): fully_connected_(full_connected) {}
 
         cell_size_type num_cells() const override {
             return size_;
@@ -68,7 +68,7 @@ namespace {
 
         arb::util::unique_any get_cell_description(cell_gid_type) const override {
             auto c = arb::make_cell_soma_only(false);
-            c.decorations.place(mlocation{0,1}, gap_junction_site{}, "gj");
+            c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
             return {arb::cable_cell(c)};
         }
 
@@ -77,46 +77,72 @@ namespace {
         }
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
-                case 0 :  return {
-                    gap_junction_connection({13, "gj"}, {"gj"}, 0.1)
-                };
-                case 2 :  return {
-                    gap_junction_connection({7,  "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({11, "gj"}, {"gj"}, 0.1)
-                };
-                case 3 :  return {
-                    gap_junction_connection({4, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({8, "gj"}, {"gj"}, 0.1)
-                };
-                case 4 :  return {
-                    gap_junction_connection({3, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({8, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({9, "gj"}, {"gj"}, 0.1)
-                };
-                case 7 :  return {
-                    gap_junction_connection({2,  "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({11, "gj"}, {"gj"}, 0.1)
-                };;
-                case 8 :  return {
-                    gap_junction_connection({3, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({4, "gj"}, {"gj"}, 0.1)
-                };;
-                case 9 :  return {
-                    gap_junction_connection({4, "gj"}, {"gj"}, 0.1)
-                };
-                case 11 : return {
-                    gap_junction_connection({2, "gj"}, {"gj"}, 0.1),
-                    gap_junction_connection({7, "gj"}, {"gj"}, 0.1)
-                };
-                case 13 : return {
-                    gap_junction_connection({0, "gj"}, {"gj"}, 0.1)
-                };
-                default : return {};
+                case 0:  return {gap_junction_connection({13, "gj"}, {"gj"}, 0.1)};
+                case 2:  return {gap_junction_connection({7,  "gj"}, {"gj"}, 0.1)};
+                case 3:  return {gap_junction_connection({8, "gj"}, {"gj"}, 0.1)};
+                case 4: {
+                    if (!fully_connected_) return {gap_junction_connection({9, "gj"}, {"gj"}, 0.1)};
+                    return {
+                        gap_junction_connection({8, "gj"}, {"gj"}, 0.1),
+                        gap_junction_connection({9, "gj"}, {"gj"}, 0.1)
+                    };
+                }
+                case 7: {
+                    if (!fully_connected_) return {};
+                    return {
+                        gap_junction_connection({2, "gj"}, {"gj"}, 0.1),
+                        gap_junction_connection({11, "gj"}, {"gj"}, 0.1)
+                    };
+                }
+                case 8: {
+                    if (!fully_connected_) return {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)};
+                    return {
+                        gap_junction_connection({3, "gj"}, {"gj"}, 0.1),
+                        gap_junction_connection({4, "gj"}, {"gj"}, 0.1)
+                    };
+                }
+                case 9: {
+                    if (!fully_connected_) return {};
+                    return {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)};
+                }
+                case 11: return {gap_junction_connection({7, "gj"}, {"gj"}, 0.1)};
+                case 13: {
+                    if (!fully_connected_) return {};
+                    return { gap_junction_connection({0, "gj"}, {"gj"}, 0.1)};
+                }
+                default: return {};
             }
         }
 
     private:
+        bool fully_connected_ = true;
         cell_size_type size_ = 15;
+    };
+
+    class custom_gap_recipe: public recipe {
+    public:
+        custom_gap_recipe(cell_size_type ncells, std::vector<std::vector<gap_junction_connection>> gj_conns):
+        size_(ncells), gj_conns_(std::move(gj_conns)){}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type) const override {
+            auto c = arb::make_cell_soma_only(false);
+            c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
+            return {arb::cable_cell(c)};
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable;
+        }
+        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+            return gj_conns_[gid];
+        }
+    private:
+        cell_size_type size_ = 7;
+        std::vector<std::vector<gap_junction_connection>> gj_conns_;
     };
 }
 
@@ -316,48 +342,119 @@ TEST(domain_decomposition, hints) {
     EXPECT_EQ(expected_ss_groups, ss_groups);
 }
 
-TEST(domain_decomposition, compulsory_groups)
-{
+TEST(domain_decomposition, gj_recipe) {
     proc_allocation resources;
     resources.num_threads = 1;
     resources.gpu_id = -1; // disable GPU if available
     auto ctx = make_context(resources);
 
-    auto R = gap_recipe();
-    const auto D0 = partition_load_balance(R, ctx);
-    EXPECT_EQ(9u, D0.groups.size());
+    auto recipes = {gap_recipe(false), gap_recipe(true)};
+    for (const auto& R: recipes) {
+        const auto D0 = partition_load_balance(R, ctx);
+        EXPECT_EQ(9u, D0.groups.size());
 
-    std::vector<std::vector<cell_gid_type>> expected_groups0 =
-            { {1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+        std::vector<std::vector<cell_gid_type>> expected_groups0 =
+            {{1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9}};
 
-    for (unsigned i = 0; i < 9u; i++) {
-        EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+        for (unsigned i = 0; i < 9u; i++) {
+            EXPECT_EQ(expected_groups0[i], D0.groups[i].gids);
+        }
+
+        // Test different group_hints
+        partition_hint_map hints;
+        hints[cell_kind::cable].cpu_group_size = 3;
+        hints[cell_kind::cable].prefer_gpu = false;
+
+        const auto D1 = partition_load_balance(R, ctx, hints);
+        EXPECT_EQ(5u, D1.groups.size());
+
+         std::vector<std::vector<cell_gid_type>> expected_groups1 =
+            {{1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9}};
+
+        for (unsigned i = 0; i < 5u; i++) {
+            EXPECT_EQ(expected_groups1[i], D1.groups[i].gids);
+        }
+
+        hints[cell_kind::cable].cpu_group_size = 20;
+        hints[cell_kind::cable].prefer_gpu = false;
+
+        const auto D2 = partition_load_balance(R, ctx, hints);
+        EXPECT_EQ(1u, D2.groups.size());
+
+        std::vector<cell_gid_type> expected_groups2 =
+            {1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9};
+
+        EXPECT_EQ(expected_groups2, D2.groups[0].gids);
     }
+}
 
-    // Test different group_hints
-    partition_hint_map hints;
-    hints[cell_kind::cable].cpu_group_size = 3;
-    hints[cell_kind::cable].prefer_gpu = false;
+TEST(domain_decomposition, unidirectional_gj_recipe) {
+    proc_allocation resources;
+    resources.num_threads = 1;
+    resources.gpu_id = -1;
+    auto ctx = make_context(resources);
+    {
+        std::vector<std::vector<gap_junction_connection>> gj_conns =
+            {
+                {gap_junction_connection({1, "gj"}, {"gj"}, 0.1)},
+                {},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({0, "gj"}, {"gj"}, 0.1), gap_junction_connection({5, "gj"}, {"gj"}, 0.1)},
+                {},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)}
+            };
+        auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
+        const auto D = partition_load_balance(R, ctx);
+        std::vector<cell_gid_type> expected_group = {0, 1, 2, 3, 4, 5, 6};
 
-    const auto D1 = partition_load_balance(R, ctx, hints);
-    EXPECT_EQ(5u, D1.groups.size());
-
-    std::vector<std::vector<cell_gid_type>> expected_groups1 =
-            { {1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
-
-    for (unsigned i = 0; i < 5u; i++) {
-        EXPECT_EQ(expected_groups1[i], D1.groups[i].gids);
+        EXPECT_EQ(1u, D.groups.size());
+        EXPECT_EQ(expected_group, D.groups[0].gids);
     }
+    {
+        std::vector<std::vector<gap_junction_connection>> gj_conns =
+            {
+                {},
+                {gap_junction_connection({3, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({0, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({0, "gj"}, {"gj"}, 0.1), gap_junction_connection({1, "gj"}, {"gj"}, 0.1)},
+                {},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {},
+                {gap_junction_connection({9, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({7, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({8, "gj"}, {"gj"}, 0.1)}
+            };
+        auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
+        const auto D = partition_load_balance(R, ctx);
+        std::vector<std::vector<cell_gid_type>> expected_groups = {{6}, {0, 1, 2, 3}, {4, 5}, {7, 8, 9}};
 
-    hints[cell_kind::cable].cpu_group_size = 20;
-    hints[cell_kind::cable].prefer_gpu = false;
+        EXPECT_EQ(expected_groups.size(), D.groups.size());
+        for (unsigned i=0; i < expected_groups.size(); ++i) {
+            EXPECT_EQ(expected_groups[i], D.groups[i].gids);
+        }
+    }
+    {
+        std::vector<std::vector<gap_junction_connection>> gj_conns =
+            {
+                {},
+                {},
+                {},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {},
+                {},
+                {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({7, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({0, "gj"}, {"gj"}, 0.1)},
+                {}
+            };
+        auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
+        const auto D = partition_load_balance(R, ctx);
+        std::vector<std::vector<cell_gid_type>> expected_groups = {{1}, {2}, {9}, {0, 8}, {3, 4, 5, 6, 7}};
 
-    const auto D2 = partition_load_balance(R, ctx, hints);
-    EXPECT_EQ(1u, D2.groups.size());
-
-    std::vector<cell_gid_type> expected_groups2 =
-            { 1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9 };
-
-    EXPECT_EQ(expected_groups2, D2.groups[0].gids);
-
+        EXPECT_EQ(expected_groups.size(), D.groups.size());
+        for (unsigned i=0; i < expected_groups.size(); ++i) {
+            EXPECT_EQ(expected_groups[i], D.groups[i].gids);
+        }
+    }
 }

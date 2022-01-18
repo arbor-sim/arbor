@@ -304,7 +304,7 @@ There are three parts to the process of recording cell data over a simulation.
 
 1. Describing what to measure.
 
-   The recipe object must provide a method :py:func:`recipe.get_probes` that returns a list of
+   The recipe object must provide a method :py:func:`recipe.probes` that returns a list of
    probe addresses for the cell with a given ``gid``. The kth element of the list corresponds
    to the :term:`probe id` ``(gid, k)``.
 

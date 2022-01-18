@@ -67,7 +67,7 @@ Cable cell decoration
             decor.set_ion('na', int_con=5.0, rev_pot=70, method=None)
 
     Various specialisations of the ``paint`` method are available for setting properties
-    and mechanisms that are applied to regions.
+    and density mechanisms that are applied to regions.
 
     .. method:: paint(region, Vm=None, cm=None, rL=None, tempK=None)
 
@@ -104,59 +104,39 @@ Cable cell decoration
         :param float rev_pot: reversal potential [mV].
         :type rev_pot: float or None
 
-    .. method:: paint(region, mechanism)
+    .. method:: paint(region, density)
         :noindex:
 
-        Apply a mechanism with a region.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`) assigned to the placed items on the cable cell.
+        Apply a density mechanism on a region.
 
         :param str region: description of the region.
-        :param mechanism: the mechanism.
-        :type mechanism: :py:class:`mechanism`
+        :param density: the density mechanism.
+        :type density: :py:class:`density`
 
-    .. method:: paint(region, mech_name)
+
+    .. method:: place(locations, synapse, label)
         :noindex:
 
-        Apply a mechanism with a region using the name of the mechanism.
-        The mechanism will use the parameter values set in the mechanism catalogue.
-        Returns a unique identifier that can be used to query the local indexes (see :gen:`index`)
-        assigned to the placed items on the cable cell.
-
-        :param str region: description of the region.
-        :param str mechanism: the name of the mechanism.
-
-    .. method:: place(locations, mech_name, label)
-
-        Place one instance of the synapse named ``mech_name`` to each location in ``locations`` and label the
-        group of synapses with ``label``. The label can be used to form connections to one of the synapses
-        in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
+        Place one instance of the synapse mechanism described by ``synapse`` to each location in ``locations``
+        and label the group of synapses with ``label``. The label can be used to form connections to one of the
+        synapses in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
 
         :param str locations: description of the locset.
-        :param str mechanism: the name of the mechanism.
+        :param synapse: the synapse.
+        :type synapse: :py:class:`synapse`
         :param str label: the label of the group of synapses on the locset.
 
-    .. method:: place(locations, mechanism, label)
+    .. method:: place(locations, junction, label)
         :noindex:
 
-        Place one instance of the synapse described by ``mechanism`` to each location in ``locations`` and label the
-        group of synapses with ``label``. The label can be used to form connections to one of the synapses
-        in the :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
+        Place one instance of the gap junction mechanism described by ``junction`` at each location in ``locations``
+        and label the group of gap junction sites with ``label``. The label can be used to form gap junction
+        connections to/from one of labeled sites in the :py:class:`arbor.recipe` by creating a
+        :py:class:`arbor.gap_junction_connection`.
 
         :param str locations: description of the locset.
-        :param mechanism: the mechanism.
-        :type mechanism: :py:class:`mechanism`
-        :param str label: the label of the group of synapses on the locset.
-
-    .. method:: place(locations, site, label)
-        :noindex:
-
-        Place one gap junction site at each location in ``locations`` and label the group of gap junction sites with
-        ``label``. The label can be used to form connections to/from one of the gap junction sites in the
-        :py:class:`arbor.recipe` by creating a :py:class:`arbor.gap_junction_connection`.
-
-        :param str locations: description of the locset.
-        :param site: indicates a gap junction site..
-        :type site: :py:class:`gap_junction_site`
+        :param junction: the gap junction mechanism.
+        :type junction: :py:class:`junction`
         :param str label: the label of the group of gap junction sites on the locset.
 
     .. method:: place(locations, stim, label)

@@ -40,17 +40,16 @@ Interconnectivity
 
 .. cpp:class:: gap_junction_connection
 
-    Describes a gap junction between two gap junction sites. The :cpp:member:`local` site does not include
-    the gid of a cell, this is because a :cpp:class:`gap_junction_connection` is bound to the local
+    Describes a gap junction connection between two gap junction sites. The :cpp:member:`local` site does
+    not include the gid of a cell, this is because a :cpp:class:`gap_junction_connection` is bound to the local
     cell which means that the gid is implicitly known.
 
     .. note::
 
-       A bidirectional gap-junction between two cells ``c0`` and ``c1`` requires two
+       A bidirectional gap-junction connection between two cells ``c0`` and ``c1`` requires two
        :cpp:class:`gap_junction_connection` objects to be constructed: one where ``c0`` is the
        :cpp:member:`local` site, and ``c1`` is the :cpp:member:`peer` site; and another where ``c1`` is the
-       :cpp:member:`local` site, and ``c0`` is the :cpp:member:`peer` site. If :cpp:member:`ggap` is equal
-       in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
+       :cpp:member:`local` site, and ``c0`` is the :cpp:member:`peer` site.
 
     .. cpp:member:: cell_global_label_type peer
 
@@ -63,6 +62,6 @@ Interconnectivity
         which packages a label of a group of gap junction sites on the cell and a selection policy.
         The gid of the local site's cell is implicitly known.
 
-    .. cpp:member:: float ggap
+    .. cpp:member:: float weight
 
-        gap junction conductance in μS.
+        unit-less gap junction connection weight.

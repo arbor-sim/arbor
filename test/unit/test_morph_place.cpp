@@ -570,3 +570,104 @@ TEST(place_pwlin, segments) {
     EXPECT_TRUE(mpoint_almost_eq(p8p, x3all[2].prox));
     EXPECT_TRUE(mpoint_almost_eq(p8p, x3all[2].dist));
 }
+
+TEST(place_pwlin, nearest) {
+    segment_tree tree;
+
+    //  the test morphology:
+    //
+    //       x=-9        x=9
+    //
+    //         _        _  y=40
+    //          \       /
+    //      seg4 \     / seg2
+    //  branch 2  \   /     branch 1
+    //        seg3 \ /
+    //              | y=25
+    //              |
+    //              |
+    //              | branch 0
+    //        seg1  |
+    //              |
+    //              _ y=7
+    //
+    //              - y=5
+    //        seg0  |
+    //              _ y=-5
+
+    // Root branch.
+    mpoint psoma_p{0, -5, 0, 5};
+    mpoint psoma_d{0,  5, 0, 5};
+
+    msize_t ssoma = tree.append(mnpos, psoma_p, psoma_d, 1);
+
+    // Main leg of y, of length 28 μm
+    // Note that there is a gap of 2 μm between the end of the soma segment
+    mpoint py1_p{0,  7, 0, 1};
+    mpoint py1_d{0, 25, 0, 1};
+
+    msize_t sy1 = tree.append(ssoma, py1_p, py1_d, 3);
+
+    // branch 1 of y: translation (9,15) in one segment
+    mpoint py2_d{ 9, 40, 0, 1};
+    tree.append(sy1, py2_d, 3);
+
+    // branch 2 of y: translation (-9,15) in 2 segments
+    mpoint py3_m{-6, 35, 0, 1};
+    mpoint py3_d{-9, 40, 0, 1};
+    tree.append(tree.append(sy1, py3_m, 3), py3_d, 3);
+
+    morphology m(tree);
+    place_pwlin place(m);
+
+    {
+        auto [l, d] = place.closest(0, -5, 0);
+        EXPECT_EQ((mlocation{0, 0.}), l);
+        EXPECT_EQ(0., d);
+    }
+    {
+        auto [l, d] = place.closest(10, -5, 0);
+        EXPECT_EQ((mlocation{0, 0.}), l);
+        EXPECT_EQ(10., d);
+    }
+    {
+        auto [l, d] = place.closest(0, 0, 0);
+        EXPECT_EQ((mlocation{0, 5./28.}), l);
+        EXPECT_EQ(0., d);
+    }
+    {
+        auto [l, d] = place.closest(10, 0, 0);
+        EXPECT_EQ((mlocation{0, 5./28.}), l);
+        EXPECT_EQ(10., d);
+    }
+    {
+        auto [l, d] = place.closest(0, 25, 0);
+        EXPECT_EQ((mlocation{0, 1.}), l);
+        EXPECT_EQ(0., d);
+    }
+    {
+        auto [l, d] = place.closest(0, 6, 0);
+        EXPECT_EQ((mlocation{0, 10./28.}), l);
+        EXPECT_EQ(1., d);
+    }
+    {
+        auto [l, d] = place.closest(3, 30, 0);
+        EXPECT_EQ((mlocation{1, 1./3.}), l);
+        EXPECT_EQ(0., d);
+    }
+    {
+        auto [l, d] = place.closest(-6, 35, 0);
+        EXPECT_EQ((mlocation{2, 2./3.}), l);
+        EXPECT_EQ(0., d);
+    }
+    {
+        auto [l, d] = place.closest(-9, 40, 0);
+        EXPECT_EQ((mlocation{2, 1.}), l);
+        EXPECT_EQ(0., d);
+    }
+    {
+        auto [l, d] = place.closest(-9, 41, 0);
+        EXPECT_EQ((mlocation{2, 1.}), l);
+        EXPECT_EQ(1., d);
+    }
+}

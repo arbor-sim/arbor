@@ -49,7 +49,7 @@ class Arbor(CMakePackage, CudaPackage):
     extends('python', when='+python')
     depends_on('python@3.6:', when="+python", type=('build', 'run'))
     depends_on('py-numpy', when='+python', type=('build', 'run'))
-    depends_on('py-pybind11@2.8:', when='+python', type=('build', 'run'))
+    depends_on('py-pybind11@2.8.1:', when='+python', type=('build', 'run'))
 
     # sphinx based documentation
     depends_on('python@3.6:', when="+doc", type='build')

@@ -34,7 +34,7 @@ MPI_Comm convert_to_mpi_comm(pybind11::object o) {
         return *PyMPIComm_Get(o.ptr());
     }
 #endif
-    throw arb::mpi_error(MPI_ERR_OTHER, "Unable to convert to an MPI Communicatior");
+    throw arb::mpi_error(MPI_ERR_OTHER, "Invalid MPI Communicatior");
 }
 
 mpi_comm_shim::mpi_comm_shim(pybind11::object o) {

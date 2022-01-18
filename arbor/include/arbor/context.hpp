@@ -4,6 +4,7 @@
 #include <thread>
 
 #include <arbor/arbexcept.hpp>
+#include <arborenv/concurrency.hpp>
 
 namespace arb {
 
@@ -30,7 +31,7 @@ struct thread_count {
     }
 
     static thread_count avail_threads() { 
-        auto tc = thread_count{std::thread::hardware_concurrency()};
+        auto tc = thread_count{arbenv::thread_concurrency()};
         if (0 == tc){
             throw arb::undefined_hardware_thread_count_error(0);
         }
@@ -46,7 +47,7 @@ struct thread_count {
 // By default, a proc_allocation will comprise one thread and no GPU.
 
 struct proc_allocation {
-    unsigned num_threads;
+    unsigned long num_threads;
 
     // The gpu id corresponds to the `int device` parameter used by
     // CUDA/HIP API calls to identify gpu devices.

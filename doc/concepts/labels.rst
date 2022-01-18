@@ -232,7 +232,7 @@ Locset expressions
     of branch length, so for example, on a branch of length 100 μm ``pos=0.2``
     corresponds to 20 μm from the proximal end, or 80 μm from the distal end.
 
-    .. figure:: ../gen-images/location_label.svg
+    .. figure:: ../gen-images/location_05_label.svg
       :width: 300
       :align: center
 
@@ -292,6 +292,39 @@ Locset expressions
 
       On the left is the region with radius between 0.3 μm and 0.5 μm.
       The right shows the proximal set of this region.
+
+.. label:: (proximal-translate ls:locset distance:real)
+
+    The set of locations that correspond to moving each location in the ``ls`` in the proximal direction
+    ``distance`` μm. The locations in the output have a one to one correspondance with those in ``ls``.
+
+    .. figure:: ../gen-images/proximal_translate_label.svg
+      :width: 600
+      :align: center
+
+      The proximal translation of the terminal locations (left) a distance of 10 μm using the
+      expression ``(proximal-translate (terminal) 10)``.
+
+.. label:: (distal-translate ls:locset distance:real)
+
+    The set of locations that correspond to translating each location in ``ls`` in the distal direction
+    ``distance`` μm or to a terminal location, whichever is closest.
+
+    An input location will generate multiple output locations when it is translated
+    past a fork point, with a new location for each child branch (see the example
+    below). For this reason there is not a one-to-one correspondance between locations
+    in the input and output sets, so the results are sorted and duplicates are removed.
+
+
+    .. figure:: ../gen-images/distal_translate_label.svg
+      :width: 600
+      :align: center
+
+      Two distal translations of the midpoint of branch 0 (left).
+      The first translation of 5 μm, ``(distal-translate (location 0 0.5) 5)``, generates a
+      single location on the same branch (center).
+      The second translation of 15 μm ``(distal-translate (location 0 0.5) 15)`` extends beyond
+      the end of branch 0, generating an additional location at each fork point (right).
 
 .. label:: (locset name:string)
 

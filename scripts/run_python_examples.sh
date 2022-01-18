@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 if [[ "$#" -gt 1 ]]; then
     echo "usage: run_python_examples.sh <prefix>"
-	exit 1
+    exit 1
 fi
 
 PREFIX=${1:-}
@@ -22,3 +22,4 @@ $PREFIX python python/example/single_cell_detailed.py python/example/single_cell
 $PREFIX python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_extracellular_potentials.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_cable.py
+$PREFIX python python/example/two_cell_gap_junctions.py
