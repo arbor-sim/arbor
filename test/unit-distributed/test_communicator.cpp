@@ -23,7 +23,7 @@ using namespace arb;
 TEST(communicator, policy_basics) {
 
     const int num_domains = g_context->distributed->size();
-    const int rank = g_context->distributed->id();;
+    const int rank = g_context->distributed->id();
 
     EXPECT_EQ((int)arb::num_ranks(g_context), num_domains);
     EXPECT_EQ((int)arb::rank(g_context), rank);
@@ -314,8 +314,8 @@ namespace {
     // make a list of the gids on the local domain
     std::vector<cell_gid_type> get_gids(const domain_decomposition& D) {
         std::vector<cell_gid_type> gids;
-        for (auto i: util::make_span(0, D.groups.size())) {
-            util::append(gids, D.groups[i].gids);
+        for (auto i: util::make_span(0, D.groups().size())) {
+            util::append(gids, D.groups()[i].gids);
         }
         return gids;
     }
@@ -324,8 +324,8 @@ namespace {
     std::unordered_map<cell_gid_type, cell_gid_type>
     get_group_map(const domain_decomposition& D) {
         std::unordered_map<cell_gid_type, cell_gid_type> map;
-        for (auto i: util::make_span(0, D.groups.size())) {
-            for (auto gid: D.groups[i].gids) {
+        for (auto i: util::make_span(0, D.groups().size())) {
+            for (auto gid: D.groups()[i].gids) {
                 map[gid] = i;
             }
         }
@@ -465,9 +465,9 @@ test_ring(const domain_decomposition& D, communicator& C, F&& f) {
     // search for the expected event.
     int expected_count = 0;
     for (auto gid: gids) {
-        auto src = source_of(gid, D.num_global_cells);
+        auto src = source_of(gid, D.num_global_cells());
         if (f(src)) {
-            auto expected = expected_event_ring(gid, D.num_global_cells);
+            auto expected = expected_event_ring(gid, D.num_global_cells());
             auto grp = group_map[gid];
             auto& q = queues[grp];
             if (std::find(q.begin(), q.end(), expected)==q.end()) {
@@ -511,7 +511,7 @@ TEST(communicator, ring)
     // set up source and target label->lid resolvers
     // from mc_cell_group and lif_cell_group
     std::vector<cell_gid_type> mc_gids, lif_gids;
-    for (auto g: D.groups) {
+    for (auto g: D.groups()) {
         if (g.kind == cell_kind::cable) {
             mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
         }
@@ -560,7 +560,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
     std::reverse(local_spikes.begin(), local_spikes.end());
 
     std::vector<cell_gid_type> spike_gids = assign_from(
-        filter(make_span(0, D.num_global_cells), f));
+        filter(make_span(0, D.num_global_cells()), f));
 
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);
@@ -573,7 +573,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
     // generate the events
     std::vector<arb::pse_vector> queues(C.num_local_cells());
     C.make_event_queues(global_spikes, queues);
-    if (queues.size() != D.groups.size()) { // one queue for each cell group
+    if (queues.size() != D.groups().size()) { // one queue for each cell group
         return ::testing::AssertionFailure()
             << "expect one event queue for each cell group";
     }
@@ -630,7 +630,7 @@ TEST(communicator, all2all)
     // set up source and target label->lid resolvers
     // from mc_cell_group
     std::vector<cell_gid_type> mc_gids;
-    for (auto g: D.groups) {
+    for (auto g: D.groups()) {
         mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_label_range local_sources, local_targets;
@@ -676,7 +676,7 @@ TEST(communicator, mini_network)
     // set up source and target label->lid resolvers
     // from mc_cell_group
     std::vector<cell_gid_type> gids;
-    for (auto g: D.groups) {
+    for (auto g: D.groups()) {
         gids.insert(gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_label_range local_sources, local_targets;

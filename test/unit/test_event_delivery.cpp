@@ -56,7 +56,7 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
     for (const auto& gidvec: group_gids) {
         groups.emplace_back(cell_kind::cable, gidvec, backend_kind::multicore);
     }
-    auto D = partition_by_group(R, ctx, groups);
+    auto D = domain_decomposition(R, ctx, groups);
     std::vector<spike> spikes;
 
     simulation sim(R, D, ctx);

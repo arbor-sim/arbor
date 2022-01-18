@@ -25,34 +25,11 @@ domain_decomposition partition_load_balance(
     const context& ctx,
     partition_hint_map hint_map)
 {
-    const bool gpu_avail = ctx->gpu->has_gpu();
-
-    struct partition_gid_domain {
-        partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
-            auto rank_part = util::partition_view(divs.partition());
-            for (auto rank: count_along(rank_part)) {
-                for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    gid_map[gid] = rank;
-                }
-            }
-        }
-
-        int operator()(cell_gid_type gid) const {
-            return gid_map.at(gid);
-        }
-
-        std::unordered_map<cell_gid_type, int> gid_map;
-    };
-
-    struct cell_identifier {
-        cell_gid_type id;
-        bool is_super_cell;
-    };
-
     using util::make_span;
 
     unsigned num_domains = ctx->distributed->size();
     unsigned domain_id = ctx->distributed->id();
+    const bool gpu_avail = ctx->gpu->has_gpu();
     auto num_global_cells = rec.num_cells();
 
     auto dom_size = [&](unsigned dom) -> cell_gid_type {
@@ -120,6 +97,10 @@ domain_decomposition partition_load_balance(
     // 1. gids of regular cells (in reg_cells)
     // 2. indices of supercells (in super_cells)
 
+    struct cell_identifier {
+        cell_gid_type id;
+        bool is_super_cell;
+    };
     std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_identifier>> kind_lists;
     for (auto gid: reg_cells) {
@@ -184,11 +165,11 @@ domain_decomposition partition_load_balance(
         std::vector<cell_gid_type> group_elements;
         // group_elements are sorted such that the gids of all members of a super_cell are consecutive.
         for (auto cell: kind_lists[k]) {
-            if (cell.is_super_cell == false) {
+            if (!cell.is_super_cell) {
                 group_elements.push_back(cell.id);
             } else {
                 if (group_elements.size() + super_cells[cell.id].size() > group_size && !group_elements.empty()) {
-                    groups.push_back({k, std::move(group_elements), backend});
+                    groups.emplace_back(k, std::move(group_elements), backend);
                     group_elements.clear();
                 }
                 for (auto gid: super_cells[cell.id]) {
@@ -196,135 +177,20 @@ domain_decomposition partition_load_balance(
                 }
             }
             if (group_elements.size()>=group_size) {
-                groups.push_back({k, std::move(group_elements), backend});
+                groups.emplace_back(k, std::move(group_elements), backend);
                 group_elements.clear();
             }
         }
         if (!group_elements.empty()) {
-            groups.push_back({k, std::move(group_elements), backend});
+            groups.emplace_back(k, std::move(group_elements), backend);
         }
     }
-
-    cell_size_type num_local_cells = local_gids.size();
 
     // Exchange gid list with all other nodes
     // global all-to-all to gather a local copy of the global gid list on each node.
     auto global_gids = ctx->distributed->gather_gids(local_gids);
 
-    domain_decomposition d;
-    d.num_domains = num_domains;
-    d.domain_id = domain_id;
-    d.num_local_cells = num_local_cells;
-    d.num_global_cells = num_global_cells;
-    d.groups = std::move(groups);
-    d.gid_domain = partition_gid_domain(global_gids, num_domains);
-
-    return d;
-}
-
-domain_decomposition partition_by_group(const recipe& rec, const context& ctx, const std::vector<group_description>& groups) {
-    struct partition_gid_domain {
-        partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
-            auto rank_part = util::partition_view(divs.partition());
-            for (auto rank: count_along(rank_part)) {
-                for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    gid_map[gid] = rank;
-                }
-            }
-        }
-        int operator()(cell_gid_type gid) const {
-            return gid_map.at(gid);
-        }
-        std::unordered_map<cell_gid_type, int> gid_map;
-    };
-
-    unsigned num_domains = ctx->distributed->size();
-    unsigned domain_id = ctx->distributed->id();
-    auto num_global_cells = rec.num_cells();
-
-    std::vector<cell_gid_type> local_gids;
-    for (const auto& g: groups) {
-        local_gids.insert(local_gids.end(), g.gids.begin(), g.gids.end());
-    }
-    cell_size_type num_local_cells = local_gids.size();
-
-    auto global_gids = ctx->distributed->gather_gids(local_gids);
-
-    domain_decomposition d;
-    d.num_domains = num_domains;
-    d.domain_id = domain_id;
-    d.num_local_cells = num_local_cells;
-    d.num_global_cells = num_global_cells;
-    d.groups = groups;
-    d.gid_domain = partition_gid_domain(global_gids, num_domains);
-
-    return d;
-}
-
-void check_domain_decomposition(const recipe& rec, const execution_context& ctx, const domain_decomposition& d) {
-    int num_domains = ctx.distributed->size();
-    int domain_id = ctx.distributed->id();
-    auto num_global_cells = rec.num_cells();
-    auto has_gpu = ctx.gpu->has_gpu();
-
-    if (d.num_domains != (int)num_domains) {
-        throw invalid_num_domains(d.num_domains, num_domains);
-    }
-    if (d.domain_id != (int)domain_id) {
-        throw invalid_domain_id(d.domain_id, domain_id);
-    }
-
-    std::vector<cell_gid_type> local_gids;
-    for (const auto& g: d.groups) {
-        if (!has_gpu && g.backend == backend_kind::gpu) {
-            throw invalid_backend(domain_id);
-        }
-        if (g.backend == backend_kind::gpu && g.kind != cell_kind::cable) {
-            throw incompatible_backend(domain_id, g.kind);
-        }
-
-        std::unordered_set<cell_gid_type> gid_set(g.gids.begin(), g.gids.end());
-        for (const auto& gid: g.gids) {
-            if (gid >= num_global_cells) {
-                throw out_of_bounds(gid, num_global_cells);
-            }
-            for (const auto& gj: rec.gap_junctions_on(gid)) {
-                if (!gid_set.count(gj.peer.gid)) {
-                    throw invalid_gj_cell_group(gid, gj.peer.gid);
-                }
-            }
-        }
-        local_gids.insert(local_gids.end(), g.gids.begin(), g.gids.end());
-    }
-    cell_size_type num_local_cells = local_gids.size();
-
-    if (d.num_local_cells != num_local_cells) {
-        throw invalid_num_local_cells(d.domain_id, d.num_local_cells, num_local_cells);
-    }
-
-    auto global_gids = ctx.distributed->gather_gids(local_gids);
-    if (global_gids.size() != num_global_cells) {
-        throw invalid_sum_local_cells(global_gids.size(), num_global_cells);
-    }
-
-    if (d.num_global_cells != num_global_cells) {
-        throw invalid_num_global_cells(d.num_global_cells, num_global_cells);
-    }
-
-    auto global_gid_vals = global_gids.values();
-    util::sort(global_gid_vals);
-    for (unsigned i = 1; i < global_gid_vals.size(); ++i) {
-        if (global_gid_vals[i] == global_gid_vals[i-1]) {
-            throw duplicate_gid(global_gid_vals[i]);
-        }
-    }
-
-    for (unsigned i = 0; i < num_global_cells; ++i) {
-        auto dom = d.gid_domain(i);
-        if (dom > (int)num_domains - 1 || dom < 0) {
-            throw non_existent_rank(i, dom);
-        }
-    }
+    return domain_decomposition(rec, ctx, groups);
 }
 
 } // namespace arb

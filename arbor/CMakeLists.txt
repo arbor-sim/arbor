@@ -13,6 +13,7 @@ set(arbor_sources
     common_types_io.cpp
     cv_policy.cpp
     domdecexcept.cpp
+    domain_decomposition.cpp
     execution_context.cpp
     gpu_context.cpp
     event_binner.cpp

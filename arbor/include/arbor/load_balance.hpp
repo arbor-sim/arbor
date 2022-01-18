@@ -23,6 +23,4 @@ domain_decomposition partition_load_balance(
     const recipe& rec,
     const context& ctx,
     partition_hint_map hint_map = {});
-
-domain_decomposition partition_by_group(const recipe& rec, const context& ctx, const std::vector<group_description>& groups);
 } // namespace arb
