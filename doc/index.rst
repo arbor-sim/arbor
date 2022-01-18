@@ -13,7 +13,7 @@ You can find out how to :ref:`get Arbor<in_install>`; get started quickly with o
 What is Arbor?
 --------------
 
-`Arbor <https://arbor-sim.org>`_. is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
+`Arbor <https://arbor-sim.org>`_ is a high-performance library for computational neuroscience simulations with multi-compartment, morphologically-detailed cells,
 from single cell models to very large networks. Arbor is written from the ground up with many-cpu and gpu architectures in mind, to
 help neuroscientists effectively use contemporary and future HPC systems to meet their simulation needs.
 
@@ -41,31 +41,6 @@ Latest version
 Version 0.5.2
     |z052|
 
-    .. code-block:: latex
-
-        @software{nora_abi_akar_2021_4428108,
-        author       = {Nora {Abi Akar} and
-                        John Biddiscombe and
-                        Benjamin Cumming and
-                        Felix Huber and
-                        Marko Kabic and
-                        Vasileios Karakasis and
-                        Wouter Klijn and
-                        Anne Küsters and
-                        Alexander Peyser and
-                        Stuart Yates and
-                        Thorsten Hater and
-                        Brent Huisman and
-                        Sebastian Schmitt},
-        title        = {arbor-sim/arbor: Arbor Library v0.5},
-        month        = jan,
-        year         = 2021,
-        publisher    = {Zenodo},
-        version      = {v0.5},
-        doi          = {10.5281/zenodo.4428108},
-        url          = {https://doi.org/10.5281/zenodo.4428108}
-        }
-
 Version 0.2
     |z02|
 
@@ -73,20 +48,18 @@ Version 0.1
     |z01|
 
 Introductory paper
-    .. code-block:: latex
+    |intropaper|
 
-        @INPROCEEDINGS{
-            paper:arbor2019,
-            author={N. {Abi Akar} and B. {Cumming} and V. {Karakasis} and A. {Küsters} and W. {Klijn} and A. {Peyser} and S. {Yates}},
-            booktitle={2019 27th Euromicro International Conference on Parallel, Distributed and Network-Based Processing (PDP)},
-            title={{Arbor --- A Morphologically-Detailed Neural Network Simulation Library for Contemporary High-Performance Computing Architectures}},
-            year={2019}, month={feb}, volume={}, number={},
-            pages={274--282},
-            doi={10.1109/EMPDP.2019.8671560},
-            ISSN={2377-5750}}
+    A preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
 
-    Alternative citation formats for the paper can be `downloaded here <https://ieeexplore.ieee.org/abstract/document/8671560>`_, and a preprint is available at `arXiv <https://arxiv.org/abs/1901.07454>`_.
+Cite (Bibtex format)
+    Introductory paper and latest version on Zenodo:
 
+    .. literalinclude:: ../CITATION.bib
+        :language: latex
+
+.. |intropaper| image:: https://zenodo.org/badge/DOI/10.1109/EMPDP.2019.8671560.svg
+    :target: https://doi.org/10.1109/EMPDP.2019.8671560
 
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
@@ -138,6 +111,12 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/benchmark_cell
 
 .. toctree::
+   :caption: Modelling:
+   :maxdepth: 1
+
+   modelling/index
+
+.. toctree::
    :caption: File formats:
    :maxdepth: 1
 
@@ -165,6 +144,7 @@ A full list of our software attributions can be found `here <https://github.com/
    contrib/doc
    contrib/example
    contrib/test
+   contrib/release
 
 .. meta::
    :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo

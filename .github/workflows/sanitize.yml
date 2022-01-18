@@ -40,13 +40,4 @@ jobs:
           build/bin/unit --gtest_filter=-*DeathTest
           build/bin/unit-modcc
       - name: Run examples
-        run: |
-          build/bin/bench
-          build/bin/brunel
-          build/bin/dryrun
-          build/bin/gap_junctions
-          build/bin/generators
-          build/bin/lfp
-          build/bin/probe-demo v
-          build/bin/ring
-          build/bin/single-cell
+        run: scripts/run_cpp_examples.sh

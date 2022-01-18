@@ -18,8 +18,9 @@
 #include <arbor/util/any_ptr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/version.hpp>
-#include <arborenv/gpu_env.hpp>
 #include <arbor/mechanism.hpp>
+
+#include <arborenv/default_env.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multicore/fvm.hpp"
@@ -239,7 +240,7 @@ void run_v_cell_probe_test(const context& ctx) {
 
         // Independetly discretize the cell so we can follow cable–CV relationship.
 
-        cv_geometry geom = cv_geometry_from_ends(cell, testcase.second.cv_boundary_points(cell));
+        cv_geometry geom(cell, testcase.second.cv_boundary_points(cell));
 
         // For each cable in metadata, get CV from geom and confirm raw handle is
         // state voltage + CV.
@@ -272,8 +273,8 @@ void run_expsyn_g_probe_test(const context& ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     auto bs = builder.make_cell();
-    bs.decorations.place(loc0, "expsyn", "syn0");
-    bs.decorations.place(loc1, "expsyn", "syn1");
+    bs.decorations.place(loc0, synapse("expsyn"), "syn0");
+    bs.decorations.place(loc1, synapse("expsyn"), "syn1");
     bs.decorations.set_default(cv_policy_fixed_per_branch(2));
 
     auto run_test = [&](bool coalesce_synapses) {
@@ -376,9 +377,9 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
         for (unsigned j = 0; j<10; ++j) {
             auto idx = (bid*10+j)*2;
             mlocation expsyn_loc{bid, 0.1*j};
-            d.place(expsyn_loc, "expsyn", "syn"+std::to_string(idx));
+            d.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
             expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            d.place(mlocation{bid, 0.1*j+0.05}, "exp2syn", "syn"+std::to_string(idx+1));
+            d.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
             ++n_expsyn;
         }
     }
@@ -413,8 +414,8 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
 
         // Independently get cv geometry to compute CV indices.
 
-        cv_geometry geom = cv_geometry_from_ends(cells[0], policy.cv_boundary_points(cells[0]));
-        append(geom, cv_geometry_from_ends(cells[1], policy.cv_boundary_points(cells[1])));
+        cv_geometry geom(cells[0], policy.cv_boundary_points(cells[0]));
+        append(geom, cv_geometry(cells[1], policy.cv_boundary_points(cells[1])));
 
         ASSERT_EQ(2u, probe_map.size());
         for (unsigned i: {0u, 1u}) {
@@ -503,9 +504,9 @@ void run_ion_density_probe_test(const context& ctx) {
     // Calcium ions everywhere, half written by write_ca1, half by write_ca2.
     // Sodium ions only on distal half.
 
-    d.paint(mcable{0, 0., 0.5}, "write_ca1");
-    d.paint(mcable{0, 0.5, 1.}, "write_ca2");
-    d.paint(mcable{0, 0.5, 1.}, "write_na3");
+    d.paint(mcable{0, 0., 0.5}, density("write_ca1"));
+    d.paint(mcable{0, 0.5, 1.}, density("write_ca2"));
+    d.paint(mcable{0, 0.5, 1.}, density("write_na3"));
 
     // Place probes in each CV.
 
@@ -680,7 +681,7 @@ void run_partial_density_probe_test(const context& ctx) {
     //    CV 4:   8.6
     //    CV 5:  10.5
 
-    auto mk_mech = [](double param) { return mechanism_desc("param_as_state").set("p", param); };
+    auto mk_mech = [](double param) { return density(mechanism_desc("param_as_state").set("p", param)); };
 
     d0.paint(mcable{0, 0.0, 0.1}, mk_mech(2));
     d0.paint(mcable{0, 0.2, 0.3}, mk_mech(3));
@@ -781,7 +782,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
     // to 0.01 F/m².
 
-    d.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
+    d.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
     d.set_default(membrane_capacitance{0.01}); // [F/m²]
     const double tau = 0.1; // [ms]
 
@@ -933,9 +934,9 @@ void run_multi_probe_test(const context& ctx) {
     decor d;
 
     // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
-    d.paint(reg::branch(1), mechanism_desc("param_as_state").set("p", 10.));
-    d.paint(reg::branch(2), mechanism_desc("param_as_state").set("p", 20.));
-    d.paint(reg::branch(5), mechanism_desc("param_as_state").set("p", 50.));
+    d.paint(reg::branch(1), density("param_as_state", {{"p", 10.}}));
+    d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
+    d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
     auto tracev = run_simple_sampler<double, mlocation>(ctx, 0.1, {cable_cell{m, {}, d}}, 0, cable_probe_density_state{ls::terminal(), "param_as_state", "s"}, {0.});
 
@@ -1025,7 +1026,7 @@ void run_total_current_probe_test(const context& ctx) {
     const double tau = 0.1;     // [ms]
     d0.place(mlocation{0, 0}, i_clamp(0.3), "clamp0");
 
-    d0.paint(reg::all(), mechanism_desc("ca_linear").set("g", 0.01)); // [S/cm²]
+    d0.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
     d0.set_default(membrane_capacitance{0.01}); // [F/m²]
     // Tweak membrane capacitance on cells[1] so as to change dynamics a bit.
     auto d1 = d0;
@@ -1164,7 +1165,7 @@ void run_stimulus_probe_test(const context& ctx) {
                 cable_probe_stimulus_current_cell{}, {stim_until/2, 2*stim_until}).at(0);
 
         ASSERT_EQ(3u, traces[i].meta.size());
-        for (unsigned cv: {0u, 1u, 2u}) {
+        for ([[maybe_unused]] unsigned cv: {0u, 1u, 2u}) {
             ASSERT_EQ(2u, traces[i].size());
         }
     }
@@ -1198,13 +1199,13 @@ void run_exact_sampling_probe_test(const context& ctx) {
             std::vector<cable_cell_description> cd;
             cd.assign(4, builder.make_cell());
 
-            cd[0].decorations.place(mlocation{1, 0.1}, "expsyn", "syn");
-            cd[1].decorations.place(mlocation{1, 0.1}, "exp2syn", "syn");
-            cd[2].decorations.place(mlocation{1, 0.9}, "expsyn", "syn");
-            cd[3].decorations.place(mlocation{1, 0.9}, "exp2syn", "syn");
+            cd[0].decorations.place(mlocation{1, 0.1}, synapse("expsyn"), "syn");
+            cd[1].decorations.place(mlocation{1, 0.1}, synapse("exp2syn"), "syn");
+            cd[2].decorations.place(mlocation{1, 0.9}, synapse("expsyn"), "syn");
+            cd[3].decorations.place(mlocation{1, 0.9}, synapse("exp2syn"), "syn");
 
-            cd[1].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
-            cd[3].decorations.place(mlocation{1, 0.2}, gap_junction_site{}, "gj");
+            cd[1].decorations.place(mlocation{1, 0.2}, junction("gj"), "gj");
+            cd[3].decorations.place(mlocation{1, 0.2}, junction("gj"), "gj");
 
             for (auto& d: cd) cells_.push_back(d);
         }
@@ -1341,9 +1342,9 @@ TEST(probe, get_probe_metadata) {
     decor d;
 
     // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
-    d.paint(reg::branch(1), mechanism_desc("param_as_state").set("p", 10.));
-    d.paint(reg::branch(2), mechanism_desc("param_as_state").set("p", 20.));
-    d.paint(reg::branch(5), mechanism_desc("param_as_state").set("p", 50.));
+    d.paint(reg::branch(1), density("param_as_state", {{"p", 10.}}));
+    d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
+    d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
     cable1d_recipe rec(cable_cell{m, {}, d}, false);
     rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());

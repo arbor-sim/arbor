@@ -11,11 +11,13 @@ PARAMETER {
     a4 = 7.3
 }
 
-ASSIGNED {
-    a0 : = 2.5
-    a1 : = 0.5
-    a2 : = 3
-    a3 : = 2.3
+ASSIGNED { a0 a1 a2 a3 }
+
+INITIAL {
+    a0 = 2.5
+    a1 = 0.5
+    a2 = 3
+    a3 = 2.3
 }
 
 BREAKPOINT {

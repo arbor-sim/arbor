@@ -53,9 +53,6 @@ public:
     // the result must be instantiated.
     mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
-    // Non-global parameters can be set post-instantiation:
-    void set_parameter(const std::string&, const std::vector<arb_value_type>&);
-
     // Forward to interface methods
     void initialize()     { ppack_.vec_t = *time_ptr_ptr; iface_.init_mechanism(&ppack_); }
     void update_current() { ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); }
@@ -76,6 +73,9 @@ public:
 struct mechanism_layout {
     // Maps in-instance index to CV index.
     std::vector<fvm_index_type> cv;
+
+    // Maps in-instance index to peer CV index (only for gap-junctions).
+    std::vector<fvm_index_type> peer_cv;
 
     // Maps in-instance index to compartment contribution.
     std::vector<fvm_value_type> weight;

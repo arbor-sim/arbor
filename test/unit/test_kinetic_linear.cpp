@@ -27,7 +27,6 @@ ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_c
 template <typename backend>
 void run_test(std::string mech_name,
         std::vector<std::string> state_variables,
-        std::unordered_map<std::string, fvm_value_type> assigned_variables,
         std::vector<fvm_value_type> t0_values,
         std::vector<fvm_value_type> t1_values,
         fvm_value_type dt) {
@@ -38,7 +37,6 @@ void run_test(std::string mech_name,
     fvm_size_type ncv = 1;
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
-    std::vector<fvm_gap_junction> gj = {};
     auto instance = cat.instance(backend::kind, mech_name);
     auto& test = instance.mech;
 
@@ -48,7 +46,7 @@ void run_test(std::string mech_name,
     std::vector<fvm_index_type> src_to_spike = {};
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, gj, vinit, temp, diam, src_to_spike, test->data_alignment());
+            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;
@@ -59,11 +57,6 @@ void run_test(std::string mech_name,
     }
 
     shared_state->instantiate(*test, 0, overrides, layout);
-
-    for (auto a: assigned_variables) {
-        shared_state->set_parameter(*test, a.first, std::vector<fvm_value_type>(ncv,a.second));
-    }
-
     shared_state->reset();
 
     test->initialize();
@@ -96,8 +89,8 @@ TEST(mech_kinetic, kinetic_linear_scaled) {
     std::vector<fvm_value_type> t1_0_values = {0.373297, 0.591621, 0.0350817};
     std::vector<fvm_value_type> t1_1_values = {0.329897, 0.537371, 0.132732};
 
-    run_test<multicore::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<multicore::backend>("test1_kin_compartment", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<multicore::backend>("test0_kin_compartment", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<multicore::backend>("test1_kin_compartment", state_variables, t0_values, t1_1_values, 0.5);
 
 }
 
@@ -107,9 +100,9 @@ TEST(mech_kinetic, kinetic_linear_1_conserve) {
     std::vector<fvm_value_type> t1_0_values = {0.380338, 0.446414, 0.173247};
     std::vector<fvm_value_type> t1_1_values = {0.218978, 0.729927, 0.0510949};
 
-    run_test<multicore::backend>("test0_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<multicore::backend>("test0_kin_conserve", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<multicore::backend>("test0_kin_steadystate", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<multicore::backend>("test0_kin_diff", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<multicore::backend>("test0_kin_conserve", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<multicore::backend>("test0_kin_steadystate", state_variables, t0_values, t1_1_values, 0.5);
 }
 
 TEST(mech_kinetic, kinetic_linear_2_conserve) {
@@ -118,9 +111,9 @@ TEST(mech_kinetic, kinetic_linear_2_conserve) {
     std::vector<fvm_value_type> t1_0_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
     std::vector<fvm_value_type> t1_1_values = {0.230769, 0.769231, 0.189189, 0.810811};
 
-    run_test<multicore::backend>("test1_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<multicore::backend>("test1_kin_conserve", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<multicore::backend>("test1_kin_steadystate", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<multicore::backend>("test1_kin_diff", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<multicore::backend>("test1_kin_conserve", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<multicore::backend>("test1_kin_steadystate", state_variables, t0_values, t1_1_values, 0.5);
 }
 
 TEST(mech_kinetic, kinetic_nonlinear) {
@@ -129,9 +122,23 @@ TEST(mech_kinetic, kinetic_nonlinear) {
     std::vector<fvm_value_type> t1_0_values = {0.222881, 0.31144, 0.48856};
     std::vector<fvm_value_type> t1_1_values = {0.2078873133, 0.34222075, 0.45777925};
 
-    run_test<multicore::backend>("test2_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.025);
-    run_test<multicore::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_1_values, 0.025);
+    run_test<multicore::backend>("test2_kin_diff", state_variables, t0_values, t1_0_values, 0.025);
+    run_test<multicore::backend>("test3_kin_diff", state_variables, t0_values, t1_1_values, 0.025);
 
+}
+
+TEST(mech_kinetic, normal_nonlinear_0) {
+    std::vector<std::string> state_variables = {"a", "b", "c"};
+    std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
+    std::vector<fvm_value_type> t1_values = {0.2078873133, 0.34222075, 0.45777925};
+    run_test<multicore::backend>("test5_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
+}
+
+TEST(mech_kinetic, normal_nonlinear_1) {
+    std::vector<std::string> state_variables = {"p"};
+    std::vector<fvm_value_type> t0_values = {1};
+    std::vector<fvm_value_type> t1_values = {1.0213199524};
+    run_test<multicore::backend>("test6_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
 }
 
 TEST(mech_kinetic, kinetic_nonlinear_scaled) {
@@ -143,17 +150,16 @@ TEST(mech_kinetic, kinetic_nonlinear_scaled) {
                                              1.8315624742412617,
                                              0.16843752575873824};
 
-    run_test<multicore::backend>("test4_kin_compartment", state_variables, {}, t0_values, t1_values, 0.1);
+    run_test<multicore::backend>("test4_kin_compartment", state_variables, t0_values, t1_values, 0.1);
 }
 
 TEST(mech_linear, linear_system) {
     std::vector<std::string> state_variables = {"h", "s", "d"};
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
-    std::unordered_map<std::string, fvm_value_type> assigned_variables = {{"a0", 2.5}, {"a1",0.5}, {"a2",3}, {"a3",2.3}};
 
-    run_test<multicore::backend>("test_linear_state", state_variables, assigned_variables, {}, values, 0.5);
-    run_test<multicore::backend>("test_linear_init", state_variables, assigned_variables, values, {}, 0.5);
-    run_test<multicore::backend>("test_linear_init_shuffle", state_variables, assigned_variables, values, {}, 0.5);
+    run_test<multicore::backend>("test_linear_state", state_variables, {}, values, 0.5);
+    run_test<multicore::backend>("test_linear_init", state_variables, values, {}, 0.5);
+    run_test<multicore::backend>("test_linear_init_shuffle", state_variables, values, {}, 0.5);
 }
 
 #ifdef ARB_GPU_ENABLED
@@ -163,8 +169,8 @@ TEST(mech_kinetic_gpu, kinetic_linear_scaled) {
     std::vector<fvm_value_type> t1_0_values = {0.373297, 0.591621, 0.0350817};
     std::vector<fvm_value_type> t1_1_values = {0.329897, 0.537371, 0.132732};
 
-    run_test<gpu::backend>("test0_kin_compartment", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<gpu::backend>("test1_kin_compartment", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<gpu::backend>("test0_kin_compartment", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<gpu::backend>("test1_kin_compartment", state_variables, t0_values, t1_1_values, 0.5);
 }
 
 TEST(mech_kinetic_gpu, kinetic_linear_1_conserve) {
@@ -173,9 +179,9 @@ TEST(mech_kinetic_gpu, kinetic_linear_1_conserve) {
     std::vector<fvm_value_type> t1_0_values = {0.380338, 0.446414, 0.173247};
     std::vector<fvm_value_type> t1_1_values = {0.218978, 0.729927, 0.0510949};
 
-    run_test<gpu::backend>("test0_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<gpu::backend>("test0_kin_conserve", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<gpu::backend>("test0_kin_steadystate", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<gpu::backend>("test0_kin_diff", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<gpu::backend>("test0_kin_conserve", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<gpu::backend>("test0_kin_steadystate", state_variables, t0_values, t1_1_values, 0.5);
 }
 
 TEST(mech_kinetic_gpu, kinetic_linear_2_conserve) {
@@ -184,9 +190,9 @@ TEST(mech_kinetic_gpu, kinetic_linear_2_conserve) {
     std::vector<fvm_value_type> t1_0_values = {0.217391304, 0.782608696, 0.33333333, 0.66666666};
     std::vector<fvm_value_type> t1_1_values = {0.230769, 0.769231, 0.189189, 0.810811};
 
-    run_test<gpu::backend>("test1_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<gpu::backend>("test1_kin_conserve", state_variables, {}, t0_values, t1_0_values, 0.5);
-    run_test<gpu::backend>("test1_kin_steadystate", state_variables, {}, t0_values, t1_1_values, 0.5);
+    run_test<gpu::backend>("test1_kin_diff", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<gpu::backend>("test1_kin_conserve", state_variables, t0_values, t1_0_values, 0.5);
+    run_test<gpu::backend>("test1_kin_steadystate", state_variables, t0_values, t1_1_values, 0.5);
 }
 
 TEST(mech_kinetic_gpu, kinetic_nonlinear) {
@@ -195,8 +201,22 @@ TEST(mech_kinetic_gpu, kinetic_nonlinear) {
     std::vector<fvm_value_type> t1_0_values = {0.222881, 0.31144, 0.48856};
     std::vector<fvm_value_type> t1_1_values = {0.2078873133, 0.34222075, 0.45777925};
 
-    run_test<gpu::backend>("test2_kin_diff", state_variables, {}, t0_values, t1_0_values, 0.025);
-    run_test<gpu::backend>("test3_kin_diff", state_variables, {}, t0_values, t1_1_values, 0.025);
+    run_test<gpu::backend>("test2_kin_diff", state_variables, t0_values, t1_0_values, 0.025);
+    run_test<gpu::backend>("test3_kin_diff", state_variables, t0_values, t1_1_values, 0.025);
+}
+
+TEST(mech_kinetic_gpu, normal_nonlinear_0) {
+    std::vector<std::string> state_variables = {"a", "b", "c"};
+    std::vector<fvm_value_type> t0_values = {0.2, 0.3, 0.5};
+    std::vector<fvm_value_type> t1_values = {0.2078873133, 0.34222075, 0.45777925};
+    run_test<gpu::backend>("test5_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
+}
+
+TEST(mech_kinetic_gpu, normal_nonlinear_1) {
+    std::vector<std::string> state_variables = {"p"};
+    std::vector<fvm_value_type> t0_values = {1};
+    std::vector<fvm_value_type> t1_values = {1.0213199524};
+    run_test<gpu::backend>("test6_nonlinear_diff", state_variables, t0_values, t1_values, 0.025);
 }
 
 TEST(mech_kinetic_gpu, kinetic_nonlinear_scaled) {
@@ -208,17 +228,16 @@ TEST(mech_kinetic_gpu, kinetic_nonlinear_scaled) {
                                              1.8315624742412617,
                                              0.16843752575873824};
 
-    run_test<gpu::backend>("test4_kin_compartment", state_variables, {}, t0_values, t1_values, 0.1);
+    run_test<gpu::backend>("test4_kin_compartment", state_variables, t0_values, t1_values, 0.1);
 }
 
 TEST(mech_linear_gpu, linear_system) {
     std::vector<std::string> state_variables = {"h", "s", "d"};
     std::vector<fvm_value_type> values = {0.5, 0.2, 0.3};
-    std::unordered_map<std::string, fvm_value_type> assigned_variables = {{"a0", 2.5},{"a1",0.5},{"a2",3},{"a3",2.3}};
 
-    run_test<gpu::backend>("test_linear_state", state_variables, assigned_variables, {}, values, 0.5);
-    run_test<gpu::backend>("test_linear_init", state_variables, assigned_variables, values, {}, 0.5);
-    run_test<gpu::backend>("test_linear_init_shuffle", state_variables, assigned_variables, values, {}, 0.5);
+    run_test<gpu::backend>("test_linear_state", state_variables, {}, values, 0.5);
+    run_test<gpu::backend>("test_linear_init", state_variables, {}, values, 0.5);
+    run_test<gpu::backend>("test_linear_init_shuffle", state_variables, values, {}, 0.5);
 }
 
 #endif

@@ -280,7 +280,7 @@ TEST(mechcat, names) {
 
 #ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
-    EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), bad_catalogue_error);
+    EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);
     const mechanism_catalogue* cat = nullptr;
     EXPECT_NO_THROW(cat = &load_catalogue(LIBDIR "/dummy-catalogue.so"));
@@ -402,7 +402,7 @@ TEST(mechcat, instantiate) {
     // write its specialized global variables to shared state, but we do in
     // these tests for testing purposes.
 
-    mechanism_layout layout = {{0u, 1u, 2u}, {1., 2., 1.}, {1u, 1u, 1u}};
+    mechanism_layout layout = {{0u, 1u, 2u}, {}, {1., 2., 1.}, {1u, 1u, 1u}};
     bar_backend bar;
 
     auto cat = build_fake_catalogue();

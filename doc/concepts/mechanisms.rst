@@ -3,7 +3,7 @@
 Cable cell mechanisms
 =====================
 
-Mechanisms describe biophysical processes such as ion channels and synapses.
+Mechanisms describe biophysical processes such as ion channels, synapses and gap-junctions.
 Mechanisms are assigned to regions and locations on a cell morphology
 through the process of :ref:`decoration <cablecell-decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
@@ -12,9 +12,9 @@ specific language that is similarly used in `NEURON <https://neuron.yale.edu/neu
 Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
 compiler. ``modcc`` supports many of NMODL's features but there are a few
 additional :ref:`guidelines <formatnmodl>`.
-for users who wish to compile their own mechanisms for Arbor. Unfortunately, out-of-tree
-mechanism building is not yet supported in Arbor. However, we have many built-in mechanisms
-that can be used, which are oragnized in *mechanism catalogues*.
+for users who wish to compile their own mechanisms for Arbor. Out-of-tree mechanism
+building is available in Arbor (See: :ref:`mechanisms_dynamic`). We also have built-in
+mechanisms, which are organized in *mechanism catalogues*.
 
 Mechanism catalogues
 --------------------
@@ -68,6 +68,7 @@ Arbor provides the *default* catalogue with the following mechanisms:
   followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
 * *exp2syn*: Bi-exponential conductance synapse described by two time constants:
   rise and decay (:ref:`point mechanism <mechanisms-point>`).
+* *gj*: Linear gap-junction mechanism with constant conductance (:ref:`junction mechanism <mechanisms-junction>`).
 
 With the exception of *nernst*, these mechanisms are the same as those available in NEURON.
 
@@ -178,9 +179,9 @@ shorthand ``("nernst/ca")`` can be used unambiguously.
 Mechanism types
 ---------------
 
-There are two broad categories of mechanism, density mechanisms and
-point mechanisms, and a third special density mechanism for
-computing ionic reversal potentials.
+There are three broad categories of mechanism: density mechanisms, point mechanisms,
+gap-junction mechanisms and a fourth special density mechanism for computing ionic
+reversal potential.
 
 .. _mechanisms-density:
 
@@ -194,6 +195,9 @@ at any given point.
 Density mechanisms are commonly used to describe ion channel dynamics,
 for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,
 which model classic Hodgkin-Huxley and passive leaky currents respectively.
+
+In NMODL, density mechanisms are identified using the ``SUFFIX`` keyword in the
+``NEURON`` block.
 
 .. _mechanisms-revpot:
 
@@ -229,7 +233,7 @@ and ionic state.
 .. _mechanisms-point:
 
 Point mechanisms
-'''''''''''''''''''''''''''''''''
+''''''''''''''''
 
 *Point mechanisms*, which are associated with connection end points on a
 cable cell, are placed at discrete locations on the cell.
@@ -237,6 +241,27 @@ Unlike density mechanisms, whose behaviour is defined purely by the state of the
 and the process, their behaviour is additionally governed by the timing and weight of
 events delivered via incoming connections.
 
+In NMODL, point mechanisms are identified using the ``POINT_PROCESS`` keyword in the
+``NEURON`` block.
+
+.. _mechanisms-junction:
+
+Junction mechanisms
+'''''''''''''''''''
+
+*Junction mechanisms*, which are associated with gap-junction connection end points on a
+cable cell, are placed at discrete locations on the cell.
+A junction mechanism contributes a current at the discrete location of the cell on which it is placed.
+This current contribution depends on the state of the mechanism and the process, as well as the membrane
+potential at the discrete location which forms the other end of the gap-junction connection and the weight
+of that connection.
+
+In NMODL, junction mechanisms are identified using the ``JUNCTION_PROCESS`` keyword in the
+``NEURON`` block.
+
+.. note::
+    ``JUNCTION_PROCESS`` is an Arbor-specific extension to NMODL. The NMODL description of gap-junction
+    mechanisms in arbor is not identical to NEURON's though it is similar.
 
 API
 ---

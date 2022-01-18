@@ -32,7 +32,7 @@ class meter_manager {
 private:
     bool started_ = false;
 
-    tick_type start_time_;
+    tick_type start_time_ = 0;
     std::vector<double> times_;
 
     std::vector<std::unique_ptr<meter>> meters_;

@@ -15,7 +15,6 @@ where we have laid out how you can go about making your contribution.
 
 You can reach out in the following ways:
 
-* [Discussions](https://github.com/arbor-sim/arbor/discussions). Any questions or remarks regarding using Arbor
-for your research are welcome.
-* [Slack](https://mcnest.slack.com). If you're interested in developing Arbor itself, you can visit our Slack.
+* [Discussions](https://github.com/arbor-sim/arbor/discussions). We encourage you to use the discussion board for help with modelling. Any other questions or remarks regarding using Arbor for your research are of course also welcome.
+* [Gitter](https://gitter.im/arbor-sim/community). If you're interested in developing Arbor itself, get in touch on Gitter.
 * [Email](mailto:contact@arbor-sim.org).

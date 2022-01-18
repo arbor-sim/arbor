@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/spike.hpp>
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "execution_context.hpp"
 #include "thread_private_spike_store.hpp"
@@ -12,15 +12,7 @@ TEST(spike_store, insert)
 {
     using store_type = arb::thread_private_spike_store;
 
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-
-    arb::execution_context context(resources);
+    arb::execution_context context({arbenv::default_concurrency(), -1});
     store_type store(context.thread_pool);
 
     // insert 3 spike events and check that they were inserted correctly
@@ -65,15 +57,7 @@ TEST(spike_store, clear)
 {
     using store_type = arb::thread_private_spike_store;
 
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-
-    arb::execution_context context(resources);
+    arb::execution_context context({arbenv::default_concurrency(), -1});
     store_type store(context.thread_pool);
 
     // insert 3 spike events
@@ -89,15 +73,7 @@ TEST(spike_store, gather)
 {
     using store_type = arb::thread_private_spike_store;
 
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-
-    arb::execution_context context(resources);
+    arb::execution_context context({arbenv::default_concurrency(), -1});
     store_type store(context.thread_pool);
 
     std::vector<spike> spikes =

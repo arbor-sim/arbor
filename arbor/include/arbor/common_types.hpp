@@ -58,9 +58,9 @@ struct cell_member_type {
 // Pair of indexes that describe range of local indices.
 
 struct lid_range {
-    cell_lid_type begin;
-    cell_lid_type end;
-    lid_range() {};
+    cell_lid_type begin = 0;
+    cell_lid_type end = 0;
+    lid_range() = default;
     lid_range(cell_lid_type b, cell_lid_type e):
         begin(b), end(e) {}
 };

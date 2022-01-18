@@ -58,6 +58,40 @@ TEST(mpi, gather_all) {
     EXPECT_EQ(expected, gathered);
 }
 
+TEST(mpi, gather_all_nested_vec) {
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
+
+    std::vector<std::vector<big_thing>> data;
+    if (id%2) {
+        for (int s = 0; s < (id+1)*2; s++) {
+            data.push_back({id + s, id + s + 7, id + s + 8});
+        }
+    }
+    else {
+        for (int s = 0; s < (id+1)*2; s++) {
+            data.push_back({id + 2*s});
+        }
+    }
+
+    std::vector<std::vector<big_thing>> expected;
+    for (int i = 0; i<size; ++i) {
+        if (i%2) {
+            for (int s = 0; s < (i+1)*2; s++) {
+                expected.push_back({i + s, i + s + 7, i + s + 8});
+            }
+        }
+        else {
+            for (int s = 0; s < (i+1)*2; s++) {
+                expected.push_back({i + 2*s});
+            }
+        }
+    }
+
+    auto gathered = mpi::gather_all(data, MPI_COMM_WORLD);
+    EXPECT_EQ(expected, gathered);
+}
+
 TEST(mpi, gather_all_with_partition) {
     int id = mpi::rank(MPI_COMM_WORLD);
     int size = mpi::size(MPI_COMM_WORLD);

@@ -21,11 +21,21 @@ typedef uint32_t arb_mechanism_kind;
 #define arb_mechanism_kind_point 1
 #define arb_mechanism_kind_density 2
 #define arb_mechanism_kind_reversal_potential 3
+#define arb_mechanism_kind_gap_junction 4
 
 typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_nil 0
 #define arb_backend_kind_cpu 1
 #define arb_backend_kind_gpu 2
+
+inline const char* arb_mechsnism_kind_str(const arb_mechanism_kind& mech) {
+    switch (mech) {
+        case arb_mechanism_kind_density: return "density mechanism kind";
+        case arb_mechanism_kind_point:   return "point mechanism kind";
+        case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
+        default: return "unknown mechanism kind";
+    }
+}
 
 // Ion state variables; view into shared_state
 typedef struct arb_ion_state {
@@ -82,6 +92,7 @@ typedef struct arb_mechanism_ppack {
     arb_value_type* diam_um;
     arb_value_type* time_since_spike;
     arb_index_type* node_index;
+    arb_index_type* peer_index;
     arb_index_type* multiplicity;
     arb_value_type* weight;
     arb_size_type   mechanism_id;

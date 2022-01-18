@@ -61,13 +61,6 @@ public:
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
 
-    std::vector<fvm_gap_junction> fvm_gap_junctions(
-        const std::vector<cable_cell>& cells,
-        const std::vector<cell_gid_type>& gids,
-        const cell_label_range& gj_data,
-        const recipe& rec,
-        const fvm_cv_discretization& D);
-
     // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
     // Fills cell_to_intdom map; returns number of intdoms
     fvm_size_type fvm_intdom(
@@ -108,7 +101,7 @@ private:
     value_type check_voltage_mV_ = 0;
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
-    bool post_events_;
+    bool post_events_ = false;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -251,9 +244,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->deliver_events(events);
             m->update_current();
         }
-
-        // Add current contribution from gap_junctions
-        state_->add_gj_current();
 
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
@@ -425,7 +415,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
         fvm_info.num_targets[gid] = count;
 
-        for (const auto& [label, range]: c.gap_junction_ranges()) {
+        for (const auto& [label, range]: c.junction_ranges()) {
             fvm_info.gap_junction_data.add_label(label, range);
         }
     }
@@ -471,13 +461,14 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                               D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom);
     sample_events_ = sample_event_stream(nintdom);
 
-    // Discretize mechanism data.
-
-    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, D, context_);
-
     // Discretize and build gap junction info.
 
-    auto gj_vector = fvm_gap_junctions(cells, gids, fvm_info.gap_junction_data, rec, D);
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    // Discretize mechanism data.
+
+    fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
@@ -506,7 +497,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     state_ = std::make_unique<shared_state>(
-                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell), gj_vector,
+                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
@@ -540,6 +531,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         mechanism_layout layout;
         layout.cv = config.cv;
         layout.multiplicity = config.multiplicity;
+        layout.peer_cv = config.peer_cv;
         layout.weight.resize(layout.cv.size());
 
         std::vector<fvm_index_type> multiplicity_divs;
@@ -569,6 +561,15 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                         fvm_info.target_handles[config.target[j]] = handle;
                     }
                 }
+            }
+            break;
+        case arb_mechanism_kind_gap_junction:
+            // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
+            // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
+
+            for (auto i: count_along(layout.cv)) {
+                auto cv = layout.cv[i];
+                layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
             break;
         case arb_mechanism_kind_density:
@@ -636,47 +637,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     reset();
 
     return fvm_info;
-}
-
-// Get vector of gap_junctions
-template <typename Backend>
-std::vector<fvm_gap_junction> fvm_lowered_cell_impl<Backend>::fvm_gap_junctions(
-        const std::vector<cable_cell>& cells,
-        const std::vector<cell_gid_type>& gids,
-        const cell_label_range& gap_junction_data,
-        const recipe& rec, const fvm_cv_discretization& D) {
-
-    std::vector<fvm_gap_junction> gj_vec;
-
-    std::unordered_map<cell_gid_type, std::vector<unsigned>> gid_to_cvs;
-    for (auto cell_idx: util::make_span(0, D.n_cell())) {
-        if (rec.gap_junctions_on(gids[cell_idx]).empty()) continue;
-
-        const auto& cell_gj = cells[cell_idx].gap_junction_sites();
-        gid_to_cvs[gids[cell_idx]].reserve(cell_gj.size());
-
-        for (auto gj : cell_gj) {
-            auto cv = D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty);
-            gid_to_cvs[gids[cell_idx]].push_back(cv);
-        }
-    }
-    label_resolution_map resolution_map({gap_junction_data, gids});
-    auto gj_resolver = resolver(&resolution_map);
-    for (auto gid: gids) {
-        auto gj_list = rec.gap_junctions_on(gid);
-        for (const auto& g: gj_list) {
-            if (g.local.policy != lid_selection_policy::assert_univalent) {
-                throw gj_unsupported_lid_selection_policy(gid, g.local.tag);
-            }
-            if (g.peer.label.policy != lid_selection_policy::assert_univalent) {
-                throw gj_unsupported_lid_selection_policy(g.peer.gid, g.peer.label.tag);
-            }
-            auto cv_local = gid_to_cvs[gid][gj_resolver.resolve({gid, g.local})];
-            auto cv_peer = gid_to_cvs[g.peer.gid][gj_resolver.resolve(g.peer)];
-            gj_vec.emplace_back(fvm_gap_junction(std::make_pair(cv_local, cv_peer), g.ggap * 1e3 / D.cv_area[cv_local]));
-        }
-    }
-    return gj_vec;
 }
 
 template <typename Backend>
@@ -756,7 +716,7 @@ struct probe_resolution_data {
 
     // Extent of density mechanism on cell.
     mextent mechanism_support(const std::string& name) const {
-        auto& mech_map = cell.region_assignments().template get<mechanism_desc>();
+        auto& mech_map = cell.region_assignments().template get<density>();
         auto opt_mm = util::value_by_key(mech_map, name);
 
         return opt_mm? opt_mm->support(): mextent{};

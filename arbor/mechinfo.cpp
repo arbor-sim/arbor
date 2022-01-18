@@ -4,6 +4,7 @@
 
 namespace arb {
 mechanism_info::mechanism_info(const arb_mechanism_type& m) {
+    kind        = m.kind;
     post_events = m.has_post_events;
     linear      = m.is_linear;
     fingerprint = m.fingerprint;
