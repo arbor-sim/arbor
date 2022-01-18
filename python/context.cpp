@@ -7,6 +7,7 @@
 
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
+#include <arborenv/concurrency.hpp>
 
 #include "context.hpp"
 #include "conversion.hpp"
@@ -34,7 +35,7 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
 // A Python shim that holds the information that describes an arb::proc_allocation.
 struct proc_allocation_shim {
     std::optional<int> gpu_id = {};
-    arb::thread_count num_threads = 1;
+    unsigned long num_threads = 1;
 
     proc_allocation_shim(unsigned threads, pybind11::object gpu) {
         set_num_threads(threads);
@@ -138,7 +139,7 @@ void register_contexts(pybind11::module& m) {
     #endif
 
                     auto gpu_id = py2optional<int>(gpu, gpu_err_str, is_nonneg());
-                    arb::proc_allocation alloc(threads, gpu_id.value_or(-1));
+                    arb::proc_allocation alloc(arbenv::thread_concurrency(), gpu_id.value_or(-1));
 
     #ifndef ARB_MPI_ENABLED
                     if (!mpi.is_none()) {
@@ -155,12 +156,12 @@ void register_contexts(pybind11::module& m) {
     #endif
 
                     return context_shim(arb::make_context(alloc));
-                else {
+                } else {
                     throw pyarb_error(
                         util::pprintf("{} is not a valid value.", threads));
                 }
             }),
-            "threads"_a=1, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
+            "threads"_a, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
             "Construct a distributed context with arguments:\n"
             "  threads: The number of threads available locally for execution, 1 by default.\n"
             "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']==True.\n"

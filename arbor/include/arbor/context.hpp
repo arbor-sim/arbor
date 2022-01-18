@@ -4,7 +4,6 @@
 #include <thread>
 
 #include <arbor/arbexcept.hpp>
-#include <arborenv/concurrency.hpp>
 
 namespace arb {
 
@@ -15,32 +14,6 @@ struct dry_run_info {
     dry_run_info(unsigned ranks, unsigned cells_per_rank):
             num_ranks(ranks),
             num_cells_per_rank(cells_per_rank) {}
-};
-
-struct thread_count {
-  private:
-    unsigned threads = 1;
-    
-  public:
-    thread_count(unsigned t) {
-        if (t==0) {
-            throw arb::zero_thread_requested_error(t);
-        } else {
-            threads = t;
-        }
-    }
-
-    static thread_count avail_threads() { 
-        auto tc = thread_count{arbenv::thread_concurrency()};
-        if (0 == tc){
-            throw arb::undefined_hardware_thread_count_error(0);
-        }
-        return tc;
-    }
-
-    operator unsigned() const {
-        return threads;
-    }
 };
 
 // A description of local computation resources to use in a computation.
@@ -57,7 +30,7 @@ struct proc_allocation {
 
     proc_allocation(): proc_allocation(1, -1) {}
 
-    proc_allocation(thread_count threads, int gpu):
+    proc_allocation(unsigned long threads, int gpu):
         num_threads(threads),
         gpu_id(gpu)
     {}

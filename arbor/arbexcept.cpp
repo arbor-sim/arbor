@@ -42,10 +42,10 @@ zero_thread_requested_error::zero_thread_requested_error(unsigned nbt):
     nbt(nbt)
 {}
 
-undefined_hardware_thread_count_error::undefined_hardware_thread_count_error(unsigned nbt):
-    arbor_exception(pprintf("error requesting the available thread count.")),
-    nbt(nbt)
-{}
+// undefined_hardware_thread_count_error::undefined_hardware_thread_count_error(unsigned nbt):
+//     arbor_exception(pprintf("error requesting the available thread count.")),
+//     nbt(nbt)
+// {}
 
 bad_probe_id::bad_probe_id(cell_member_type probe_id):
     arbor_exception(pprintf("bad probe id {}", probe_id)),
