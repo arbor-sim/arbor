@@ -437,18 +437,18 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
     }
     {
         std::vector<std::vector<gap_junction_connection>> gj_conns =
-                {
-                        {},
-                        {},
-                        {},
-                        {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
-                        {},
-                        {},
-                        {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({7, "gj"}, {"gj"}, 0.1)},
-                        {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
-                        {gap_junction_connection({0, "gj"}, {"gj"}, 0.1)},
-                        {}
-                };
+            {
+                {},
+                {},
+                {},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {},
+                {},
+                {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({7, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({0, "gj"}, {"gj"}, 0.1)},
+                {}
+            };
         auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
         const auto D = partition_load_balance(R, ctx);
         std::vector<std::vector<cell_gid_type>> expected_groups = {{1}, {2}, {9}, {0, 8}, {3, 4, 5, 6, 7}};

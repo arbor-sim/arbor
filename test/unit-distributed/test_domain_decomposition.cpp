@@ -298,11 +298,10 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
     unsigned n_global = n_local*N;
     auto rec = homo_recipe(n_global, dummy_cell{});
     const auto D = partition_load_balance(rec, ctx);
-    EXPECT_NO_THROW(check_domain_decomposition(rec, *ctx, D));
 
-    EXPECT_EQ(D.num_global_cells, n_global);
-    EXPECT_EQ(D.num_local_cells, n_local);
-    EXPECT_EQ(D.groups.size(), 1u);
+    EXPECT_EQ(D.num_global_cells(), n_global);
+    EXPECT_EQ(D.num_local_cells(), n_local);
+    EXPECT_EQ(D.num_groups(), 1u);
 
     auto b = I*n_local;
     auto e = (I+1)*n_local;
@@ -313,7 +312,7 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
 
     // Each cell group contains 1 cell of kind cable
     // Each group should also be tagged for cpu execution
-    auto grp = D.groups[0u];
+    auto grp = D.group(0u);
 
     EXPECT_EQ(grp.gids.size(), n_local);
     EXPECT_EQ(grp.gids.front(), b);
