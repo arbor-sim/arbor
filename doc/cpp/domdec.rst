@@ -125,6 +125,15 @@ Documentation for the data structures used to describe domain decompositions.
         Returns the total number of cells in the global model
         (sum of :cpp:member:`num_local_cells` over all domains).
 
+    .. cpp:member:: cell_size_type num_groups()
+
+        Returns the total number of cell groups on the local domain.
+
+    .. cpp:member:: const group_description& group(unsigned idx)
+
+        Returns the description of the cell group at index ``idx`` on the local domain.
+        See :cpp:class:`group_description`.
+
     .. cpp:member:: const std::vector<group_description>& groups()
 
         Returns the descriptions of the cell groups on the local domain.

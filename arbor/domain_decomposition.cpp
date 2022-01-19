@@ -103,8 +103,17 @@ cell_size_type domain_decomposition::num_global_cells() const {
     return num_global_cells_;
 }
 
+cell_size_type domain_decomposition::num_groups() const {
+    return groups_.size();
+}
+
 const std::vector<group_description>& domain_decomposition::groups() const {
     return groups_;
+}
+
+const group_description& domain_decomposition::group(unsigned idx) const {
+    arb_assert(idx<num_groups());
+    return groups_[idx];
 }
 
 } // namespace arb

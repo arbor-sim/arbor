@@ -314,8 +314,8 @@ namespace {
     // make a list of the gids on the local domain
     std::vector<cell_gid_type> get_gids(const domain_decomposition& D) {
         std::vector<cell_gid_type> gids;
-        for (auto i: util::make_span(0, D.groups().size())) {
-            util::append(gids, D.groups()[i].gids);
+        for (auto i: util::make_span(0, D.num_groups())) {
+            util::append(gids, D.group(i).gids);
         }
         return gids;
     }
@@ -324,8 +324,8 @@ namespace {
     std::unordered_map<cell_gid_type, cell_gid_type>
     get_group_map(const domain_decomposition& D) {
         std::unordered_map<cell_gid_type, cell_gid_type> map;
-        for (auto i: util::make_span(0, D.groups().size())) {
-            for (auto gid: D.groups()[i].gids) {
+        for (auto i: util::make_span(0, D.num_groups())) {
+            for (auto gid: D.group(i).gids) {
                 map[gid] = i;
             }
         }
@@ -573,7 +573,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
     // generate the events
     std::vector<arb::pse_vector> queues(C.num_local_cells());
     C.make_event_queues(global_spikes, queues);
-    if (queues.size() != D.groups().size()) { // one queue for each cell group
+    if (queues.size() != D.num_groups()) { // one queue for each cell group
         return ::testing::AssertionFailure()
             << "expect one event queue for each cell group";
     }

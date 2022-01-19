@@ -25,7 +25,7 @@ std::string gd_string(const arb::group_description& g) {
 std::string dd_string(const arb::domain_decomposition& d) {
     return util::pprintf(
         "<arbor.domain_decomposition: domain_id {}, num_domains {}, num_local_cells {}, num_global_cells {}, groups {}>",
-        d.domain_id(), d.num_domains(), d.num_local_cells(), d.num_global_cells(), d.groups().size());
+        d.domain_id(), d.num_domains(), d.num_local_cells(), d.num_global_cells(), d.num_groups());
 }
 
 std::string ph_string(const arb::partition_hint& h) {
@@ -95,6 +95,8 @@ void register_domain_decomposition(pybind11::module& m) {
             "Total number of cells in the local domain.")
         .def_property_readonly("num_global_cells", &arb::domain_decomposition::num_global_cells,
             "Total number of cells in the global model (sum of num_local_cells over all domains).")
+        .def_property_readonly("num_groups", &arb::domain_decomposition::num_groups,
+            "Total number of cell groups in the local domain.")
         .def_property_readonly("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain.")
         .def("__str__",  &dd_string)

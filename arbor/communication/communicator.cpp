@@ -32,7 +32,7 @@ communicator::communicator(const recipe& rec,
     thread_pool_ = ctx.thread_pool;
 
     num_domains_ = distributed_->size();
-    num_local_groups_ = dom_dec.groups().size();
+    num_local_groups_ = dom_dec.num_groups();
     num_local_cells_ = dom_dec.num_local_cells();
     auto num_total_cells = rec.num_cells();
 

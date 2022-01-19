@@ -42,7 +42,9 @@ public:
     int domain_id() const;
     cell_size_type num_local_cells() const;
     cell_size_type num_global_cells() const;
+    cell_size_type num_groups() const;
     const std::vector<group_description>& groups() const;
+    const group_description& group(unsigned) const;
 
 private:
     /// Return the domain id of cell with gid.

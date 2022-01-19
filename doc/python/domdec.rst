@@ -218,6 +218,10 @@ Therefore, the following data structures are used to describe domain decompositi
         The total number of cells in the global model
         (sum of :attr:`num_local_cells` over all domains).
 
+    .. attribute:: num_groups
+
+        The total number of cell groups on the local domain.
+
     .. attribute:: groups
 
         The descriptions of the cell groups on the local domain.
