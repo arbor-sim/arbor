@@ -151,8 +151,8 @@ make_catalogue(
   NAME {name}
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
   OUTPUT "CAT_{name.upper()}_SOURCES"
-  MECHS {' '.join(mods)}
-  EXTRA {' '.join(raw)}
+  MOD {' '.join(mods)}
+  CXX {' '.join(raw)}
   PREFIX {data_path}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   STANDALONE ON
