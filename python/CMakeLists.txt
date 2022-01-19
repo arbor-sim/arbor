@@ -58,7 +58,7 @@ set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "
 
 # This dependency has to be spelt out again, despite being added to
 # pyarb_obj because CMake.
-target_link_libraries(pyarb PRIVATE arbor arborio pybind11::module)
+target_link_libraries(pyarb PRIVATE arbor arborenv arborio pybind11::module)
 
 # Add support for mpi4py if available.
 if (ARB_WITH_MPI)

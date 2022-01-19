@@ -3,8 +3,6 @@
 #include <memory>
 #include <thread>
 
-#include <arbor/arbexcept.hpp>
-
 namespace arb {
 
 // Requested dry-run parameters.

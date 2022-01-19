@@ -50,7 +50,11 @@ struct proc_allocation_shim {
     };
 
     void set_num_threads(unsigned threads) {
-        num_threads = threads;
+        if (0==threads) {
+            throw arb::zero_thread_requested_error(threads);
+        } else {
+            num_threads = threads;
+        }
     };
 
     std::optional<int> get_gpu_id() const { return gpu_id; }

@@ -6,16 +6,6 @@
 #include <arbor/context.hpp>
 #include <arbor/spike.hpp>
 
-TEST(local_context, proc_allocation_avail_threads)
-{
-    arb::proc_allocation res = {arb::thread_count::avail_threads(),-1};
-    // if (auto nt = arbenv::get_env_num_threads()) {
-    //     resources.num_threads = nt;
-    // }
-
-    EXPECT_GE(res.num_threads, 1);
-}
-
 // Test that there are no errors constructing a distributed_context from a local_context
 TEST(local_context, construct_distributed_context)
 {
