@@ -82,11 +82,6 @@ struct zero_thread_requested_error: arbor_exception {
     unsigned nbt;
 };
 
-// struct undefined_hardware_thread_count_error: arbor_exception {
-//     undefined_hardware_thread_count_error(unsigned nbt);
-//     unsigned nbt;
-// };
-
 // Domain decomposition errors:
 
 struct gj_unsupported_domain_decomposition: arbor_exception {
