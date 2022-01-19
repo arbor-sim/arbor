@@ -2,8 +2,8 @@ import shutil,subprocess,argparse
 from pathlib import Path
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Patch Arbor wheels build with skbuild and correct by auditwheel. Linux only.')
-    parser.add_argument('path', type=dir_path, help='The path in which the wheels will be patched.')
+    parser = argparse.ArgumentParser(description='Patch Arbor wheels built with scikit-build and corrected by auditwheel. Linux only.')
+    parser.add_argument('path', type=dir_path, help='The path where your wheels are located. They will be patched in place.')
     parser.add_argument('-ko','--keepold', action='store_true', help='If you want to keep the old wheels in /old')
 
     return parser.parse_args()
