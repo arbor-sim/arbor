@@ -81,8 +81,8 @@ arbor``) copies of Arbor.
 
 .. Note::
 
-   ``Pip`` compiles the Arbor C++ library and wrapper, as well as dependencies
-    you might not have had installed yet (e.g. `numpy`). It may take a few
+   ``pip`` compiles the Arbor C++ library and wrapper, as well as dependencies
+    you might not have had installed yet (e.g. ``numpy``). It may take a few
     minutes. Pass the ``--verbose`` flag to pip to see the individual steps
     being performed if you are concerned that progress is halting.
 
@@ -149,7 +149,7 @@ In the examples below we assume you are working off a local copy.
 
 .. code-block:: bash
 
-    pip3 install arbor -- -DARB_GPU=cuda
+    pip3 install ./arbor -- -DARB_GPU=cuda
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
