@@ -243,8 +243,7 @@ The core Arbor library *libarbor* provides an API for:
     .. cpp:function:: proc_allocation(unsigned threads, int gpu_id)
 
         Constructor that sets the number of :cpp:var:`threads` and the id :cpp:var:`gpu_id` of
-        the available GPU. To automatically use the maximum number of threads the system makes
-        available, set ``threads`` to ``arb::thread_count::avail_threads()``.
+        the available GPU.
 
     .. cpp:member:: unsigned num_threads
 
