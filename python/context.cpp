@@ -7,6 +7,7 @@
 
 #include <arbor/context.hpp>
 #include <arbor/version.hpp>
+#include <arbor/arbexcept.hpp>
 #include <arborenv/concurrency.hpp>
 
 #include "context.hpp"
