@@ -178,5 +178,7 @@ jobs:
         run:  mpirun -n 4 -oversubscribe python3 -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
-      - name: Build a catalogue
-        run: build-catalogue -v default mechanisms/default
+      - name: Build and test a catalogue
+        run: |
+          build-catalogue -v default mechanisms/default
+          ./scripts/test-catalogue.py ./default-catalogue.so

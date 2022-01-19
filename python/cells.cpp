@@ -18,6 +18,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/cv_policy.hpp>
+#include <arbor/morph/cv_data.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
@@ -345,6 +346,64 @@ void register_cells(pybind11::module& m) {
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to use the same number of CVs for each branch.");
 
+    // arb::cell_cv_data
+    pybind11::class_<arb::cell_cv_data> cell_cv_data(m, "cell_cv_data",
+            "Provides information on the CVs representing the discretization of a cable-cell.");
+    cell_cv_data
+            .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
+                 "Return the number of CVs in the cell.")
+            .def("cables",
+                 [](const arb::cell_cv_data& d, unsigned index) {
+                    if (index >= d.size()) throw pybind11::index_error("index out of range");
+                    return d.cables(index);
+                 },
+                 "index"_a, "Return a list of cables representing the CV at the given index.")
+            .def("children",
+                 [](const arb::cell_cv_data& d, unsigned index) {
+                     if (index >= d.size()) throw pybind11::index_error("index out of range");
+                     return d.children(index);
+                 },
+                 "index"_a,
+                 "Return a list of indices of the CVs representing the children of the CV at the given index.")
+            .def("parent",
+                 [](const arb::cell_cv_data& d, unsigned index) {
+                     if (index >= d.size()) throw pybind11::index_error("index out of range");
+                     return d.parent(index);
+                 },
+                 "index"_a,
+                 "Return the index of the CV representing the parent of the CV at the given index.")
+            .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
+            .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});
+
+    m.def("cv_data", [](const arb::cable_cell& cell) { return arb::cv_data(cell);},
+          "cell"_a, "the cable cell",
+          "Returns a cell_cv_data object representing the CVs comprising the cable-cell according to the "
+          "discretization policy provided in the decor of the cell. Returns None if no CV-policy was provided "
+          "in the decor."
+          );
+
+    m.def("intersect_region",
+          [](const char* reg, const arb::cell_cv_data& cvs, const std::string& integrate_along) {
+              bool integrate_area;
+              if (integrate_along == "area") integrate_area = true;
+              else if (integrate_along == "length") integrate_area = false;
+              else throw pyarb_error(util::pprintf("{} does not name a valid integration axis. "
+                                                   "Only 'area' and 'length' are supported)", integrate_along));
+
+              auto object_vec = arb::intersect_region(arborio::parse_region_expression(reg).unwrap(), cvs, integrate_area);
+              auto tuple_vec = std::vector<pybind11::tuple>(object_vec.size());
+              std::transform(object_vec.begin(), object_vec.end(), tuple_vec.begin(),
+                             [](const auto& t)  { return pybind11::make_tuple(t.idx, t.proportion); });
+              return tuple_vec;
+          },
+          "reg"_a,  "A region on a cell",
+          "data"_a, "The data representing the CVs of the cell.",
+          "integrate_along"_a, "the axis of integration used to determine the proportion of the CV belonging to the region.",
+          "Returns a list of [index, proportion] tuples identifying the CVs present in the region.\n"
+          "`index` is the index of the CV in the cell_cv_data object provided as an argument.\n"
+          "`proportion` is the proportion of the CV (itegrated by area or length) included in the region."
+    );
+
     // arb::density
 
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
@@ -511,6 +570,8 @@ void register_cells(pybind11::module& m) {
     },
     "default NEURON cable_global_properties");
 
+    // arb::decor
+
     pybind11::class_<arb::decor> decor(m, "decor",
             "Description of the decorations to be applied to a cable cell, that is the painted,\n"
             "placed and defaulted properties, mecahanisms, ion species etc.");
@@ -630,7 +691,13 @@ void register_cells(pybind11::module& m) {
             "The group of spike detectors has the label 'label', used for forming connections between cells.")
         .def("discretization",
             [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
-            pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"));
+            pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"))
+        .def("discretization",
+            [](arb::decor& dec, const std::string& p) {
+                dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
+            },
+            pybind11::arg_v("policy", "An s-expression string representing a cv_policy used to discretise the "
+                                      "cell into compartments for simulation"));
 
     // arb::cable_cell
 

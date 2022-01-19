@@ -30,6 +30,7 @@ set(arbor_sources
     mechinfo.cpp
     memory/gpu_wrappers.cpp
     memory/util.cpp
+    morph/cv_data.cpp
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp
@@ -57,6 +58,7 @@ set(arbor_sources
     threading/threading.cpp
     thread_private_spike_store.cpp
     tree.cpp
+    util/dylib.cpp
     util/hostname.cpp
     util/unwind.cpp
     version.cpp

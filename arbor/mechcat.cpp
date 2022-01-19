@@ -12,10 +12,11 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/rangeutil.hpp"
+#include "util/dylib.hpp"
 #include "util/maputil.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/dl.hpp"
+#include "util/strprintf.hpp"
 
 /* Notes on implementation:
  *
@@ -587,18 +588,17 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
     global_catalogue_t* get_catalogue = nullptr;
     try {
-        auto plugin = dl_open(fn);
-        get_catalogue = dl_get_symbol<global_catalogue_t*>(plugin, "get_catalogue");
-    } catch(dl_error& e) {
+        get_catalogue = util::dl_get_symbol<global_catalogue_t*>(fn, "get_catalogue");
+    } catch(util::dl_error& e) {
         throw bad_catalogue_error{e.what(), {e}};
     }
     if (!get_catalogue) {
         throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
     }
-    /* NOTE We do not free the DSO handle here and accept retaining the handles
-       until termination since the mechanisms provided by the catalogue may have
-       a different lifetime than the actual catalogue itfself. This is not a
-       leak proper as `dlopen` caches handles for us.
+    /* The DSO handle is not freed here: handles will be retained until
+     * termination since the mechanisms provided by the catalogue may have a
+     * different lifetime than the actual catalogue itfself. This is not a leak,
+     * as `dlopen` caches handles for us.
      */
     return *((const mechanism_catalogue*)get_catalogue());
 }
