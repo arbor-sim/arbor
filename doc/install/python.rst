@@ -74,10 +74,10 @@ Advanced options
 
 By default Arbor is installed with multi-threading enabled. To enable more
 advanced forms of parallelism and other features, Arbor comes with a few
-compilation options. These are of the form ``-D<KEY>=<VALUE>``, must be
-separated from the actual ``pip`` invocation by a double dash ``--`` and can be
-used on both local (``pip3 install ./arbor``) and remote (``pip3 install
-arbor``) copies of Arbor.
+compilation options. These are of the form ``-D<KEY>=<VALUE>``, must be appended
+to the ``pip`` invocation via ``--install-option='-D<...> -D<...> ...'`` and can
+be used on both local (``pip3 install ./arbor``) and remote (``pip3 install
+arbor``) copies of Arbor. See the examples below.
 
 .. Note::
 
@@ -89,27 +89,28 @@ arbor``) copies of Arbor.
     If you had Arbor installed already, you may need to remove it first before
     you can (re)compile it with the flags you need.
 
+.. Warning::
+
+   If you run into build issues while experimenting with build options, be sure
+   to remove the ``_skbuild`` directory.
+
 The following flags can be used to configure the installation:
 
-* ``-DARB_WITH_NEUROML=<ON|OFF>``: Enable support for NeuroML2 morphologies,
+* ``ARB_WITH_NEUROML=<ON|OFF>``: Enable support for NeuroML2 morphologies,
   requires ``libxml2`` library. Default ``OFF``
-* ``-DARB_WITH__MPI=<ON|OFF>``: Enable MPI support, requires MPI library.
+* ``ARB_WITH__MPI=<ON|OFF>``: Enable MPI support, requires MPI library.
   Default ``OFF``.
-* ``-DARB_GPU=<none|cuda|cuda-clang|hip>``: Enable GPU support for NVIDIA GPUs
+* ``ARB_GPU=<none|cuda|cuda-clang|hip>``: Enable GPU support for NVIDIA GPUs
   with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require
   cudaruntime). Enable GPU support for AMD GPUs with hipcc using ``hip``. By
   default set to ``none``, which disables GPU support.
-* ``-DARB_VECTORIZE=<ON|OFF>``: Enable vectorization. The architecture argument,
+* ``ARB_VECTORIZE=<ON|OFF>``: Enable vectorization. The architecture argument,
   documented below, may also have to be set appropriately to generated
   vectorized code. See :ref:`install-architecture` for details.
-* ``-DARB_ARCH=<native|*>``: CPU micro-architecture to target. The advised
+* ``ARB_ARCH=<native|*>``: CPU micro-architecture to target. The advised
   default is ``native``. See `here
   <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of
   options.
-
-Finally, some flags can be be passed after a second set of ``--``
-
-* ``-j N``: Use ``N`` processes for compilation, used to speed up builds.
 
 .. note::
 
@@ -136,33 +137,33 @@ In the examples below we assume you are installing from a local copy.
 
 .. code-block:: bash
 
-    pip3 install ./arbor -- -DARB_WITH_MPI=ON
+    pip3 install ./arbor --install-option='-DARB_WITH_MPI=ON'
 
 **Compile with** :ref:`vectorization <install-vectorize>` on a system with a SkyLake
 :ref:`architecture <install-architecture>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor -- -DARB_VECTORIZE=ON -DARB_ARCH=skylake
+    pip3 install ./arbor --install-option='-DARB_VECTORIZE=ON -DARB_ARCH=skylake'
 
 **Enable NVIDIA GPUs (compiled with nvcc)**. This requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor -- -DARB_GPU=cuda
+    pip3 install ./arbor --install-option='-DARB_GPU=cuda'
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor -- -DARB_GPU=cuda-clang
+    pip3 install ./arbor --install-option='-DARB_GPU=cuda-clang'
 
 **Enable AMD GPUs (compiled with hipcc)**. This requires setting the ``CC`` and ``CXX``
 :ref:`environment variables <install-gpu>`
 
 .. code-block:: bash
 
-    pip3 install ./arbor -- -DARB_GPU=hip
+    pip3 install ./arbor --install-option='-DARB_GPU=hip'
 
 Note on performance
 -------------------
