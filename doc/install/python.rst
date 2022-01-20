@@ -7,13 +7,13 @@ Arbor's Python API will be the most convenient interface for most users.
 
 .. note::
     Arbor requires Python version 3.6 and later. It is advised that you update `pip` as well.
-    We strongly encourage ``pip`` is used to install Arbor.
+    We strongly encourage using ``pip`` to install Arbor.
 
 Getting Arbor
 -------------
 
 Every point release of Arbor is pushed to the Python Package Index.
-For x86-64 Linux and MacOS plaftorms, we provide binary wheels.
+For x86-64 Linux and MacOS platforms, we provide binary wheels.
 The easiest way to get Arbor is with
 `pip <https://packaging.python.org/tutorials/installing-packages>`_:
 
@@ -81,8 +81,8 @@ arbor``) copies of Arbor.
 
 .. Note::
 
-   ``Pip`` compiles the Arbor C++ library and wrapper, as well as dependencies
-    you might not have had installed yet (e.g. `numpy`). It may take a few
+   ``pip`` compiles the Arbor C++ library and wrapper, as well as dependencies
+    you might not have had installed yet (e.g. ``numpy``). It may take a few
     minutes. Pass the ``--verbose`` flag to pip to see the individual steps
     being performed if you are concerned that progress is halting.
 
@@ -94,7 +94,7 @@ The following flags can be used to configure the installation:
 * ``-DARB_WITH_NEUROML=<ON|OFF>``: Enable support for NeuroML2 morphologies,
   requires ``libxml2`` library. Default ``OFF``
 * ``-DARB_WITH__MPI=<ON|OFF>``: Enable MPI support, requires MPI library.
-  Default ``OF``.
+  Default ``OFF``.
 * ``-DARB_GPU=<none|cuda|cuda-clang|hip>``: Enable GPU support for NVIDIA GPUs
   with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require
   cudaruntime). Enable GPU support for AMD GPUs with hipcc using ``hip``. By
@@ -107,7 +107,7 @@ The following flags can be used to configure the installation:
   <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of
   options.
 
-Finally, some flags must be be passed after a second set of ``--``
+Finally, some flags can be be passed after a second set of ``--``
 
 * ``-j N``: Use ``N`` processes for compilation, used to speed up builds.
 
@@ -123,7 +123,7 @@ Finally, some flags must be be passed after a second set of ``--``
    compilation and installation, plan to use Arbor with C++, or if you are
    integrating with package managers such as Spack and EasyBuild.
 
-In the examples below we assume you are working off a local copy.
+In the examples below we assume you are installing from a local copy.
 
 **Vanilla install** with no additional features enabled:
 
@@ -149,7 +149,7 @@ In the examples below we assume you are working off a local copy.
 
 .. code-block:: bash
 
-    pip3 install arbor -- -DARB_GPU=cuda
+    pip3 install ./arbor -- -DARB_GPU=cuda
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
@@ -163,20 +163,6 @@ In the examples below we assume you are working off a local copy.
 .. code-block:: bash
 
     pip3 install ./arbor -- -DARB_GPU=hip
-
-Dependencies
-^^^^^^^^^^^^
-
-If a downstream dependency requires Arbor be built with
-a specific feature enabled, use ``requirements.txt`` to
-`define the constraints <https://pip.pypa.io/en/stable/reference/pip_install/#per-requirement-overrides>`_.
-For example, a package that depends on `arbor` version 0.3 or later
-with MPI support would add the following to its requirements:
-
-.. code-block:: python
-
-    TODO: Does this work?
-    arbor >= 0.3 -- -DARB_GPU='cuda' -DARB_WITH_MPI=ON
 
 Note on performance
 -------------------
