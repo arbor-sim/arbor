@@ -19,7 +19,7 @@ class TestContexts(unittest.TestCase):
         self.assertEqual(alloc.threads, 1)
         self.assertEqual(alloc.gpu_id, None)
         self.assertFalse(alloc.has_gpu)
-        
+
     def test_set_allocation(self):
         alloc = arb.proc_allocation()
 
