@@ -309,7 +309,6 @@ endif()
 #-----------------
 
 find_package(Threads REQUIRED)
-find_threads_cuda_fix()
 target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
 
 list(APPEND arbor_export_dependencies "Threads")
