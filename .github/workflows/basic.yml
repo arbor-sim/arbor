@@ -98,7 +98,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.7
+        uses: jwlawson/actions-setup-cmake@v1.12
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
