@@ -584,7 +584,7 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-const mechanism_catalogue& load_catalogue(const std::string& fn) {
+mech_cat_ptr load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
     global_catalogue_t* get_catalogue = nullptr;
     try {
@@ -600,7 +600,7 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
      * different lifetime than the actual catalogue itfself. This is not a leak,
      * as `dlopen` caches handles for us.
      */
-    return *((const mechanism_catalogue*)get_catalogue());
+    return mech_cat_ptr{(mechanism_catalogue*)get_catalogue()};
 }
 
 } // namespace arb

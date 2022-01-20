@@ -557,8 +557,8 @@ void register_cells(pybind11::module& m) {
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
             "overriden locally.")
-        .def("register", [](arb::cable_cell_global_properties& props, const arb::mechanism_catalogue& cat) {
-                props.catalogue = &cat;
+        .def("register", [](arb::cable_cell_global_properties& props, const arb::mech_cat_ptr cat) {
+                props.catalogue = cat;
             },
             "Register the pointer to the mechanism catalogue in the global properties")
         .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});

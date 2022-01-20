@@ -139,7 +139,7 @@ class single_cell_model {
 
 public:
     arb::cable_cell_global_properties gprop;
-    arb::mechanism_catalogue cat;
+    arb::mech_cat_ptr cat;
 
     single_cell_model(arb::cable_cell c):
         cell_(std::move(c)), ctx_(arb::make_context())
@@ -168,7 +168,7 @@ public:
     }
 
     void run(double tfinal, double dt) {
-        gprop.catalogue = &cat;
+        gprop.catalogue = cat;
         single_cell_recipe rec(cell_, probes_, gprop);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);

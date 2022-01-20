@@ -435,7 +435,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     // (Throws cable_cell_error on failure.)
     check_global_properties(global_props);
 
-    const mechanism_catalogue* catalogue = global_props.catalogue;
+    const auto catalogue = global_props.catalogue;
 
     // Mechanism instantiator helper.
     auto mech_instance = [&catalogue](const std::string& name) {
