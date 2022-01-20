@@ -47,7 +47,7 @@ def parse_arguments():
                         help='''Advanced: Raw mechanisms as C++ files. Per <name> the
 files <name>.hpp, <name>_cpu.cpp must be present
 in the target directory and with GPU support
-also <name>_gpu.cpp and <name>_gpu.cu''')
+also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).''')
 
     parser.add_argument('modpfx',
                         metavar='modpfx',

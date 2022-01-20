@@ -119,7 +119,7 @@ if(ARB_GPU STREQUAL "cuda")
     # each target according to CMAKE_CUDA_ARCHITECTURES. Not setting
     # this will constitute an error from now on.
     if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70) # Compatible with CUDA 10.
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     endif()
 
     # This fixes nvcc picking up a wrong host compiler for linking, causing issues
