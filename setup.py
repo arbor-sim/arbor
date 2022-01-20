@@ -33,7 +33,7 @@ setup(name='arbor',
       cmake_args=['-DARB_WITH_PYTHON=on',
                   f'-DPYTHON_EXECUTABLE={python}',
                   f'-DARB_WITH_MPI={with_mpi}',
-                  f'-DARB_VECTORIZE={with_vec}'
+                  f'-DARB_VECTORIZE={with_vec}',
                   f'-DARB_ARCH={arch}',
                   f'-DARB_GPU={with_gpu}',
                   f'-DARB_WITH_NEUROML={with_nml}',
