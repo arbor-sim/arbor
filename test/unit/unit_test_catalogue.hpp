@@ -2,4 +2,4 @@
 
 #include <arbor/mechcat.hpp>
 
-arb::mechanism_catalogue make_unit_test_catalogue(const arb::mechanism_catalogue& from = {});
+arb::mech_cat_ptr make_unit_test_catalogue(arb::mech_cat_ptr from = {});

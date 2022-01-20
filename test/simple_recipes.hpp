@@ -21,10 +21,8 @@ namespace arb {
 
 class simple_recipe_base: public recipe {
 public:
-    simple_recipe_base():
-        catalogue_(global_default_catalogue())
-    {
-        cell_gprop_.catalogue = &catalogue_;
+    simple_recipe_base() {
+        cell_gprop_.catalogue = global_default_catalogue();
         cell_gprop_.default_parameters = neuron_parameter_defaults;
     }
 
@@ -46,8 +44,8 @@ public:
         }
     }
 
-    mechanism_catalogue& catalogue() {
-        return catalogue_;
+    mech_cat_ptr catalogue() {
+        return cell_gprop_.catalogue;
     }
 
     void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot) {
@@ -61,7 +59,6 @@ public:
 protected:
     std::unordered_map<cell_gid_type, std::vector<probe_info>> probes_;
     cable_cell_global_properties cell_gprop_;
-    mechanism_catalogue catalogue_;
 };
 
 // Convenience derived recipe class for wrapping n copies of a single

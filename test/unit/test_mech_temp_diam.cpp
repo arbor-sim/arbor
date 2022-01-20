@@ -24,7 +24,7 @@ void run_celsius_test() {
     fvm_size_type ncv = 3;
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
-    auto instance = cat.instance(backend::kind, "celsius_test");
+    auto instance = cat->instance(backend::kind, "celsius_test");
     auto& celsius_test = instance.mech;
 
     double temperature_K = 300.;
@@ -74,7 +74,7 @@ void run_diam_test() {
     fvm_size_type ncv = 3;
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
-    auto instance = cat.instance(backend::kind, "diam_test");
+    auto instance = cat->instance(backend::kind, "diam_test");
     auto& celsius_test = instance.mech;
 
     std::vector<fvm_value_type> temp(ncv, 300.);

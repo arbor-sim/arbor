@@ -44,13 +44,13 @@ TEST(mechanism_desc, setting) {
 
 TEST(mechanism_desc, linearity) {
     {
-        mechanism_catalogue cat = arb::global_default_catalogue();
-        EXPECT_TRUE(cat["expsyn"].linear);
-        EXPECT_TRUE(cat["exp2syn"].linear);
+        auto cat = arb::global_default_catalogue();
+        EXPECT_TRUE((*cat)["expsyn"].linear);
+        EXPECT_TRUE((*cat)["exp2syn"].linear);
     }
     {
-        mechanism_catalogue cat = make_unit_test_catalogue();
-        EXPECT_FALSE(cat["non_linear"].linear);
+        auto cat = make_unit_test_catalogue();
+        EXPECT_FALSE((*cat)["non_linear"].linear);
     }
 
 }

@@ -984,9 +984,8 @@ TEST(fvm_layout, gj_example_2) {
 
     // Check the GJ CV map
     cable_cell_global_properties gprop;
-    auto cat = make_unit_test_catalogue();
-    cat.import(arb::global_default_catalogue(), "");
-    gprop.catalogue = &cat;
+    gprop.catalogue = make_unit_test_catalogue();
+    gprop.catalogue->import(arb::global_default_catalogue(), "");
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
@@ -1466,8 +1465,7 @@ TEST(fvm_layout, valence_verify) {
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
 
     // Missing the 'cl' ion:
     EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), cable_cell_error);
@@ -1531,9 +1529,8 @@ TEST(fvm_layout, ion_weights) {
         {0.}, {0., 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0., 0.}, {3./4, 0.}
     };
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
     cable_cell_global_properties gprop;
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
@@ -1581,8 +1578,6 @@ TEST(fvm_layout, revpot) {
     //     * Reversal potential mechanisms are only extended where there exists another
     //       mechanism that reads them.
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
-
     soma_cell_builder builder(5);
     builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
@@ -1596,7 +1591,7 @@ TEST(fvm_layout, revpot) {
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
 
     gprop.ion_species = {{"a", 1}, {"b", 2}, {"c", 3}};
     gprop.add_ion("a", 1, 10., 0, 0);

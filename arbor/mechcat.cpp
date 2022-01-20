@@ -567,6 +567,11 @@ void mechanism_catalogue::import(const mechanism_catalogue& other, const std::st
     state_->import(*other.state_, prefix);
 }
 
+void mechanism_catalogue::import(mech_cat_ptr other, const std::string& prefix) {
+    state_->import(*other->state_, prefix);
+}
+
+
 void mechanism_catalogue::remove(const std::string& name) {
     if (!has(name)) {
         throw no_such_mechanism(name);
