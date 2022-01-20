@@ -75,7 +75,7 @@ jobs:
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
+            os:    "macos-11",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.9",
