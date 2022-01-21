@@ -442,6 +442,9 @@ TEST(fvm_lowered, derived_mechs) {
 
     cable1d_recipe rec(cells);
     rec.catalogue() = make_unit_test_catalogue();
+    for (const auto& m: rec.catalogue()->mechanism_names()) {
+        std::cerr << m << '\n';
+    }
     rec.catalogue()->derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cable_probe_total_ion_current_density where{builder.location({1, 0.3})};

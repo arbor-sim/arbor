@@ -44,7 +44,7 @@ public:
         }
     }
 
-    mech_cat_ptr catalogue() {
+    mech_cat_ptr& catalogue() {
         return cell_gprop_.catalogue;
     }
 

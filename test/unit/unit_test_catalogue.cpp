@@ -62,7 +62,8 @@ c->register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x
 using namespace arb;
 
 mech_cat_ptr make_unit_test_catalogue(mech_cat_ptr from) {
-    mech_cat_ptr cat = std::make_shared<mechanism_catalogue>(*from);
+    auto cat = std::make_shared<mechanism_catalogue>();
+    if (from) cat->import(from, "");
 
     ADD_MECH(cat, gj0)
     ADD_MECH(cat, gj1)
