@@ -6,8 +6,11 @@ Python Installation
 Arbor's Python API will be the most convenient interface for most users.
 
 .. note::
-    Arbor requires Python version 3.6 and later. It is advised that you update `pip` as well.
+    Arbor requires Python version 3.6 and later. It is advised that you update ``pip`` as well.
     We strongly encourage using ``pip`` to install Arbor.
+    
+    To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output
+    (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
 
 Getting Arbor
 -------------
@@ -21,15 +24,6 @@ The easiest way to get Arbor is with
 
     pip3 install arbor
 
-.. note::
-    For other platforms, `pip` will build Arbor from source.
-    You will need to have some development packages installed in order to build Arbor this way.
-
-    * Ubuntu/Debian: `git cmake gcc python3-dev python3-pip libxml2-dev`
-    * Fedora/CentOS/OpenSuse: `git cmake gcc-c++ python3-devel python3-pip libxml2-devel`
-    * MacOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3 libxml2`
-    * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
-
 To test that Arbor is available, try the following in a Python interpreter
 to see information about the version and enabled features:
 
@@ -42,9 +36,20 @@ to see information about the version and enabled features:
 You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the
 :ref:`Python API reference<pyoverview>`, or visit the :ref:`tutorial`.
 
-.. Note::
-    To get help in case of problems installing with pip, run pip with the ``--verbose`` flag, and attach the output
-    (along with the pip command itself) to a ticket on `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
+.. Warning::
+    
+    For builds from Arbor's source, you will need to have some development packages installed. Installing Arbor
+    for any other platforms than listed above, ``pip`` will attempt a build from source and thus require these
+    packages as well.
+
+    * Ubuntu/Debian: `git cmake gcc python3-dev python3-pip libxml2-dev`
+    * Fedora/CentOS/OpenSuse: `git cmake gcc-c++ python3-devel python3-pip libxml2-devel`
+    * MacOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3 libxml2`
+    * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
+
+    In addition, you'll need a few Python packages present:
+
+    ``pip3 install ninja scikit-build wheel setuptools numpy``
 
 .. _in_python_custom:
 
@@ -75,31 +80,17 @@ Advanced options
 By default Arbor is installed with multi-threading enabled. To enable more
 advanced forms of parallelism and other features, Arbor comes with a few
 compilation options. These are of the form ``-D<KEY>=<VALUE>``, must be appended
-to the ``pip`` invocation via ``--install-option='-D<...> -D<...> ...'`` and can
+to the ``pip`` invocation via ``--install-option="-D<...>" --install-option="-D<...>" ...`` and can
 be used on both local (``pip3 install ./arbor``) and remote (``pip3 install
 arbor``) copies of Arbor. See the examples below.
 
 .. Note::
 
-   ``pip`` compiles the Arbor C++ library and wrapper, as well as dependencies
-    you might not have had installed yet (e.g. ``numpy``). It may take a few
-    minutes. Pass the ``--verbose`` flag to pip to see the individual steps
-    being performed if you are concerned that progress is halting.
-
-    If you had Arbor installed already, you may need to remove it first before
-    you can (re)compile it with the flags you need.
-
-.. Warning::
-
-   Before you attempt a build with any options, you will need to install the
-   following
-
-   ``pip3 install ninja scikit-build wheel setuptools numpy``
-
    If you run into build issues while experimenting with build options, be sure
-   to remove the ``_skbuild`` directory.
+   to remove the ``_skbuild`` directory. If you had Arbor installed already,
+   you may need to remove it first before you can (re)compile it with the flags you need.
 
-   Also, be very careful to pass each option individually via
+   Also, make sure to pass each option individually via
    ``--install-option="..."``.
 
 The following flags can be used to configure the installation:
