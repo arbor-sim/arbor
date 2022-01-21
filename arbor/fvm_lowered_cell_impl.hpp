@@ -224,7 +224,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // - all gap junctions are subject to WR
     // - we only have a single cell group
 
-    //(LK) Store times for remaining_steps reset before each WR iteration
+    // Store times for remaining_steps reset before each WR iteration
     value_type tmin_reset   = tmin_;
     value_type tfinal_reset = tfinal;
     value_type dt_reset     = dt_max;
@@ -232,26 +232,25 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     //traces:            gj mech id                                values               
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_t, traces_t_prev;
-    
-    //count time steps for feeding back traces array
-    int step = 0;
+
+    std::vector<arb_index_type> peer_ix;
+    auto max_rem_steps = remaining_steps;
 
     //WR iterations
-    int wr_max_it = 20;
+    int wr_max_it = 3;
     for (int wr_it = 0; wr_it < wr_max_it; wr_it++){
 
         //reset remaining_steps
-        //(LK) FIXME is this okay to do?
         if (wr_it > 0) {
             tmin_   = tmin_reset;
             tfinal  = tfinal_reset;
             dt_max  = dt_reset;
             remaining_steps = dt_steps(tmin_, tfinal, dt_max);
         }
-
-        //(LK) FIXME could maybe calculate step with remaining steps
-        step = 0;
+        
         while (remaining_steps) {
+            auto step = max_rem_steps-remaining_steps;
+            
             // Update any required reversal potentials based on ionic concs.
             for (auto& m: revpot_mechanisms_) {
                 m->update_current();
@@ -276,11 +275,27 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 m->deliver_events(events);
 
                 //feed back previous traces to vec_v_peer for WR
-                //vec_v_peer defaults to vec_v                
-                if (m->kind() == arb_mechanism_kind_gap_junction && wr_it > 0) {
-                    auto gj = m->mechanism_id();
-                    auto& v_peer = traces_v_prev[gj];
-                    m->ppack_.vec_v_peer = v_peer[step].data();
+                //vec_v_peer defaults to vec_v
+                if (m->kind() == arb_mechanism_kind_gap_junction) {
+                    if (wr_it == 0 && step == 0) {
+                        std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos;
+                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
+                            peer_pos[m->ppack_.node_index[ix]].push_back(ix);
+                        }
+                        for (auto it = 0; it < m->ppack_.width; ++it) {
+                            auto p = m->ppack_.peer_index[it];
+                            peer_ix.push_back(peer_pos[p][0]);
+                            peer_pos[p].pop_front();
+                        }
+                    }
+                    if (wr_it > 0) {
+                        auto gj = m->mechanism_id();
+                        for (auto ix = 0; ix < m->ppack_.width; ++ix){ 
+                            auto peer = peer_ix[ix];
+                            auto v_prev = traces_v_prev[gj][step][peer];
+                            m->ppack_.vec_v_peer[ix] = v_prev;
+                        }
+                    }
                 }
                 
                 m->update_current();
@@ -290,12 +305,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     auto gj = m->mechanism_id();
                     std::vector<value_type> v_step = {};
                     std::vector<value_type> t_step = {};
-
-                    for(int ix = 0; ix < state_->voltage.size(); ++ix) {
-                        v_step.push_back(state_->voltage[ix]);
-                        t_step.push_back(state_->dt_cv[ix]);
+                    for(int ix = 0; ix < m->ppack_.width; ++ix) {
+                        auto node_cv = m->ppack_.node_index[ix];
+                        v_step.push_back(state_->voltage[node_cv]);
+                        t_step.push_back(state_->dt_cv[node_cv]);
                     }
-
                     traces_v[gj].push_back(v_step);
                     traces_t[gj].push_back(t_step);
                 }
@@ -384,11 +398,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             }
             PL();
 
-            ++step;
+            //++step;
         }
-
         
-        //(LK) add break condition for WR
+        //add break condition for WR
 
         //reset traces
         traces_v_prev = traces_v;
