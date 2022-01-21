@@ -1,16 +1,16 @@
 ---
 name: Bug report
-about: Create a report to help us improve. If you need help setting up your simulation
-  with Arbor, please start a new topic in Discussions.
+about: If Arbor crashes, produces incorrect output or does something unexpected, please create a report to help us improve.
 title: ''
 labels:
 - 'bug'
 assignees: ''
 
 ---
+<!-- Please add relevant labels to categorize your bug. -->
 
 **Describe the bug**
 <!-- A clear and concise description of what the bug is, steps to reproduce, expected behavior, etc. -->
 
-**Additional context**
+**Context**
 <!-- Add any other context about the problem here (e.g. OS, Arbor version, etc.). -->

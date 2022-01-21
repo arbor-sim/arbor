@@ -21,23 +21,24 @@ separation of concerns, so that users have full control over how hardware resour
 are selected, either using the functions and types in *libarborenv*, or writing their
 own code for managing MPI, GPUs, and thread counts.
 
+Functions for determining environment defaults based on system information and
+user-supplied values in environment values are in the header ``arborenv/default_env.hpp``.
+
 .. cpp:namespace:: arbenv
 
-.. cpp:function:: arb::util::optional<int> get_env_num_threads()
+.. cpp:function:: unsigned long get_env_num_threads()
 
-    Tests whether the number of threads to use has been set in an environment variable.
-    First checks ``ARB_NUM_THREADS``, and if that is not set checks ``OMP_NUM_THREADS``.
+    Retrieve user-specified number of threads to use from the environment variable
+    ARBENV_NUM_THREADS.
 
     Return value:
 
-    * **no value**: the :cpp:any:`optional` return value contains no value if the
-      no thread count was specified by an environment variable.
-    * **has value**: the number of threads set by the environment variable.
+    * Returns zero if ARBENV_NUM_THREADS is unset or empty.
+    * Returns positive unsigned long value on ARBENV_NUM_THREADS if set.
 
     Throws:
 
-    * throws :cpp:any:`std::runtime_error` if environment variable set with invalid
-      number of threads.
+    * Throws :cpp:any:`arbenv::invalid_env_value` if ARBENV_NUM_THREADS is set, non-empty, and not a valid representation of a positive unsigned long value.
 
     .. container:: example-code
 
@@ -49,48 +50,47 @@ own code for managing MPI, GPUs, and thread counts.
             std::cout << "requested " << nt.value() << "threads \n";
          }
          else {
-            std::cout << "no environment variable set\n";
+            std::cout << "environment variable empty or unset\n";
          }
 
-.. cpp:function:: int thread_concurrency()
+.. cpp:function:: arb::proc_allocation default_allocation()
+
+   Return a :cpp:any:`proc_allocation` with thread count from :cpp:any:`default_concurrency()`
+   and gpu id from :cpp:any:`default_gpu()`.
+
+.. cpp:function:: unsigned long default_concurrency()
+
+    Returns number of threads to use from :cpp:any:`get_env_num_threads()`, or else from
+    :cpp:any:`thread_concurrency()` if :cpp:any:`get_env_num_threads()` returns zero.
+
+.. cpp:function:: int default_gpu()
+
+   Determine GPU id to use from the ARBENV_GPU_ID environment variable, or from the first available
+   GPU id of those detected.
+
+   Return value:
+
+   * Return -1 if Arbor has no GPU support, or if the ARBENV_GPU_ID environment variable is set to a negative number, or if ARBENV_GPU_ID is empty or unset and no GPUs are detected.
+   * Return a non-negative GPU id equal to ARBENV_GPU_ID if it is set to a non-negative value that is a valid GPU id, or else to the first valid GPU id detected (typically zero).
+
+   Throws:
+
+   * Throws :cpp:any:`arbenv::invalid_env_value` if ARBENV_GPU_ID contains a non-integer value.
+   * Throws :cpp:any:`arbenv::no_such_gpu` if ARBENV_GPU_ID contains a non-negative integer that does not correspond to a detected GPU.
+
+The header ``arborenv/concurrency.hpp`` supplies lower-level functions for querying the threading environment.
+
+.. cpp:function:: unsigned long thread_concurrency()
 
    Attempts to detect the number of available CPU cores. Returns 1 if unable to detect
    the number of cores.
 
-    .. container:: example-code
+.. cpp:function:: std::vector<int> get_affinity()
 
-       .. code-block:: cpp
+   Returns the list of logical processor ids where the calling thread has affinity,
+   or an empty vector if unable to determine.
 
-         #include <arborenv/concurrency.hpp>
-
-         // Set num_threads to value from environment variable if set,
-         // otherwise set it to the available number of cores.
-         int num_threads = 0;
-         if (auto nt = arbenv::get_env_num_threads()) {
-            num_threads = nt.value();
-         }
-         else {
-            num_threads = arbenv::thread_concurrency();
-         }
-
-.. cpp:function:: int default_gpu()
-
-   Returns the integer identifier of the first available GPU, if a GPU is available
-
-   Return value:
-
-   * **non-negative value**: if a GPU is available, the index of the selected GPU is returned. The index will be in the range ``[0, num_gpus)`` where ``num_gpus`` is the number of GPUs detected using the ``cudaGetDeviceCount`` `CUDA API call <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
-   * **-1**: if no GPU available, or if Arbor was built without GPU support.
-
-    .. container:: example-code
-
-       .. code-block:: cpp
-
-         #include <arborenv/gpu_env.hpp>
-
-         if (arbenv::default_gpu()>-1) {}
-            std::cout << "a GPU is available\n";
-         }
+The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for queruing the GPU environment.
 
 .. cpp:function:: int find_private_gpu(MPI_Comm comm)
 
@@ -119,9 +119,12 @@ own code for managing MPI, GPUs, and thread counts.
 
    Throws:
 
-     * :cpp:any:`std::runtime_error`: if there was an error in the CUDA runtime
+     * :cpp:any:`arbenv::gpu_uuid_error`: if there was an error in the CUDA runtime
        on the local or remote MPI ranks, i.e. if one rank throws, all ranks
        will throw.
+
+The header ``arborenv/with_mpi.hpp`` provides an RAII interface for initializing MPI
+and handling exceptions on MPI exit.
 
 .. cpp:class:: with_mpi
 
@@ -185,6 +188,10 @@ own code for managing MPI, GPUs, and thread counts.
                 }
                 return 0;
             }
+
+Functions and methods in the ``arborenv`` library may throw exceptions specific to the library.
+These are declared in the ``arborenv/arbenvexcept.hpp`` header, and all derive from the
+class ``arborenv::arborenv_exception``, itself derived from ``std::runtime_error``.
 
 libarbor
 -------------------

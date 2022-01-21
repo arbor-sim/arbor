@@ -40,21 +40,33 @@ Interconnectivity
 
         The delay time of the connection [ms]. Must be positive.
 
-    An example of a connection reads as follows:
+    .. note::
 
-    .. container:: example-code
+        An minimal full example of a connection reads as follows:
+        (see :ref:`network tutorial <tutorialnetworkring>` for a more comprehensive example):
 
         .. code-block:: python
 
             import arbor
 
+            # Create two locset labels, describing the endpoints of the connection.
+            labels = arbor.label_dict()
+            labels['synapse_site'] = '(location 1 0.5)'
+            labels['root'] = '(root)'
+
+            # Place 'expsyn' mechanism on "synapse_site", and a spike detector at "root"
+            decor = arbor.decor()
+            decor.place('"synapse_site"', 'expsyn', 'syn')
+            decor.place('"root"', arbor.spike_detector(-10), 'detector')
+
+            # Implement the connections_on() function on a recipe as follows:
             def connections_on(gid):
                # construct a connection from the "detector" source label on cell 2
                # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
-               src  = arbor.cell_global_label(2, "detector")
-               dest = arbor.cell_local_label("syn") # gid of the destination is is determined by the argument to `connections_on`
-               w    = 0.01
-               d    = 10
+               src  = (2, "detector") # gid and locset label of the source
+               dest = "syn" # gid of the destination is determined by the argument to `connections_on`.
+               w    = 0.01  # weight of the connection. Correspondes to 0.01 μS on expsyn mechanisms
+               d    = 10 # delay in ms
                return [arbor.connection(src, dest, w, d)]
 
 .. class:: gap_junction_connection
@@ -69,12 +81,11 @@ Interconnectivity
        A bidirectional gap-junction between two cells ``c0`` and ``c1`` requires two
        :class:`gap_junction_connection` objects to be constructed: one where ``c0`` is the
        :attr:`local` site, and ``c1`` is the :attr:`peer` site; and another where ``c1`` is the
-       :attr:`local` site, and ``c0`` is the :attr:`peer` site. If :attr:`ggap` is equal
-       in both connections, a symmetric gap-junction is formed, other wise the gap-junction is asymmetric.
+       :attr:`local` site, and ``c0`` is the :attr:`peer` site.
 
-    .. function::gap_junction_connection(peer, local, ggap)
+    .. function::gap_junction_connection(peer, local, weight)
 
-        Construct a gap junction connection between :attr:`peer` and :attr:`local` with conductance :attr:`ggap`.
+        Construct a gap junction connection between :attr:`peer` and :attr:`local` with weight :attr:`weight`.
 
     .. attribute:: peer
 
@@ -89,9 +100,9 @@ Interconnectivity
         the default :attr:`arbor.selection_policy.univalent` is used, or a (label, policy) tuple). The gid of the
         cell is implicitly known.
 
-    .. attribute:: ggap
+    .. attribute:: weight
 
-        The gap junction conductance [μS].
+        The unit-less weight of the gap junction connection.
 
 .. class:: spike_detector
 

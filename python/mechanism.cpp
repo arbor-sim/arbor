@@ -204,7 +204,9 @@ void register_mechanisms(pybind11::module& m) {
 
     pybind11::class_<arb::mechanism_desc> mechanism_desc(m, "mechanism");
     mechanism_desc
-        .def(pybind11::init([](const char* n) {return arb::mechanism_desc{n};}))
+        .def(pybind11::init([](const char* name) {return arb::mechanism_desc{name};}),
+            "name"_a, "The name of the mechanism"
+        )
         // allow construction of a description with parameters provided in a dictionary:
         //      mech = arbor.mechanism('mech_name', {'param1': 1.2, 'param2': 3.14})
         .def(pybind11::init(
@@ -238,7 +240,7 @@ void register_mechanisms(pybind11::module& m) {
             }, "A dictionary of parameter values with parameter name as key.")
         .def("__repr__",
                 [](const arb::mechanism_desc& md) {
-                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}", md.name(), util::dictionary_csv(md.values())); })
+                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}>", md.name(), util::dictionary_csv(md.values())); })
         .def("__str__",
                 [](const arb::mechanism_desc& md) {
                     return util::pprintf("('{}' {})", md.name(), util::dictionary_csv(md.values())); });

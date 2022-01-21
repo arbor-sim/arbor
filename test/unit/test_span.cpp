@@ -45,14 +45,15 @@ TEST(span, int_iterators) {
     int a = 3;
     int b = a+n;
 
-    span s(a, b);
+    {
+        span s(a, b);
 
-    EXPECT_TRUE(util::is_iterator<span::iterator>::value);
-    EXPECT_TRUE(util::is_random_access_iterator<span::iterator>::value);
+        EXPECT_TRUE(util::is_iterator<span::iterator>::value);
+        EXPECT_TRUE(util::is_random_access_iterator<span::iterator>::value);
 
-    EXPECT_EQ(n, std::distance(s.begin(), s.end()));
-    EXPECT_EQ(n, std::distance(s.cbegin(), s.cend()));
-
+        EXPECT_EQ(n, std::distance(s.begin(), s.end()));
+        EXPECT_EQ(n, std::distance(s.cbegin(), s.cend()));
+    }
     {
         int sum = 0;
         for (auto i: span(a, b)) {
@@ -64,7 +65,7 @@ TEST(span, int_iterators) {
     {
         auto touched = 0ul;
         auto s = uc_span(b, a);
-        for (auto _: s) ++touched;
+        for (auto it = s.begin(); it != s.end(); ++it) ++touched;
         EXPECT_EQ(s.size(), touched);
         EXPECT_GT(touched, 0ul); //
     }
@@ -72,7 +73,7 @@ TEST(span, int_iterators) {
     {
         auto touched = 0ul;
         auto s = uc_span(a, a);
-        for (auto _: s) ++touched;
+        for (auto it = s.begin(); it != s.end(); ++it) ++touched;
         EXPECT_EQ(s.size(), touched);
         EXPECT_EQ(0ul, touched);
     }

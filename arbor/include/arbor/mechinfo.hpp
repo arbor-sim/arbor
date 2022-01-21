@@ -53,7 +53,6 @@ struct ion_dependency {
 using mechanism_fingerprint = std::string;
 
 struct mechanism_info {
-
     // mechanism_info is a convenient subset of the ABI mech description
     mechanism_info(const arb_mechanism_type&);
     mechanism_info() = default;

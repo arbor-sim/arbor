@@ -9,8 +9,10 @@
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/morph/cv_data.hpp>
 
 #include "execution_context.hpp"
+#include "morph/cv_data.hpp"
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -53,22 +55,19 @@ namespace cv_prefer {
     };
 }
 
-struct cv_geometry {
+struct cv_geometry: public cell_cv_data_impl {
+    using base = cell_cv_data_impl;
+
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
-
-    std::vector<mcable> cv_cables;           // CV unbranched sections, partitioned by CV.
-    std::vector<index_type> cv_cables_divs;  // Partitions cv_cables by CV index.
-    std::vector<index_type> cv_parent;       // Index of CV parent or size_type(-1) for a cell root CV.
-
-    std::vector<index_type> cv_children;     // CV child indices, partitioned by CV, and then in order.
-    std::vector<index_type> cv_children_divs;   // Paritions cv_children by CV index.
 
     std::vector<index_type> cv_to_cell;      // Maps CV index to cell index.
     std::vector<index_type> cell_cv_divs;    // Partitions CV indices by cell.
 
     // CV offset map by cell index then branch. Used for location_cv query.
     std::vector<std::vector<util::pw_elements<size_type>>> branch_cv_map;
+
+    cv_geometry() = default;
 
     auto cables(size_type cv_index) const {
         auto partn = util::partition_view(cv_cables_divs);
@@ -113,48 +112,14 @@ struct cv_geometry {
         return branch_cv_map.at(cell_idx).size();
     }
 
-    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
-        auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
-        auto zero_extent = [&pw_cv_offset](auto j) {
-            return pw_cv_offset.interval(j).first==pw_cv_offset.interval(j).second;
-        };
+    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const;
 
-        auto i = pw_cv_offset.index_of(loc.pos);
-        auto i_max = pw_cv_offset.size()-1;
-        auto cv_prox = pw_cv_offset.interval(i).first;
-
-        // index_of() should have returned right-most matching interval.
-        arb_assert(i==i_max || loc.pos<pw_cv_offset.interval(i+1).first);
-
-        using namespace cv_prefer;
-        switch (prefer) {
-        case cv_distal:
-            break;
-        case cv_proximal:
-            if (loc.pos==cv_prox && i>0) --i;
-            break;
-        case cv_nonempty:
-            if (zero_extent(i)) {
-                if (i>0 && !zero_extent(i-1)) --i;
-                else if (i<i_max && !zero_extent(i+1)) ++i;
-            }
-            break;
-        case cv_empty:
-            if (loc.pos==cv_prox && i>0 && zero_extent(i-1)) --i;
-            break;
-        }
-
-        index_type cv_base = cell_cv_divs.at(cell_idx);
-        return cv_base+pw_cv_offset[i].element;
-    }
+    cv_geometry(const cable_cell& cell, const locset& ls);
 };
 
 // Combine two cv_geometry groups in-place.
 // (Returns reference to first argument.)
 cv_geometry& append(cv_geometry&, const cv_geometry&);
-
-// Construct cv_geometry from locset describing boundaries.
-cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
 
 // Discretization of morphologies and physical properties. Contains cv_geometry
 // as above.
@@ -242,6 +207,12 @@ struct fvm_mechanism_config {
     // For each instance index i, there are multiplicity[i] consecutive entries.
     std::vector<index_type> target;
 
+    // Gap junction peer CV index (gap junction mechanisms only)
+    std::vector<index_type> peer_cv;
+
+    // Gap junction weight, unit-less (gap junction mechanisms only)
+    std::vector<value_type> local_weight;
+
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
 };
@@ -285,6 +256,19 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
+// Maps gj {gid, lid} locations on a cell to their CV indices.
+std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D);
+
+// Resolves gj_connections into {gid, lid} pairs, then to CV indices and a weight.
+std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cv,
+    const recipe& rec);
+
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
@@ -305,6 +289,12 @@ struct fvm_mechanism_data {
     bool post_events = false;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop, const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const arb::execution_context& ctx={});
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
+    const fvm_cv_discretization& D,
+    const arb::execution_context& ctx={});
 
 } // namespace arb

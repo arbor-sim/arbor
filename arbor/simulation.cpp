@@ -187,12 +187,12 @@ simulation_state::simulation_state(
     local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
 {
     // Generate the cell groups in parallel, with one task per cell group.
-    cell_groups_.resize(decomp.groups.size());
+    cell_groups_.resize(decomp.num_groups());
     std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
     std::vector<cell_labels_and_gids> cg_targets(cell_groups_.size());
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
-          const auto& group_info = decomp.groups[i];
+          const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
           group = factory(group_info.gids, rec, sources, targets);
@@ -226,7 +226,7 @@ simulation_state::simulation_state(
     cell_size_type grpidx = 0;
 
     auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(std::move(target_resolution_map));
-    for (const auto& group_info: decomp.groups) {
+    for (const auto& group_info: decomp.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = gid_local_info{lidx, grpidx};

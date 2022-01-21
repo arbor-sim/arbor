@@ -42,12 +42,6 @@ bad_probe_id::bad_probe_id(cell_member_type probe_id):
     probe_id(probe_id)
 {}
 
-gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gid_type gid_0, cell_gid_type gid_1):
-    arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
-    gid_0(gid_0),
-    gid_1(gid_1)
-{}
-
 gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
     arbor_exception(pprintf("Model building error on cell {}: gap junction site label \"{}\" must be univalent.", gid, label)),
     gid(gid),
@@ -124,14 +118,16 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
 {}
 
 file_not_found_error::file_not_found_error(const std::string &fn)
-    : arbor_exception(pprintf("Could not find file '{}'", fn)),
+    : arbor_exception(pprintf("Could not find readable file at '{}'", fn)),
       filename{fn}
 {}
 
-bad_catalogue_error::bad_catalogue_error(const std::string &fn, const std::string& call)
-    : arbor_exception(pprintf("Error in '{}' while opening catalogue '{}'", call, fn)),
-      filename{fn},
-      failed_call{call}
+bad_catalogue_error::bad_catalogue_error(const std::string& msg)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg))
+{}
+
+bad_catalogue_error::bad_catalogue_error(const std::string& msg, const std::any& pe)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(pe)
 {}
 
 unsupported_abi_error::unsupported_abi_error(size_t v):

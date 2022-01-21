@@ -9,6 +9,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/spike.hpp>
@@ -35,9 +36,9 @@ struct test_recipe: public n_cable_cell_recipe {
         labels.set("soma", arb::reg::tagged(1));
 
         decor decorations;
-        decorations.place(mlocation{0, 0.5}, "expsyn", "synapse");
+        decorations.place(mlocation{0, 0.5}, synapse("expsyn"), "synapse");
         decorations.place(mlocation{0, 0.5}, threshold_detector{-64}, "detector");
-        decorations.place(mlocation{0, 0.5}, gap_junction_site{}, "gapjunction");
+        decorations.place(mlocation{0, 0.5}, junction("gj"), "gapjunction");
         cable_cell c(st, labels, decorations);
 
         return c;
@@ -51,17 +52,11 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
     arb::context ctx = make_context(proc_allocation{});
     unsigned n = R.num_cells();
 
-    domain_decomposition D;
-    D.gid_domain = [](cell_gid_type) { return 0; };
-    D.num_domains = 1;
-    D.num_local_cells = n;
-    D.num_global_cells = n;
-
+    std::vector<group_description> groups;
     for (const auto& gidvec: group_gids) {
-        group_description group{cell_kind::cable, gidvec, backend_kind::multicore};
-        D.groups.push_back(group);
+        groups.emplace_back(cell_kind::cable, gidvec, backend_kind::multicore);
     }
-
+    auto D = domain_decomposition(R, ctx, groups);
     std::vector<spike> spikes;
 
     simulation sim(R, D, ctx);
@@ -110,7 +105,7 @@ struct test_recipe_gj: public test_recipe {
             if (p.first == i) gjs.push_back({{p.second, "gapjunction", lid_selection_policy::assert_univalent},
                                              {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
             if (p.second == i) gjs.push_back({{p.first, "gapjunction", lid_selection_policy::assert_univalent},
-                                                    {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
+                                             {"gapjunction", lid_selection_policy::assert_univalent}, 0.});
         }
         return gjs;
     }

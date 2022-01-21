@@ -75,13 +75,6 @@ struct gj_unsupported_lid_selection_policy: arbor_exception {
     cell_tag_type label;
 };
 
-// Domain decomposition errors:
-
-struct gj_unsupported_domain_decomposition: arbor_exception {
-    gj_unsupported_domain_decomposition(cell_gid_type gid_0, cell_gid_type gid_1);
-    cell_gid_type gid_0, gid_1;
-};
-
 // Simulation errors:
 
 struct bad_event_time: arbor_exception {
@@ -146,10 +139,11 @@ struct file_not_found_error: arbor_exception {
     std::string filename;
 };
 
+//
 struct bad_catalogue_error: arbor_exception {
-    bad_catalogue_error(const std::string& fn, const std::string& call);
-    std::string filename;
-    std::string failed_call;
+    bad_catalogue_error(const std::string&);
+    bad_catalogue_error(const std::string&, const std::any&);
+    std::any platform_error;
 };
 
 // ABI errors

@@ -54,11 +54,10 @@ struct cell_connection {
 struct gap_junction_connection {
     cell_global_label_type peer;
     cell_local_label_type local;
-
-    double ggap;
+    double weight; //unit-less
 
     gap_junction_connection(cell_global_label_type peer, cell_local_label_type local, double g):
-        peer(std::move(peer)), local(std::move(local)), ggap(g) {}
+        peer(std::move(peer)), local(std::move(local)), weight(g) {}
 };
 
 class recipe {

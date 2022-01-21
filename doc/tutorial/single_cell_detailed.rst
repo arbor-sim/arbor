@@ -249,9 +249,9 @@ We can override the default properties by *painting* new values on the relevant 
    :lines: 59-61
 
 With the default and initial values taken care of, we now add some density mechanisms. Let's *paint*
-a *pas* mechanism everywhere on the cell using the previously defined "all" region; an *hh* mechanism
-on the "custom" region; and an *Ih* mechanism on the "dend" region. The *Ih* mechanism is explicitly
-constructed in order to change the default values of its 'gbar' parameter.
+a *pas* density mechanism everywhere on the cell using the previously defined "all" region; an *hh*
+density mechanism on the "custom" region; and an *Ih* density mechanism on the "dend" region. The *Ih*
+mechanism has a custom 'gbar' parameter.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python

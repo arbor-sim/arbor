@@ -159,7 +159,7 @@ tree.append(mnpos, mpoint(-3.0,  0.0,  0.0, 1.5), mpoint(-5.5,-0.2,  0.0, 0.5), 
 tree.append(8,     mpoint(-14.5,-0.1,  0.0, 0.5), tag=2)
 ysoma_morph3 = arbor.morphology(tree)
 
-fn = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "../concepts/example.swc"))
+fn = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__), "../fileformat/example.swc"))
 swc_morph = arbor.load_swc_arbor(fn)
 
 regions  = {
@@ -199,6 +199,7 @@ locsets = {
             'term': '(terminal)',
             'rand_dend': '(uniform (region "dend") 0 50 0)',
             'loc15': '(location 1 0.5)',
+            'loc05': '(location 0 0.5)',
             'uniform0': '(uniform (tag 3) 0 9 0)',
             'uniform1': '(uniform (tag 3) 0 9 1)',
             'branchmid': '(on-branches 0.5)',
@@ -208,6 +209,9 @@ locsets = {
             'proxint_in': '(sum (location 1 0.8) (location 2 0.3))',
             'loctest' : '(distal (complete (join (branch 1) (branch 0))))',
             'restrict': '(restrict  (terminal) (tag 3))',
+            'proximal_translate': '(proximal-translate (terminal) 10)',
+            'distal_translate_single': '(distal-translate (location 0 0.5) 5)',
+            'distal_translate_multi':  '(distal-translate (location 0 0.5) 15)',
           }
 
 labels = {**regions, **locsets}

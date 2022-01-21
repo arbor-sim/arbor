@@ -26,20 +26,6 @@ __global__ void update_time_to_impl(unsigned n,
     }
 }
 
-template <typename T, typename I>
-__global__ void add_gj_current_impl(unsigned n,
-                                    const T* __restrict__ const gj_info,
-                                    const I* __restrict__ const voltage,
-                                    I* __restrict__ const current_density) {
-    unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    if (i<n) {
-        auto gj = gj_info[i];
-        auto curr = gj.weight * (voltage[gj.loc.second] - voltage[gj.loc.first]); // nA
-
-        gpu_atomic_sub(current_density + gj.loc.first, curr);
-    }
-}
-
 // Vector/scalar addition: x[i] += v ∀i
 template <typename T>
 __global__ void add_scalar(unsigned n,
@@ -116,16 +102,6 @@ void set_dt_impl(
     constexpr int block_dim = 128;
     const int nblock = block_count(ncomp, block_dim);
     kernel::set_dt_impl<<<nblock, block_dim>>>(dt_intdom, time_to, time, ncomp, dt_comp, cv_to_intdom);
-}
-
-void add_gj_current_impl(
-    fvm_size_type n_gj, const fvm_gap_junction* gj_info, const fvm_value_type* voltage, fvm_value_type* current_density)
-{
-    if (!n_gj) return;
-
-    constexpr int block_dim = 128;
-    int nblock = block_count(n_gj, block_dim);
-    kernel::add_gj_current_impl<<<nblock, block_dim>>>(n_gj, gj_info, voltage, current_density);
 }
 
 void take_samples_impl(
