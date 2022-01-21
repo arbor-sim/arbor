@@ -91,8 +91,16 @@ arbor``) copies of Arbor. See the examples below.
 
 .. Warning::
 
+   Before you attempt a build with any options, you will need to install the
+   following
+
+   ``pip3 install ninja scikit-build wheel setuptools numpy``
+
    If you run into build issues while experimenting with build options, be sure
    to remove the ``_skbuild`` directory.
+
+   Also, be very careful to pass each option individually via
+   ``--install-option="..."``.
 
 The following flags can be used to configure the installation:
 
@@ -137,33 +145,33 @@ In the examples below we assume you are installing from a local copy.
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option='-DARB_WITH_MPI=ON'
+    pip3 install ./arbor --install-option="-DARB_WITH_MPI=ON"
 
 **Compile with** :ref:`vectorization <install-vectorize>` on a system with a SkyLake
 :ref:`architecture <install-architecture>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option='-DARB_VECTORIZE=ON -DARB_ARCH=skylake'
+    pip3 install ./arbor --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=skylake"
 
 **Enable NVIDIA GPUs (compiled with nvcc)**. This requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option='-DARB_GPU=cuda'
+    pip3 install ./arbor --install-option="-DARB_GPU=cuda"
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option='-DARB_GPU=cuda-clang'
+    pip3 install ./arbor --install-option="-DARB_GPU=cuda-clang"
 
 **Enable AMD GPUs (compiled with hipcc)**. This requires setting the ``CC`` and ``CXX``
 :ref:`environment variables <install-gpu>`
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option='-DARB_GPU=hip'
+    pip3 install ./arbor --install-option="-DARB_GPU=hip"
 
 Note on performance
 -------------------
