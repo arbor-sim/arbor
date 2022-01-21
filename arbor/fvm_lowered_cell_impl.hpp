@@ -224,10 +224,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // - all gap junctions are subject to WR
     // - we only have a single cell group
 
-    // Store times for remaining_steps reset before each WR iteration
+    // Store tmin_ for remaining_steps reset before each WR iteration
     value_type tmin_reset   = tmin_;
-    value_type tfinal_reset = tfinal;
-    value_type dt_reset     = dt_max;
 
     //traces:            gj mech id                                values               
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
@@ -242,10 +240,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         //reset remaining_steps
         if (wr_it > 0) {
-            tmin_   = tmin_reset;
-            tfinal  = tfinal_reset;
-            dt_max  = dt_reset;
-            remaining_steps = dt_steps(tmin_, tfinal, dt_max);
+            remaining_steps = dt_steps(tmin_reset, tfinal, dt_max);
         }
         
         while (remaining_steps) {
