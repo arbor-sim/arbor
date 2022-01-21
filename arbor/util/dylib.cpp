@@ -11,7 +11,7 @@
 namespace arb {
 namespace util {
 
-void* dl_open(const std::string& fn) {
+dl_handle dl_open(const std::string& fn) {
     try {
         std::ifstream fd{fn.c_str()};
         if(!fd.good()) throw file_not_found_error{fn};
@@ -26,25 +26,30 @@ void* dl_open(const std::string& fn) {
         auto error = dlerror();
         throw dl_error{util::pprintf("[POSIX] dl_open failed with: {}", error)};
     }
-    return result;
+    return {result};
 }
 
-namespace impl{
-void* dl_get_symbol(const std::string& fn, const std::string& symbol) {
+void* dl_get_symbol(const dl_handle& handle, const std::string& symbol) {
+    //
+    if (!handle.inner) {
+        throw dl_error{"[POSIX] dl_get_symbol was passed an invalid handle."};
+    }
     // Call once to clear errors not caused by us
     dlerror();
-
-    auto handle = dl_open(fn);
-
     // Get symbol from shared object, may return NULL if that is what symbol refers to
-    auto result = dlsym(handle, symbol.c_str());
+    auto result = dlsym(handle.inner, symbol.c_str());
     // dlsym mayb return NULL even if succeeding
     if (auto error = dlerror()) {
         throw dl_error{util::pprintf("[POSIX] dl_get_symbol failed with: {}", error)};
     }
     return result;
 }
-} // namespace impl
 
+void dl_close(dl_handle& handle) {
+    if (auto dl = handle.inner; dl != nullptr) {
+        dlclose(dl);
+    }
+    handle.inner = nullptr;
+}
 } // namespace util
 } // namespace arb

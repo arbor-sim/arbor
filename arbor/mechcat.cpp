@@ -592,20 +592,18 @@ mechanism_catalogue::~mechanism_catalogue() = default;
 mech_cat_ptr load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
     global_catalogue_t* get_catalogue = nullptr;
+    util::dl_handle h;
     try {
-        get_catalogue = util::dl_get_symbol<global_catalogue_t*>(fn, "get_catalogue");
+        h = util::dl_open(fn);
+        get_catalogue = (global_catalogue_t*) util::dl_get_symbol(h, "get_catalogue");
     } catch(util::dl_error& e) {
         throw bad_catalogue_error{e.what(), {e}};
     }
     if (!get_catalogue) {
         throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
     }
-    /* The DSO handle is not freed here: handles will be retained until
-     * termination since the mechanisms provided by the catalogue may have a
-     * different lifetime than the actual catalogue itfself. This is not a leak,
-     * as `dlopen` caches handles for us.
-     */
-    return mech_cat_ptr{(mechanism_catalogue*)get_catalogue()};
+
+    return mech_cat_ptr{(mechanism_catalogue*)get_catalogue(), [h](auto _) mutable { util::dl_close(h); }};
 }
 
 } // namespace arb

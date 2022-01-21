@@ -442,9 +442,6 @@ TEST(fvm_lowered, derived_mechs) {
 
     cable1d_recipe rec(cells);
     rec.catalogue() = make_unit_test_catalogue();
-    for (const auto& m: rec.catalogue()->mechanism_names()) {
-        std::cerr << m << '\n';
-    }
     rec.catalogue()->derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cable_probe_total_ion_current_density where{builder.location({1, 0.3})};
@@ -557,7 +554,6 @@ TEST(fvm_lowered, read_valence) {
         auto cell = builder.make_cell();
         cell.decorations.paint("soma"_lab, density("cr_read_valence"));
         cable1d_recipe rec(cable_cell{cell});
-        rec.catalogue() = make_unit_test_catalogue();
         rec.catalogue() = make_unit_test_catalogue();
 
         rec.catalogue()->derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
