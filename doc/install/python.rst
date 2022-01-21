@@ -98,7 +98,7 @@ The following flags can be used to configure the installation:
 
 * ``ARB_WITH_NEUROML=<ON|OFF>``: Enable support for NeuroML2 morphologies,
   requires ``libxml2`` library. Default ``OFF``
-* ``ARB_WITH__MPI=<ON|OFF>``: Enable MPI support, requires MPI library.
+* ``ARB_WITH_MPI=<ON|OFF>``: Enable MPI support, requires MPI library.
   Default ``OFF``.
 * ``ARB_GPU=<none|cuda|cuda-clang|hip>``: Enable GPU support for NVIDIA GPUs
   with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require
@@ -114,9 +114,9 @@ The following flags can be used to configure the installation:
 
 .. note::
 
-   There are more, advanced flags that can be set. We are using ``sk-build`` and
-   ``CMake`` under the hood, so all flags and options valid in ``CMake`` can be
-   used in this fashion.
+   There are more, advanced flags that can be set. We are using ``scikit-build``
+   and ``CMake`` under the hood, so all flags and options valid in ``CMake`` can
+   be used in this fashion.
 
    Detailed instructions on how to install using CMake are in the :ref:`Python
    configuration <install-python>` section of the :ref:`installation guide
