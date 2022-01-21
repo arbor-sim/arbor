@@ -6,6 +6,7 @@
 #include <arbor/domdecexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
+#include <arbor/version.hpp>
 
 #include <arborenv/default_env.hpp>
 
@@ -532,7 +533,7 @@ TEST(domain_decomposition, partition_by_groups) {
 TEST(domain_decomposition, invalid) {
     proc_allocation resources;
     resources.num_threads = 1;
-    resources.gpu_id = -1; // disable GPU if available
+    resources.gpu_id = arbenv::default_gpu();
     auto ctx = make_context(resources);
 
     {
