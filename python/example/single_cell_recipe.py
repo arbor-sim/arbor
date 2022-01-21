@@ -4,6 +4,8 @@
 import arbor
 import pandas, seaborn # You may have to pip install these.
 
+print(arbor.__config__)
+
 # The corresponding generic recipe version of `single_cell_model.py`.
 
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
@@ -34,8 +36,7 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = arbor.neuron_cable_properties()
-        self.the_cat = arbor.default_catalogue()
-        self.the_props.register(self.the_cat)
+        self.the_props.register(arbor.default_catalogue())
 
     def num_cells(self):
         # (4.2) Override the num_cells method
