@@ -226,16 +226,16 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     //traces:            gj mech id                                values               
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
-    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_t, traces_t_prev;
-
+    
+    //Map m->ppack_.peer_index to corresponding peer voltage in traces_v_prev
     std::vector<arb_index_type> peer_ix;
 
-    auto max_rem_steps = remaining_steps;
-    value_type tmin_reset   = tmin_;
+    auto max_steps = remaining_steps;
+    value_type tmin_reset = tmin_;
 
     //WR iterations
-    int wr_max_it = 15;
-    for (int wr_it = 0; wr_it < wr_max_it; wr_it++){
+    int wr_max = 3;
+    for (int wr_it = 0; wr_it < wr_max; wr_it++){
 
         //Reset remaining_steps
         if (wr_it > 0) {
@@ -243,7 +243,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         
         while (remaining_steps) {
-            auto step = max_rem_steps-remaining_steps;
+            auto step = max_steps-remaining_steps;
             
             // Update any required reversal potentials based on ionic concs.
             for (auto& m: revpot_mechanisms_) {
@@ -268,7 +268,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
                 m->deliver_events(events);
 
-                //Feed back previous traces to vec_v_peer for WR
+                //Feed back previous traces to vec_v_peer
                 //vec_v_peer defaults to vec_v
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
                     if (wr_it == 0 && step == 0) {
@@ -305,7 +305,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         t_step.push_back(state_->dt_cv[node_cv]);
                     }
                     traces_v[gj].push_back(v_step);
-                    traces_t[gj].push_back(t_step);
                 }
             }
         
@@ -393,13 +392,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             PL();
 
         }
-        
+
         //reset traces
         traces_v_prev = traces_v;
-        traces_t_prev = traces_t;
-        
         traces_v = {};
-        traces_t = {};
     }
     
     set_tmin(tfinal);
