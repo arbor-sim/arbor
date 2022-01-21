@@ -224,21 +224,20 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // - all gap junctions are subject to WR
     // - we only have a single cell group
 
-    // Store tmin_ for remaining_steps reset before each WR iteration
-    value_type tmin_reset   = tmin_;
-
     //traces:            gj mech id                                values               
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_t, traces_t_prev;
 
     std::vector<arb_index_type> peer_ix;
+
     auto max_rem_steps = remaining_steps;
+    value_type tmin_reset   = tmin_;
 
     //WR iterations
-    int wr_max_it = 3;
+    int wr_max_it = 15;
     for (int wr_it = 0; wr_it < wr_max_it; wr_it++){
 
-        //reset remaining_steps
+        //Reset remaining_steps
         if (wr_it > 0) {
             remaining_steps = dt_steps(tmin_reset, tfinal, dt_max);
         }
@@ -269,7 +268,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
                 m->deliver_events(events);
 
-                //feed back previous traces to vec_v_peer for WR
+                //Feed back previous traces to vec_v_peer for WR
                 //vec_v_peer defaults to vec_v
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
                     if (wr_it == 0 && step == 0) {
@@ -285,10 +284,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     }
                     if (wr_it > 0) {
                         auto gj = m->mechanism_id();
-                        for (auto ix = 0; ix < m->ppack_.width; ++ix){ 
-                            auto peer = peer_ix[ix];
+                        for (auto i = 0; i < m->ppack_.width; ++i){ 
+                            auto peer = peer_ix[i];
                             auto v_prev = traces_v_prev[gj][step][peer];
-                            m->ppack_.vec_v_peer[ix] = v_prev;
+                            m->ppack_.vec_v_peer[i] = v_prev;
                         }
                     }
                 }
@@ -393,11 +392,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             }
             PL();
 
-            //++step;
         }
         
-        //add break condition for WR
-
         //reset traces
         traces_v_prev = traces_v;
         traces_t_prev = traces_t;
