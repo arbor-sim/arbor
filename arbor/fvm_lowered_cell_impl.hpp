@@ -234,13 +234,17 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tmin_reset = tmin_;
 
     //WR iterations
-    int wr_max = 3;
+    int wr_max = 1;
+    auto eps = 1e-15;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
 
         //Reset remaining_steps
         if (wr_it > 0) {
             remaining_steps = dt_steps(tmin_reset, tfinal, dt_max);
         }
+        //Reset error variables for WR break condition
+        std::vector<arb_value_type> err(peer_ix.size(), 0.);
+        auto b = 0;
         
         while (remaining_steps) {
             auto step = max_steps-remaining_steps;
@@ -303,6 +307,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         auto node_cv = m->ppack_.node_index[ix];
                         v_step.push_back(state_->voltage[node_cv]);
                         t_step.push_back(state_->dt_cv[node_cv]);
+
+                        auto err_cv = state_->voltage[node_cv] - traces_v_prev[gj][step][node_cv];
+                        err[node_cv] += (err_cv*err_cv);
+                        if (err[node_cv] > eps) {
+                            b += 1;
+                        }
                     }
                     traces_v[gj].push_back(v_step);
                 }
@@ -391,6 +401,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             }
             PL();
 
+        }
+
+        //break WR if difference between previous and current trace small enough
+        if (wr_it > 0 && b == 0) {
+            break;
         }
 
         //reset traces
