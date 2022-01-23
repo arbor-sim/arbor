@@ -752,11 +752,7 @@ fvm_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
 
             cell_to_intdom[gid_to_loc[g]] = intdom_id;
 
-            for (auto gj: rec.gap_junctions_on(g)) {
-                if (!gid_to_loc.count(gj.peer.gid)) {
-                    throw gj_unsupported_domain_decomposition(g, gj.peer.gid);
-                }
-
+            for (const auto& gj: rec.gap_junctions_on(g)) {
                 if (!visited.count(gj.peer.gid)) {
                     visited.insert(gj.peer.gid);
                     intdomq.push(gj.peer.gid);
