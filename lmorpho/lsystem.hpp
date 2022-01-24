@@ -8,7 +8,7 @@ struct lsys_param;
 
 using lsys_generator = std::minstd_rand;
 
-class lsys_distribution_param;
+struct lsys_distribution_param;
 arb::segment_tree generate_morphology(const lsys_distribution_param& soma, std::vector<lsys_param> Ps, lsys_generator& g);
 
 // The distribution parameters used in the specification of the L-system parameters.

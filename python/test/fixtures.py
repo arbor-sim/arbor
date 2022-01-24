@@ -79,7 +79,7 @@ class _BuildCatError(Exception): pass
 
 def _build_cat_local(name, path):
     try:
-        subprocess.run(["build-catalogue", name, str(path)], check=True, stderr=subprocess.PIPE)
+        subprocess.run(["arbor-build-catalogue", name, str(path)], check=True, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         raise _BuildCatError("Tests can't build catalogues:\n" + e.stderr.decode()) from None
 

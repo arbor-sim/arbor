@@ -180,5 +180,5 @@ jobs:
         run: scripts/run_python_examples.sh
       - name: Build and test a catalogue
         run: |
-          build-catalogue -v default mechanisms/default
+          arbor-build-catalogue -v default mechanisms/default
           ./scripts/test-catalogue.py ./default-catalogue.so
