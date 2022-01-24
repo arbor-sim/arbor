@@ -32,8 +32,8 @@ communicator::communicator(const recipe& rec,
     thread_pool_ = ctx.thread_pool;
 
     num_domains_ = distributed_->size();
-    num_local_groups_ = dom_dec.groups.size();
-    num_local_cells_ = dom_dec.num_local_cells;
+    num_local_groups_ = dom_dec.num_groups();
+    num_local_cells_ = dom_dec.num_local_cells();
     auto num_total_cells = rec.num_cells();
 
     // For caching information about each cell
@@ -61,7 +61,7 @@ communicator::communicator(const recipe& rec,
     // that populates gid_infos.
     std::vector<cell_gid_type> gids;
     gids.reserve(num_local_cells_);
-    for (auto g: dom_dec.groups) {
+    for (auto g: dom_dec.groups()) {
         util::append(gids, g.gids);
     }
     // Build the connection information for local cells in parallel.
@@ -112,7 +112,7 @@ communicator::communicator(const recipe& rec,
     // Build cell partition by group for passing events to cell groups
     index_part_ = util::make_partition(index_divisions_,
         util::transform_view(
-            dom_dec.groups,
+            dom_dec.groups(),
             [](const group_description& g){return g.gids.size();}));
 
     // Sort the connections for each domain.
@@ -139,12 +139,12 @@ time_type communicator::min_delay() {
 }
 
 gathered_vector<spike> communicator::exchange(std::vector<spike> local_spikes) {
-    PE(communication_exchange_sort);
+    PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
     util::sort_by(local_spikes, [](spike s){return s.source;});
     PL();
 
-    PE(communication_exchange_gather);
+    PE(communication:exchange:gather);
     // global all-to-all to gather a local copy of the global spike list on each node.
     auto global_spikes = distributed_->gather_spikes(local_spikes);
     num_spikes_ += global_spikes.size();

@@ -20,8 +20,8 @@ RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Install cmake
-RUN wget -q "https://github.com/Kitware/CMake/releases/download/v3.12.4/cmake-3.12.4-Linux-x86_64.tar.gz" -O cmake.tar.gz && \
-    echo "486edd6710b5250946b4b199406ccbf8f567ef0e23cfe38f7938b8c78a2ffa5f cmake.tar.gz" | sha256sum --check --quiet && \
+RUN wget -q "https://github.com/Kitware/CMake/releases/download/v3.18.6/cmake-3.18.6-Linux-x86_64.tar.gz" -O cmake.tar.gz && \
+    echo "87136646867ed65e935d6bacd44d52a740c448ad0806f6897d8c3d47ce438c8b cmake.tar.gz" | sha256sum --check --quiet && \
     tar --strip-components=1 -xzf cmake.tar.gz -C /usr/local && \
     rm -rf cmake.tar.gz
 

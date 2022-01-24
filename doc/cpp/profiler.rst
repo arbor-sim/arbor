@@ -79,7 +79,7 @@ For example, network simulations have two main regions of code to profile: those
 We would like to break these regions down further, e.g. break the `communication` time into time spent performing `spike exchange` and `event binning`.
 
 The subdivision of profiling regions is encoded in the region names.
-For example, ``PE(communication_exchange)`` indicates that we are profiling the ``exchange`` sub-region of the top level ``communication`` region.
+For example, ``PE(communication:exchange)`` indicates that we are profiling the ``exchange`` sub-region of the top level ``communication`` region.
 
 Below is an example of using sub-regions:
 
@@ -95,26 +95,26 @@ Below is an example of using sub-regions:
         int num_cells = 100;
 
         void communicate() {
-            PE(communication_sortspikes);
+            PE(communication:sortspikes);
             auto local_spikes = get_local_spikes();
             sort(local_spikes);
             PL();
 
-            PE(communication_exchange);
+            PE(communication:exchange);
             global_spikes = exchange_spikes(local_spikes);
             PL();
         }
 
         void update_cell(int i) {
-            PE(update_setup);
+            PE(update:setup);
             setup_events(i);
             PL();
 
-            PE(update_advance_state);
+            PE(update:advance:state);
             update_cell_states(i);
             PL();
 
-            PE(update_advance_current);
+            PE(update:advance:current);
             update_cell_current(i);
             PL();
         }

@@ -691,7 +691,13 @@ void register_cells(pybind11::module& m) {
             "The group of spike detectors has the label 'label', used for forming connections between cells.")
         .def("discretization",
             [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
-            pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"));
+            pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"))
+        .def("discretization",
+            [](arb::decor& dec, const std::string& p) {
+                dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
+            },
+            pybind11::arg_v("policy", "An s-expression string representing a cv_policy used to discretise the "
+                                      "cell into compartments for simulation"));
 
     // arb::cable_cell
 
