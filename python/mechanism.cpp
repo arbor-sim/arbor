@@ -109,7 +109,7 @@ void register_mechanisms(pybind11::module& m) {
                 [](const arb::mechanism_info& inf) {
                     return util::pprintf("(arbor.mechanism_info)"); });
 
-    pybind11::class_<arb::mechanism_catalogue, arb::mech_cat_ptr> cat(m, "catalogue");
+    pybind11::class_<arb::mechanism_catalogue> cat(m, "catalogue");
 
     struct mech_cat_iter_state {
         mech_cat_iter_state(const arb::mechanism_catalogue &cat_, pybind11::object ref_): names(cat_.mechanism_names()), ref(ref_), cat(cat_) { }
@@ -179,7 +179,7 @@ void register_mechanisms(pybind11::module& m) {
                     throw pybind11::key_error(name);
                 }
             })
-        .def("extend", static_cast<void (arb::mechanism_catalogue::*)(arb::mech_cat_ptr, const std::string&)>(&arb::mechanism_catalogue::import),
+        .def("extend", &arb::mechanism_catalogue::import),
              "other"_a, "Catalogue to import into self",
              "prefix"_a, "Prefix for names in other",
              "Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.")

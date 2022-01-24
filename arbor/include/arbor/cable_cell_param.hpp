@@ -293,7 +293,7 @@ extern cable_cell_parameter_set neuron_parameter_defaults;
 // Global cable cell data.
 
 struct cable_cell_global_properties {
-    mech_cat_ptr catalogue = global_default_catalogue();
+    mechanism_catalogue catalogue = global_default_catalogue();
 
     // If >0, check membrane voltage magnitude is less than limit
     // during integration.

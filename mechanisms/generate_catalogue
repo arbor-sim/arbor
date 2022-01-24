@@ -112,9 +112,9 @@ mechanism_catalogue build_${catalogue}_catalogue() {
     return cat;
 }
 
-mech_cat_ptr global_${catalogue}_catalogue() {
+const mechanism_catalogue& global_${catalogue}_catalogue() {
     static mechanism_catalogue cat = build_${catalogue}_catalogue();
-    return std::make_shared<mechanism_catalogue>(cat);
+    return cat;
 }
 
 } // namespace arb

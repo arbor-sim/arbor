@@ -39,9 +39,6 @@ namespace arb {
 // catalogue_state comprises the private implementation of mechanism_catalogue.
 struct catalogue_state;
 
-class mechanism_catalogue;
-using mech_cat_ptr = std::shared_ptr<mechanism_catalogue>;
-
 class mechanism_catalogue {
 public:
     using value_type = double;
@@ -98,7 +95,6 @@ public:
 
     // Copy over another catalogue's mechanism and attach a -- possibly empty -- prefix
     void import(const mechanism_catalogue& other, const std::string& prefix);
-    void import(mech_cat_ptr other, const std::string& prefix);
 
     ~mechanism_catalogue();
 
@@ -112,10 +108,12 @@ private:
     void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
-// Reference to global default mechanism catalogue.
-mech_cat_ptr global_default_catalogue();
-mech_cat_ptr global_allen_catalogue();
-mech_cat_ptr global_bbp_catalogue();
+using mech_cat_ptr = std::unique_ptr<mechanism_catalogue>;
+
+// References to global mechanism catalogues.
+const mechanism_catalogue& global_default_catalogue();
+const mechanism_catalogue& global_allen_catalogue();
+const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
 mech_cat_ptr load_catalogue(const std::string&);
