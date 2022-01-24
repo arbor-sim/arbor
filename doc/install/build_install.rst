@@ -28,7 +28,7 @@ with very few tools.
     Tool        Notes
     =========== ============================================
     Git         To check out the code, minimum version 2.0.
-    CMake       To set up the build, minimum version 3.12.
+    CMake       To set up the build, minimum version 3.18.
     compiler    A C++17 compiler. See `compilers <install-compilers_>`_.
     =========== ============================================
 

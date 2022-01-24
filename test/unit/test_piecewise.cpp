@@ -243,21 +243,21 @@ TEST(piecewise, equal_range) {
         ASSERT_EQ(er0.first, er0.second);
 
         auto er1 = p.equal_range(1.0);
-        ASSERT_EQ(1, er1.second-er1.first);
+        ASSERT_EQ(1u, er1.second-er1.first);
         EXPECT_EQ(10, er1.first->value);
 
         auto er2 = p.equal_range(2.0);
-        ASSERT_EQ(2, er2.second-er2.first);
+        ASSERT_EQ(2u, er2.second-er2.first);
         auto iter = er2.first;
         EXPECT_EQ(10, iter++->value);
         EXPECT_EQ(9, iter->value);
 
         auto er3_5 = p.equal_range(3.5);
-        ASSERT_EQ(1, er3_5.second-er3_5.first);
+        ASSERT_EQ(1u, er3_5.second-er3_5.first);
         EXPECT_EQ(8, er3_5.first->value);
 
         auto er4 = p.equal_range(4.0);
-        ASSERT_EQ(1, er4.second-er4.first);
+        ASSERT_EQ(1u, er4.second-er4.first);
         EXPECT_EQ(8, er4.first->value);
 
         auto er5 = p.equal_range(5.0);
@@ -271,13 +271,13 @@ TEST(piecewise, equal_range) {
         ASSERT_EQ(er0.first, er0.second);
 
         auto er1 = p.equal_range(1.0);
-        ASSERT_EQ(2, er1.second-er1.first);
+        ASSERT_EQ(2u, er1.second-er1.first);
         auto iter = er1.first;
         EXPECT_EQ(10, iter++->value);
         EXPECT_EQ(11, iter++->value);
 
         auto er2 = p.equal_range(2.0);
-        ASSERT_EQ(4, er2.second-er2.first);
+        ASSERT_EQ(4u, er2.second-er2.first);
         iter = er2.first;
         EXPECT_EQ(11, iter++->value);
         EXPECT_EQ(12, iter++->value);
@@ -285,7 +285,7 @@ TEST(piecewise, equal_range) {
         EXPECT_EQ(14, iter++->value);
 
         auto er3 = p.equal_range(3.0);
-        ASSERT_EQ(2, er3.second-er3.first);
+        ASSERT_EQ(2u, er3.second-er3.first);
         iter = er3.first;
         EXPECT_EQ(14, iter++->value);
         EXPECT_EQ(15, iter++->value);

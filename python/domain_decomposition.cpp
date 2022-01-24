@@ -25,7 +25,7 @@ std::string gd_string(const arb::group_description& g) {
 std::string dd_string(const arb::domain_decomposition& d) {
     return util::pprintf(
         "<arbor.domain_decomposition: domain_id {}, num_domains {}, num_local_cells {}, num_global_cells {}, groups {}>",
-        d.domain_id, d.num_domains, d.num_local_cells, d.num_global_cells, d.groups.size());
+        d.domain_id(), d.num_domains(), d.num_local_cells(), d.num_global_cells(), d.num_groups());
 }
 
 std::string ph_string(const arb::partition_hint& h) {
@@ -80,23 +80,24 @@ void register_domain_decomposition(pybind11::module& m) {
     pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition",
         "The domain decomposition is responsible for describing the distribution of cells across cell groups and domains.");
     domain_decomposition
-        .def(pybind11::init<>())
         .def("gid_domain",
             [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
                 return d.gid_domain(gid);
             },
             "Query the domain id that a cell assigned to (using global identifier gid).",
             "gid"_a)
-        .def_readonly("num_domains", &arb::domain_decomposition::num_domains,
+        .def_property_readonly("num_domains", &arb::domain_decomposition::num_domains,
             "Number of domains that the model is distributed over.")
-        .def_readonly("domain_id", &arb::domain_decomposition::domain_id,
+        .def_property_readonly("domain_id", &arb::domain_decomposition::domain_id,
             "The index of the local domain.\n"
             "Always 0 for non-distributed models, and corresponds to the MPI rank for distributed runs.")
-        .def_readonly("num_local_cells", &arb::domain_decomposition::num_local_cells,
+        .def_property_readonly("num_local_cells", &arb::domain_decomposition::num_local_cells,
             "Total number of cells in the local domain.")
-        .def_readonly("num_global_cells", &arb::domain_decomposition::num_global_cells,
+        .def_property_readonly("num_global_cells", &arb::domain_decomposition::num_global_cells,
             "Total number of cells in the global model (sum of num_local_cells over all domains).")
-        .def_readonly("groups", &arb::domain_decomposition::groups,
+        .def_property_readonly("num_groups", &arb::domain_decomposition::num_groups,
+            "Total number of cell groups in the local domain.")
+        .def_property_readonly("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain.")
         .def("__str__",  &dd_string)
         .def("__repr__", &dd_string);
@@ -117,6 +118,21 @@ void register_domain_decomposition(pybind11::module& m) {
         "over the distributed and local hardware resources described by context.\n"
         "Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.",
         "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
+
+    m.def("partition_by_group",
+          [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, const std::vector<arb::group_description>& groups) {
+              try {
+                  return arb::domain_decomposition(py_recipe_shim(recipe), ctx.context, groups);
+              }
+              catch (...) {
+                  py_reset_and_throw();
+                  throw;
+              }
+          },
+          "Construct a domain_decomposition that assigned the groups of cell provided as argument \n"
+          "to the local hardware resources described by context on the calling rank.\n"
+          "The cell_groups are guaranteed to be present on the calling rank.",
+          "recipe"_a, "context"_a, "groups"_a);
 }
 
 } // namespace pyarb
