@@ -442,7 +442,7 @@ TEST(fvm_lowered, derived_mechs) {
 
     cable1d_recipe rec(cells);
     rec.catalogue() = make_unit_test_catalogue();
-    rec.catalogue()->derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
+    rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cable_probe_total_ion_current_density where{builder.location({1, 0.3})};
     rec.add_probe(0, 0, where);
@@ -515,7 +515,7 @@ TEST(fvm_lowered, null_region) {
 
     cable1d_recipe rec(cable_cell{cell});
     rec.catalogue() = make_unit_test_catalogue();
-    rec.catalogue()->derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
+    rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     auto decomp = partition_load_balance(rec, context);
     simulation sim(rec, decomp, context);
@@ -556,8 +556,8 @@ TEST(fvm_lowered, read_valence) {
         cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
 
-        rec.catalogue()->derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
-        rec.catalogue()->derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
+        rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
+        rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
         rec.add_ion("mn", 7, 0, 0, 0);
 
         fvm_cell fvcell(*context);
@@ -597,8 +597,8 @@ TEST(fvm_lowered, ionic_concentrations) {
     ion_config.reset_econc.assign(ncv, 0.);
     ion_config.reset_iconc.assign(ncv, 2.3e-4);
 
-    auto read_cai  = cat->instance(backend::kind, "read_cai_init");
-    auto write_cai = cat->instance(backend::kind, "write_cai_breakpoint");
+    auto read_cai  = cat.instance(backend::kind, "read_cai_init");
+    auto write_cai = cat.instance(backend::kind, "write_cai_breakpoint");
 
     auto& read_cai_mech  = read_cai.mech;
     auto& write_cai_mech = write_cai.mech;
@@ -855,9 +855,7 @@ TEST(fvm_lowered, post_events_shared_state) {
                 ncell_(detectors_per_cell.size()),
                 ncv_(ncv),
                 detectors_per_cell_(detectors_per_cell),
-                synapse_(synapse),
-                cat_(make_unit_test_catalogue()) {
-            cat_->import(arb::global_default_catalogue(), "");
+                synapse_(synapse) {
         }
 
         cell_size_type num_cells() const override {
@@ -888,7 +886,8 @@ TEST(fvm_lowered, post_events_shared_state) {
         std::any get_global_properties(arb::cell_kind) const override {
             arb::cable_cell_global_properties gprop;
             gprop.default_parameters = arb::neuron_parameter_defaults;
-            gprop.catalogue = cat_;
+            gprop.catalogue = make_unit_test_catalogue();
+            gprop.catalogue.import(arb::global_default_catalogue(), "");
             return gprop;
         }
 
@@ -897,7 +896,6 @@ TEST(fvm_lowered, post_events_shared_state) {
         unsigned ncv_;
         std::vector<unsigned> detectors_per_cell_;
         arb::synapse synapse_;
-        mech_cat_ptr cat_;
     };
 
     std::vector<unsigned> gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};

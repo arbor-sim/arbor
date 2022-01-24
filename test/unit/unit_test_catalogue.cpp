@@ -50,20 +50,19 @@
 
 #ifndef ARB_GPU_ENABLED
 #define ADD_MECH(c, x)\
-c->add(#x, make_testing_##x());   \
-c->register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore()));
+c.add(#x, make_testing_##x());   \
+c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore()));
 #else
 #define ADD_MECH(c, x)\
-c->add(#x, make_testing_##x());                                      \
-c->register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore())); \
-c->register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_gpu()));
+c.add(#x, make_testing_##x());                                      \
+c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore())); \
+c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_gpu()));
 #endif
 
 using namespace arb;
 
-mech_cat_ptr make_unit_test_catalogue(mech_cat_ptr from) {
-    auto cat = std::make_shared<mechanism_catalogue>();
-    if (from) cat->import(from, "");
+mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
+    mechanism_catalogue cat = from;
 
     ADD_MECH(cat, gj0)
     ADD_MECH(cat, gj1)

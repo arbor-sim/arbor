@@ -37,7 +37,7 @@ void run_test(std::string mech_name,
     fvm_size_type ncv = 1;
     std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
 
-    auto instance = cat->instance(backend::kind, mech_name);
+    auto instance = cat.instance(backend::kind, mech_name);
     auto& test = instance.mech;
 
     std::vector<fvm_value_type> temp(ncv, 300.);

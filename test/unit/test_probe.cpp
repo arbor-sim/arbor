@@ -263,7 +263,7 @@ void run_expsyn_g_probe_test(const context& ctx) {
     auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
 
     const double tau = 2.0;
-    EXPECT_EQ(tau, (*global_default_catalogue())["expsyn"].parameters.at("tau").default_value);
+    EXPECT_EQ(tau, global_default_catalogue()["expsyn"].parameters.at("tau").default_value);
 
     // Ball-and-stick cell, two synapses, both in same CV.
     mlocation loc0{1, 0.8};
@@ -491,9 +491,9 @@ void run_ion_density_probe_test(const context& ctx) {
     // density mechanism state probes.
 
     auto cat = make_unit_test_catalogue();
-    cat->derive("write_ca1", "write_Xi_Xo", {{"xi0", 1.25}, {"xo0", 1.5}, {"s0", 1.75}}, {{"x", "ca"}});
-    cat->derive("write_ca2", "write_Xi_Xo", {{"xi0", 2.25}, {"xo0", 2.5}, {"s0", 2.75}}, {{"x", "ca"}});
-    cat->derive("write_na3", "write_Xi_Xo", {{"xi0", 3.25}, {"xo0", 3.5}, {"s0", 3.75}}, {{"x", "na"}});
+    cat.derive("write_ca1", "write_Xi_Xo", {{"xi0", 1.25}, {"xo0", 1.5}, {"s0", 1.75}}, {{"x", "ca"}});
+    cat.derive("write_ca2", "write_Xi_Xo", {{"xi0", 2.25}, {"xo0", 2.5}, {"s0", 2.75}}, {{"x", "ca"}});
+    cat.derive("write_na3", "write_Xi_Xo", {{"xi0", 3.25}, {"xo0", 3.5}, {"s0", 3.75}}, {{"x", "na"}});
 
     // Simple constant diameter cable, 3 CVs.
 

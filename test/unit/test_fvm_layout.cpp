@@ -985,7 +985,7 @@ TEST(fvm_layout, gj_example_2) {
     // Check the GJ CV map
     cable_cell_global_properties gprop;
     gprop.catalogue = make_unit_test_catalogue();
-    gprop.catalogue->import(arb::global_default_catalogue(), "");
+    gprop.catalogue.import(arb::global_default_catalogue(), "");
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();

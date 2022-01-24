@@ -108,7 +108,7 @@ private:
     void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
-using mech_cat_ptr = std::unique_ptr<mechanism_catalogue>;
+using mech_cat_ptr = const mechanism_catalogue*;//std::unique_ptr<mechanism_catalogue>;
 
 // References to global mechanism catalogues.
 const mechanism_catalogue& global_default_catalogue();

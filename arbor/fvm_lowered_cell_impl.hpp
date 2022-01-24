@@ -439,7 +439,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Mechanism instantiator helper.
     auto mech_instance = [&catalogue](const std::string& name) {
-        return catalogue->instance(backend::kind, name);
+        return catalogue.instance(backend::kind, name);
     };
 
     // Check for physically reasonable membrane volages?

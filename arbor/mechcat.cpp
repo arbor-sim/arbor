@@ -567,11 +567,6 @@ void mechanism_catalogue::import(const mechanism_catalogue& other, const std::st
     state_->import(*other.state_, prefix);
 }
 
-void mechanism_catalogue::import(mech_cat_ptr other, const std::string& prefix) {
-    state_->import(*other->state_, prefix);
-}
-
-
 void mechanism_catalogue::remove(const std::string& name) {
     if (!has(name)) {
         throw no_such_mechanism(name);
@@ -603,7 +598,7 @@ mech_cat_ptr load_catalogue(const std::string& fn) {
         throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
     }
 
-    return mech_cat_ptr{(mechanism_catalogue*)get_catalogue(), [h](auto _) mutable { util::dl_close(h); }};
+    return (mech_cat_ptr)get_catalogue();
 }
 
 } // namespace arb

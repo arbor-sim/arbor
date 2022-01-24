@@ -139,13 +139,12 @@ class single_cell_model {
 
 public:
     arb::cable_cell_global_properties gprop;
-    arb::mech_cat_ptr cat;
 
     single_cell_model(arb::cable_cell c):
         cell_(std::move(c)), ctx_(arb::make_context())
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        cat = arb::global_default_catalogue();
+        gprop.catalogue = arb::global_default_catalogue();
     }
 
     // example use:
@@ -168,7 +167,6 @@ public:
     }
 
     void run(double tfinal, double dt) {
-        gprop.catalogue = cat;
         single_cell_recipe rec(cell_, probes_, gprop);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
@@ -259,7 +257,7 @@ void register_single_cell(pybind11::module& m) {
                 return m.traces();},
             "Holds sample traces after a call to run().")
         .def_readwrite("properties", &single_cell_model::gprop, "Global properties.")
-        .def_readwrite("catalogue", &single_cell_model::cat, "Mechanism catalogue.")
+        .def_readwrite("catalogue", &single_cell_model::gprop::catalogue, "Mechanism catalogue.")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }
