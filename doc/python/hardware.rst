@@ -87,8 +87,7 @@ The Python wrapper provides an API for:
 
     .. attribute:: threads
 
-        The number of CPU threads available, 1 by default.
-
+        The number of CPU threads available, 1 by default. Must be set to 1 at minimum.
     .. attribute:: gpu_id
 
         The identifier of the GPU to use.
@@ -137,7 +136,8 @@ The Python wrapper provides an API for:
 
         .. attribute:: threads
 
-            The number of threads available locally for execution, 1 by default.
+            The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.
+            Passing ``"avail_threads"`` (as string) will query and use the maximum number of threads the system makes available.
 
         .. attribute:: gpu_id
 
