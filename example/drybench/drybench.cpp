@@ -24,7 +24,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
@@ -215,12 +215,7 @@ bench_params read_options(int argc, char** argv) {
     bench_params params;
 
     // Set default number of threads to that provided by system
-    if (auto nt = arbenv::get_env_num_threads()) {
-        params.num_threads = nt;
-    }
-    else {
-        params.num_threads = arbenv::thread_concurrency();
-    }
+    params.num_threads = arbenv::default_concurrency();
 
     if (argc<2) {
         std::cout << "Using default parameters.\n";
