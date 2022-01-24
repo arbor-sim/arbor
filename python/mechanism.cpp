@@ -179,7 +179,7 @@ void register_mechanisms(pybind11::module& m) {
                     throw pybind11::key_error(name);
                 }
             })
-        .def("extend", &arb::mechanism_catalogue::import),
+        .def("extend", &arb::mechanism_catalogue::import,
              "other"_a, "Catalogue to import into self",
              "prefix"_a, "Prefix for names in other",
              "Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.")

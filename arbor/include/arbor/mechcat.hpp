@@ -108,14 +108,12 @@ private:
     void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
-using mech_cat_ptr = const mechanism_catalogue*;//std::unique_ptr<mechanism_catalogue>;
-
 // References to global mechanism catalogues.
 const mechanism_catalogue& global_default_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
-mech_cat_ptr load_catalogue(const std::string&);
+const mechanism_catalogue& load_catalogue(const std::string&);
 
 } // namespace arb

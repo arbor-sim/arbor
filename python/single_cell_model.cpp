@@ -212,7 +212,7 @@ public:
 
 void register_single_cell(pybind11::module& m) {
     using namespace pybind11::literals;
-
+    using arb::cable_cell_global_properties;
     pybind11::class_<trace> tr(m, "trace", "Values and meta-data for a sample-trace on a single cell model.");
     tr
         .def_readonly("variable", &trace::variable, "Name of the variable being recorded.")
@@ -257,7 +257,10 @@ void register_single_cell(pybind11::module& m) {
                 return m.traces();},
             "Holds sample traces after a call to run().")
         .def_readwrite("properties", &single_cell_model::gprop, "Global properties.")
-        .def_readwrite("catalogue", &single_cell_model::gprop::catalogue, "Mechanism catalogue.")
+        .def_property("catalogue",
+                      [](const single_cell_model& m) { return m.gprop.catalogue; },
+                      [](single_cell_model& m, const arb::mechanism_catalogue& c) { return m.gprop.catalogue = c; },
+                      "Mechanism catalogue.")
         .def("__repr__", [](const single_cell_model&){return "<arbor.single_cell_model>";})
         .def("__str__",  [](const single_cell_model&){return "<arbor.single_cell_model>";});
 }
