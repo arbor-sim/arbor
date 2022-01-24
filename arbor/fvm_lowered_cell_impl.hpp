@@ -208,6 +208,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_time_ = array(n_samples);
         sample_value_ = array(n_samples);
     }
+    std::cout << "n_samples = " << n_samples << std::endl;
 
     state_->deliverable_events.init(std::move(staged_events));
     sample_events_.init(std::move(staged_samples));
@@ -306,16 +307,19 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     for(int ix = 0; ix < m->ppack_.width; ++ix) {
                         auto node_cv = m->ppack_.node_index[ix];
                         v_step.push_back(state_->voltage[node_cv]);
-                        t_step.push_back(state_->dt_cv[node_cv]);
-
-                        auto err_cv = state_->voltage[node_cv] - traces_v_prev[gj][step][node_cv];
-                        err[node_cv] += (err_cv*err_cv);
-                        if (err[node_cv] > eps) {
-                            b += 1;
+                        //t_step.push_back(state_->dt_cv[node_cv]);
+                        
+                        if (wr_it > 0) {
+                            auto err_cv = state_->voltage[node_cv] - traces_v_prev[gj][step][node_cv];
+                            err[node_cv] += (err_cv*err_cv);
+                            if (err[node_cv] > eps) {
+                                b += 1;
+                            }
                         }
+                        
                     }
                     traces_v[gj].push_back(v_step);
-                }
+                }  
             }
         
 
@@ -404,6 +408,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         //break WR if difference between previous and current trace small enough
+        
         if (wr_it > 0 && b == 0) {
             break;
         }
