@@ -39,7 +39,7 @@ void profiler_enter(std::size_t region_id);
 void profiler_leave();
 
 profile profiler_summary();
-std::size_t profiler_region_id(const char* name);
+std::size_t profiler_region_id(const std::string& name);
 
 std::ostream& operator<<(std::ostream&, const profile&);
 
