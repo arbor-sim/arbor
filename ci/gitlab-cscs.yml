@@ -101,7 +101,7 @@ single_node_release:
   only: ['master', 'staging', 'trying']
   stage: test
   script:
-    - unit
+    - unit --gtest_filter="-mechcat.loading"
     - unit-local
     - unit-modcc
   variables:
