@@ -4,8 +4,6 @@
 import arbor
 import pandas, seaborn # You may have to pip install these.
 
-print(arbor.__config__)
-
 # The corresponding generic recipe version of `single_cell_model.py`.
 
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
