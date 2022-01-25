@@ -33,47 +33,30 @@ Pre-release
 Update tags/versions and test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md.
 1. Create new temp-branch ending in ``-rc``. E.g. ``v0.5.1-rc``
 2. Bump the ``VERSION`` file:
    https://github.com/arbor-sim/arbor/blob/master/VERSION
-3. Update Python/pip/PyPi metadata and scripts
+3. Run all tests.
+   - ``ciwheel.yml`` does this, and also runs a build from sdist, which triggers weekly and on new (RC) tags. Make sure this is OK.
+   - This should catch many problems. For a manual check:
+   - Verify MANIFEST.in (required for PyPI sdist)
+   - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``
+   - Double check that all examples/tutorials/etc are covered by CI
 
-   - Update MANIFEST (required for PyPi step later):
-     https://github.com/arbor-sim/arbor/blob/master/MANIFEST.in
-   - also checkout ``setup.cfg`` and ``setup.py``
+Test the RC
+~~~~~~~~~~~
 
-4. Double check all examples/tutorials/etc not covered by CI
-
-Manual test (deprecated)
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-5.  python setup.py sdist
-6.  python -m venv env
-7.  source env/bin/activate
-8.  move tarball here and extract
-9.  pip install –upgrade pip
-10. pip install numpy
-11. pip install ./arbor-0.5.1 –verbose
-12. python -c ’import arbor; print(arbor.__config__)’
-13. twine upload -r testpypi dist/\* (have some testrepo)
-14. create *another* venv: python -m venv env && source env/bin/activate
-15. pip install numpy
-16. pip install -i https://test.pypi.org/simple/ arbor==0.5.1 –verbose
-17. python -c ’import arbor; print(arbor.__config__)’
-
-Ciwheel/automated test (replaces manual test)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-5. Create/overwrite ``ciwheel`` branch with the above branch, and push
-   to Github.
-6. Collect artifact from GA run.
-7. twine upload -r testpypi dist/\*
-8. Ask users to test the above, e.g.:
+4. Collect artifact from the above GA run.
+   In case you want to manually want to trigger ``ciwheel.yml`` GA, overwrite the ``ciwheel`` branch with the commit of your choosing and force push to Github.
+5. twine upload -r testpypi dist/\*
+6. Ask users to test the above, e.g.:
 
 .. code-block:: bash
 
    python -m venv env && source env/bin/activate
-   pip install numpy pip install -i https://test.pypi.org/simple/ arbor==0.5.1
+   pip install numpy
+   pip install -i https://test.pypi.org/simple/ arbor==0.6-rc
    python -c ’import arbor; print(arbor.__config__)’
 
 Release
