@@ -18,7 +18,6 @@ jobs:
         with:
           submodules: recursive
       - name: Build and install Arbor using pip
-        run: python3 -m pip install --install-option='--vec' --install-option='--arch=skylake' .
-          # python3 -m pip install --verbose --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=native" .
+        run: python3 -m pip install --verbose --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=native" .
       - name: Run python tests
         run: python3 -m unittest discover -v -s python
