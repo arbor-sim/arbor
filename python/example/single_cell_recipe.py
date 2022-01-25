@@ -36,8 +36,6 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = arbor.neuron_cable_properties()
-        cat = arbor.default_catalogue()
-        # self.the_props.catalogue = arbor.default_catalogue()
 
     def num_cells(self):
         # (4.2) Override the num_cells method
@@ -74,23 +72,23 @@ domains = arbor.partition_load_balance(recipe, context)
 sim = arbor.simulation(recipe, domains, context)
 sim.record(arbor.spike_recording.all)
 handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
-sim.run(tfinal=3)
+sim.run(tfinal=30)
 
 # (8) Collect results.
 
-# spikes = sim.spikes()
-# data, meta = sim.samples(handle)[0]
-# 
-# if len(spikes)>0:
-#     print('{} spikes:'.format(len(spikes)))
-#     for t in spikes['time']:
-#         print('{:3.3f}'.format(t))
-# else:
-#     print('no spikes')
-# 
-# print("Plotting results ...")
-# 
-# df = pandas.DataFrame({'t/ms': data[:, 0], 'U/mV': data[:, 1]})
-# seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig('single_cell_recipe_result.svg')
-# 
-#df.to_csv('single_cell_recipe_result.csv', float_format='%g')
+spikes = sim.spikes()
+data, meta = sim.samples(handle)[0]
+
+if len(spikes)>0:
+    print('{} spikes:'.format(len(spikes)))
+    for t in spikes['time']:
+        print('{:3.3f}'.format(t))
+else:
+    print('no spikes')
+
+print("Plotting results ...")
+
+df = pandas.DataFrame({'t/ms': data[:, 0], 'U/mV': data[:, 1]})
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig('single_cell_recipe_result.svg')
+
+;#df.to_csv('single_cell_recipe_result.csv', float_format='%g')
