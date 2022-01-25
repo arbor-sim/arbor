@@ -46,7 +46,7 @@ cell_kind spike_source_cell_group::get_cell_kind() const {
 }
 
 void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
-    PE(advance_sscell);
+    PE(advance:sscell);
 
     for (auto i: util::count_along(gids_)) {
         const auto gid = gids_[i];

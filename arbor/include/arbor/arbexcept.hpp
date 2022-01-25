@@ -75,6 +75,13 @@ struct gj_unsupported_lid_selection_policy: arbor_exception {
     cell_tag_type label;
 };
 
+// Context errors:
+
+struct zero_thread_requested_error: arbor_exception {
+    zero_thread_requested_error(unsigned nbt);
+    unsigned nbt;
+};
+
 // Domain decomposition errors:
 
 struct gj_unsupported_domain_decomposition: arbor_exception {

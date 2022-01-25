@@ -167,3 +167,9 @@ Cable cell decoration
 
         :param policy: The cv_policy.
         :type policy: :py:class:`cv_policy`
+
+    .. method:: discretization(policy)
+
+        Set the cv_policy used to discretise the cell into control volumes for simulation.
+
+        :param str policy: :ref:`string representation <morph-cv-sexpr>` of a cv_policy.

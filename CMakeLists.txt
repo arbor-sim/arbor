@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 include(CMakeDependentOption)
+
+# Make CUDA support throw errors if architectures remain unclear
+cmake_policy(SET CMP0104 NEW)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
@@ -9,6 +12,10 @@ project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
 include(GNUInstallDirs)
+
+# Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
@@ -90,7 +97,7 @@ option(ARB_WITH_PYTHON "enable Python front end" OFF)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
-include(FindThreadsCudaFix) # bug work around
+include(FindCUDAToolkit)
 
 # Set release as the default build type (CMake default is debug.)
 
@@ -100,40 +107,29 @@ if (NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
 endif()
 
-# When we find threads, prefer not to use the -pthread option
-# in order to avoid a CMake 3.12 issue.
-set(THREADS_PREFER_PTHREAD_FLAG OFF)
-
-# Add CUDA as a language if GPU support requested.
-# (This has to be set early so as to enable CUDA tests in generator
-# expressions.)
-
+# Add CUDA as a language if GPU support requested. (This has to be set early so
+# as to enable CUDA tests in generator expressions.)
 if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
+    # CMake 3.18 and later set the default CUDA architecture for
+    # each target according to CMAKE_CUDA_ARCHITECTURES. 
 
-    # CMake 18 and later set the default CUDA architecture for
-    # each target according to CMAKE_CUDA_ARCHITECTURES.
-    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-    endif()
-
-    # This fixes nvcc picking up a wrong host compiler for linking, causing issues
-    # with outdated libraries, eg libstdc++ and std::filesystem. Must happend before
-    # all calls to enable_language(CUDA)
+    # This fixes nvcc picking up a wrong host compiler for linking, causing
+    # issues with outdated libraries, eg libstdc++ and std::filesystem. Must
+    # happen before all calls to enable_language(CUDA)
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-
     enable_language(CUDA)
-
-    # Despite native CUDA support, the CUDA package is still required to export
-    # the cuda library dependencies from the installed target.
-    find_package(CUDA 10 REQUIRED)
-
+    find_package(CUDAToolkit)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        if(CUDAToolkit_VERSION_MAJOR GREATER 10)
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        else()
+            set(CMAKE_CUDA_ARCHITECTURES 60 70)
+        endif()
+    endif()
 elseif(ARB_GPU STREQUAL "cuda-clang")
     set(ARB_WITH_CUDA_CLANG TRUE)
-
-    # The CUDA package is needed for clang compilation for the same reasons as above.
-    # enable_langaue(CUDA) has a bug with clang
-    find_package(CUDA 10 REQUIRED)
+    enable_language(CUDA)
 elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
 endif()
@@ -175,6 +171,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Data and internal scripts go here
 set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+# Derived paths for arbor-build-catalogue
+file(RELATIVE_PATH ARB_REL_DATADIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
@@ -219,8 +218,8 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
 
-configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
@@ -301,9 +300,6 @@ if(ARB_WITH_PYTHON)
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
     endif()
 
-    # Required to link the dynamic libraries for python modules.
-    # Effectively adds '-fpic' flag to CXX_FLAGS.
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 else()
     # If not building the Python module, the interpreter is still required
     # to build some targets, e.g. when building the documentation.
@@ -320,7 +316,6 @@ endif()
 #-----------------
 
 find_package(Threads REQUIRED)
-find_threads_cuda_fix()
 target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
 
 list(APPEND arbor_export_dependencies "Threads")
@@ -357,31 +352,18 @@ if(ARB_WITH_GPU)
 
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-
         add_compile_options(
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
                 "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     endif()
 
-
     if(ARB_WITH_NVCC)
-        target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
-        target_compile_options(arbor-private-deps INTERFACE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
-        if (${CUDA_VERSION_MAJOR} GREATER 10)
-            target_compile_options(arbor-private-deps INTERFACE
-                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_80,code=sm_80>)
-        endif()
-
         target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
         target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
-
     elseif(ARB_WITH_CUDA_CLANG)
         set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-
     elseif(ARB_WITH_HIP_CLANG)
         set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
@@ -419,9 +401,6 @@ endif()
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
-endif()
-if(ARB_WITH_PROFILING)
-    list(APPEND ARB_MODCC_FLAGS "--profile")
 endif()
 
 #----------------------------------------------------------

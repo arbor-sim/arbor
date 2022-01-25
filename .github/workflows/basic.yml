@@ -19,7 +19,7 @@ jobs:
             cc:    "gcc-8",
             cxx:   "g++-8",
             py:    "3.6",
-            cmake: "3.12.x",
+            cmake: "3.18.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -29,7 +29,7 @@ jobs:
             cc:    "clang-8",
             cxx:   "clang++-8",
             py:    "3.6",
-            cmake: "3.12.x",
+            cmake: "3.18.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -39,7 +39,7 @@ jobs:
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.6",
-            cmake: "3.12.x",
+            cmake: "3.18.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -49,7 +49,7 @@ jobs:
             cc:    "gcc-10",
             cxx:   "g++-10",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -59,7 +59,7 @@ jobs:
             cc:    "gcc-10",
             cxx:   "g++-10",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "OFF",
             simd:  "ON"
           }
@@ -69,17 +69,17 @@ jobs:
             cc:    "clang-10",
             cxx:   "clang++-10",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
+            os:    "macos-11",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -98,7 +98,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.7
+        uses: jwlawson/actions-setup-cmake@v1.12
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
@@ -180,5 +180,5 @@ jobs:
         run: scripts/run_python_examples.sh
       - name: Build and test a catalogue
         run: |
-          build-catalogue -v default mechanisms/default
+          arbor-build-catalogue -v default mechanisms/default
           ./scripts/test-catalogue.py ./default-catalogue.so

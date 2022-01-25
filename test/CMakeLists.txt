@@ -1,5 +1,4 @@
 find_package(Threads REQUIRED)
-find_threads_cuda_fix()
 
 add_library(gtest EXCLUDE_FROM_ALL STATIC gtest-all.cpp)
 target_include_directories(gtest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

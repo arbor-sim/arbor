@@ -27,6 +27,8 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_GPU_ENABLED``
     * ``ARB_VECTORIZE``
     * ``ARB_WITH_PROFILING``
+    * ``ARB_WITH_NEUROML``
+    * ``ARB_USE_BUNDLED_LIBS``
     * ``ARB_VERSION``
     * ``ARB_ARCH``
 
@@ -37,7 +39,7 @@ Helper functions for checking cmake or environment variables, as well as configu
             import arbor
             arbor.config()
 
-            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'version': '0.5.3-dev', 'arch': 'native'}
+            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'neuroml': True, 'bundled': True, 'version': '0.5.3-dev', 'arch': 'native'}
 
 .. function:: mpi_init()
 
@@ -87,8 +89,7 @@ The Python wrapper provides an API for:
 
     .. attribute:: threads
 
-        The number of CPU threads available, 1 by default.
-
+        The number of CPU threads available, 1 by default. Must be set to 1 at minimum.
     .. attribute:: gpu_id
 
         The identifier of the GPU to use.
@@ -137,7 +138,8 @@ The Python wrapper provides an API for:
 
         .. attribute:: threads
 
-            The number of threads available locally for execution, 1 by default.
+            The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.
+            Passing ``"avail_threads"`` (as string) will query and use the maximum number of threads the system makes available.
 
         .. attribute:: gpu_id
 
