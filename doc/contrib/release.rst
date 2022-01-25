@@ -38,7 +38,7 @@ Update tags/versions and test
 2. Bump the ``VERSION`` file:
    https://github.com/arbor-sim/arbor/blob/master/VERSION
 3. Run all tests.
-   - ``ciwheel.yml`` does this, and also runs a build from sdist, which triggers weekly and on new (RC) tags. Make sure this is OK.
+   - ``ciwheel.yml`` triggers when you push a branch called ``v*rc``, ON YOUR OWN REPO (so check ``github.com/$yourname/arbor/actions``). Make sure the tests pass.
    - This should catch many problems. For a manual check:
    - Verify MANIFEST.in (required for PyPI sdist)
    - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``
