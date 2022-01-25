@@ -92,11 +92,15 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
     steps:
-      - name: Get clang/gcc 8
+      - name: Get clang/gcc 8, libxml2, Linux
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
+          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8 libxml2-dev
+      - name: Get libxml2, macos
+        if: ${{ startsWith(matrix.config.os, 'macos') }}
+        run: |
+          brew install libxml2 
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.12
         with:
@@ -149,7 +153,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
           make -j4 tests examples pyarb html
           cd -
       - name: Install arbor
