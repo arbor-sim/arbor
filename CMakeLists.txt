@@ -13,6 +13,10 @@ enable_language(CXX)
 
 include(GNUInstallDirs)
 
+# Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
 
@@ -107,6 +111,9 @@ endif()
 # as to enable CUDA tests in generator expressions.)
 if(ARB_GPU STREQUAL "cuda")
     set(ARB_WITH_NVCC TRUE)
+    # CMake 3.18 and later set the default CUDA architecture for
+    # each target according to CMAKE_CUDA_ARCHITECTURES. 
+
     # This fixes nvcc picking up a wrong host compiler for linking, causing
     # issues with outdated libraries, eg libstdc++ and std::filesystem. Must
     # happen before all calls to enable_language(CUDA)
@@ -164,6 +171,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Data and internal scripts go here
 set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+# Derived paths for arbor-build-catalogue
+file(RELATIVE_PATH ARB_REL_DATADIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
@@ -208,8 +218,8 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
 
-configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
@@ -290,9 +300,6 @@ if(ARB_WITH_PYTHON)
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
     endif()
 
-    # Required to link the dynamic libraries for python modules.
-    # Effectively adds '-fpic' flag to CXX_FLAGS.
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 else()
     # If not building the Python module, the interpreter is still required
     # to build some targets, e.g. when building the documentation.
@@ -394,9 +401,6 @@ endif()
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
-endif()
-if(ARB_WITH_PROFILING)
-    list(APPEND ARB_MODCC_FLAGS "--profile")
 endif()
 
 #----------------------------------------------------------

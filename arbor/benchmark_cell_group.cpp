@@ -61,7 +61,7 @@ void benchmark_cell_group::advance(epoch ep,
     using std::chrono::high_resolution_clock;
     using duration_type = std::chrono::duration<double, std::micro>;
 
-    PE(advance_bench_cell);
+    PE(advance:bench:cell);
     // Micro-seconds to advance in this epoch.
     auto us = 1e3*(ep.duration());
     for (auto i: util::make_span(0, gids_.size())) {

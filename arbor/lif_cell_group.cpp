@@ -40,7 +40,7 @@ cell_kind lif_cell_group::get_cell_kind() const {
 }
 
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
-    PE(advance_lif);
+    PE(advance:lif);
     if (event_lanes.size() > 0) {
         for (auto lid: util::make_span(gids_.size())) {
             // Advance each cell independently.
