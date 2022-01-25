@@ -86,7 +86,7 @@ Release
 
 6. Upload to pypi
 
-   -  twine upload -r arborpypi dist/\*
+   -  twine upload -r arborpypi dist\*
 
 7. Verify
 
