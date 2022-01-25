@@ -225,6 +225,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // - all gap junctions are subject to WR
     // - we only have a single cell group
 
+    // Reset state_ at beginning of every WR iteration 
+
     //traces:            gj mech id                                values               
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
     
