@@ -91,4 +91,4 @@ print("Plotting results ...")
 df = pandas.DataFrame({'t/ms': data[:, 0], 'U/mV': data[:, 1]})
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig('single_cell_recipe_result.svg')
 
-;#df.to_csv('single_cell_recipe_result.csv', float_format='%g')
+df.to_csv('single_cell_recipe_result.csv', float_format='%g')
