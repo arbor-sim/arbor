@@ -556,11 +556,10 @@ void register_cells(pybind11::module& m) {
             "Species concentrations and reversal potential can be overridden on\n"
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
-            "overriden locally.")
-        .def("register", [](arb::cable_cell_global_properties& props, const arb::mechanism_catalogue& cat) {
-                props.catalogue = cat;
-            },
-            "Register the pointer to the mechanism catalogue in the global properties")
+             "overriden locally.")
+        .def_readwrite("catalogue",
+                       &arb::cable_cell_global_properties::catalogue,
+                       "The mechanism catalogue of the global properties")
         .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});
 
     m.def("neuron_cable_properties", []() {

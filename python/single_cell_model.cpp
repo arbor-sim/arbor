@@ -212,7 +212,6 @@ public:
 
 void register_single_cell(pybind11::module& m) {
     using namespace pybind11::literals;
-    using arb::cable_cell_global_properties;
     pybind11::class_<trace> tr(m, "trace", "Values and meta-data for a sample-trace on a single cell model.");
     tr
         .def_readonly("variable", &trace::variable, "Name of the variable being recorded.")
