@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  testallconfigs:
     name: "Tests across OSes, versions, compilers, and build configs."
     runs-on: ${{ matrix.config.os }}
     strategy:
@@ -186,7 +186,7 @@ jobs:
         run: |
           arbor-build-catalogue -v default mechanisms/default
           ./scripts/test-catalogue.py ./default-catalogue.so
-  build:
+  testpip:
     name: "Pip build test"
     runs-on: ubuntu-latest
     steps:
