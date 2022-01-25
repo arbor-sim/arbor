@@ -76,8 +76,10 @@ jobs:
         run:  python setup.py sdist
       - name: Install sdist
         run:  python -m pip install dist/arbor*.tar.gz
-      - name: Run python tests
+      - name: Run Python tests
         run: python3 -m unittest discover -v -s python
+      - name: Run Python examples
+        run: scripts/run_python_examples.sh
       - uses: actions/upload-artifact@v2
         with:
           name: dist
