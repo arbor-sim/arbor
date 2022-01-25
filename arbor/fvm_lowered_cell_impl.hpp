@@ -208,7 +208,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_time_ = array(n_samples);
         sample_value_ = array(n_samples);
     }
-    std::cout << "n_samples = " << n_samples << std::endl;
 
     state_->deliverable_events.init(std::move(staged_events));
     sample_events_.init(std::move(staged_samples));
@@ -224,8 +223,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // Assume that: 
     // - all gap junctions are subject to WR
     // - we only have a single cell group
-
-    // Reset state_ at beginning of every WR iteration 
 
     //traces:            gj mech id                                values               
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
@@ -309,7 +306,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     for(int ix = 0; ix < m->ppack_.width; ++ix) {
                         auto node_cv = m->ppack_.node_index[ix];
                         v_step.push_back(state_->voltage[node_cv]);
-                        //t_step.push_back(state_->dt_cv[node_cv]);
                         
                         if (wr_it > 0) {
                             auto err_cv = state_->voltage[node_cv] - traces_v_prev[gj][step][node_cv];
@@ -318,7 +314,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                                 b += 1;
                             }
                         }
-                        
                     }
                     traces_v[gj].push_back(v_step);
                 }  
@@ -406,11 +401,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 remaining_steps = dt_steps(tmin_, tfinal, dt_max);
             }
             PL();
-
         }
 
         //break WR if difference between previous and current trace small enough
-        
         if (wr_it > 0 && b == 0) {
             break;
         }
