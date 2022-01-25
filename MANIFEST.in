@@ -3,15 +3,20 @@ include CMakeLists.txt
 
 graft arbor
 graft arborenv
+graft arborio
+# graft ci
 graft cmake
 graft doc
 graft example
 graft ext
+graft lmorpho
 graft mechanisms
 graft modcc
 graft python
+graft scripts
+# graft spack
 graft sup
 graft test
-graft arborio
+# graft validation
 
 prune ext/google-benchmark
