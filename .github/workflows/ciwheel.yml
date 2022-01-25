@@ -3,10 +3,10 @@ name: Arbor on Wheels
 on:
   push:
     branches: 
-      - ciwheel
-      - v0.*-rc
+      - 'ciwheel'
+      - 'v0.*-rc'
     tags:
-      - v*
+      - 'v*'
 
   schedule:
     - cron: '0 2 * * 0' # run at 2 AM every sunday
