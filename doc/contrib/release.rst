@@ -34,7 +34,7 @@ Update tags/versions and test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md.
-1. Create new temp-branch ending in ``-rc``. E.g. ``v0.5.1-rc``
+1. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
 2. Bump the ``VERSION`` file:
    https://github.com/arbor-sim/arbor/blob/master/VERSION
 3. Run all tests.
