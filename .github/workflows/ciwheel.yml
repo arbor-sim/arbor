@@ -4,11 +4,12 @@ on:
   push:
     branches: 
       - 'ciwheel'
+      - 'v0.*'
     tags:
       - 'v*'
   pull_request:
     branches:
-      - 'v0.*-rc'
+      - 'v0.*'
 
   schedule:
     - cron: '0 2 * * 0' # run at 2 AM every sunday
