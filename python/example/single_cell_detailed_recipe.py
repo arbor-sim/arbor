@@ -99,16 +99,14 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
 
-        self.the_cat = arbor.default_catalogue()
-        self.the_cat.extend(arbor.allen_catalogue(), "")
-
         self.the_props = arbor.cable_global_properties()
         self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
         self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
         self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
         self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
 
-        self.the_props.register(self.the_cat)
+
+        self.the_props.catalogue.extend(arbor.allen_catalogue(), "")
 
     # (6.2) Override the num_cells method
     def num_cells(self):

@@ -36,7 +36,8 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = arbor.neuron_cable_properties()
-        self.the_props.catalogue = arbor.default_catalogue()
+        cat = arbor.default_catalogue()
+        # self.the_props.catalogue = arbor.default_catalogue()
 
     def num_cells(self):
         # (4.2) Override the num_cells method
