@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Python packages
-        run:  pip install numpy setuptools scikit-build ninja cmake
+        run:  pip install numpy setuptools scikit-build ninja cmake pandas seaborn
       - name: Clone w/ submodules
         uses: actions/checkout@v2
         with:
