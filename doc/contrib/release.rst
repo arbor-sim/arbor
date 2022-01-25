@@ -49,7 +49,7 @@ Test the RC
 
 4. Collect artifact from the above GA run.
    In case you want to manually want to trigger ``ciwheel.yml`` GA, overwrite the ``ciwheel`` branch with the commit of your choosing and force push to Github.
-5. twine upload -r testpypi dist/\*
+5. ``twine upload -r testpypi dist/*``
 6. Ask users to test the above, e.g.:
 
 .. code-block:: bash
@@ -62,8 +62,7 @@ Test the RC
 Release
 -------
 
-0. Make sure ciwheel passes tests, produced working wheels. Make sure
-   tests on master also passed, and master == ciwheel
+0. Make sure ``ciwheel.yml`` passes tests, produced working wheels, and nobody reported problems testing the RC.
 1. Tag and release: https://github.com/arbor-sim/arbor/releases
 
    -  on cmdline: git tag -a TAGNAME
@@ -102,6 +101,21 @@ Post release
 
    -  first, update ``spack/package.py``. The checksum of the targz is the sha256sum.
    -  Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/>`_
+
+2. In the same PR with the update to `spack/package.py`, might as well bump `VERSION` file.
+3. Announce on our website
+4. Add release for citation on Zenodo, add new ID to docs
+5. Add tagged version of docs on ReadTheDocs (should happen automatically)
+6. HBP internal admin
+
+  - [Plus](https://plus.humanbrainproject.eu/components/2691/)
+  - [TC Wiki](https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/)
+  - [KG](https://kg.ebrains.eu/search/instances/Software/80d205a9-ffb9-4afe-90b8-2f12819950ec) - [Update howto](https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software).
+    - Supported file formats (ie [ContentTypes](https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html)), [details](https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes)
+  - Send an update to the folk in charge of HBP Twitter if we want to shout about it
+7. FZJ admin
+
+  - https://juser.fz-juelich.de/submit
 
 .. _GH tags: https://github.com/arbor-sim/arbor/tags
 .. _AUTOMATED: https://github.com/arbor-sim/arbor/blob/master/.github/workflows/ebrains.yml 
