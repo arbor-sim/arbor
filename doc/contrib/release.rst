@@ -37,6 +37,7 @@ Update tags/versions and test
 1. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
 2. Bump the ``VERSION`` file:
    https://github.com/arbor-sim/arbor/blob/master/VERSION
+   Don't append ``-rc`` here, but if you do, remove it before releasing.
 3. Run all tests.
    - ``ciwheel.yml`` triggers when you push a branch called ``v*rc``, ON YOUR OWN REPO (so check ``github.com/$yourname/arbor/actions``). Make sure the tests pass.
    - This should catch many problems. For a manual check:
@@ -63,6 +64,7 @@ Release
 -------
 
 0. Make sure ``ciwheel.yml`` passes tests, produced working wheels, and nobody reported problems testing the RC.
+   Make sure ``VERSION`` does not end with ``-rc`` or ``-dev``
 1. Tag and release: https://github.com/arbor-sim/arbor/releases
 
    -  on cmdline: git tag -a TAGNAME
