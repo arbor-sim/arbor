@@ -559,7 +559,7 @@ void register_cells(pybind11::module& m) {
              "overriden locally.")
         .def_readwrite("catalogue",
                        &arb::cable_cell_global_properties::catalogue,
-                       "The mechanism catalogue of the global properties")
+                       "The mechanism catalogue.")
         .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});
 
     m.def("neuron_cable_properties", []() {
