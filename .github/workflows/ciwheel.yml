@@ -2,7 +2,9 @@ name: Arbor on Wheels
 
 on:
   push:
-    branches: [ ciwheel ]
+    branches: 
+      - ciwheel
+      - v*rc
     tags:
       - v*
 
@@ -72,6 +74,12 @@ jobs:
           submodules: recursive
       - name: Make sdist
         run:  python setup.py sdist
+      - name: Install sdist
+        run:  python -m pip install dist/arbor*.tar.gz
+      - name: Run Python tests
+        run: python3 -m unittest discover -v -s python
+      - name: Run Python examples
+        run: scripts/run_python_examples.sh
       - uses: actions/upload-artifact@v2
         with:
           name: dist
