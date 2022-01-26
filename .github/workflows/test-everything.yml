@@ -92,12 +92,12 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
     steps:
-      - name: Get clang/gcc 8, libxml2, Linux
+      - name: "Linux: get clang/gcc 8, libxml2"
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
           sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8 libxml2-dev
-      - name: Get libxml2, macos
+      - name: "MacOS: get libxml2"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
           brew install libxml2 
@@ -198,6 +198,8 @@ jobs:
           submodules: recursive
       - name: Build and install Arbor using pip
         run: python3 -m pip install --verbose --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=native" .
+      - name: Check if flags match
+        run: python3 -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
       - name: Run Python tests
         run: python3 -m unittest discover -v -s python
       - name: Run Python examples
