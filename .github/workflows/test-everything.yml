@@ -198,8 +198,9 @@ jobs:
           submodules: recursive
       - name: Build and install Arbor using pip
         run: python3 -m pip install --verbose --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=native" .
-      - name: Check if flags match
-        run: python3 -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
+      - name: Check that build flags match
+        run: |
+          python3 -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
       - name: Run Python tests
         run: python3 -m unittest discover -v -s python
       - name: Run Python examples
