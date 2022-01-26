@@ -308,9 +308,9 @@ The global properties
 The global properties of a single cell model include:
 
 1. The **mechanism catalogue**: A mechanism catalogue is a collection of density and point
-   mechanisms. Arbor has 3 built in mechanism catalogues: default, allen and bbp. The mechanism
+   mechanisms. Arbor has 3 built-in mechanism catalogues: ``default``, ``allen`` and ``bbp``. The mechanism
    catalogue in the global properties of the model must include the catalogues of all the
-   mechanisms painted on the cell decor.
+   mechanisms painted on the cell decor. The default is to use the ``default_catalogue``.
 
 2. The default **parameters**: The initial membrane voltage; the initial temperature; the
    axial resistivity; the membrane capacitance; the ion parameters; and the discretisation

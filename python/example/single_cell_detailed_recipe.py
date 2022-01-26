@@ -104,8 +104,6 @@ class single_recipe (arbor.recipe):
         self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
         self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
         self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
-
-
         self.the_props.catalogue.extend(arbor.allen_catalogue(), "")
 
     # (6.2) Override the num_cells method
@@ -145,30 +143,24 @@ class single_recipe (arbor.recipe):
 recipe = single_recipe(cell, [probe])
 
 # (4) Create an execution context
-
 context = arbor.context()
 
 # (5) Create a domain decomposition
-
 domains = arbor.partition_load_balance(recipe, context)
 
 # (6) Create a simulation
-
 sim = arbor.simulation(recipe, domains, context)
 
 # Instruct the simulation to record the spikes and sample the probe
-
 sim.record(arbor.spike_recording.all)
 
 probe_id = arbor.cell_member(0,0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
 # (7) Run the simulation
-
 sim.run(tfinal=100, dt=0.025)
 
 # (8) Print or display the results
-
 spikes = sim.spikes()
 print(len(spikes), 'spikes recorded:')
 for s in spikes:
