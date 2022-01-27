@@ -166,7 +166,8 @@ endif
 #
 
 # TODO: output all flags etc
-pkg_config_variables = ['arbconfiguration='+','.join(arb_configurations)]
+#pkg_config_variables = ['arbconfiguration='+','.join(arb_configurations)]
+pkg_config_variables = []
 pkg_config_unescaped_variables = []
 if arb_with_gpu
   pkg_config_unescaped_variables += 'CudaCflags='+' '.join(cuda_target_args+arbor_cuda_private_args)
