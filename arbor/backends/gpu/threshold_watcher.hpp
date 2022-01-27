@@ -45,23 +45,23 @@ public:
 
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
-        const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
-        const std::vector<fvm_index_type>& cv_index,
+        const array& values,
+        const std::vector<fvm_index_type>& detector_cv_idx,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& ctx
     ):
         cv_to_intdom_(cv_to_intdom),
-        values_(values),
+        values_(values.data()),
         src_to_spike_(src_to_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
-        cv_index_(memory::make_const_view(cv_index)),
-        is_crossed_(cv_index.size()),
+        cv_index_(memory::make_const_view(detector_cv_idx)),
+        is_crossed_(detector_cv_idx.size()),
         thresholds_(memory::make_const_view(thresholds)),
-        v_prev_(memory::const_host_view<fvm_value_type>(values, cv_index.size())),
+        v_prev_(memory::const_device_view<fvm_value_type>(values)),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
         stack_(10*size(), ctx.gpu)

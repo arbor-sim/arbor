@@ -46,7 +46,7 @@ void test_thresholds_impl(
         // Test for threshold crossing
         const auto cv     = cv_index[i];
         const auto intdom = cv_to_intdom[cv];
-        const auto v_prev = prev_values[i];
+        const auto v_prev = prev_values[cv];
         const auto v      = values[cv];
         const auto thresh = thresholds[i];
         fvm_index_type spike_idx = 0;
@@ -75,7 +75,7 @@ void test_thresholds_impl(
             is_crossed[i]=0;
         }
 
-        prev_values[i] = v;
+        prev_values[cv] = v;
     }
 
     if (crossed) {

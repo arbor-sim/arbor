@@ -19,16 +19,16 @@ public:
 
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
-        const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
+        const array& values,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& context
     ):
         cv_to_intdom_(cv_to_intdom),
-        values_(values),
+        values_(values.data()),
         src_to_spike_(src_to_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
@@ -36,7 +36,7 @@ public:
         cv_index_(cv_index),
         is_crossed_(n_cv_),
         thresholds_(thresholds),
-        v_prev_(values_, values_+n_cv_)
+        v_prev_(values_, values_+values.size())
     {
         arb_assert(n_cv_==thresholds.size());
         reset();
@@ -72,7 +72,7 @@ public:
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
             auto cv     = cv_index_[i];
             auto intdom = cv_to_intdom_[cv];
-            auto v_prev = v_prev_[i];
+            auto v_prev = v_prev_[cv];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
             fvm_index_type spike_idx = 0;
@@ -103,7 +103,7 @@ public:
                 }
             }
 
-            v_prev_[i] = v;
+            v_prev_[cv] = v;
         }
     }
 
