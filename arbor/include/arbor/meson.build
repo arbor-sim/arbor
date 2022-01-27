@@ -13,9 +13,9 @@ fs = import('fs')
 assert_macro_path=meson.current_build_dir()+'/assert_macro.hpp'
 if not fs.is_file(assert_macro_path)
   if arb_with_assertions
-    run_command('cp', 'assert_macro.hpp.enabled', assert_macro_path)
+    run_command('cp', 'assert_macro.hpp.enabled', assert_macro_path, check: true)
   else
-    run_command('cp', 'assert_macro.hpp.disabled', assert_macro_path)
+    run_command('cp', 'assert_macro.hpp.disabled', assert_macro_path, check: true)
   endif
 endif
 
@@ -38,7 +38,7 @@ if not fs.is_file(version_path)
   conf.set('ARB_VERSION_PATCH', arb_version_patch)
   conf.set_quoted('ARB_VERSION_DEV', arb_version_dev)
 
-  gitlog = run_command('../gitlog').stdout().strip()
+  gitlog = run_command('../gitlog', check: true).stdout().strip()
   buildtype = get_option('buildtype').to_upper()
   configstring = ';'.join(arb_configurations)
   conf.set_quoted('ARB_VERSION', arb_version)
