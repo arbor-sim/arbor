@@ -1,0 +1,11 @@
+{
+    "name": "test",
+    "num-cells": 1000,
+    "duration": 100,
+    "min-delay": 10,
+    "fan-in": 10000,
+    "realtime-ratio": 0.1,
+    "spike-frequency": 20,
+    "threads": 4,
+    "ranks": 1000
+}

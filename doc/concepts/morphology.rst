@@ -693,6 +693,8 @@ and *B*, while *A* | *B* is a policy which gives all the boundary points from
 The domain of *A* + *B* and *A* | *B* is the union of the domains of *A* and
 *B*.
 
+.. _morph-cv-sexpr:
+
 Reading CV policies from strings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

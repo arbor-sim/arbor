@@ -44,13 +44,13 @@ void merge_cell_events(
     std::vector<event_generator>& generators,
     pse_vector& new_events)
 {
-    PE(communication_enqueue_setup);
+    PE(communication:enqueue:setup);
     new_events.clear();
     old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
     PL();
 
     if (!generators.empty()) {
-        PE(communication_enqueue_setup);
+        PE(communication:enqueue:setup);
         // Tree-merge events in [t_from, t_to) from old, pending and generator events.
 
         std::vector<event_span> spanbuf;
@@ -70,7 +70,7 @@ void merge_cell_events(
         }
         PL();
 
-        PE(communication_enqueue_tree);
+        PE(communication:enqueue:tree);
         tree_merge_events(spanbuf, new_events);
         PL();
 
@@ -79,7 +79,7 @@ void merge_cell_events(
     }
 
     // Merge (remaining) old and pending events.
-    PE(communication_enqueue_merge);
+    PE(communication:enqueue:merge);
     auto n = new_events.size();
     new_events.resize(n+pending.size()+old_events.size());
     std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin()+n);
@@ -187,12 +187,12 @@ simulation_state::simulation_state(
     local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
 {
     // Generate the cell groups in parallel, with one task per cell group.
-    cell_groups_.resize(decomp.groups.size());
+    cell_groups_.resize(decomp.num_groups());
     std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
     std::vector<cell_labels_and_gids> cg_targets(cell_groups_.size());
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
-          const auto& group_info = decomp.groups[i];
+          const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
           group = factory(group_info.gids, rec, sources, targets);
@@ -226,7 +226,7 @@ simulation_state::simulation_state(
     cell_size_type grpidx = 0;
 
     auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(std::move(target_resolution_map));
-    for (const auto& group_info: decomp.groups) {
+    for (const auto& group_info: decomp.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = gid_local_info{lidx, grpidx};
@@ -350,7 +350,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                 auto queues = util::subrange_view(event_lanes(current.id), communicator_.group_queue_range(i));
                 group->advance(current, dt, queues);
 
-                PE(advance_spikes);
+                PE(advance:spikes);
                 local_spikes(current.id).insert(group->spikes());
                 group->clear_spikes();
                 PL();
@@ -361,14 +361,14 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // post-synaptic spike events to per-cell pending event vectors.
     auto exchange = [this](epoch prev) {
         // Collate locally generated spikes.
-        PE(communication_exchange_gatherlocal);
+        PE(communication:exchange:gatherlocal);
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
         // Gather generated spikes across all ranks.
         auto global_spikes = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
-        PE(communication_spikeio);
+        PE(communication:spikeio);
         if (local_export_callback_) {
             local_export_callback_(all_local_spikes);
         }
@@ -378,7 +378,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PL();
 
         // Append events formed from global spikes to per-cell pending event queues.
-        PE(communication_walkspikes);
+        PE(communication:walkspikes);
         communicator_.make_event_queues(global_spikes, pending_events_);
         PL();
     };
@@ -388,7 +388,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
-                PE(communication_enqueue_sort);
+                PE(communication:enqueue:sort);
                 util::sort(pending_events_[i]);
                 PL();
 

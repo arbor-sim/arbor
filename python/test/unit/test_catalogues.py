@@ -13,11 +13,11 @@ class recipe(arb.recipe):
         self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         self.props = arb.neuron_cable_properties()
         try:
-            self.cat = arb.default_catalogue()
-            self.props.register(self.cat)
+            self.props.catalogue = arb.load_catalogue('dummy-catalogue.so')
         except:
             print("Catalogue not found. Are you running from build directory?")
             raise
+        self.props.catalogue = arb.default_catalogue()
 
         d = arb.decor()
         d.paint('(all)', arb.density('pas'))

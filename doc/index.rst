@@ -3,8 +3,8 @@ Arbor
 
 |testbadge| |zlatest|
 
-.. |testbadge| image:: https://github.com/arbor-sim/arbor/actions/workflows/basic.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/basic.yml
+.. |testbadge| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
@@ -38,6 +38,9 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
+Version 0.6
+    |z06|
+
 Version 0.5.2
     |z052|
 
@@ -63,6 +66,9 @@ Cite (Bibtex format)
 
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
+
+.. |z06| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910151.svg
+    :target: https://doi.org/10.5281/zenodo.5910151
 
 .. |z052| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5031633.svg
     :target: https://doi.org/10.5281/zenodo.5031633

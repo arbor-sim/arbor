@@ -281,7 +281,6 @@ TEST(mechcat, loading) {
     EXPECT_NO_THROW(cat = &load_catalogue(CATALOGUEDIR "/dummy-catalogue.so"));
     ASSERT_NE(cat, nullptr);
     EXPECT_EQ(std::vector<std::string>{"dummy"}, cat->mechanism_names());
-
 }
 #endif
 

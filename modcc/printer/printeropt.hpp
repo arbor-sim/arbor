@@ -14,9 +14,5 @@ struct printer_options {
     // Explicit vectorization (C printer only)? Default is none.
     simd_spec simd;
 
-    // Instrument kernels? True => use ::arb::profile regions.
-    // Currently only supported for C printer.
-
-    bool profile = false;
     bool trace_codegen = false;
 };

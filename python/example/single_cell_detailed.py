@@ -98,7 +98,7 @@ model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 # The function takes a second string parameter that can prefix
 # the name of the mechanisms to avoid collisions between catalogues
 # in this case we have no collisions so we use an empty prefix string.
-model.catalogue.extend(arbor.allen_catalogue(), "")
+model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 
 # (7) Add probes.
 

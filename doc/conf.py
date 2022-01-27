@@ -14,6 +14,7 @@ html_static_path = ['static']
 def setup(app):
     app.add_object_type('generic', 'gen', 'pair: %s; generic')
     app.add_object_type('label', 'lab', 'pair: %s; label')
+    app.add_js_file("latest-warning.js")
 
 extensions = [
     'sphinx.ext.autodoc',

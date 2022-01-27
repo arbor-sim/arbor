@@ -37,15 +37,14 @@ bad_global_property::bad_global_property(cell_kind kind):
     kind(kind)
 {}
 
+zero_thread_requested_error::zero_thread_requested_error(unsigned nbt):
+    arbor_exception(pprintf("threads must be a positive integer")),
+    nbt(nbt)
+{}
+
 bad_probe_id::bad_probe_id(cell_member_type probe_id):
     arbor_exception(pprintf("bad probe id {}", probe_id)),
     probe_id(probe_id)
-{}
-
-gj_unsupported_domain_decomposition::gj_unsupported_domain_decomposition(cell_gid_type gid_0, cell_gid_type gid_1):
-    arbor_exception(pprintf("No support for gap junctions across domain decomposition groups for gid {} and {}", gid_0, gid_1)),
-    gid_0(gid_0),
-    gid_1(gid_1)
 {}
 
 gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):

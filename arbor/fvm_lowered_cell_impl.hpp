@@ -198,7 +198,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     set_gpu();
 
     // Integration setup
-    PE(advance_integrate_setup);
+    PE(advance:integrate:setup);
     threshold_watcher_.clear_crossings();
 
     auto n_samples = staged_samples.size();
@@ -227,11 +227,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        PE(advance_integrate_events);
+        PE(advance:integrate:events);
         state_->deliverable_events.mark_until_after(state_->time);
         PL();
 
-        PE(advance_integrate_current_zero);
+        PE(advance:integrate:current:zero);
         state_->zero_currents();
         PL();
         for (auto& m: mechanisms_) {
@@ -245,7 +245,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_current();
         }
 
-        PE(advance_integrate_events);
+        PE(advance:integrate:events);
         state_->deliverable_events.drop_marked_events();
 
         // Update event list and integration step times.
@@ -260,13 +260,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // want to use mean current contributions as opposed to point
         // sample.)
 
-        PE(advance_integrate_stimuli)
+        PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
         PL();
 
         // Take samples at cell time if sample time in this step interval.
 
-        PE(advance_integrate_samples);
+        PE(advance:integrate:samples);
         sample_events_.mark_until(state_->time_to);
         state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
         sample_events_.drop_marked_events();
@@ -274,10 +274,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Integrate voltage by matrix solve.
 
-        PE(advance_integrate_matrix_build);
+        PE(advance:integrate:matrix:build);
         matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
         PL();
-        PE(advance_integrate_matrix_solve);
+        PE(advance:integrate:matrix:solve);
         matrix_.solve(state_->voltage);
         PL();
 
@@ -289,17 +289,17 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Update ion concentrations.
 
-        PE(advance_integrate_ionupdate);
+        PE(advance:integrate:ionupdate);
         update_ion_state();
         PL();
 
         // Update time and test for spike threshold crossings.
 
-        PE(advance_integrate_threshold);
+        PE(advance:integrate:threshold);
         threshold_watcher_.test(&state_->time_since_spike);
         PL();
 
-        PE(advance_integrate_post)
+        PE(advance:integrate:post)
         if (post_events_) {
             for (auto& m: mechanisms_) {
                 m->post_event();
@@ -313,14 +313,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Check for non-physical solutions:
 
         if (check_voltage_mV_>0) {
-            PE(advance_integrate_physicalcheck);
+            PE(advance:integrate:physicalcheck);
             assert_voltage_bounded(check_voltage_mV_);
             PL();
         }
 
         // Check for end of integration.
 
-        PE(advance_integrate_stepsupdate);
+        PE(advance:integrate:stepsupdate);
         if (!--remaining_steps) {
             tmin_ = state_->time_bounds().first;
             remaining_steps = dt_steps(tmin_, tfinal, dt_max);
@@ -435,11 +435,11 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     // (Throws cable_cell_error on failure.)
     check_global_properties(global_props);
 
-    const mechanism_catalogue* catalogue = global_props.catalogue;
+    const auto& catalogue = global_props.catalogue;
 
     // Mechanism instantiator helper.
     auto mech_instance = [&catalogue](const std::string& name) {
-        return catalogue->instance(backend::kind, name);
+        return catalogue.instance(backend::kind, name);
     };
 
     // Check for physically reasonable membrane volages?
@@ -667,11 +667,7 @@ fvm_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
 
             cell_to_intdom[gid_to_loc[g]] = intdom_id;
 
-            for (auto gj: rec.gap_junctions_on(g)) {
-                if (!gid_to_loc.count(gj.peer.gid)) {
-                    throw gj_unsupported_domain_decomposition(g, gj.peer.gid);
-                }
-
+            for (const auto& gj: rec.gap_junctions_on(g)) {
                 if (!visited.count(gj.peer.gid)) {
                     visited.insert(gj.peer.gid);
                     intdomq.push(gj.peer.gid);

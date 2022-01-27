@@ -11,8 +11,7 @@ if(ARB_WITH_NEUROML)
             neuroml.cpp
             nml_parse_morphology.cpp
             xml.cpp
-            xmlwrap.cpp
-        )
+            xmlwrap.cpp)
     find_package(LibXml2 REQUIRED)
 endif()
 
