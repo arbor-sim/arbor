@@ -250,7 +250,8 @@ void register_morphology(py::module& m) {
     // Function that creates a morphology from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc_arbor",
-        [](std::string fname) {
+        [](py::object fn) {
+            const auto fname = py::str(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
@@ -275,7 +276,8 @@ void register_morphology(py::module& m) {
         "  are no gaps in the resulting morphology.");
 
     m.def("load_swc_neuron",
-        [](std::string fname) {
+        [](py::object fn) {
+            const auto fname = py::str(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
@@ -383,7 +385,8 @@ void register_morphology(py::module& m) {
     neuroml
         // constructors
         .def(py::init(
-            [](std::string fname) {
+            [](py::object fn) {
+                const auto fname = py::str(fn);
                 std::ifstream fid{fname};
                 if (!fid.good()) {
                     throw pyarb_error(util::pprintf("can't open file '{}'", fname));
