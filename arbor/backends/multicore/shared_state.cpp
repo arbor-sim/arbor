@@ -234,6 +234,7 @@ shared_state::shared_state(
     for (unsigned i = 0; i<n_cv; ++i) {
         temperature_degC[i] = temperature_K[i] - 273.15;
     }
+    reset();
 }
 
 void shared_state::add_ion(

@@ -203,6 +203,7 @@ shared_state::shared_state(
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
+    reset();
 }
 
 namespace {
