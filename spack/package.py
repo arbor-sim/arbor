@@ -1,4 +1,4 @@
-# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2022 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -13,7 +13,7 @@ class Arbor(CMakePackage, CudaPackage):
     homepage = 'https://arbor-sim.org'
     git      = 'https://github.com/arbor-sim/arbor.git'
     url      = 'https://github.com/arbor-sim/arbor/releases/download/v0.6/arbor-v0.6-full.tar.gz'
-    maintainers = ['bcumming', 'brenthuisman', 'haampie', 'halfflat']
+    maintainers = ['bcumming', 'brenthuisman', 'haampie', 'schmitts']
 
     version('master', branch='master', submodules=True)
     version('0.6', sha256='4cd333b18effc8833428ddc0b99e7dc976804771bc85da90034c272c7019e1e8', url='https://github.com/arbor-sim/arbor/releases/download/v0.6/arbor-v0.6-full.tar.gz')
