@@ -81,6 +81,7 @@ Release
    - add tarball to release, created in previous step.
 
 3. [`AUTOMATED`_] push to git@gitlab.ebrains.eu:arbor-sim/arbor.git
+
 4. Download output of wheel action associated to this release commit and extract (verify the wheels and
    source targz is in /dist)
 
@@ -96,21 +97,20 @@ Release
    pip install -i https://test.pypi.org/simple/ arbor==0.6
    python -c 'import arbor; print(arbor.__config__)'
 
-6. Upload to pypi
+6. Upload to pypi & verify
 
 .. code-block:: bash
 
    twine upload -r arborpypi dist/*
 
    python -m venv env && source env/bin/activate
-   pip install numpy
-   pip install arbor==0.6 –verbose
+   pip install arbor
    python -c 'import arbor; print(arbor.__config__)'
 
 7. Update spack package
 
    -  first, update ``spack/package.py``. The checksum of the targz is the sha256sum.
-   -  Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/>`_
+   -  Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
 
 8. In the same PR with the update to `spack/package.py`, bump `VERSION` file.
 
