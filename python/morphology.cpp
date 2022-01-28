@@ -388,6 +388,7 @@ void register_morphology(py::module& m) {
         .def(py::init(
             [](py::object fn) {
                 const auto fname = util::to_path(fn);
+                std::ifstream fid{fname};
                 if (!fid.good()) {
                     throw pyarb_error(util::pprintf("can't open file '{}'", fname));
                 }
