@@ -116,8 +116,6 @@ if arb_with_gpu
   add_languages('cuda', native: false, required: true)
 endif
 
-#message('xxxxxxxxxxxxxxxxxx: '+dep_cuda.get_variable(internal: 'libdir'))
-
 # find dependencies
 if arb_with_bundled_libs
   dep_libjson   = declare_dependency(include_directories: 'ext/json/single_include')
@@ -154,6 +152,7 @@ subdir('arbor')
 subdir('arborio')
 subdir('arborenv')
 subdir('sup')
+subdir('scripts')
 subdir('test')
 subdir('example')
 subdir('lmorpho')

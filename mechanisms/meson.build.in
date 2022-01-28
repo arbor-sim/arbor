@@ -1,4 +1,4 @@
-project('${cat-name}',
+project('{name}',
   ['cpp'],
   version: '@arb_version@',
   meson_version: '>=0.60',
@@ -24,8 +24,8 @@ arbor_cuda_private_args = [@cuda_private_args@]
 catalogue_options = [@catalogue_options@]
 
 
-mechs = [${mech-list}]
-name = '${name}'
+mechs = [{mods}]
+name = '{name}'
 
 mech_sources = []
 foreach m: mechs
@@ -40,7 +40,7 @@ foreach m: mechs
                              command : [modcc, modfile, '-N', f'arb::\@name\@_catalogue', '-o', meson.current_build_dir() / m, arb_modcc_flags])
 endforeach
 
-catalogue_source = f'${name}_catalogue.cpp'
+catalogue_source = f'{name}_catalogue.cpp'
 mech_catalogue = custom_target(catalogue_source,
                                output: catalogue_source,
                                command : [gen_cat, catalogue_options, '-C', name, '-N', f'arb::\@name\@_catalogue', mechs, '-o', '\@OUTPUT\@'])
@@ -51,4 +51,3 @@ catalogue = shared_library(f'\@name\@-catalogue',
                             cpp_args : ['-DSTANDALONE'] + arbor_private_args,
                             cuda_args: arbor_cuda_private_args,
                             build_by_default: true)
-
