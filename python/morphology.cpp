@@ -253,7 +253,7 @@ void register_morphology(py::module& m) {
     m.def("load_swc_arbor",
         [](py::object fn) {
             const auto fname = util::to_path(fn);
-            std::ifstream fid{};
+            std::ifstream fid{fname};
             if (!fid.good()) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
