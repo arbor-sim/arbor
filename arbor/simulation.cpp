@@ -515,7 +515,7 @@ void simulation::reset() {
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {
-        throw arbor_exception("Finite time-step must be supplied.");
+        throw domain_error("Finite time-step must be supplied.");
     }
     return impl_->run(tfinal, dt);
 }
