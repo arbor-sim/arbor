@@ -9,6 +9,7 @@
 #include <arborio/cableio.hpp>
 
 #include "error.hpp"
+#include "util.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {
@@ -16,10 +17,10 @@ namespace pyarb {
 namespace py = pybind11;
 
 arborio::cable_cell_component load_component(py::object fn) {
-    const std::string fname = py::str(fn);
+    const auto fname = util::to_path(fn);
     std::ifstream fid{fname};
     if (!fid.good()) {
-        throw pyarb_error("Can't open file '{}'" + fname);
+        throw pyarb_error(util::pprintf("Can't open file '{}'", fname));
     }
     auto component = arborio::parse_component(fid);
     if (!component) {
@@ -30,12 +31,12 @@ arborio::cable_cell_component load_component(py::object fn) {
 
 template<typename T>
 void write_component(const T& component, py::object fn) {
-    std::ofstream fid(std::string{py::str(fn)});
+    std::ofstream fid(util::to_path(fn));
     arborio::write_component(fid, component, arborio::meta_data{});
 }
 
 void write_component(const arborio::cable_cell_component& component, py::object fn) {
-    std::ofstream fid(std::string{py::str(fn)});
+    std::ofstream fid(util::to_path(fn));
     arborio::write_component(fid, component);
 }
 

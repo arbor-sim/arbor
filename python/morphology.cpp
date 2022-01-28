@@ -20,6 +20,7 @@
 #include <arborio/neuroml.hpp>
 #endif
 
+#include "util.hpp"
 #include "error.hpp"
 #include "proxy.hpp"
 #include "strprintf.hpp"
@@ -251,8 +252,8 @@ void register_morphology(py::module& m) {
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc_arbor",
         [](py::object fn) {
-            const auto fname = py::str(fn);
-            std::ifstream fid{fname};
+            const auto fname = util::to_path(fn);
+            std::ifstream fid{};
             if (!fid.good()) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
             }
@@ -277,7 +278,7 @@ void register_morphology(py::module& m) {
 
     m.def("load_swc_neuron",
         [](py::object fn) {
-            const auto fname = py::str(fn);
+            const auto fname = util::to_path(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
                 throw pyarb_error(util::pprintf("can't open file '{}'", fname));
@@ -386,8 +387,7 @@ void register_morphology(py::module& m) {
         // constructors
         .def(py::init(
             [](py::object fn) {
-                const auto fname = py::str(fn);
-                std::ifstream fid{fname};
+                const auto fname = util::to_path(fn);
                 if (!fid.good()) {
                     throw pyarb_error(util::pprintf("can't open file '{}'", fname));
                 }
