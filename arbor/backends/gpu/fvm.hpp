@@ -62,7 +62,7 @@ struct backend {
             state.src_to_spike.data(),
             &state.time,
             &state.time_to,
-            state.voltage,
+            state.voltage.size(),
             detector_cv,
             thresholds,
             context);

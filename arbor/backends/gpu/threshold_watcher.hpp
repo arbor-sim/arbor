@@ -48,26 +48,25 @@ public:
         const fvm_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
-        const array& values,
+        const fvm_size_type num_cv,
         const std::vector<fvm_index_type>& detector_cv_idx,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& ctx
     ):
         cv_to_intdom_(cv_to_intdom),
-        values_(values.data()),
         src_to_spike_(src_to_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
         cv_index_(memory::make_const_view(detector_cv_idx)),
         is_crossed_(detector_cv_idx.size()),
         thresholds_(memory::make_const_view(thresholds)),
-        v_prev_(memory::const_device_view<fvm_value_type>(values)),
+        v_prev_(num_cv),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
         stack_(10*size(), ctx.gpu)
     {
         crossings_.reserve(stack_.capacity());
-        reset();
+        // reset() needs to be called before this is ready for use
     }
 
     /// Remove all stored crossings that were detected in previous calls to test()
@@ -79,7 +78,9 @@ public:
     /// Reset state machine for each detector.
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
-    void reset() {
+    void reset(const array& values) {
+        values_ = values.data();
+        memory::copy(values, v_prev_);
         clear_crossings();
         if (size()>0) {
             reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
