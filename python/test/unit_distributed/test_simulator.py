@@ -17,9 +17,8 @@ class lifN_recipe(A.recipe):
     def __init__(self, n_cell):
         A.recipe.__init__(self)
         self.n_cell = n_cell
-        self.cat = A.default_catalogue()
         self.props = A.neuron_cable_properties()
-        self.props.register(self.cat)
+
     def num_cells(self):
         return self.n_cell
 

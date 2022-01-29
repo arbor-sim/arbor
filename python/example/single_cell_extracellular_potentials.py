@@ -33,8 +33,6 @@ class Recipe (arbor.recipe):
         self.cprobe_id = (0, 2)
 
         self.the_props = arbor.neuron_cable_properties()
-        self.the_cat = arbor.default_catalogue()
-        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         return 1

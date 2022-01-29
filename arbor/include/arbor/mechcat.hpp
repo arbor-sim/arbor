@@ -108,15 +108,12 @@ private:
     void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
-
-// Reference to global default mechanism catalogue.
-
+// References to global mechanism catalogues.
 const mechanism_catalogue& global_default_catalogue();
 const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
-
 const mechanism_catalogue& load_catalogue(const std::string&);
 
 } // namespace arb
