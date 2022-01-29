@@ -59,7 +59,7 @@ examine the recipe in detail: how to create one, and why it is needed.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 91-143
+   :lines: 91-139
 
 Let's go through the recipe point by point.
 
@@ -140,7 +140,7 @@ previous section:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 145-147
+   :lines: 141-143
 
 The execution context
 *********************
@@ -157,7 +157,7 @@ the ideal settings can usually be inferred from the system, and Arbor can do tha
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 149-151
+   :lines: 145-146
 
 The domain decomposition
 ************************
@@ -176,7 +176,7 @@ we can use the load balancer, which does a good job distributing simple networks
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 153-155
+   :lines: 148-149
 
 The simulation
 **************
@@ -185,7 +185,7 @@ Finally we have the 3 components needed to create a :class:`arbor.simulation` ob
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 157-159
+   :lines: 151-152
 
 Before we run the simulation, however, we need to register what results we expect once execution is over.
 This was handled by the :class:`arbor.single_cell_model` object in the previous example.
@@ -195,7 +195,7 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 161-166
+   :lines: 154-158
 
 The lines handling probe sampling warrant a second look. First, we declared ``probe_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
@@ -213,7 +213,7 @@ We can now run the simulation we just instantiated for a duration of 100 ms with
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 168-170
+   :lines: 169-161
 
 The results
 ***********
@@ -225,13 +225,13 @@ We can print the times of the spikes:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 172-177
+   :lines: 163-167
 
 The probe results, again, warrant some more explanation:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 179-183
+   :lines: 169-173
 
 ``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
 of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
@@ -244,7 +244,7 @@ We plot the results using pandas and seaborn as we did in the previous example, 
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 185-188
+   :lines: 175-179
 
 The following plot is generated. Identical to the plot of the previous example.
 

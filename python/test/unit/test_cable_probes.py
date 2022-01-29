@@ -26,9 +26,8 @@ class cc_recipe(A.recipe):
 
         self.cell = A.cable_cell(st, A.label_dict(), dec)
 
-        self.cat = A.default_catalogue()
         self.props = A.neuron_cable_properties()
-        self.props.register(self.cat)
+        self.props.catalogue = A.default_catalogue()
 
     def num_cells(self):
         return 1

@@ -117,6 +117,15 @@ struct catalogue_state {
         import(other, "");
     }
 
+    catalogue_state& operator=(const catalogue_state& other) {
+        *this = {};
+        import(other, "");
+        return *this;
+    }
+
+    catalogue_state& operator=(catalogue_state&&) = default;
+    catalogue_state(catalogue_state&& other) = default;
+
     void import(const catalogue_state& other, const std::string& prefix) {
         // Do all checks before adding anything, otherwise we might get inconsistent state.
         auto assert_undefined = [&](const std::string& key) {
@@ -508,8 +517,7 @@ struct catalogue_state {
 // Mechanism catalogue method implementations.
 
 mechanism_catalogue::mechanism_catalogue():
-    state_(new catalogue_state)
-{}
+    state_(new catalogue_state) {}
 
 std::vector<std::string> mechanism_catalogue::mechanism_names() const {
     return state_->mechanism_names();

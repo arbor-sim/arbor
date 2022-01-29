@@ -40,7 +40,7 @@ It returns `0` by default and models without cells are quite boring!
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 25-62
+   :lines: 25-60
 
 Step **(4)** describes the recipe that will reflect our single cell model.
 
@@ -85,7 +85,7 @@ leave the details of this subject for another tutorial.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 64-67
+   :lines: 62-65
 
 Step **(6)** sets up a default context and domains.
 
@@ -94,7 +94,7 @@ The simulation
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 69-75
+   :lines: 67-73
 
 Step **(7)** instantiates the simulation and sets up the probe added in step 5. In the
 :class:`arbor.single_cell_model` version of this example, the probe frequency and
@@ -111,7 +111,7 @@ If we create the same analysis of the results we therefore expect the same resul
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 77-94
+   :lines: 75-92
 
 Step **(8)** plots the measured potentials during the runtime of the simulation.
 Retrieving the sampled quantities is a little different, these have to be accessed

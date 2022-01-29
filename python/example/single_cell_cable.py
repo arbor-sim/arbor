@@ -50,8 +50,6 @@ class Cable(arbor.recipe):
         self.cv_policy_max_extent = cv_policy_max_extent
 
         self.the_props = arbor.neuron_cable_properties()
-        self.the_cat = arbor.default_catalogue()
-        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         return 1

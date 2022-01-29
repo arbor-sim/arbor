@@ -67,8 +67,6 @@ class ring_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
         self.ncells = ncells
         self.props = arbor.neuron_cable_properties()
-        self.cat = arbor.default_catalogue()
-        self.props.register(self.cat)
 
     # (6) The num_cells method that returns the total number of cells in the model
     # must be implemented.

@@ -66,8 +66,6 @@ class chain_recipe(arbor.recipe):
         self.nchains = nchains
         self.ncells_per_chain = ncells_per_chain
         self.props = arbor.neuron_cable_properties()
-        self.cat = arbor.default_catalogue()
-        self.props.register(self.cat)
 
     def num_cells(self):
         return self.ncells_per_chain * self.nchains

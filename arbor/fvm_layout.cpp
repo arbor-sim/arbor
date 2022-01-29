@@ -738,7 +738,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     using index_type = fvm_index_type;
     using value_type = fvm_value_type;
 
-    const mechanism_catalogue& catalogue = *gprop.catalogue;
+    const mechanism_catalogue& catalogue = gprop.catalogue;
     const auto& embedding = cell.embedding();
 
     const auto& global_dflt = gprop.default_parameters;
