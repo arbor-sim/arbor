@@ -127,13 +127,14 @@ Release
 Post Release
 ------------
 
+0. Update and submit Zenodo release if necessary.
 1. Announce on our website
-2. Update Zenodo release if necessary.
-3. Add tagged version of docs on ReadTheDocs (should happen automatically)
+2. Announce on HBP newsletter newsletter@humanbrainproject.eu, HBP Twitter/socials evan.hancock@ebrains.eu
+3. [AUTOMATED] Add tagged version of docs on ReadTheDocs
 4. HBP internal admin
 
   - Plus: https://plus.humanbrainproject.eu/components/2691/
-  - TC Wiki](https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
+  - TC Wiki: https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
   - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
     - Update howto: https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software
     - Previous update as template: https://github.com/bweyers/HBPVisCatalogue/issues/480
