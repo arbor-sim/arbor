@@ -13,8 +13,6 @@ class single_recipe(arbor.recipe):
         self.n_pairs = n_pairs
 
         self.the_props = arbor.neuron_cable_properties()
-        self.the_cat = arbor.default_catalogue()
-        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         return 1

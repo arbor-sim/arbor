@@ -9,8 +9,10 @@
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/morph/cv_data.hpp>
 
 #include "execution_context.hpp"
+#include "morph/cv_data.hpp"
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -53,22 +55,19 @@ namespace cv_prefer {
     };
 }
 
-struct cv_geometry {
+struct cv_geometry: public cell_cv_data_impl {
+    using base = cell_cv_data_impl;
+
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
-
-    std::vector<mcable> cv_cables;           // CV unbranched sections, partitioned by CV.
-    std::vector<index_type> cv_cables_divs;  // Partitions cv_cables by CV index.
-    std::vector<index_type> cv_parent;       // Index of CV parent or size_type(-1) for a cell root CV.
-
-    std::vector<index_type> cv_children;     // CV child indices, partitioned by CV, and then in order.
-    std::vector<index_type> cv_children_divs;   // Paritions cv_children by CV index.
 
     std::vector<index_type> cv_to_cell;      // Maps CV index to cell index.
     std::vector<index_type> cell_cv_divs;    // Partitions CV indices by cell.
 
     // CV offset map by cell index then branch. Used for location_cv query.
     std::vector<std::vector<util::pw_elements<size_type>>> branch_cv_map;
+
+    cv_geometry() = default;
 
     auto cables(size_type cv_index) const {
         auto partn = util::partition_view(cv_cables_divs);
@@ -113,48 +112,14 @@ struct cv_geometry {
         return branch_cv_map.at(cell_idx).size();
     }
 
-    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
-        auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
-        auto zero_extent = [&pw_cv_offset](auto j) {
-            return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
-        };
+    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const;
 
-        auto i = pw_cv_offset.index_of(loc.pos);
-        auto i_max = pw_cv_offset.size()-1;
-        auto cv_prox = pw_cv_offset.extent(i).first;
-
-        // index_of() should have returned right-most matching interval.
-        arb_assert(i==i_max || loc.pos<pw_cv_offset.extent(i+1).first);
-
-        using namespace cv_prefer;
-        switch (prefer) {
-        case cv_distal:
-            break;
-        case cv_proximal:
-            if (loc.pos==cv_prox && i>0) --i;
-            break;
-        case cv_nonempty:
-            if (zero_extent(i)) {
-                if (i>0 && !zero_extent(i-1)) --i;
-                else if (i<i_max && !zero_extent(i+1)) ++i;
-            }
-            break;
-        case cv_empty:
-            if (loc.pos==cv_prox && i>0 && zero_extent(i-1)) --i;
-            break;
-        }
-
-        index_type cv_base = cell_cv_divs.at(cell_idx);
-        return cv_base+pw_cv_offset.value(i);
-    }
+    cv_geometry(const cable_cell& cell, const locset& ls);
 };
 
 // Combine two cv_geometry groups in-place.
 // (Returns reference to first argument.)
 cv_geometry& append(cv_geometry&, const cv_geometry&);
-
-// Construct cv_geometry from locset describing boundaries.
-cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset);
 
 // Discretization of morphologies and physical properties. Contains cv_geometry
 // as above.

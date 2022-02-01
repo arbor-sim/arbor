@@ -45,7 +45,7 @@ set(pyarb_source
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
 set_target_properties(pyarb_obj PROPERTIES CXX_VISIBILITY_PRESET hidden)
-target_link_libraries(pyarb_obj PRIVATE arbor arborio pybind11::module)
+target_link_libraries(pyarb_obj PRIVATE arbor arborenv arborio pybind11::module)
 
 # The Python library. MODULE will make a Python-exclusive model.
 add_library(pyarb MODULE $<TARGET_OBJECTS:pyarb_obj>)
@@ -58,7 +58,7 @@ set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "
 
 # This dependency has to be spelt out again, despite being added to
 # pyarb_obj because CMake.
-target_link_libraries(pyarb PRIVATE arbor arborio pybind11::module)
+target_link_libraries(pyarb PRIVATE arbor arborenv arborio pybind11::module)
 
 # Add support for mpi4py if available.
 if (ARB_WITH_MPI)

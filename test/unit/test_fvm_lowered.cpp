@@ -555,7 +555,6 @@ TEST(fvm_lowered, read_valence) {
         cell.decorations.paint("soma"_lab, density("cr_read_valence"));
         cable1d_recipe rec(cable_cell{cell});
         rec.catalogue() = make_unit_test_catalogue();
-        rec.catalogue() = make_unit_test_catalogue();
 
         rec.catalogue().derive("na_read_valence", "test_ca_read_valence", {}, {{"ca", "na"}});
         rec.catalogue().derive("cr_read_valence", "na_read_valence", {}, {{"na", "mn"}});
@@ -856,10 +855,7 @@ TEST(fvm_lowered, post_events_shared_state) {
                 ncell_(detectors_per_cell.size()),
                 ncv_(ncv),
                 detectors_per_cell_(detectors_per_cell),
-                synapse_(synapse),
-                cat_(make_unit_test_catalogue()) {
-            const auto default_cat = arb::global_default_catalogue();
-            cat_.import(default_cat, "");
+                synapse_(synapse) {
         }
 
         cell_size_type num_cells() const override {
@@ -890,7 +886,8 @@ TEST(fvm_lowered, post_events_shared_state) {
         std::any get_global_properties(arb::cell_kind) const override {
             arb::cable_cell_global_properties gprop;
             gprop.default_parameters = arb::neuron_parameter_defaults;
-            gprop.catalogue = &cat_;
+            gprop.catalogue = make_unit_test_catalogue();
+            gprop.catalogue.import(arb::global_default_catalogue(), "");
             return gprop;
         }
 
@@ -899,7 +896,6 @@ TEST(fvm_lowered, post_events_shared_state) {
         unsigned ncv_;
         std::vector<unsigned> detectors_per_cell_;
         arb::synapse synapse_;
-        mechanism_catalogue cat_;
     };
 
     std::vector<unsigned> gids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};

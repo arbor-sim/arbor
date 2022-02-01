@@ -62,7 +62,7 @@ c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(
 using namespace arb;
 
 mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
-    mechanism_catalogue cat(from);
+    mechanism_catalogue cat = from;
 
     ADD_MECH(cat, gj0)
     ADD_MECH(cat, gj1)

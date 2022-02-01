@@ -7,6 +7,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
+#include <arbor/recipe.hpp>
 
 namespace arb {
 
@@ -31,26 +32,39 @@ struct group_description {
 /// distribution of cells across cell_groups and domains.
 /// A load balancing algorithm is responsible for generating the
 /// domain_decomposition, e.g. arb::partitioned_load_balancer().
-struct domain_decomposition {
+class domain_decomposition {
+public:
+    domain_decomposition() = delete;
+    domain_decomposition(const recipe& rec, const context& ctx, const std::vector<group_description>& groups);
+
+    int gid_domain(cell_gid_type gid) const;
+    int num_domains() const;
+    int domain_id() const;
+    cell_size_type num_local_cells() const;
+    cell_size_type num_global_cells() const;
+    cell_size_type num_groups() const;
+    const std::vector<group_description>& groups() const;
+    const group_description& group(unsigned) const;
+
+private:
     /// Return the domain id of cell with gid.
     /// Supplied by the load balancing algorithm that generates the domain
     /// decomposition.
-    std::function<int(cell_gid_type)> gid_domain;
+    std::function<int(cell_gid_type)> gid_domain_;
 
     /// Number of distrubuted domains
-    int num_domains;
+    int num_domains_;
 
     /// The index of the local domain
-    int domain_id;
+    int domain_id_;
 
     /// Total number of cells in the local domain
-    cell_size_type num_local_cells;
+    cell_size_type num_local_cells_;
 
     /// Total number of cells in the global model (sum over all domains)
-    cell_size_type num_global_cells;
+    cell_size_type num_global_cells_;
 
     /// Descriptions of the cell groups on the local domain
-    std::vector<group_description> groups;
+    std::vector<group_description> groups_;
 };
-
 } // namespace arb

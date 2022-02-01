@@ -581,7 +581,7 @@ TEST(place_pwlin, nearest) {
     //         _        _  y=40
     //          \       /
     //      seg4 \     / seg2
-    //  branch 2  /   /     branch 1
+    //  branch 2  \   /     branch 1
     //        seg3 \ /
     //              | y=25
     //              |
