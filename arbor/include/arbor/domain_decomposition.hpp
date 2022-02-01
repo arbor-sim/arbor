@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
@@ -32,7 +33,7 @@ struct group_description {
 /// distribution of cells across cell_groups and domains.
 /// A load balancing algorithm is responsible for generating the
 /// domain_decomposition, e.g. arb::partitioned_load_balancer().
-class domain_decomposition {
+class ARB_ARBOR_API domain_decomposition {
 public:
     domain_decomposition() = delete;
     domain_decomposition(const recipe& rec, const context& ctx, const std::vector<group_description>& groups);

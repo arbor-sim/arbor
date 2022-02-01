@@ -4,7 +4,7 @@
 
 namespace arb {
 
-std::ostream& operator<<(std::ostream& o, lid_selection_policy policy) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy policy) {
     switch (policy) {
     case lid_selection_policy::round_robin:
         return o << "round_robin";
@@ -14,11 +14,11 @@ std::ostream& operator<<(std::ostream& o, lid_selection_policy policy) {
     return o;
 }
 
-std::ostream& operator<<(std::ostream& o, arb::cell_member_type m) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::cell_member_type m) {
     return o << m.gid << ':' << m.index;
 }
 
-std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
     o << "cell_kind::";
     switch (k) {
     case arb::cell_kind::spike_source:
@@ -33,7 +33,7 @@ std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
     return o;
 }
 
-std::ostream& operator<<(std::ostream& o, arb::backend_kind k) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::backend_kind k) {
     o << "backend_kind::";
     switch (k) {
     case arb::backend_kind::multicore:

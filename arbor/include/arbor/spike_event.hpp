@@ -4,6 +4,7 @@
 #include <tuple>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 
 namespace arb {

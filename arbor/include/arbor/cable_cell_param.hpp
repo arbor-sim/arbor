@@ -7,6 +7,7 @@
 #include <string>
 #include <variant>
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/cv_policy.hpp>
 #include <arbor/mechcat.hpp>
@@ -16,7 +17,7 @@ namespace arb {
 
 // Specialized arbor exception for errors in cell building.
 
-struct cable_cell_error: arbor_exception {
+struct ARB_ARBOR_API cable_cell_error: arbor_exception {
     cable_cell_error(const std::string& what):
         arbor_exception("cable_cell: "+what) {}
 };
@@ -257,7 +258,7 @@ using defaultable =
 // be set locally witihin a cell using the `cable_cell::paint()`, and the
 // cell defaults can be individually set with `cable_cell:set_default()`.
 
-struct cable_cell_parameter_set {
+struct ARB_ARBOR_API cable_cell_parameter_set {
     std::optional<double> init_membrane_potential; // [mV]
     std::optional<double> temperature_K;           // [K]
     std::optional<double> axial_resistivity;       // [Ω·cm]
@@ -273,7 +274,7 @@ struct cable_cell_parameter_set {
 
 // A flat description of defaults, paintings and placings that
 // are to be applied to a morphology in a cable_cell.
-class decor {
+class ARB_ARBOR_API decor {
     std::vector<std::pair<region, paintable>> paintings_;
     std::vector<std::tuple<locset, placeable, cell_tag_type>> placements_;
     cable_cell_parameter_set defaults_;
@@ -288,7 +289,7 @@ public:
     void set_default(defaultable);
 };
 
-extern cable_cell_parameter_set neuron_parameter_defaults;
+ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
 
 // Global cable cell data.
 
@@ -329,6 +330,6 @@ struct cable_cell_global_properties {
 
 // Throw cable_cell_error if any default parameters are left unspecified,
 // or if the supplied ion data is incomplete.
-void check_global_properties(const cable_cell_global_properties&);
+ARB_ARBOR_API void check_global_properties(const cable_cell_global_properties&);
 
 } // namespace arb

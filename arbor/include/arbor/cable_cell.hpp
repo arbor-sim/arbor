@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
@@ -220,7 +221,7 @@ using cable_cell_location_map = static_typed_map<location_assignment,
     synapse, junction, i_clamp, threshold_detector>;
 
 // High-level abstract representation of a cell.
-class cable_cell {
+class ARB_ARBOR_API cable_cell {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;

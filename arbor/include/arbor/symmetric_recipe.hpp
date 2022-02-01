@@ -2,6 +2,7 @@
 
 #include <any>
 
+#include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/util/unique_any.hpp>
 
@@ -21,7 +22,7 @@ public:
 // as many ranks as tile indicates. Its functions call the
 // underlying functions of tile and perform transformations
 // on the results when needed.
-class symmetric_recipe: public recipe {
+class ARB_ARBOR_API symmetric_recipe: public recipe {
 public:
     symmetric_recipe(std::unique_ptr<tile> rec): tiled_recipe_(std::move(rec)) {}
 

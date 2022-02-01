@@ -15,6 +15,7 @@
 
 #include <arbor/util/lexcmp_def.hpp>
 #include <arbor/util/hash_def.hpp>
+#include <arbor/export.hpp>
 
 namespace arb {
 
@@ -136,10 +137,10 @@ enum class binning_kind {
     following, // => round times down to previous event if within binning interval.
 };
 
-std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
-std::ostream& operator<<(std::ostream& o, cell_member_type m);
-std::ostream& operator<<(std::ostream& o, cell_kind k);
-std::ostream& operator<<(std::ostream& o, backend_kind k);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, cell_member_type m);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, cell_kind k);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, backend_kind k);
 
 } // namespace arb
 

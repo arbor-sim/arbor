@@ -179,7 +179,7 @@ std::ostream& operator<<(std::ostream& o, const morphology& m) {
 
 // Utilities.
 
-mlocation_list minset(const morphology& m, const mlocation_list& in) {
+ARB_ARBOR_API mlocation_list minset(const morphology& m, const mlocation_list& in) {
     mlocation_list L;
 
     std::stack<msize_t> stack;
@@ -213,7 +213,7 @@ mlocation_list minset(const morphology& m, const mlocation_list& in) {
     return L;
 }
 
-mlocation_list maxset(const morphology& m, const mlocation_list& in_) {
+ARB_ARBOR_API mlocation_list maxset(const morphology& m, const mlocation_list& in_) {
     mlocation_list L;
 
     // Sort the input in reverse order, so that more distal locations
@@ -244,7 +244,7 @@ mlocation_list maxset(const morphology& m, const mlocation_list& in_) {
     return L;
 }
 
-mlocation canonical(const morphology& m, mlocation loc) {
+ARB_ARBOR_API mlocation canonical(const morphology& m, mlocation loc) {
     if (loc.pos==0) {
         msize_t parent = m.branch_parent(loc.branch);
         return parent==mnpos? mlocation{0, 0.}: mlocation{parent, 1.};
@@ -387,7 +387,7 @@ mextent join(const mextent& a, const mextent& b) {
     return m;
 }
 
-std::vector<mextent> components(const morphology& m, const mextent& ex) {
+ARB_ARBOR_API std::vector<mextent> components(const morphology& m, const mextent& ex) {
     std::unordered_map<mlocation, unsigned> component_index;
     std::vector<mcable_list> component_cables;
 

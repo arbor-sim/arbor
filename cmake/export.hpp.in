@@ -6,8 +6,8 @@
 
 #include <arbor/util/visibility.hpp>
 
-/* library build type (ARB_LIBNAME_STATIC_LIBRARY/ARB_LIBNAME_SHARED_LIBRARY) */
-#define ARB_@target_lib_NAME@_@target_type@
+/* library build type (ARB_@target_short_NAME@_STATIC_LIBRARY/ARB_@target_short_NAME@_SHARED_LIBRARY) */
+#define ARB_@target_short_NAME@_@target_type@
 
 #ifndef ARB_@target_short_NAME@_EXPORTS
 #   if defined(@target_name@_EXPORTS)

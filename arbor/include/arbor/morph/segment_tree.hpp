@@ -5,12 +5,13 @@
 #include <vector>
 #include <string>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
 
 namespace arb {
 
 /// Morphology composed of segments.
-class segment_tree {
+class ARB_ARBOR_API segment_tree {
     struct child_prop {
         int count;
         bool is_fork() const { return count>1; }

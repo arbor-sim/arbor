@@ -14,7 +14,7 @@ namespace arbenv {
 #ifdef ARB_HAVE_GPU
 
 template <>
-int find_private_gpu(MPI_Comm comm) {
+ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     int nranks;
     int rank;
     MPI_Comm_rank(comm, &rank);
@@ -96,7 +96,7 @@ int find_private_gpu(MPI_Comm comm) {
 
 // return -1 -> "no gpu" when compiled without GPU support.
 template <>
-int find_private_gpu(MPI_Comm comm) {
+ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     return -1;
 }
 

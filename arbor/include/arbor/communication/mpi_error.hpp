@@ -5,6 +5,8 @@
 
 #include <mpi.h>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 
 enum class mpi_errc {
@@ -91,7 +93,7 @@ inline std::error_condition make_error_condition(mpi_errc ec) {
     return std::error_condition(static_cast<int>(ec), mpi_error_category());
 }
 
-struct mpi_error: std::system_error {
+struct ARB_ARBOR_API mpi_error: std::system_error {
     explicit mpi_error(int mpi_err):
         std::system_error(mpi_err, mpi_error_category()) {}
 

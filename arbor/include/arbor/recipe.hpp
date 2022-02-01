@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/util/unique_any.hpp>
@@ -60,7 +61,7 @@ struct gap_junction_connection {
         peer(std::move(peer)), local(std::move(local)), weight(g) {}
 };
 
-class recipe {
+class ARB_ARBOR_API recipe {
 public:
     virtual cell_size_type num_cells() const = 0;
 
