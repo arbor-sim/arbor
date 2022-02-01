@@ -131,13 +131,11 @@ V_m_samples, V_m_meta = sim.samples(v_handle)[0]
 I_m_samples, I_m_meta = sim.samples(i_handle)[0]
 I_c_samples, I_c_meta = sim.samples(c_handle)[0]
 
-
 # drop recorded V_m values and corresponding meta data of
 # zero-sized CVs (branch-point potentials)
 inds = np.array([m.dist != m.prox for m in V_m_meta])
 V_m_samples = V_m_samples[:, np.r_[True, inds]]
 V_m_meta = np.array(V_m_meta)[inds].tolist()
-
 
 # note: the cables comprising the metadata for each probe
 # should be the same, as well as the reported sample times.
@@ -250,8 +248,8 @@ class ArborLineSourcePotential(lfpykit.LineSourcePotential):
 cell_geometry = ArborCellGeometry(p, I_m_meta)
 
 # define locations where extracellular potential is predicted in vicinity
-# of cell
-# axis limits [x-min, x-max, y-min, y-max] (µm)
+# of cell.
+# Axis limits [x-min, x-max, y-min, y-max] (µm)
 axis = np.array([-110, 370, -80, 70])
 dx = 2  # spatial resolution along x-axis (µm)
 dz = 2  # spatial resolution along y-axis (µm)
@@ -261,7 +259,6 @@ X, Y = np.meshgrid(np.linspace(axis[0], axis[1],
                                int(np.diff(axis[2:]) // dz) + 1))
 Z = np.zeros_like(X)
 
-# LineSourcePotential object, get mapping for all segments per CV
 # ``ArborLineSourcePotential`` instance, get mapping for all segments per CV
 lsp = ArborLineSourcePotential(cell=cell_geometry,
                                x=X.flatten(),
@@ -453,11 +450,9 @@ fig.savefig('single_cell_extracellular_potentials.svg', bbox_inches='tight')
 # The spatial discretization is here deliberately coarse with only 3 CVs
 # per branch.
 # Hence the branch receiving input about 1/6 of the way from its root
-# (from `decor.place('(location 4 0.16667)', iclamp)`) is treated
-# as 3 separate line sources with homogeneous current density per length unit
-# each, even if
-# the diameter and direction varies with position due to the fact
-# that each CV may  be composed of multiple segments.
-#
-# The parameter `cvs_per_branch = 3` above can be changed above to affect
-# the number of CVs per branch.
+# (from `decor.place('(location 4 0.16667)', iclamp, '"iclamp"')`) is treated
+# as 3 separate line sources with inhomogeneous current density per length
+# unit. This inhomogeneity is due to the fact that the total transmembrane
+# current per CV may distributed across multiple segments with varying surface
+# area. The transmembrane current is assumed to be constant per length unit
+# per segment.
