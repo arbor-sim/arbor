@@ -155,5 +155,5 @@ Each part (CV) of the cell is shown with some color coding for the membrane pote
 .. _tutorial_lfpykit-code:
 
 The full code
-*************
+-------------
 You can find the full code of the example at ``python/examples/single_cell_extracellular_potentials.py``.

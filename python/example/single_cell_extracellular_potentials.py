@@ -413,7 +413,8 @@ time_index = -1
 fig, ax = plt.subplots(1, 1, figsize=(16, 6), dpi=100)
 
 # plot contours of V_e
-levels = np.linspace(-abs(V_e).max() / 3, abs(V_e).max() / 3, 25)
+lim = float(f'{abs(V_e).max() / 3:.1e}')
+levels = np.linspace(-lim, lim, 25)
 im_V_e = ax.contourf(X, Y, V_e[:, time_index].reshape(X.shape),
                      cmap='RdBu',
                      levels=levels,
