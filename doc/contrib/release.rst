@@ -124,10 +124,14 @@ Post Release
 3. Add tagged version of docs on ReadTheDocs (should happen automatically)
 4. HBP internal admin
 
-  - [Plus](https://plus.humanbrainproject.eu/components/2691/)
-  - [TC Wiki](https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/)
-  - [KG](https://kg.ebrains.eu/search/instances/Software/80d205a9-ffb9-4afe-90b8-2f12819950ec) - [Update howto](https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software).
-    - Supported file formats (ie [ContentTypes](https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html)), [details](https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes)
+  - Plus: https://plus.humanbrainproject.eu/components/2691/
+  - TC Wiki](https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
+  - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
+    - Update howto: https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software
+    - Previous update as template: https://github.com/bweyers/HBPVisCatalogue/issues/480
+    - Supported file formats
+      - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
+      - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
   - Send an update to the folk in charge of HBP Twitter if we want to shout about it
 
 5. FZJ admin

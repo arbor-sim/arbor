@@ -37,7 +37,7 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on('cmake@3.12:', type='build')
 
     # misc dependencies
-    depends_on('fmt@7.1:', when='@0.5.3:') # required by the modcc compiler
+    depends_on('fmt@7.1:', when='@0.5.3:')  # required by the modcc compiler
     depends_on('nlohmann-json')
     depends_on('cuda@10:', when='+cuda')
     depends_on('libxml2', when='+neuroml')
@@ -50,7 +50,9 @@ class Arbor(CMakePackage, CudaPackage):
     extends('python', when='+python')
     depends_on('python@3.6:', when="+python", type=('build', 'run'))
     depends_on('py-numpy', when='+python', type=('build', 'run'))
-    depends_on('py-pybind11@2.8.1:', when='+python', type=('build', 'run'))
+    with when('+python'):
+        depends_on('py-pybind11@2.6:', type=('build', 'run'))
+        depends_on('py-pybind11@2.8.1:', when='@0.5.3:', type=('build', 'run'))
 
     # sphinx based documentation
     depends_on('python@3.6:', when="+doc", type='build')
