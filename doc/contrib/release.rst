@@ -11,13 +11,16 @@ Release cycle
    * Update/trim next-release column in Kanban
    * Prepare agenda, include possible additions not covered by Kanban/Issues
    * Add milestone tags (nextver, nextver+1, etc.)
+   * Add highlighted new features to RELEASE_NOTES.md
 3. ``T-8`` weeks: ``Release Manager`` dev meet (external/public)
 
    * Use Kanban as starter
    * Move issues around based on input
    * Add milestone tags, for this release or future releases
-4. ``T±0``: ``Release Manager`` release!
-5. ``T+1`` weeks: ``Scrum Master`` retrospective
+   * Update highlighted new features to RELEASE_NOTES.md
+4. ``T-1``: ``all`` reserve week for wrapping up PRs and review.
+5. ``T±0``: ``Release Manager`` release!
+6. ``T+1`` weeks: ``Scrum Master`` retrospective
    
    * set date for next release
 
@@ -33,7 +36,7 @@ Pre-release
 Update tags/versions and test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md.
+0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md, RELEASE_NOTES.md
 1. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
 2. Bump the ``VERSION`` file:
    https://github.com/arbor-sim/arbor/blob/master/VERSION
