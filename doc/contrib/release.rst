@@ -116,11 +116,16 @@ Release
 
    - e.g. to 0.6.1-dev
 
+9. In the same PR with the update to `spack/package.py`, add new Zenodo badge/link.
+
+   - Start a new release on Zenodo, this allocated a DOI, but you don't have to finish it right away.
+     OTOH, you can already make and upload the tarball in step 1.
+
 Post Release
 ------------
 
 1. Announce on our website
-2. Add release for citation on Zenodo, add new ID to docs
+2. Update Zenodo release if necessary.
 3. Add tagged version of docs on ReadTheDocs (should happen automatically)
 4. HBP internal admin
 
