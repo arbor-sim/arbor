@@ -17,7 +17,7 @@
 // argument renaming. This means that if a local variable shadows a function
 // argument, the local variable takes precedence.
 
-expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block) {
+ARB_LIBMODCC_API expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block) {
     auto inline_block = block->clone();
 
     // The function inliner will inline one function at a time

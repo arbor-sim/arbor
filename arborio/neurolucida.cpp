@@ -696,7 +696,7 @@ asc_morphology parse_asc_string(const char* input) {
     return {std::move(morphology), std::move(labels)};
 }
 
-asc_morphology load_asc(std::string filename) {
+ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {
     std::ifstream fid(filename);
 
     if (!fid.good()) {

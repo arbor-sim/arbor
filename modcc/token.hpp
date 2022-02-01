@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "location.hpp"
+#include <libmodcc/export.hpp>
 
 enum class tok {
     eof, // end of file
@@ -118,8 +119,8 @@ extern std::unordered_map<std::string, tok> keyword_map;
 // for stringifying a token type
 extern std::map<tok, std::string> token_map;
 
-void initialize_token_maps();
-std::string token_string(tok token);
-bool is_keyword(Token const& t);
-std::ostream& operator<< (std::ostream& os, Token const& t);
+ARB_LIBMODCC_API void initialize_token_maps();
+ARB_LIBMODCC_API std::string token_string(tok token);
+ARB_LIBMODCC_API bool is_keyword(Token const& t);
+ARB_LIBMODCC_API std::ostream& operator<< (std::ostream& os, Token const& t);
 

@@ -1,0 +1,90 @@
+#pragma once
+
+#ifndef ARB_EXPORT_DEBUG
+#   define ARB_EXPORT_DEBUG
+#endif
+
+#include <arbor/util/visibility.hpp>
+
+/* library build type (ARB_LIBNAME_STATIC_LIBRARY/ARB_LIBNAME_SHARED_LIBRARY) */
+#define ARB_@target_lib_NAME@_@target_type@
+
+#ifndef ARB_@target_short_NAME@_EXPORTS
+#   if defined(@target_name@_EXPORTS)
+        /* we are building @target@ dynamically */
+#       ifdef ARB_EXPORT_DEBUG
+#           pragma message "we are building @target@ dynamically"
+#       endif
+#       define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
+//#       define ARB_@target_short_NAME@_VISIBLE ARB_SYMBOL_VISIBLE
+#   elif defined(@target_name@_EXPORTS_STATIIC)
+        /* we are building @target@ statically */
+#       ifdef ARB_EXPORT_DEBUG
+#           pragma message "we are building @target@ statically"
+#       endif
+#       if defined(ARB_ON_MACOS)
+#           define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
+//#           define ARB_@target_short_NAME@_VISIBLE ARB_SYMBOL_VISIBLE
+#       else
+#           define ARB_@target_short_NAME@_API
+//#           define ARB_@target_short_NAME@_VISIBLE
+#       endif
+#   else
+        /* we are using the library @target@ */
+#       if defined(ARB_@target_short_NAME@_SHARED_LIBRARY)
+            /* we are importing @target@ dynamically */
+#           ifdef ARB_EXPORT_DEBUG
+#              pragma message "we are importing @target@ dynamically"
+#           endif
+#           define ARB_@target_short_NAME@_API
+//#           define ARB_@target_short_NAME@_VISIBLE
+#       else
+            /* we are importing @target@ statically */
+#           ifdef ARB_EXPORT_DEBUG
+#               pragma message "we are importing @target@ statically"
+#           endif
+#           define ARB_@target_short_NAME@_API
+//#           define ARB_@target_short_NAME@_VISIBLE
+#       endif
+#   endif
+#endif
+
+//#ifdef ARBOR_SUP_STATIC_DEFINE
+//#  define ARBOR_SUP_EXPORT
+//#  define ARBOR_SUP_NO_EXPORT
+//#else
+//#  ifndef ARBOR_SUP_EXPORT
+//#    ifdef arbor_sup_EXPORTS
+//        /* We are building this library */
+//#      define ARBOR_SUP_EXPORT __attribute__((visibility("default")))
+//#    else
+//        /* We are using this library */
+//#      define ARBOR_SUP_EXPORT __attribute__((visibility("default")))
+//#    endif
+//#  endif
+//
+//#  ifndef ARBOR_SUP_NO_EXPORT
+//#    define ARBOR_SUP_NO_EXPORT __attribute__((visibility("hidden")))
+//#  endif
+//#endif
+//
+//#ifndef ARBOR_SUP_DEPRECATED
+//#  define ARBOR_SUP_DEPRECATED __attribute__ ((__deprecated__))
+//#endif
+//
+//#ifndef ARBOR_SUP_DEPRECATED_EXPORT
+//#  define ARBOR_SUP_DEPRECATED_EXPORT ARBOR_SUP_EXPORT ARBOR_SUP_DEPRECATED
+//#endif
+//
+//#ifndef ARBOR_SUP_DEPRECATED_NO_EXPORT
+//#  define ARBOR_SUP_DEPRECATED_NO_EXPORT ARBOR_SUP_NO_EXPORT ARBOR_SUP_DEPRECATED
+//#endif
+//
+//#if 0 /* DEFINE_NO_DEPRECATED */
+//#  ifndef ARBOR_SUP_NO_DEPRECATED
+//#    define ARBOR_SUP_NO_DEPRECATED
+//#  endif
+//#endif
+//#ifdef hallo
+//#endif
+

@@ -6,7 +6,7 @@
 #include "module.hpp"
 #include "printerutil.hpp"
 
-std::vector<std::string> namespace_components(const std::string& ns) {
+ARB_LIBMODCC_API std::vector<std::string> namespace_components(const std::string& ns) {
     static std::regex ns_regex("([^:]+)(?:::|$)");
 
     std::vector<std::string> components;
@@ -18,7 +18,7 @@ std::vector<std::string> namespace_components(const std::string& ns) {
     return components;
 }
 
-std::vector<LocalVariable*> indexed_locals(scope_ptr scope) {
+ARB_LIBMODCC_API std::vector<LocalVariable*> indexed_locals(scope_ptr scope) {
     std::vector<LocalVariable*> vars;
     for (auto& entry: scope->locals()) {
         LocalVariable* local = entry.second->is_local_variable();
@@ -29,7 +29,7 @@ std::vector<LocalVariable*> indexed_locals(scope_ptr scope) {
     return vars;
 }
 
-std::vector<LocalVariable*> pure_locals(scope_ptr scope) {
+ARB_LIBMODCC_API std::vector<LocalVariable*> pure_locals(scope_ptr scope) {
     std::vector<LocalVariable*> vars;
     for (auto& entry: scope->locals()) {
         LocalVariable* local = entry.second->is_local_variable();
@@ -40,7 +40,7 @@ std::vector<LocalVariable*> pure_locals(scope_ptr scope) {
     return vars;
 }
 
-std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
+ARB_LIBMODCC_API std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
     std::vector<ProcedureExpression*> procs;
 
     for (auto& sym: m.symbols()) {
@@ -54,7 +54,7 @@ std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
     return procs;
 }
 
-public_variable_ids_t public_variable_ids(const Module& m) {
+ARB_LIBMODCC_API public_variable_ids_t public_variable_ids(const Module& m) {
     public_variable_ids_t ids;
     ids.state_ids = m.state_block().state_variables;
 
@@ -79,7 +79,7 @@ public_variable_ids_t public_variable_ids(const Module& m) {
     return ids;
 }
 
-module_variables_t local_module_variables(const Module& m) {
+ARB_LIBMODCC_API module_variables_t local_module_variables(const Module& m) {
     module_variables_t mv;
 
     for (auto& sym: m.symbols()) {
@@ -92,7 +92,7 @@ module_variables_t local_module_variables(const Module& m) {
     return mv;
 }
 
-std::vector<ProcedureExpression*> module_normal_procedures(const Module& m) {
+ARB_LIBMODCC_API std::vector<ProcedureExpression*> module_normal_procedures(const Module& m) {
     std::vector<ProcedureExpression*> procs;
     for (auto& sym: m.symbols()) {
         auto p = sym.second->is_procedure();
@@ -104,17 +104,17 @@ std::vector<ProcedureExpression*> module_normal_procedures(const Module& m) {
     return procs;
 }
 
-APIMethod* find_api_method(const Module& m, const char* which) {
+ARB_LIBMODCC_API APIMethod* find_api_method(const Module& m, const char* which) {
     auto it = m.symbols().find(which);
     return  it==m.symbols().end()? nullptr: it->second->is_api_method();
 }
 
-NetReceiveExpression* find_net_receive(const Module& m) {
+ARB_LIBMODCC_API NetReceiveExpression* find_net_receive(const Module& m) {
     auto it = m.symbols().find("net_receive");
     return it==m.symbols().end()? nullptr: it->second->is_net_receive();
 }
 
-PostEventExpression* find_post_event(const Module& m) {
+ARB_LIBMODCC_API PostEventExpression* find_post_event(const Module& m) {
     auto it = m.symbols().find("post_event");
     return it==m.symbols().end()? nullptr: it->second->is_post_event();
 }
@@ -135,7 +135,7 @@ std::string indexed_variable_info::outer_index_var() const {
     }
 }
 
-indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
+ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     indexed_variable_info v;
     v.node_index_var = "node_index";
     v.index_var_kind = index_kind::node;

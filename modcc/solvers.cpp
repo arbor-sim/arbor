@@ -964,7 +964,7 @@ public:
     }
 };
 
-expression_ptr remove_unused_locals(BlockExpression* block) {
+ARB_LIBMODCC_API expression_ptr remove_unused_locals(BlockExpression* block) {
     UnusedVisitor unused_visitor;
     block->accept(&unused_visitor);
 

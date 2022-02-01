@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include <sup/export.hpp>
+
 namespace sup {
 
 class posix_path {
