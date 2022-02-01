@@ -138,68 +138,37 @@ function(set_arch_target optvar arch)
 endfunction()
 
 function(export_visibility target)
-    # Compile sup library with flag indicating whether to export
-    #target_compile_definitions(${target} PRIVATE ARB_${name}_EXPORT)
-
-    #message("number of args = " ${ARGC})
-    #if (${ARGC} EQUAL 2)
-
-    message("exporting vis")
-    message("target = " ${target})
-    #string(SUBSTRING ${target} 6 -1 target_lib_name)
-
     # mangle target name to correspond to cmake naming
     string(REPLACE "-" "_" target_name ${target})
-    message("target_name = " ${target_name})
-
+    #message("target_name = " ${target_name})
     string(REPLACE "arbor-" "" target_short_name ${target})
-    message("target_short_name = " ${target_short_name})
-
+    #message("target_short_name = " ${target_short_name})
     string(TOUPPER ${target_short_name} target_short_NAME)
-    message("target_short_NAME = " ${target_short_NAME})
+    #message("target_short_NAME = " ${target_short_NAME})
 
     get_target_property(target_type ${target} TYPE)
     if (${target_type} STREQUAL STATIC_LIBRARY)
-        message("static library")
+        #message("static library")
         #string(CONCAT target_export_def "arbor_" ${target_lib_name} "_EXPORTS_STATIC")
         string(CONCAT target_export_def ${target_name} "_EXPORTS_STATIC")
         target_compile_definitions(${target} PUBLIC ${target_export_def})
     else()
-        message("shared library")
+        #message("shared library")
         #string(CONCAT target_export_def "arbor_" ${target_lib_name} "_EXPORTS")
         string(CONCAT target_export_def ${target_name} "_EXPORTS")
         # the compile definition is added by cmake automatically
     endif()
-    message(${target_export_def})
+    #message(${target_export_def})
 
     # generate config file
-    get_target_property(target_source_dir                     ${target} SOURCE_DIR                   )
-    get_target_property(target_binary_dir                     ${target} BINARY_DIR                   )
-    message("target_source_dir                   "  ${target_source_dir}                   )
-    message("target_binary_dir                   "  ${target_binary_dir}                   )
-
-    message(${CMAKE_CURRENT_SOURCE_DIR})
+    #get_target_property(target_source_dir ${target} SOURCE_DIR)
+    get_target_property(target_binary_dir ${target} BINARY_DIR)
+    #message("target_source_dir                   "  ${target_source_dir})
+    #message("target_binary_dir                   "  ${target_binary_dir})
+    #message(${CMAKE_CURRENT_SOURCE_DIR})
     configure_file(
         ${CMAKE_SOURCE_DIR}/cmake/export.hpp.in
         ${target_binary_dir}/include/${target_short_name}/export.hpp
         @ONLY
     )
-
-    ##target_include_directories(${target} PUBLIC ${target_binary_dir}/include)
-    #
-    #target_include_directories(${target} INTERFACE
-    ##    #$<INSTALL_INTERFACE:include>
-    ##    #$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    #    $<BUILD_INTERFACE:${target_binary_dir}/include>)
-    # 
-    #
-    #message("install includedir = " ${CMAKE_INSTALL_INCLUDEDIR})
-
-    ##install(FILES ${PROJECT_BINARY_DIR}/include/oomph/config.hpp
-    ##DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/oomph)
-
-    ### Compile sup with library flag indicating whether shared lib is built
-    ##if (BUILD_SHARED_LIBS)
-    ##    target_compile_definitions(${target} PRIVATE ARB_${name}_BUILD_SHARED)
-    ##endif()
 endfunction()
