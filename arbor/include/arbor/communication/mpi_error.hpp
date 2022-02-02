@@ -81,7 +81,7 @@ template <> struct is_error_condition_enum<arb::mpi_errc>: true_type {};
 namespace arb {
 
 class mpi_error_category_impl;
-const mpi_error_category_impl& mpi_error_category();
+ARB_ARBOR_API const mpi_error_category_impl& mpi_error_category();
 
 class mpi_error_category_impl: public std::error_category {
     const char* name() const noexcept override;

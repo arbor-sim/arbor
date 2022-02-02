@@ -54,7 +54,7 @@ execution_context::execution_context(
 {}
 
 template <>
-context make_context(const proc_allocation& p, dry_run_info d) {
+ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d) {
     return context(new execution_context(p, d));
 }
 
