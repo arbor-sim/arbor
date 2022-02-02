@@ -3,7 +3,6 @@
 #include <memory>
 
 #include <arbor/export.hpp>
-#include <arbor/communication/mpi_error.hpp>
 
 namespace arb {
 
@@ -66,12 +65,6 @@ ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_alloc
 // described by resources. Or dry run context that uses dry_run_info.
 template <typename Comm>
 ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm);
-
-template <>
-ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm);
-
-template <>
-ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d);
 
 // Queries for properties of execution resources in a context.
 
