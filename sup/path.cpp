@@ -52,13 +52,13 @@ namespace impl {
 } // namespace impl
 
 
-file_status posix_status(const path& p, std::error_code& ec) noexcept {
+ARB_SUP_API file_status posix_status(const path& p, std::error_code& ec) noexcept {
     struct stat st;
     int r = stat(p.c_str(), &st);
     return impl::status(p.c_str(), r, st, ec);
 }
 
-file_status posix_symlink_status(const path& p, std::error_code& ec) noexcept {
+ARB_SUP_API file_status posix_symlink_status(const path& p, std::error_code& ec) noexcept {
     struct stat st;
     int r = lstat(p.c_str(), &st);
     return impl::status(p.c_str(), r, st, ec);

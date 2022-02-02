@@ -1,8 +1,8 @@
 #pragma once
 
-#ifndef ARB_EXPORT_DEBUG
-#   define ARB_EXPORT_DEBUG
-#endif
+//#ifndef ARB_EXPORT_DEBUG
+//#   define ARB_EXPORT_DEBUG
+//#endif
 
 #include <arbor/util/visibility.hpp>
 

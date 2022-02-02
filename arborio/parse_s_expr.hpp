@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arbor/s_expr.hpp>
+#include <arborio/export.hpp>
 #include <arborio/cableio.hpp>
 
 namespace arborio {
@@ -40,6 +41,6 @@ s_expr slist_range(const Range& range) {
     return slist_range(std::begin(range), std::end(range));
 }
 
-parse_hopefully<std::any> parse_expression(const std::string&);
+ARB_ARBORIO_API parse_hopefully<std::any> parse_expression(const std::string&);
 
 } // namespace arborio

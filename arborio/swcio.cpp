@@ -51,7 +51,7 @@ swc_unsupported_tag::swc_unsupported_tag(int record_id):
 
 // Record I/O:
 
-std::ostream& operator<<(std::ostream& out, const swc_record& record) {
+ARB_ARBORIO_API std::ostream& operator<<(std::ostream& out, const swc_record& record) {
     std::ios_base::fmtflags flags(out.flags());
 
     out.precision(std::numeric_limits<double>::digits10+2);
@@ -64,7 +64,7 @@ std::ostream& operator<<(std::ostream& out, const swc_record& record) {
     return out;
 }
 
-std::istream& operator>>(std::istream& in, swc_record& record) {
+ARB_ARBORIO_API std::istream& operator>>(std::istream& in, swc_record& record) {
     std::string line;
     if (!getline(in, line, '\n')) return in;
 

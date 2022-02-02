@@ -44,16 +44,18 @@ done
 cat << __end__
 #pragma once
 
+#include <arbor/export.hpp>
+
 namespace arb {
-extern const char* source_id;
-extern const char* arch;
-extern const char* build_config;
-extern const char* version;
-extern const char* full_build_id;
+ARB_ARBOR_API extern const char* source_id;
+ARB_ARBOR_API extern const char* arch;
+ARB_ARBOR_API extern const char* build_config;
+ARB_ARBOR_API extern const char* version;
+ARB_ARBOR_API extern const char* full_build_id;
 constexpr int version_major = ${version_major};
 constexpr int version_minor = ${version_minor};
 constexpr int version_patch = ${version_patch};
-extern const char* version_dev;
+ARB_ARBOR_API extern const char* version_dev;
 }
 
 #define ARB_SOURCE_ID "${gitlog}"

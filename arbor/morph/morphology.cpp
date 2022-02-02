@@ -173,7 +173,7 @@ msize_t morphology::num_branches() const {
     return impl_->branches_.size();
 }
 
-std::ostream& operator<<(std::ostream& o, const morphology& m) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const morphology& m) {
     return o << *m.impl_;
 }
 
@@ -337,7 +337,7 @@ bool mextent::intersects(const mcable_list& a) const {
     return false;
 }
 
-mextent intersect(const mextent& a, const mextent& b) {
+ARB_ARBOR_API mextent intersect(const mextent& a, const mextent& b) {
     auto precedes = [](mcable x, mcable y) {
         return x.branch<y.branch || (x.branch==y.branch && x.dist_pos<y.prox_pos);
     };

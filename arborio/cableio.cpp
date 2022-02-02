@@ -665,7 +665,7 @@ inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
     return eval(std::move(s), named_evals, unnamed_evals);
 }
 
-parse_hopefully<std::any> parse_expression(const std::string& s) {
+ARB_ARBORIO_API parse_hopefully<std::any> parse_expression(const std::string& s) {
     return parse(parse_s_expr(s));
 }
 

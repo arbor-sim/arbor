@@ -7,6 +7,7 @@
 
 #include <mpi.h>
 
+#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/communication/mpi_error.hpp>
 
@@ -19,9 +20,9 @@ namespace arb {
 namespace mpi {
 
 // prototypes
-int rank(MPI_Comm);
-int size(MPI_Comm);
-void barrier(MPI_Comm);
+ARB_ARBOR_API int rank(MPI_Comm);
+ARB_ARBOR_API int size(MPI_Comm);
+ARB_ARBOR_API void barrier(MPI_Comm);
 
 #define MPI_OR_THROW(fn, ...)\
 while (int r_ = fn(__VA_ARGS__)) throw mpi_error(r_, #fn)

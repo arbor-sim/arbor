@@ -132,15 +132,15 @@ ARB_ARBOR_API bool test_invariants(const mcable_list& l) {
         && l.end()==std::find_if(l.begin(), l.end(), [](const mcable& c) {return !test_invariants(c);});
 }
 
-std::ostream& operator<<(std::ostream& o, const mpoint& p) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "(point " << p.x << " " << p.y << " " << p.z << " " << p.radius << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const msegment& s) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const msegment& s) {
     return o << "(segment " << s.id << " " << s.prox << " " << s.dist << " " << s.tag << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const mlocation& l) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mlocation& l) {
     return o << "(location " << l.branch << " " << l.pos << ")";
 }
 
@@ -148,7 +148,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mlocation_list& l)
     return o << "(list " << io::sepval(l, ' ') << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const mcable& c) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mcable& c) {
     return o << "(cable " << c.branch << " " << c.prox_pos << " " << c.dist_pos << ")";
 }
 
