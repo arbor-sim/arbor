@@ -40,6 +40,9 @@ struct asc_morphology {
     arb::label_dict labels;
 };
 
+// Perform the parsing of the input as a string.
+ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input);
+
 // Load asc morphology from file with name filename.
 ARB_ARBORIO_API asc_morphology load_asc(std::string filename);
 

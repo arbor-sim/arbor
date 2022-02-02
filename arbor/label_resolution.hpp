@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/expected.hpp>
@@ -17,7 +18,7 @@ using lid_hopefully = arb::util::expected<cell_lid_type, std::string>;
 // `sizes` is a partitioning vector for associating a cell with a set of
 // (label, range) pairs in `labels`, `ranges`.
 // gids of the cells are unknown.
-class cell_label_range {
+class ARB_ARBOR_API cell_label_range {
 public:
     cell_label_range() = default;
     cell_label_range(cell_label_range&&) = default;
@@ -52,7 +53,7 @@ private:
 };
 
 // Struct for associating each cell of `cell_label_range` with a gid.
-struct cell_labels_and_gids {
+struct ARB_ARBOR_API cell_labels_and_gids {
     cell_labels_and_gids() = default;
     cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gids);
 
@@ -67,7 +68,7 @@ struct cell_labels_and_gids {
 // Class constructed from `cell_labels_and_ranges`:
 // Represents the information in the object in a more
 // structured manner for lid resolution in `resolver`
-class label_resolution_map {
+class ARB_ARBOR_API label_resolution_map {
 public:
     struct range_set {
         std::vector<lid_range> ranges;
@@ -86,20 +87,20 @@ private:
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
 };
 
-struct round_robin_state {
+struct ARB_ARBOR_API round_robin_state {
     cell_size_type state = 0;
     round_robin_state() : state(0) {};
     round_robin_state(cell_lid_type state) : state(state) {};
     lid_hopefully update(const label_resolution_map::range_set& range);
 };
 
-struct assert_univalent_state {
+struct ARB_ARBOR_API assert_univalent_state {
     lid_hopefully update(const label_resolution_map::range_set& range);
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
 // Requires a `label_resolution_map` which stores the constant mapping of (gid, label) pairs to lid sets.
-struct resolver {
+struct ARB_ARBOR_API resolver {
     resolver(const label_resolution_map* label_map): label_map_(label_map) {}
     cell_lid_type resolve(const cell_global_label_type& iden);
 

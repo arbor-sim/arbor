@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
@@ -38,7 +39,7 @@ namespace multicore {
  *     Xo_     cao              external calcium concentration
  */
 
-struct ion_state {
+struct ARB_ARBOR_API ion_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
     iarray node_index_;     // Instance to CV map.
@@ -73,7 +74,7 @@ struct ion_state {
     void reset();
 };
 
-struct istim_state {
+struct ARB_ARBOR_API istim_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
     // Immutable data (post initialization):
@@ -105,7 +106,7 @@ struct istim_state {
     istim_state() = default;
 };
 
-struct shared_state {
+struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -207,7 +208,7 @@ struct shared_state {
 };
 
 // For debugging only:
-std::ostream& operator<<(std::ostream& o, const shared_state& s);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
 
 
 } // namespace multicore
