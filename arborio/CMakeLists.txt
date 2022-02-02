@@ -43,6 +43,9 @@ target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
 
 export_visibility(arborio)
 
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arborio/export.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arborio)
+
 install(DIRECTORY include/arborio
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp")

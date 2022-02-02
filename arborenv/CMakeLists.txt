@@ -29,6 +29,9 @@ target_link_libraries(arborenv PRIVATE arbor-config-defs arborenv-private-deps)
 
 export_visibility(arborenv)
 
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arborenv/export.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arborenv)
+
 install(DIRECTORY include/arborenv
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp")
