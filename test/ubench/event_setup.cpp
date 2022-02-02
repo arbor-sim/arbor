@@ -22,8 +22,8 @@
 
 using namespace arb;
 
-std::vector<spike_event> generate_inputs(size_t ncells, size_t ev_per_cell) {
-    std::vector<spike_event> input_events;
+std::vector<std::pair<cell_gid_type, spike_event>> generate_inputs(size_t ncells, size_t ev_per_cell) {
+    std::vector<std::pair<cell_gid_type, spike_event>> input_events;
     std::default_random_engine engine;
     std::uniform_int_distribution<cell_gid_type>(0u, ncells);
 
@@ -38,51 +38,13 @@ std::vector<spike_event> generate_inputs(size_t ncells, size_t ev_per_cell) {
         spike_event ev;
         auto gid = gid_dist(gen);
         auto t = time_dist(gen);
-        ev.target = {cell_gid_type(gid), cell_lid_type(0)};
+        ev.target = cell_lid_type(0);
         ev.time = t;
         ev.weight = 0;
-        input_events.push_back(ev);
+        input_events.emplace_back(gid, ev);
     }
 
     return input_events;
-}
-
-void single_queue(benchmark::State& state) {
-    using pev = spike_event;
-
-    const std::size_t ncells = state.range(0);
-    const std::size_t ev_per_cell = state.range(1);
-
-    // state
-    std::vector<pev> input_events = generate_inputs(ncells, ev_per_cell);
-
-    event_queue<pev> events;
-    while (state.KeepRunning()) {
-        // push events into a single queue
-        for (const auto& e: input_events) {
-            events.push(e);
-        }
-
-        // pop from queue to form single sorted vector
-        std::vector<pev> staged_events;
-        staged_events.reserve(events.size());
-        while (auto e = events.pop_if_before(1.f)) {
-            staged_events.push_back(*e);
-        }
-        // sort the staged events in order of target id
-        std::stable_sort(
-            staged_events.begin(), staged_events.end(),
-            [](const pev& l, const pev& r) {return l.target.gid<r.target.gid;});
-
-        // TODO: calculate the partition ranges. This overhead is not included in
-        // this benchmark, however this method is that much slower already, that
-        // illustrating this wouldn't change the conclusions.
-
-        // clobber contents of queue for next round of benchmark
-        events.clear();
-
-        benchmark::ClobberMemory();
-    }
 }
 
 void n_queue(benchmark::State& state) {
@@ -101,7 +63,7 @@ void n_queue(benchmark::State& state) {
 
         // push events into the queue corresponding to target cell
         for (const auto& e: input_events) {
-            event_lanes[e.target.gid].push(e);
+            event_lanes[e.first].push(e.second);
         }
 
         // pop from queue to form single sorted vector
@@ -149,7 +111,7 @@ void n_vector(benchmark::State& state) {
 
         // push events into a per-cell vectors (unsorted)
         for (const auto& e: input_events) {
-            event_lanes[e.target.gid].push_back(e);
+            event_lanes[e.first].push_back(e.second);
         }
         // sort each per-cell queue and keep track of the subset of sorted
         // events that are to be delivered in this interval.
@@ -198,8 +160,6 @@ void run_custom_arguments(benchmark::internal::Benchmark* b) {
     }
 }
 
-//BENCHMARK(run_original)->Apply(run_custom_arguments);
-BENCHMARK(single_queue)->Apply(run_custom_arguments);
 BENCHMARK(n_queue)->Apply(run_custom_arguments);
 BENCHMARK(n_vector)->Apply(run_custom_arguments);
 

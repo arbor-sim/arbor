@@ -37,7 +37,7 @@ void run_cv_geom(benchmark::State& state) {
     auto ends = cv_policy_fixed_per_branch(ncv_per_branch).cv_boundary_points(c);
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(cv_geometry_from_ends(c, ends));
+        benchmark::DoNotOptimize(cv_geometry(c, ends));
     }
 }
 
@@ -48,7 +48,7 @@ void run_cv_geom_every_segment(benchmark::State& state) {
     auto ends = cv_policy_every_segment().cv_boundary_points(c);
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(cv_geometry_from_ends(c, ends));
+        benchmark::DoNotOptimize(cv_geometry(c, ends));
     }
 }
 
@@ -61,7 +61,7 @@ void run_cv_geom_explicit(benchmark::State& state) {
         auto ends = cv_policy_every_segment().cv_boundary_points(c);
         auto ends2 = cv_policy_explicit(std::move(ends)).cv_boundary_points(c);
 
-        benchmark::DoNotOptimize(cv_geometry_from_ends(c, ends2));
+        benchmark::DoNotOptimize(cv_geometry(c, ends2));
     }
 }
 
