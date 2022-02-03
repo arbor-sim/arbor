@@ -3,7 +3,7 @@
 Extracellular signals
 =====================
 
-This example takes different elements from the above example tutorials
+This example takes elements from other tutorials
 (:ref:`A simple single cell model <tutorialsinglecell>`,
 :ref:`A detailed single cell recipe <tutorialsinglecellswcrecipe>`)
 to create a geometrically
