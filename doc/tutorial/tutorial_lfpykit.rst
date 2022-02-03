@@ -148,7 +148,7 @@ Each part (CV) of the cell is shown with some color coding for the membrane pote
     line sources with inhomogeneous current density per length unit. This inhomogeneity
     is due to the fact that the total transmembrane current per CV may
     distributed across multiple segments with varying surface area. The transmembrane
-    current is assumed to be constant per length unit per segment.
+    current is assumed to be constant per unit length per segment.
 
 
 .. _tutorial_lfpykit-code:
