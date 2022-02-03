@@ -60,7 +60,7 @@ Load morphology on ``SWC`` file format:
 
 Define various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
 the cell model as well as stimuli (:class:`arbor.iclamp`).
-Finally we define discretization policy (:class:`arbor.cv_policy_fixed_per_branch`):
+Finally, we define a discretization policy (:class:`arbor.cv_policy_fixed_per_branch`):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
