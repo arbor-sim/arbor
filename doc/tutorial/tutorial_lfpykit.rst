@@ -172,7 +172,7 @@ Other use cases may inherit from any other parent class defined in :class:`lfpyk
    :lines: 197-244
 
 
-With these two classes one may then compute extracellular potentials from transmembrane
+With these two classes we can compute extracellular potentials from transmembrane
 currents in space with a few lines of code:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
