@@ -16,14 +16,17 @@
 #           pragma message "we are building @target@ dynamically"
 #       endif
 #       define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
-#   elif defined(@target_name@_EXPORTS_STATIIC)
+#   elif defined(@target_name@_EXPORTS_STATIC)
         /* we are building @target@ statically */
-#       ifdef ARB_EXPORT_DEBUG
-#           pragma message "we are building @target@ statically"
-#       endif
 #       if defined(ARB_ON_MACOS)
+#           ifdef ARB_EXPORT_DEBUG
+#               pragma message "we are building @target@ statically on macos"
+#           endif
 #           define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
 #       else
+#           ifdef ARB_EXPORT_DEBUG
+#               pragma message "we are building @target@ statically"
+#           endif
 #           define ARB_@target_short_NAME@_API
 #       endif
 #   else
