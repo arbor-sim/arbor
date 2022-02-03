@@ -147,7 +147,7 @@ Each part (CV) of the cell is shown with some color coding for the membrane pote
     (from ``decor.place('(location 4 0.16667)', iclamp, '"iclamp"')``) is treated as 3 separate
     line sources with inhomogeneous current density per length unit. This inhomogeneity
     is due to the fact that the total transmembrane current per CV may
-    distributed across multiple segments with varying surface area. The transmembrane
+    be distributed across multiple segments with varying surface area. The transmembrane
     current is assumed to be constant per unit length per segment.
 
 
