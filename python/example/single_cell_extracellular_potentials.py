@@ -402,12 +402,17 @@ def colorbar(fig, ax, im,
     caxrect[2] = rect[2] * width
     caxrect[3] = rect[3] * height
     cax = fig.add_axes(caxrect)
+    cax.grid(False)
     cb = fig.colorbar(im, cax=cax, orientation=orientation)
     return cb
 
 
 # show predictions at the last time point of simulation
 time_index = -1
+
+# use seaborn style
+plt.style.use('seaborn')
+plt.rcParams['image.cmap'] = 'viridis'
 
 # create figure and axis
 fig, ax = plt.subplots(1, 1, figsize=(16, 6), dpi=100)
