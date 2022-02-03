@@ -15,7 +15,6 @@ calculations of extracellular potentials and related electroencephalography (EEG
 and magnetoencephalography (MEG) signals from geometrically detailed neuron models under various assumptions.
 These are signals that mainly stem from transmembrane currents.
 
-This tutorial goes through the required steps in more detail.
 
 In this tutorial, the neuron model itself is kept deliberately simple with only
 passive (leaky) membrane dynamics, and it receives sinusoid synaptic current
