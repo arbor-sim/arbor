@@ -7,7 +7,7 @@ This example takes elements from other tutorials
 (:ref:`A simple single cell model <tutorialsinglecell>`,
 :ref:`A detailed single cell recipe <tutorialsinglecellswcrecipe>`)
 to create a geometrically
-complex single cell model from an SWC morphology file, and adds predictions of
+detailed single cell model from an SWC morphology file, and adds predictions of
 extracellular potentials using the external `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ Python library
 (https://LFPykit.readthedocs.io, https://github.com/LFPy/LFPykit).
 `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ provides a few different classes facilitating
@@ -15,6 +15,63 @@ calculations of extracellular potentials and related electroencephalography (EEG
 and magnetoencephalography (MEG) signals from geometrically detailed neuron models under various assumptions.
 These are signals that mainly stem from transmembrane currents.
 
+
+.. _tutorial_lfpykit-linesource:
+
+The line source approximation
+-----------------------------
+
+First, let's describe how one can compute extracellular potentials from transmembrane currents of a number of segments,
+assuming that each segment can be treated as an equivalent line current source using a formalism invented
+by Gary R. Holt and Christof Koch [1]_.
+The implementation used in this tutorial uses :class:`lfpykit.LineSourcePotential`
+(`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
+This class conveniently defines a 2D linear response matrix
+:math:`\mathbf{M}` between transmembrane current array
+:math:`\mathbf{I}` (nA) of a neuron model and the
+corresponding extracellular electric potential in different extracellular locations
+:math:`\mathbf{V}_{e}` (mV) so
+
+.. math:: \mathbf{V}_{e} = \mathbf{M} \mathbf{I}
+
+The transmembrane current :math:`\mathbf{I}` is an array of shape (# segments, # timesteps)
+with unit (nA), and each row indexed by :math:`j` of
+:math:`\mathbf{V}_{e}` represents the electric potential at each
+measurement site for every time step.
+
+The elements of :math:`\mathbf{M}` are computed as
+
+.. math:: M_{ji} = \frac{1}{ 4 \pi \sigma L_i } \log
+    \left|
+    \frac{\sqrt{h_{ji}^2+r_{ji}^2}-h_{ji}
+           }{
+           \sqrt{l_{ji}^2+r_{ji}^2}-l_{ji}}
+    \right|
+
+
+Here, segments are indexed by :math:`i`,
+segment length is denoted :math:`L_i`, perpendicular distance from the
+electrode point contact to the axis of the line segment is denoted
+:math:`r_{ji}`, longitudinal distance measured from the start of the
+segment is denoted :math:`h_{ji}` and longitudinal distance from the other
+end of the segment is denoted :math:`l_{ji}= L_i + h_{ji}`.
+
+.. Note::
+
+    **Assumptions:**
+
+    1. The extracellular conductivity :math:`\sigma` is infinite, homogeneous, frequency independent (linear) and isotropic
+    2. Each segment is treated as a straight line source with homogeneous current density between its start and end point coordinate.
+       Although Arbor allows segments to be defined as conical frusta with varying radius, we shall assume that any variation in
+       radius is small relative to overall segment length.
+    3. Each measurement site :math:`\mathbf{r}_j = (x_j, y_j, z_j)` is treated as a point
+    4. The minimum distance to a line source is set equal to the average segment radius to avoid singularities.
+
+
+.. _tutorial_lfpykit-model:
+
+The single cell model
+---------------------
 
 In this tutorial, the neuron model itself is kept deliberately simple with only
 passive (leaky) membrane dynamics, and it receives sinusoid synaptic current
@@ -31,10 +88,6 @@ input in one arbitrary chosen control volume (CV).
    5. Map recorded transmembrane currents to extracellular potentials using `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_
 
 
-.. _tutorial_lfpykit-model:
-
-The single cell model
----------------------
 
 First we import some required modules:
 
@@ -51,7 +104,8 @@ Define ``Recipe`` class:
 
 
 Load morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
-Here we parse the file ``single_cell_detailed.swc`` defined earlier in :ref:`<tutorialsinglecellswc-cell>`
+Here we parse the file ``single_cell_detailed.swc`` as defined earlier
+in :ref:`A simple single cell model <tutorialsinglecellswc>`
 as an argument to the simulation script:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
@@ -97,7 +151,7 @@ Compute extracellular potentials
 Here we utilize the `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ library to map
 transmembrane currents recorded during the
 simulation to extracellular potentials in vicinity to the cell.
-We shall account for every segment in each CV using the so-called line-source approximation.
+We shall account for every segment in each CV using the so-called line-source approximation described :ref:`above <tutorial_lfpykit-linesource>`.
 
 First we define a couple of inherited classes to interface `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_
 (as this library is not solely written for Arbor).
@@ -157,3 +211,9 @@ Each part (CV) of the cell is shown with some color coding for the membrane pote
 The full code
 -------------
 You can find the full code of the example at ``python/examples/single_cell_extracellular_potentials.py``.
+
+
+References
+----------
+.. [1] Holt, G.R., Koch, C. Electrical Interactions via the Extracellular Potential Near Cell Bodies.
+  J Comput Neurosci 6, 169–184 (1999). https://doi.org/10.1023/A:1008832702585
