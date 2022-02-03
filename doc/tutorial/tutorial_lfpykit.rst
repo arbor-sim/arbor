@@ -70,8 +70,8 @@ end of the segment is denoted :math:`l_{ji}= L_i + h_{ji}`.
 
 .. _tutorial_lfpykit-model:
 
-The single cell model
----------------------
+The model
+---------
 
 In this tutorial, the neuron model itself is kept deliberately simple with only
 passive (leaky) membrane dynamics, and it receives sinusoid synaptic current
@@ -93,14 +93,14 @@ First we import some required modules:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 16-18
+   :lines: 14-17
 
 
 Define a very basic ``Recipe`` class, holding a cell and three probes (voltage, stimulus current and total current):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 24-56
+   :lines: 22-54
 
 
 Load morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
@@ -110,7 +110,7 @@ as an argument to the simulation script:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 59-68
+   :lines: 57-66
 
 
 Define various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
@@ -119,13 +119,13 @@ Finally, we define a discretization policy (:class:`arbor.cv_policy_fixed_per_br
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 70-104
+   :lines: 68-102
 
 Create :class:`arbor.place_pwlin` instance:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 107
+   :lines: 105
 
 
 Define :class:`arbor.cable_cell`, :class:`Recipe`, :class:`arbor.context` etc. and execute model for a few hundred ms,
@@ -133,14 +133,16 @@ sampling the different signals every 1 ms:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 109-127
+   :lines: 107-125
 
 
-Extract recorded membrane voltages, electrode and transmembrane currents:
+Extract recorded membrane voltages, electrode and transmembrane currents.
+Note that membrane voltages at branch points and intersections between CVs are dropped as
+we only illustrate membrane voltages of segments with finite lengths.
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 129-151
+   :lines: 127-150
 
 
 .. _tutorial_lfpykit-lfpykit:
@@ -160,7 +162,7 @@ Starting with a class inherited from :class:`lfpykit.CellGeometry`
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 161-194
+   :lines: 160-193
 
 Then, a class inherited from :class:`lfpykit.LineSourcePotential`
 (`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
@@ -169,15 +171,15 @@ Other use cases may inherit from any other parent class defined in :class:`lfpyk
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 197-244
+   :lines: 196-243
 
 
-With these two classes we can compute extracellular potentials from transmembrane
+With these two classes one may then compute extracellular potentials from transmembrane
 currents in space with a few lines of code:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 247-270
+   :lines: 246-269
 
 
 .. _tutorial_lfpykit-illustration:

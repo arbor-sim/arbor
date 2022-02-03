@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 # Example utilizing the **`LFPykit`** module (https://lfpykit.readthedocs.io,
 # https://github.com/LFPy/LFPykit) for predictions of extracellular
@@ -17,11 +16,10 @@ import numpy as np
 import arbor
 import lfpykit
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 from matplotlib.collections import PolyCollection
 
 
-class Recipe (arbor.recipe):
+class Recipe(arbor.recipe):
     def __init__(self, cell):
         super().__init__()
 
@@ -131,24 +129,25 @@ V_m_samples, V_m_meta = sim.samples(v_handle)[0]
 I_m_samples, I_m_meta = sim.samples(i_handle)[0]
 I_c_samples, I_c_meta = sim.samples(c_handle)[0]
 
-# drop recorded V_m values and corresponding meta data of
-# zero-sized CVs (branch-point potentials)
+# drop recorded V_m values and corresponding metadata of
+# zero-sized CVs (branch-point potentials).
+# Here this is done as the V_m values are only used for visualization purposes
 inds = np.array([m.dist != m.prox for m in V_m_meta])
 V_m_samples = V_m_samples[:, np.r_[True, inds]]
 V_m_meta = np.array(V_m_meta)[inds].tolist()
 
-# note: the cables comprising the metadata for each probe
-# should be the same, as well as the reported sample times.
+# assert that the remaining cables comprising the metadata for each probe
+# are identical, as well as the reported sample times.
 assert V_m_meta == I_m_meta
 assert (V_m_samples[:, 0] == I_m_samples[:, 0]).all()
 
 # prep recorded data for plotting and computation of extracellular potentials
 time = V_m_samples[:, 0]
-V_m = V_m_samples[:, 1:].T
+V_m = V_m_samples[:, 1:]
 
 # Add stimulation current to transmembrane current to mimic sinusoid synapse
 # current embedded in the membrane.
-I_m = I_c_samples[:, 1:].T + I_m_samples[:, 1:].T  # (nA)
+I_m = I_c_samples[:, 1:] + I_m_samples[:, 1:]  # (nA)
 
 
 ###############################################################################
@@ -169,8 +168,8 @@ class ArborCellGeometry(lfpykit.CellGeometry):
     p: ``arbor.place_pwlin`` object
         3-d locations and cables in a morphology (cf. ``arbor.place_pwlin``)
     cables: ``list``
-         ``list`` of corresponding ``arbor.cable`` objects where transmembrane
-         currents are recorded (cf. ``arbor.cable_probe_total_current_cell``)
+        ``list`` of corresponding ``arbor.cable`` objects where transmembrane
+        currents are recorded (cf. ``arbor.cable_probe_total_current_cell``)
 
     See also
     --------
@@ -267,7 +266,7 @@ lsp = ArborLineSourcePotential(cell=cell_geometry,
 M = lsp.get_transformation_matrix()
 
 # Extracellular potential in x,y-plane (mV)
-V_e = M @ I_m
+V_e = M @ I_m.T
 
 
 ###############################################################################
@@ -427,18 +426,18 @@ im_V_e = ax.contourf(X, Y, V_e[:, time_index].reshape(X.shape),
 
 # V_e colorbar:
 cb = colorbar(fig, ax, im_V_e, height=0.45, voffset=0.55)
-cb.set_label('$V_e$ (mV)', labelpad=0)
+cb.set_label('$V_e$ (mV)')
 
 # add outline of each CV with color coding according to membrane voltage
-vlims = [-66, -64]
-polycol = get_cv_polycollection(cell_geometry, V_m[:, time_index], vlims=vlims)
+vlims = [-66., -64.]
+polycol = get_cv_polycollection(cell_geometry, V_m[time_index, :], vlims=vlims)
 im_V_m = ax.add_collection(polycol)
 
 # V_m colorbar
 cb2 = colorbar(fig, ax, im_V_m, height=0.45)
 cb2.set_ticks([0, 0.5, 1])
 cb2.set_ticklabels([vlims[0], np.mean(vlims), vlims[1]])
-cb2.set_label(r'$V_m$ (mV)', labelpad=0)
+cb2.set_label(r'$V_m$ (mV)')
 
 # draw segment outlines
 ax.add_collection(get_segment_outlines(cell_geometry))
