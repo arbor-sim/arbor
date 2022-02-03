@@ -130,7 +130,7 @@ currents in space with a few lines of code:
 The result
 ----------
 
-The visualization below of simulation results shows both the cellular geometry and a contour plot
+The visualization below of simulation results shows the cellular geometry and a contour plot
 of the extracellular potential (``V_e``) in a plane.
 Each part (CV) of the cell is shown with some color coding for the membrane potential (``V_m``).
 
