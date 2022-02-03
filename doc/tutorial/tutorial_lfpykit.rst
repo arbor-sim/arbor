@@ -96,7 +96,7 @@ First we import some required modules:
    :lines: 16-18
 
 
-Define ``Recipe`` class:
+Define a very basic ``Recipe`` class, holding a cell and three probes (voltage, stimulus current and total current):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
