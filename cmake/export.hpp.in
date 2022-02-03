@@ -33,7 +33,7 @@
 #           ifdef ARB_EXPORT_DEBUG
 #              pragma message "we are importing @target@ dynamically"
 #           endif
-#           define ARB_@target_short_NAME@_API
+#           define ARB_@target_short_NAME@_API ARB_SYMBOL_IMPORT
 #       else
             /* we are importing @target@ statically */
 #           ifdef ARB_EXPORT_DEBUG
