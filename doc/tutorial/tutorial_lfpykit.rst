@@ -125,18 +125,19 @@ Finally, we define a discretization policy (:class:`arbor.cv_policy_fixed_per_br
    :language: python
    :lines: 68-94
 
-Set sinusoid current clamp as stimuli using :class:`arbor.iclamp` at a location ``(location 4 0.16667)``,
-that is, about a relative distance :math:`1/6` from the root to the tip of the dendritic branch with tag ``4``:
+Set sinusoid current clamp as stimuli using :class:`arbor.iclamp` at a location at a
+relative distance :math:`1/6` from the root to the tip of the dendritic branch with tag ``4``.
+The location is marked in the result :ref`figure <tutorial_lfpykit-illustration>`:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 96-102
+   :lines: 96-103
 
 Create :class:`arbor.place_pwlin` instance:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 105
+   :lines: 106
 
 
 Define :class:`arbor.cable_cell`, :class:`Recipe`, :class:`arbor.context` etc. and execute model for a few hundred ms,
@@ -144,7 +145,7 @@ sampling the different signals every 1 ms:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 107-125
+   :lines: 108-126
 
 
 Extract recorded membrane voltages, electrode and transmembrane currents.
@@ -153,7 +154,7 @@ we only illustrate membrane voltages of segments with finite lengths.
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 127-142
+   :lines: 128-143
 
 
 Finally we sum the stimulation and transmembrane currents, allowing the stimuli to mimic a synapse
@@ -161,7 +162,7 @@ current embedded in the membrane itself rather than an intracellular electrode c
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 150
+   :lines: 151
 
 
 .. _tutorial_lfpykit-lfpykit:
@@ -181,7 +182,7 @@ Starting with a class inherited from :class:`lfpykit.CellGeometry`
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 160-193
+   :lines: 161-194
 
 Then, a class inherited from :class:`lfpykit.LineSourcePotential`
 (`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
@@ -190,7 +191,7 @@ Other use cases may inherit from any other parent class defined in :class:`lfpyk
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 196-243
+   :lines: 197-244
 
 
 With these two classes one may then compute extracellular potentials from transmembrane
@@ -198,7 +199,7 @@ currents in space with a few lines of code:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 246-269
+   :lines: 247-270
 
 
 .. _tutorial_lfpykit-illustration:
@@ -209,6 +210,7 @@ The result
 The visualization below of simulation results shows the cellular geometry and a contour plot
 of the extracellular potential (``V_e``) in a plane.
 Each part (CV) of the cell is shown with some color coding for the membrane potential (``V_m``).
+The stimulus location is denoted by the black marker.
 
 
 .. figure:: tutorial_lfpykit.svg

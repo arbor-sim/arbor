@@ -99,7 +99,8 @@ iclamp = arbor.iclamp(5,  # stimulation onset (ms)
                       -0.001,  # stimulation amplitude (nA)
                       frequency=0.1,  # stimulation frequency (kHz)
                       phase=0)  # stimulation phase)
-decor.place('(location 4 0.16667)', iclamp, '"iclamp"')
+clamp_location = arbor.location(4, 1/6)
+decor.place(str(clamp_location), iclamp, '"iclamp"')
 
 # create ``arbor.place_pwlin`` object
 p = arbor.place_pwlin(morphology)
@@ -441,6 +442,12 @@ cb2.set_label(r'$V_m$ (mV)')
 
 # draw segment outlines
 ax.add_collection(get_segment_outlines(cell_geometry))
+
+# add marker denoting clamp location
+point = p.at(clamp_location)
+ax.plot(point.x, point.y, 'ko', ms=10, label='stimulus')
+
+ax.legend()
 
 # axis annotations
 ax.axis(axis)
