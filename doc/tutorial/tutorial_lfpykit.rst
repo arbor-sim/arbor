@@ -104,22 +104,33 @@ Define a very basic ``Recipe`` class, holding a cell and three probes (voltage, 
 
 
 Load morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
-Here we parse the file ``single_cell_detailed.swc`` as defined earlier
-in :ref:`A simple single cell model <tutorialsinglecellswc>`
+Similar to the tutorial :ref:`"A simple single cell model" <tutorialsinglecellswc>`
+we parse a morphology file ``single_cell_detailed.swc`` defined as
+
+.. literalinclude:: ../../python/example/single_cell_detailed.swc
+   :language: python
+
+
 as an argument to the simulation script:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 57-66
 
-
 Define various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
-the cell model as well as stimuli (:class:`arbor.iclamp`).
+the cell model.
 Finally, we define a discretization policy (:class:`arbor.cv_policy_fixed_per_branch`):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 68-102
+   :lines: 68-94
+
+Set sinusoid current clamp as stimuli using :class:`arbor.iclamp` at a location ``(location 4 0.16667)``,
+that is, about a relative distance :math:`1/6` from the root to the tip of the dendritic branch with tag ``4``:
+
+.. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
+   :language: python
+   :lines: 96-102
 
 Create :class:`arbor.place_pwlin` instance:
 
@@ -142,7 +153,15 @@ we only illustrate membrane voltages of segments with finite lengths.
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 127-150
+   :lines: 127-142
+
+
+Finally we sum the stimulation and transmembrane currents, allowing the stimuli to mimic a synapse
+current embedded in the membrane itself rather than an intracellular electrode current:
+
+.. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
+   :language: python
+   :lines: 150
 
 
 .. _tutorial_lfpykit-lfpykit:

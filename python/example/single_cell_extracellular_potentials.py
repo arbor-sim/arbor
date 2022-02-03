@@ -89,6 +89,10 @@ pas = arbor.mechanism('pas/e=-65')
 pas.set('g', 0.0001)  # leak conductivity (S/cm2)
 decor.paint('(all)', arbor.density(pas))
 
+# set number of CVs per branch
+policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
+decor.discretization(policy)
+
 # place sinusoid input current at mid point of first CV of terminating branch
 iclamp = arbor.iclamp(5,  # stimulation onset (ms)
                       1E8,  # stimulation duration (ms)
@@ -96,10 +100,6 @@ iclamp = arbor.iclamp(5,  # stimulation onset (ms)
                       frequency=0.1,  # stimulation frequency (kHz)
                       phase=0)  # stimulation phase)
 decor.place('(location 4 0.16667)', iclamp, '"iclamp"')
-
-# set number of CVs per branch
-policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
-decor.discretization(policy)
 
 # create ``arbor.place_pwlin`` object
 p = arbor.place_pwlin(morphology)
