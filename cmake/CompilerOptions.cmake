@@ -140,35 +140,27 @@ endfunction()
 function(export_visibility target)
     # mangle target name to correspond to cmake naming
     string(REPLACE "-" "_" target_name ${target})
-    #message("target_name = " ${target_name})
+    # extract compact library name
     string(REPLACE "arbor-" "" target_short_name ${target})
-    #message("target_short_name = " ${target_short_name})
+    # make upper case
     string(TOUPPER ${target_short_name} target_short_NAME)
-    #message("target_short_NAME = " ${target_short_NAME})
 
+    # conditional on build type
     get_target_property(target_type ${target} TYPE)
     if (${target_type} STREQUAL STATIC_LIBRARY)
-        #message("static library")
-        #string(CONCAT target_export_def "arbor_" ${target_lib_name} "_EXPORTS_STATIC")
+        # building static library
         string(CONCAT target_export_def ${target_name} "_EXPORTS_STATIC")
         target_compile_definitions(${target} PUBLIC ${target_export_def})
     else()
-        #message("shared library")
-        #string(CONCAT target_export_def "arbor_" ${target_lib_name} "_EXPORTS")
+        # building shared library
         string(CONCAT target_export_def ${target_name} "_EXPORTS")
-        # the compile definition is added by cmake automatically
+        # the above compile definition is added by cmake automatically
     endif()
-    #message(${target_export_def})
 
     # generate config file
-    #get_target_property(target_source_dir ${target} SOURCE_DIR)
     get_target_property(target_binary_dir ${target} BINARY_DIR)
-    #message("target_source_dir                   "  ${target_source_dir})
-    #message("target_binary_dir                   "  ${target_binary_dir})
-    #message(${CMAKE_CURRENT_SOURCE_DIR})
     configure_file(
         ${CMAKE_SOURCE_DIR}/cmake/export.hpp.in
         ${target_binary_dir}/include/${target_short_name}/export.hpp
-        @ONLY
-    )
+        @ONLY)
 endfunction()
