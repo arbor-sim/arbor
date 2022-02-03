@@ -3,7 +3,7 @@
 Extracellular signals
 =====================
 
-This example takes different elements from the above example tutorials
+This example takes elements from other tutorials
 (:ref:`A simple single cell model <tutorialsinglecell>`,
 :ref:`A detailed single cell recipe <tutorialsinglecellswcrecipe>`)
 to create a geometrically
@@ -15,7 +15,6 @@ calculations of extracellular potentials and related electroencephalography (EEG
 and magnetoencephalography (MEG) signals from geometrically detailed neuron models under various assumptions.
 These are signals that mainly stem from transmembrane currents.
 
-This tutorial goes through the required steps in more detail.
 
 In this tutorial, the neuron model itself is kept deliberately simple with only
 passive (leaky) membrane dynamics, and it receives sinusoid synaptic current
@@ -62,7 +61,7 @@ as an argument to the simulation script:
 
 Define various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
 the cell model as well as stimuli (:class:`arbor.iclamp`).
-Finally we define discretization policy (:class:`arbor.cv_policy_fixed_per_branch`):
+Finally, we define a discretization policy (:class:`arbor.cv_policy_fixed_per_branch`):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
@@ -132,7 +131,7 @@ currents in space with a few lines of code:
 The result
 ----------
 
-The visualization below of simulation results shows both the cellular geometry and a contour plot
+The visualization below of simulation results shows the cellular geometry and a contour plot
 of the extracellular potential (``V_e``) in a plane.
 Each part (CV) of the cell is shown with some color coding for the membrane potential (``V_m``).
 
@@ -149,7 +148,7 @@ Each part (CV) of the cell is shown with some color coding for the membrane pote
     (from ``decor.place('(location 4 0.16667)', iclamp, '"iclamp"')``) is treated as 3 separate
     line sources with inhomogeneous current density per unit length. This inhomogeneity
     is due to the fact that the total transmembrane current per CV may
-    distributed across multiple segments with varying surface area. The transmembrane
+    be distributed across multiple segments with varying surface area. The transmembrane
     current is assumed to be constant per unit length per segment.
 
 
