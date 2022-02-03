@@ -51,12 +51,13 @@ Define ``Recipe`` class:
    :lines: 24-56
 
 
-Load morphology on ``SWC`` file format:
+Load morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
+Here we parse the file ``single_cell_detailed.swc`` defined earlier in :ref:`<tutorialsinglecellswc-cell>`
+as an argument to the simulation script:
 
-.. code-block:: python
-
-   # define morphology needed for ``arbor.place_pwlin`` and ``arbor.cable_cell`` below
-   morphology = arbor.load_swc_arbor('single_cell_detailed.swc')
+.. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
+   :language: python
+   :lines: 59-68
 
 
 Define various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
@@ -146,10 +147,10 @@ Each part (CV) of the cell is shown with some color coding for the membrane pote
     The spatial discretization is here deliberately coarse with only 3 CVs per branch.
     Hence the branch receiving input about 1/6 of the way from its root
     (from ``decor.place('(location 4 0.16667)', iclamp, '"iclamp"')``) is treated as 3 separate
-    line sources with inhomogeneous current density per length unit. This inhomogeneity
+    line sources with inhomogeneous current density per unit length. This inhomogeneity
     is due to the fact that the total transmembrane current per CV may
     distributed across multiple segments with varying surface area. The transmembrane
-    current is assumed to be constant per length unit per segment.
+    current is assumed to be constant per unit length per segment.
 
 
 .. _tutorial_lfpykit-code:

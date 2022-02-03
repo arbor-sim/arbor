@@ -64,7 +64,7 @@ if len(sys.argv) < 2:
 
 filename = sys.argv[1]
 
-# define morphology (needed for arbor.place_pwlin)
+# define morphology (needed for ``arbor.place_pwlin`` and ``arbor.cable_cell`` below)
 morphology = arbor.load_swc_arbor(filename)
 
 # number of CVs per branch
