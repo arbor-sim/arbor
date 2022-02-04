@@ -273,7 +273,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type dt_max_reset = dt_max;
 
     //WR iterations
-    int wr_max = 1;
+    int wr_max = 2;
     auto eps = 1e-8;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
 
@@ -456,7 +456,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Break if no CV has an err > eps or maximum WR iterations reached
         if ((wr_it > 1 && b == 0) or wr_max == 1 || wr_it == wr_max) {
-            std::cout << "break at wr_it = " << wr_it << std::endl;
             break;
         }
 
