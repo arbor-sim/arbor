@@ -224,10 +224,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // - all gap junctions are subject to WR
     // - we only have a single cell group
 
-    fvm_size_type n_intdom_r = state_->n_intdom;
-    fvm_size_type n_detector_r = state_->n_detector;
-    fvm_size_type n_cv_r = state_->n_cv;
-
+    // Reset state
     multicore::iarray cv_to_intdom_r = state_->cv_to_intdom;
     multicore::iarray cv_to_cell_r   = state_->cv_to_cell;
 
@@ -238,18 +235,18 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     array voltage_r         = state_->voltage;
     array current_density_r = state_->current_density;
     array conductivity_r    = state_->conductivity;
-    //array init_voltage_r    = state_->init_voltage;
-    array time_since_spike_r = state_->time_since_spike;
-    //multicore::shared_state::iarray src_to_spike_r = state_->src_to_spike;
 
+    array time_since_spike_r = state_->time_since_spike;
+    multicore::deliverable_event_stream deliverable_events_r = state_->deliverable_events;
+    multicore::iarray src_to_spike_r = state_->src_to_spike;
+    
     multicore::istim_state stim_data_r = state_->stim_data;
     std::unordered_map<std::string, multicore::ion_state> ion_data_r = state_->ion_data;
-    multicore::deliverable_event_stream deliverable_events_r = state_->deliverable_events;
-  
+    
     std::unordered_map<unsigned, multicore::shared_state::mech_storage> storage_r;
     std::unordered_map<unsigned, std::vector<arb_value_type>>           parameters_r;
     std::unordered_map<unsigned, std::vector<arb_value_type>>           state_vars_r;
-
+    
     for (auto store: state_->storage) {
         storage_r[store.first].data_        = store.second.data_;
         storage_r[store.first].indices_     = store.second.indices_;
@@ -264,31 +261,34 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     }
 
     //traces:            gj mech id                                values               
-    //std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v, traces_v_prev;
-    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v_prev;
-
-    //Map m->ppack_.peer_index to corresponding peer voltage in traces_v_prev
+    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> trace, trace_prev;
     std::vector<arb_index_type> peer_ix;
+    std::vector<arb_index_type> peer_index_reset;
+    threshold_watcher threshold_watcher_reset = threshold_watcher_;
 
-    auto max_steps = remaining_steps;
+    // Save starting times
+    unsigned max_steps = remaining_steps;
     value_type tmin_reset = tmin_;
+    value_type tfinal_reset = tfinal;
+    value_type dt_max_reset = dt_max;
 
     //WR iterations
-    int wr_max = 3;
-    auto eps = 1e-15;
+    int wr_max = 1;
+    auto eps = 1e-8;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
 
-        //Reset remaining_steps
+        // Reset remaining_steps
         if (wr_it > 0) {
-            remaining_steps = dt_steps(tmin_reset, tfinal, dt_max);
+            remaining_steps = dt_steps(tmin_reset, tfinal_reset, dt_max_reset);
         }
-        //Reset error variables for WR break condition
+
+        // Reset error variables for WR break condition
         std::vector<arb_value_type> err(peer_ix.size(), 0.);
         auto b = 0;
 
-        std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> traces_v;
+        // Threshold_watcher reset
+        threshold_watcher_ = threshold_watcher_reset;
 
-        
         while (remaining_steps) {
             auto step = max_steps-remaining_steps;
             
@@ -315,13 +315,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
                 m->deliver_events(events);
 
-                //Feed back previous traces to vec_v_peer
-                //vec_v_peer defaults to vec_v
+                // Map peer_index to position in trace
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
                     if (wr_it == 0 && step == 0) {
                         std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos;
                         for (auto ix = 0; ix < m->ppack_.width; ++ix) {
                             peer_pos[m->ppack_.node_index[ix]].push_back(ix);
+                            peer_index_reset.push_back(m->ppack_.peer_index[ix]);
                         }
                         for (auto it = 0; it < m->ppack_.width; ++it) {
                             auto p = m->ppack_.peer_index[it];
@@ -329,13 +329,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                             peer_pos[p].pop_front();
                         }
                     }
+                   
+                    // Use trace_prev for gj current calculation
                     if (wr_it > 0) {
                         auto gj = m->mechanism_id();
-                        for (auto i = 0; i < m->ppack_.width; ++i){ 
-                            auto peer = peer_ix[i];
-                            auto v_prev = traces_v_prev[gj][step][peer];
-                            m->ppack_.vec_v_peer[i] = v_prev;
-                        }
+                        m->ppack_.vec_v_peer = trace_prev[gj][step].data();
+                        m->ppack_.peer_index = peer_ix.data();
                     }
                 }
                 
@@ -343,23 +342,33 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
+
+                    // Reset peer index to original array
+                    if (wr_it > 0) {
+                        m->ppack_.peer_index = peer_index_reset.data();
+                    }
+
+                    // Write trace
                     auto gj = m->mechanism_id();
-                    std::vector<value_type> v_step = {};
-                    std::vector<value_type> t_step = {};
+                    std::vector<value_type> v_step(m->ppack_.width, 0.);
                     for(int ix = 0; ix < m->ppack_.width; ++ix) {
                         auto node_cv = m->ppack_.node_index[ix];
-                        v_step.push_back(state_->voltage[node_cv]);
-                        
-                        if (wr_it > 1) {
-                            auto err_cv = state_->voltage[node_cv] - traces_v_prev[gj][step][node_cv];
+                        v_step[ix] = state_->voltage[node_cv];
+                    }
+                    trace[gj].push_back(v_step);
+
+                    // Calculate error for break condition
+                    if (wr_it > 1) {
+                        for (auto ix = 0; ix < trace[gj][step].size(); ++ ix){
+                            auto node_cv = m->ppack_.node_index[ix];
+                            auto err_cv = std::abs(trace[gj][step][node_cv] - trace_prev[gj][step][node_cv]);
                             err[node_cv] += (err_cv*err_cv);
                             if (err[node_cv] > eps) {
                                 b += 1;
                             }
                         }
                     }
-                    traces_v[gj].push_back(v_step);
-                }  
+                }
             }
 
             PE(advance_integrate_events);
@@ -445,41 +454,42 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             PL();
         }
 
-        //break WR if difference between previous and current trace small enough
-        if (wr_it > 0 && b == 0) {
+        // Break if no CV has an err > eps or maximum WR iterations reached
+        if ((wr_it > 1 && b == 0) or wr_max == 1 || wr_it == wr_max) {
+            std::cout << "break at wr_it = " << wr_it << std::endl;
             break;
         }
 
-        //reset traces
-        traces_v_prev = traces_v;
-        traces_v = {};
+        // Reset traces
+        trace_prev = trace;
+        trace = {};
 
         // Reset state
-        state_->n_intdom = n_intdom_r;
-        state_->n_detector = n_detector_r;
-        state_->n_cv = n_cv_r;
-
-        std::copy(cv_to_intdom_r.begin(), cv_to_intdom_r.end(), state_->cv_to_intdom.begin());
-        std::copy(cv_to_cell_r.begin(), cv_to_cell_r.end(), state_->cv_to_cell.begin());
+        std::copy(dt_intdom_r.begin(), dt_intdom_r.end(), state_->dt_intdom.begin());
+        std::copy(dt_cv_r.begin(), dt_cv_r.end(), state_->dt_cv.begin());
 
         std::copy(time_r.begin(), time_r.end(), state_->time.begin());
         std::copy(time_to_r.begin(), time_to_r.end(), state_->time_to.begin());
+        state_->dt_intdom = dt_intdom_r;
+        state_->dt_cv = dt_cv_r;
+        state_->current_density = current_density_r;
+        state_->conductivity = conductivity_r;
 
-        std::copy(dt_intdom_r.begin(), dt_intdom_r.end(), state_->dt_intdom.begin());
-        std::copy(dt_cv_r.begin(), dt_cv_r.end(), state_->dt_cv.begin());
-        
         std::copy(voltage_r.begin(), voltage_r.end(), state_->voltage.begin());
+
+        std::copy(cv_to_intdom_r.begin(), cv_to_intdom_r.end(), state_->cv_to_intdom.begin());
+        std::copy(cv_to_cell_r.begin(), cv_to_cell_r.end(), state_->cv_to_cell.begin());            
+            
         std::copy(current_density_r.begin(), current_density_r.end(), state_->current_density.begin());
         std::copy(conductivity_r.begin(), conductivity_r.end(), state_->conductivity.begin());
-
-        //std::copy(init_voltage_r.begin(), init_voltage_r.end(), state_->init_voltage.begin());
+            
         std::copy(time_since_spike_r.begin(), time_since_spike_r.end(), state_->time_since_spike.begin());
-        //std::copy(src_to_spike_r.begin(), src_to_spike_r.end(), state_->src_to_spike.begin());
-
-        state_->stim_data = stim_data_r;
-        state_->ion_data = ion_data_r;
-        state_->deliverable_events = deliverable_events_r;
-
+        std::copy(src_to_spike_r.begin(), src_to_spike_r.end(), state_->src_to_spike.begin());
+            
+        //state_->stim_data = stim_data_r;
+        //state_->ion_data = ion_data_r;
+        state_->deliverable_events = deliverable_events_r; 
+         
         for (auto store: state_->storage) {
             std::copy(storage_r[store.first].data_.begin(), storage_r[store.first].data_.end(), store.second.data_.begin());
             std::copy(storage_r[store.first].indices_.begin(), storage_r[store.first].indices_.end(), store.second.indices_.begin());
@@ -492,6 +502,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 *store.second.state_vars_[j] = state_vars_r[store.first][j];
             }
         } 
+        
     }
     
     set_tmin(tfinal);
