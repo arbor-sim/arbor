@@ -255,7 +255,7 @@ void register_morphology(py::module& m) {
             const auto fname = util::to_path(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
-                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                throw arb::file_not_found_error(fname);
             }
             try {
                 auto data = arborio::parse_swc(fid);
@@ -281,7 +281,7 @@ void register_morphology(py::module& m) {
             const auto fname = util::to_path(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
-                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                throw arb::file_not_found_error(fname);
             }
             try {
                 auto data = arborio::parse_swc(fid);
@@ -390,7 +390,7 @@ void register_morphology(py::module& m) {
                 const auto fname = util::to_path(fn);
                 std::ifstream fid{fname};
                 if (!fid.good()) {
-                    throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                    throw arb::file_not_found_error(fname);
                 }
                 try {
                     std::string string_data((std::istreambuf_iterator<char>(fid)),

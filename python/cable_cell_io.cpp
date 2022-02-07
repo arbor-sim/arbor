@@ -20,7 +20,7 @@ arborio::cable_cell_component load_component(py::object fn) {
     const auto fname = util::to_path(fn);
     std::ifstream fid{fname};
     if (!fid.good()) {
-        throw pyarb_error(util::pprintf("Can't open file '{}'", fname));
+        throw arb::file_not_found_error(fname);
     }
     auto component = arborio::parse_component(fid);
     if (!component) {
