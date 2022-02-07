@@ -65,48 +65,58 @@ filename = sys.argv[1]
 # define morphology (needed for ``arbor.place_pwlin`` and ``arbor.cable_cell`` below)
 morphology = arbor.load_swc_arbor(filename)
 
-# number of CVs per branch
-cvs_per_branch = 3
-
-# Label dictionary
-defs = {}
-labels = arbor.label_dict(defs)
-
-# decor
-decor = arbor.decor()
-
-# set initial voltage, temperature, axial resistivity, membrane capacitance
-decor.set_property(
-    Vm=-65,  # Initial membrane voltage (mV)
-    tempK=300,  # Temperature (Kelvin)
-    rL=10000,  # Axial resistivity (Ω cm)
-    cm=0.01,  # Membrane capacitance (F/m**2)
-)
-
-# set passive mechanism all over
-# passive mech w. leak reversal potential (mV)
-pas = arbor.mechanism('pas/e=-65')
-pas.set('g', 0.0001)  # leak conductivity (S/cm2)
-decor.paint('(all)', arbor.density(pas))
-
-# set number of CVs per branch
-policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
-decor.discretization(policy)
-
-# place sinusoid input current at mid point of first CV of terminating branch
-iclamp = arbor.iclamp(5,  # stimulation onset (ms)
-                      1E8,  # stimulation duration (ms)
-                      -0.001,  # stimulation amplitude (nA)
-                      frequency=0.1,  # stimulation frequency (kHz)
-                      phase=0)  # stimulation phase)
+# define a location on morphology for current clamp
 clamp_location = arbor.location(4, 1/6)
-decor.place(str(clamp_location), iclamp, '"iclamp"')
 
-# create ``arbor.place_pwlin`` object
-p = arbor.place_pwlin(morphology)
 
-# create cell and set properties
-cell = arbor.cable_cell(morphology, labels, decor)
+def make_cable_cell(morphology, clamp_location):
+    # number of CVs per branch
+    cvs_per_branch = 3
+
+    # Label dictionary
+    defs = {}
+    labels = arbor.label_dict(defs)
+
+    # decor
+    decor = arbor.decor()
+
+    # set initial voltage, temperature, axial resistivity, membrane capacitance
+    decor.set_property(
+        Vm=-65,  # Initial membrane voltage (mV)
+        tempK=300,  # Temperature (Kelvin)
+        rL=10000,  # Axial resistivity (Ω cm)
+        cm=0.01,  # Membrane capacitance (F/m**2)
+    )
+
+    # set passive mechanism all over
+    # passive mech w. leak reversal potential (mV)
+    pas = arbor.mechanism('pas/e=-65')
+    pas.set('g', 0.0001)  # leak conductivity (S/cm2)
+    decor.paint('(all)', arbor.density(pas))
+
+    # set number of CVs per branch
+    policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
+    decor.discretization(policy)
+
+    # place sinusoid input current
+    iclamp = arbor.iclamp(5,  # stimulation onset (ms)
+                          1E8,  # stimulation duration (ms)
+                          -0.001,  # stimulation amplitude (nA)
+                          frequency=0.1,  # stimulation frequency (kHz)
+                          phase=0)  # stimulation phase)
+    decor.place(str(clamp_location), iclamp, '"iclamp"')
+
+    # create ``arbor.place_pwlin`` object
+    p = arbor.place_pwlin(morphology)
+
+    # create cell and set properties
+    cell = arbor.cable_cell(morphology, labels, decor)
+
+    return p, cell
+
+
+# get place_pwlin and cable_cell objects
+p, cell = make_cable_cell(morphology, clamp_location)
 
 # instantiate recipe with cell
 recipe = Recipe(cell)

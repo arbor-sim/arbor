@@ -24,11 +24,12 @@ The line source approximation
 First, let's describe how one can compute extracellular potentials from transmembrane currents of a number of segments,
 assuming that each segment can be treated as an equivalent line current source using a formalism invented
 by Gary R. Holt and Christof Koch [1]_.
-The implementation used in this tutorial uses :class:`lfpykit.LineSourcePotential`
+The implementation used in this tutorial rely on :class:`lfpykit.LineSourcePotential`
 (`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
 This class conveniently defines a 2D linear response matrix
 :math:`\mathbf{M}` between transmembrane current array
-:math:`\mathbf{I}` (nA) of a neuron model and the
+:math:`\mathbf{I}` (nA) of a neuron model's
+geometry (cf. `lfpykit.CellGeometry <https://lfpykit.readthedocs.io/en/latest/#class-cellgeometry>`_) and the
 corresponding extracellular electric potential in different extracellular locations
 :math:`\mathbf{V}_{e}` (mV) so
 
@@ -38,15 +39,15 @@ The transmembrane current :math:`\mathbf{I}` is an array of shape (# segments, #
 with unit (nA), and each row indexed by :math:`j` of
 :math:`\mathbf{V}_{e}` represents the electric potential at each
 measurement site for every time step.
-
-The elements of :math:`\mathbf{M}` are computed as
+The resulting shape of :math:`\mathbf{V}_{e}` is (# locations, # timesteps).
+The elements of :math:`\mathbf{M}` are computed as:
 
 .. math:: M_{ji} = \frac{1}{ 4 \pi \sigma L_i } \log
     \left|
     \frac{\sqrt{h_{ji}^2+r_{ji}^2}-h_{ji}
            }{
            \sqrt{l_{ji}^2+r_{ji}^2}-l_{ji}}
-    \right|
+    \right|~.
 
 
 Here, segments are indexed by :math:`i`,
@@ -64,7 +65,7 @@ end of the segment is denoted :math:`l_{ji}= L_i + h_{ji}`.
     2. Each segment is treated as a straight line source with homogeneous current density between its start and end point coordinate.
        Although Arbor allows segments to be defined as conical frusta with varying radius, we shall assume that any variation in
        radius is small relative to overall segment length.
-    3. Each measurement site :math:`\mathbf{r}_j = (x_j, y_j, z_j)` is treated as a point
+    3. Each extracellular measurement site is treated as a point
     4. The minimum distance to a line source is set equal to the average segment radius to avoid singularities.
 
 
@@ -96,14 +97,14 @@ First we import some required modules:
    :lines: 14-17
 
 
-Define a very basic ``Recipe`` class, holding a cell and three probes (voltage, stimulus current and total current):
+We may then define a very basic ``Recipe`` class, holding a cell and three probes (voltage, stimulus current and total current):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 22-54
 
 
-Load morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
+Then, load a morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
 Similar to the tutorial :ref:`"A simple single cell model" <tutorialsinglecellswc>`
 we parse a morphology file ``single_cell_detailed.swc`` defined as
 
@@ -117,35 +118,40 @@ as an argument to the simulation script:
    :language: python
    :lines: 57-66
 
-Define various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
-the cell model.
-Finally, we define a discretization policy (:class:`arbor.cv_policy_fixed_per_branch`):
+
+As a target for a current stimuli we define an :class:`arbor.location` :
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 68-94
+   :lines: 68-69
 
-Set sinusoid current clamp as stimuli using :class:`arbor.iclamp` at a location at a
-relative distance :math:`1/6` from the root to the tip of the dendritic branch with tag ``4``.
-The location is marked in the result :ref`figure <tutorial_lfpykit-illustration>`:
+
+Next, we let a basic function define our cell model, taking the morphology and clamp location as
+input.
+The function defines various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
+the cell model,
+sets sinusoid current clamp as stimuli using :class:`arbor.iclamp`
+defines discretization policy (:class:`arbor.cv_policy_fixed_per_branch`)
+and returns the corresponding :class:`place_pwlin` and :class:`cable_cell` objects for use later:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 96-103
+   :lines: 72-115
 
-Create :class:`arbor.place_pwlin` instance:
+
+We may fetch the function output as:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 106
+   :lines: 119
 
 
-Define :class:`arbor.cable_cell`, :class:`Recipe`, :class:`arbor.context` etc. and execute model for a few hundred ms,
+Next, we instantiate :class:`Recipe`, :class:`arbor.context` etc. and execute cell model for a few hundred ms,
 sampling the different signals every 1 ms:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 108-126
+   :lines: 121-136
 
 
 Extract recorded membrane voltages, electrode and transmembrane currents.
@@ -154,7 +160,7 @@ we only illustrate membrane voltages of segments with finite lengths.
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 128-143
+   :lines: 138-153
 
 
 Finally we sum the stimulation and transmembrane currents, allowing the stimuli to mimic a synapse
@@ -162,7 +168,7 @@ current embedded in the membrane itself rather than an intracellular electrode c
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 151
+   :lines: 161
 
 
 .. _tutorial_lfpykit-lfpykit:
@@ -182,7 +188,7 @@ Starting with a class inherited from :class:`lfpykit.CellGeometry`
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 161-194
+   :lines: 171-204
 
 Then, a class inherited from :class:`lfpykit.LineSourcePotential`
 (`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
@@ -191,7 +197,7 @@ Other use cases may inherit from any other parent class defined in :class:`lfpyk
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 197-244
+   :lines: 207-254
 
 
 With these two classes one may then compute extracellular potentials from transmembrane
@@ -199,7 +205,7 @@ currents in space with a few lines of code:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
-   :lines: 247-270
+   :lines: 257-280
 
 
 .. _tutorial_lfpykit-illustration:
@@ -222,7 +228,7 @@ The stimulus location is denoted by the black marker.
 
     The spatial discretization is here deliberately coarse with only 3 CVs per branch.
     Hence the branch receiving input about 1/6 of the way from its root
-    (from ``decor.place('(location 4 0.16667)', iclamp, '"iclamp"')``) is treated as 3 separate
+    (from ``decor.place(str(arbor.location(4, 1/6)), iclamp, '"iclamp"')``) is treated as 3 separate
     line sources with inhomogeneous current density per unit length. This inhomogeneity
     is due to the fact that the total transmembrane current per CV may
     be distributed across multiple segments with varying surface area. The transmembrane
