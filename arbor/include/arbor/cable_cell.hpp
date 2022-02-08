@@ -117,7 +117,7 @@ struct cable_probe_density_state_cell {
 // Value of state variable `key` in point mechanism `source` at target `target`.
 // Sample value type: `double`
 // Sample metadata type: `cable_probe_point_info`
-struct cable_probe_point_state {
+struct ARB_ARBOR_API cable_probe_point_state {
     cell_lid_type target;
     std::string mechanism;
     std::string state;

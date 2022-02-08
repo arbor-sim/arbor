@@ -150,7 +150,7 @@ function(export_visibility target)
     if (${target_type} STREQUAL STATIC_LIBRARY)
         # building static library
         string(CONCAT target_export_def ${target_name} "_EXPORTS_STATIC")
-        target_compile_definitions(${target} PUBLIC ${target_export_def})
+        target_compile_definitions(${target} PRIVATE ${target_export_def})
     else()
         # building shared library
         string(CONCAT target_export_def ${target_name} "_EXPORTS")

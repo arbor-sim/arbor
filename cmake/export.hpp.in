@@ -18,17 +18,10 @@
 #       define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
 #   elif defined(@target_name@_EXPORTS_STATIC)
         /* we are building @target@ statically */
-#       if defined(ARB_ON_MACOS)
-#           ifdef ARB_EXPORT_DEBUG
-#               pragma message "we are building @target@ statically on macos"
-#           endif
-#           define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
-#       else
-#           ifdef ARB_EXPORT_DEBUG
-#               pragma message "we are building @target@ statically"
-#           endif
-#           define ARB_@target_short_NAME@_API
+#       ifdef ARB_EXPORT_DEBUG
+#           pragma message "we are building @target@ statically"
 #       endif
+#       define ARB_@target_short_NAME@_API
 #   else
         /* we are using the library @target@ */
 #       if defined(ARB_@target_short_NAME@_SHARED_LIBRARY)
