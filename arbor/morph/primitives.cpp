@@ -123,7 +123,7 @@ ARB_ARBOR_API mlocation_list support(mlocation_list L) {
     return L;
 }
 
-bool test_invariants(const mcable& c) {
+ARB_ARBOR_API bool test_invariants(const mcable& c) {
     return (0.<=c.prox_pos && c.prox_pos<=c.dist_pos && c.dist_pos<=1.) && c.branch!=mnpos;
 }
 
