@@ -110,10 +110,11 @@ Release
    pip install arbor
    python -c 'import arbor; print(arbor.__config__)'
 
-7. Update spack package
+7. Update spack package / Ebrains Lab
 
    -  first, update ``spack/package.py``. The checksum of the targz is the sha256sum.
    -  Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
+   -  Make an MR `here <https://gitlab.ebrains.eu/technical-coordination/project-internal/devops/platform/ebrains-spack-builds/>`_
 
 8. In the same PR with the update to `spack/package.py`, bump `VERSION` file.
 
