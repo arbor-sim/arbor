@@ -7,7 +7,7 @@ This example takes elements from other tutorials
 (:ref:`A simple single cell model <tutorialsinglecell>`,
 :ref:`A detailed single cell recipe <tutorialsinglecellswcrecipe>`)
 to create a geometrically
-detailed single cell model from an SWC morphology file, and adds predictions of
+detailed single cell model from an SWC morphology file (cf. :ref:`Arbor's specifications <morph-formats>`), and adds predictions of
 extracellular potentials using the external `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ Python library
 (https://LFPykit.readthedocs.io, https://github.com/LFPy/LFPykit).
 `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ provides a few different classes facilitating
@@ -97,7 +97,7 @@ First we import some required modules:
    :lines: 14-17
 
 
-We may then define a very basic ``Recipe`` class, holding a cell and three probes (voltage, stimulus current and total current):
+We may then define a very basic :class:`Recipe` class, holding a cell and three probes (voltage, stimulus current and total current):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
