@@ -10,6 +10,8 @@ namespace arb {
 
 using arb::util::pprintf;
 
+domain_error::domain_error(const std::string& w): arbor_exception(w) {}
+
 bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
     gid(gid),
