@@ -20,6 +20,8 @@ Release cycle
    * Update highlighted new features to RELEASE_NOTES.md
 4. ``T-1``: ``all`` reserve week for wrapping up PRs and review.
 5. ``T±0``: ``Release Manager`` release!
+
+   * Have a look at Python release schedule, and time Arbor release optimally with new Python minor version. It is nice to generate wheels for the new minor as soon as minor is released.
 6. ``T+1`` weeks: ``Scrum Master`` retrospective
    
    * set date for next release
