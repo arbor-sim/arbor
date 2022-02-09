@@ -51,7 +51,7 @@ void register_cable_loader(pybind11::module& m) {
             return write_component(d, fn);
           },
           pybind11::arg_v("object", "the cable_component object."),
-          pybind11::arg_v("filename", "the name of the file."),
+          pybind11::arg_v("filename", "the path of the file."),
           "Write cable_component to file.");
 
     m.def("write_component",
