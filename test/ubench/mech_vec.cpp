@@ -62,13 +62,13 @@ public:
         tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
         arb::decor decor;
-        decor.paint(arb::reg::tagged(1), "pas");
+        decor.paint(arb::reg::tagged(1), arb::density("pas"));
         decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         for(unsigned i = 0; i < num_synapse_; i++) {
             auto gen = std::mt19937(i);
-            decor.place(arb::mlocation{0, distribution(gen)}, "expsyn");
+            decor.place(arb::mlocation{0, distribution(gen)}, arb::synapse("expsyn"), "syn");
         }
 
         return arb::cable_cell{arb::morphology(tree), {}, decor};
@@ -109,7 +109,7 @@ public:
         tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
         arb::decor decor;
-        decor.paint(arb::reg::all(), "pas");
+        decor.paint(arb::reg::all(), arb::density("pas"));
         decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
         return arb::cable_cell {arb::morphology(tree), {}, decor};
@@ -152,7 +152,7 @@ public:
         tree.append(s2,           {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
         arb::decor decor;
-        decor.paint(arb::reg::all(), "pas");
+        decor.paint(arb::reg::all(), arb::density("pas"));
         decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
 
         return arb::cable_cell{arb::morphology(tree), {}, decor};
@@ -193,7 +193,7 @@ public:
         tree.append(s1,           {0          ,0          ,soma_radius+dend_length, dend_radius}, 3);
 
         arb::decor decor;
-        decor.paint(arb::reg::all(), "hh");
+        decor.paint(arb::reg::all(), arb::density("hh"));
         decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
         return arb::cable_cell{arb::morphology(tree), {}, decor};
@@ -236,7 +236,7 @@ public:
         tree.append(          s2, {dend_length,0          ,soma_radius+dend_length, dend_radius}, 3);
 
         arb::decor decor;
-        decor.paint(arb::reg::all(), "hh");
+        decor.paint(arb::reg::all(), arb::density("hh"));
         decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
 
         return arb::cable_cell{arb::morphology(tree), {}, decor};
@@ -256,13 +256,8 @@ void expsyn_1_branch_current(benchmark::State& state) {
     const unsigned nsynapse = state.range(1);
     recipe_expsyn_1_branch rec_expsyn_1_branch(ncomp, nsynapse);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_expsyn_1_branch, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_expsyn_1_branch);
 
     auto& m = find_mechanism("expsyn", cell);
 
@@ -276,13 +271,8 @@ void expsyn_1_branch_state(benchmark::State& state) {
     const unsigned nsynapse = state.range(1);
     recipe_expsyn_1_branch rec_expsyn_1_branch(ncomp, nsynapse);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_expsyn_1_branch, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_expsyn_1_branch);
 
     auto& m = find_mechanism("expsyn", cell);
 
@@ -295,13 +285,8 @@ void pas_1_branch_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     recipe_pas_1_branch rec_pas_1_branch(ncomp);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_pas_1_branch, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_pas_1_branch);
 
     auto& m = find_mechanism("pas", cell);
 
@@ -314,13 +299,8 @@ void pas_3_branches_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     recipe_pas_3_branches rec_pas_3_branches(ncomp);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_pas_3_branches, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_pas_3_branches);
 
     auto& m = find_mechanism("pas", cell);
 
@@ -333,13 +313,8 @@ void hh_1_branch_state(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     recipe_hh_1_branch rec_hh_1_branch(ncomp);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_1_branch, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_hh_1_branch);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -352,13 +327,8 @@ void hh_1_branch_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     recipe_hh_1_branch rec_hh_1_branch(ncomp);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_1_branch, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_hh_1_branch);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -371,13 +341,8 @@ void hh_3_branches_state(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     recipe_hh_3_branches rec_hh_3_branches(ncomp);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_3_branches, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_hh_3_branches);
 
     auto& m = find_mechanism("hh", cell);
 
@@ -390,13 +355,8 @@ void hh_3_branches_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     recipe_hh_3_branches rec_hh_3_branches(ncomp);
 
-    std::vector<cell_gid_type> gids = {0};
-    std::vector<target_handle> target_handles;
-    std::vector<fvm_index_type> cell_to_intdom;
-    probe_association_map probe_handles;
-
     fvm_cell cell((execution_context()));
-    cell.initialize(gids, rec_hh_3_branches, cell_to_intdom, target_handles, probe_handles);
+    cell.initialize({0}, rec_hh_3_branches);
 
     auto& m = find_mechanism("hh", cell);
 
