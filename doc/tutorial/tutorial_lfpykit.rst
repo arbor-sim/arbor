@@ -24,12 +24,11 @@ The line source approximation
 First, let's describe how one can compute extracellular potentials from transmembrane currents of a number of segments,
 assuming that each segment can be treated as an equivalent line current source using a formalism invented
 by Gary R. Holt and Christof Koch [1]_.
-The implementation used in this tutorial rely on :class:`lfpykit.LineSourcePotential`
-(`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
+The implementation used in this tutorial rely on :class:`lfpykit.LineSourcePotential`.
 This class conveniently defines a 2D linear response matrix
 :math:`\mathbf{M}` between transmembrane current array
 :math:`\mathbf{I}` (nA) of a neuron model's
-geometry (cf. `lfpykit.CellGeometry <https://lfpykit.readthedocs.io/en/latest/#class-cellgeometry>`_) and the
+geometry (:class:`lfpykit.CellGeometry`) and the
 corresponding extracellular electric potential in different extracellular locations
 :math:`\mathbf{V}_{e}` (mV) so
 
@@ -97,7 +96,7 @@ First we import some required modules:
    :lines: 14-17
 
 
-We may then define a very basic :class:`Recipe` class, holding a cell and three probes (voltage, stimulus current and total current):
+We define a basic :class:`arbor.recipe` class, holding a cell and three probes (voltage, stimulus current and total current):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
@@ -106,18 +105,16 @@ We may then define a very basic :class:`Recipe` class, holding a cell and three 
 
 Then, load a morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
 Similar to the tutorial :ref:`"A simple single cell model" <tutorialsinglecellswc>`
-we parse a morphology file ``single_cell_detailed.swc`` defined as
+we use the morphology file ``single_cell_detailed.swc``:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.swc
    :language: python
 
-
-as an argument to the simulation script:
+Pass the filename as an argument to the simulation script:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 57-66
-
 
 As a target for a current stimuli we define an :class:`arbor.location` :
 
@@ -125,14 +122,13 @@ As a target for a current stimuli we define an :class:`arbor.location` :
    :language: python
    :lines: 68-69
 
-
 Next, we let a basic function define our cell model, taking the morphology and clamp location as
 input.
-The function defines various attributes (:class:`arbor.label_dict`, :class:`arbor.decor`) for
+The function defines various attributes (:class:`~arbor.label_dict`, :class:`~arbor.decor`) for
 the cell model,
-sets sinusoid current clamp as stimuli using :class:`arbor.iclamp`
-defines discretization policy (:class:`arbor.cv_policy_fixed_per_branch`)
-and returns the corresponding :class:`place_pwlin` and :class:`cable_cell` objects for use later:
+sets sinusoid current clamp as stimuli using :class:`~arbor.iclamp`
+defines discretization policy (:class:`~arbor.cv_policy_fixed_per_branch`)
+and returns the corresponding :class:`~arbor.place_pwlin` and :class:`~arbor.cable_cell` objects for use later:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
@@ -183,22 +179,18 @@ We shall account for every segment in each CV using the so-called line-source ap
 
 First we define a couple of inherited classes to interface `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_
 (as this library is not solely written for Arbor).
-Starting with a class inherited from :class:`lfpykit.CellGeometry`
-(`lfpykit.CellGeometry <https://lfpykit.readthedocs.io/en/latest/#class-cellgeometry>`_):
+Starting with a class inherited from :class:`lfpykit.CellGeometry`:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 171-204
 
-Then, a class inherited from :class:`lfpykit.LineSourcePotential`
-(`lfpykit.LineSourcePotential <https://lfpykit.readthedocs.io/en/latest/#class-linesourcepotential>`_).
-Other use cases may inherit from any other parent class defined in :class:`lfpykit.models`
-(`lfpykit.models <https://lfpykit.readthedocs.io/en/latest/#module-lfpykit.models>`_) in a similar manner:
+Then, a class inherited from :class:`lfpykit.LineSourcePotential`.
+Other use cases may inherit from any other parent class defined in :mod:`lfpykit.models` in a similar manner:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 207-254
-
 
 With these two classes one may then compute extracellular potentials from transmembrane
 currents in space with a few lines of code:
@@ -206,7 +198,6 @@ currents in space with a few lines of code:
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 257-280
-
 
 .. _tutorial_lfpykit-illustration:
 
