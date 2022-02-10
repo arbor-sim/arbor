@@ -32,7 +32,7 @@ struct ARB_ARBOR_API arbor_exception: std::runtime_error {
 // Logic errors
 
 // Argument violates domain constraints, eg ln(-1)
-struct domain_error: arbor_exception {
+struct ARB_ARBOR_API domain_error: arbor_exception {
     domain_error(const std::string&);
 };
 

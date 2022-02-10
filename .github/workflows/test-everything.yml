@@ -73,17 +73,17 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        - {
-            name:  "MacOS Max",
-            os:    "macos-11",
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.9",
-            cmake: "3.22.x",
-            mpi:   "ON",
-            simd:  "OFF"
-          }
-        variant: [shared, static]
+          #- {
+          #    name:  "MacOS Max",
+          #    os:    "macos-11",
+          #    cc:    "clang",
+          #    cxx:   "clang++",
+          #    py:    "3.9",
+          #    cmake: "3.22.x",
+          #    mpi:   "ON",
+          #    simd:  "OFF"
+          #  }
+        variant: [static, shared]
     env:
         CC:         ${{ matrix.config.cc }}
         CXX:        ${{ matrix.config.cxx }}
