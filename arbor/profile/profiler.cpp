@@ -382,7 +382,6 @@ ARB_ARBOR_API profile profiler_summary() {
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
 ARB_ARBOR_API profile profiler_summary();
-//void profiler_print(const profile& prof, float threshold) {};
 ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}

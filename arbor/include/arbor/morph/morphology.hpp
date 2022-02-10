@@ -118,10 +118,6 @@ ARB_ARBOR_API mlocation_list minset(const morphology&, const mlocation_list&);
 // are no other locations that are more distal in the list.
 ARB_ARBOR_API mlocation_list maxset(const morphology&, const mlocation_list&);
 
-//// Reduced representation of an extent, excluding zero-length cables
-//// that are covered by more proximal or non-zero-length cables.
-//mcable_list canonical(const morphology& m, const mextent& a);
-
 // Determine the components of an extent.
 //
 // Let T be the topological tree described by a morphology and C be the

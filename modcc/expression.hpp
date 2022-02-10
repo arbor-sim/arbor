@@ -70,7 +70,6 @@ symbol_ptr make_symbol(Args&&... args) {
 
 // helper functions for generating unary and binary expressions
 ARB_LIBMODCC_API expression_ptr unary_expression(Location, tok, expression_ptr&&);
-//ARB_LIBMODCC_API expression_ptr unary_expression(tok, expression_ptr&&);
 ARB_LIBMODCC_API expression_ptr binary_expression(Location, tok, expression_ptr&&, expression_ptr&&);
 ARB_LIBMODCC_API expression_ptr binary_expression(tok, expression_ptr&&, expression_ptr&&);
 

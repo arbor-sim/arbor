@@ -34,7 +34,8 @@ struct profile {
     double wall_time;
 };
 
-//void profiler_clear();
+// TODO: remove declaration and update the docs
+void profiler_clear();
 ARB_ARBOR_API void profiler_initialize(context& ctx);
 ARB_ARBOR_API void profiler_enter(std::size_t region_id);
 ARB_ARBOR_API void profiler_leave();
