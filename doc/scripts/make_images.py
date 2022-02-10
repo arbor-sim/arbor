@@ -311,6 +311,7 @@ def generate(path=''):
     ####################### Tutorial examples
 
     morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph.svg')
+    morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph_nolabels_nocolors.svg', colors=False, draw_labels=False)
     morph_image([inputs.tutorial_network_ring_morph], ['segments'], path+'/tutorial_network_ring_morph.svg',lab_sc=6)
 
     ####################### locsets

@@ -3,18 +3,22 @@
 Extracellular signals
 =====================
 
-This example takes elements from other tutorials
-(:ref:`A simple single cell model <tutorialsinglecell>`,
-:ref:`A detailed single cell recipe <tutorialsinglecellswcrecipe>`)
-to create a geometrically
-detailed single cell model from an SWC morphology file (cf. :ref:`Arbor's specifications <morph-formats>`), and adds predictions of
-extracellular potentials using the external `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ Python library
-(https://LFPykit.readthedocs.io, https://github.com/LFPy/LFPykit).
-`LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ provides a few different classes facilitating
+This example takes elements from other tutorials to create a geometrically
+detailed single cell model from an SWC morphology file, and adds predictions of
+extracellular potentials using the `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ Python library.
+LFPykit provides a few different classes facilitating
 calculations of extracellular potentials and related electroencephalography (EEG)
 and magnetoencephalography (MEG) signals from geometrically detailed neuron models under various assumptions.
 These are signals that mainly stem from transmembrane currents.
 
+.. Note::
+
+   **Concepts covered in this tutorial:**
+
+   1. Recording of transmembrane currents using :class:`arbor.cable_probe_total_current_cell`
+   2. Recording of stimulus currents using :class:`arbor.cable_probe_stimulus_current_cell`
+   3. Using the :class:`arbor.place_pwlin` API
+   4. Map recorded transmembrane currents to extracellular potentials by derivinging Arbor specific classes from LFPykit's :class:`lfpykit.LineSourcePotential` and :class:`lfpykit.CellGeometry`
 
 .. _tutorial_lfpykit-linesource:
 
@@ -77,38 +81,27 @@ In this tutorial, the neuron model itself is kept deliberately simple with only
 passive (leaky) membrane dynamics, and it receives sinusoid synaptic current
 input in one arbitrary chosen control volume (CV).
 
-.. Note::
-
-   **Concepts covered in this tutorial:**
-
-   1. Building a morphology from an SWC file.
-   2. Recording of transmembrane currents using :class:`arbor.cable_probe_total_current_cell`
-   3. Recording of stimulus currents using :class:`arbor.cable_probe_stimulus_current_cell`
-   4. Calling the :class:`arbor.place_pwlin` API
-   5. Map recorded transmembrane currents to extracellular potentials using `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_
-
-
-
 First we import some required modules:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 14-17
 
-
-We define a basic :class:`arbor.recipe` class, holding a cell and three probes (voltage, stimulus current and total current):
+We define a basic :class:`Recipe <arbor.recipe>` class, holding a cell and three probes (voltage, stimulus current and total current):
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 22-54
 
-
 Then, load a morphology on ``SWC`` file format (interpreted according to :ref:`Arbor's specifications <morph-formats>`).
-Similar to the tutorial :ref:`"A simple single cell model" <tutorialsinglecellswc>`
-we use the morphology file ``single_cell_detailed.swc``:
+Similar to the tutorial :ref:`"A simple single cell model" <tutorialsinglecellswc>`,
+we use the morphology file in ``python/example/single_cell_detailed.swc``:
 
-.. literalinclude:: ../../python/example/single_cell_detailed.swc
-   :language: python
+.. figure:: ../gen-images/tutorial_morph_nolabels_nocolors.svg
+  :width: 800
+  :align: left
+
+  A graphic depiction of ``single_cell_detailed.swc``.
 
 Pass the filename as an argument to the simulation script:
 
@@ -134,21 +127,18 @@ and returns the corresponding :class:`~arbor.place_pwlin` and :class:`~arbor.cab
    :language: python
    :lines: 72-115
 
-
-We may fetch the function output as:
+Store the function output:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 119
 
-
-Next, we instantiate :class:`Recipe`, :class:`arbor.context` etc. and execute cell model for a few hundred ms,
+Next, we instantiate :class:`Recipe`, a :class:`~arbor.context` etc. and execute cell model for a few hundred ms,
 sampling the different signals every 1 ms:
 
 .. literalinclude:: ../../python/example/single_cell_extracellular_potentials.py
    :language: python
    :lines: 121-136
-
 
 Extract recorded membrane voltages, electrode and transmembrane currents.
 Note that membrane voltages at branch points and intersections between CVs are dropped as
@@ -158,7 +148,6 @@ we only illustrate membrane voltages of segments with finite lengths.
    :language: python
    :lines: 138-153
 
-
 Finally we sum the stimulation and transmembrane currents, allowing the stimuli to mimic a synapse
 current embedded in the membrane itself rather than an intracellular electrode current:
 
@@ -166,18 +155,17 @@ current embedded in the membrane itself rather than an intracellular electrode c
    :language: python
    :lines: 161
 
-
 .. _tutorial_lfpykit-lfpykit:
 
 Compute extracellular potentials
 --------------------------------
 
-Here we utilize the `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_ library to map
+Here we utilize the LFPykit library to map
 transmembrane currents recorded during the
 simulation to extracellular potentials in vicinity to the cell.
 We shall account for every segment in each CV using the so-called line-source approximation described :ref:`above <tutorial_lfpykit-linesource>`.
 
-First we define a couple of inherited classes to interface `LFPykit <https://lfpykit.readthedocs.io/en/latest>`_
+First we define a couple of inherited classes to interface LFPykit
 (as this library is not solely written for Arbor).
 Starting with a class inherited from :class:`lfpykit.CellGeometry`:
 
@@ -209,11 +197,11 @@ of the extracellular potential (``V_e``) in a plane.
 Each part (CV) of the cell is shown with some color coding for the membrane potential (``V_m``).
 The stimulus location is denoted by the black marker.
 
-
 .. figure:: tutorial_lfpykit.svg
     :width: 1600
     :align: center
 
+    The result.
 
 .. Note::
 
@@ -225,13 +213,13 @@ The stimulus location is denoted by the black marker.
     be distributed across multiple segments with varying surface area. The transmembrane
     current is assumed to be constant per unit length per segment.
 
-
 .. _tutorial_lfpykit-code:
 
 The full code
 -------------
 You can find the full code of the example at ``python/examples/single_cell_extracellular_potentials.py``.
 
+Find the source of LFPykit `here <https://github.com/LFPy/LFPykit/>`_.
 
 References
 ----------
