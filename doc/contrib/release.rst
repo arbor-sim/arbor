@@ -11,13 +11,18 @@ Release cycle
    * Update/trim next-release column in Kanban
    * Prepare agenda, include possible additions not covered by Kanban/Issues
    * Add milestone tags (nextver, nextver+1, etc.)
+   * Add highlighted new features to RELEASE_NOTES.md
 3. ``T-8`` weeks: ``Release Manager`` dev meet (external/public)
 
    * Use Kanban as starter
    * Move issues around based on input
    * Add milestone tags, for this release or future releases
-4. ``T±0``: ``Release Manager`` release!
-5. ``T+1`` weeks: ``Scrum Master`` retrospective
+   * Update highlighted new features to RELEASE_NOTES.md
+4. ``T-1``: ``all`` reserve week for wrapping up PRs and review.
+5. ``T±0``: ``Release Manager`` release!
+
+   * Have a look at Python release schedule, and time Arbor release optimally with new Python minor version. It is nice to generate wheels for the new minor as soon as minor is released.
+6. ``T+1`` weeks: ``Scrum Master`` retrospective
    
    * set date for next release
 
@@ -33,7 +38,7 @@ Pre-release
 Update tags/versions and test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md.
+0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md, RELEASE_NOTES.md
 1. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
 2. Bump the ``VERSION`` file:
    https://github.com/arbor-sim/arbor/blob/master/VERSION
@@ -107,27 +112,38 @@ Release
    pip install arbor
    python -c 'import arbor; print(arbor.__config__)'
 
-7. Update spack package
+7. Update spack package / Ebrains Lab
 
    -  first, update ``spack/package.py``. The checksum of the targz is the sha256sum.
    -  Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
+   -  Make an MR `here <https://gitlab.ebrains.eu/technical-coordination/project-internal/devops/platform/ebrains-spack-builds/>`_
 
 8. In the same PR with the update to `spack/package.py`, bump `VERSION` file.
 
    - e.g. to 0.6.1-dev
 
+9. In the same PR with the update to `spack/package.py`, add new Zenodo badge/link.
+
+   - Start a new release on Zenodo, this allocated a DOI, but you don't have to finish it right away.
+     OTOH, you can already make and upload the tarball in step 1.
+
 Post Release
 ------------
 
+0. Update and submit Zenodo release if necessary.
 1. Announce on our website
-2. Add release for citation on Zenodo, add new ID to docs
-3. Add tagged version of docs on ReadTheDocs (should happen automatically)
+2. Announce on HBP newsletter newsletter@humanbrainproject.eu, HBP Twitter/socials evan.hancock@ebrains.eu
+3. [AUTOMATED] Add tagged version of docs on ReadTheDocs
 4. HBP internal admin
 
-  - [Plus](https://plus.humanbrainproject.eu/components/2691/)
-  - [TC Wiki](https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/)
-  - [KG](https://kg.ebrains.eu/search/instances/Software/80d205a9-ffb9-4afe-90b8-2f12819950ec) - [Update howto](https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software).
-    - Supported file formats (ie [ContentTypes](https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html)), [details](https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes)
+  - Plus: https://plus.humanbrainproject.eu/components/2691/
+  - TC Wiki: https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
+  - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
+    - Update howto: https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software
+    - Previous update as template: https://github.com/bweyers/HBPVisCatalogue/issues/480
+    - Supported file formats
+      - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
+      - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
   - Send an update to the folk in charge of HBP Twitter if we want to shout about it
 
 5. FZJ admin
