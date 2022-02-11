@@ -101,7 +101,7 @@ Density mechanism state variable
    .. py:function:: cable_probe_density_state_cell(mechanism, state)
 
    The value of the state variable ``state`` in the density mechanism ``mechanism``
-   on each cable in each CV of the cell discretixation.
+   on each cable in each CV of the cell discretization.
 
    Metadata: the list of corresponding :class:`cable` objects.
 
