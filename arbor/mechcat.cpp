@@ -618,7 +618,7 @@ const mechanism_catalogue load_catalogue(const std::string& fn) {
         auto type = mechs[ix].type();
         auto name = std::string{type.name};
         if (name == "") {
-            throw bad_catalogue_error{util::pprintf("Empty name for mechanism in ''", fn)};
+            throw bad_catalogue_error{util::pprintf("Empty name for mechanism in '{}'", fn)};
         }
         auto icpu = mechs[ix].i_cpu();
         auto igpu = mechs[ix].i_gpu();
