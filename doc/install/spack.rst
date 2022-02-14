@@ -23,16 +23,16 @@ A powerful feature for users of scientific software is Spack's `Environment feat
 Issues when using Spack
 -----------------------
 
-On some systems initial Spack setup requires an extra step currently not mentioned in the `Spack documentation <https://spack.readthedocs.io>`_, which is adding the compilers on your system to Spack's configuration. If you don't, you may get this error:
+On some systems initial Spack setup requires an extra step currently not shown in the up-front installations instructions of the `Spack documentation <https://spack.readthedocs.io>`_, which is adding the compilers on your system to Spack's configuration. If you don't, you may get this error:
 
 .. code-block:: bash
 
     No satisfying compiler available is compatible with a satisfying os
 
-The solution is to run:
+The solution is to run (`as described further down in the official documentation <https://spack.readthedocs.io/en/latest/getting_started.html#compiler-configuration>`_):
 
 .. code-block:: bash
 
-    ./spack compiler find
+    ./spack compiler add
 
 To get help in case of problems, please make an issue at `Arbor's issues page <https://github.com/arbor-sim/arbor/issues>`_.
