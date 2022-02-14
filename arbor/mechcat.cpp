@@ -622,7 +622,6 @@ const mechanism_catalogue load_catalogue(const std::string& fn) {
         }
         auto icpu = mechs[ix].i_cpu();
         auto igpu = mechs[ix].i_gpu();
-
         if (!icpu && !igpu) {
             throw bad_catalogue_error{util::pprintf("Empty interfaces for mechanism '{}'", name)};
         }

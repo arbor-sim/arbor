@@ -69,6 +69,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     for (const auto& c: ns_components) ss << c <<"::";
 
     out << fmt::format(FMT_COMPILE("extern \"C\" {{\n"
+                                   "#ifdef ARB_WITH_GPU\n"
                                    "  arb_mechanism_interface* make_{4}_{1}_interface_gpu() {{\n"
                                    "    static arb_mechanism_interface result;\n"
                                    "    result.backend={2};\n"
@@ -82,6 +83,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
                                    "    result.post_event={3}{0}_post_event_;\n"
                                    "    return &result;\n"
                                    "  }}\n"
+                                   "#endif\n"
                                    "}};\n\n"),
                        class_name,
                        name,

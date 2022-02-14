@@ -113,7 +113,7 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                        "  arb_mechanism_interface* make_{0}_{1}_interface_gpu();\n",
                        prefix,
                        name)
-        << fmt::format("#ifndef ARB_GPU_ENABLED\n"
+        << fmt::format("#ifndef ARB_WITH_GPU\n"
                        "  arb_mechanism_interface* make_{0}_{1}_interface_gpu() {{ return nullptr; }}\n"
                        "#endif\n\n"
                        "  arb_mechanism make_{0}_{1}() {{\n"
