@@ -157,7 +157,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 133-141
+   :lines: 133-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 
@@ -170,4 +170,4 @@ We plot the results using pandas and seaborn:
 The full code
 *************
 
-You can find the full code of the example at ``python/examples/network_ring.py``.
+You can find the full code of the example at ``python/example/network_ring.py``.
