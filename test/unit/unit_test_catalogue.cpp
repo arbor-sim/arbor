@@ -48,60 +48,58 @@
 
 #include "../gtest.h"
 
-#ifndef ARB_GPU_ENABLED
-#define ADD_MECH(c, x)\
-c.add(#x, make_testing_##x());   \
-c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore()));
-#else
-#define ADD_MECH(c, x)\
-c.add(#x, make_testing_##x());                                      \
-c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_multicore())); \
-c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(), *make_testing_##x##_interface_gpu()));
-#endif
+#define ADD_MECH(c, x) do {                                             \
+    auto mech = make_testing_##x();                                     \
+    c.add(#x, mech.type());                                             \
+    c.register_implementation(#x, std::make_unique<arb::mechanism>(mech.type(), *mech.i_cpu())); \
+    if (mech.i_gpu()) {                                                 \
+        c.register_implementation(#x, std::make_unique<arb::mechanism>(mech.type(), *mech.i_gpu())); \
+    }                                                                   \
+    }while (false)
 
 using namespace arb;
 
 mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
     mechanism_catalogue cat = from;
 
-    ADD_MECH(cat, gj0)
-    ADD_MECH(cat, gj1)
-    ADD_MECH(cat, test_ca)
-    ADD_MECH(cat, test_kin1)
-    ADD_MECH(cat, test_kinlva)
-    ADD_MECH(cat, ca_linear)
-    ADD_MECH(cat, celsius_test)
-    ADD_MECH(cat, diam_test)
-    ADD_MECH(cat, param_as_state)
-    ADD_MECH(cat, post_events_syn)
-    ADD_MECH(cat, test_linear_state)
-    ADD_MECH(cat, test_linear_init)
-    ADD_MECH(cat, test_linear_init_shuffle)
-    ADD_MECH(cat, test0_kin_diff)
-    ADD_MECH(cat, test0_kin_conserve)
-    ADD_MECH(cat, test0_kin_steadystate)
-    ADD_MECH(cat, test0_kin_compartment)
-    ADD_MECH(cat, test1_kin_diff)
-    ADD_MECH(cat, test1_kin_conserve)
-    ADD_MECH(cat, test2_kin_diff)
-    ADD_MECH(cat, test3_kin_diff)
-    ADD_MECH(cat, test1_kin_steadystate)
-    ADD_MECH(cat, test1_kin_compartment)
-    ADD_MECH(cat, test4_kin_compartment)
-    ADD_MECH(cat, test5_nonlinear_diff)
-    ADD_MECH(cat, test6_nonlinear_diff)
-    ADD_MECH(cat, fixed_ica_current)
-    ADD_MECH(cat, non_linear)
-    ADD_MECH(cat, point_ica_current)
-    ADD_MECH(cat, linear_ca_conc)
-    ADD_MECH(cat, test_cl_valence)
-    ADD_MECH(cat, test_ca_read_valence)
-    ADD_MECH(cat, read_eX)
-    ADD_MECH(cat, write_Xi_Xo)
-    ADD_MECH(cat, write_multiple_eX)
-    ADD_MECH(cat, write_eX)
-    ADD_MECH(cat, read_cai_init)
-    ADD_MECH(cat, write_cai_breakpoint)
+    ADD_MECH(cat, gj0);
+    ADD_MECH(cat, gj1);
+    ADD_MECH(cat, test_ca);
+    ADD_MECH(cat, test_kin1);
+    ADD_MECH(cat, test_kinlva);
+    ADD_MECH(cat, ca_linear);
+    ADD_MECH(cat, celsius_test);
+    ADD_MECH(cat, diam_test);
+    ADD_MECH(cat, param_as_state);
+    ADD_MECH(cat, post_events_syn);
+    ADD_MECH(cat, test_linear_state);
+    ADD_MECH(cat, test_linear_init);
+    ADD_MECH(cat, test_linear_init_shuffle);
+    ADD_MECH(cat, test0_kin_diff);
+    ADD_MECH(cat, test0_kin_conserve);
+    ADD_MECH(cat, test0_kin_steadystate);
+    ADD_MECH(cat, test0_kin_compartment);
+    ADD_MECH(cat, test1_kin_diff);
+    ADD_MECH(cat, test1_kin_conserve);
+    ADD_MECH(cat, test2_kin_diff);
+    ADD_MECH(cat, test3_kin_diff);
+    ADD_MECH(cat, test1_kin_steadystate);
+    ADD_MECH(cat, test1_kin_compartment);
+    ADD_MECH(cat, test4_kin_compartment);
+    ADD_MECH(cat, test5_nonlinear_diff);
+    ADD_MECH(cat, test6_nonlinear_diff);
+    ADD_MECH(cat, fixed_ica_current);
+    ADD_MECH(cat, non_linear);
+    ADD_MECH(cat, point_ica_current);
+    ADD_MECH(cat, linear_ca_conc);
+    ADD_MECH(cat, test_cl_valence);
+    ADD_MECH(cat, test_ca_read_valence);
+    ADD_MECH(cat, read_eX);
+    ADD_MECH(cat, write_Xi_Xo);
+    ADD_MECH(cat, write_multiple_eX);
+    ADD_MECH(cat, write_eX);
+    ADD_MECH(cat, read_cai_init);
+    ADD_MECH(cat, write_cai_breakpoint);
 
     return cat;
 }
