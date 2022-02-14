@@ -114,6 +114,6 @@ const mechanism_catalogue& global_allen_catalogue();
 const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
-const mechanism_catalogue& load_catalogue(const std::string&);
+const mechanism_catalogue load_catalogue(const std::string&);
 
 } // namespace arb

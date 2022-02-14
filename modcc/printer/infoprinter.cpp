@@ -29,15 +29,16 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
 
     const auto lowest = std::to_string(std::numeric_limits<double>::lowest());
     const auto max    = std::to_string(std::numeric_limits<double>::max());
+    const auto prefix = std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_");
+
     out << fmt::format("#pragma once\n\n"
                        "#include <cmath>\n"
                        "#include <{}mechanism_abi.h>\n\n",
                        arb_header_prefix());
-
     out << fmt::format("extern \"C\" {{\n"
-                       "  arb_mechanism_type make_{0}_{1}() {{\n"
+                       "  arb_mechanism_type make_{0}_{1}_type() {{\n"
                        "    // Tables\n",
-                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
+                       prefix,
                        name);
 
     const auto& [state_ids, global_ids, param_ids] = public_variable_ids(m);
@@ -108,12 +109,22 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                        module_kind_str(m),
                        m.is_linear(),
                        m.has_post_events())
-        << fmt::format("  arb_mechanism_interface* make_{0}_{1}_interface_multicore(){2}\n"
-                       "  arb_mechanism_interface* make_{0}_{1}_interface_gpu(){3}\n"
-                       "}}\n",
-                       std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
-                       name,
-                       cpu ? ";" : " { return nullptr; }",
-                       gpu ? ";" : " { return nullptr; }");
+        << fmt::format("  arb_mechanism_interface* make_{0}_{1}_interface_multicore();\n"
+                       "  arb_mechanism_interface* make_{0}_{1}_interface_gpu();\n",
+                       prefix,
+                       name)
+        << fmt::format("#ifndef ARB_GPU_ENABLED\n"
+                       "  arb_mechanism_interface* make_{0}_{1}_interface_gpu() {{ return nullptr; }}\n"
+                       "#endif\n\n"
+                       "  arb_mechanism make_{0}_{1}() {{\n"
+                       "    static arb_mechanism result = {{}};\n"
+                       "    result.type  = make_{0}_{1}_type;\n"
+                       "    result.i_cpu = make_{0}_{1}_interface_multicore;\n"
+                       "    result.i_gpu = make_{0}_{1}_interface_gpu;\n"
+                       "    return result;\n"
+                       "  }}\n"
+                       "}} // extern C\n",
+                       prefix,
+                       name);
     return out.str();
 }

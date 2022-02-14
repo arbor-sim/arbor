@@ -9,8 +9,8 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 0
-#define ARB_MECH_ABI_VERSION_PATCH 1
+#define ARB_MECH_ABI_VERSION_MINOR 1
+#define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
@@ -207,6 +207,16 @@ typedef struct arb_mechanism_type {
     arb_ion_info*             ions;             // Ion properties
     arb_size_type             n_ions;
 } arb_mechanism_type;
+
+// Bundle a type and its interfaces
+typedef arb_mechanism_type (*arb_get_mechanism_type)();
+typedef arb_mechanism_interface* (*arb_get_mechanism_interface)();
+
+typedef struct arb_mechanism {
+    arb_get_mechanism_type type;
+    arb_get_mechanism_interface i_cpu;
+    arb_get_mechanism_interface i_gpu;
+} arb_mechanism;
 
 #ifdef __cplusplus
 }
