@@ -444,16 +444,32 @@ interface layer <simd>` for more information.
 Making A Loadable Mechanism
 ---------------------------
 
-Mechanisms interface with Arbor by providing three functions, one
-returning the metadata portion, and one for each implemented backend (currently
-two). The latter may return a NULL pointer, indicating that this backend is not
-supported. The naming scheme is shown in the example below
+Mechanisms interface with Arbor by providing a single function, returning
+a structure
+
+.. c:struct:: arb_mechanism
+
+  .. c:member:: arb_get_mechanism_type type
+
+                Pointer to a function ``arb_mechanism_type get_type()``
+
+  .. c:member:: arb_get_mechanism_interface i_cpu
+
+                Pointer to a function ``arb_mechanism_type get_interface()``
+                that returns a pointer to the CPU interface which may be
+                ``null``.
+
+  .. c:member:: arb_get_mechanism_interface i_gpu
+
+                Pointer to a function ``arb_mechanism_type get_interface()``
+                that returns a pointer to the GPU interface which may be
+                ``null``.
+
+The naming scheme is shown in the example below
 
 .. code:: C
 
-  arb_mechanism_type make_arb_default_catalogue_pas();
-  arb_mechanism_interface* make_arb_default_catalogue_pas_interface_multicore();
-  arb_mechanism_interface* make_arb_default_catalogue_pas_interface_gpu();
+  arb_mechanism make_arb_default_catalogue_pas();
 
 Writing Mechanisms Directly Against the ABI
 -------------------------------------------

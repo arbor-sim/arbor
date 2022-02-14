@@ -608,16 +608,28 @@ const mechanism_catalogue load_catalogue(const std::string& fn) {
      * different lifetime than the actual catalogue itfself. This is not a leak,
      * as `dlopen` caches handles for us.
      */
-    int count = 0;
+    int count = -1;
     auto mechs = (arb_mechanism*)get_catalogue(&count);
+    if (count <= 0) {
+        throw bad_catalogue_error{util::pprintf("Invalid mechanism count {} in shared object '{}'", count, fn)};
+    }
     mechanism_catalogue result;
     for(int ix = 0; ix < count; ++ix) {
         auto type = mechs[ix].type();
-        auto name = type.name;
+        auto name = std::string{type.name};
+        if (name == "") {
+            throw bad_catalogue_error{util::pprintf("Empty name for mechanism in ''", fn)};
+        }
         auto icpu = mechs[ix].i_cpu();
         auto igpu = mechs[ix].i_gpu();
+
+        if (!icpu && !igpu) {
+            throw bad_catalogue_error{util::pprintf("Empty interfaces for mechanism '{}'", name)};
+        }
         result.add(name, type);
-        result.register_implementation(name, std::make_unique<mechanism>(type, *icpu));
+        if (icpu) {
+            result.register_implementation(name, std::make_unique<mechanism>(type, *icpu));
+        }
         if (igpu) {
             result.register_implementation(name, std::make_unique<mechanism>(type, *igpu));
         }
