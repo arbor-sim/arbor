@@ -108,7 +108,7 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 61-111
+   :lines: 61-110
 
 The execution
 *************
@@ -136,7 +136,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 113-126
+   :lines: 111-125
 
 The results
 ***********
@@ -145,7 +145,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 128-131
+   :lines: 126-131
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
