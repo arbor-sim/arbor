@@ -73,8 +73,7 @@ The recipe is where the different cells and the :ref:`connections <interconnecti
 
 Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired
 number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main differences
-are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**
-(``make_cable_cell()`` returns the cell above).
+are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
 
 Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
 previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 (inducing a conductance of 0.01 μS
