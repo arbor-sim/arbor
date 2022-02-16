@@ -191,3 +191,120 @@ contain full ``segments``).
 
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
 as it can lead to vastly different model behavior.
+
+Tips for Faster NMODL
+======================
+
+NMODL is a quirky language and not well specified, which results in NMODL files
+being treated as un-understandable and untouchable. This in turn leads to
+sub-optimal performance, especially since mechanisms take up a large amount of
+the simulations' runtime budget. With some understanding of the subject matter,
+however, it is quite straightforward to obtain clean and performant NMODL files.
+We regularly have seen speed-ups factors from tuning NMODL of around three.
+
+First, let us discuss how NMODL becomes part of a simulation. NMODL mechanisms
+are given in ``.mod`` files, whose layout and syntax has been discussed above.
+These are compiled by ``modcc`` into a series of callbacks as specified by the
+mechanisms ABI. These operate on data held in Arbor's internal storage. But,
+``modcc`` does not generate machine code, it goes through C++ (and/or CUDA) as
+an intermediary which is processed by a standard C++ compiler like GCC (or nvcc)
+to produce either a shared object (for external catalogues) and code directly
+linked into Arbor (the built-in catalogues).
+
+Now, we turn to a series of tips we found helpful in producing fast NMODL
+mechanisms.
+
+``RANGE``
+---------
+
+Parameters and ``ASSIGNED`` variables marked as ``RANGE`` will be stored as an
+array with one entry per CV in Arbor. Reading and writing these incurs a memory
+access and thus affects cache and memory utilisation metrics. It is often
+cheaper to use ``LOCAL`` variables instead, even if that means foregoing the
+ability to re-use a comuted value. Compute is so much faster than memory on
+modern hardware that re-use at the expense of memory accesses is seldom
+profitable, except for the most complex terms.
+
+``PROCEDURE``
+-------------
+
+Prefer ``FUNCTION`` over ``PROCEDURE``. The latter *require* ``ASSIGNED RANGE``
+variables to return values and thus stress the memory system for little gain, as
+noted above. Also, they may not be inlined, as opposed to a ``FUNCTION``.
+
+```PARAMETER``
+--------------
+
+``PARAMETER`` should only be used for values that must be set by the simulator.
+All fixed values should be ``CONSTANT`` instead. These can be inlined and folded
+into the computations, allowing for further optimisations.
+
+Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
+----------------------------------------------------------------------------
+
+This is often done using a ``PROCEDURE``, which we know is inefficient. On top,
+this ``PROCEDURE`` will likely compute more outputs than strictly needed to
+accomodate both blocks. DRY code is a good idea nevertheless, so use a series of
+``FUNCTION`` instead to compute common expressions.
+
+This leads naturally to a common optimisation in H-H style ion channels. If you
+heeded the advice above, you will likely see this patter emerge:
+
+.. code::
+
+   na   = n_alpha()
+   nb   = n_beta()
+	 ntau = 1/(na + nb)
+   ninf = na*ntau
+
+   n' = (ninf - n)/ntau
+
+Written out in this explicit way it becomes obvious that this can be expressed
+in a more compact way
+
+.. code::
+
+   na   = n_alpha()
+   nb   = n_beta()
+	 nrho = na + nb
+
+   n' = (na - n)*nrho
+
+The latter code is much faster and neither ``modcc`` nor the external C++ might
+pick it up as an optimisations, largely due to floating point accuracy
+requirements. This is less easy to see when partially hidden in a ``PROCEDURE``.
+
+The Conductance Trick
+---------------------
+
+``modcc``, Arbor's NMODL compiler, applies symbolic differentiation to the
+current expression to find the conductance as ``g = d U/d I`` which are then
+used to compute the voltage update. ``g`` is thus computed multiple times every
+timestep and if the corresponding expression is inefficient, it will cost more
+time than needed. The differentiation implementation is less than smart and will
+not optimise the resulting code. This is an internal detail of Arbor, but it can
+help to produce well performing code. Here is an example
+
+.. code::
+
+  : BAD, will compute m^4 * h every step
+  i = m^4 * h * (v - e)
+
+  : GOOD, will just use a constant value of g
+  LOCAL g
+  g = m^4 * h
+  i = g * (v - e)
+
+Note that we do not lose accuracy here, since Arbor does not support
+higher-order ODEs and thus will treat ``g(v)`` as if ``v`` is a constant across
+a single timestep.
+
+
+Small Tips and Micro-Optimisations
+----------------------------------
+
+- Divisions cost a bit more than multiplications and additions.
+- ``m * m`` is more efficient than ``m^2``. This holds for higher powers as well
+  and if you want to squeeze out the utmost of performance use
+  exponentiation-by-squaring. (Although GCC does this for you. Most of the
+  time.)
