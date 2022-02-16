@@ -455,13 +455,13 @@ a structure
 
   .. c:member:: arb_get_mechanism_interface i_cpu
 
-                Pointer to a function ``arb_mechanism_type get_interface()``
+                Pointer to a function ``arb_mechanism_interface get_interface()``
                 that returns a pointer to the CPU interface which may be
                 ``null``.
 
   .. c:member:: arb_get_mechanism_interface i_gpu
 
-                Pointer to a function ``arb_mechanism_type get_interface()``
+                Pointer to a function ``arb_mechanism_interace get_interface()``
                 that returns a pointer to the GPU interface which may be
                 ``null``.
 
