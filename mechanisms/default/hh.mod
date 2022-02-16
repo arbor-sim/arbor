@@ -29,7 +29,7 @@ BREAKPOINT {
 
     n2 = n*n
     gk = gkbar*n2*n2
-    gna = gnabar*m*m*m*h*
+    gna = gnabar*m*m*m*h
     ina = gna*(v - ena)
     ik  = gk*(v - ek)
     il  = gl*(v - el)
