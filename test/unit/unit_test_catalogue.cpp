@@ -55,7 +55,7 @@
     if (mech.i_gpu()) {                                                 \
         c.register_implementation(#x, std::make_unique<arb::mechanism>(mech.type(), *mech.i_gpu())); \
     }                                                                   \
-    }while (false)
+    } while (false)
 
 using namespace arb;
 

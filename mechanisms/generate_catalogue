@@ -120,8 +120,22 @@ namespace arb {
 mechanism_catalogue build_${catalogue}_catalogue() {
     mechanism_catalogue cat;
 
+#define ADD(make) do {                                                                  \
+    auto mech = make();                                                                 \
+    auto ty = mech.type();                                                              \
+    auto nm = ty.name;                                                                  \
+    auto ig = mech.i_gpu();                                                             \
+    auto ic = mech.i_cpu();                                                             \
+    assert(ic || ig);                                                                   \
+    cat.add(nm, ty);                                                                    \
+    if (ic) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ic)); \
+    if (ig) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ig)); \
+} while (false)
+
     $add_modules
-    $register_modules
+
+#undef ADD
+
     return cat;
 }
 
@@ -136,9 +150,6 @@ const mechanism_catalogue& global_${catalogue}_catalogue() {
     def indent(n, lines):
         return '{{:<{0!s}}}'.format(n+1).format('\n').join(lines)
 
-    # TODO: use the commented include list below when private/public
-    # headers are resolved.
-
     return src.safe_substitute(dict(
         cmdline=" ".join(sys.argv),
         arbpfx=arbpfx,
@@ -146,10 +157,7 @@ const mechanism_catalogue& global_${catalogue}_catalogue() {
         backend_includes=indent(0, []),
         module_includes=indent(0,
             ['#include "{}{}.hpp"'.format(modpfx, m) for m in modules]),
-        add_modules=indent(4,
-            [f'cat.add("{mod}", make_arb_{catalogue}_catalogue_{mod}_type());' for mod in modules]),
-        register_modules=indent(4,
-                                [f'cat.register_implementation("{mod}", std::make_unique<mechanism>(make_arb_{catalogue}_catalogue_{mod}_type(), *make_arb_{catalogue}_catalogue_{mod}_interface_{be}()));' for mod in modules for be in backends]),
+        add_modules=indent(4, [f'ADD(make_arb_{catalogue}_catalogue_{mod});' for mod in modules]),
         n_modules=len(modules),
         insert_modules=indent(12, [f'make_arb_{catalogue}_catalogue_{mod}(),' for mod in modules]),
         ))

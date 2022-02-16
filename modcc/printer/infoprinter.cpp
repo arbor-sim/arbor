@@ -110,12 +110,11 @@ std::string build_info_header(const Module& m, const printer_options& opt, bool 
                        m.is_linear(),
                        m.has_post_events())
         << fmt::format("  arb_mechanism_interface* make_{0}_{1}_interface_multicore();\n"
-                       "  arb_mechanism_interface* make_{0}_{1}_interface_gpu();\n",
-                       prefix,
-                       name)
-        << fmt::format("#ifndef ARB_WITH_GPU\n"
+                       "  arb_mechanism_interface* make_{0}_{1}_interface_gpu();\n"
+                       "\n"
+                       "  [[gnu::weak]]\n"
                        "  arb_mechanism_interface* make_{0}_{1}_interface_gpu() {{ return nullptr; }}\n"
-                       "#endif\n\n"
+                       "\n"
                        "  arb_mechanism make_{0}_{1}() {{\n"
                        "    static arb_mechanism result = {{}};\n"
                        "    result.type  = make_{0}_{1}_type;\n"
