@@ -83,7 +83,7 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        ariant: [shared]
+        variant: [shared]
     env:
         CC:         ${{ matrix.config.cc }}
         CXX:        ${{ matrix.config.cxx }}

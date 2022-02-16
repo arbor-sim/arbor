@@ -4,10 +4,10 @@
 #include <functional>
 #include <vector>
 
-#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
+#include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
 
 namespace arb {
