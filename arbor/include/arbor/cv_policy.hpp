@@ -71,7 +71,7 @@ struct cv_policy_base {
 
 using cv_policy_base_ptr = std::unique_ptr<cv_policy_base>;
 
-struct cv_policy {
+struct ARB_SYMBOL_VISIBLE cv_policy {
     cv_policy(const cv_policy_base& ref) { // implicit
         policy_ptr = ref.clone();
     }

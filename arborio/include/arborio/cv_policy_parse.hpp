@@ -11,7 +11,7 @@
 
 namespace arborio {
 
-struct ARB_ARBORIO_API cv_policy_parse_error: arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE cv_policy_parse_error: arb::arbor_exception {
     explicit cv_policy_parse_error(const std::string& msg, const arb::src_location& loc);
     explicit cv_policy_parse_error(const std::string& msg);
 };

@@ -15,19 +15,19 @@
 namespace arborio {
 
 // Common base-class for neuroml run-time errors.
-struct ARB_ARBORIO_API neuroml_exception: std::runtime_error {
+struct ARB_SYMBOL_VISIBLE neuroml_exception: std::runtime_error {
     neuroml_exception(const std::string& what_arg):
         std::runtime_error(what_arg)
     {}
 };
 
 // Can't parse NeuroML if we don't have a document.
-struct ARB_ARBORIO_API nml_no_document: neuroml_exception {
+struct ARB_SYMBOL_VISIBLE nml_no_document: neuroml_exception {
     nml_no_document();
 };
 
 // Generic error parsing NeuroML data.
-struct ARB_ARBORIO_API nml_parse_error: neuroml_exception {
+struct ARB_SYMBOL_VISIBLE nml_parse_error: neuroml_exception {
     nml_parse_error(const std::string& error_msg, unsigned line = 0);
     std::string error_msg;
     unsigned line;
@@ -36,7 +36,7 @@ struct ARB_ARBORIO_API nml_parse_error: neuroml_exception {
 // NeuroML morphology error: improper segment data, e.g. bad id specification,
 // segment parent does not exist, fractionAlong is out of bounds, missing
 // required <proximal> data.
-struct ARB_ARBORIO_API nml_bad_segment: neuroml_exception {
+struct ARB_SYMBOL_VISIBLE nml_bad_segment: neuroml_exception {
     nml_bad_segment(unsigned long long segment_id, unsigned line = 0);
     unsigned long long segment_id;
     unsigned line;
@@ -44,7 +44,7 @@ struct ARB_ARBORIO_API nml_bad_segment: neuroml_exception {
 
 // NeuroML morphology error: improper segmentGroup data, e.g. malformed
 // element data, missing referenced segments or groups, etc.
-struct ARB_ARBORIO_API nml_bad_segment_group: neuroml_exception {
+struct ARB_SYMBOL_VISIBLE nml_bad_segment_group: neuroml_exception {
     nml_bad_segment_group(const std::string& group_id, unsigned line = 0);
     std::string group_id;
     unsigned line;
@@ -52,7 +52,7 @@ struct ARB_ARBORIO_API nml_bad_segment_group: neuroml_exception {
 
 // A segment or segmentGroup ultimately refers to itself via `parent`
 // or `include` elements respectively.
-struct ARB_ARBORIO_API nml_cyclic_dependency: neuroml_exception {
+struct ARB_SYMBOL_VISIBLE nml_cyclic_dependency: neuroml_exception {
     nml_cyclic_dependency(const std::string& id, unsigned line = 0);
     std::string id;
     unsigned line;

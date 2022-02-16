@@ -17,7 +17,7 @@ namespace arb {
 struct mprovider;
 struct region_tag {};
 
-class ARB_ARBOR_API region {
+class ARB_SYMBOL_VISIBLE region {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>

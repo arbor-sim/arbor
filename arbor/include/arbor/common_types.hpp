@@ -122,7 +122,7 @@ enum class backend_kind {
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
-enum class cell_kind {
+enum class ARB_SYMBOL_VISIBLE cell_kind {
     cable,   // Our own special mc neuron.
     lif,       // Leaky-integrate and fire neuron.
     spike_source,     // Cell that generates spikes at a user-supplied sequence of time points.

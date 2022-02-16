@@ -7,15 +7,15 @@
 namespace arborio {
 ARB_ARBORIO_API std::string acc_version();
 
-struct ARB_ARBORIO_API cableio_parse_error: arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE cableio_parse_error: arb::arbor_exception {
     explicit cableio_parse_error(const std::string& msg, const arb::src_location& loc);
 };
 
-struct ARB_ARBORIO_API cableio_morphology_error: arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE cableio_morphology_error: arb::arbor_exception {
     explicit cableio_morphology_error(const unsigned bid);
 };
 
-struct ARB_ARBORIO_API cableio_version_error: arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE cableio_version_error: arb::arbor_exception {
     explicit cableio_version_error(const std::string& version);
 };
 

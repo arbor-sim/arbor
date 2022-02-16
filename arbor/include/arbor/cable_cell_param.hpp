@@ -17,7 +17,7 @@ namespace arb {
 
 // Specialized arbor exception for errors in cell building.
 
-struct ARB_ARBOR_API cable_cell_error: arbor_exception {
+struct ARB_SYMBOL_VISIBLE cable_cell_error: arbor_exception {
     cable_cell_error(const std::string& what):
         arbor_exception("cable_cell: "+what) {}
 };
@@ -48,7 +48,7 @@ struct cable_cell_ion_data {
 // Periodic envelopes are not supported, but may well be a feature worth
 // considering in the future.
 
-struct i_clamp {
+struct ARB_SYMBOL_VISIBLE i_clamp {
     struct envelope_point {
         double t;         // [ms]
         double amplitude; // [nA]
@@ -84,40 +84,40 @@ struct i_clamp {
 };
 
 // Threshold detector description.
-struct threshold_detector {
+struct ARB_SYMBOL_VISIBLE threshold_detector {
     double threshold;
 };
 
 // Setter types for painting physical and ion parameters or setting
 // cell-wide default:
 
-struct init_membrane_potential {
+struct ARB_SYMBOL_VISIBLE init_membrane_potential {
     double value = NAN; // [mV]
 };
 
-struct temperature_K {
+struct ARB_SYMBOL_VISIBLE temperature_K {
     double value = NAN; // [K]
 };
 
-struct axial_resistivity {
+struct ARB_SYMBOL_VISIBLE axial_resistivity {
     double value = NAN; // [Ω·cm]
 };
 
-struct membrane_capacitance {
+struct ARB_SYMBOL_VISIBLE membrane_capacitance {
     double value = NAN; // [F/m²]
 };
 
-struct init_int_concentration {
+struct ARB_SYMBOL_VISIBLE init_int_concentration {
     std::string ion = "";
     double value = NAN; // [mM]
 };
 
-struct init_ext_concentration {
+struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     std::string ion = "";
     double value = NAN; // [mM]
 };
 
-struct init_reversal_potential {
+struct ARB_SYMBOL_VISIBLE init_reversal_potential {
     std::string ion = "";
     double value = NAN; // [mV]
 };
@@ -127,7 +127,7 @@ struct init_reversal_potential {
 // density and point mechanisms to segments and
 // reversal potential computations to cells.
 
-struct mechanism_desc {
+struct ARB_SYMBOL_VISIBLE mechanism_desc {
     struct field_proxy {
         mechanism_desc* m;
         std::string key;
@@ -186,7 +186,7 @@ private:
 };
 
 // Tagged mechanism types for dispatching decor::place() and decor::paint() calls
-struct junction {
+struct ARB_SYMBOL_VISIBLE junction {
     mechanism_desc mech;
     explicit junction(mechanism_desc m): mech(std::move(m)) {}
     junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
@@ -196,7 +196,7 @@ struct junction {
     }
 };
 
-struct synapse {
+struct ARB_SYMBOL_VISIBLE synapse {
     mechanism_desc mech;
     explicit synapse(mechanism_desc m): mech(std::move(m)) {}
     synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
@@ -206,7 +206,7 @@ struct synapse {
     }
 };
 
-struct density {
+struct ARB_SYMBOL_VISIBLE density {
     mechanism_desc mech;
     explicit density(mechanism_desc m): mech(std::move(m)) {}
     density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
@@ -216,7 +216,7 @@ struct density {
     }
 };
 
-struct ion_reversal_potential_method {
+struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
 };
@@ -293,7 +293,7 @@ ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
 
 // Global cable cell data.
 
-struct cable_cell_global_properties {
+struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     mechanism_catalogue catalogue = global_default_catalogue();
 
     // If >0, check membrane voltage magnitude is less than limit

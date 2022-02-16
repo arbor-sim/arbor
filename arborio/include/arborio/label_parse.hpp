@@ -13,7 +13,7 @@
 
 namespace arborio {
 
-struct ARB_ARBORIO_API label_parse_error: arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE label_parse_error: arb::arbor_exception {
     explicit label_parse_error(const std::string& msg, const arb::src_location& loc);
     explicit label_parse_error(const std::string& msg): arb::arbor_exception(msg) {}
 };

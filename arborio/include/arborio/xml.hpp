@@ -10,7 +10,7 @@
 namespace arborio {
 
 // Generic XML error (as reported by libxml2).
-struct ARB_ARBORIO_API xml_error: std::runtime_error {
+struct ARB_SYMBOL_VISIBLE xml_error: std::runtime_error {
     xml_error(const std::string& xml_error_msg, unsigned line = 0);
     std::string xml_error_msg;
     unsigned line;

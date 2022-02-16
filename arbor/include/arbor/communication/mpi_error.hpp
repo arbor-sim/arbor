@@ -83,7 +83,7 @@ namespace arb {
 class mpi_error_category_impl;
 ARB_ARBOR_API const mpi_error_category_impl& mpi_error_category();
 
-class mpi_error_category_impl: public std::error_category {
+class ARB_SYMBOL_VISIBLE mpi_error_category_impl: public std::error_category {
     const char* name() const noexcept override;
     std::string message(int) const override;
     std::error_condition default_error_condition(int) const noexcept override;
@@ -93,7 +93,7 @@ inline std::error_condition make_error_condition(mpi_errc ec) {
     return std::error_condition(static_cast<int>(ec), mpi_error_category());
 }
 
-struct ARB_ARBOR_API mpi_error: std::system_error {
+struct ARB_SYMBOL_VISIBLE mpi_error: std::system_error {
     explicit mpi_error(int mpi_err):
         std::system_error(mpi_err, mpi_error_category()) {}
 

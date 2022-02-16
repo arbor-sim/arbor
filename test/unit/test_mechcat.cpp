@@ -282,7 +282,11 @@ TEST(mechcat, names) {
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
 #if defined(ARB_ARBOR_SHARED_LIBRARY)
+#if defined(ARB_ON_MACOS)
+    EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.dylib"), bad_catalogue_error);
+#else
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.so"), bad_catalogue_error);
+#endif
 #else
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);
 #endif

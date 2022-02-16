@@ -19,7 +19,7 @@ using msize_t = std::uint32_t;
 constexpr msize_t mnpos = msize_t(-1);
 
 // a morphology sample point: a 3D location and radius.
-struct ARB_ARBOR_API mpoint {
+struct ARB_SYMBOL_VISIBLE mpoint {
     double x, y, z;  // [µm]
     double radius;   // [μm]
 
@@ -46,7 +46,7 @@ enum class comp_op {
 };
 
 // Describe a cable segment between two adjacent samples.
-struct ARB_ARBOR_API msegment {
+struct ARB_SYMBOL_VISIBLE msegment {
     msize_t id;
     mpoint prox;
     mpoint dist;
@@ -57,7 +57,7 @@ struct ARB_ARBOR_API msegment {
 
 
 // Describe a specific location on a morpholology.
-struct ARB_ARBOR_API mlocation {
+struct ARB_SYMBOL_VISIBLE mlocation {
     // The id of the branch.
     msize_t branch;
     // The relative position on the branch ∈ [0,1].
@@ -89,7 +89,7 @@ ARB_ARBOR_API mlocation_list support(mlocation_list);
 // They may be zero-length, and fork points in the morphology may have multiple,
 // equivalent zero-length cable representations.
 
-struct ARB_ARBOR_API mcable {
+struct ARB_SYMBOL_VISIBLE mcable {
     // The id of the branch on which the cable lies.
     msize_t branch;
 

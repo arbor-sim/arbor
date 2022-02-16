@@ -8,7 +8,7 @@
 
 using DeviceProp = cudaDeviceProp;
 
-struct ARB_ARBORENV_API api_error_type {
+struct ARB_SYMBOL_VISIBLE api_error_type {
     cudaError_t value;
     api_error_type(cudaError_t e): value(e) {}
 

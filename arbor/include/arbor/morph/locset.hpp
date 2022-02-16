@@ -19,7 +19,7 @@ struct mprovider;
 class locset;
 class locset_tag {};
 
-class ARB_ARBOR_API locset {
+class ARB_SYMBOL_VISIBLE locset {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>

@@ -13,39 +13,39 @@ namespace arborio {
 // SWC exceptions are thrown by `parse_swc`, and correspond
 // to inconsistent, or in `strict` mode, dubious SWC data.
 
-struct ARB_ARBORIO_API swc_error: public arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE swc_error: public arb::arbor_exception {
     swc_error(const std::string& msg, int record_id);
     int record_id;
 };
 
 // Parent id in record has no corresponding SWC record,
 // nor is the record the root record with parent id -1.
-struct ARB_ARBORIO_API swc_no_such_parent: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_no_such_parent: swc_error {
     explicit swc_no_such_parent(int record_id);
 };
 
 // Parent id is greater than or equal to record id.
-struct ARB_ARBORIO_API swc_record_precedes_parent: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_record_precedes_parent: swc_error {
     explicit swc_record_precedes_parent(int record_id);
 };
 
 // Multiple records cannot have the same id.
-struct ARB_ARBORIO_API swc_duplicate_record_id: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_duplicate_record_id: swc_error {
     explicit swc_duplicate_record_id(int record_id);
 };
 
 // Smells like a spherical soma.
-struct ARB_ARBORIO_API swc_spherical_soma: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
 };
 
 // Segment cannot have samples with different tags
-struct ARB_ARBORIO_API swc_mismatched_tags: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_mismatched_tags: swc_error {
     explicit swc_mismatched_tags(int record_id);
 };
 
 // Only tags 1, 2, 3, 4 supported
-struct ARB_ARBORIO_API swc_unsupported_tag: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_unsupported_tag: swc_error {
     explicit swc_unsupported_tag(int record_id);
 };
 

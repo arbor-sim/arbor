@@ -7,6 +7,7 @@
 #       define ARB_SYMBOL_EXPORT __attribute__((__dllexport__))
 #   elif defined(__GNUC__) && (__GNUC__ >= 4)
 #       define ARB_SYMBOL_EXPORT __attribute__((visibility("default")))
+#       define ARB_SYMBOL_VISIBLE __attribute__((__visibility__("default")))
 #   endif
 
 #elif defined(__clang__)
@@ -16,6 +17,7 @@
 #       define ARB_SYMBOL_EXPORT __attribute__((__dllexport__))
 #   else
 #       define ARB_SYMBOL_EXPORT __attribute__((__visibility__("default")))
+#       define ARB_SYMBOL_VISIBLE __attribute__((__visibility__("default")))
 #   endif
 
 # elif defined(__GNUC__)
@@ -26,6 +28,7 @@
 #           define ARB_SYMBOL_EXPORT __attribute__((__dllexport__))
 #       else
 #           define ARB_SYMBOL_EXPORT __attribute__((__visibility__("default")))
+#           define ARB_SYMBOL_VISIBLE __attribute__((__visibility__("default")))
 #       endif
 #   endif
 
@@ -41,5 +44,8 @@
 #endif
 #ifndef ARB_SYMBOL_EXPORT
 #   define ARB_SYMBOL_EXPORT
+#endif
+#ifndef ARB_SYMBOL_VISIBLE
+#   define ARB_SYMBOL_VISIBLE
 #endif
 

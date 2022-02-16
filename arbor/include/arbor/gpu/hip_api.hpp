@@ -13,7 +13,7 @@ namespace gpu {
 
 using DeviceProp = hipDeviceProp_t;
 
-struct ARB_ARBOR_API api_error_type {
+struct ARB_SYMBOL_VISIBLE api_error_type {
     hipError_t value;
     api_error_type(hipError_t e): value(e) {}
 

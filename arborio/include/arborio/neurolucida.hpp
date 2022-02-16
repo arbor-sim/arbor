@@ -12,14 +12,14 @@
 namespace arborio {
 
 // Common base-class for arborio run-time errors.
-struct ARB_ARBORIO_API asc_exception: public arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE asc_exception: public arb::arbor_exception {
     asc_exception(const std::string& what_arg):
         arb::arbor_exception(what_arg)
     {}
 };
 
 // Generic error parsing asc data.
-struct ARB_ARBORIO_API asc_parse_error: asc_exception {
+struct ARB_SYMBOL_VISIBLE asc_parse_error: asc_exception {
     asc_parse_error(const std::string& error_msg, unsigned line, unsigned column);
     std::string message;
     unsigned line;
@@ -27,7 +27,7 @@ struct ARB_ARBORIO_API asc_parse_error: asc_exception {
 };
 
 // An unsupported ASC description feature was encountered.
-struct ARB_ARBORIO_API asc_unsupported: asc_exception {
+struct ARB_SYMBOL_VISIBLE asc_unsupported: asc_exception {
     asc_unsupported(const std::string& error_msg);
     std::string message;
 };
