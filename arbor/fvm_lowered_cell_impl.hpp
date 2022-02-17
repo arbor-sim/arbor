@@ -100,6 +100,9 @@ private:
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV_ = 0;
 
+    std::optional<double> membrane_min_;
+    std::optional<double> membrane_max_;
+
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
 
@@ -310,6 +313,23 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         std::swap(state_->time_to, state_->time);
         state_->time_ptr = state_->time.data();
 
+        // clip membrane to optional minimal/maximal value
+        if (membrane_min_) {
+            const double membrane_min = membrane_min_.value();
+            std::transform(std::begin(state_->voltage),
+                           std::end(state_->voltage),
+                           std::begin(state_->voltage),
+                           [&membrane_min] (double d) { return std::max(d, membrane_min); });
+        }
+
+        if (membrane_max_) {
+            const double membrane_max = membrane_max_.value();
+            std::transform(std::begin(state_->voltage),
+                           std::end(state_->voltage),
+                           std::begin(state_->voltage),
+                           [&membrane_max] (double d) { return std::min(d, membrane_max); });
+        }
+
         // Check for non-physical solutions:
 
         if (check_voltage_mV_>0) {
@@ -445,6 +465,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     // Check for physically reasonable membrane volages?
 
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
+
+    membrane_min_ = global_props.membrane_min;
+    membrane_max_ = global_props.membrane_max;
 
     auto nintdom = fvm_intdom(rec, gids, fvm_info.cell_to_intdom);
 

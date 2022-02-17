@@ -509,17 +509,22 @@ void register_cells(pybind11::module& m) {
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
+               optional<double> rL, optional<double> tempK,
+               optional<double> membrane_min, optional<double> membrane_max)
             {
                 if (Vm) props.default_parameters.init_membrane_potential = Vm;
                 if (cm) props.default_parameters.membrane_capacitance=cm;
                 if (rL) props.default_parameters.axial_resistivity=rL;
                 if (tempK) props.default_parameters.temperature_K=tempK;
+                if (membrane_min) props.membrane_min = membrane_min;
+                if (membrane_max) props.membrane_max = membrane_max;
             },
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
             pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
             pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
             pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
+            pybind11::arg_v("membrane_min", pybind11::none(), "minimum value membrane is clipped to [mV]."),
+            pybind11::arg_v("membrane_max", pybind11::none(), "maximum value membrane is clipped to [mV]."),
             "Set global default values for cable and cell properties.")
         // add/modify ion species
         .def("set_ion",

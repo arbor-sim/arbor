@@ -299,6 +299,9 @@ struct cable_cell_global_properties {
     // during integration.
     double membrane_voltage_limit_mV = 0;
 
+    std::optional<double> membrane_min;
+    std::optional<double> membrane_max;
+
     // True => combine linear synapses for performance.
     bool coalesce_synapses = true;
 
