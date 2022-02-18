@@ -195,9 +195,10 @@ as it can lead to vastly different model behavior.
 Tips for Faster NMODL
 ======================
 
-NMODL is a quirky language and not formally specified, which results in NMODL
-files existing NMODL being treated as difficult to understand and best left
-as-is. This in turn leads to sub-optimal performance, especially since
+NMODL is a language without formal specification and many unexpected
+characteristics (many of which are not supported in Arbor), which results in
+NMODL files existing NMODL being treated as difficult to understand and best
+left as-is. This in turn leads to sub-optimal performance, especially since
 mechanisms take up a large amount of the simulations' runtime budget. With some
 understanding of the subject matter, however, it is quite straightforward to
 obtain clean and performant NMODL files. We regularly have seen speed-ups
