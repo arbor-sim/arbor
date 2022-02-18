@@ -242,7 +242,7 @@ allowing for further optimisations.
 Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
 ----------------------------------------------------------------------------
 
-This is often done using a ``PROCEDURE``, which we know is inefficient. On top,
+This is often done using a ``PROCEDURE``, which we now know is inefficient. On top,
 this ``PROCEDURE`` will likely compute more outputs than strictly needed to
 accomodate both blocks. DRY code is a good idea nevertheless, so use a series of
 ``FUNCTION`` instead to compute common expressions.
