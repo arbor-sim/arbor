@@ -230,7 +230,7 @@ profitable, except for the most complex terms.
 
 Prefer ``FUNCTION`` over ``PROCEDURE``. The latter *require* ``ASSIGNED RANGE``
 variables to return values and thus stress the memory system, which, as
-noted above. Also, they may not be inlined, as opposed to a ``FUNCTION``.
+noted above, is not most efficient on current hardware. Also, they may not be inlined, as opposed to a ``FUNCTION``.
 
 ```PARAMETER``
 --------------
