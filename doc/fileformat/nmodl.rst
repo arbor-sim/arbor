@@ -237,7 +237,7 @@ noted above. Also, they may not be inlined, as opposed to a ``FUNCTION``.
 
 ``PARAMETER`` should only be used for values that must be set by the simulator.
 All fixed values should be ``CONSTANT`` instead. These can be inlined and folded
-into the computations, allowing for further optimisations.
+allowing for further optimisations.
 
 Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
 ----------------------------------------------------------------------------
