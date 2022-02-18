@@ -213,7 +213,8 @@ compiler like GCC (or nvcc) to produce either a shared object (for external
 catalogues) and code directly linked into Arbor (the built-in catalogues).
 
 Now, we turn to a series of tips we found helpful in producing fast NMODL
-mechanisms.
+mechanisms. Note that if you are looking for help with NMODL in the context of
+NEURON this guide might not help.
 
 ``RANGE``
 ---------
