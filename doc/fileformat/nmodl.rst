@@ -205,7 +205,7 @@ We regularly have seen speed-ups factors from tuning NMODL of around three.
 First, let us discuss how NMODL becomes part of a simulation. NMODL mechanisms
 are given in ``.mod`` files, whose layout and syntax has been discussed above.
 These are compiled by ``modcc`` into a series of callbacks as specified by the
-mechanisms ABI. These operate on data held in Arbor's internal storage. But,
+:ref:`mechanism_abi`. These operate on data held in Arbor's internal storage. But,
 ``modcc`` does not generate machine code, it goes through C++ (and/or CUDA) as
 an intermediary which is processed by a standard C++ compiler like GCC (or nvcc)
 to produce either a shared object (for external catalogues) and code directly
