@@ -195,7 +195,7 @@ as it can lead to vastly different model behavior.
 Tips for Faster NMODL
 ======================
 
-NMODL is a quirky language and not well specified, which results in NMODL files
+NMODL is a quirky language and not formally specified, which results in NMODL files
 existing NMODL being treated as difficult to understand and best left as-is. This in turn leads to
 sub-optimal performance, especially since mechanisms take up a large amount of
 the simulations' runtime budget. With some understanding of the subject matter,
