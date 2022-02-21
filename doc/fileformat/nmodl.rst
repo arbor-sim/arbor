@@ -261,7 +261,7 @@ heeded the advice above, you will likely see this patter emerge:
 
    na   = n_alpha()
    nb   = n_beta()
-	 ntau = 1/(na + nb)
+   ntau = 1/(na + nb)
    ninf = na*ntau
 
    n' = (ninf - n)/ntau
@@ -273,9 +273,9 @@ compactly as
 
    na   = n_alpha()
    nb   = n_beta()
-	 nrho = na + nb
+   nrho = na + nb
 
-   n' = (na - n)*nrho
+   n' = na - n*nrho
 
 The latter code is faster, but neither ``modcc`` nor the external C++ compiler
 will perform this optimisation [#]_. This is less easy to
