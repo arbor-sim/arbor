@@ -267,7 +267,7 @@ heeded the advice above, you will likely see this patter emerge:
    n' = (ninf - n)/ntau
 
 Written out in this explicit way it becomes obvious that this can be expressed
-in a more compact way
+compactly as
 
 .. code::
 
@@ -278,10 +278,12 @@ in a more compact way
    n' = (na - n)*nrho
 
 The latter code is faster, but neither ``modcc`` nor the external C++ compiler
-will perform this optimisation (GCC/Clang *might* attempt it if asked to relax
-floating point accuracy with ``-ffast-math`` or ``-Ofast``. However, Arbor
-refrains from using this when compiling mechanism code.). This is less easy to
+will perform this optimisation [#]_. This is less easy to
 see when partially hidden in a ``PROCEDURE``.
+
+.. [#] GCC/Clang *might* attempt it if asked to relax floating point accuracy
+       with ``-ffast-math`` or ``-Ofast``. However, Arbor refrains from using
+       this option when compiling mechanism code.
 
 Complex Expressions in Current Computation
 ------------------------------------------
