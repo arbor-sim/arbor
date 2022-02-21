@@ -277,9 +277,11 @@ in a more compact way
 
    n' = (na - n)*nrho
 
-The latter code is faster. Neither ``modcc`` nor the external C++ are likely
-pick it up this optimisation, largely due to floating point accuracy
-requirements. This is less easy to see when partially hidden in a ``PROCEDURE``.
+The latter code is faster, but neither ``modcc`` nor the external C++ compiler
+will perform this optimisation (GCC/Clang *might* attempt it if asked to relax
+floating point accuracy with ``-ffast-math`` or ``-Ofast``. However, Arbor
+refrains from using this when compiling mechanism code.). This is less easy to
+see when partially hidden in a ``PROCEDURE``.
 
 Complex Expressions in Current Computation
 ------------------------------------------
