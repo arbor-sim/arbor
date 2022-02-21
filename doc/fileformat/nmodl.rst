@@ -290,7 +290,7 @@ used to compute the voltage update. ``g`` is thus computed multiple times every
 timestep and if the corresponding expression is inefficient, it will cost more
 time than needed. The differentiation implementation quite naive and will not
 optimise the resulting expressions. This is an internal detail of Arbor and
-might change in the future, but for this particular optimisation can help to
+might change in the future, but for now this particular optimisation can help to
 produce better performing code. Here is an example
 
 .. code::
@@ -307,6 +307,29 @@ Note that we do not lose accuracy here, since Arbor does not support
 higher-order ODEs and thus will treat ``g`` as a constant across
 a single timestep even if ``g`` actually depends on ``v``.
 
+Specialised Functions
+---------------------
+
+Another common pattern is the use of a guarded exponential of the form
+
+.. code::
+
+   if (x != 1) {
+     r = x*exp(1 - x)
+   } else {
+     r = x
+   }
+
+This incurs some extra cost on most platforms. However, it can be written in
+Arbor's NMODL dialect as
+
+.. code::
+
+   exprelr(x)
+
+which is more efficient and has the same guarantees. NMODL files originating
+from NEURON often use this or related functions, e.g. ``vtrap(x, y) =
+y*exprelr(x/y)``.
 
 Small Tips and Micro-Optimisations
 ----------------------------------
