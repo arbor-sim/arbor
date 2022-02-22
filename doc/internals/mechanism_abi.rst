@@ -465,6 +465,10 @@ a structure
                 that returns a pointer to the GPU interface which may be
                 ``null``.
 
+You can create mechanisms with both ``i_gpu`` and ``i_cpu`` returning ``null``,
+but at least one of the interfaces must be provided or Arbor will refuse to load
+the catalogue this mechanism.
+
 The naming scheme is shown in the example below
 
 .. code:: C
