@@ -5,8 +5,6 @@
 #include <vector>
 #include <cassert>
 
-#include <dlfcn.h>
-
 #include <arbor/version.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
@@ -14,9 +12,11 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/rangeutil.hpp"
+#include "util/dylib.hpp"
 #include "util/maputil.hpp"
+#include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 
 /* Notes on implementation:
  *
@@ -116,6 +116,15 @@ struct catalogue_state {
     catalogue_state(const catalogue_state& other) {
         import(other, "");
     }
+
+    catalogue_state& operator=(const catalogue_state& other) {
+        *this = {};
+        import(other, "");
+        return *this;
+    }
+
+    catalogue_state& operator=(catalogue_state&&) = default;
+    catalogue_state(catalogue_state&& other) = default;
 
     void import(const catalogue_state& other, const std::string& prefix) {
         // Do all checks before adding anything, otherwise we might get inconsistent state.
@@ -508,8 +517,7 @@ struct catalogue_state {
 // Mechanism catalogue method implementations.
 
 mechanism_catalogue::mechanism_catalogue():
-    state_(new catalogue_state)
-{}
+    state_(new catalogue_state) {}
 
 std::vector<std::string> mechanism_catalogue::mechanism_names() const {
     return state_->mechanism_names();
@@ -584,25 +592,21 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-static void check_dlerror(const std::string& fn, const std::string& call) {
-    auto error = dlerror();
-    if (error) { throw arb::bad_catalogue_error{fn, call}; }
-}
-
 const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
-
-    auto plugin = dlopen(fn.c_str(), RTLD_LAZY);
-    check_dlerror(fn, "dlopen");
-    assert(plugin);
-
-    auto get_catalogue = (global_catalogue_t*)dlsym(plugin, "get_catalogue");
-    check_dlerror(fn, "dlsym");
-
-    /* NOTE We do not free the DSO handle here and accept retaining the handles
-       until termination since the mechanisms provided by the catalogue may have
-       a different lifetime than the actual catalogue itfself. This is not a
-       leak proper as `dlopen` caches handles for us.
+    global_catalogue_t* get_catalogue = nullptr;
+    try {
+        get_catalogue = util::dl_get_symbol<global_catalogue_t*>(fn, "get_catalogue");
+    } catch(util::dl_error& e) {
+        throw bad_catalogue_error{e.what(), {e}};
+    }
+    if (!get_catalogue) {
+        throw bad_catalogue_error{util::pprintf("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
+    }
+    /* The DSO handle is not freed here: handles will be retained until
+     * termination since the mechanisms provided by the catalogue may have a
+     * different lifetime than the actual catalogue itfself. This is not a leak,
+     * as `dlopen` caches handles for us.
      */
     return *((const mechanism_catalogue*)get_catalogue());
 }

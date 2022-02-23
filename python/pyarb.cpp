@@ -3,6 +3,7 @@
 
 #include <arbor/spike.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/arbexcept.hpp>
 #include <arbor/version.hpp>
 
 #include "pyarb.hpp"
@@ -42,6 +43,10 @@ PYBIND11_MODULE(_arbor, m) {
 
     m.doc() = "arbor: multicompartment neural network models.";
     m.attr("__version__") = ARB_VERSION;
+
+    // Translate Arbor errors -> Python exceptions.
+    pybind11::register_exception<arb::file_not_found_error>(m, "FileNotFoundError", PyExc_FileNotFoundError);
+    pybind11::register_exception<arb::zero_thread_requested_error>(m, "ValueError", PyExc_ValueError);
 
     pyarb::register_cable_loader(m);
     pyarb::register_cable_probes(m, global_ptr);

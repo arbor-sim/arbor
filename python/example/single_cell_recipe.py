@@ -17,7 +17,7 @@ labels = arbor.label_dict({'soma':   '(tag 1)',
 # (3) Create cell and set properties
 decor = arbor.decor()
 decor.set_property(Vm=-40)
-decor.paint('"soma"', 'hh')
+decor.paint('"soma"', arbor.density('hh'))
 decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
 decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
 cell = arbor.cable_cell(tree, labels, decor)
@@ -34,8 +34,6 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = arbor.neuron_cable_properties()
-        self.the_cat = arbor.default_catalogue()
-        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         # (4.2) Override the num_cells method

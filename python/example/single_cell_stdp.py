@@ -13,8 +13,6 @@ class single_recipe(arbor.recipe):
         self.n_pairs = n_pairs
 
         self.the_props = arbor.neuron_cable_properties()
-        self.the_cat = arbor.default_catalogue()
-        self.the_props.register(self.the_cat)
 
     def num_cells(self):
         return 1
@@ -32,15 +30,16 @@ class single_recipe(arbor.recipe):
 
         decor = arbor.decor()
         decor.set_property(Vm=-40)
-        decor.paint('(all)', 'hh')
+        decor.paint('(all)', arbor.density('hh'))
 
         decor.place('"center"', arbor.spike_detector(-10), "detector")
-        decor.place('"center"', 'expsyn', "synapse")
+        decor.place('"center"', arbor.synapse('expsyn'), "synapse")
 
-        mech_syn = arbor.mechanism('expsyn_stdp')
-        mech_syn.set("max_weight", 1.)
+        mech = arbor.mechanism('expsyn_stdp')
+        mech.set("max_weight", 1.)
+        syn = arbor.synapse(mech)
 
-        decor.place('"center"', mech_syn, "stpd_synapse")
+        decor.place('"center"', syn, "stpd_synapse")
 
         cell = arbor.cable_cell(tree, labels, decor)
 

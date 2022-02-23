@@ -8,6 +8,9 @@ Arbor provides two ways for working with hardware resources:
 * *Prescribe* the hardware resources and their contexts for use in Arbor simulations.
 * *Query* available hardware resources (e.g. the number of available GPUs), and initializing MPI.
 
+Note that to utilize some hardware features Arbor must be built and installed with the feature enabled, for example MPI or a GPU.
+Please refer to the :ref:`installation guide <in_build_install>` for information on how to enable hardware support.
+
 Available resources
 -------------------
 
@@ -22,7 +25,12 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_MPI_ENABLED``
     * ``ARB_WITH_MPI4PY``
     * ``ARB_GPU_ENABLED``
+    * ``ARB_VECTORIZE``
+    * ``ARB_WITH_PROFILING``
+    * ``ARB_WITH_NEUROML``
+    * ``ARB_USE_BUNDLED_LIBS``
     * ``ARB_VERSION``
+    * ``ARB_ARCH``
 
     .. container:: example-code
 
@@ -31,7 +39,7 @@ Helper functions for checking cmake or environment variables, as well as configu
             import arbor
             arbor.config()
 
-            {'mpi': True, 'mpi4py': True, 'gpu': False, 'version': '0.2.1-dev'}
+            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'neuroml': True, 'bundled': True, 'version': '0.5.3-dev', 'arch': 'native'}
 
 .. function:: mpi_init()
 
@@ -81,8 +89,7 @@ The Python wrapper provides an API for:
 
     .. attribute:: threads
 
-        The number of CPU threads available, 1 by default.
-
+        The number of CPU threads available, 1 by default. Must be set to 1 at minimum.
     .. attribute:: gpu_id
 
         The identifier of the GPU to use.
@@ -124,10 +131,6 @@ The Python wrapper provides an API for:
     provided by :class:`context`, instead they configure contexts, which are passed to
     Arbor interfaces for domain decomposition and simulation.
 
-    .. function:: context()
-
-        Construct a local context with one thread, no GPU, no MPI.
-
     .. function:: context(threads, gpu_id, mpi)
         :noindex:
 
@@ -135,26 +138,20 @@ The Python wrapper provides an API for:
 
         .. attribute:: threads
 
-            The number of threads available locally for execution, 1 by default.
+            The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.
+            Passing ``"avail_threads"`` (as string) will query and use the maximum number of threads the system makes available.
 
         .. attribute:: gpu_id
 
             The identifier of the GPU to use, ``None`` by default.
             Must be ``None``, or a non-negative integer.
+            Can only be set when Arbor was built with GPU support.
 
         .. attribute:: mpi
 
-            The MPI communicator (see :class:`mpi_comm`).
-            mpi must be ``None``, or an MPI communicator.
-
-    .. function:: context(alloc)
-        :noindex:
-
-        Create a local context, with no distributed/MPI, that uses the local resources described by :class:`proc_allocation`.
-
-        .. attribute:: alloc
-
-            The computational resources, one thread and no GPU by default.
+            The MPI communicator (see :class:`mpi_comm`), ``None`` by default.
+            Must be ``None``, or an MPI communicator.
+            Can only be set when Arbor was built with MPI support.
 
     .. function:: context(alloc, mpi)
         :noindex:
@@ -168,22 +165,9 @@ The Python wrapper provides an API for:
 
         .. attribute:: mpi
 
-            The MPI communicator (see :class:`mpi_comm`).
+            The MPI communicator (see :class:`mpi_comm`). ``None`` by default.
             mpi must be ``None``, or an MPI communicator.
-
-    .. function:: context(threads, gpu_id)
-        :noindex:
-
-        Create a context that uses a set number of :attr:`threads` and the GPU with id :attr:`gpu_id`.
-
-        .. attribute:: threads
-
-            The number of threads available locally for execution, 1 by default.
-
-        .. attribute:: gpu_id
-
-            The identifier of the GPU to use, ``None`` by default.
-            Must be ``None``, or a non-negative integer.
+            Can only be set when Arbor was built with MPI support.
 
     Contexts can be queried for information about which features a context has enabled,
     whether it has a GPU, how many threads are in its thread pool.

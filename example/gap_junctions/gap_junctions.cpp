@@ -25,7 +25,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
@@ -135,26 +135,18 @@ int main(int argc, char** argv) {
     try {
         bool root = true;
 
-        arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
-
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
-        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        unsigned nt = arbenv::default_concurrency();
+        int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(arb::proc_allocation{nt, gpu_id}, MPI_COMM_WORLD);
         {
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             root = rank==0;
         }
 #else
-        resources.gpu_id = arbenv::default_gpu();
-        auto context = arb::make_context(resources);
+        auto context = arb::make_context(arbenv::default_allocation());
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
@@ -186,11 +178,11 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells);
+        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells());
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
-        for (auto g : decomp.groups) {
+        for (auto g : decomp.groups()) {
             for (auto i : g.gids) {
                 sim.add_sampler(arb::one_probe({i, 0}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }
@@ -303,26 +295,26 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     pas["g"] =  1.0/12000.0;
 
     // Paint density channels on all parts of the cell
-    decor.paint("(all)"_reg, nax);
-    decor.paint("(all)"_reg, kdrmt);
-    decor.paint("(all)"_reg, kamt);
-    decor.paint("(all)"_reg, pas);
+    decor.paint("(all)"_reg, arb::density{nax});
+    decor.paint("(all)"_reg, arb::density{kdrmt});
+    decor.paint("(all)"_reg, arb::density{kamt});
+    decor.paint("(all)"_reg, arb::density{pas});
 
     // Add a spike detector to the soma.
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
 
     // Add two gap junction sites.
-    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_0");
-    decor.place(arb::mlocation{0, 1}, arb::gap_junction_site{}, "local_1");
+    decor.place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1");
+    decor.place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0");
 
-    // Attach a stimulus to the second cell.
+    // Attach a stimulus to the first cell of the first group
     if (!gid) {
         auto stim = arb::i_clamp::box(0, stim_duration, 0.4);
         decor.place(arb::mlocation{0, 0.5}, stim, "stim");
     }
 
     // Add a synapse to the mid point of the first dendrite.
-    decor.place(arb::mlocation{0, 0.5}, "expsyn", "syn");
+    decor.place(arb::mlocation{0, 0.5}, arb::synapse{"expsyn"}, "syn");
 
     // Create the cell and set its electrical properties.
     return arb::cable_cell(tree, {}, decor);

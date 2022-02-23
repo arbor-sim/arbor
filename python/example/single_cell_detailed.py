@@ -5,7 +5,7 @@ import arbor
 import pandas
 import seaborn
 import sys
-from arbor import mechanism as mech
+from arbor import density
 
 # (1) Read the morphology from an SWC file.
 
@@ -61,9 +61,9 @@ decor.paint('"custom"', tempK=270)
 decor.paint('"soma"',   Vm=-50)
 
 # Paint density mechanisms.
-decor.paint('"all"', 'pas')
-decor.paint('"custom"', 'hh')
-decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
+decor.paint('"all"', density('pas'))
+decor.paint('"custom"', density('hh'))
+decor.paint('"dend"',  density('Ih', {'gbar': 0.001}))
 
 # Place stimuli and spike detectors.
 decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
@@ -98,7 +98,7 @@ model.properties.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
 # The function takes a second string parameter that can prefix
 # the name of the mechanisms to avoid collisions between catalogues
 # in this case we have no collisions so we use an empty prefix string.
-model.catalogue.extend(arbor.allen_catalogue(), "")
+model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 
 # (7) Add probes.
 

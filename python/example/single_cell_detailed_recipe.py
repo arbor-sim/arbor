@@ -5,7 +5,7 @@ import arbor
 import pandas
 import seaborn
 import sys
-from arbor import mechanism as mech
+from arbor import density
 
 # (1) Read the morphology from an SWC file.
 
@@ -61,9 +61,9 @@ decor.paint('"custom"', tempK=270)
 decor.paint('"soma"',   Vm=-50)
 
 # Paint density mechanisms.
-decor.paint('"all"', 'pas')
-decor.paint('"custom"', 'hh')
-decor.paint('"dend"',  mech('Ih', {'gbar': 0.001}))
+decor.paint('"all"', density('pas'))
+decor.paint('"custom"', density('hh'))
+decor.paint('"dend"', density('Ih', {'gbar': 0.001}))
 
 # Place stimuli and spike detectors.
 decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
@@ -99,16 +99,12 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
 
-        self.the_cat = arbor.default_catalogue()
-        self.the_cat.extend(arbor.allen_catalogue(), "")
-
         self.the_props = arbor.cable_global_properties()
         self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
         self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
         self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
         self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
-
-        self.the_props.register(self.the_cat)
+        self.the_props.catalogue.extend(arbor.allen_catalogue(), "")
 
     # (6.2) Override the num_cells method
     def num_cells(self):
@@ -147,30 +143,24 @@ class single_recipe (arbor.recipe):
 recipe = single_recipe(cell, [probe])
 
 # (4) Create an execution context
-
 context = arbor.context()
 
 # (5) Create a domain decomposition
-
 domains = arbor.partition_load_balance(recipe, context)
 
 # (6) Create a simulation
-
 sim = arbor.simulation(recipe, domains, context)
 
 # Instruct the simulation to record the spikes and sample the probe
-
 sim.record(arbor.spike_recording.all)
 
 probe_id = arbor.cell_member(0,0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
 # (7) Run the simulation
-
 sim.run(tfinal=100, dt=0.025)
 
 # (8) Print or display the results
-
 spikes = sim.spikes()
 print(len(spikes), 'spikes recorded:')
 for s in spikes:

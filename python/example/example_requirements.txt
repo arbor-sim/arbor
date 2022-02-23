@@ -1,0 +1,4 @@
+# pip requirements file
+LFPykit>=0.3
+pandas
+seaborn

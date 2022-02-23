@@ -349,6 +349,10 @@ Cable cell morphology
        union is coterminous with the sub-region of the morphology covered by
        the given cables in the placement.
 
+    .. py:method:: closest(x: real, y: real, z: real) -> tuple[mpoint, real]
+
+        Find the closest location to p. Returns the location and its distance from the input coordinates.
+
 .. py:class:: isometry
 
     Isometries represent rotations and translations in space, and can be used with
@@ -493,6 +497,61 @@ constitute part of the CV boundary point set.
 
     :param float max_etent: The maximum length for generated CVs.
     :param str domain: The region on which the policy is applied.
+
+CV discretization as mcables
+----------------------------
+
+It is often useful for the user to have a detailed view of the CVs generated for a
+given morphology and :ref:`cv-policy <pymorph-cv-policies>`. For example, while
+debugging and fine-tuning model implementations, it can be helpful to know how many CVs
+a cable-cell is comprised of, or how many CVs lie on a certain region of the cell.
+
+The following classes and functions allow the user to inspect the CVs of a cell or
+region.
+
+.. py:class:: cell_cv_data
+
+   Stores the discretisation data of a cable-cell in terms of CVs and the :py:class:`cables <cable>`
+   comprising each of these CVs.
+
+   .. py:method:: cables(idx) -> list[cable]
+
+      Returns a list of :py:class:`cable` representing the CV at a given index ``idx``.
+
+   .. py:method:: children(idx) -> list[int]
+
+      Returns a list of the indices of the CVs representing the children of the CV at index ``idx``.
+
+   .. py:method:: parent(idx) -> int
+
+      Returns the index of the CV representing the parent of the CV at index ``idx``.
+
+   .. py:attribute:: int num_cv
+
+      Returns the total number of CVs on the cell.
+
+.. py:function:: cv_data(cell) -> optional<cell_cv_data>
+
+   Constructs a :py:class:`cell_cv_data` object representing the CVs comprising the cable-cell according
+   to the :py:class:`cv_policy` provided in the :py:class:`decor` of the cell. Returns ``None`` if no
+   :py:class:`cv_policy` was provided in the decor.
+
+   :param cable_cell cell: The cable-cell.
+   :rtype: optional<:py:class:`cell_cv_data`>
+
+.. py:function:: intersect_region(reg, cv_data, integrate_along) -> list[idx, proportion]
+
+   Returns a list of tuples ``[idx, proportion]`` identifying the indices (``idx``) of the CVs from the
+   ``cv_data`` argument that lie in the provided region ``reg``, and how much of each CV belongs to that
+   region (``proportion``). The ``proportion`` is either the area proportion or the length proportion,
+   chosen according to the ``integrate_along`` argument.
+
+   :param str reg: The region on the cable-cell represented as s-expression or a label from the
+       label-dictionary of the cell.
+   :param cell_cv_data cv_data: The cv_data of a cell.
+   :param string integrate_along: Either "area" or "length". Decides whether the proportion of a
+       CV is measured according to the area or length of the CV.
+   :rtype: list[idx, proportion]
 
 .. _pyswc:
 

@@ -249,9 +249,9 @@ We can override the default properties by *painting* new values on the relevant 
    :lines: 59-61
 
 With the default and initial values taken care of, we now add some density mechanisms. Let's *paint*
-a *pas* mechanism everywhere on the cell using the previously defined "all" region; an *hh* mechanism
-on the "custom" region; and an *Ih* mechanism on the "dend" region. The *Ih* mechanism is explicitly
-constructed in order to change the default values of its 'gbar' parameter.
+a *pas* density mechanism everywhere on the cell using the previously defined "all" region; an *hh*
+density mechanism on the "custom" region; and an *Ih* density mechanism on the "dend" region. The *Ih*
+mechanism has a custom 'gbar' parameter.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
@@ -308,9 +308,9 @@ The global properties
 The global properties of a single cell model include:
 
 1. The **mechanism catalogue**: A mechanism catalogue is a collection of density and point
-   mechanisms. Arbor has 3 built in mechanism catalogues: default, allen and bbp. The mechanism
+   mechanisms. Arbor has 3 built-in mechanism catalogues: ``default``, ``allen`` and ``bbp``. The mechanism
    catalogue in the global properties of the model must include the catalogues of all the
-   mechanisms painted on the cell decor.
+   mechanisms painted on the cell decor. The default is to use the ``default_catalogue``.
 
 2. The default **parameters**: The initial membrane voltage; the initial temperature; the
    axial resistivity; the membrane capacitance; the ion parameters; and the discretisation

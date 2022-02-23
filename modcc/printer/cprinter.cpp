@@ -13,7 +13,6 @@
 #include "printer/printerutil.hpp"
 #include "printer/marks.hpp"
 
-#define FMT_HEADER_ONLY YES
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/compile.h>
@@ -44,7 +43,7 @@ static std::string scaled(double coeff) {
 struct index_prop {
     std::string source_var; // array holding the indices
     std::string index_name; // index into the array
-    bool        node_index; // node index (cv) or cell index
+    index_kind  kind; // node index (cv) or cell index or other
     bool operator==(const index_prop& other) const {
         return (source_var == other.source_var) && (index_name == other.index_name);
     }
@@ -89,7 +88,8 @@ std::string do_cprint(Expression* cp, int ind) {
 
 struct simdprint {
     Expression* expr_;
-    bool is_indirect_ = false;
+    bool is_indirect_ = false; // For choosing between "index_" and "i_" as an index. Depends on whether
+                               // we are in a procedure or handling a simd constraint in an API call.
     bool is_masked_ = false;
     std::unordered_set<std::string> scalars_;
 
@@ -144,28 +144,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto ion_deps = module_.ion_deps();
     std::string fingerprint = "<placeholder>";
 
-    auto profiler_enter = [name, opt](const char* region_prefix) -> std::string {
-        static std::regex invalid_profile_chars("[^a-zA-Z0-9]");
-
-        if (opt.profile) {
-            std::string region_name = region_prefix;
-            region_name += '_';
-            region_name += std::regex_replace(name, invalid_profile_chars, "");
-
-            return
-                "{\n"
-                "    static auto id = ::arb::profile::profiler_region_id(\""
-                + region_name + "\");\n"
-                "    ::arb::profile::profiler_enter(id);\n"
-                "}\n";
-        }
-        else return "";
-    };
-
-    auto profiler_leave = [opt]() -> std::string {
-        return opt.profile? "::arb::profile::profiler_leave();\n": "";
-    };
-
     io::pfxstringstream out;
 
     ENTER(out);
@@ -176,9 +154,6 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "#include <memory>\n"
         "#include <"  << arb_header_prefix() << "mechanism_abi.h>\n"
         "#include <" << arb_header_prefix() << "math.hpp>\n";
-
-    opt.profile &&
-        out << "#include <" << arb_header_prefix() << "profile/profiler.hpp>\n";
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
@@ -279,6 +254,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
                                    "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\\\n"
                                    "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\\\n"
                                    "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\\\n"
+                                   "[[maybe_unused]] auto* {0}peer_index        = pp->peer_index;\\\n"
                                    "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\\\n"
                                    "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
                                    "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
@@ -342,15 +318,11 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     out << popindent << "}\n\n";
 
     out << "static void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
-    out << profiler_enter("advance_integrate_state");
     emit_body(state_api);
-    out << profiler_leave();
     out << popindent << "}\n\n";
 
     out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
-    out << profiler_enter("advance_integrate_current");
     emit_body(current_api);
-    out << profiler_leave();
     out << popindent << "}\n\n";
 
     out << "static void write_ions(arb_mechanism_ppack* pp) {\n" << indent;
@@ -536,8 +508,8 @@ namespace {
         deref(indexed_variable_info d): d(d) {}
 
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
-            auto index_var = wrap.d.cell_index_var.empty() ? wrap.d.node_index_var : wrap.d.cell_index_var;
-            auto i_name    = index_i_name(index_var);
+            auto index_var = wrap.d.outer_index_var();
+            auto i_name = index_i_name(index_var);
             index_var = pp_var_pfx + index_var;
             return o << data_via_ppack(wrap.d) << '[' << (wrap.d.scalar() ? "0": i_name) << ']';
         }
@@ -549,13 +521,19 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            index_prop node_idx = {d.node_index_var, index, true};
-            auto it = std::find(indices.begin(), indices.end(), node_idx);
-            if (it == indices.end()) indices.push_front(node_idx);
-            if (!d.cell_index_var.empty()) {
-                index_prop cell_idx = {d.cell_index_var, node_index_i_name(d), false};
-                auto it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_back(cell_idx);
+            auto nested = !d.inner_index_var().empty();
+            auto outer_index_var = d.outer_index_var();
+            auto inner_index_var = nested? d.inner_index_var()+"i_": index;
+            index_prop index_var = {outer_index_var, inner_index_var, d.index_var_kind};
+            auto it = std::find(indices.begin(), indices.end(), index_var);
+            if (it == indices.end()) {
+                // If an inner index is required, push the outer index_var to the end of the list
+                if (nested) {
+                    indices.push_back(index_var);
+                }
+                else {
+                    indices.push_front(index_var);
+                }
             }
         }
     }
@@ -657,23 +635,25 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     }
 
     Symbol* lhs = e->lhs()->is_identifier()->symbol();
- 
-    bool cast = false;
-    if (auto id = e->rhs()->is_identifier()) {
-        if (scalars_.count(id->name())) cast = true;
+    std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
+    std::string index = is_indirect_ ? "index_" : "i_";
+
+    // lhs should not be an IndexedVariable, only a VariableExpression or LocalVariable.
+    // IndexedVariables are only assigned in API calls and are handled in a special way.
+    if (lhs->is_indexed_variable()) {
+        throw (compiler_exception("Should not be trying to assign an IndexedVariable " + lhs->to_string(), lhs->location()));
     }
-    if (e->rhs()->is_number()) cast = true;
-    if (scalars_.count(e->lhs()->is_identifier()->name()))  cast = false;
-
+    // If lhs is a VariableExpression, it must be a range variable. Non-range variables
+    // are scalars and read-only.
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
-        std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
-        if(is_indirect_)
-            out_ << "indirect(" << pfx << lhs->name() << "+index_, simd_width_) = ";
-        else
-            out_ << "indirect(" << pfx << lhs->name() << "+i_, simd_width_) = ";
-
+        out_ << "indirect(" << pfx << lhs->name() << "+" << index << ", simd_width_) = ";
         if (!input_mask_.empty())
             out_ << "S::where(" << input_mask_ << ", ";
+
+        // If the rhs is a scalar identifier or a number, it needs to be cast to a vector.
+        auto id = e->rhs()->is_identifier();
+        auto num = e->rhs()->is_number();
+        bool cast = num || (id && scalars_.count(id->name()));
 
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
@@ -681,14 +661,18 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
         if (!input_mask_.empty())
             out_ << ")";
-    } else {
-        std::string pfx = lhs->is_local_variable() ? "" : pp_var_pfx;
+    }
+    else if (lhs->is_variable() && !lhs->is_variable()->is_range()) {
+        throw (compiler_exception("Should not be trying to assign a non-range variable " + lhs->to_string(), lhs->location()));
+    }
+    // Otherwise, lhs must be a LocalVariable, we don't need to mask assignment according to the
+    // input_mask_.
+    else {
         out_ << "assign(" << pfx << lhs->name() << ", ";
         if (auto rhs = e->rhs()->is_identifier()) {
             if (auto sym = rhs->symbol()) {
                 // We shouldn't call the rhs visitor in this case because it automatically casts indirect expressions
                 if (sym->is_variable() && sym->is_variable()->is_range()) {
-                    auto index = is_indirect_ ? "index_" : "i_";
                     out_ << "indirect(" << pp_var_pfx << rhs->name() << "+" << index << ", simd_width_))";
                     return;
                 }
@@ -772,8 +756,9 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                 << "[0]);\n";
         }
         else {
-            if (d.cell_index_var.empty()) {
-                switch (constraint) {
+            switch (d.index_var_kind) {
+                case index_kind::node: {
+                    switch (constraint) {
                     case simd_expr_constraint::contiguous:
                         out << ";\n"
                             << "assign(" << local->name() << ", indirect(" << data_via_ppack(d)
@@ -787,12 +772,15 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                         out << ";\n"
                             << "assign(" << local->name() << ", indirect(" << data_via_ppack(d)
                             << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_));\n";
+                    }
+                    break;
                 }
-            }
-            else {
-                out << ";\n"
-                    << "assign(" << local->name() << ", indirect(" << data_via_ppack(d)
-                    << ", " << index_i_name(d.cell_index_var) << ", simd_width_, index_constraint::none));\n";
+                default: {
+                    out << ";\n"
+                        << "assign(" << local->name() << ", indirect(" << data_via_ppack(d)
+                        << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none));\n";
+                    break;
+                }
             }
         }
 
@@ -819,8 +807,9 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     ENTER(out);
 
     if (d.accumulate) {
-        if (d.cell_index_var.empty()) {
-            switch (constraint) {
+        switch (d.index_var_kind) {
+            case index_kind::node: {
+                switch (constraint) {
                 case simd_expr_constraint::contiguous:
                 {
                     std::string tempvar = "t_" + external->name();
@@ -853,19 +842,24 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                         out << " += S::mul(w_, " << from->name() << ");\n";
                     }
                 }
+                }
+                break;
             }
-        } else {
-            out << "indirect(" << data_via_ppack(d) << ", " << index_i_name(d.cell_index_var) << ", simd_width_, index_constraint::none)";
-            if (coeff != 1) {
-                out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
-            } else {
-                out << " += S::mul(w_, " << from->name() << ");\n";
+            default: {
+                out << "indirect(" << data_via_ppack(d) << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none)";
+                if (coeff != 1) {
+                    out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
+                } else {
+                    out << " += S::mul(w_, " << from->name() << ");\n";
+                }
+                break;
             }
         }
     }
     else {
-        if (d.cell_index_var.empty()) {
-            switch (constraint) {
+        switch (d.index_var_kind) {
+            case index_kind::node: {
+                switch (constraint) {
                 case simd_expr_constraint::contiguous:
                     out << "indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_) = ";
                     break;
@@ -874,13 +868,14 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                     break;
                 default:
                     out << "indirect(" << data_via_ppack(d) << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_) = ";
+                }
+                break;
             }
-        } else {
-            out << "indirect(" << data_via_ppack(d)
-
-
-
-                << ", " << index_i_name(d.cell_index_var) << ", simd_width_, index_constraint::none) = ";
+            default: {
+                out << "indirect(" << data_via_ppack(d)
+                    << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none) = ";
+                break;
+            }
         }
 
         if (coeff != 1) {
@@ -897,8 +892,9 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                                 simd_expr_constraint constraint) {
     ENTER(out);
     for (auto& index: indices) {
-        if (index.node_index) {
-            switch (constraint) {
+        switch (index.kind) {
+            case index_kind::node: {
+                switch (constraint) {
                 case simd_expr_constraint::contiguous:
                 case simd_expr_constraint::constant:
                     out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "];\n";
@@ -907,9 +903,12 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(&" << source_var(index)
                         << "[0] + " << index.index_name << ", simd_width_));\n";
                     break;
+                }
+                break;
             }
-        } else {
-            switch (constraint) {
+            case index_kind::cell: {
+                // Treat like reading a state variable.
+                switch (constraint) {
                 case simd_expr_constraint::contiguous:
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(" << source_var(index)
                         << " + " << index.index_name << ", simd_width_));\n";
@@ -922,6 +921,13 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(" << source_var(index)
                         << ", " << index.index_name << ", simd_width_, constraint_category_));\n";
                     break;
+                }
+                break;
+            }
+            default: {
+                out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(&" << source_var(index)
+                    << "[0] + " << index.index_name << ", simd_width_));\n";
+                break;
             }
         }
     }

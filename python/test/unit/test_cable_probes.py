@@ -2,15 +2,7 @@
 
 import unittest
 import arbor as A
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures
 
 """
 tests for cable probe wrappers
@@ -27,16 +19,15 @@ class cc_recipe(A.recipe):
 
         dec = A.decor()
 
-        dec.place('(location 0 0.08)', "expsyn", "syn0")
-        dec.place('(location 0 0.09)', "exp2syn", "syn1")
+        dec.place('(location 0 0.08)', A.synapse("expsyn"), "syn0")
+        dec.place('(location 0 0.09)', A.synapse("exp2syn"), "syn1")
         dec.place('(location 0 0.1)', A.iclamp(20.), "iclamp")
-        dec.paint('(all)', "hh")
+        dec.paint('(all)', A.density("hh"))
 
         self.cell = A.cable_cell(st, A.label_dict(), dec)
 
-        self.cat = A.default_catalogue()
         self.props = A.neuron_cable_properties()
-        self.props.register(self.cat)
+        self.props.catalogue = A.default_catalogue()
 
     def num_cells(self):
         return 1
@@ -91,7 +82,7 @@ class cc_recipe(A.recipe):
     def cell_description(self, gid):
         return self.cell
 
-class CableProbes(unittest.TestCase):
+class TestCableProbes(unittest.TestCase):
     def test_probe_addr_metadata(self):
         recipe = cc_recipe()
         context = A.context()
@@ -172,16 +163,3 @@ class CableProbes(unittest.TestCase):
         m = sim.probe_metadata((0, 16))
         self.assertEqual(1, len(m))
         self.assertEqual(all_cv_cables, m[0])
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(CableProbes, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

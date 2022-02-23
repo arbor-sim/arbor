@@ -1,15 +1,22 @@
 #include <limits>
 #include <string>
+#include <tuple>
 #include <vector>
-
-#include <arborio/label_parse.hpp>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
 #include <arbor/mechcat.hpp>
-#include "arbor/cable_cell_param.hpp"
-#include "arbor/morph/morphology.hpp"
-#include "arbor/morph/segment_tree.hpp"
+#include <arbor/cable_cell_param.hpp>
+#include <arbor/morph/morphology.hpp>
+#include <arbor/morph/segment_tree.hpp>
+
+#include <arborio/label_parse.hpp>
+
+#include <arborenv/default_env.hpp>
+
+#include "backends/multicore/fvm.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "fvm_lowered_cell_impl.hpp"
 #include "fvm_layout.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
@@ -29,6 +36,9 @@ using util::make_span;
 using util::count_along;
 using util::ptr_by_key;
 using util::value_by_key;
+
+using backend = arb::multicore::backend;
+using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
 namespace {
     struct system {
@@ -56,8 +66,8 @@ namespace {
             builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
 
             auto description = builder.make_cell();
-            description.decorations.paint("soma"_lab, "hh");
-            description.decorations.paint("dend"_lab, "pas");
+            description.decorations.paint("soma"_lab, density("hh"));
+            description.decorations.paint("dend"_lab, density("pas"));
             description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "clamp");
 
             s.builders.push_back(std::move(builder));
@@ -99,8 +109,8 @@ namespace {
             auto b3 = b.add_branch(1, 180, 0.35, 0.35, 4, "dend");
             auto desc = b.make_cell();
 
-            desc.decorations.paint("soma"_lab, "hh");
-            desc.decorations.paint("dend"_lab, "pas");
+            desc.decorations.paint("soma"_lab, density("hh"));
+            desc.decorations.paint("dend"_lab, density("pas"));
 
             using ::arb::reg::branch;
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
@@ -127,6 +137,77 @@ namespace {
         ASSERT_EQ(1u, cells[0].morphology().num_branches());
         ASSERT_EQ(3u, cells[1].morphology().num_branches());
     }
+
+    system six_cell_gj_system() {
+        system s;
+        auto& descriptions = s.descriptions;
+
+        // Cell 0: simple soma cell, 1 CV.
+        {
+            soma_cell_builder builder(12.6157/2.0);
+
+            auto desc = builder.make_cell();
+            desc.decorations.paint("soma"_lab, density("hh"));
+
+            s.builders.push_back(std::move(builder));
+            descriptions.push_back(desc);
+        }
+        // Cell 1: ball and 3-stick, 2 CVs per dendrite, 1 CV for the soma.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
+            b.add_branch(1, 300, 0.4,  0.4, 2,  "dend");
+            b.add_branch(1, 180, 0.35, 0.35, 2, "dend");
+            auto desc = b.make_cell();
+
+            desc.decorations.paint("soma"_lab, density("hh"));
+            desc.decorations.paint("dend"_lab, density("pas"));
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 2: ball and stick, 1 CV for the soma, 2 CVs for the dendrite.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
+            auto desc = b.make_cell();
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 3: simple soma cell, 1 CV. 1 gap junction.
+        {
+            soma_cell_builder b(7.);
+            auto desc = b.make_cell();
+
+            desc.decorations.paint("soma"_lab, density("hh"));
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 4: ball and stick, 1 CV for the soma, 3 CVs for the dendrite.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 3,  "dend");
+            auto desc = b.make_cell();
+
+            desc.decorations.paint("soma"_lab, density("pas"));
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        // Cell 5: ball and stick, 1 CV for the soma, 1 CV for the dendrite.
+        {
+            soma_cell_builder b(7.);
+            b.add_branch(0, 200, 0.5,  0.5, 1,  "dend");
+            auto desc = b.make_cell();
+
+            s.builders.push_back(std::move(b));
+            descriptions.push_back(desc);
+        }
+        return s;
+    }
+
 } // namespace
 
 template<typename P>
@@ -137,17 +218,19 @@ void check_compatible_mechanism_failure(cable_cell_global_properties gprop, P pa
 
     auto cells = system.cells();
     check_two_cell_system(cells);
+    std::vector<cell_gid_type> gids = {0,1};
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
 
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), arb::cable_cell_error);
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), arb::cable_cell_error);
 }
 
 TEST(fvm_layout, compatible_mechanisms) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.place(sys.builders[0].location({1, 0.4}), "hh", "syn0"); });
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[1].decorations.paint(sys.builders[1].cable(mcable{0}), "expsyn"); });
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.place(sys.builders[0].location({1, 0.4}), synapse("hh"), "syn0"); });
+    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[1].decorations.paint(sys.builders[1].cable(mcable{0}), density("expsyn")); });
     check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.set_default(ion_reversal_potential_method{"na", "expsyn"}); });
 
     gprop.default_parameters.reversal_potential_method["na"] = "pas";
@@ -160,18 +243,20 @@ TEST(fvm_layout, mech_index) {
     auto& builders = system.builders;
 
     // Add four synapses of two varieties across the cells.
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn", "syn0");
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), "expsyn", "syn1");
-    descriptions[1].decorations.place(builders[1].location({2, 0.4}), "exp2syn", "syn3");
-    descriptions[1].decorations.place(builders[1].location({3, 0.4}), "expsyn", "syn4");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), synapse("expsyn"), "syn0");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), synapse("expsyn"), "syn1");
+    descriptions[1].decorations.place(builders[1].location({2, 0.4}), synapse("exp2syn"), "syn3");
+    descriptions[1].decorations.place(builders[1].location({3, 0.4}), synapse("expsyn"), "syn4");
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
     check_two_cell_system(cells);
+    std::vector<cell_gid_type> gids = {0,1};
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 
     auto& hh_config = M.mechanisms.at("hh");
     auto& expsyn_config = M.mechanisms.at("expsyn");
@@ -280,14 +365,14 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         auto desc = builder.make_cell();
 
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "expsyn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "expsyn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("expsyn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("expsyn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 3, 4, 5}), expsyn_config.cv);
@@ -297,14 +382,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "exp2syn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "exp2syn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("exp2syn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("exp2syn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
@@ -317,14 +402,14 @@ TEST(fvm_layout, coalescing_synapses) {
     {
         auto desc = builder.make_cell();
 
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "expsyn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "expsyn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("expsyn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("expsyn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 3, 4, 5}), expsyn_config.cv);
@@ -334,14 +419,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.5}), "exp2syn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.9}), "exp2syn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.5}), synapse("exp2syn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.9}), synapse("exp2syn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_no_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
@@ -355,14 +440,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn0");
-        desc.decorations.place(builder.location({1, 0.3}), "expsyn", "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn2");
-        desc.decorations.place(builder.location({1, 0.7}), "expsyn", "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), synapse("expsyn"), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), synapse("expsyn"), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         auto &expsyn_config = M.mechanisms.at("expsyn");
         EXPECT_EQ(ivec({2, 4}), expsyn_config.cv);
@@ -372,14 +457,14 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2), "syn0");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 0.2), "syn1");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0.1, 0.2), "syn2");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0.1, 0.2), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 0.2)), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 0.2)), "syn1");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0.1, 0.2)), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 0.1, 0.2)), "syn3");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         std::vector<exp_instance> instances{
             exp_instance(2, L{0, 1}, 0., 0.2),
@@ -395,18 +480,18 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3), "syn0");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3), "syn1");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 0, 3), "syn2");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc("expsyn", 1, 3), "syn3");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2), "syn4");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2), "syn5");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 0, 2), "syn6");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn", 1, 2), "syn7");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 0, 3)), "syn0");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 1, 3)), "syn1");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 0, 3)), "syn2");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc("expsyn", 1, 3)), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 2)), "syn4");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 1, 2)), "syn5");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 0, 2)), "syn6");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn", 1, 2)), "syn7");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         std::vector<exp_instance> instances{
             exp_instance(2, L{4, 6}, 0.0, 2.0),
@@ -423,20 +508,20 @@ TEST(fvm_layout, coalescing_synapses) {
         auto desc = builder.make_cell();
 
         // Add synapses of two varieties.
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn0");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 4, 1), "syn1");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn2");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  5, 1), "syn3");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc_2("exp2syn", 1, 3), "syn4");
-        desc.decorations.place(builder.location({1, 0.3}), syn_desc("expsyn",  1, 2), "syn5");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2), "syn6");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1), "syn7");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 1), "syn8");
-        desc.decorations.place(builder.location({1, 0.7}), syn_desc_2("exp2syn", 2, 2), "syn9");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  1, 2)), "syn0");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc_2("exp2syn", 4, 1)), "syn1");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  1, 2)), "syn2");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  5, 1)), "syn3");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc_2("exp2syn", 1, 3)), "syn4");
+        desc.decorations.place(builder.location({1, 0.3}), synapse(syn_desc("expsyn",  1, 2)), "syn5");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 2)), "syn6");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 1)), "syn7");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 1)), "syn8");
+        desc.decorations.place(builder.location({1, 0.7}), synapse(syn_desc_2("exp2syn", 2, 2)), "syn9");
 
         cable_cell cell(desc);
         fvm_cv_discretization D = fvm_cv_discretize({cell}, neuron_parameter_defaults);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop_coalesce, {cell}, {0}, {{0, {}}}, D);
 
         for (auto &instance: {exp_instance(2, L{0,2,5}, 1, 2),
                               exp_instance(2, L{3},     5, 1)}) {
@@ -472,21 +557,23 @@ TEST(fvm_layout, synapse_targets) {
         return mechanism_desc(name).set("e", syn_e.at(idx));
     };
 
-    descriptions[0].decorations.place(builders[0].location({1, 0.9}), syn_desc("expsyn", 0), "syn0");
-    descriptions[0].decorations.place(builders[0].location({0, 0.5}), syn_desc("expsyn", 1), "syn1");
-    descriptions[0].decorations.place(builders[0].location({1, 0.4}), syn_desc("expsyn", 2), "syn2");
+    descriptions[0].decorations.place(builders[0].location({1, 0.9}), synapse(syn_desc("expsyn", 0)), "syn0");
+    descriptions[0].decorations.place(builders[0].location({0, 0.5}), synapse(syn_desc("expsyn", 1)), "syn1");
+    descriptions[0].decorations.place(builders[0].location({1, 0.4}), synapse(syn_desc("expsyn", 2)), "syn2");
 
-    descriptions[1].decorations.place(builders[1].location({2, 0.4}), syn_desc("exp2syn", 3), "syn3");
-    descriptions[1].decorations.place(builders[1].location({1, 0.4}), syn_desc("exp2syn", 4), "syn4");
-    descriptions[1].decorations.place(builders[1].location({3, 0.4}), syn_desc("expsyn", 5), "syn5");
-    descriptions[1].decorations.place(builders[1].location({3, 0.7}), syn_desc("exp2syn", 6), "syn6");
+    descriptions[1].decorations.place(builders[1].location({2, 0.4}), synapse(syn_desc("exp2syn", 3)), "syn3");
+    descriptions[1].decorations.place(builders[1].location({1, 0.4}), synapse(syn_desc("exp2syn", 4)), "syn4");
+    descriptions[1].decorations.place(builders[1].location({3, 0.4}), synapse(syn_desc("expsyn", 5)), "syn5");
+    descriptions[1].decorations.place(builders[1].location({3, 0.7}), synapse(syn_desc("exp2syn", 6)), "syn6");
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
+    std::vector<cell_gid_type> gids = {0,1};
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 
     ASSERT_EQ(1u, M.mechanisms.count("expsyn"));
     ASSERT_EQ(1u, M.mechanisms.count("exp2syn"));
@@ -519,6 +606,631 @@ TEST(fvm_layout, synapse_targets) {
     for (auto i: count_along(exp2syn_target)) {
         EXPECT_EQ(syn_e[exp2syn_target[i]], exp2syn_e[i]);
     }
+}
+
+TEST(fvm_lowered, gj_example_0) {
+    auto context = make_context({arbenv::default_concurrency(), -1});
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            conns.push_back(gap_junction_connection({(gid+1)%2, "gj", lid_selection_policy::assert_univalent}, {"gj", lid_selection_policy::assert_univalent}, 0.5));
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 2;
+    };
+
+    std::vector<cable_cell> cells;
+    soma_cell_builder b0(2.1);
+    b0.add_branch(0, 10, 0.3, 0.2, 5, "dend");
+    auto c0 = b0.make_cell();
+    auto loc_0 = b0.location({1, 0.8});
+    c0.decorations.place(loc_0, junction("gj"), "gj");
+    cells.push_back(c0);
+
+    soma_cell_builder b1(2.4);
+    b1.add_branch(0, 10, 0.3, 0.2, 2, "dend");
+    auto c1 = b1.make_cell();
+    auto loc_1 = b1.location({1, 1});
+    c1.decorations.place(loc_1, junction("gj", {{"g", 0.5}}), "gj");
+    cells.push_back(c1);
+
+    // Check the GJ CV map
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    std::vector<cell_gid_type> gids = {0, 1};
+
+    auto D = fvm_cv_discretize(cells, gprop.default_parameters, *context);
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+
+    auto cv_0 = D.geometry.location_cv(0, loc_0, cv_prefer::cv_nonempty);
+    auto cv_1 = D.geometry.location_cv(1, loc_1, cv_prefer::cv_nonempty);
+
+    EXPECT_EQ(2u, gj_cvs.size());
+
+    EXPECT_EQ(cv_0, gj_cvs.at(cell_member_type{0, 0}));
+    EXPECT_EQ(cv_1, gj_cvs.at(cell_member_type{1, 0}));
+
+    // Check the resolved GJ connections
+    fvm_cell fvcell(*context);
+    gap_recipe rec(cells, gprop);
+
+    auto fvm_info = fvcell.initialize(gids, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    EXPECT_EQ(1u, gj_conns.at(0).size());
+    EXPECT_EQ(1u, gj_conns.at(1).size());
+
+    auto gj0 = fvm_gap_junction{0, cv_0, cv_1, 0.5};
+    auto gj1 = fvm_gap_junction{0, cv_1, cv_0, 0.5};
+
+    EXPECT_EQ(gj0, gj_conns.at(0).front());
+    EXPECT_EQ(gj1, gj_conns.at(1).front());
+
+    // Check the GJ mechanism data
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, *context);
+
+    EXPECT_EQ(1u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("gj"));
+
+    const auto& gj_data = M.mechanisms["gj"];
+    const auto& gj_g_param = *ptr_by_key(gj_data.param_values, "g"s);
+
+    std::vector<std::tuple<int, int, double, double>> expected_gj_values = {
+        {cv_0, cv_1, 0.5, 1.},
+        {cv_1, cv_0, 0.5, 0.5},
+    };
+    util::sort(expected_gj_values);
+
+    std::vector<int> expected_gj_cv, expected_gj_peer_cv;
+    std::vector<double> expected_gj_weight, expected_gj_g;
+    util::assign(expected_gj_cv,      util::transform_view(expected_gj_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj_peer_cv, util::transform_view(expected_gj_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj_weight,  util::transform_view(expected_gj_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj_g,       util::transform_view(expected_gj_values, [](const auto& x){return std::get<3>(x);}));
+
+    EXPECT_EQ(2u, gj_data.cv.size());
+    EXPECT_EQ(expected_gj_cv,      gj_data.cv);
+    EXPECT_EQ(expected_gj_peer_cv, gj_data.peer_cv);
+    EXPECT_EQ(expected_gj_weight,  gj_data.local_weight);
+    EXPECT_EQ(expected_gj_g,       gj_g_param);
+}
+
+TEST(fvm_lowered, gj_example_1) {
+    auto context = make_context({arbenv::default_concurrency(), -1});
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            switch (gid) {
+            case 0:
+                return {
+                    gap_junction_connection({2, "gj0"}, {"gj1"}, 0.01),
+                    gap_junction_connection({1, "gj0"}, {"gj0"}, 0.03),
+                    gap_junction_connection({1, "gj1"}, {"gj0"}, 0.04)
+                };
+            case 1:
+                return {
+                    gap_junction_connection({0, "gj0"}, {"gj0"}, 0.03),
+                    gap_junction_connection({0, "gj0"}, {"gj1"}, 0.04),
+                    gap_junction_connection({2, "gj1"}, {"gj1"}, 0.02),
+                    gap_junction_connection({2, "gj2"}, {"gj3"}, 0.01)
+                };
+            case 2:
+                return {
+                    gap_junction_connection({0, "gj1"}, {"gj0"}, 0.01),
+                    gap_junction_connection({1, "gj1"}, {"gj1"}, 0.02),
+                    gap_junction_connection({1, "gj3"}, {"gj2"}, 0.01)
+                };
+            default : return {};
+            }
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 3;
+    };
+
+    soma_cell_builder b0(2.1);
+    b0.add_branch(0, 8, 0.3, 0.2, 4, "dend");
+
+    auto c0 = b0.make_cell();
+    mlocation c0_gj[2] = {b0.location({1, 1}), b0.location({1, 0.5})};
+
+    c0.decorations.place(c0_gj[0], junction{"gj"}, "gj0");
+    c0.decorations.place(c0_gj[1], junction{"gj"}, "gj1");
+
+    soma_cell_builder b1(1.4);
+    b1.add_branch(0, 12, 0.3, 0.5, 6, "dend");
+    b1.add_branch(1,  9, 0.3, 0.2, 3, "dend");
+    b1.add_branch(1,  5, 0.2, 0.2, 5, "dend");
+
+    auto c1 = b1.make_cell();
+    mlocation c1_gj[4] = {b1.location({2, 1}), b1.location({1, 1}), b1.location({1, 0.45}), b1.location({1, 0.1})};
+
+    c1.decorations.place(c1_gj[0], junction{"gj"}, "gj0");
+    c1.decorations.place(c1_gj[1], junction{"gj"}, "gj1");
+    c1.decorations.place(c1_gj[2], junction{"gj"}, "gj2");
+    c1.decorations.place(c1_gj[3], junction{"gj"}, "gj3");
+
+    soma_cell_builder b2(2.9);
+    b2.add_branch(0, 4, 0.3, 0.5, 2, "dend");
+    b2.add_branch(1, 6, 0.4, 0.2, 2, "dend");
+    b2.add_branch(1, 8, 0.1, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+    b2.add_branch(2, 4, 0.2, 0.2, 2, "dend");
+
+    auto c2 = b2.make_cell();
+    mlocation c2_gj[3] = {b2.location({1, 0.5}), b2.location({4, 1}), b2.location({2, 1})};
+
+    c2.decorations.place(c2_gj[0], junction{"gj"}, "gj0");
+    c2.decorations.place(c2_gj[1], junction{"gj"}, "gj1");
+    c2.decorations.place(c2_gj[2], junction{"gj"}, "gj2");
+
+    // Check the GJ CV map
+    cable_cell_global_properties gprop;
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    std::vector<cable_cell> cells{c0, c1, c2};
+    std::vector<cell_gid_type> gids = {0, 1, 2};
+
+    auto D = fvm_cv_discretize(cells, neuron_parameter_defaults, *context);
+    unsigned c0_gj_cv[2], c1_gj_cv[4], c2_gj_cv[3];
+    for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<4; ++i) c1_gj_cv[i] = D.geometry.location_cv(1, c1_gj[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<3; ++i) c2_gj_cv[i] = D.geometry.location_cv(2, c2_gj[i], cv_prefer::cv_nonempty);
+
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+
+    EXPECT_EQ(9u, gj_cvs.size());
+    EXPECT_EQ(c0_gj_cv[0], gj_cvs.at(cell_member_type{0, 0}));
+    EXPECT_EQ(c0_gj_cv[1], gj_cvs.at(cell_member_type{0, 1}));
+    EXPECT_EQ(c1_gj_cv[0], gj_cvs.at(cell_member_type{1, 0}));
+    EXPECT_EQ(c1_gj_cv[1], gj_cvs.at(cell_member_type{1, 1}));
+    EXPECT_EQ(c1_gj_cv[2], gj_cvs.at(cell_member_type{1, 2}));
+    EXPECT_EQ(c1_gj_cv[3], gj_cvs.at(cell_member_type{1, 3}));
+    EXPECT_EQ(c2_gj_cv[0], gj_cvs.at(cell_member_type{2, 0}));
+    EXPECT_EQ(c2_gj_cv[1], gj_cvs.at(cell_member_type{2, 1}));
+    EXPECT_EQ(c2_gj_cv[2], gj_cvs.at(cell_member_type{2, 2}));
+
+    // Check the resolved GJ connections
+    fvm_cell fvcell(*context);
+    gap_recipe rec(cells, gprop);
+
+    auto fvm_info = fvcell.initialize(gids, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
+    expected[0] = {
+        {0, c0_gj_cv[0], c1_gj_cv[0], 0.03},
+        {0, c0_gj_cv[0], c1_gj_cv[1], 0.04},
+        {1, c0_gj_cv[1], c2_gj_cv[0], 0.01},
+    };
+    expected[1] = {
+        {0, c1_gj_cv[0], c0_gj_cv[0], 0.03},
+        {1, c1_gj_cv[1], c0_gj_cv[0], 0.04},
+        {1, c1_gj_cv[1], c2_gj_cv[1], 0.02},
+        {3, c1_gj_cv[3], c2_gj_cv[2], 0.01}
+    };
+    expected[2] = {
+        {0, c2_gj_cv[0], c0_gj_cv[1], 0.01},
+        {1, c2_gj_cv[1], c1_gj_cv[1], 0.02},
+        {2, c2_gj_cv[2], c1_gj_cv[3], 0.01}
+    };
+
+    util::sort(expected.at(0));
+    util::sort(expected.at(1));
+    util::sort(expected.at(2));
+
+    EXPECT_EQ(expected.at(0), gj_conns.at(0));
+    EXPECT_EQ(expected.at(1), gj_conns.at(1));
+    EXPECT_EQ(expected.at(2), gj_conns.at(2));
+
+    // Check the GJ mechanism data
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, *context);
+
+    EXPECT_EQ(1u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("gj"));
+
+    const auto& gj_data = M.mechanisms["gj"];
+    const auto& gj_g_param = *ptr_by_key(gj_data.param_values, "g"s);
+
+    std::vector<std::tuple<int, int, double, double>> expected_gj_values = {
+        {c0_gj_cv[0], c1_gj_cv[0], 0.03, 1.},
+        {c0_gj_cv[0], c1_gj_cv[1], 0.04, 1.},
+        {c0_gj_cv[1], c2_gj_cv[0], 0.01, 1.},
+        {c1_gj_cv[0], c0_gj_cv[0], 0.03, 1.},
+        {c1_gj_cv[1], c0_gj_cv[0], 0.04, 1.},
+        {c1_gj_cv[1], c2_gj_cv[1], 0.02, 1.},
+        {c1_gj_cv[3], c2_gj_cv[2], 0.01, 1.},
+        {c2_gj_cv[0], c0_gj_cv[1], 0.01, 1.},
+        {c2_gj_cv[1], c1_gj_cv[1], 0.02, 1.},
+        {c2_gj_cv[2], c1_gj_cv[3], 0.01, 1.}
+    };
+    util::sort(expected_gj_values);
+
+    std::vector<int> expected_gj_cv, expected_gj_peer_cv;
+    std::vector<double> expected_gj_weight, expected_gj_g;
+    util::assign(expected_gj_cv,      util::transform_view(expected_gj_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj_peer_cv, util::transform_view(expected_gj_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj_weight,  util::transform_view(expected_gj_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj_g,       util::transform_view(expected_gj_values, [](const auto& x){return std::get<3>(x);}));
+
+    EXPECT_EQ(10u, gj_data.cv.size());
+    EXPECT_EQ(expected_gj_cv,      gj_data.cv);
+    EXPECT_EQ(expected_gj_peer_cv, gj_data.peer_cv);
+    EXPECT_EQ(expected_gj_weight,  gj_data.local_weight);
+    EXPECT_EQ(expected_gj_g,       gj_g_param);
+}
+
+TEST(fvm_layout, gj_example_2) {
+    auto context = make_context({arbenv::default_concurrency(), -1});
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(std::vector<cable_cell> cells, arb::cable_cell_global_properties gprop) : gprop_(gprop), cells_(cells) {}
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            switch (gid) {
+            case 0:
+                return {};
+            case 1:
+                return {
+                    gap_junction_connection({2, "j5"}, {"j2"}, 0.03),
+                    gap_junction_connection({2, "j6"}, {"j3"}, 0.04),
+                    gap_junction_connection({3, "j7"}, {"j0"}, 0.02),
+                    gap_junction_connection({5, "j8"}, {"j1"}, 0.01),
+                    gap_junction_connection({5, "j9"}, {"j4"}, 0.01)
+                };
+            case 2:
+                return {
+                    gap_junction_connection({1, "j2"}, {"j5"}, 0.03),
+                    gap_junction_connection({1, "j3"}, {"j6"}, 0.04),
+                    gap_junction_connection({3, "j7"}, {"j5"}, 0.02),
+                    gap_junction_connection({5, "j9"}, {"j6"}, 0.01),
+                };
+            case 3:
+                return {
+                    gap_junction_connection({1, "j0"}, {"j7"}, 0.03),
+                    gap_junction_connection({2, "j5"}, {"j7"}, 0.04),
+                    gap_junction_connection({5, "j8"}, {"j7"}, 0.02),
+                };
+            case 4:
+                return {};
+            case 5:
+                return {
+                    gap_junction_connection({1, "j1"}, {"j8"}, 0.03),
+                    gap_junction_connection({1, "j4"}, {"j9"}, 0.04),
+                    gap_junction_connection({2, "j6"}, {"j9"}, 0.02),
+                    gap_junction_connection({3, "j7"}, {"j8"}, 0.01),
+                };
+            default : return {};
+            }
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 6;
+    };
+
+    auto system = six_cell_gj_system();
+    auto& desc = system.descriptions;
+    auto& builders = system.builders;
+
+    std::vector<mlocation> locs_1 = {
+        builders[1].location({2, 0}),
+        builders[1].location({3, 0.3}),
+        builders[1].location({0, 0.5}),
+        builders[1].location({0, 0.6}),
+        builders[1].location({3, 0.8})};
+    desc[1].decorations.place(locs_1[0], junction("gj1", {{"g", 0.3}, {"e", 1e-3}}), "j0");
+    desc[1].decorations.place(locs_1[1], junction("gj0", {{"g", 0.2}}), "j1");
+    desc[1].decorations.place(locs_1[2], junction("gj0", {{"g", 1.5}}), "j2");
+    desc[1].decorations.place(locs_1[3], junction("gj0"), "j3");
+    desc[1].decorations.place(locs_1[4], junction("gj0"), "j4");
+
+    std::vector<mlocation> locs_2 = {
+        builders[2].location({0, 0.5}),
+        builders[2].location({1, 0})};
+    desc[2].decorations.place(locs_2[0], junction("gj0", {{"g", 2.3}}), "j5");
+    desc[2].decorations.place(locs_2[1], junction("gj1", {{"e", 5e-4}}), "j6");
+
+    std::vector<mlocation> locs_3 = {
+        builders[3].location({0, 0.5})};
+    desc[3].decorations.place(locs_3[0], junction("gj1", {{"g", 0.4}}), "j7");
+
+    std::vector<mlocation> locs_5 = {
+        builders[5].location({0, 0.1}),
+        builders[5].location({0, 0.2})};
+    desc[5].decorations.place(locs_5[0], junction("gj1"), "j8");
+    desc[5].decorations.place(locs_5[1], junction("gj0", {{"g", 1.6}}), "j9");
+
+    // Check the GJ CV map
+    cable_cell_global_properties gprop;
+    gprop.catalogue = make_unit_test_catalogue();
+    gprop.catalogue.import(arb::global_default_catalogue(), "");
+    gprop.default_parameters = neuron_parameter_defaults;
+
+    auto cells = system.cells();
+    std::vector<cell_gid_type> gids = {0, 1, 2, 3, 4, 5};
+
+    fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
+
+    unsigned cvs_1[5], cvs_2[2], cvs_3[1], cvs_5[2];
+    for (int i = 0; i<5; ++i) cvs_1[i] = D.geometry.location_cv(1, locs_1[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<2; ++i) cvs_2[i] = D.geometry.location_cv(2, locs_2[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<1; ++i) cvs_3[i] = D.geometry.location_cv(3, locs_3[i], cv_prefer::cv_nonempty);
+    for (int i = 0; i<2; ++i) cvs_5[i] = D.geometry.location_cv(5, locs_5[i], cv_prefer::cv_nonempty);
+
+    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+
+    EXPECT_EQ(10u, gj_cvs.size());
+    EXPECT_EQ(cvs_1[0], gj_cvs.at(cell_member_type{1, 0}));
+    EXPECT_EQ(cvs_1[1], gj_cvs.at(cell_member_type{1, 1}));
+    EXPECT_EQ(cvs_1[2], gj_cvs.at(cell_member_type{1, 2}));
+    EXPECT_EQ(cvs_1[3], gj_cvs.at(cell_member_type{1, 3}));
+    EXPECT_EQ(cvs_1[4], gj_cvs.at(cell_member_type{1, 4}));
+    EXPECT_EQ(cvs_2[0], gj_cvs.at(cell_member_type{2, 0}));
+    EXPECT_EQ(cvs_2[1], gj_cvs.at(cell_member_type{2, 1}));
+    EXPECT_EQ(cvs_3[0], gj_cvs.at(cell_member_type{3, 0}));
+    EXPECT_EQ(cvs_5[0], gj_cvs.at(cell_member_type{5, 0}));
+    EXPECT_EQ(cvs_5[1], gj_cvs.at(cell_member_type{5, 1}));
+
+    // Check the resolved GJ connections
+    fvm_cell fvcell(*context);
+    gap_recipe rec(cells, gprop);
+
+    auto fvm_info = fvcell.initialize(gids, rec);
+    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> expected;
+    expected[0] = {};
+    expected[1] = {
+        {2, cvs_1[2], cvs_2[0], 0.03},
+        {3, cvs_1[3], cvs_2[1], 0.04},
+        {0, cvs_1[0], cvs_3[0], 0.02},
+        {1, cvs_1[1], cvs_5[0], 0.01},
+        {4, cvs_1[4], cvs_5[1], 0.01},
+    };
+    expected[2] = {
+        {0, cvs_2[0], cvs_1[2], 0.03},
+        {1, cvs_2[1], cvs_1[3], 0.04},
+        {0, cvs_2[0], cvs_3[0], 0.02},
+        {1, cvs_2[1], cvs_5[1], 0.01}
+    };
+    expected[3] = {
+        {0, cvs_3[0], cvs_1[0], 0.03},
+        {0, cvs_3[0], cvs_2[0], 0.04},
+        {0, cvs_3[0], cvs_5[0], 0.02}
+    };
+    expected[4] = {};
+    expected[5] = {
+        {0, cvs_5[0], cvs_1[1], 0.03},
+        {1, cvs_5[1], cvs_1[4], 0.04},
+        {1, cvs_5[1], cvs_2[1], 0.02},
+        {0, cvs_5[0], cvs_3[0], 0.01}
+    };
+
+    util::sort(expected.at(1));
+    util::sort(expected.at(2));
+    util::sort(expected.at(3));
+    util::sort(expected.at(5));
+
+    EXPECT_EQ(expected.at(0), gj_conns.at(0));
+    EXPECT_EQ(expected.at(1), gj_conns.at(1));
+    EXPECT_EQ(expected.at(2), gj_conns.at(2));
+    EXPECT_EQ(expected.at(3), gj_conns.at(3));
+    EXPECT_EQ(expected.at(4), gj_conns.at(4));
+    EXPECT_EQ(expected.at(5), gj_conns.at(5));
+
+    // Check the GJ mechanism data
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, *context);
+
+    EXPECT_EQ(4u, M.mechanisms.size());
+    ASSERT_EQ(1u, M.mechanisms.count("gj0"));
+    ASSERT_EQ(1u, M.mechanisms.count("gj1"));
+
+    const auto& gj0_data = M.mechanisms["gj0"];
+    const auto& gj1_data = M.mechanisms["gj1"];
+
+    const auto& gj0_params = gj0_data.param_values;
+    const auto& gj1_params = gj1_data.param_values;
+
+    const auto& gj0_g_param = *ptr_by_key(gj0_params, "g"s);
+    const auto& gj1_g_param = *ptr_by_key(gj1_params, "g"s);
+    const auto& gj1_e_param = *ptr_by_key(gj1_params, "e"s);
+
+    std::vector<std::tuple<int, int, double, double>> expected_gj0_values = {
+        {cvs_1[2], cvs_2[0], 0.03, 1.5},
+        {cvs_1[3], cvs_2[1], 0.04, 1. },
+        {cvs_1[1], cvs_5[0], 0.01, 0.2},
+        {cvs_1[4], cvs_5[1], 0.01, 1.0},
+        {cvs_2[0], cvs_1[2], 0.03, 2.3},
+        {cvs_2[0], cvs_3[0], 0.02, 2.3},
+        {cvs_5[1], cvs_1[4], 0.04, 1.6},
+        {cvs_5[1], cvs_2[1], 0.02, 1.6}
+    };
+    util::sort(expected_gj0_values);
+
+    std::vector<int> expected_gj0_cv, expected_gj0_peer_cv;
+    std::vector<double> expected_gj0_weight, expected_gj0_g;
+    util::assign(expected_gj0_cv,      util::transform_view(expected_gj0_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj0_peer_cv, util::transform_view(expected_gj0_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj0_weight,  util::transform_view(expected_gj0_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj0_g,       util::transform_view(expected_gj0_values, [](const auto& x){return std::get<3>(x);}));
+
+    EXPECT_EQ(8u, gj0_data.cv.size());
+    EXPECT_EQ(expected_gj0_cv,      gj0_data.cv);
+    EXPECT_EQ(expected_gj0_peer_cv, gj0_data.peer_cv);
+    EXPECT_EQ(expected_gj0_weight,  gj0_data.local_weight);
+    EXPECT_EQ(expected_gj0_g,       gj0_g_param);
+
+    std::vector<std::tuple<int, int, double, double, double>> expected_gj1_values = {
+        {cvs_1[0], cvs_3[0], 0.02, 0.3, 1e-3},
+        {cvs_2[1], cvs_1[3], 0.04, 1.0, 5e-4},
+        {cvs_2[1], cvs_5[1], 0.01, 1.0, 5e-4},
+        {cvs_3[0], cvs_1[0], 0.03, 0.4, 0.},
+        {cvs_3[0], cvs_2[0], 0.04, 0.4, 0.},
+        {cvs_3[0], cvs_5[0], 0.02, 0.4, 0.},
+        {cvs_5[0], cvs_1[1], 0.03, 1.0, 0.},
+        {cvs_5[0], cvs_3[0], 0.01, 1.0, 0.}
+    };
+    util::sort(expected_gj1_values);
+
+    std::vector<int> expected_gj1_cv, expected_gj1_peer_cv;
+    std::vector<double> expected_gj1_weight, expected_gj1_g, expected_gj1_e;
+    util::assign(expected_gj1_cv,      util::transform_view(expected_gj1_values, [](const auto& x){return std::get<0>(x);}));
+    util::assign(expected_gj1_peer_cv, util::transform_view(expected_gj1_values, [](const auto& x){return std::get<1>(x);}));
+    util::assign(expected_gj1_weight,  util::transform_view(expected_gj1_values, [](const auto& x){return std::get<2>(x);}));
+    util::assign(expected_gj1_g,       util::transform_view(expected_gj1_values, [](const auto& x){return std::get<3>(x);}));
+    util::assign(expected_gj1_e,       util::transform_view(expected_gj1_values, [](const auto& x){return std::get<4>(x);}));
+
+    EXPECT_EQ(8u, gj1_data.cv.size());
+    EXPECT_EQ(expected_gj1_cv,      gj1_data.cv);
+    EXPECT_EQ(expected_gj1_peer_cv, gj1_data.peer_cv);
+    EXPECT_EQ(expected_gj1_weight,  gj1_data.local_weight);
+    EXPECT_EQ(expected_gj1_g,       gj1_g_param);
+    EXPECT_EQ(expected_gj1_e,       gj1_e_param);
+}
+
+TEST(fvm_lowered, cell_group_gj) {
+    auto context = make_context({arbenv::default_concurrency(), -1});
+
+    class gap_recipe: public recipe {
+    public:
+        gap_recipe(const std::vector<cable_cell>& cg0, const std::vector<cable_cell>& cg1) {
+            cells_ = cg0;
+            cells_.insert(cells_.end(), cg1.begin(), cg1.end());
+            gprop_.default_parameters = neuron_parameter_defaults;
+        }
+
+        cell_size_type num_cells() const override { return n_; }
+        cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::cable; }
+        util::unique_any get_cell_description(cell_gid_type gid) const override {
+            return cells_[gid];
+        }
+        std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+            std::vector<gap_junction_connection> conns;
+            if (gid % 2 == 0) {
+                // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
+                auto next_cell = gid == 8 ? 0 : (gid == 18 ? 10 : gid + 2);
+                auto prev_cell = gid == 0 ? 8 : (gid == 10 ? 18 : gid - 2);
+                conns.push_back(gap_junction_connection({next_cell, "gj", lid_selection_policy::assert_univalent},
+                                                        {"gj", lid_selection_policy::assert_univalent}, 0.03));
+                conns.push_back(gap_junction_connection({prev_cell, "gj", lid_selection_policy::assert_univalent},
+                                                        {"gj", lid_selection_policy::assert_univalent}, 0.03));
+            }
+            return conns;
+        }
+        std::any get_global_properties(cell_kind) const override {
+            return gprop_;
+        }
+
+    protected:
+        arb::cable_cell_global_properties gprop_;
+        std::vector<cable_cell> cells_;
+        cell_size_type n_ = 20;
+    };
+
+    std::vector<cable_cell> cell_group0;
+    std::vector<cable_cell> cell_group1;
+
+    // Make 20 cells
+    for (unsigned i = 0; i < 20; i++) {
+        cable_cell_description c = soma_cell_builder(2.1).make_cell();
+        if (i % 2 == 0) {
+            c.decorations.place(mlocation{0, 1}, junction{"gj"}, "gj");
+        }
+        if (i < 10) {
+            cell_group0.push_back(c);
+        }
+        else {
+            cell_group1.push_back(c);
+        }
+    }
+
+    std::vector<cell_gid_type> gids_cg0 = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<cell_gid_type> gids_cg1 = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+
+    gap_recipe rec(cell_group0, cell_group1);
+
+    fvm_cell fvcell0(*context);
+    fvm_cell fvcell1(*context);
+
+    auto fvm_info_0 = fvcell0.initialize(gids_cg0, rec);
+    auto fvm_info_1 = fvcell1.initialize(gids_cg1, rec);
+
+    auto num_dom0 = fvcell0.fvm_intdom(rec, gids_cg0, fvm_info_0.cell_to_intdom);
+    auto num_dom1 = fvcell1.fvm_intdom(rec, gids_cg1, fvm_info_1.cell_to_intdom);
+
+    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, *context);
+    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, *context);
+
+    auto gj_cvs_0 = fvm_build_gap_junction_cv_map(cell_group0, gids_cg0, D0);
+    auto gj_cvs_1 = fvm_build_gap_junction_cv_map(cell_group1, gids_cg1, D1);
+
+    auto GJ0 = fvm_resolve_gj_connections(gids_cg0, fvm_info_0.gap_junction_data, gj_cvs_0, rec);
+    auto GJ1 = fvm_resolve_gj_connections(gids_cg1, fvm_info_1.gap_junction_data, gj_cvs_1, rec);
+
+    EXPECT_EQ(gids_cg0.size(), GJ0.size());
+    EXPECT_EQ(gids_cg1.size(), GJ1.size());
+
+    std::vector<std::vector<fvm_gap_junction>> expected = {
+        {{0, 0, 2, 0.03}, {0, 0, 8, 0.03}}, {},
+        {{0, 2, 0, 0.03}, {0, 2, 4, 0.03}}, {},
+        {{0, 4, 2, 0.03} ,{0, 4, 6, 0.03}}, {},
+        {{0, 6, 4, 0.03}, {0, 6, 8, 0.03}}, {},
+        {{0, 8, 0, 0.03}, {0, 8, 6, 0.03}}, {}
+    };
+
+    for (unsigned i = 0; i < GJ0.size(); i++) {
+        EXPECT_EQ(expected[i], GJ0[i]);
+        EXPECT_EQ(expected[i], GJ1[i+10]);
+    }
+
+    std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
+    EXPECT_EQ(6u, num_dom0);
+    EXPECT_EQ(6u, num_dom1);
+
+    EXPECT_EQ(expected_doms, fvm_info_0.cell_to_intdom);
+    EXPECT_EQ(expected_doms, fvm_info_1.cell_to_intdom);
 }
 
 namespace {
@@ -590,10 +1302,10 @@ TEST(fvm_layout, density_norm_area) {
     hh_3["gl"] = seg3_gl;
 
     auto desc = builder.make_cell();
-    desc.decorations.paint("soma"_lab, std::move(hh_0));
-    desc.decorations.paint("reg1"_lab, std::move(hh_1));
-    desc.decorations.paint("reg2"_lab, std::move(hh_2));
-    desc.decorations.paint("reg3"_lab, std::move(hh_3));
+    desc.decorations.paint("soma"_lab, density(std::move(hh_0)));
+    desc.decorations.paint("reg1"_lab, density(std::move(hh_1)));
+    desc.decorations.paint("reg2"_lab, density(std::move(hh_2)));
+    desc.decorations.paint("reg3"_lab, density(std::move(hh_3)));
 
     std::vector<cable_cell> cells{desc};
 
@@ -636,8 +1348,10 @@ TEST(fvm_layout, density_norm_area) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
+    std::vector<cell_gid_type> gids = {0};
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}};
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 
     // Grab the HH parameters from the mechanism.
 
@@ -690,8 +1404,8 @@ TEST(fvm_layout, density_norm_area_partial) {
     auto desc = builder.make_cell();
     desc.decorations.set_default(cv_policy_fixed_per_branch(1));
 
-    desc.decorations.paint(builder.cable({1, 0., 0.3}), hh_begin);
-    desc.decorations.paint(builder.cable({1, 0.4, 1.}), hh_end);
+    desc.decorations.paint(builder.cable({1, 0., 0.3}), density(hh_begin));
+    desc.decorations.paint(builder.cable({1, 0.4, 1.}), density(hh_end));
 
     std::vector<cable_cell> cells{desc};
 
@@ -710,8 +1424,10 @@ TEST(fvm_layout, density_norm_area_partial) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
+    std::vector<cell_gid_type> gids = {0};
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}};
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+    fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 
     // Grab the HH parameters from the mechanism.
 
@@ -739,28 +1455,29 @@ TEST(fvm_layout, density_norm_area_partial) {
 
 TEST(fvm_layout, valence_verify) {
     auto desc = soma_cell_builder(6).make_cell();
-    desc.decorations.paint("soma"_lab, "test_cl_valence");
+    desc.decorations.paint("soma"_lab, density("test_cl_valence"));
     std::vector<cable_cell> cells{desc};
+    std::vector<cell_gid_type> gids = {0};
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}};
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
 
     // Missing the 'cl' ion:
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), cable_cell_error);
 
     // Adding ion, should be fine now:
     gprop.default_parameters.ion_data["cl"] = { 1., 1., 0. };
     gprop.ion_species["cl"] = -1;
-    EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, D));
+    EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D));
 
     // 'cl' ion has wrong charge:
     gprop.ion_species["cl"] = -2;
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, D), cable_cell_error);
+    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), cable_cell_error);
 }
 
 TEST(fvm_layout, ion_weights) {
@@ -812,9 +1529,8 @@ TEST(fvm_layout, ion_weights) {
         {0.}, {0., 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0., 0.}, {3./4, 0.}
     };
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
     cable_cell_global_properties gprop;
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
@@ -832,13 +1548,14 @@ TEST(fvm_layout, ion_weights) {
 
         for (auto i: mech_branches[run]) {
             auto cab = builder.cable({i, 0, 1});
-            desc.decorations.paint(reg::cable(cab.branch, cab.prox_pos, cab.dist_pos), "test_ca");
+            desc.decorations.paint(reg::cable(cab.branch, cab.prox_pos, cab.dist_pos), density("test_ca"));
         }
 
         std::vector<cable_cell> cells{desc};
-
+        std::vector<cell_gid_type> gids = {0};
+        std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}};
         fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 
         ASSERT_EQ(1u, M.ions.count("ca"s));
         auto& ca = M.ions.at("ca"s);
@@ -861,22 +1578,20 @@ TEST(fvm_layout, revpot) {
     //     * Reversal potential mechanisms are only extended where there exists another
     //       mechanism that reads them.
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
-
     soma_cell_builder builder(5);
     builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
     auto desc = builder.make_cell();
-    desc.decorations.paint("soma"_lab, "read_eX/c");
-    desc.decorations.paint("soma"_lab, "read_eX/a");
-    desc.decorations.paint("dend"_lab, "read_eX/a");
+    desc.decorations.paint("soma"_lab, density("read_eX/c"));
+    desc.decorations.paint("soma"_lab, density("read_eX/a"));
+    desc.decorations.paint("dend"_lab, density("read_eX/a"));
 
     std::vector<cable_cell_description> descriptions{desc, desc};
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
 
     gprop.ion_species = {{"a", 1}, {"b", 2}, {"c", 3}};
     gprop.add_ion("a", 1, 10., 0, 0);
@@ -892,8 +1607,10 @@ TEST(fvm_layout, revpot) {
         test_gprop.default_parameters.reversal_potential_method["b"] = write_eb_ec;
 
         std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
+        std::vector<cell_gid_type> gids = {0,1};
+        std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
         fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
-        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
+        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, gids, gj_conns, D), cable_cell_error);
     }
 
     {
@@ -902,10 +1619,12 @@ TEST(fvm_layout, revpot) {
         test_gprop.default_parameters.reversal_potential_method["b"] = write_eb_ec;
         test_gprop.default_parameters.reversal_potential_method["c"] = write_eb_ec;
         descriptions[1].decorations.set_default(ion_reversal_potential_method{"c", "write_eX/c"});
-        std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
 
+        std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
+        std::vector<cell_gid_type> gids = {0,1};
+        std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
         fvm_cv_discretization D = fvm_cv_discretize(cells, test_gprop.default_parameters);
-        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, D), cable_cell_error);
+        EXPECT_THROW(fvm_build_mechanism_data(test_gprop, cells, gids, gj_conns, D), cable_cell_error);
     }
 
     {
@@ -915,8 +1634,10 @@ TEST(fvm_layout, revpot) {
         descriptions[1].decorations.set_default(ion_reversal_potential_method{"c", write_eb_ec});
 
         std::vector<cable_cell> cells{descriptions[0], descriptions[1]};
+        std::vector<cell_gid_type> gids = {0,1};
+        std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
         fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
-        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, D);
+        fvm_mechanism_data M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 
         // Only CV which needs write_multiple_eX/x=b,y=c is the soma (first CV)
         // of the second cell.

@@ -17,7 +17,7 @@ struct dry_run_info {
 // By default, a proc_allocation will comprise one thread and no GPU.
 
 struct proc_allocation {
-    unsigned num_threads;
+    unsigned long num_threads;
 
     // The gpu id corresponds to the `int device` parameter used by
     // CUDA/HIP API calls to identify gpu devices.
@@ -27,7 +27,7 @@ struct proc_allocation {
 
     proc_allocation(): proc_allocation(1, -1) {}
 
-    proc_allocation(unsigned threads, int gpu):
+    proc_allocation(unsigned long threads, int gpu):
         num_threads(threads),
         gpu_id(gpu)
     {}

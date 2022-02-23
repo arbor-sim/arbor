@@ -21,7 +21,6 @@ public:
     void visit(UnaryExpression *e) override;
     void visit(BinaryExpression *e) override;
     void visit(AssignmentExpression *e) override;
-    void visit(PowBinaryExpression *e) override;
     void visit(NumberExpression *e) override;
     void visit(IfExpression *e) override;
 
@@ -54,14 +53,14 @@ public:
     void visit(UnaryExpression *e) override;
     void visit(BinaryExpression *e) override;
     void visit(AssignmentExpression *e) override;
-    void visit(PowBinaryExpression *e) override;
     void visit(NumberExpression *e) override;
     void visit(IfExpression *e) override;
 
 protected:
     static std::unordered_set<std::string> mask_names_;
     bool processing_true_ = false;
-    bool is_indirect_ = false;
+    bool is_indirect_ = false; // For choosing between "index_" and "i_" as an index. Depends on whether
+                               // we are in a procedure or handling a simd constraint in an API call.
     std::string current_mask_, current_mask_bar_, input_mask_;
     std::unordered_set<std::string> scalars_;
     Visitor* fallback_;

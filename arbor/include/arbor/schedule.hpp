@@ -176,10 +176,11 @@ inline schedule explicit_schedule(const std::initializer_list<time_type>& seq) {
 template <typename RandomNumberEngine>
 class poisson_schedule_impl {
 public:
-    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng):
-        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart)
+    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop):
+        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart), tstop_(tstop)
     {
         arb_assert(tstart_>=0);
+        arb_assert(tstart_ <= tstop_);
         step();
     }
 
@@ -190,6 +191,14 @@ public:
     }
 
     time_event_span events(time_type t0, time_type t1) {
+        // if we start after the maximal allowed time, we have nothing to do
+        if (t0 >= tstop_) {
+            return {};
+        }
+
+        // restrict by maximal allowed time
+        t1 = std::min(t1, tstop_);
+
         times_.clear();
 
         while (next_<t0) {
@@ -215,16 +224,17 @@ private:
     RandomNumberEngine reset_state_;
     time_type next_;
     std::vector<time_type> times_;
+    time_type tstop_;
 };
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng));
+inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop=terminal_time) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng, tstop));
 }
 
 template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng));
+inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop=terminal_time) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng, tstop));
 }
 
 } // namespace arb

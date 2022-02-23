@@ -39,6 +39,11 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
+    std::vector<std::vector<cell_gid_type>>
+    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
+        return mpi::gather_all(local_connections, comm_);
+    }
+
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         std::vector<cell_size_type> sizes;
         std::vector<cell_tag_type> labels;

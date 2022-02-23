@@ -602,6 +602,13 @@ double eval(Expression* e) {
         case tok::minus: return lhs - rhs;
         case tok::times: return lhs * rhs;
         case tok::divide: return lhs / rhs;
+        case tok::lt:    return lhs < rhs;
+        case tok::lte:   return lhs <= rhs;
+        case tok::gt:    return lhs > rhs;
+        case tok::gte:   return lhs >= rhs;
+        case tok::lnot:  return lhs != rhs;
+        case tok::land:  return lhs && rhs;
+        case tok::lor:   return lhs || rhs;
         case tok::pow: return std::pow(lhs, rhs);
         case tok::min: return std::min(lhs, rhs);
         case tok::max: return std::max(lhs, rhs);
@@ -664,6 +671,22 @@ TEST(Parser, parse_binop) {
         std::unique_ptr<Expression> e;
         EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
         EXPECT_NEAR(eval(e.get()), test_case.second, 1e-10);
+    }
+
+    std::pair<const char*, bool> bool_tests[] = {
+        {"0 && 0 || 1", true},
+        {"(0 && 0) || 1", true},
+        {"0 && (0 || 1)", false},
+        {"3<2 && 1 || 4>1", true},
+        {"(3<2 && 1) || 4>1", true},
+        {"3<2 && (1 || 4>1)", false},
+        {"(3<2) && (1 || (4>1))", false},
+    };
+
+    for (const auto& test_case: bool_tests) {
+        std::unique_ptr<Expression> e;
+        EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
+        EXPECT_EQ(eval(e.get()), test_case.second);
     }
 }
 

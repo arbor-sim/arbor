@@ -279,12 +279,15 @@ def generate(path=''):
     label_image(inputs.label_morph, [inputs.reg_dend, inputs.reg_radlt5], path+'/region_label_examples.svg')
     label_image(inputs.label_morph, [inputs.ls_root], path+'/root_label.svg')
     label_image(inputs.label_morph, [inputs.ls_term], path+'/term_label.svg')
-    label_image(inputs.label_morph, [inputs.ls_loc15], path+'/location_label.svg')
+    label_image(inputs.label_morph, [inputs.ls_loc15], path+'/location_15_label.svg')
+    label_image(inputs.label_morph, [inputs.ls_loc05], path+'/location_05_label.svg')
     label_image(inputs.label_morph, [inputs.reg_rad36, inputs.ls_distal], path+'/distal_label.svg')
     label_image(inputs.label_morph, [inputs.reg_rad36, inputs.ls_proximal], path+'/proximal_label.svg')
     label_image(inputs.label_morph, [inputs.ls_uniform0, inputs.ls_uniform1], path+'/uniform_label.svg')
     label_image(inputs.label_morph, [inputs.ls_branchmid], path+'/on_branches_label.svg')
     label_image(inputs.label_morph, [inputs.ls_term, inputs.reg_tag3, inputs.ls_restrict], path+'/restrict_label.svg')
+    label_image(inputs.label_morph, [inputs.ls_term, inputs.ls_proximal_translate], path+'/proximal_translate_label.svg')
+    label_image(inputs.label_morph, [inputs.ls_loc05, inputs.ls_distal_translate_single, inputs.ls_distal_translate_multi], path+'/distal_translate_label.svg')
 
     ####################### regions
 
@@ -308,6 +311,7 @@ def generate(path=''):
     ####################### Tutorial examples
 
     morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph.svg')
+    morph_image([inputs.tutorial_morph], ['segments'], path+'/tutorial_morph_nolabels_nocolors.svg', colors=False, draw_labels=False)
     morph_image([inputs.tutorial_network_ring_morph], ['segments'], path+'/tutorial_network_ring_morph.svg',lab_sc=6)
 
     ####################### locsets

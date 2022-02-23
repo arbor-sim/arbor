@@ -91,8 +91,11 @@ decltype(auto) back(Seq& seq) {
 template <typename V>
 struct pointer_proxy {
     V v;
-    pointer_proxy(const V& v): v(v) {}
-    pointer_proxy(V&& v): v(std::move(v)) {}
+
+    template <typename... Args>
+    pointer_proxy(Args&&... args): v(std::forward<Args>(args)...) {}
+
+    V* operator->() { return &v; }
     const V* operator->() const { return &v; }
 };
 

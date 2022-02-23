@@ -11,6 +11,7 @@
 
 #include "arbor/mechinfo.hpp"
 
+#include "util.hpp"
 #include "conversion.hpp"
 #include "strprintf.hpp"
 
@@ -152,6 +153,7 @@ void register_mechanisms(pybind11::module& m) {
         .def("__next__", &py_mech_cat_item_iterator::next);
 
     cat
+        .def(pybind11::init())
         .def(pybind11::init<const arb::mechanism_catalogue&>())
         .def("__contains__", &arb::mechanism_catalogue::has,
              "name"_a, "Is 'name' in the catalogue?")
@@ -196,14 +198,16 @@ void register_mechanisms(pybind11::module& m) {
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
     m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
     m.def("bbp_catalogue", [](){return arb::global_bbp_catalogue();});
-    m.def("load_catalogue", [](const std::string& fn){return arb::load_catalogue(fn);});
+    m.def("load_catalogue", [](pybind11::object fn) { return arb::load_catalogue(util::to_string(fn)); });
 
     // arb::mechanism_desc
     // For specifying a mechanism in the cable_cell interface.
 
     pybind11::class_<arb::mechanism_desc> mechanism_desc(m, "mechanism");
     mechanism_desc
-        .def(pybind11::init([](const char* n) {return arb::mechanism_desc{n};}))
+        .def(pybind11::init([](const char* name) {return arb::mechanism_desc{name};}),
+            "name"_a, "The name of the mechanism"
+        )
         // allow construction of a description with parameters provided in a dictionary:
         //      mech = arbor.mechanism('mech_name', {'param1': 1.2, 'param2': 3.14})
         .def(pybind11::init(
@@ -237,7 +241,7 @@ void register_mechanisms(pybind11::module& m) {
             }, "A dictionary of parameter values with parameter name as key.")
         .def("__repr__",
                 [](const arb::mechanism_desc& md) {
-                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}", md.name(), util::dictionary_csv(md.values())); })
+                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}>", md.name(), util::dictionary_csv(md.values())); })
         .def("__str__",
                 [](const arb::mechanism_desc& md) {
                     return util::pprintf("('{}' {})", md.name(), util::dictionary_csv(md.values())); });

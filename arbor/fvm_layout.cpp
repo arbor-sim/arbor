@@ -18,6 +18,7 @@
 #include "util/meta.hpp"
 #include "util/partition.hpp"
 #include "util/piecewise.hpp"
+#include "util/pw_over_cable.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "util/unique.hpp"
@@ -30,19 +31,13 @@ using util::count_along;
 using util::make_span;
 using util::pw_elements;
 using util::pw_element;
+using util::pw_over_cable;
 using util::sort;
 using util::sort_by;
 using util::stable_sort_by;
 using util::value_by_key;
 
 namespace {
-struct get_value {
-    template <typename X>
-    double operator()(const X& x) const { return x.value; }
-
-    double operator()(double x) const { return x; }
-};
-
 template <typename V>
 std::optional<V> operator|(const std::optional<V>& a, const std::optional<V>& b) {
     return a? a: b;
@@ -81,170 +76,23 @@ std::vector<V> unique_union(const std::vector<V>& a, const std::vector<V>& b) {
     }
     return u;
 }
-
-// Convert mcable_map values to a piecewise function over an mcable.
-// The projection gives the map from the values in the mcable_map to the values in the piecewise function.
-template <typename T, typename U, typename Proj = get_value>
-pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value, Proj projection = Proj{}) {
-    using value_type = typename mcable_map<T>::value_type;
-    msize_t bid = cable.branch;
-
-    struct as_branch {
-        msize_t value;
-        as_branch(const value_type& x): value(x.first.branch) {}
-        as_branch(const msize_t& x): value(x) {}
-    };
-
-    auto map_on_branch = util::make_range(
-            std::equal_range(mm.begin(), mm.end(), bid,
-                [](as_branch a, as_branch b) { return a.value<b.value; }));
-
-    if (map_on_branch.empty()) {
-        return pw_elements<U>({cable.prox_pos, cable.dist_pos}, {dflt_value});
-    }
-
-    pw_elements<U> pw;
-    for (const auto& el: map_on_branch) {
-        double pw_right = pw.empty()? 0: pw.bounds().second;
-        if (el.first.prox_pos>pw_right) {
-            pw.push_back(pw_right, el.first.prox_pos, dflt_value);
-        }
-        pw.push_back(el.first.prox_pos, el.first.dist_pos, projection(el.second));
-    }
-
-    double pw_right = pw.empty()? 0: pw.bounds().second;
-    if (pw_right<1.) {
-        pw.push_back(pw_right, 1., dflt_value);
-    }
-
-    if (cable.prox_pos!=0 || cable.dist_pos!=1) {
-        pw = zip(pw, pw_elements<>({cable.prox_pos, cable.dist_pos}));
-    }
-    return pw;
-}
 } // anonymous namespace
 
 
 // Building CV geometry
 // --------------------
 
-// Construct cv_geometry for cell from locset describing CV boundary points.
+// CV geometry
 
-cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
-    auto pop = [](auto& vec) { auto h = vec.back(); return vec.pop_back(), h; };
-
-    cv_geometry geom;
-    const auto& mp = cell.provider();
-    const auto& m = mp.morphology();
-
-    if (m.empty()) {
-        geom.cell_cv_divs = {0, 0};
-        return geom;
-    }
-
-    mlocation_list locs = thingify(lset, mp);
-
-    // Filter out root, terminal locations and repeated locations so as to
-    // avoid trivial CVs outside of fork points. (This is not necessary for
-    // correctness, but is for the convenience of specification by lset.)
-
-    auto neither_root_nor_terminal = [&m](mlocation x) {
-        return !(x.pos==0 && x.branch==(m.branch_children(mnpos).size()>1u? mnpos: 0)) // root?
-            && !(x.pos==1 && m.branch_children(x.branch).empty()); // terminal?
-    };
-    locs.erase(std::partition(locs.begin(), locs.end(), neither_root_nor_terminal), locs.end());
-    util::sort(locs);
-    util::unique_in_place(locs);
-
-    // Collect cables constituting each CV, maintaining a stack of CV
-    // proximal 'head' points, and recursing down branches in the morphology
-    // within each CV.
-
-    constexpr fvm_index_type no_parent = -1;
-    std::vector<std::pair<mlocation, fvm_index_type>> next_cv_head; // head loc, parent cv index
-    next_cv_head.emplace_back(mlocation{mnpos, 0}, no_parent);
-
-    mcable_list cables;
-    std::vector<msize_t> branches;
-    geom.cv_cables_divs.push_back(0);
-    fvm_index_type cv_index = 0;
-
-    while (!next_cv_head.empty()) {
-        auto next = pop(next_cv_head);
-        mlocation h = next.first;
-
-        cables.clear();
-        branches.clear();
-        branches.push_back(h.branch);
-        geom.cv_parent.push_back(next.second);
-
-        while (!branches.empty()) {
-            msize_t b = pop(branches);
-
-            // Find most proximal point in locs on this branch, strictly more distal than h.
-            auto it = locs.end();
-            if (b!=mnpos && b==h.branch) {
-                it = std::upper_bound(locs.begin(), locs.end(), h);
-            }
-            else if (b!=mnpos) {
-                it = std::lower_bound(locs.begin(), locs.end(), mlocation{b, 0});
-            }
-
-            // If found, use as an end point, and stop descent.
-            // Otherwise, recurse over child branches.
-            if (it!=locs.end() && it->branch==b) {
-                cables.push_back({b, b==h.branch? h.pos: 0, it->pos});
-                next_cv_head.emplace_back(*it, cv_index);
-            }
-            else {
-                if (b!=mnpos) {
-                    cables.push_back({b, b==h.branch? h.pos: 0, 1});
-                }
-                for (auto& c: m.branch_children(b)) {
-                    branches.push_back(c);
-                }
-            }
-        }
-
-        sort(cables);
-        util::append(geom.cv_cables, std::move(cables));
-        geom.cv_cables_divs.push_back(geom.cv_cables.size());
-        ++cv_index;
-    }
-
-    auto n_cv = cv_index;
-    arb_assert(n_cv>0);
-    arb_assert(geom.cv_parent.front()==-1);
-    arb_assert(util::all_of(util::subrange_view(geom.cv_parent, 1, n_cv),
-            [](auto v) { return v!=no_parent; }));
-
-    // Construct CV children mapping by sorting CV indices by parent.
-    assign(geom.cv_children, make_span(1, n_cv));
-    stable_sort_by(geom.cv_children, [&geom](auto cv) { return geom.cv_parent[cv]; });
-
-    geom.cv_children_divs.reserve(n_cv+1);
-    geom.cv_children_divs.push_back(0);
-
-    auto b = geom.cv_children.begin();
-    auto e = geom.cv_children.end();
-    auto from = b;
-
-    for (fvm_index_type cv = 0; cv<n_cv; ++cv) {
-        from = std::partition_point(from, e,
-            [cv, &geom](auto i) { return geom.cv_parent[i]<=cv; });
-        geom.cv_children_divs.push_back(from-b);
-    }
-
-    // Fill cv/cell mapping for single cell (index 0).
-    geom.cv_to_cell.assign(cv_index, 0);
-    geom.cell_cv_divs = {0, (fvm_index_type)cv_index};
-
+cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
+        base(cell, ls)
+{
     // Build location query map.
-    geom.branch_cv_map.resize(1);
-    std::vector<pw_elements<fvm_size_type>>& bmap = geom.branch_cv_map.back();
-
-    for (auto cv: make_span(n_cv)) {
-        for (auto cable: geom.cables(cv)) {
+    auto n_cv = cv_parent.size();
+    branch_cv_map.resize(1);
+    std::vector<util::pw_elements<fvm_size_type>>& bmap = branch_cv_map.back();
+    for (auto cv: util::make_span(n_cv)) {
+        for (auto cable: cables(cv)) {
             if (cable.branch>=bmap.size()) {
                 bmap.resize(cable.branch+1);
             }
@@ -253,8 +101,43 @@ cv_geometry cv_geometry_from_ends(const cable_cell& cell, const locset& lset) {
             bmap[cable.branch].push_back(cable.prox_pos, cable.dist_pos, cv);
         }
     }
+    cv_to_cell.assign(n_cv, 0);
+    cell_cv_divs = {0, (fvm_index_type)n_cv};
+}
 
-    return geom;
+fvm_size_type cv_geometry::location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
+    auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
+    auto zero_extent = [&pw_cv_offset](auto j) {
+        return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
+    };
+
+    auto i = pw_cv_offset.index_of(loc.pos);
+    auto i_max = pw_cv_offset.size()-1;
+    auto cv_prox = pw_cv_offset.extent(i).first;
+
+    // index_of() should have returned right-most matching interval.
+    arb_assert(i==i_max || loc.pos<pw_cv_offset.extent(i+1).first);
+
+    using namespace cv_prefer;
+    switch (prefer) {
+        case cv_distal:
+            break;
+        case cv_proximal:
+            if (loc.pos==cv_prox && i>0) --i;
+            break;
+        case cv_nonempty:
+            if (zero_extent(i)) {
+                if (i>0 && !zero_extent(i-1)) --i;
+                else if (i<i_max && !zero_extent(i+1)) ++i;
+            }
+            break;
+        case cv_empty:
+            if (loc.pos==cv_prox && i>0 && zero_extent(i-1)) --i;
+            break;
+    }
+
+    index_type cv_base = cell_cv_divs.at(cell_idx);
+    return cv_base+pw_cv_offset.value(i);
 }
 
 namespace impl {
@@ -338,7 +221,6 @@ fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discreti
     return dczn;
 }
 
-
 // FVM discretization
 // ------------------
 
@@ -346,7 +228,7 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
-    D.geometry = cv_geometry_from_ends(cell,
+    D.geometry = cv_geometry(cell,
         dflt.discretization? dflt.discretization->cv_boundary_points(cell):
         global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
         default_cv_policy().cv_boundary_points(cell));
@@ -738,8 +620,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
             L.kind = R.kind;
             append(L.cv, R.cv);
+            append(L.peer_cv, R.peer_cv);
             append(L.multiplicity, R.multiplicity);
             append(L.norm_area, R.norm_area);
+            append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
 
             arb_assert(util::equal(L.param_values, R.param_values,
@@ -769,15 +653,70 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx);
+std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D)
+{
+    arb_assert(cells.size() == gids.size());
+    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs;
+    for (auto cell_idx: util::make_span(0, cells.size())) {
+        for (const auto& mech : cells[cell_idx].junctions()) {
+            for (const auto& gj: mech.second) {
+                gj_cvs.insert({cell_member_type{gids[cell_idx], gj.lid}, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)});
+            }
+        }
+    }
+    return gj_cvs;
+}
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells, const fvm_cv_discretization& D, const execution_context& ctx)
+std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
+    const recipe& rec)
+{
+    // Construct and resolve all gj_connections.
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
+    label_resolution_map resolution_map({gj_data, gids});
+    auto gj_resolver = resolver(&resolution_map);
+    for (const auto& gid: gids) {
+        std::vector<fvm_gap_junction> local_conns;
+        for (const auto& conn: rec.gap_junctions_on(gid)) {
+            auto local_idx = gj_resolver.resolve({gid, conn.local});
+            auto peer_idx  = gj_resolver.resolve(conn.peer);
+
+            auto local_cv = gj_cvs.at({gid, local_idx});
+            auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
+
+            local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
+        }
+        // Sort local_conns by local_cv.
+        util::sort(local_conns);
+        gj_conns[gid] = std::move(local_conns);
+    }
+    return gj_conns;
+}
+
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const cable_cell& cell,
+    const std::vector<fvm_gap_junction>& gj_conns,
+    const fvm_cv_discretization& D,
+    fvm_size_type cell_idx);
+
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
+    const fvm_cv_discretization& D,
+    const execution_context& ctx)
 {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_mech[i]=fvm_build_mechanism_data(gprop, cells[i], D, i);});
+    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
+        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i);
+    });
 
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {
@@ -788,14 +727,18 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
 // Construct FVM mechanism data for a single cell.
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-    const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx)
+fvm_mechanism_data fvm_build_mechanism_data(
+    const cable_cell_global_properties& gprop,
+    const cable_cell& cell,
+    const std::vector<fvm_gap_junction>& gj_conns,
+    const fvm_cv_discretization& D,
+    fvm_size_type cell_idx)
 {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
     using value_type = fvm_value_type;
 
-    const mechanism_catalogue& catalogue = *gprop.catalogue;
+    const mechanism_catalogue& catalogue = gprop.catalogue;
     const auto& embedding = cell.embedding();
 
     const auto& global_dflt = gprop.default_parameters;
@@ -854,7 +797,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     // Density mechanisms:
 
-    for (const auto& entry: cell.region_assignments().get<mechanism_desc>()) {
+    for (const auto& entry: cell.region_assignments().get<density>()) {
         const std::string& name = entry.first;
         mechanism_info info = catalogue[name];
 
@@ -862,7 +805,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         if (info.kind != arb_mechanism_kind_density) {
             throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
         }
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_density;
 
         std::vector<std::string> param_names;
         assign(param_names, util::keys(info.parameters));
@@ -885,9 +828,10 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         param_maps.resize(n_param);
 
         for (auto& on_cable: entry.second) {
-            verify_mechanism(info, on_cable.second);
+            const auto& mech = on_cable.second.mech;
+            verify_mechanism(info, mech);
             mcable cable = on_cable.first;
-            const auto& set_params = on_cable.second.values();
+            const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
@@ -943,7 +887,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         }
 
         update_ion_support(info, config.cv);
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
 
     // Synapses:
@@ -995,10 +939,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         arb_assert(ix==n_param);
 
         std::size_t offset = 0;
-        for (const placed<mechanism_desc>& pm: entry.second) {
-            verify_mechanism(info, pm.item);
+        for (const placed<synapse>& pm: entry.second) {
+            const auto& mech = pm.item.mech;
+            verify_mechanism(info, mech);
 
-            synapse_instance in;
+            synapse_instance in{};
 
             in.param_values_offset = offset;
             offset += n_param;
@@ -1007,7 +952,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             double* in_param = all_param_values.data()+in.param_values_offset;
             std::copy(default_param_value.begin(), default_param_value.end(), in_param);
 
-            for (const auto& kv: pm.item.values()) {
+            for (const auto& kv: mech.values()) {
                 in_param[param_index.at(kv.first)] = kv.second;
             }
 
@@ -1051,7 +996,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
-        config.kind = info.kind;
+        config.kind = arb_mechanism_kind_point;
         for (auto& kv: info.parameters) {
             config.param_values.emplace_back(kv.first, std::vector<value_type>{});
             if (!coalesce) {
@@ -1085,9 +1030,88 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         update_ion_support(info, config.cv);
 
         M.n_target += config.target.size();
-        M.mechanisms[name] = std::move(config);
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
     }
     M.post_events = post_events;
+
+    // Gap junctions:
+
+    struct junction_desc {
+        std::string name;                     // mechanism name.
+        std::vector<value_type> param_values; // overridden parameter values.
+    };
+
+    // Gap-junction mechanisms are handled differently from point mechanisms.
+    // There is a separate mechanism instance at the local site of every gap-junction connection,
+    // meaning there can be multiple gap-junction mechanism instances of the same type (name) per
+    // lid.
+    // As a result, building fvm_mechanism_config per junction mechanism is split into 2 phases.
+    // (1) For every type (name) of gap-junction mechanism used on the cell, an fvm_mechanism_config
+    //     object is constructed and only the kind and parameter names are set. The object is
+    //     stored in the `junction_configs` map. Another map `lid_junction_desc` containing the
+    //     name and parameter values of the mechanism per lid is stored, needed to complete the
+    //     description of the fvm_mechanism_config object in the next step.
+    // (2) For every gap-junction connection, the cv, peer_cv, local_weight and parameter values
+    //     of the mechanism present on the local lid of the connection are added to the
+    //     fvm_mechanism_config of that mechanism. This completes the fvm_mechanism_config
+    //     description for each gap-junction mechanism.
+
+    std::unordered_map<std::string, fvm_mechanism_config> junction_configs;
+    std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
+    for (const auto& [name, placements]: cell.junctions()) {
+        mechanism_info info = catalogue[name];
+        if (info.kind != arb_mechanism_kind_gap_junction) {
+            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+        }
+
+        fvm_mechanism_config config;
+        config.kind = arb_mechanism_kind_gap_junction;
+
+        std::vector<std::string> param_names;
+        std::vector<double> param_dflt;
+
+        assign(param_names, util::keys(info.parameters));
+        std::size_t n_param = param_names.size();
+
+        param_dflt.reserve(n_param);
+        for (const auto& p: param_names) {
+            config.param_values.emplace_back(p, std::vector<value_type>{});
+            param_dflt.push_back(info.parameters.at(p).default_value);
+        }
+
+        for (const placed<junction>& pm: placements) {
+            const auto& mech = pm.item.mech;
+            verify_mechanism(info, mech);
+            const auto& set_params = mech.values();
+
+            junction_desc per_lid;
+            per_lid.name = name;
+            for (std::size_t i = 0; i<n_param; ++i) {
+                per_lid.param_values.push_back(value_by_key(set_params, param_names[i]).value_or(param_dflt[i]));
+            }
+            lid_junction_desc.insert({pm.lid, std::move(per_lid)});
+        }
+        junction_configs[name] = std::move(config);
+    }
+
+    // Iterate over the gj_conns local to the cell, and complete the fvm_mechanism_config.
+    // The gj_conns are expected to be sorted by local CV index.
+    for (const auto& conn: gj_conns) {
+        auto local_junction_desc = lid_junction_desc[conn.local_idx];
+        auto& config = junction_configs[local_junction_desc.name];
+
+        config.cv.push_back(conn.local_cv);
+        config.peer_cv.push_back(conn.peer_cv);
+        config.local_weight.push_back(conn.weight);
+        for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
+            config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
+        }
+    }
+
+    // Add non-empty fvm_mechanism_config to the fvm_mechanism_data
+    for (auto [name, config]: junction_configs) {
+        if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
+    }
 
     // Stimuli:
 
@@ -1136,7 +1160,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         std::unique_copy(config.cv.begin(), config.cv.end(), std::back_inserter(config.cv_unique));
         config.cv_unique.shrink_to_fit();
 
-        M.stimuli = std::move(config);
+        if (!config.cv.empty()) M.stimuli = std::move(config);
     }
 
     // Ions:
@@ -1173,8 +1197,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         const mcable_map<init_ext_concentration>&  econc_on_cable = initial_econc_map[ion];
         const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
 
-        auto pw_times = [](const pw_elements<double>& a, const pw_elements<double>& b) {
-            return zip(a, b, [](double left, double right, pw_element<double> a, pw_element<double> b) { return a.element*b.element; });
+        auto pw_times = [](const pw_elements<double>& pwa, const pw_elements<double>& pwb) {
+            return pw_zip_with(pwa, pwb, [](std::pair<double, double>, double a, double b) { return a*b; });
         };
 
         for (auto i: count_along(config.cv)) {
@@ -1205,7 +1229,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
             config.init_econc[i] *= oo_cv_area;
         }
 
-        M.ions[ion] = std::move(config);
+        if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }
 
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
@@ -1259,7 +1283,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                 }
                 else {
                     fvm_mechanism_config config;
-                    config.kind = info.kind;
+                    config.kind = arb_mechanism_kind_reversal_potential;
                     config.cv = M.ions[ion].cv;
                     config.norm_area.assign(config.cv.size(), 1.);
 
@@ -1276,7 +1300,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                         config.param_values.emplace_back(kv.first, std::vector<value_type>(config.cv.size(), kv.second));
                     }
 
-                    M.mechanisms[revpot.name()] = std::move(config);
+                    if (!config.cv.empty()) M.mechanisms[revpot.name()] = std::move(config);
                 }
             }
         }

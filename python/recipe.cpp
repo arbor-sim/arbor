@@ -14,6 +14,7 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 
+#include "arbor/cable_cell_param.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"
@@ -70,6 +71,9 @@ static std::any convert_gprop(pybind11::object o) {
     if (o.is(pybind11::none())) {
         return {};
     }
+    if (!pybind11::isinstance<arb::cable_cell_global_properties>(o)) {
+        throw pyarb_error("recipe.global_properties must return a valid description of cable cell properties of type arbor.cable_global_properties");
+    }
     return pybind11::cast<arb::cable_cell_global_properties>(o);
 }
 
@@ -123,8 +127,8 @@ std::string con_to_string(const arb::cell_connection& c) {
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), ggap {}>",
-         gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.ggap);
+    return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), weight {}>",
+         gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.weight);
 }
 
 void register_recipe(pybind11::module& m) {
@@ -158,17 +162,17 @@ void register_recipe(pybind11::module& m) {
         "Describes a gap junction between two gap junction sites.");
     gap_junction_connection
         .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, double>(),
-            "peer"_a, "local"_a, "ggap"_a,
+            "peer"_a, "local"_a, "weight"_a,
             "Construct a gap junction connection with arguments:\n"
             "  peer:  remote half of the gap junction connection.\n"
             "  local: local half of the gap junction connection.\n"
-            "  ggap:  Gap junction conductance [μS].")
+            "  weight:  Gap junction connection weight [unit-less].")
         .def_readwrite("peer", &arb::gap_junction_connection::peer,
             "Remote gid and label of the gap junction connection.")
         .def_readwrite("local", &arb::gap_junction_connection::local,
             "Local label of the gap junction connection.")
-        .def_readwrite("ggap", &arb::gap_junction_connection::ggap,
-            "Gap junction conductance [μS].")
+        .def_readwrite("weight", &arb::gap_junction_connection::weight,
+            "Gap junction connection weight [unit-less].")
         .def("__str__",  &gj_to_string)
         .def("__repr__", &gj_to_string);
 

@@ -45,11 +45,11 @@ def make_cable_cell(gid):
     decor = arbor.decor()
 
     # Put hh dynamics on soma, and passive properties on the dendrites.
-    decor.paint('"soma"', 'hh')
-    decor.paint('"dend"', 'pas')
+    decor.paint('"soma"', arbor.density('hh'))
+    decor.paint('"dend"', arbor.density('pas'))
 
     # (4) Attach a single synapse.
-    decor.place('"synapse_site"', 'expsyn', 'syn')
+    decor.place('"synapse_site"', arbor.synapse('expsyn'), 'syn')
 
     # Attach a spike detector with threshold of -10 mV.
     decor.place('"root"', arbor.spike_detector(-10), 'detector')
@@ -67,8 +67,6 @@ class ring_recipe (arbor.recipe):
         arbor.recipe.__init__(self)
         self.ncells = ncells
         self.props = arbor.neuron_cable_properties()
-        self.cat = arbor.default_catalogue()
-        self.props.register(self.cat)
 
     # (6) The num_cells method that returns the total number of cells in the model
     # must be implemented.
@@ -88,13 +86,13 @@ class ring_recipe (arbor.recipe):
     def connections_on(self, gid):
         src = (gid-1)%self.ncells
         w = 0.01 # 0.01 μS on expsyn
-        d = 5
+        d = 5 # ms delay
         return [arbor.connection((src,'detector'), 'syn', w, d)]
 
     # (9) Attach a generator to the first cell in the ring.
     def event_generators(self, gid):
         if gid==0:
-            sched = arbor.explicit_schedule([1])
+            sched = arbor.explicit_schedule([1]) # one event at 1 ms
             weight = 0.1 # 0.1 μS on expsyn
             return [arbor.event_generator('syn', weight, sched)]
         return []
@@ -121,7 +119,7 @@ sim.record(arbor.spike_recording.all)
 # (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
 handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
-# (15) Run simulation
+# (15) Run simulation for 100 ms
 sim.run(100)
 print('Simulation finished')
 

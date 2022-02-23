@@ -68,8 +68,8 @@ following way:
   In the above example we set the initial membrane potential to -40 mV.
 * :meth:`arbor.decor.paint` is used to set properties or add dynamics to a region of the cell.
   We call this method 'painting' to convey that we are working on sections of a cell, as opposed to
-  precise locations: for example, we might want to *paint* an ion channel on all dendrites, and then
-  *place* a synapse at the tip of the axon. In the above example we paint
+  precise locations: for example, we might want to *paint* a density ion channel on all dendrites,
+  and then *place* a synapse at the tip of the axon. In the above example we paint
   HH dynamics on the region we previously named ``"soma"`` in our label dictionary.
 * :meth:`arbor.decor.place` is used to add objects on a precise
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,

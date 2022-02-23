@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <stack>
 
 #include <arbor/math.hpp>
 #include <arbor/morph/locset.hpp>
@@ -114,6 +115,138 @@ mlocation_list thingify_(const terminal_&, const mprovider& p) {
 
 std::ostream& operator<<(std::ostream& o, const terminal_& x) {
     return o << "(terminal)";
+}
+
+// Translate locations in locset distance μm in the proximal direction
+struct proximal_translate_: locset_tag {
+    proximal_translate_(const locset& ls, double distance): start(ls), distance(distance) {}
+    locset start;
+    double distance;
+};
+
+mlocation_list thingify_(const proximal_translate_& dt, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mlocation> L;
+
+    const auto start = thingify(dt.start, p);
+    const auto distance = dt.distance;
+
+    for (auto loc: start) {
+        auto distance_remaining = distance;
+
+        while (loc.branch != mnpos) {
+            const auto branch = loc.branch;
+            const auto branch_length = e.branch_length(branch);
+            const auto dist_pos = loc.pos;
+            const auto prox_pos = dist_pos - distance_remaining / branch_length;
+
+            if (prox_pos>=0) {
+                // The target is inside this branch.
+                L.push_back({branch, prox_pos});
+                break;
+            }
+            if (auto parent = m.branch_parent(branch); parent==mnpos) {
+                // The root has been reached; return the start of the branch attached to root.
+                L.push_back({branch, 0.});
+                break;
+            }
+            else {
+                loc = {parent, 1.};
+            }
+            distance_remaining -= dist_pos*branch_length;
+        }
+    }
+
+    return L;
+}
+
+locset proximal_translate(locset ls, double distance) {
+    return locset(proximal_translate_{ls, distance});
+}
+
+std::ostream& operator<<(std::ostream& o, const proximal_translate_& l) {
+    return o << "(proximal-translate " << l.start << " " << l.distance << ")";
+}
+
+// Translate locations in locset distance μm in the distal direction
+struct distal_translate_: locset_tag {
+    distal_translate_(const locset& ls, double distance): start(ls), distance(distance) {}
+    locset start;
+    double distance;
+};
+
+locset distal_translate(locset ls, double distance) {
+    return locset(distal_translate_{ls, distance});
+}
+
+mlocation_list thingify_(const distal_translate_& dt, const mprovider& p) {
+    const auto& m = p.morphology();
+    const auto& e = p.embedding();
+
+    std::vector<mlocation> L;
+
+    auto start = thingify(dt.start, p);
+    auto distance = dt.distance;
+
+    struct branch_interval {
+        msize_t bid;
+        double distance;
+    };
+
+    for (auto c: start) {
+        std::stack<branch_interval> branches_reached;
+        bool first_branch = true;
+
+        // If starting at the end of a branch, start traversal with its children
+        if (c.pos < 1) {
+            branches_reached.push({c.branch, distance});
+        } else {
+            first_branch = false;
+            for (auto child: m.branch_children(c.branch)) {
+                branches_reached.push({child, distance});
+            }
+        }
+
+        while (!branches_reached.empty()) {
+            auto bi = branches_reached.top();
+            branches_reached.pop();
+
+            auto branch = bi.bid;
+            auto rem_dist = bi.distance;
+
+            auto branch_length = e.branch_length(branch);
+            auto prox_pos = first_branch*c.pos;
+            auto dist_pos = rem_dist / branch_length + prox_pos;
+
+            if (dist_pos <= 1) {
+                // The location lies inside this branch.
+                L.push_back({branch, dist_pos});
+            }
+            else if (m.branch_children(branch).empty()) {
+                // The location is more proximal than this branch, but this
+                // branch is terminal add the terminal location.
+                L.push_back({branch, 1});
+            }
+            else {
+                // The location is more distal than this branch: add child
+                // branches to continue the search.
+                rem_dist = rem_dist - (1 - prox_pos)*branch_length;
+                for (auto child: m.branch_children(branch)) {
+                    branches_reached.push({child, rem_dist});
+                }
+            }
+            first_branch = false;
+        }
+    }
+
+    std::sort(L.begin(), L.end());
+    return L;
+}
+
+std::ostream& operator<<(std::ostream& o, const distal_translate_& l) {
+    return o << "(distal-translate " << l.start << " " << l.distance << ")";
 }
 
 // Root location (most proximal point).
@@ -353,7 +486,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
         }
         else if (n.relpos==1) {
             double diameter = 0;
-            mlocation_list most_distal = {prox};
+            mlocation_list most_distal;
 
             for (mcable c: comp) {
                 mlocation x = dist_loc(c);
@@ -368,7 +501,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
                 }
             }
 
-            util::append(L, most_distal);
+            util::append(L, maxset(p.morphology(), support(most_distal)));
         }
         else {
             double diameter = util::max_value(util::transform_view(comp,
@@ -385,7 +518,6 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
                     L.push_back(mlocation{c.branch, s});
                 }
             }
-
         }
     }
 

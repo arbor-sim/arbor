@@ -5,6 +5,8 @@ set(test_mechanisms
     celsius_test
     diam_test
     fixed_ica_current
+    gj0
+    gj1
     linear_ca_conc
     non_linear
     param_as_state
@@ -23,6 +25,8 @@ set(test_mechanisms
     test2_kin_diff
     test3_kin_diff
     test4_kin_compartment
+    test5_nonlinear_diff
+    test6_nonlinear_diff
     test_ca
     test_ca_read_valence
     test_cl_valence
@@ -215,7 +219,8 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
     OUTPUT "CAT_DUMMY_SOURCES"
-    MECHS dummy
+    MOD dummy
+    CXX
     PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     STANDALONE ON

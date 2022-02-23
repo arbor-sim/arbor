@@ -4,7 +4,6 @@
 #include <set>
 #include <regex>
 
-#define FMT_HEADER_ONLY YES
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/compile.h>
@@ -99,7 +98,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
 
     auto ns_components = namespace_components(opt.cpp_namespace);
 
-    const bool is_point_proc = module_.kind() == moduleKind::point;
+    const bool is_point_proc = (module_.kind() == moduleKind::point) || (module_.kind() == moduleKind::junction);
 
     APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
     APIMethod* post_event_api  = find_api_method(module_, "post_event_api");
@@ -137,6 +136,7 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
                                    "auto* {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
                                    "auto* {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
                                    "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
+                                   "auto* {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
                                    "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
                                    "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
                                    "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"
@@ -185,16 +185,26 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         << "using ::arb::gpu::max;\n\n";
 
     // Procedures as __device__ functions.
-    auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
+    auto emit_procedure_proto = [&] (ProcedureExpression* e) {
         out << fmt::format("__device__\n"
                            "void {}(arb_mechanism_ppack params_, int tid_",
                            e->name());
         for(auto& arg: e->args()) out << ", arb_value_type " << arg->is_argument()->name();
-        out << ") {\n" << indent
+        out << ")";
+    };
+
+    auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
+        emit_procedure_proto(e);
+        out << " {\n" << indent
             << "PPACK_IFACE_BLOCK;\n"
             << cuprint(e->body())
             << popindent << "}\n\n";
     };
+
+    for (auto& p: module_normal_procedures(module_)) {
+        emit_procedure_proto(p);
+        out << ";\n\n";
+    }
 
     for (auto& p: module_normal_procedures(module_)) {
         emit_procedure_kernel(p);
@@ -363,13 +373,19 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
-            index_prop node_idx = {d.node_index_var, "tid_"};
-            auto it = std::find(indices.begin(), indices.end(), node_idx);
-            if (it == indices.end()) indices.push_front(node_idx);
-            if (!d.cell_index_var.empty()) {
-                index_prop cell_idx = {d.cell_index_var, index_i_name(d.node_index_var)};
-                auto it = std::find(indices.begin(), indices.end(), cell_idx);
-                if (it == indices.end()) indices.push_back(cell_idx);
+            auto nested = !d.inner_index_var().empty();
+            auto outer_index_var = d.outer_index_var();
+            auto inner_index_var = nested? index_i_name(d.inner_index_var()): "tid_";
+            index_prop index_var = {outer_index_var, inner_index_var};
+            auto it = std::find(indices.begin(), indices.end(), index_var);
+            if (it == indices.end()) {
+                // If an inner index is required, push the outer index_var to the end of the list
+                if (nested) {
+                    indices.push_back(index_var);
+                }
+                else {
+                    indices.push_front(index_var);
+                }
             }
         }
     }
@@ -418,7 +434,7 @@ namespace {
 
         deref(indexed_variable_info v): v(v) {}
         friend std::ostream& operator<<(std::ostream& o, const deref& wrap) {
-            auto index_var = wrap.v.cell_index_var.empty() ? wrap.v.node_index_var : wrap.v.cell_index_var;
+            auto index_var = wrap.v.outer_index_var();
             return o << pp_var_pfx << wrap.v.data_var << '['
                      << (wrap.v.scalar()? "0": index_i_name(index_var)) << ']';
         }
@@ -458,7 +474,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
 
         out << pp_var_pfx << "weight[tid_]*" << from->name() << ',';
 
-        auto index_var = d.cell_index_var.empty() ? d.node_index_var : d.cell_index_var;
+        auto index_var = d.outer_index_var();
         out << pp_var_pfx << d.data_var << ", " << index_i_name(index_var) << ", lane_mask_);\n";
     }
     else if (d.accumulate) {

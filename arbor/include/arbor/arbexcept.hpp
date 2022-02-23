@@ -28,6 +28,13 @@ struct arbor_exception: std::runtime_error {
     {}
 };
 
+// Logic errors
+
+// Argument violates domain constraints, eg ln(-1)
+struct domain_error: arbor_exception {
+    domain_error(const std::string&);
+};
+
 // Recipe errors:
 
 struct bad_cell_probe: arbor_exception {
@@ -73,6 +80,13 @@ struct gj_unsupported_lid_selection_policy: arbor_exception {
     gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label);
     cell_gid_type gid;
     cell_tag_type label;
+};
+
+// Context errors:
+
+struct zero_thread_requested_error: arbor_exception {
+    zero_thread_requested_error(unsigned nbt);
+    unsigned nbt;
 };
 
 // Domain decomposition errors:
@@ -146,10 +160,11 @@ struct file_not_found_error: arbor_exception {
     std::string filename;
 };
 
+//
 struct bad_catalogue_error: arbor_exception {
-    bad_catalogue_error(const std::string& fn, const std::string& call);
-    std::string filename;
-    std::string failed_call;
+    bad_catalogue_error(const std::string&);
+    bad_catalogue_error(const std::string&, const std::any&);
+    std::any platform_error;
 };
 
 // ABI errors

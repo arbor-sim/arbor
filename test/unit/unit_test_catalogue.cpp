@@ -10,6 +10,8 @@
 #include "mechanisms/ca_linear.hpp"
 #include "mechanisms/celsius_test.hpp"
 #include "mechanisms/diam_test.hpp"
+#include "mechanisms/gj0.hpp"
+#include "mechanisms/gj1.hpp"
 #include "mechanisms/non_linear.hpp"
 #include "mechanisms/param_as_state.hpp"
 #include "mechanisms/post_events_syn.hpp"
@@ -26,6 +28,8 @@
 #include "mechanisms/test2_kin_diff.hpp"
 #include "mechanisms/test3_kin_diff.hpp"
 #include "mechanisms/test4_kin_compartment.hpp"
+#include "mechanisms/test5_nonlinear_diff.hpp"
+#include "mechanisms/test6_nonlinear_diff.hpp"
 #include "mechanisms/test1_kin_steadystate.hpp"
 #include "mechanisms/fixed_ica_current.hpp"
 #include "mechanisms/point_ica_current.hpp"
@@ -58,8 +62,10 @@ c.register_implementation(#x, std::make_unique<arb::mechanism>(make_testing_##x(
 using namespace arb;
 
 mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
-    mechanism_catalogue cat(from);
+    mechanism_catalogue cat = from;
 
+    ADD_MECH(cat, gj0)
+    ADD_MECH(cat, gj1)
     ADD_MECH(cat, test_ca)
     ADD_MECH(cat, test_kin1)
     ADD_MECH(cat, test_kinlva)
@@ -82,6 +88,8 @@ mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
     ADD_MECH(cat, test1_kin_steadystate)
     ADD_MECH(cat, test1_kin_compartment)
     ADD_MECH(cat, test4_kin_compartment)
+    ADD_MECH(cat, test5_nonlinear_diff)
+    ADD_MECH(cat, test6_nonlinear_diff)
     ADD_MECH(cat, fixed_ica_current)
     ADD_MECH(cat, non_linear)
     ADD_MECH(cat, point_ica_current)

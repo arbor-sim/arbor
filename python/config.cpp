@@ -34,6 +34,21 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("vectorize")] = pybind11::bool_(false);
 #endif
+#ifdef ARB_PROFILE_ENABLED
+    dict[pybind11::str("profiling")] = pybind11::bool_(true);
+#else
+    dict[pybind11::str("profiling")] = pybind11::bool_(false);
+#endif
+#ifdef ARB_NEUROML_ENABLED
+    dict[pybind11::str("neuroml")] = pybind11::bool_(true);
+#else
+    dict[pybind11::str("neuroml")] = pybind11::bool_(false);
+#endif
+#ifdef ARB_BUNDLED_ENABLED
+    dict[pybind11::str("bundled")] = pybind11::bool_(true);
+#else
+    dict[pybind11::str("bundled")] = pybind11::bool_(false);
+#endif
     dict[pybind11::str("version")] = pybind11::str(ARB_VERSION);
     dict[pybind11::str("source")]  = pybind11::str(ARB_SOURCE_ID);
     dict[pybind11::str("arch")]    = pybind11::str(ARB_ARCH);

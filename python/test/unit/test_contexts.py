@@ -5,21 +5,13 @@
 import unittest
 
 import arbor as arb
-
-# to be able to run .py file from child directory
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-try:
-    import options
-except ModuleNotFoundError:
-    from test import options
+from .. import fixtures
 
 """
 all tests for non-distributed arb.context
 """
 
-class Contexts(unittest.TestCase):
+class TestContexts(unittest.TestCase):
     def test_default_allocation(self):
         alloc = arb.proc_allocation()
 
@@ -52,7 +44,7 @@ class Contexts(unittest.TestCase):
             arb.proc_allocation(gpu_id = 'gpu_id')
         with self.assertRaises(TypeError):
             arb.proc_allocation(threads = 1.)
-        with self.assertRaisesRegex(RuntimeError,
+        with self.assertRaisesRegex(ValueError,
             "threads must be a positive integer"):
              arb.proc_allocation(threads = 0)
         with self.assertRaises(TypeError):
@@ -77,6 +69,16 @@ class Contexts(unittest.TestCase):
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
 
+    def test_context_avail_threads(self):
+        # test that 'avail_threads' returns at least 1.
+        ctx = arb.context(threads = 'avail_threads', gpu_id = None)
+
+        self.assertFalse(ctx.has_mpi)
+        self.assertFalse(ctx.has_gpu)
+        self.assertTrue(ctx.threads >= 1)
+        self.assertEqual(ctx.ranks, 1)
+        self.assertEqual(ctx.rank, 0)
+
     def test_context_allocation(self):
         alloc = arb.proc_allocation()
 
@@ -86,16 +88,3 @@ class Contexts(unittest.TestCase):
         self.assertEqual(ctx.has_gpu, alloc.has_gpu)
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
-
-def suite():
-    # specify class and test functions in tuple (here: all tests starting with 'test' from class Contexts
-    suite = unittest.makeSuite(Contexts, ('test'))
-    return suite
-
-def run():
-    v = options.parse_arguments().verbosity
-    runner = unittest.TextTestRunner(verbosity = v)
-    runner.run(suite())
-
-if __name__ == "__main__":
-    run()

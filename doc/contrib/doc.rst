@@ -23,7 +23,7 @@ Update policy
 
 How to we decide if documentation is good? By observing how effective it is used
 in practice. If a question on Arbor (regardless of medium) is satisfactorily
-resolved (on both sides!) by with a pointer to the (relevant section in the) docs,
+resolved (on both sides!) with a pointer to the (relevant section in the) docs,
 the documentation was good. If, on the other hand, explanation was needed, the
 documentation was bad.
 
@@ -45,7 +45,7 @@ Wherever possible, observe:
 * file names: avoid underscores as much as possible. E.g. `cpp/cable_cell.rst` -> `cpp/cablecell.rst`.
 * page-level labels in each file: the path concatenated without spaces. E.g. `cpp/cablecell.rst` -> `cppcablecell`.
 * heading labels in a file: `pagelevel-sectionname`. Feel free to slugify long headings.
-E.g. the morphology section in the C++ cable cell docs could be `cppcablecell-morph`.
+  E.g. the morphology section in the C++ cable cell docs could be `cppcablecell-morph`.
 
 .. _contribdoc-lang:
 
