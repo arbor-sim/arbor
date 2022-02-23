@@ -9,4 +9,8 @@ Here we document internal components of Arbor. These pages can be useful if you'
    :caption: Arbor Developers Guide:
    :maxdepth: 2
 
+
    cable_cell
+   cell_groups
+   matrix_solver
+   shared_state
