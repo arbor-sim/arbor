@@ -17,16 +17,17 @@ These arrays have entries per CV and mechanisms need to go through the
 group's CV index.
 
 =======  ======= ===============================
-Field    NMODL   Meaning
+Field    NMODL   Ion Property
 =======  ======= ===============================
-``iX_``  ``ica`` ion current density
-``eX_``  ``eca`` ion channel reversal potential
-``Xi_``  ``cai`` internal concentration
-``Xo_``  ``cao`` external concentration
+``iX_``  ``ica`` Current density
+``eX_``  ``eca`` Reversal potential
+``Xi_``  ``cai`` Internal concentration
+``Xo_``  ``cao`` External concentration
 =======  ======= ===============================
 
-This table shows the mapping between NMODL and the ``ion_state`` members.
-The class is responsible for reseting currents and concentrations.
+This table shows the mapping between NMODL -- for the ``ca`` ion species -- and
+the ``ion_state`` members. The class is responsible for reseting currents and
+concentrations.
 
 Mechanisms
 ----------

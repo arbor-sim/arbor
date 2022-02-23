@@ -6,7 +6,7 @@ Matrix Solvers
 Cable Equation
 --------------
 
-At the heart of the time evolution step Arbor we find a linear system that must
+At the heart of the time evolution step in Arbor we find a linear system that must
 be solved once per time step. This system arises from the cable equation
 
 .. math::
@@ -28,7 +28,7 @@ where :math:`\delta(i, j)` indicates whether two CVs are adjacent. It is written
 in form of a sparse matrix, symmetric by construction.
 
 Note that the cable equation is non-linear as the currents :math:`I` potentially
-depend on :math:`V`. We obtain the current value of :math:`I` by splitting the
+depend on :math:`V`. We obtain the momentary value of :math:`I` by splitting the
 full operator into the 'matrix' (described here) and 'mechanism' parts (giving
 the currents) and assuming one part being a constant during the update of the
 respective other. However, for the matrix solver, we model _linear_ dependencies
@@ -39,7 +39,7 @@ compilation of the mechanisms and an update to :math:`g(t)` when updating
 currents using that symbolic expression.
 
 Each *branch* in the morphology leads to a tri-diagonal block in the matrix
-describing the system, since *branches* to not contain interior branching
+describing the system, since *branches* do not contain interior branching
 points. Thus, an interior CV couples to only its neighbours (and itself).
 However, at branch points, we need to factor in the branch's parents, which
 couple blocks via entries outside the tri-diagonal structure. To ensure
@@ -69,8 +69,10 @@ CPU
 
 .. note:: See ``arbor/backends/multicore/matrix_state.hpp``:
 
-          * Assembly is found in ``assemble`` and partially ``matrix_state``.
-          * The solver lives in ``solve``.
+          * ``struct matrix_state``
+            * the ``matrix_state`` constructor sets up the static parts
+            * the dynamic part is found in ``assemble``
+            * the solver lives in ``solve``.
 
 The matrix solver proceeds in two phases: assembly and the actual solving. Since
 we are working on cell groups, not individual cells, this is executed for each
@@ -79,9 +81,10 @@ cell's matrix.
 Assembly
 ^^^^^^^^
 
-We store the matrix in compressed form, as its upper and main diagonals.
-Assembly computes the changing parts of the matrix and the right-hand side of
-the matrix equation. Static parts are computed once, mainly the diagonal.
+We store the matrix in compressed form, as its upper and main diagonals. The
+static parts -- foremost the main diagonal -- are computed once at construction
+time and stored. The dynamic parts of the matrix and the right-hand side of the
+equation are initialised by calling ``assemble``.
 
 Solving
 ^^^^^^^
@@ -120,8 +123,10 @@ GPU
 
 .. note:: See ``arbor/backends/gpu/matrix_fine.hpp``:
 
-          * Assembly is found in ``assemble`` and partially ``matrix_state``.
-          * The solver lives in ``solve``.
+          * ``struct matrix_state``
+            * the ``matrix_state`` constructor sets up the static parts
+            * the dynamic part is found in ``assemble``
+            * the solver lives in ``solve``.
 
           There is a simple solver in ``arbor/backends/gpu/matrix_flat.hpp``,
           which is only used to test/verify the optimised solver described

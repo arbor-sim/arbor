@@ -33,12 +33,11 @@ Arbor constructs a runnable simulation from three ingredients:
 - ``context``:: a hardware configuration, summarising threads, GPU, and MPI
   resources to be used.
 - ``domain_decomposition``:: Distribution of cells over the ``context``, made
-  from ``context`` and ``recipe``. Domain decompositions group cells that are
-  connect by gap junctions onto one node.
+  from ``context`` and ``recipe``.
 
 The interesting part here is the ``recipe``, which is used to lazily produce the
 data required by the ``simulation`` and ``domain_decomposition``. A simple example
-might be
+might be this model of a single cell
 
 .. code:: c++
 
@@ -99,7 +98,7 @@ Now we are in a state to simulate a cell group by calling
 
 The integration in Arbor proceeds in *epochs* with a length less than half a
 time constant :math:`T_{min}`, which is the maximum time over which cell groups
-can evolve independently. The epoch length is derived as the minimum over all
+can evolve independently. The length :math:`T_{min}` is derived as the minimum over all
 axonal/synaptic delays. This works since we know that an event at time :math:`t`
 can have an effect at time :math:`t + T_{min}` at the soonest. The factor of one
 half stems from double-buffering to overlap communication and computation. So,
