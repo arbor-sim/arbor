@@ -9,6 +9,8 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/util/pp_util.hpp>
 
+// #include <arborio/cableio.hpp>
+
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -128,7 +130,11 @@ struct cable_cell_impl {
             if (c.prox_pos==c.dist_pos) continue;
 
             if (!mm.insert(c, prop)) {
-                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+                std::stringstream rg;
+                rg << reg;
+                std::stringstream pp;
+                pp << prop;
+                throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints cable {}", pp.str(), rg.str(), c));
             }
         }
     }

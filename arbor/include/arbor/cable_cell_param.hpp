@@ -230,6 +230,8 @@ using paintable =
                  init_reversal_potential,
                  density>;
 
+std::ostream& operator<<(std::ostream&, const paintable&);
+
 using placeable =
     std::variant<i_clamp,
                  threshold_detector,
