@@ -152,37 +152,4 @@ void decor::set_default(defaultable what) {
             what);
 }
 
-std::ostream& operator<<(std::ostream& os, const paintable& item) {
-    std::visit(
-        [&] (const auto& p) {
-            using T = std::decay_t<decltype(p)>;
-            if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                os << "init-membrane-potential";
-            }
-            else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                os << "axial-resistivity";
-            }
-            else if constexpr (std::is_same_v<temperature_K, T>) {
-                os << "temperature-kelvin";
-            }
-            else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                os << "membrane-capacitance";
-            }
-            else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                os << "ion-internal-concentration";
-            }
-            else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                os << "ion-external-concentration";
-            }
-            else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                os << "ion-reversal-potential";
-            }
-            else if constexpr (std::is_same_v<density, T>) {
-                os << "density:" << p.mech.name();
-            }
-        },
-        item);
-    return os;
-}
-
 } // namespace arb
