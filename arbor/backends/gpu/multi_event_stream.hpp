@@ -2,6 +2,7 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
@@ -18,7 +19,7 @@ namespace arb {
 namespace gpu {
 
 // Base class provides common implementations across event types.
-class multi_event_stream_base {
+class ARB_ARBOR_API multi_event_stream_base {
 public:
     using size_type = cell_size_type;
     using value_type = fvm_value_type;

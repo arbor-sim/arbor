@@ -2,12 +2,14 @@
 
 #include <vector>
 
+#include <arborenv/export.hpp>
+
 namespace arbenv {
 
 // Attempt to determine number of available threads that can be run concurrently.
 // Will return at least 1.
 
-unsigned long thread_concurrency();
+ARB_ARBORENV_API unsigned long thread_concurrency();
 
 // The list of logical processors for which the calling thread has affinity.
 // If calling from the main thread at application start up, before
@@ -19,6 +21,6 @@ unsigned long thread_concurrency();
 // Returns an empty vector if unable to determine the number of
 // available cores.
 
-std::vector<int> get_affinity();
+ARB_ARBORENV_API std::vector<int> get_affinity();
 
 } // namespace arbenv

@@ -17,7 +17,7 @@
 
 using io::quote;
 
-std::string build_info_header(const Module& m, const printer_options& opt, bool cpu, bool gpu) {
+ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_options& opt, bool cpu, bool gpu) {
     using io::indent;
     using io::popindent;
 

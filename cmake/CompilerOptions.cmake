@@ -136,3 +136,31 @@ function(set_arch_target optvar arch)
     endif()
 
 endfunction()
+
+function(export_visibility target)
+    # mangle target name to correspond to cmake naming
+    string(REPLACE "-" "_" target_name ${target})
+    # extract compact library name
+    string(REPLACE "arbor-" "" target_short_name ${target})
+    # make upper case
+    string(TOUPPER ${target_short_name} target_short_NAME)
+
+    # conditional on build type
+    get_target_property(target_type ${target} TYPE)
+    if (${target_type} STREQUAL STATIC_LIBRARY)
+        # building static library
+        string(CONCAT target_export_def ${target_name} "_EXPORTS_STATIC")
+        target_compile_definitions(${target} PRIVATE ${target_export_def})
+    else()
+        # building shared library
+        string(CONCAT target_export_def ${target_name} "_EXPORTS")
+        # the above compile definition is added by cmake automatically
+    endif()
+
+    # generate config file
+    get_target_property(target_binary_dir ${target} BINARY_DIR)
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/cmake/export.hpp.in
+        ${target_binary_dir}/include/${target_short_name}/export.hpp
+        @ONLY)
+endfunction()

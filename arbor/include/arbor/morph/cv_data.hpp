@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/morph/embed_pwlin.hpp>
@@ -14,7 +15,7 @@ namespace arb {
 struct cell_cv_data_impl;
 
 // Stores info about the CV geometry of a discretized cable-cell
-class cell_cv_data {
+class ARB_ARBOR_API cell_cv_data {
 public:
     // Returns mcables comprising the CV at a given index.
     mcable_list cables(fvm_size_type index) const;
@@ -47,8 +48,8 @@ struct cv_proportion {
 };
 
 // Construct cell_cv_geometry for cell from default cell discretization if it exists.
-std::optional<cell_cv_data> cv_data(const cable_cell& cell);
+ARB_ARBOR_API std::optional<cell_cv_data> cv_data(const cable_cell& cell);
 
-std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& cvs, bool intergrate_by_length = false);
+ARB_ARBOR_API std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& cvs, bool intergrate_by_length = false);
 
 } //namespace arb

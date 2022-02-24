@@ -6,7 +6,7 @@
 
 namespace arb {
 
-void abort_on_failed_assertion(
+void ARB_ARBOR_API abort_on_failed_assertion(
     const char* assertion,
     const char* file,
     int line,
@@ -22,7 +22,7 @@ void abort_on_failed_assertion(
     std::abort();
 }
 
-void ignore_failed_assertion(
+void ARB_ARBOR_API ignore_failed_assertion(
     const char* assertion,
     const char* file,
     int line,

@@ -2,6 +2,7 @@
 #include <set>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -36,7 +37,7 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
-void merge_cell_events(
+ARB_ARBOR_API void merge_cell_events(
     time_type t_from,
     time_type t_to,
     event_span old_events,

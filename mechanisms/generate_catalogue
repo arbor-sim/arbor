@@ -112,7 +112,7 @@ mechanism_catalogue build_${catalogue}_catalogue() {
     return cat;
 }
 
-const mechanism_catalogue& global_${catalogue}_catalogue() {
+ARB_ARBOR_API const mechanism_catalogue& global_${catalogue}_catalogue() {
     static mechanism_catalogue cat = build_${catalogue}_catalogue();
     return cat;
 }

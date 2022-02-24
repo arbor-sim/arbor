@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 
 // Requested dry-run parameters.
@@ -49,7 +51,7 @@ struct execution_context;
 //
 // As execution_context is an incomplete type, an explicit deleter must be
 // provided.
-struct execution_context_deleter {
+struct ARB_ARBOR_API execution_context_deleter {
     void operator()(execution_context*) const;
 };
 using context = std::unique_ptr<execution_context, execution_context_deleter>;
@@ -57,20 +59,20 @@ using context = std::unique_ptr<execution_context, execution_context_deleter>;
 // Helpers for creating contexts. These are implemented in the back end.
 
 // Non-distributed context using the requested resources.
-context make_context(const proc_allocation& resources = proc_allocation{});
+ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_allocation{});
 
 // Distributed context that uses MPI communicator comm, and local resources
 // described by resources. Or dry run context that uses dry_run_info.
 template <typename Comm>
-context make_context(const proc_allocation& resources, Comm comm);
+ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm);
 
 // Queries for properties of execution resources in a context.
 
-std::string distribution_type(const context&);
-bool has_gpu(const context&);
-unsigned num_threads(const context&);
-bool has_mpi(const context&);
-unsigned num_ranks(const context&);
-unsigned rank(const context&);
+ARB_ARBOR_API std::string distribution_type(const context&);
+ARB_ARBOR_API bool has_gpu(const context&);
+ARB_ARBOR_API unsigned num_threads(const context&);
+ARB_ARBOR_API bool has_mpi(const context&);
+ARB_ARBOR_API unsigned num_ranks(const context&);
+ARB_ARBOR_API unsigned rank(const context&);
 
 }

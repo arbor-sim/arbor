@@ -1,0 +1,41 @@
+#pragma once
+
+//#ifndef ARB_EXPORT_DEBUG
+//#   define ARB_EXPORT_DEBUG
+//#endif
+
+#include <arbor/util/visibility.hpp>
+
+/* library build type (ARB_@target_short_NAME@_STATIC_LIBRARY/ARB_@target_short_NAME@_SHARED_LIBRARY) */
+#define ARB_@target_short_NAME@_@target_type@
+
+#ifndef ARB_@target_short_NAME@_EXPORTS
+#   if defined(@target_name@_EXPORTS)
+        /* we are building @target@ dynamically */
+#       ifdef ARB_EXPORT_DEBUG
+#           pragma message "we are building @target@ dynamically"
+#       endif
+#       define ARB_@target_short_NAME@_API ARB_SYMBOL_EXPORT
+#   elif defined(@target_name@_EXPORTS_STATIC)
+        /* we are building @target@ statically */
+#       ifdef ARB_EXPORT_DEBUG
+#           pragma message "we are building @target@ statically"
+#       endif
+#       define ARB_@target_short_NAME@_API
+#   else
+        /* we are using the library @target@ */
+#       if defined(ARB_@target_short_NAME@_SHARED_LIBRARY)
+            /* we are importing @target@ dynamically */
+#           ifdef ARB_EXPORT_DEBUG
+#              pragma message "we are importing @target@ dynamically"
+#           endif
+#           define ARB_@target_short_NAME@_API ARB_SYMBOL_IMPORT
+#       else
+            /* we are importing @target@ statically */
+#           ifdef ARB_EXPORT_DEBUG
+#               pragma message "we are importing @target@ statically"
+#           endif
+#           define ARB_@target_short_NAME@_API
+#       endif
+#   endif
+#endif

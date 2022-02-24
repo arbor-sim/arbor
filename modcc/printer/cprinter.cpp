@@ -117,7 +117,7 @@ struct simdprint {
     }
 };
 
-std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
+ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto name           = module_.module_name();
     auto namespace_name = "kernel_" + name;
     auto ppack_name     = "arb_mechanism_ppack";

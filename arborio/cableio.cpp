@@ -17,7 +17,7 @@ namespace arborio {
 
 using namespace arb;
 
-std::string acc_version() {return "0.1-dev";}
+ARB_ARBORIO_API std::string acc_version() {return "0.1-dev";}
 
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
     arb::arbor_exception(msg+" at :"+
@@ -153,32 +153,32 @@ s_expr mksexp(const meta_data& meta) {
 }
 
 // Implement public facing s-expr writers
-std::ostream& write_component(std::ostream& o, const decor& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const decor& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_component(std::ostream& o, const label_dict& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const label_dict& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_component(std::ostream& o, const morphology& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const morphology& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     auto cell = s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))};
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), cell)};
 }
-std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
     if (x.meta.version != acc_version()) {
         throw cableio_version_error(x.meta.version);
     }
@@ -665,12 +665,12 @@ inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
     return eval(std::move(s), named_evals, unnamed_evals);
 }
 
-parse_hopefully<std::any> parse_expression(const std::string& s) {
+ARB_ARBORIO_API parse_hopefully<std::any> parse_expression(const std::string& s) {
     return parse(parse_s_expr(s));
 }
 
 // Read s-expr
-parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
+ARB_ARBORIO_API parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     auto sexp = parse_s_expr(s);
     auto try_parse = parse(sexp);
     if (!try_parse) {
@@ -686,7 +686,7 @@ parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     return comp;
 };
 
-parse_hopefully<cable_cell_component> parse_component(std::istream& s) {
+ARB_ARBORIO_API parse_hopefully<cable_cell_component> parse_component(std::istream& s) {
     return parse_component(std::string(std::istreambuf_iterator<char>(s), {}));
 }
 } // namespace arborio

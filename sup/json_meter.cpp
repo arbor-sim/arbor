@@ -1,4 +1,5 @@
 #include <arbor/profile/meter_manager.hpp>
+#include <sup/json_meter.hpp>
 #include <nlohmann/json.hpp>
 
 namespace sup {
@@ -16,7 +17,7 @@ static nlohmann::json to_json(const arb::profile::measurement& mnt) {
     };
 }
 
-nlohmann::json to_json(const arb::profile::meter_report& report) {
+ARB_SUP_API nlohmann::json to_json(const arb::profile::meter_report& report) {
     nlohmann::json json_meters;
     for (const auto& mnt: report.meters) {
         json_meters.push_back(to_json(mnt));
