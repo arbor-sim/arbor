@@ -18,6 +18,9 @@ Call with parameters, for example:
 
 '''
 
+THETA = 20
+TAU = 20
+
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
 def sample_subset(gid, start, end, m):
@@ -72,12 +75,13 @@ class brunel_recipe (arbor.recipe):
 
     def cell_description(self, gid):
         cell = arbor.lif_cell("src", "tgt")
-        cell.tau_m = 10
-        cell.V_th = 10
-        cell.C_m = 20
+        cell.tau_m = TAU
+        cell.V_th = THETA
+        cell.C_m = 1 # weight is then in mV
         cell.E_L = 0
+        #cell.V_m = numpy.random.uniform(cell.E_L, cell.V_th)
         cell.V_m = 0
-        cell.V_reset = 0
+        cell.V_reset = 10
         cell.t_ref = 2
         return cell
 
@@ -86,17 +90,24 @@ class brunel_recipe (arbor.recipe):
         sched = arbor.poisson_schedule(t0, self.lambda_, gid + self.seed_)
         return [arbor.event_generator("tgt", self.weight_ext_, sched)]
 
+def calc_nu_thr(theta, J, C_E, tau):
+
+    print(f"{theta=} {J=} {C_E=} {tau=}")
+
+    return theta/(J*C_E*tau)
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Brunel model miniapp.')
     parser.add_argument('-n', '--n-excitatory', dest='nexc', type=int, default=400, help='Number of cells in the excitatory population')
     parser.add_argument('-m', '--n-inhibitory', dest='ninh', type=int, default=100, help='Number of cells in the inhibitory population')
-    parser.add_argument('-e', '--n-external', dest='next', type=int, default=40, help='Number of incoming Poisson (external) connections per cell')
+    #parser.add_argument('-e', '--n-external', dest='next', type=int, default=40, help='Number of incoming Poisson (external) connections per cell')
     parser.add_argument('-p', '--in-degree-prop', dest='syn_per_cell_prop', type=float, default=0.05, help='Proportion of the connections received per cell')
     parser.add_argument('-w', '--weight', dest='weight', type=float, default=1.2, help='Weight of excitatory connections')
     parser.add_argument('-d', '--delay', dest='delay', type=float, default=0.1, help='Delay of all connections')
     parser.add_argument('-g', '--rel-inh-w', dest='rel_inh_strength', type=float, default=1, help='Relative strength of inhibitory synapses with respect to the excitatory ones')
-    parser.add_argument('-l', '--lambda', dest='poiss_lambda', type=float, default=1, help='Mean firing rate from a single poisson cell (kHz)')
+    #parser.add_argument('-l', '--lambda', dest='poiss_lambda', type=float, default=1, help='Mean firing rate from a single poisson cell (kHz)')
+    parser.add_argument('--nu_ext_nu_thr', type=float, default=2)
     parser.add_argument('-t', '--tfinal', dest='tfinal', type=float, default=100, help='Length of the simulation period (ms)')
     parser.add_argument('-s', '--dt', dest='dt', type=float, default=1, help='Simulation time step (ms)')
     parser.add_argument('-G', '--group-size', dest='group_size', type=int, default=10, help='Number of cells per cell group')
@@ -111,13 +122,24 @@ if __name__ == "__main__":
         for k,v in vars(opt).items():
             print(f"{k} = {v}")
 
-    context = arbor.context()
+    C_E = opt.syn_per_cell_prop * opt.nexc
+    J = opt.weight
+
+    nu_thr = calc_nu_thr(THETA, opt.weight, C_E, TAU)
+    nu_ext = opt.nu_ext_nu_thr * nu_thr
+    poiss_lambda = nu_ext
+
+    print(f"{poiss_lambda=}")
+
+    next = C_E
+
+    context = arbor.context(threads='avail_threads')
     print(context)
 
     meters = arbor.meter_manager()
     meters.start(context)
 
-    recipe = brunel_recipe(opt.nexc, opt.ninh, opt.next, opt.syn_per_cell_prop, opt.weight, opt.delay, opt.rel_inh_strength, opt.poiss_lambda, opt.seed)
+    recipe = brunel_recipe(opt.nexc, opt.ninh, next, opt.syn_per_cell_prop, opt.weight, opt.delay, opt.rel_inh_strength, poiss_lambda, opt.seed)
 
     meters.checkpoint('recipe-create', context)
 
@@ -138,9 +160,6 @@ if __name__ == "__main__":
 
     meters.checkpoint('simulation-run', context)
 
-    # Print profiling information
-    print(f'{arbor.meter_report(meters, context)}')
-
     # Print spike times
     print(f"{len(sim.spikes())} spikes generated.")
 
@@ -148,3 +167,8 @@ if __name__ == "__main__":
         with open(opt.spike_file_output, 'w') as the_file:
             for meta, data in sim.spikes():
                 the_file.write(f"{meta[0]} {data:3.3f}\n")
+
+    meters.checkpoint('write-spikes', context)
+
+    # Print profiling information
+    print(f'{arbor.meter_report(meters, context)}')
