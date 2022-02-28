@@ -14,7 +14,7 @@ Macro Descripiton
 
 .. c:macro:: ARB_LIBNAME_API
 
-    Here ``LIBNAME`` is a placeholder for the library's name: ``ARB_ARBOR_API`` for the main arbor
+    Here "``LIBNAME``" is a placeholder for the library's name: ``ARB_ARBOR_API`` for the core Arbor
     library, ``ARB_ARBORIO_API`` for arborio, etc. This macro is intended to annotate functions,
     classes and structs which need to be accessible when using the library. Note, that it expands to
     different values when arbor is being built vs. when arbor is being used by an application. Below
