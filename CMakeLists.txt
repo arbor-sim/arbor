@@ -97,7 +97,6 @@ option(ARB_WITH_PYTHON "enable Python front end" OFF)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
-include(FindCUDAToolkit)
 
 # Set release as the default build type (CMake default is debug.)
 
@@ -110,6 +109,7 @@ endif()
 # Add CUDA as a language if GPU support requested. (This has to be set early so
 # as to enable CUDA tests in generator expressions.)
 if(ARB_GPU STREQUAL "cuda")
+    include(FindCUDAToolkit)
     set(ARB_WITH_NVCC TRUE)
     # CMake 3.18 and later set the default CUDA architecture for
     # each target according to CMAKE_CUDA_ARCHITECTURES. 
@@ -128,6 +128,7 @@ if(ARB_GPU STREQUAL "cuda")
         endif()
     endif()
 elseif(ARB_GPU STREQUAL "cuda-clang")
+    include(FindCUDAToolkit)
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
 elseif(ARB_GPU STREQUAL "hip")
