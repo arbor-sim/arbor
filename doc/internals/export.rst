@@ -4,7 +4,7 @@ Exporting Symbols
 =================
 
 The Arbor libraries are compiled with `hidden visibility <https://gcc.gnu.org/wiki/Visibility>`_ by default. Thus, symbols which are part of
-the public API need to be marked explicitely as visible. Arbor provides a couple of macros to
+the public API need to be marked explicitly as visible. Arbor provides a couple of macros to
 annotate functions and classes which are defined in the header file ``export.hpp`` in each library's
 include directory, i.e. ``include/arbor/export.hpp``. These header files are generated at configure
 time based on the build variant, compiler and platform.
