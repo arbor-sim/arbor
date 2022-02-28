@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import arbor
-import numpy,argparse
+import argparse
+import numpy as np
+from numpy.numpy import RandomState
 
 '''
 A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
@@ -21,14 +23,11 @@ Call with parameters, for example:
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
 def sample_subset(gid, start, end, m):
-    end = min(end, start + m)
-    idx = numpy.arange(start, end + 1)
-    if start < gid < end:
-        numpy.delete(idx, gid - start)
-    else:
-        numpy.delete(idx, end - start)
-    numpy.random.RandomState(gid + 42).shuffle(idx)
-    return idx
+    idx = np.arange(start, end)
+    if start <= gid < end:
+        idx = np.delete(idx, gid - start)
+    RandomState(gid + 42).shuffle(idx)
+    return idx[:m]
 
 class brunel_recipe (arbor.recipe):
     def __init__(self, nexc, ninh, next, in_degree_prop, weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
