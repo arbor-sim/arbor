@@ -21,13 +21,14 @@ Call with parameters, for example:
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
 def sample_subset(gid, start, end, m):
-    gen = numpy.random.RandomState(gid+42)
-    s = set()
-    while len(s) < m:
-        val = gen.randint(low=start,high=end)
-        if val != gid:
-            s.add(val)
-    return s
+    end = min(end, start + m)
+    idx = numpy.arange(start, end + 1)
+    if start < gid < end:
+        numpy.delete(idx, gid - start)
+    else:
+        numpy.delete(idx, end - start)
+    numpy.random.RandomState(gid + 42).shuffle(idx)
+    return idx
 
 class brunel_recipe (arbor.recipe):
     def __init__(self, nexc, ninh, next, in_degree_prop, weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
