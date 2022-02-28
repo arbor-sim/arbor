@@ -3,7 +3,7 @@
 import arbor
 import argparse
 import numpy as np
-from numpy.numpy import RandomState
+from numpy.random import RandomState
 
 '''
 A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
