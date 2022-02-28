@@ -156,7 +156,13 @@ if __name__ == "__main__":
 
     meters.checkpoint('simulation-init', context)
 
+    arbor.profiler_initialize(context)
+
     sim.run(opt.tfinal,opt.dt)
+
+    summary = arbor.profiler_summary()
+
+    print(summary)
 
     meters.checkpoint('simulation-run', context)
 
