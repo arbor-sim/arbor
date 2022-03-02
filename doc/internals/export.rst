@@ -4,9 +4,9 @@ Exporting Symbols
 =================
 
 The Arbor libraries are compiled with `hidden visibility <https://gcc.gnu.org/wiki/Visibility>`_ by
-default. Thus, symbols which are part of the public API need to be marked explicitly as visible.
-Arbor provides a couple of macros to annotate functions and classes which are defined in the header
-file ``export.hpp`` in each library's include directory, i.e. ``include/arbor/export.hpp``. These
+default which strips a compiled library of all symbols not explicitly marked as visible.  Arbor
+provides a couple of macros to make functions and classes visible which are defined in the header
+file ``export.hpp`` in each library's include directory, i.e. ``include/arbor/export.hpp``.  These
 header files are generated at configure time based on the build variant, compiler and platform.
 
 By default, hidden/visible symbols will affect **shared** libraries directly. Since the linker is
@@ -19,21 +19,33 @@ However, we currently do not handle this case in our build scripts as it is not 
 `supported by cmake yet <https://gitlab.kitware.com/cmake/cmake/-/issues/16977>`_.
 
 .. Note::
-    When linking an application with **static** Arbor libraries the linker may issue warnings (particularly on macos).  Thus, if you encounter problems, try building shared libraries (cmake option ``-DBUILD_SHARED_LIBS=ON``) instead.
+    When linking an application with **static** Arbor libraries the linker may issue warnings (particularly on macos).  Thus, if you encounter problems, try building shared Arbor libraries (cmake option ``-DBUILD_SHARED_LIBS=ON``) instead.
 
 Macro Descripiton
 -----------------
 
 .. c:macro:: ARB_LIBNAME_API
 
-    Here "``LIBNAME``" is a placeholder for the library's name: ``ARB_ARBOR_API`` for the core Arbor
+    Here ``LIBNAME`` is a placeholder for the library's name: ``ARB_ARBOR_API`` for the core Arbor
     library, ``ARB_ARBORIO_API`` for Arborio, etc. This macro is intended to annotate functions,
     classes and structs which need to be accessible when interfacing with the library. Note that it
     expands to different values when Arbor is being built vs. when Arbor is being used by an
-    application. Below we list the places where the macro needs to be added or can be safely omitted
-    (we assume all of the symbols below are part of the public/user-facing API). Implementation
-    details and internal APIs may not need annotation as long as they do not require visibility
-    across the library boundary (though some annotations are required for unit test purposes).
+    application.
+    
+    Below we list the places where the macro needs to be added or can be safely omitted (we assume
+    all of the symbols below are part of the public/user-facing API).  In general, annotation is
+    required
+    
+    * for **declarations in header files** which are not definitions
+    * for **defintions** of functions, friend functions and (extern) variables **in source files**
+        
+    Members and member functions of already visible classes will be visible, as well, without
+    further annotation, except for friend function (see below).
+
+    Implementation details and internal APIs may not need annotation as long as they do not require
+    visibility across the library boundary (though some annotations are required for unit test
+    purposes). Exception classes and type-erased objects need special annotation, see
+    :c:macro:`ARB_SYMBOL_VISIBLE`.
 
     .. code-block:: cpp
         :caption: header.hpp
@@ -43,32 +55,34 @@ Macro Descripiton
         // free function declaration
         ARB_ARBOR_API void foo();
 
-        // free function (inline)
-        void bar(int i) { /* ... */ }
+        // free function definition
+        inline void bar(int i) { /* ... */ }
 
-        // function template (inline)
+        // function template definition
         template<typename T>
         void baz(T i) { /* ... */ }
 
-        // class declaration
-        // note: this will make all member symbols visible
+        // class definition
+        // class member declaration
         class ARB_ARBOR_API A {
             A();
             friend std::ostream& operator<<(std::ostream& o, A const & a);
         };
 
-        // class (inline)
+        // class defintion
+        // class member defintion
         class B {
-            /* ... */
+            B() { /* ... */ }
         };
 
-        // template class (inline)
+        // template class defintion
+        // class member definition
         template<typename T>
         class C {
-            /* ... */
+            C() { /* ... */ }
         };
 
-        // (extern) global variable declarations
+        // (extern) variable declarations
         ARB_ARBOR_API int g;
         ARB_ARBOR_API extern int h;
 
@@ -79,13 +93,13 @@ Macro Descripiton
         // free function definition
         ARB_ARBOR_API void foo() { /* ... */ }
 
-        // class member functions
+        // class member defintion (will be visible since A is visible)
         A::A() { /* ... */ }
 
-        // friend functions
+        // friend function defintion
         ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, A const& a) { /* ... */ }
 
-        // (extern) global variable definitions
+        // (extern) variable definitions
         ARB_ARBOR_API int g = 10;
         ARB_ARBOR_API int h = 11;
 
@@ -105,13 +119,14 @@ Macro Descripiton
 
         #include <arbor/export.hpp>
 
-        // exception class
+        // exception class defintion and class member definition
         class ARB_SYMBOL_VISIBLE some_error : public std::runtime_error {
-            /* ... */
+            some_error() { /* ... */ }
         };
 
+        // class defintion and member defintion
         // class D will be type-erased and restored by an any_cast or similar
         class ARB_SYMBOL_VISIBLE D {
-            /* ... */
+            D() { /* ... */ }
         };
 
