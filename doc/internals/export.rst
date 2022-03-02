@@ -4,10 +4,12 @@ Exporting Symbols
 =================
 
 The Arbor libraries are compiled with `hidden visibility <https://gcc.gnu.org/wiki/Visibility>`_ by
-default which strips a compiled library of all symbols not explicitly marked as visible.  Arbor
-provides a couple of macros to make functions and classes visible which are defined in the header
-file ``export.hpp`` in each library's include directory, i.e. ``include/arbor/export.hpp``.  These
-header files are generated at configure time based on the build variant, compiler and platform.
+default which strips a compiled library of all symbols not explicitly marked as visible. Note that
+the term *visibility* here refers to the symbol visibility exposed to the linker and not to language
+*access* specifier such as public/private. Arbor provides a couple of macros to make functions and
+classes visible which are defined in the header file ``export.hpp`` in each library's include
+directory, i.e. ``include/arbor/export.hpp``.  These header files are generated at configure time
+based on the build variant, compiler and platform.
 
 By default, hidden/visible symbols will affect **shared** libraries directly. Since the linker is
 responsible for making symbols hidden, the visibility settings are not applied to **static**
