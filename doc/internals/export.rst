@@ -72,7 +72,7 @@ Macro Descripiton
         };
 
         // class definition
-        // class member defintion
+        // class member definition
         class B {
             B() { /* ... */ }
         };
