@@ -98,7 +98,7 @@ Macro Descripiton
         // class member definition (will be visible since A is visible)
         A::A() { /* ... */ }
 
-        // friend function defintion
+        // friend function definition
         ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, A const& a) { /* ... */ }
 
         // (extern) variable definitions
