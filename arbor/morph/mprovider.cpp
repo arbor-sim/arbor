@@ -18,11 +18,15 @@ void mprovider::init() {
     if (!label_dict_ptr) return;
 
     for (const auto& pair: label_dict_ptr->regions()) {
-        (void)region(pair.first);
+        (void)(this->region(pair.first));
     }
 
     for (const auto& pair: label_dict_ptr->locsets()) {
-        (void)locset(pair.first);
+        (void)(this->locset(pair.first));
+    }
+
+    for (const auto& pair: label_dict_ptr->iexpressions()) {
+        (void)(this->iexpr(pair.first));
     }
 
     label_dict_ptr = nullptr;
@@ -72,5 +76,9 @@ const mlocation_list& mprovider::locset(const std::string& name) const {
     return try_lookup(*this, name, locsets_, locsets_ptr);
 }
 
+const std::shared_ptr<iexpr_interface>& mprovider::iexpr(const std::string& name) const {
+    const auto* locsets_ptr = label_dict_ptr ? &(label_dict_ptr->iexpressions()) : nullptr;
+    return try_lookup(*this, name, iexpressions_, locsets_ptr);
+}
 
 } // namespace arb

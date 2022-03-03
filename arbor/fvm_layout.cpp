@@ -5,9 +5,12 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include <utility>
+#include <memory>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/math.hpp>
 #include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/mprovider.hpp>
@@ -897,9 +900,9 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     std::unordered_map<std::string, mcable_map<double>> init_iconc_mask;
     std::unordered_map<std::string, mcable_map<double>> init_econc_mask;
+    std::shared_ptr<iexpr_interface> unit_scale = thingify(iexpr::scalar(1.0), cell.provider());
 
     // Density mechanisms:
-
     for (const auto& [name, cables]: assignments.get<density>()) {
         mechanism_info info = catalogue[name];
 
@@ -925,7 +928,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
 
         mcable_map<double> support;
-        std::vector<mcable_map<double>> param_maps;
+        std::vector<mcable_map<std::pair<double, std::shared_ptr<iexpr_interface>>>> param_maps;
 
         param_maps.resize(n_param);
 
@@ -935,10 +938,14 @@ fvm_mechanism_data fvm_build_mechanism_data(
             mcable cable = on_cable.first;
             const auto& set_params = mech.values();
 
+            const auto& scale_expr = on_cable.second.second;
+
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
                 double value = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
-                param_maps[i].insert(cable, value);
+                auto scale_it = scale_expr.find(param_names[i]);
+                param_maps[i].insert(cable, {value, scale_it == scale_expr.end()
+                                                        ? unit_scale : scale_it->second});
             }
         }
 
@@ -954,7 +961,12 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
                 area += area_on_cable;
                 for (std::size_t i = 0; i<n_param; ++i) {
-                    param_on_cv[i] += embedding.integrate_area(c.branch, pw_over_cable(param_maps[i], c, 0.));
+                  param_on_cv[i] += embedding.integrate_area(
+                      c.branch,
+                      pw_over_cable(
+                          param_maps[i], c, 0., [&](const mcable &c, const auto& x) {
+                              return x.first * x.second->eval(cell.provider(), c);
+                          }));
                 }
             }
 
@@ -1261,7 +1273,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         for (auto i: cv_order) {
             const i_clamp& stim = stimuli[i].item;
             auto cv = stimuli_cv[i];
-            double cv_area_scale = 1000./D.cv_area[cv]; // constant scales from nA/µm² to A/m².
+            double cv_area_scale = 1000./D.cv_area[cv]; // constant scale from nA/µm² to A/m².
 
             config.cv.push_back(cv);
             config.frequency.push_back(stim.frequency);

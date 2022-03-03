@@ -21,6 +21,7 @@ set(arbor_sources
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
     hardware/power.cpp
+    iexpr.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     label_resolution.cpp
