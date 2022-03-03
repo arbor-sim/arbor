@@ -95,7 +95,7 @@ Macro Descripiton
         // free function definition
         ARB_ARBOR_API void foo() { /* ... */ }
 
-        // class member defintion (will be visible since A is visible)
+        // class member definition (will be visible since A is visible)
         A::A() { /* ... */ }
 
         // friend function defintion
