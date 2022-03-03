@@ -77,7 +77,7 @@ Macro Descripiton
             B() { /* ... */ }
         };
 
-        // template class defintion
+        // template class definition
         // class member definition
         template<typename T>
         class C {
