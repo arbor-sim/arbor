@@ -71,7 +71,7 @@ Macro Descripiton
             friend std::ostream& operator<<(std::ostream& o, A const & a);
         };
 
-        // class defintion
+        // class definition
         // class member defintion
         class B {
             B() { /* ... */ }
