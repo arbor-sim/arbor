@@ -39,7 +39,7 @@ Macro Descripiton
     required
     
     * for **declarations in header files** which are not definitions
-    * for **defintions** of functions, friend functions and (extern) variables **in source files**
+    * for **definitions** of functions, friend functions and (extern) variables **in source files**
         
     Members and member functions of already visible classes will be visible, as well, without
     further annotation, except for friend function (see below).
