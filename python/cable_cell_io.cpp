@@ -5,12 +5,14 @@
 #include <iomanip>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/util/any_visitor.hpp>
 
 #include <arborio/cableio.hpp>
 
 #include "error.hpp"
 #include "util.hpp"
 #include "strprintf.hpp"
+#include "proxy.hpp"
 
 namespace pyarb {
 
@@ -95,7 +97,18 @@ void register_cable_loader(pybind11::module& m) {
     pybind11::class_<arborio::cable_cell_component> cable_component(m, "cable_component");
     cable_component
         .def_readwrite("meta_data", &arborio::cable_cell_component::meta, "cable-cell component meta-data.")
-        .def_readwrite("component", &arborio::cable_cell_component::component, "cable-cell component.")
+        .def_property_readonly(
+            "component",
+            [](const arborio::cable_cell_component& c) {
+                using py_cable_cell_variant = std::variant<arb::morphology, pyarb::label_dict_proxy, arb::decor, arb::cable_cell>;
+                auto cable_cell_variant_visitor = arb::util::overload(
+                    [&](const arb::morphology& p) { return py_cable_cell_variant(p);},
+                    [&](const arb::label_dict& p) { return py_cable_cell_variant(label_dict_proxy(p));},
+                    [&](const arb::decor& p)      { return py_cable_cell_variant(p);},
+                    [&](const arb::cable_cell& p) { return py_cable_cell_variant(p);});
+                return std::visit(cable_cell_variant_visitor, c.component);
+            },
+            "cable-cell component.")
         .def("__repr__", [](const arborio::cable_cell_component& comp) {
             std::stringstream stream;
             arborio::write_component(stream, comp);
