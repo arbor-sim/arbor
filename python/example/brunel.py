@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import arbor
-import numpy,argparse
+import argparse
+import numpy as np
+from numpy.random import RandomState
 
 '''
 A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
@@ -20,14 +22,12 @@ Call with parameters, for example:
 
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
-def sample_subset(gid, start, end, m):
-    gen = numpy.random.RandomState(gid+42)
-    s = set()
-    while len(s) < m:
-        val = gen.randint(low=start,high=end)
-        if val != gid:
-            s.add(val)
-    return s
+def sample_subset(gen, gid, start, end, m):
+    idx = np.arange(start, end)
+    if start <= gid < end:
+        idx = np.delete(idx, gid - start)
+    gen.shuffle(idx)
+    return idx[:m]
 
 class brunel_recipe (arbor.recipe):
     def __init__(self, nexc, ninh, next, in_degree_prop, weight, delay, rel_inh_strength, poiss_lambda, seed = 42):
@@ -61,12 +61,13 @@ class brunel_recipe (arbor.recipe):
         return arbor.cell_kind.lif
 
     def connections_on(self, gid):
+        gen = RandomState(gid + self.seed_)
         connections=[]
         # Add incoming excitatory connections.
-        for i in sample_subset(gid, 0, self.ncells_exc_, self.in_degree_exc_):
+        for i in sample_subset(gen, gid, 0, self.ncells_exc_, self.in_degree_exc_):
             connections.append(arbor.connection((i,"src"), "tgt", self.weight_exc_, self.delay_))
         # Add incoming inhibitory connections.
-        for i in sample_subset(gid, self.ncells_exc_, self.ncells_exc_ + self.ncells_inh_, self.in_degree_inh_):
+        for i in sample_subset(gen, gid, self.ncells_exc_, self.ncells_exc_ + self.ncells_inh_, self.in_degree_inh_):
             connections.append(arbor.connection((i,"src"), "tgt", self.weight_inh_, self.delay_))
         return connections
 
