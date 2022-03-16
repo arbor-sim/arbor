@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
-import arbor, pandas, seaborn, matplotlib.pyplot as plt
 
-# (1) Load the cell morphology.
-morphology = arbor.load_swc_allen('single_cell_allen.swc', no_gaps=False)
-# (2) Label the region tags found in the swc with the names used in the parameter fit file.
-# In addition, label the midpoint of the soma.
-labels = arbor.label_dict({
-    'soma': '(tag 1)',
-    'axon': '(tag 2)',
-    'dend': '(tag 3)',
-    'apic': '(tag 4)',
-    'midpoint': '(location 0 0.5)'})
+import arbor as A
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import seaborn as sns
+import numpy as np
+import pandas as pd
+from collections import defaultdict
+import json
+from dataclasses import dataclass
 
-# (3) A function that parses the Allen parameter fit file into components for an arbor.decor
+# Check arbor is loaded fine and print some config diagnostics
+print(A.config())
+
+# cable parameters
+@dataclass
+class parameters:
+    cm:    float = None
+    tempK: float = None
+    Vm:    float = None
+    rL:    float = None
+
+# parse Allen DB description
+# NB. Needs to be adjusted when using a different model
 def load_allen_fit(fit):
-    from collections import defaultdict
-    import json
-    from dataclasses import dataclass
-
-    @dataclass
-    class parameters:
-        cm:    float = None
-        tempK: float = None
-        Vm:    float = None
-        rL:    float = None
-
     with open(fit) as fd:
         fit = json.load(fd)
 
@@ -41,6 +40,7 @@ def load_allen_fit(fit):
             if mech == "pas":
                 # transform names and values
                 if name == 'cm':
+                    # scaling factor NEURON -> Arbor
                     param[region].cm = value/100.0
                 elif name == 'Ra':
                     param[region].rL = value
@@ -53,8 +53,6 @@ def load_allen_fit(fit):
                 continue
             else:
                 raise Exception(f"Illegal combination {mech} {name}")
-        if mech == 'pas':
-            mech = 'pas'
         mechs[(region, mech)][name] = value
 
     param = [(r, vs) for r, vs in param.items()]
@@ -74,60 +72,105 @@ def load_allen_fit(fit):
             ion = k[1:]
             erev.append((region, ion, float(v)))
 
-    pot_offset = fit['fitting'][0]['junction_potential']
+    return default, param, erev, mechs
 
-    return default, param, erev, mechs, pot_offset
 
-defaults, regions, ions, mechanisms, pot_offset = load_allen_fit('single_cell_allen_fit.json')
+class recipe(A.recipe):
+    def __init__(self, swc, fit, epas_is_param=True):
+        # Need to call this for proper initialisation
+        A.recipe.__init__(self)
+        # (1) Load the cell morphology.
+        self.morphology = A.load_swc_neuron(swc)
+        # (2) Label the region tags found in the swc with the names used in the parameter fit file.
+        # In addition, label the midpoint of the soma.
+        self.labels = A.label_dict({'soma': '(tag 1)',
+                                    'axon': '(tag 2)',
+                                    'dend': '(tag 3)',
+                                    'apic': '(tag 4)',
+                                    'center': '(location 0 0.5)'})
 
-# (3) Instantiate an empty decor.
-decor = arbor.decor()
+        dflt, regions, ions, mechanisms = load_allen_fit(fit)
 
-# (4) assign global electro-physical parameters
-decor.set_property(tempK=defaults.tempK, Vm=defaults.Vm,
-                    cm=defaults.cm, rL=defaults.rL)
-decor.set_ion('ca', int_con=5e-5, ext_con=2.0, method=arbor.mechanism('nernst/x=ca'))
-# (5) override regional electro-physical parameters
-for region, vs in regions:
-    decor.paint('"'+region+'"', tempK=vs.tempK, Vm=vs.Vm, cm=vs.cm, rL=vs.rL)
-# (6) set reversal potentials
-for region, ion, e in ions:
-    decor.paint('"'+region+'"', ion, rev_pot=e)
-# (7) assign ion dynamics
-for region, mech, values in mechanisms:
-    decor.paint('"'+region+'"', arbor.mechanism(mech, values))
+        # (3) Instantiate an empty decor.
+        self.decor = A.decor()
+        # (4) assign global electro-physical parameters
+        self.decor.set_property(tempK=dflt.tempK, Vm=dflt.Vm, cm=dflt.cm, rL=dflt.rL)
+        # (5) override regional electro-physical parameters
+        for region, vs in regions:
+            self.decor.paint(f'"{region}"', tempK=vs.tempK, Vm=vs.Vm, cm=vs.cm, rL=vs.rL)
+        # (6) set reversal potentials
+        for region, ion, e in ions:
+            self.decor.paint(f'"{region}"', ion_name=ion, rev_pot=e)
+        self.decor.set_ion('ca', int_con=5e-5, ext_con=2.0, method=A.mechanism('nernst/x=ca'))
+        # (7) assign ion dynamics
+        for region, mech, values in mechanisms:
+            nm = mech
+            vs = {}
+            sp = '/'
+            for k, v in values.items():
+                # pas::e became a global between .5 and .6, toggle epas_is_param
+                if epas_is_param and mech == 'pas' and k == 'e':
+                    nm = f'{nm}{sp}{k}={v}'
+                    sp = ','
+                else:
+                    vs[k] = v
+            self.decor.paint(f'"{region}"', A.density(A.mechanism(nm, vs)))
+        # (8) attach stimulus and spike detector
+        self.decor.place('"center"', A.iclamp(200, 1000, 0.15), 'ic')
+        self.decor.place('"center"', A.spike_detector(-40), 'sd')
+        # (9) discretisation strategy: max compartment length
+        self.decor.discretization(A.cv_policy_max_extent(20))
 
-# (8) attach stimulus and spike detector
-decor.place('"midpoint"', arbor.iclamp(200, 1000, 0.15))
-decor.place('"midpoint"', arbor.spike_detector(-40))
+        # (10) Create cell
+        self.cell = A.cable_cell(self.morphology, self.labels, self.decor)
 
-# (9) discretisation strategy: max compartment length
-decor.discretization(arbor.cv_policy_max_extent(20))
+    def num_cells(self):
+        return 1
 
-# (10) Create cell, model
-cell = arbor.cable_cell(morphology, labels, decor)
-model = arbor.single_cell_model(cell)
+    def cell_kind(self, _):
+        return A.cell_kind.cable
 
-# (11) Set the probe
-model.probe('voltage', '"midpoint"', frequency=200000)
+    def cell_description(self, _):
+        return self.cell
 
-# (12) Install the Allen mechanism catalogue.
-model.catalogue.extend(arbor.allen_catalogue(), "")
+    def probes(self, _):
+        # (11) Set the probe
+        return [A.cable_probe_membrane_voltage('"center"')]
 
-# (13) Run simulation
-model.run(tfinal=1400, dt=0.005)
+    def global_properties(self, kind):
+        props = A.neuron_cable_properties()
+        props.catalogue = A.allen_catalogue()
+        props.catalogue.extend(A.default_catalogue(), '')
+        # (12) Install the Allen mechanism catalogue.
+        return props
 
-# (14) Load reference data and plot results.
-reference = pandas.read_csv('single_cell_allen_neuron_ref.csv')
 
-df = pandas.DataFrame()
-for t in model.traces:
-     # need to shift by junction potential, see allen db
-    df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': [i-pot_offset for i in t.value], 'Variable': t.variable, 'Simulator': 'Arbor'}))
-# neuron outputs V instead of mV
-df=df.append(pandas.DataFrame({'t/ms': reference['t/ms'], 'U/mV': 1000.0*reference['U/mV'], 'Variable': 'voltage', 'Simulator':'Neuron'}))
+# (13) Setup and run simulation
+ctx = A.context()
+mdl = recipe('single_cell_allen.swc', 'single_cell_allen_fit.json')
+ddc = A.partition_load_balance(mdl, ctx)
+sim = A.simulation(mdl, ddc, ctx)
+hdl = sim.sample((0, 0), A.regular_schedule(0.005))
+sim.record(A.spike_recording.all)
+sim.run(tfinal=1400, dt=0.005)
 
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Simulator",col="Variable",ci=None)
+# (14) Load and scale reference
+reference = 1000.0*pd.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] - 14.0
 
-plt.scatter(model.spikes, [-40]*len(model.spikes), color=seaborn.color_palette()[2], zorder=20)
-plt.savefig('single_cell_allen_result.svg')
+# (15) Extract data
+data, _ = sim.samples(hdl)[0]
+ts = data[:, 0]
+us = data[:, 1]
+spikes = np.array([t for (_, t) in sim.spikes()])
+
+# (16) Plot
+fg, ax = plt.subplots()
+c_arbor, c_spike, *_ = sns.color_palette()
+ax.plot(ts, reference, label='Reference', color='0.5')
+ax.plot(ts, us,        label='Arbor', color=c_arbor)
+ax.scatter(spikes, -40*np.ones_like(spikes), label='Spikes', color=c_spike, zorder=20)
+ax.set_xlim(left=0, right=1400)
+ax.legend(loc='upper right')
+ax.set_ylabel('Membrane Potential at Soma $(U/mV)$')
+ax.set_xlabel('Time $(t/ms)$')
+fg.savefig('result.pdf')
