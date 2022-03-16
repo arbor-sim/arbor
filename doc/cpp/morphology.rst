@@ -183,6 +183,10 @@ zero-length components as a result of such discontinuities.
       Return the maximal set of segments and partial segments whose
       union is coterminous with the given :cpp:class:`mextent` in the placement.
 
+   .. cpp:function:: closest(double x, double y, double z) -> std::pair<mpoint, double>
+
+      Find the closest location to p. Returns the location and its distance from the input coordinates.
+
 Isometries
 ^^^^^^^^^^
 
@@ -332,6 +336,58 @@ As for ``cv_policy_fixed_per_branch``, save that the number of CVs on any
 given branch will be chosen to be the smallest number that ensures no
 CV will have an extent on the branch longer than ``max_extent`` micrometres.
 
+CV discretization as mcables
+----------------------------
+
+It is often useful for the user to have a detailed view of the CVs generated for a given morphology
+and :ref:`cv-policy <cv-policies>`. For example, while debugging and fine-tuning model implementations,
+it can be helpful to know how many CVs a cable-cell is comprised of, or how many CVs lie on a certain
+region of the cell.
+
+The following classes and functions allow the user to inspect the CVs of a cell or region.
+
+.. cpp:class:: cell_cv_data
+
+   Stores the discretisation data of a cable-cell in terms of CVs and the :term:`mcables <mcable>` comprising each of
+   these CVs.
+
+   .. cpp:function:: mcable_list cables(unsigned idx) const
+
+   Returns an vector of :term:`mcable` representing the CV at a given index.
+
+   .. cpp:function:: std::vector<unsigned> children(unsigned idx) const
+
+    Returns a vector of the indices of the CVs representing the children of the CV at index ``idx``.
+
+   .. cpp:function:: unsigned parent(unsigned idx) const
+
+    Returns the index of the CV representing the parent of the CV at index ``idx``.
+
+   .. cpp:function:: unsigned size() const
+
+    Returns the total number of CVs on the cell.
+
+.. cpp:function:: std::optional<cell_cv_data> cv_data(const cable_cell& cell)
+
+   Constructs a :cpp:class:`cell_cv_data` object representing the CVs comprising the cable-cell according
+   to the :cpp:class:`cv_policy` provided in the :cpp:class:`decor` of the cell. Returns ``std::nullopt_t``
+   if no :cpp:class:`cv_policy` was provided in the decor.
+
+.. cpp:class:: cv_proportion
+
+   .. cpp:member:: unsigned idx
+
+      Index of the CV.
+
+   .. cpp:member:: double proportion
+
+      Proportion of the CV by area.
+
+.. cpp:function:: std::vector<cv_proportion> intersect_region(const region& reg, const cell_cv_data& cvs, bool integrate_by_length=false)
+
+   Returns a vector of :cpp:class:`cv_proportion` identifying the indices of the CVs from the :cpp:class:`cell_cv_data`
+   argument that lie in the provided region, and how much of each CV belongs to that region. The proportion of CV lying
+   in the region is the area proportion if ``integrate_by_length`` is false, otherwise, it is the length proportion.
 
 Supported morphology formats
 ============================

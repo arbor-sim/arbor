@@ -51,7 +51,7 @@ swc_unsupported_tag::swc_unsupported_tag(int record_id):
 
 // Record I/O:
 
-std::ostream& operator<<(std::ostream& out, const swc_record& record) {
+ARB_ARBORIO_API std::ostream& operator<<(std::ostream& out, const swc_record& record) {
     std::ios_base::fmtflags flags(out.flags());
 
     out.precision(std::numeric_limits<double>::digits10+2);
@@ -64,7 +64,7 @@ std::ostream& operator<<(std::ostream& out, const swc_record& record) {
     return out;
 }
 
-std::istream& operator>>(std::istream& in, swc_record& record) {
+ARB_ARBORIO_API std::istream& operator>>(std::istream& in, swc_record& record) {
     std::string line;
     if (!getline(in, line, '\n')) return in;
 
@@ -124,7 +124,7 @@ swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs) :
 
 // Parse and validate swc data
 
-swc_data parse_swc(std::istream& in) {
+ARB_ARBORIO_API swc_data parse_swc(std::istream& in) {
     // Collect any initial comments (lines beginning with '#').
 
     std::string metadata;
@@ -155,12 +155,12 @@ swc_data parse_swc(std::istream& in) {
     return swc_data(metadata, std::move(records));
 }
 
-swc_data parse_swc(const std::string& text) {
+ARB_ARBORIO_API swc_data parse_swc(const std::string& text) {
     std::istringstream is(text);
     return parse_swc(is);
 }
 
-arb::morphology load_swc_arbor(const swc_data& data) {
+ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data) {
     const auto& records = data.records();
 
     if (records.empty())  return {};
@@ -205,7 +205,7 @@ arb::morphology load_swc_arbor(const swc_data& data) {
     return arb::morphology(tree);
 }
 
-arb::morphology load_swc_neuron(const swc_data& data) {
+ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data) {
     constexpr int soma_tag = 1;
 
     const auto n_samples = data.records().size();

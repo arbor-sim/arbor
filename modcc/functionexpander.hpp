@@ -5,16 +5,17 @@
 #include "expression.hpp"
 #include "scope.hpp"
 #include "visitor.hpp"
+#include <libmodcc/export.hpp>
 
 // Make a local declaration and assignment for the given expression,
 // and insert at the front and back respectively of the statement list.
 // Return the new unique local identifier.
-expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e);
+ARB_LIBMODCC_API expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e);
 
 // prototype for lowering function calls and arguments
-expression_ptr lower_functions(BlockExpression* block);
+ARB_LIBMODCC_API expression_ptr lower_functions(BlockExpression* block);
 
-class FunctionCallLowerer : public BlockRewriterBase {
+class ARB_LIBMODCC_API FunctionCallLowerer : public BlockRewriterBase {
 public:
     using BlockRewriterBase::visit;
 

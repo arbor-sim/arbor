@@ -70,6 +70,26 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    std::vector<std::vector<cell_gid_type>>
+    gather_gj_connections(const std::vector<std::vector<cell_gid_type>> & local_connections) const {
+        auto local_size = local_connections.size();
+        std::vector<std::vector<cell_gid_type>> global_connections;
+        global_connections.reserve(local_size*num_ranks_);
+
+        for (unsigned i = 0; i < num_ranks_; i++) {
+            util::append(global_connections, local_connections);
+        }
+
+        for (unsigned i = 0; i < num_ranks_; i++) {
+            for (unsigned j = i*local_size; j < (i+1)*local_size; j++){
+                for (auto& conn_gid: global_connections[j]) {
+                    conn_gid += num_cells_per_tile_*i;
+                }
+            }
+        }
+        return global_connections;
+    }
+
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         cell_label_range global_ranges;
         for (unsigned i = 0; i < num_ranks_; i++) {
@@ -110,7 +130,7 @@ struct dry_run_context_impl {
     unsigned num_cells_per_tile_;
 };
 
-std::shared_ptr<distributed_context> make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_tile) {
+ARB_ARBOR_API std::shared_ptr<distributed_context> make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_tile) {
     return std::make_shared<distributed_context>(dry_run_context_impl(num_ranks, num_cells_per_tile));
 }
 

@@ -454,3 +454,52 @@ supported. The naming scheme is shown in the example below
   arb_mechanism_type make_arb_default_catalogue_pas();
   arb_mechanism_interface* make_arb_default_catalogue_pas_interface_multicore();
   arb_mechanism_interface* make_arb_default_catalogue_pas_interface_gpu();
+
+Writing Mechanisms Directly Against the ABI
+-------------------------------------------
+.. _abi_raw:
+
+.. warning::
+
+   This is a measure of last resort. Usage is not recommended unless you have a
+   dire need and a solid understanding of Arbor, its internals, and the ABI.
+
+If your use case requires features not supported in NMODL, you can write mechanisms
+in C++ directly. See the ABI documentation for what callbacks need to be filled in.
+These mechanisms can be compiled with ``arbor-build-catalogue`` as well and must be
+present in the same folder as the NMODL files. Example
+
+.. code-block::
+
+   $> ls mod
+   A.mod
+   B.hpp B_cpu.cpp B_gpu.cpp B_gpu.cu
+   C.hpp C_cpu.cpp C_gpu.cpp C_gpu.cu
+   $> arbor-build-catalogue my mod --raw B C
+   Building catalogue 'my' from mechanisms in 'mod'
+   * NMODL
+     * A
+   * Raw
+     * B
+     * C
+
+The ``--raw`` flag must go last due to the argument parsing.
+
+For this to compile, the following must be upheld:
+
+- For each mechanism ``M`` these files must be present
+
+  - ``M.hpp`` must define the mechanism metadata and declare the used interfaces.
+  - ``M_cpu.cpp`` must define the CPU interface. (You can disable this for raw
+    mechanisms by passing ``-C``.)
+
+  - If GPU support is used
+
+    - ``M_gpu.cpp`` must define the GPU interface.
+    - ``M_gpu.cu``  must define CUDA kernels.
+
+- The interface names must adhere to the chosen catalogue name, eg here ``make_arb_my_catalogue_B_interface_multicore();``
+
+  - names may only contain alphanumeric characters and underscores.
+  - names must not contain multiple successive underscores.
+  - in general, a valid ``C++`` variable name should be used.

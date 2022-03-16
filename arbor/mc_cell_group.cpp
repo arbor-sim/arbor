@@ -109,7 +109,13 @@ using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cable_samp
 
 template <typename VoidFn, typename... A>
 void tuple_foreach(VoidFn&& f, std::tuple<A...>& t) {
-    (void)(int []){(f(std::get<A>(t)), 0)...};
+    // executes functions in order (pack expansion)
+    // uses comma operator (unary left fold)
+    // avoids potentially overloaded comma operator (cast to void)
+    std::apply(
+        [g = std::forward<VoidFn>(f)](auto&& ...x){
+            (..., static_cast<void>(g(std::forward<decltype(x)>(x))));},
+        t);
 }
 
 void reserve_scratch(fvm_probe_scratch& scratch, std::size_t n) {
@@ -388,7 +394,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Bin and collate deliverable events from event lanes.
 
-    PE(advance_eventsetup);
+    PE(advance:eventsetup);
     staged_events_.clear();
 
     // Skip event handling if nothing to deliver.
@@ -446,7 +452,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // value as defined below, grouping together all the samples of the
     // same probe for this callback in this association.
 
-    PE(advance_samplesetup);
+    PE(advance:samplesetup);
     std::vector<sampler_call_info> call_info;
 
     std::vector<sample_event> sample_events;
@@ -527,7 +533,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // vector of sample entries from the lowered cell sample times and values
     // and then call the callback.
 
-    PE(advance_sampledeliver);
+    PE(advance:sampledeliver);
     std::vector<sample_record> sample_records;
     sample_records.reserve(max_samples_per_call);
 

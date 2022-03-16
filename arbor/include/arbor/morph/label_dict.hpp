@@ -4,12 +4,13 @@
 #include <optional>
 #include <unordered_map>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 
 namespace arb {
 
-class label_dict {
+class ARB_ARBOR_API label_dict {
     using ps_map = std::unordered_map<std::string, arb::locset>;
     using reg_map = std::unordered_map<std::string, arb::region>;
     ps_map locsets_;

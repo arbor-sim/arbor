@@ -11,45 +11,46 @@
 #include "identifier.hpp"
 #include "scope.hpp"
 #include "token.hpp"
+#include <libmodcc/export.hpp>
 
 #include "io/pprintf.hpp"
 
 class Visitor;
 
-class Expression;
-class CallExpression;
-class BlockExpression;
-class IfExpression;
-class LocalDeclaration;
-class ArgumentExpression;
-class FunctionExpression;
-class DerivativeExpression;
-class PrototypeExpression;
-class ProcedureExpression;
-class IdentifierExpression;
-class NumberExpression;
-class IntegerExpression;
-class BinaryExpression;
-class UnaryExpression;
-class AssignmentExpression;
-class ConserveExpression;
-class LinearExpression;
-class ReactionExpression;
-class StoichExpression;
-class StoichTermExpression;
-class CompartmentExpression;
-class ConditionalExpression;
-class InitialBlock;
-class SolveExpression;
-class Symbol;
-class ConductanceExpression;
-class PDiffExpression;
-class VariableExpression;
-class NetReceiveExpression;
-class PostEventExpression;
-class APIMethod;
-class IndexedVariable;
-class LocalVariable;
+class ARB_LIBMODCC_API Expression;
+class ARB_LIBMODCC_API CallExpression;
+class ARB_LIBMODCC_API BlockExpression;
+class ARB_LIBMODCC_API IfExpression;
+class ARB_LIBMODCC_API LocalDeclaration;
+class ARB_LIBMODCC_API ArgumentExpression;
+class ARB_LIBMODCC_API FunctionExpression;
+class ARB_LIBMODCC_API DerivativeExpression;
+class ARB_LIBMODCC_API PrototypeExpression;
+class ARB_LIBMODCC_API ProcedureExpression;
+class ARB_LIBMODCC_API IdentifierExpression;
+class ARB_LIBMODCC_API NumberExpression;
+class ARB_LIBMODCC_API IntegerExpression;
+class ARB_LIBMODCC_API BinaryExpression;
+class ARB_LIBMODCC_API UnaryExpression;
+class ARB_LIBMODCC_API AssignmentExpression;
+class ARB_LIBMODCC_API ConserveExpression;
+class ARB_LIBMODCC_API LinearExpression;
+class ARB_LIBMODCC_API ReactionExpression;
+class ARB_LIBMODCC_API StoichExpression;
+class ARB_LIBMODCC_API StoichTermExpression;
+class ARB_LIBMODCC_API CompartmentExpression;
+class ARB_LIBMODCC_API ConditionalExpression;
+class ARB_LIBMODCC_API InitialBlock;
+class ARB_LIBMODCC_API SolveExpression;
+class ARB_LIBMODCC_API Symbol;
+class ARB_LIBMODCC_API ConductanceExpression;
+class ARB_LIBMODCC_API PDiffExpression;
+class ARB_LIBMODCC_API VariableExpression;
+class ARB_LIBMODCC_API NetReceiveExpression;
+class ARB_LIBMODCC_API PostEventExpression;
+class ARB_LIBMODCC_API APIMethod;
+class ARB_LIBMODCC_API IndexedVariable;
+class ARB_LIBMODCC_API LocalVariable;
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
@@ -68,10 +69,9 @@ symbol_ptr make_symbol(Args&&... args) {
 }
 
 // helper functions for generating unary and binary expressions
-expression_ptr unary_expression(Location, tok, expression_ptr&&);
-expression_ptr unary_expression(tok, expression_ptr&&);
-expression_ptr binary_expression(Location, tok, expression_ptr&&, expression_ptr&&);
-expression_ptr binary_expression(tok, expression_ptr&&, expression_ptr&&);
+ARB_LIBMODCC_API expression_ptr unary_expression(Location, tok, expression_ptr&&);
+ARB_LIBMODCC_API expression_ptr binary_expression(Location, tok, expression_ptr&&, expression_ptr&&);
+ARB_LIBMODCC_API expression_ptr binary_expression(tok, expression_ptr&&, expression_ptr&&);
 
 /// specifies special properties of a ProcedureExpression
 enum class procedureKind {
@@ -118,7 +118,7 @@ static std::string to_string(solverMethod m) {
     return std::string("<error : undefined solverMethod>");
 }
 
-class Expression {
+class ARB_LIBMODCC_API Expression {
 public:
     explicit Expression(Location location)
     :   location_(location)
@@ -209,7 +209,7 @@ protected:
     scope_ptr scope_;
 };
 
-class Symbol : public Expression {
+class ARB_LIBMODCC_API Symbol : public Expression {
 public :
     Symbol(Location loc, std::string name, symbolKind kind)
     :   Expression(std::move(loc)),
@@ -251,7 +251,7 @@ enum class localVariableKind {
 };
 
 // an identifier
-class IdentifierExpression : public Expression {
+class ARB_LIBMODCC_API IdentifierExpression : public Expression {
 public:
     IdentifierExpression(Location loc, std::string const& spelling)
     :   Expression(loc), spelling_(spelling)
@@ -304,7 +304,7 @@ protected:
 };
 
 // an identifier for a derivative
-class DerivativeExpression : public IdentifierExpression {
+class ARB_LIBMODCC_API DerivativeExpression : public IdentifierExpression {
 public:
     DerivativeExpression(Location loc, std::string const& name)
     :   IdentifierExpression(loc, name)
@@ -326,7 +326,7 @@ public:
 };
 
 // a number
-class NumberExpression : public Expression {
+class ARB_LIBMODCC_API NumberExpression : public Expression {
 public:
     NumberExpression(Location loc, std::string const& value)
         : Expression(loc), value_(std::stold(value))
@@ -356,7 +356,7 @@ private:
 };
 
 // an integral number
-class IntegerExpression : public NumberExpression {
+class ARB_LIBMODCC_API IntegerExpression : public NumberExpression {
 public:
     IntegerExpression(Location loc, std::string const& value)
         : NumberExpression(loc, value), integer_(std::stoll(value))
@@ -388,7 +388,7 @@ private:
 
 
 // declaration of a LOCAL variable
-class LocalDeclaration : public Expression {
+class ARB_LIBMODCC_API LocalDeclaration : public Expression {
 public:
     LocalDeclaration(Location loc)
     :   Expression(loc)
@@ -417,7 +417,7 @@ private:
 };
 
 // declaration of an argument
-class ArgumentExpression : public Expression {
+class ARB_LIBMODCC_API ArgumentExpression : public Expression {
 public:
     ArgumentExpression(Location loc, Token const& tok)
     :   Expression(loc),
@@ -447,7 +447,7 @@ private:
 };
 
 // variable definition
-class VariableExpression : public Symbol {
+class ARB_LIBMODCC_API VariableExpression : public Symbol {
 public:
     VariableExpression(Location loc, std::string name)
     :   Symbol(loc, std::move(name), symbolKind::variable)
@@ -528,7 +528,7 @@ protected:
 // Printers will rewrite reads from or assignments from indexed variables
 // according to its data source and ion channel.
 
-class IndexedVariable : public Symbol {
+class ARB_LIBMODCC_API IndexedVariable : public Symbol {
 public:
     IndexedVariable(Location loc,
                     std::string lookup_name,
@@ -569,7 +569,7 @@ protected:
     sourceKind  data_source_;
 };
 
-class LocalVariable : public Symbol {
+class ARB_LIBMODCC_API LocalVariable : public Symbol {
 public :
     LocalVariable(Location loc,
                   std::string name,
@@ -630,7 +630,7 @@ private :
 
 
 // a SOLVE statement
-class SolveExpression : public Expression {
+class ARB_LIBMODCC_API SolveExpression : public Expression {
 public:
     SolveExpression(
             Location loc,
@@ -685,7 +685,7 @@ private:
 };
 
 // a CONDUCTANCE statement
-class ConductanceExpression : public Expression {
+class ARB_LIBMODCC_API ConductanceExpression : public Expression {
 public:
     ConductanceExpression(
             Location loc,
@@ -729,7 +729,7 @@ private:
 // of Expressions surrounded by {}
 ////////////////////////////////////////////////////////////////////////////////
 
-class BlockExpression : public Expression {
+class ARB_LIBMODCC_API BlockExpression : public Expression {
 protected:
     expr_list_type statements_;
     bool is_nested_ = false;
@@ -777,7 +777,7 @@ public:
     std::string to_string() const override;
 };
 
-class IfExpression : public Expression {
+class ARB_LIBMODCC_API IfExpression : public Expression {
 public:
     IfExpression(Location loc, expression_ptr&& con, expression_ptr&& tb, expression_ptr&& fb)
     :   Expression(loc), condition_(std::move(con)), true_branch_(std::move(tb)), false_branch_(std::move(fb))
@@ -811,7 +811,7 @@ private:
 };
 
 // a proceduce prototype
-class PrototypeExpression : public Expression {
+class ARB_LIBMODCC_API PrototypeExpression : public Expression {
 public:
     PrototypeExpression(
             Location loc,
@@ -877,7 +877,7 @@ private:
     expression_ptr rev_rate_;
 };
 
-class CompartmentExpression : public Expression {
+class ARB_LIBMODCC_API CompartmentExpression : public Expression {
 public:
     CompartmentExpression(Location loc,
                           expression_ptr&& scale_factor,
@@ -904,7 +904,7 @@ private:
     std::vector<expression_ptr> state_vars_;
 };
 
-class StoichTermExpression : public Expression {
+class ARB_LIBMODCC_API StoichTermExpression : public Expression {
 public:
     StoichTermExpression(Location loc,
                          expression_ptr&& coeff,
@@ -938,7 +938,7 @@ private:
     expression_ptr ident_;
 };
 
-class StoichExpression : public Expression {
+class ARB_LIBMODCC_API StoichExpression : public Expression {
 public:
     StoichExpression(Location loc, std::vector<expression_ptr>&& terms)
     : Expression(loc), terms_(std::move(terms))
@@ -964,7 +964,7 @@ private:
 
 // marks a call site in the AST
 // is used to mark both function and procedure calls
-class CallExpression : public Expression {
+class ARB_LIBMODCC_API CallExpression : public Expression {
 public:
     CallExpression(Location loc, std::string spelling, std::vector<expression_ptr>&& args)
     :   Expression(loc), spelling_(std::move(spelling)), args_(std::move(args))
@@ -1010,7 +1010,7 @@ private:
     std::vector<expression_ptr> args_;
 };
 
-class ProcedureExpression : public Symbol {
+class ARB_LIBMODCC_API ProcedureExpression : public Symbol {
 public:
     ProcedureExpression( Location loc,
                          std::string name,
@@ -1063,7 +1063,7 @@ protected:
     procedureKind kind_ = procedureKind::normal;
 };
 
-class APIMethod : public ProcedureExpression {
+class ARB_LIBMODCC_API APIMethod : public ProcedureExpression {
 public:
     APIMethod( Location loc,
                std::string name,
@@ -1082,7 +1082,7 @@ public:
 
 /// stores the INITIAL block in a NET_RECEIVE block, if there is one
 /// should not be used anywhere but NET_RECEIVE
-class InitialBlock : public BlockExpression {
+class ARB_LIBMODCC_API InitialBlock : public BlockExpression {
 public:
     InitialBlock(
         Location loc,
@@ -1102,7 +1102,7 @@ public:
 };
 
 /// handle NetReceiveExpressions as a special case of ProcedureExpression
-class NetReceiveExpression : public ProcedureExpression {
+class ARB_LIBMODCC_API NetReceiveExpression : public ProcedureExpression {
 public:
     NetReceiveExpression( Location loc,
                           std::string name,
@@ -1123,7 +1123,7 @@ protected:
 };
 
 /// handle PostEventExpression as a special case of ProcedureExpression
-class PostEventExpression : public ProcedureExpression {
+class ARB_LIBMODCC_API PostEventExpression : public ProcedureExpression {
 public:
     PostEventExpression( Location loc,
                           std::string name,
@@ -1140,7 +1140,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class FunctionExpression : public Symbol {
+class ARB_LIBMODCC_API FunctionExpression : public Symbol {
 public:
     FunctionExpression( Location loc,
                         std::string name,
@@ -1192,7 +1192,7 @@ private:
 ////////////////////////////////////////////////////////////
 
 /// Unary expression
-class UnaryExpression : public Expression {
+class ARB_LIBMODCC_API UnaryExpression : public Expression {
 protected:
     expression_ptr expression_;
     tok op_;
@@ -1219,7 +1219,7 @@ public:
 };
 
 /// negation unary expression, i.e. -x
-class NegUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API NegUnaryExpression : public UnaryExpression {
 public:
     NegUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::minus, std::move(e))
@@ -1229,7 +1229,7 @@ public:
 };
 
 /// exponential unary expression, i.e. e^x or exp(x)
-class ExpUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API ExpUnaryExpression : public UnaryExpression {
 public:
     ExpUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::exp, std::move(e))
@@ -1239,7 +1239,7 @@ public:
 };
 
 // logarithm unary expression, i.e. log_10(x)
-class LogUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API LogUnaryExpression : public UnaryExpression {
 public:
     LogUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::log, std::move(e))
@@ -1249,7 +1249,7 @@ public:
 };
 
 // absolute value unary expression, i.e. abs(x)
-class AbsUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API AbsUnaryExpression : public UnaryExpression {
 public:
     AbsUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::abs, std::move(e))
@@ -1258,7 +1258,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class SafeInvUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API SafeInvUnaryExpression : public UnaryExpression {
 public:
     SafeInvUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::safeinv, std::move(e))
@@ -1269,7 +1269,7 @@ public:
 
 // exprel reciprocal unary expression,
 // i.e. x/(exp(x)-1)=x/expm1(x) with exprelr(0)=1
-class ExprelrUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API ExprelrUnaryExpression : public UnaryExpression {
 public:
     ExprelrUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::exprelr, std::move(e))
@@ -1279,7 +1279,7 @@ public:
 };
 
 // cosine unary expression, i.e. cos(x)
-class CosUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API CosUnaryExpression : public UnaryExpression {
 public:
     CosUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::cos, std::move(e))
@@ -1289,7 +1289,7 @@ public:
 };
 
 // sin unary expression, i.e. sin(x)
-class SinUnaryExpression : public UnaryExpression {
+class ARB_LIBMODCC_API SinUnaryExpression : public UnaryExpression {
 public:
     SinUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::sin, std::move(e))
@@ -1306,7 +1306,7 @@ public:
 /// binary expression base class
 /// never used directly in the AST, instead the specializations that derive from
 /// it are inserted into the AST.
-class BinaryExpression : public Expression {
+class ARB_LIBMODCC_API BinaryExpression : public Expression {
 protected:
     expression_ptr lhs_;
     expression_ptr rhs_;
@@ -1334,7 +1334,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class AssignmentExpression : public BinaryExpression {
+class ARB_LIBMODCC_API AssignmentExpression : public BinaryExpression {
 public:
     AssignmentExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
@@ -1347,7 +1347,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class ConserveExpression : public BinaryExpression {
+class ARB_LIBMODCC_API ConserveExpression : public BinaryExpression {
 public:
     ConserveExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
@@ -1361,7 +1361,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class LinearExpression : public BinaryExpression {
+class ARB_LIBMODCC_API LinearExpression : public BinaryExpression {
 public:
     LinearExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
             :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
@@ -1375,7 +1375,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class AddBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API AddBinaryExpression : public BinaryExpression {
 public:
     AddBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::plus, std::move(lhs), std::move(rhs))
@@ -1384,7 +1384,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class SubBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API SubBinaryExpression : public BinaryExpression {
 public:
     SubBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::minus, std::move(lhs), std::move(rhs))
@@ -1393,7 +1393,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class MulBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API MulBinaryExpression : public BinaryExpression {
 public:
     MulBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::times, std::move(lhs), std::move(rhs))
@@ -1402,7 +1402,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class DivBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API DivBinaryExpression : public BinaryExpression {
 public:
     DivBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::divide, std::move(lhs), std::move(rhs))
@@ -1411,7 +1411,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class MinBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API MinBinaryExpression : public BinaryExpression {
 public:
     MinBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::min, std::move(lhs), std::move(rhs))
@@ -1423,7 +1423,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class MaxBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API MaxBinaryExpression : public BinaryExpression {
 public:
     MaxBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::max, std::move(lhs), std::move(rhs))
@@ -1435,7 +1435,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class PowBinaryExpression : public BinaryExpression {
+class ARB_LIBMODCC_API PowBinaryExpression : public BinaryExpression {
 public:
     PowBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::pow, std::move(lhs), std::move(rhs))
@@ -1447,7 +1447,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class ConditionalExpression : public BinaryExpression {
+class ARB_LIBMODCC_API ConditionalExpression : public BinaryExpression {
 public:
     ConditionalExpression(Location loc, tok op, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, op, std::move(lhs), std::move(rhs))
@@ -1458,7 +1458,7 @@ public:
     void accept(Visitor *v) override;
 };
 
-class PDiffExpression : public Expression {
+class ARB_LIBMODCC_API PDiffExpression : public Expression {
 public:
     PDiffExpression(Location loc, expression_ptr&& var, expression_ptr&& arg)
     :  Expression(loc), var_(std::move(var)), arg_(std::move(arg))

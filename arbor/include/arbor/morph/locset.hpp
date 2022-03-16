@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphology.hpp>
 
@@ -18,7 +19,7 @@ struct mprovider;
 class locset;
 class locset_tag {};
 
-class locset {
+class ARB_SYMBOL_VISIBLE locset {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
@@ -116,66 +117,66 @@ class region;
 namespace ls {
 
 // Explicit location on morphology.
-locset location(msize_t branch, double pos);
+ARB_ARBOR_API locset location(msize_t branch, double pos);
 
 // Set of terminal nodes on a morphology.
-locset terminal();
+ARB_ARBOR_API locset terminal();
 
 // The root node of a morphology.
-locset root();
+ARB_ARBOR_API locset root();
 
 // Named locset.
-locset named(std::string);
+ARB_ARBOR_API locset named(std::string);
 
 // The null (empty) set.
-locset nil();
+ARB_ARBOR_API locset nil();
 
 // Most distal points of a region.
-locset most_distal(region reg);
+ARB_ARBOR_API locset most_distal(region reg);
 
 // Most proximal points of a region.
-locset most_proximal(region reg);
+ARB_ARBOR_API locset most_proximal(region reg);
 
 // Translate locations in locset distance μm in the distal direction
-locset distal_translate(locset ls, double distance);
+ARB_ARBOR_API locset distal_translate(locset ls, double distance);
 
 // Translate locations in locset distance μm in the proximal direction
-locset proximal_translate(locset ls, double distance);
+ARB_ARBOR_API locset proximal_translate(locset ls, double distance);
 
 // Boundary points of a region.
-locset boundary(region reg);
+ARB_ARBOR_API locset boundary(region reg);
 
 // Completed boundary points of a region.
 // (Boundary of completed components.)
-locset cboundary(region reg);
+ARB_ARBOR_API locset cboundary(region reg);
 
 // Returns all locations in a locset that are also in the region.
-locset restrict(locset ls, region reg);
+ARB_ARBOR_API locset restrict(locset ls, region reg);
 
 // Returns locations that mark the segments.
-locset segment_boundaries();
+ARB_ARBOR_API locset segment_boundaries();
 
 // A range `left` to `right` of randomly selected locations with a
 // uniform distribution from region `reg` generated using `seed`
-locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
+ARB_ARBOR_API locset uniform(region reg, unsigned left, unsigned right, uint64_t seed);
 
 // Proportional location on every branch.
-locset on_branches(double pos);
+ARB_ARBOR_API locset on_branches(double pos);
 
 // Proportional locations on each component:
 // For each component C of the region, find locations L
 // s.t. dist(h, L) = r * max {dist(h, t) | t is a distal point in C}.
-locset on_components(double relpos, region reg);
+ARB_ARBOR_API locset on_components(double relpos, region reg);
 
 // Set of locations in the locset with duplicates removed, i.e. the support of the input multiset
-locset support(locset);
+ARB_ARBOR_API locset support(locset);
 
 } // namespace ls
 
 // Union of two locsets.
-locset join(locset, locset);
+ARB_ARBOR_API locset join(locset, locset);
 
 // Multiset sum of two locsets.
-locset sum(locset, locset);
+ARB_ARBOR_API locset sum(locset, locset);
 
 } // namespace arb

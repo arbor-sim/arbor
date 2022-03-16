@@ -12,7 +12,7 @@
 
 #include <arborio/label_parse.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 
 #include "backends/multicore/fvm.hpp"
 #include "fvm_lowered_cell.hpp"
@@ -39,6 +39,9 @@ using util::value_by_key;
 
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
+
+// instantiate template class
+template class arb::fvm_lowered_cell_impl<arb::multicore::backend>;
 
 namespace {
     struct system {
@@ -609,13 +612,7 @@ TEST(fvm_layout, synapse_targets) {
 }
 
 TEST(fvm_lowered, gj_example_0) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    } else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     class gap_recipe: public recipe {
     public:
@@ -661,7 +658,7 @@ TEST(fvm_lowered, gj_example_0) {
 
     std::vector<cell_gid_type> gids = {0, 1};
 
-    auto D = fvm_cv_discretize(cells, gprop.default_parameters, context);
+    auto D = fvm_cv_discretize(cells, gprop.default_parameters, *context);
     auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
 
     auto cv_0 = D.geometry.location_cv(0, loc_0, cv_prefer::cv_nonempty);
@@ -673,7 +670,7 @@ TEST(fvm_lowered, gj_example_0) {
     EXPECT_EQ(cv_1, gj_cvs.at(cell_member_type{1, 0}));
 
     // Check the resolved GJ connections
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     gap_recipe rec(cells, gprop);
 
     auto fvm_info = fvcell.initialize(gids, rec);
@@ -689,7 +686,7 @@ TEST(fvm_lowered, gj_example_0) {
     EXPECT_EQ(gj1, gj_conns.at(1).front());
 
     // Check the GJ mechanism data
-    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, context);
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, *context);
 
     EXPECT_EQ(1u, M.mechanisms.size());
     ASSERT_EQ(1u, M.mechanisms.count("gj"));
@@ -718,13 +715,7 @@ TEST(fvm_lowered, gj_example_0) {
 }
 
 TEST(fvm_lowered, gj_example_1) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    } else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     class gap_recipe: public recipe {
     public:
@@ -813,7 +804,7 @@ TEST(fvm_lowered, gj_example_1) {
     std::vector<cable_cell> cells{c0, c1, c2};
     std::vector<cell_gid_type> gids = {0, 1, 2};
 
-    auto D = fvm_cv_discretize(cells, neuron_parameter_defaults, context);
+    auto D = fvm_cv_discretize(cells, neuron_parameter_defaults, *context);
     unsigned c0_gj_cv[2], c1_gj_cv[4], c2_gj_cv[3];
     for (int i = 0; i<2; ++i) c0_gj_cv[i] = D.geometry.location_cv(0, c0_gj[i], cv_prefer::cv_nonempty);
     for (int i = 0; i<4; ++i) c1_gj_cv[i] = D.geometry.location_cv(1, c1_gj[i], cv_prefer::cv_nonempty);
@@ -833,7 +824,7 @@ TEST(fvm_lowered, gj_example_1) {
     EXPECT_EQ(c2_gj_cv[2], gj_cvs.at(cell_member_type{2, 2}));
 
     // Check the resolved GJ connections
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     gap_recipe rec(cells, gprop);
 
     auto fvm_info = fvcell.initialize(gids, rec);
@@ -866,7 +857,7 @@ TEST(fvm_lowered, gj_example_1) {
     EXPECT_EQ(expected.at(2), gj_conns.at(2));
 
     // Check the GJ mechanism data
-    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, context);
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, *context);
 
     EXPECT_EQ(1u, M.mechanisms.size());
     ASSERT_EQ(1u, M.mechanisms.count("gj"));
@@ -903,13 +894,7 @@ TEST(fvm_lowered, gj_example_1) {
 }
 
 TEST(fvm_layout, gj_example_2) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    } else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     class gap_recipe: public recipe {
     public:
@@ -1002,9 +987,8 @@ TEST(fvm_layout, gj_example_2) {
 
     // Check the GJ CV map
     cable_cell_global_properties gprop;
-    auto cat = make_unit_test_catalogue();
-    cat.import(arb::global_default_catalogue(), "");
-    gprop.catalogue = &cat;
+    gprop.catalogue = make_unit_test_catalogue();
+    gprop.catalogue.import(arb::global_default_catalogue(), "");
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
@@ -1033,7 +1017,7 @@ TEST(fvm_layout, gj_example_2) {
     EXPECT_EQ(cvs_5[1], gj_cvs.at(cell_member_type{5, 1}));
 
     // Check the resolved GJ connections
-    fvm_cell fvcell(context);
+    fvm_cell fvcell(*context);
     gap_recipe rec(cells, gprop);
 
     auto fvm_info = fvcell.initialize(gids, rec);
@@ -1080,7 +1064,7 @@ TEST(fvm_layout, gj_example_2) {
     EXPECT_EQ(expected.at(5), gj_conns.at(5));
 
     // Check the GJ mechanism data
-    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, context);
+    auto M = fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D, *context);
 
     EXPECT_EQ(4u, M.mechanisms.size());
     ASSERT_EQ(1u, M.mechanisms.count("gj0"));
@@ -1150,14 +1134,7 @@ TEST(fvm_layout, gj_example_2) {
 }
 
 TEST(fvm_lowered, cell_group_gj) {
-    arb::proc_allocation resources;
-    if (auto nt = arbenv::get_env_num_threads()) {
-        resources.num_threads = nt;
-    }
-    else {
-        resources.num_threads = arbenv::thread_concurrency();
-    }
-    arb::execution_context context(resources);
+    auto context = make_context({arbenv::default_concurrency(), -1});
 
     class gap_recipe: public recipe {
     public:
@@ -1217,8 +1194,8 @@ TEST(fvm_lowered, cell_group_gj) {
 
     gap_recipe rec(cell_group0, cell_group1);
 
-    fvm_cell fvcell0(context);
-    fvm_cell fvcell1(context);
+    fvm_cell fvcell0(*context);
+    fvm_cell fvcell1(*context);
 
     auto fvm_info_0 = fvcell0.initialize(gids_cg0, rec);
     auto fvm_info_1 = fvcell1.initialize(gids_cg1, rec);
@@ -1226,8 +1203,8 @@ TEST(fvm_lowered, cell_group_gj) {
     auto num_dom0 = fvcell0.fvm_intdom(rec, gids_cg0, fvm_info_0.cell_to_intdom);
     auto num_dom1 = fvcell1.fvm_intdom(rec, gids_cg1, fvm_info_1.cell_to_intdom);
 
-    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, context);
-    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, context);
+    fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, *context);
+    fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, *context);
 
     auto gj_cvs_0 = fvm_build_gap_junction_cv_map(cell_group0, gids_cg0, D0);
     auto gj_cvs_1 = fvm_build_gap_junction_cv_map(cell_group1, gids_cg1, D1);
@@ -1491,8 +1468,7 @@ TEST(fvm_layout, valence_verify) {
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, neuron_parameter_defaults);
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
 
     // Missing the 'cl' ion:
     EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), cable_cell_error);
@@ -1556,9 +1532,8 @@ TEST(fvm_layout, ion_weights) {
         {0.}, {0., 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0., 0.}, {3./4, 0.}
     };
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
     cable_cell_global_properties gprop;
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
     gprop.default_parameters = neuron_parameter_defaults;
 
     fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
@@ -1606,8 +1581,6 @@ TEST(fvm_layout, revpot) {
     //     * Reversal potential mechanisms are only extended where there exists another
     //       mechanism that reads them.
 
-    mechanism_catalogue testcat = make_unit_test_catalogue();
-
     soma_cell_builder builder(5);
     builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
@@ -1621,7 +1594,7 @@ TEST(fvm_layout, revpot) {
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
-    gprop.catalogue = &testcat;
+    gprop.catalogue = make_unit_test_catalogue();
 
     gprop.ion_species = {{"a", 1}, {"b", 2}, {"c", 3}};
     gprop.add_ion("a", 1, 10., 0, 0);

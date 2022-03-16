@@ -7,8 +7,9 @@
 #include "expression.hpp"
 #include "lexer.hpp"
 #include "module.hpp"
+#include <libmodcc/export.hpp>
 
-class Parser: public Lexer {
+class ARB_LIBMODCC_API Parser: public Lexer {
 public:
     explicit Parser(Module& m, bool advance = true);
     Parser(std::string const&);

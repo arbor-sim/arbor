@@ -4,8 +4,10 @@
 // sample points and interpolating linearly.
 
 #include <cmath>
+#include <limits>
 #include <utility>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/math.hpp>
@@ -69,7 +71,7 @@ public:
 
 struct place_pwlin_data;
 
-struct place_pwlin {
+struct ARB_ARBOR_API place_pwlin {
     explicit place_pwlin(const morphology& m, const isometry& iso = isometry{});
 
     // Any point corresponding to the location loc.
@@ -83,6 +85,9 @@ struct place_pwlin {
 
     // Maximal set of segments or part segments whose union is coterminous with extent.
     std::vector<msegment> all_segments(const mextent& extent) const;
+
+    // The closest location to p. Returns the location and its distance from the input coordinates.
+    std::pair<mlocation, double> closest(double x, double y, double z) const;
 
 private:
     std::shared_ptr<place_pwlin_data> data_;

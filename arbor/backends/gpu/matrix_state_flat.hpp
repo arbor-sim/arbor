@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arbor/export.hpp>
 #include <arbor/fvm_types.hpp>
 
 #include "memory/memory.hpp"
@@ -13,7 +14,7 @@ namespace gpu {
 
 // CUDA implementation entry points:
 
-void solve_matrix_flat(
+ARB_ARBOR_API void solve_matrix_flat(
     fvm_value_type* rhs,
     fvm_value_type* d,
     const fvm_value_type* u,
@@ -21,7 +22,7 @@ void solve_matrix_flat(
     const fvm_index_type* cell_cv_divs,
     int num_mtx);
 
-void assemble_matrix_flat(
+ARB_ARBOR_API void assemble_matrix_flat(
     fvm_value_type* d,
     fvm_value_type* rhs,
     const fvm_value_type* invariant_d,

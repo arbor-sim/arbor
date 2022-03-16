@@ -45,9 +45,8 @@ std::vector<pse_vector> generate_inputs(const std::vector<cell_gid_type>& gids, 
     for (std::size_t i=0; i<ncells*ev_per_cell; ++i) {
         spike_event ev;
         auto idx = gid_dist(gen);
-        auto gid = gids[idx];
         auto t = 1.;
-        ev.target = {cell_gid_type(gid), cell_lid_type(0)};
+        ev.target = cell_lid_type(0);
         ev.time = t;
         ev.weight = 0;
         input_events[idx].push_back(ev);

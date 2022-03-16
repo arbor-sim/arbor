@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 
+#include <libmodcc/export.hpp>
+
 namespace io {
 
 // `prefixbuf` acts an output-only filter for another streambuf, inserting
@@ -28,7 +30,7 @@ namespace io {
 // A flag determines if the prefixbuf should or should not emit the prefix
 // for empty lines.
 
-class prefixbuf: public std::streambuf {
+class ARB_LIBMODCC_API prefixbuf: public std::streambuf {
 public:
     explicit prefixbuf(std::streambuf* inner, bool prefix_empty_lines=false):
         inner_(inner), prefix_empty_lines_(prefix_empty_lines) {}
@@ -75,7 +77,7 @@ protected:
 // The manipulator `indent(0)` can be used to reset the prefix of the underlying
 // stream to match the current indentation level.
 
-class setprefix {
+class ARB_LIBMODCC_API setprefix {
 public:
     explicit setprefix(std::string prefix): prefix_(std::move(prefix)) {}
 
@@ -85,7 +87,7 @@ private:
     std::string prefix_;
 };
 
-struct indent_manip {
+struct ARB_LIBMODCC_API indent_manip {
     enum action_enum {push, pop, settab};
 
     explicit constexpr indent_manip(action_enum action, unsigned value=0):
@@ -119,7 +121,7 @@ inline indent_manip settab(unsigned w) {
 // Acts very much like a `std::ostringstream`, but with prefix
 // and indent functionality.
 
-class pfxstringstream: public std::ostream {
+class ARB_LIBMODCC_API pfxstringstream: public std::ostream {
 public:
     pfxstringstream():
         std::ostream(nullptr),

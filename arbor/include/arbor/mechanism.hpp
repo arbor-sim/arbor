@@ -9,6 +9,8 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechinfo.hpp>
+#include <arbor/profile/profiler.hpp>
+#include <arbor/version.hpp>
 
 namespace arb {
 
@@ -32,6 +34,8 @@ public:
     mechanism(const arb_mechanism_type m,
               const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
+        state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
+        current_prof_id = profile::profiler_region_id("advance:integrate:current:"+internal_name());
     }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
@@ -55,8 +59,8 @@ public:
 
     // Forward to interface methods
     void initialize()     { ppack_.vec_t = *time_ptr_ptr; iface_.init_mechanism(&ppack_); }
-    void update_current() { ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); }
-    void update_state()   { ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_); }
+    void update_current() { prof_enter(current_prof_id); ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); prof_exit(); }
+    void update_state()   { prof_enter(state_prof_id);   ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_);    prof_exit(); }
     void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
     void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
     void deliver_events(arb_deliverable_event_stream& stream) { ppack_.vec_t  = *time_ptr_ptr; iface_.apply_events(&ppack_, &stream); }
@@ -68,6 +72,21 @@ public:
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
     arb_value_type** time_ptr_ptr = nullptr;
+
+private:
+#ifdef ARB_PROFILE_ENABLED
+    void prof_enter(profile::region_id_type id) {
+        profile::profiler_enter(id);
+    }
+    void prof_exit() {
+        profile::profiler_leave();
+    }
+#else
+    void prof_enter(profile::region_id_type) {}
+    void prof_exit() {}
+#endif
+    profile::region_id_type state_prof_id;
+    profile::region_id_type current_prof_id;
 };
 
 struct mechanism_layout {

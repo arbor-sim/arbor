@@ -8,9 +8,10 @@
 #include "blocks.hpp"
 #include "error.hpp"
 #include "expression.hpp"
+#include <libmodcc/export.hpp>
 
 // wrapper around a .mod file
-class Module: public error_stack {
+class ARB_LIBMODCC_API Module: public error_stack {
 public:
     using symbol_map = scope_type::symbol_map;
     using symbol_ptr = scope_type::symbol_ptr;

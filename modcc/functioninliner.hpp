@@ -4,10 +4,11 @@
 
 #include "scope.hpp"
 #include "visitor.hpp"
+#include <libmodcc/export.hpp>
 
-expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block);
+ARB_LIBMODCC_API expression_ptr inline_function_calls(std::string calling_func, BlockExpression* block);
 
-class FunctionInliner : public BlockRewriterBase {
+class ARB_LIBMODCC_API FunctionInliner : public BlockRewriterBase {
 public:
     using BlockRewriterBase::visit;
     FunctionInliner(std::string calling_func) : BlockRewriterBase(), calling_func_(calling_func) {};

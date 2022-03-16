@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include <sup/export.hpp>
+
 namespace sup {
 
 class posix_path {
@@ -363,8 +365,8 @@ private:
 
 // POSIX implementations of path queries (see path.cpp for implementations).
 
-file_status posix_status(const path&, std::error_code&) noexcept;
-file_status posix_symlink_status(const path&, std::error_code&) noexcept;
+ARB_SUP_API file_status posix_status(const path&, std::error_code&) noexcept;
+ARB_SUP_API file_status posix_symlink_status(const path&, std::error_code&) noexcept;
 
 inline file_status status(const path& p, std::error_code& ec) noexcept {
     return posix_status(p, ec);
@@ -599,7 +601,7 @@ inline constexpr bool operator!=(directory_options a, unsigned x) {
 
 struct posix_directory_state;
 
-struct posix_directory_iterator {
+struct ARB_SUP_API posix_directory_iterator {
     using value_type = directory_entry;
     using difference_type = std::ptrdiff_t;
     using pointer = const directory_entry*;

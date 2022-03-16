@@ -11,6 +11,7 @@
 
 #include "arbor/mechinfo.hpp"
 
+#include "util.hpp"
 #include "conversion.hpp"
 #include "strprintf.hpp"
 
@@ -197,7 +198,7 @@ void register_mechanisms(pybind11::module& m) {
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
     m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
     m.def("bbp_catalogue", [](){return arb::global_bbp_catalogue();});
-    m.def("load_catalogue", [](const std::string& fn){return arb::load_catalogue(fn);});
+    m.def("load_catalogue", [](pybind11::object fn) { return arb::load_catalogue(util::to_string(fn)); });
 
     // arb::mechanism_desc
     // For specifying a mechanism in the cable_cell interface.

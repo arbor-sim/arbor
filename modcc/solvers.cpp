@@ -448,6 +448,7 @@ void SparseSolverVisitor::visit(ConserveExpression *e) {
 }
 
 void SparseSolverVisitor::finalize() {
+    if (has_error()) return;
 
     if (solve_variant_ == solverVariant::steadystate && !conserve_) {
         error({"Conserve statement(s) missing in steady-state solver", {}});
@@ -537,6 +538,8 @@ void LinearSolverVisitor::visit(LinearExpression *e) {
 }
 
 void LinearSolverVisitor::finalize() {
+    if (has_error()) return;
+
     system_.augment(rhs_);
 
     // Reduce the system
@@ -750,6 +753,7 @@ void SparseNonlinearSolverVisitor::visit(AssignmentExpression *e) {
 }
 
 void SparseNonlinearSolverVisitor::finalize() {
+    if (has_error()) return;
 
     // Create rhs of A_
     std::vector<std::string> rhs;
@@ -960,7 +964,7 @@ public:
     }
 };
 
-expression_ptr remove_unused_locals(BlockExpression* block) {
+ARB_LIBMODCC_API expression_ptr remove_unused_locals(BlockExpression* block) {
     UnusedVisitor unused_visitor;
     block->accept(&unused_visitor);
 

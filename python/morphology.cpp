@@ -20,6 +20,7 @@
 #include <arborio/neuroml.hpp>
 #endif
 
+#include "util.hpp"
 #include "error.hpp"
 #include "proxy.hpp"
 #include "strprintf.hpp"
@@ -199,7 +200,14 @@ void register_morphology(py::module& m) {
                 return self.all_segments(cables);
             },
             "Return maximal list of non-overlapping full or partial msegments whose union is coterminous "
-            "with the extent of the given list of cables.");
+            "with the extent of the given list of cables.")
+        .def("closest",
+            [](const arb::place_pwlin& self, double x, double y, double z) {
+                auto [l, d] = self.closest(x, y, z);
+                return pybind11::make_tuple(l, d);
+            },
+            "Find the location on the morphology that is closest to a 3d point. "
+            "Returns the location and its distance from the point.");
 
     //
     // Higher-level data structures (segment_tree, morphology)
@@ -243,10 +251,11 @@ void register_morphology(py::module& m) {
     // Function that creates a morphology from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc_arbor",
-        [](std::string fname) {
+        [](py::object fn) {
+            const auto fname = util::to_path(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
-                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                throw arb::file_not_found_error(fname);
             }
             try {
                 auto data = arborio::parse_swc(fid);
@@ -268,10 +277,11 @@ void register_morphology(py::module& m) {
         "  are no gaps in the resulting morphology.");
 
     m.def("load_swc_neuron",
-        [](std::string fname) {
+        [](py::object fn) {
+            const auto fname = util::to_path(fn);
             std::ifstream fid{fname};
             if (!fid.good()) {
-                throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                throw arb::file_not_found_error(fname);
             }
             try {
                 auto data = arborio::parse_swc(fid);
@@ -376,10 +386,11 @@ void register_morphology(py::module& m) {
     neuroml
         // constructors
         .def(py::init(
-            [](std::string fname) {
+            [](py::object fn) {
+                const auto fname = util::to_path(fn);
                 std::ifstream fid{fname};
                 if (!fid.good()) {
-                    throw pyarb_error(util::pprintf("can't open file '{}'", fname));
+                    throw arb::file_not_found_error(fname);
                 }
                 try {
                     std::string string_data((std::istreambuf_iterator<char>(fid)),

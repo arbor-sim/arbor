@@ -5,6 +5,7 @@
 
 #include <mpi.h>
 
+#include <arborenv/arbenvexcept.hpp>
 #include <arborenv/gpu_env.hpp>
 #include "gpu_uuid.hpp"
 
@@ -13,7 +14,7 @@ namespace arbenv {
 #ifdef ARB_HAVE_GPU
 
 template <>
-int find_private_gpu(MPI_Comm comm) {
+ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     int nranks;
     int rank;
     MPI_Comm_rank(comm, &rank);
@@ -45,10 +46,10 @@ int find_private_gpu(MPI_Comm comm) {
 
     if (test_global_error(local_error)) {
         if (local_error) {
-            throw std::runtime_error("unable to detect the unique id of visible GPUs: " + msg);
+            throw gpu_uuid_error("unable to detect the unique id of visible GPUs: " + msg);
         }
         else {
-            throw std::runtime_error("unable to detect the unique id of visible GPUs: error on another MPI rank");
+            throw gpu_uuid_error("unable to detect the unique id of visible GPUs: error on another MPI rank");
         }
     }
 
@@ -83,9 +84,9 @@ int find_private_gpu(MPI_Comm comm) {
     auto gpu = assign_gpu(global_uuids, gpu_partition, rank);
 
     if (test_global_error(gpu.error)) {
-        throw std::runtime_error(
-            "Unable to assign a unique GPU to MPI rank: the CUDA_VISIBLE_DEVICES"
-            " environment variable is likely incorrectly configured." );
+        throw gpu_uuid_error(
+            "unable to assign a unique GPU to MPI rank: the CUDA_VISIBLE_DEVICES"
+            " environment variable is likely incorrectly configured" );
     }
 
     return gpu.id;
@@ -95,7 +96,7 @@ int find_private_gpu(MPI_Comm comm) {
 
 // return -1 -> "no gpu" when compiled without GPU support.
 template <>
-int find_private_gpu(MPI_Comm comm) {
+ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     return -1;
 }
 

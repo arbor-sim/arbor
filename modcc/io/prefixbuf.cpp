@@ -56,7 +56,7 @@ prefixbuf::int_type prefixbuf::overflow(int_type ch) {
 
 // setprefix implementation:
 
-std::ostream& operator<<(std::ostream& os, const setprefix& sp) {
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, const setprefix& sp) {
     if (auto pbuf = dynamic_cast<prefixbuf*>(os.rdbuf())) {
         pbuf->prefix = sp.prefix_;
     }
@@ -111,7 +111,7 @@ static void indent_stack_callback(std::ios_base::event ev, std::ios_base& ios, i
     }
 }
 
-std::ostream& operator<<(std::ostream& os, indent_manip in) {
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, indent_manip in) {
     int xindex = indent_manip::xindex();
     void*& pword = os.pword(xindex);
     long& iword = os.iword(xindex);

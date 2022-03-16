@@ -25,7 +25,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <arborenv/concurrency.hpp>
+#include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
 #include <sup/ioutil.hpp>
@@ -135,26 +135,18 @@ int main(int argc, char** argv) {
     try {
         bool root = true;
 
-        arb::proc_allocation resources;
-        if (auto nt = arbenv::get_env_num_threads()) {
-            resources.num_threads = nt;
-        }
-        else {
-            resources.num_threads = arbenv::thread_concurrency();
-        }
-
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
-        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        unsigned nt = arbenv::default_concurrency();
+        int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(arb::proc_allocation{nt, gpu_id}, MPI_COMM_WORLD);
         {
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             root = rank==0;
         }
 #else
-        resources.gpu_id = arbenv::default_gpu();
-        auto context = arb::make_context(resources);
+        auto context = arb::make_context(arbenv::default_allocation());
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
@@ -186,11 +178,11 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells);
+        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells());
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
-        for (auto g : decomp.groups) {
+        for (auto g : decomp.groups()) {
             for (auto i : g.gids) {
                 sim.add_sampler(arb::one_probe({i, 0}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }

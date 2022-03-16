@@ -3,10 +3,11 @@
 
 #include<hip/hip_runtime.h>
 #include<hip/hip_runtime_api.h>
+#include <arborenv/export.hpp>
 
 using DeviceProp = hipDeviceProp_t;
 
-struct api_error_type {
+struct ARB_SYMBOL_VISIBLE api_error_type {
     hipError_t value;
     api_error_type(hipError_t e): value(e) {}
 

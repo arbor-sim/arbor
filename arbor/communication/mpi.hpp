@@ -7,6 +7,7 @@
 
 #include <mpi.h>
 
+#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/communication/mpi_error.hpp>
 
@@ -19,9 +20,9 @@ namespace arb {
 namespace mpi {
 
 // prototypes
-int rank(MPI_Comm);
-int size(MPI_Comm);
-void barrier(MPI_Comm);
+ARB_ARBOR_API int rank(MPI_Comm);
+ARB_ARBOR_API int size(MPI_Comm);
+ARB_ARBOR_API void barrier(MPI_Comm);
 
 #define MPI_OR_THROW(fn, ...)\
 while (int r_ = fn(__VA_ARGS__)) throw mpi_error(r_, #fn)
@@ -184,6 +185,38 @@ inline std::vector<std::string> gather_all(const std::vector<std::string>& value
     }
 
     return string_buffer;
+}
+
+template <typename T>
+std::vector<std::vector<T>> gather_all(const std::vector<std::vector<T>>& values, MPI_Comm comm) {
+    std::vector<unsigned long> counts_internal, displs_internal;
+
+    // Vector of individual vector sizes
+    std::vector<unsigned long> internal_sizes(values.size());
+    std::transform(values.begin(), values.end(), internal_sizes.begin(), [](const auto& val){return int(val.size());});
+
+    counts_internal = gather_all(internal_sizes, comm);
+    auto displs_internal_part = util::make_partition(displs_internal, counts_internal);
+
+    // Concatenate all internal vector data
+    std::vector<T> values_concat;
+    for (const auto& v: values) {
+        values_concat.insert(values_concat.end(), v.begin(), v.end());
+    }
+
+    // Gather all concatenated vector data
+    auto global_vec_concat = gather_all(values_concat, comm);
+
+    // Construct the vector of vectors
+    std::vector<std::vector<T>> global_vec;
+    global_vec.reserve(displs_internal_part.size());
+
+    for (const auto& internal_vec_range: displs_internal_part) {
+        global_vec.emplace_back(global_vec_concat.begin()+internal_vec_range.first,
+                                global_vec_concat.begin()+internal_vec_range.second);
+    }
+
+    return global_vec;
 }
 
 /// Gather all of a distributed vector

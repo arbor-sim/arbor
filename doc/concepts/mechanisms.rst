@@ -90,17 +90,17 @@ This will produce a catalogue loadable at runtime by calling ``load_catalogue``
 with a filename in both C++ and Python. The steps are
 
 1. Prepare a directory containing your NMODL files (.mod suffixes required)
-2. Call ``build-catalogue`` installed by arbor
+2. Call ``arbor-build-catalogue`` installed by arbor
 
    .. code-block :: bash
 
-     build-catalogue <name> <path/to/nmodl>
+     arbor-build-catalogue <name> <path/to/nmodl>
 
-All files with the suffix ``.mod`` located in ``<path/to/nmodl>`` will be baked into
-a catalogue named ``lib<name>-catalogue.so`` and placed into your current working
-directory. Note that these files are platform-specific and should only be used
-on the combination of OS, compiler, arbor, and machine they were built with.
-
+All files with the suffix ``.mod`` located in ``<path/to/nmodl>`` will be baked
+into a catalogue named ``lib<name>-catalogue.so`` and placed into your current
+working directory. Note that these files are platform-specific and should only
+be used on the combination of OS, compiler, arbor, and machine they were built
+with. See our internal documentation for more advanced usage of the builder.
 Errors might be diagnosable by passing the ``-v`` flag.
 
 This catalogue can then be used similarly to the built-in ones
