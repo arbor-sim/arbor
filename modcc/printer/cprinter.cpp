@@ -522,17 +522,23 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
             auto nested = !d.inner_index_var().empty();
-            auto outer_index_var = d.outer_index_var();
-            auto inner_index_var = nested? d.inner_index_var()+"i_": index;
-            index_prop index_var = {outer_index_var, inner_index_var, d.index_var_kind};
-            auto it = std::find(indices.begin(), indices.end(), index_var);
-            if (it == indices.end()) {
-                // If an inner index is required, push the outer index_var to the end of the list
-                if (nested) {
-                    indices.push_back(index_var);
+            if (nested) {
+                index_prop inner_index_prop = {d.inner_index_var(), index, d.index_var_kind};
+                index_prop outer_index_prop = {d.outer_index_var(), d.inner_index_var()+"i_", d.index_var_kind};
+                auto inner_it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                if (inner_it == indices.end()) {
+                    indices.push_front(inner_index_prop);
                 }
-                else {
-                    indices.push_front(index_var);
+                auto outer_it = std::find(indices.begin(), indices.end(), outer_index_prop);
+                if (outer_it == indices.end()) {
+                    indices.push_back(outer_index_prop);
+                }
+            }
+            else {
+                index_prop inner_index_prop = {d.outer_index_var(), index, d.index_var_kind};
+                auto it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                if (it == indices.end()) {
+                    indices.push_front(inner_index_prop);
                 }
             }
         }
