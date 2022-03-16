@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 
+from collections import defaultdict
+import json
 import arbor as A
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import seaborn as sns
 import numpy as np
 import pandas as pd
-from collections import defaultdict
-import json
-from dataclasses import dataclass
 
 # Check arbor is loaded fine and print some config diagnostics
 print(A.config())
 
 # cable parameters
-@dataclass
 class parameters:
-    cm:    float = None
-    tempK: float = None
-    Vm:    float = None
-    rL:    float = None
+    cm = None#:    float = None
+    tempK = None#: float = None
+    Vm = None#    float = None
+    rL = None#:    float = None
 
 # parse Allen DB description
 # NB. Needs to be adjusted when using a different model
@@ -58,10 +56,14 @@ def load_allen_fit(fit):
     param = [(r, vs) for r, vs in param.items()]
     mechs = [(r, m, vs) for (r, m), vs in mechs.items()]
 
-    default = parameters(None, # not set in example file
-                         float(fit['conditions'][0]['celsius']) + 273.15,
-                         float(fit['conditions'][0]['v_init']),
-                         float(fit['passive'][0]['ra']))
+    # default = parameters(None, # not set in example file
+    #                      float(fit['conditions'][0]['celsius']) + 273.15,
+    #                      float(fit['conditions'][0]['v_init']),
+    #                      float(fit['passive'][0]['ra']))
+    default = parameters()
+    default.tempK=float(fit['conditions'][0]['celsius']) + 273.15
+    default.Vm=float(fit['conditions'][0]['v_init'])
+    default.rL=float(fit['passive'][0]['ra'])
 
     erev = []
     for kv in fit['conditions'][0]['erev']:
@@ -156,6 +158,7 @@ sim.run(tfinal=1400, dt=0.005)
 
 # (14) Load and scale reference
 reference = 1000.0*pd.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] - 14.0
+reference = 1000.0*pd.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] - 14.0
 
 # (15) Extract data
 data, _ = sim.samples(hdl)[0]
@@ -173,4 +176,4 @@ ax.set_xlim(left=0, right=1400)
 ax.legend(loc='upper right')
 ax.set_ylabel('Membrane Potential at Soma $(U/mV)$')
 ax.set_xlabel('Time $(t/ms)$')
-fg.savefig('result.pdf')
+fg.savefig('single_cell_allen.pdf')
