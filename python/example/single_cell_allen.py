@@ -14,10 +14,10 @@ print(A.config())
 
 # cable parameters
 class parameters:
-    cm = None#:    float = None
-    tempK = None#: float = None
-    Vm = None#    float = None
-    rL = None#:    float = None
+    cm = None
+    tempK = None
+    Vm = None
+    rL = None
 
 # parse Allen DB description
 # NB. Needs to be adjusted when using a different model
@@ -56,10 +56,6 @@ def load_allen_fit(fit):
     param = [(r, vs) for r, vs in param.items()]
     mechs = [(r, m, vs) for (r, m), vs in mechs.items()]
 
-    # default = parameters(None, # not set in example file
-    #                      float(fit['conditions'][0]['celsius']) + 273.15,
-    #                      float(fit['conditions'][0]['v_init']),
-    #                      float(fit['passive'][0]['ra']))
     default = parameters()
     default.tempK=float(fit['conditions'][0]['celsius']) + 273.15
     default.Vm=float(fit['conditions'][0]['v_init'])
@@ -157,7 +153,6 @@ sim.record(A.spike_recording.all)
 sim.run(tfinal=1400, dt=0.005)
 
 # (14) Load and scale reference
-reference = 1000.0*pd.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] - 14.0
 reference = 1000.0*pd.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] - 14.0
 
 # (15) Extract data
