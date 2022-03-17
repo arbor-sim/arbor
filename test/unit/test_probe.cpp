@@ -549,7 +549,19 @@ void run_ion_density_probe_test(const context& ctx) {
     rec.add_probe(0, 0, cable_probe_ion_ext_concentration_cell{"ca"});
 
     fvm_cell lcell(*ctx);
+
     auto fvm_info = lcell.initialize({0}, rec);
+    // We skipped FVM layout here, so we need to set these manually
+    auto& state = backend_access<Backend>::state(lcell);
+    state.ion_data["ca"].write_Xi = true;
+    state.ion_data["ca"].write_Xo = true;
+    state.ion_data["ca"].init_concentration();
+    state.ion_data["na"].write_Xi = true;
+    state.ion_data["na"].write_Xo = true;
+    state.ion_data["na"].init_concentration();
+    // Now, re-init cell
+    lcell.reset();
+
     const auto& probe_map = fvm_info.probe_map;
 
     // Should be no sodium ion instantiated on CV 0, so probe (0, 6) should

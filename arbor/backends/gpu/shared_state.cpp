@@ -78,8 +78,8 @@ ion_state::ion_state(
 }
 
 void ion_state::init_concentration() {
-    memory::copy(init_Xi_, Xi_);
-    memory::copy(init_Xo_, Xo_);
+    if (write_Xi) memory::copy(init_Xi_, Xi_);
+    if (write_Xo) memory::copy(init_Xo_, Xo_);
 }
 
 void ion_state::zero_current() {
