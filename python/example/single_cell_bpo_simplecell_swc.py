@@ -117,4 +117,4 @@ for t in m.traces:
 
 df = pandas.concat(df_list,ignore_index=True)
 
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_bpo.svg')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_bpo_simplecell.svg')

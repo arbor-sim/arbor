@@ -9,5 +9,5 @@ python /path/to/BluePyOpt/examples/simplecell/generate_hoc.py --acc
 An Arbor simulation can be launched using
 
 ```shell
-python ../../single_cell_bpo_swc.py simple_cell_cell.json
+python ../../single_cell_bpo_simplecell_swc.py simple_cell_cell.json
 ```

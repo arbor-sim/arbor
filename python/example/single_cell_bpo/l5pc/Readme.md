@@ -6,5 +6,8 @@ This example was created in an environment with the `bluepyopt` package (version
 python /path/to/BluePyOpt/examples/l5pc/generate_hoc.py --acc
 ```
 
-We use the Arbor BBP mechanism catalogue as a substitute for the one in BluePyOpt.
+We use the Arbor BBP mechanism catalogue as a substitute for the one in BluePyOpt and an Arbor simulation can be launched using
 
+```shell
+python ../../single_cell_bpo_l5pc_detailed_recipe.py l5pc_cell.json
+```
