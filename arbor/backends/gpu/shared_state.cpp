@@ -57,6 +57,9 @@ ion_state::ion_state(
     const fvm_ion_config& ion_data,
     unsigned // alignment/padding ignored.
 ):
+    write_eX(ion_data.revpot_written),
+    write_Xo(ion_data.econc_written),
+    write_Xi(ion_data.iconc_written),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.cv.size(), NAN),
@@ -85,9 +88,9 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    memory::copy(reset_Xi_, Xi_);
-    memory::copy(reset_Xo_, Xo_);
-    memory::copy(init_eX_, eX_);
+    if (write_Xi) memory::copy(reset_Xi_, Xi_);
+    if (write_Xo) memory::copy(reset_Xo_, Xo_);
+    if (write_eX) memory::copy(init_eX_, eX_);
 }
 
 // istim_state methods:

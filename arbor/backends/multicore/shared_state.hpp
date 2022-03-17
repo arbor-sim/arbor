@@ -38,14 +38,12 @@ namespace multicore {
  *     Xi_     cai              internal calcium concentration
  *     Xo_     cao              external calcium concentration
  */
-
 struct ARB_ARBOR_API ion_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
     bool write_eX;          // is eX written?
     bool write_Xo;          // is Xo written?
     bool write_Xi;          // is Xi written?
-
 
     iarray node_index_;     // Instance to CV map.
     array iX_;              // (A/m²) current density
