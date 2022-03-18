@@ -137,7 +137,7 @@ Step **(15)** starts the simulation for a duration of 1.4 s and a timestep of 5 
 The result
 ----------
 
-Let's look at the result! In step **(16)** we first load the reference generated with Neuron and the AllenSDK. Because this was sampled at 200 kHz, we take every tenth value through a list comprehension.
+Let's look at the result! In step **(16)** we first load the reference generated with Neuron and the AllenSDK.
 Then, we extract Arbor's output, accessible after the simulation ran at
 :class:`arbor.single_cell_model.traces`. Then, we plot them, together with the :class:`arbor.single_cell_model.spikes` in step **(17)**.
 
