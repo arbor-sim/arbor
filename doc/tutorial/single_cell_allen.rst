@@ -10,11 +10,11 @@ and run it with Arbor.
 
    **Concepts covered in this example:**
 
-   1. Take a model from an online atlas.
-   1. Load a morphology from an ``swc`` file.
-   2. Load a parameter fit file and apply it to a :class:`arbor.decor`.
-   4. Building a :class:`arbor.cable_cell` object.
-   5. Building a :class:`arbor.single_cell_model` object.
+   1. Take a model from the Allen Brain Atlas.
+   2. Load a morphology from an ``swc`` file.
+   3. Load a parameter fit file and apply it to a :class:`arbor.decor`.
+   4. Building a :class:`arbor.cable_cell` representative of the cell in the model.
+   5. Building a :class:`arbor.recipe` reflective of the cell stimulation in the model.
    6. Running a simulation and visualising the results.
 
 Obtaining the model
@@ -41,29 +41,21 @@ The morphology
 --------------
 
 :ref:`In an earlier tutorial <tutorialsinglecellswc-cell>` we've seen how an ``swc`` file can be loaded **(1)**
-and how the labels can be set **(2)**:
+and how the labels can be set **(2)**. Let's being a new function that will build and return the cable cell in Arbor format:
 
-.. code-block:: python
+.. literalinclude:: ../../python/example/single_cell_allen.py
+   :language: python
+   :dedent:
+   :lines: 70-78
 
-  # (1) Load the cell morphology.
-  morphology = arbor.load_swc_allen('single_cell_allen.swc', no_gaps=False)
-  # (2) Label the region tags found in the swc with the names used in the parameter fit file.
-  # In addition, label the midpoint of the soma.
-  labels = arbor.label_dict({
-      'soma': '(tag 1)',
-      'axon': '(tag 2)',
-      'dend': '(tag 3)',
-      'apic': '(tag 4)',
-      'midpoint': '(location 0 0.5)'})
-
-Step **(1)** loads the ``swc`` file using :func:`arbor.load_swc_allen`. Since the ``swc`` specification is informal, a few different interpretations exist, and we use the appropriate one. The interpretations are described ::ref`here <morph-formats>`.
+Step **(1)** loads the ``swc`` file using :func:`arbor.load_swc_allen`. Since the ``swc`` specification is informal, a few different interpretations exist, and we use the appropriate one. The interpretations are described :ref:`here <formatswc-arbor>`.
 
 Step **(2)** sets the labels to the defaults of the ``swc``
 `specification <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
 plus a label for the midpoint of the soma. (You can verify in the ``swc`` file, the first branch is the soma.)
 
-The decor
----------
+The parameter fit
+-----------------
 
 The most complicated part is transferring the values for the appropriate parameters in parameter fit file to an
 :class:`arbor.decor`. The file file is a ``json`` file, which is fortunate; Python comes with a ``json`` package
@@ -72,106 +64,31 @@ section contains the parameters for all the mechanism properties. In certain cas
 mechanism name, so some processing needs to take place.
 
 Step **(3)** shows the precise steps needed to load the fit parameter file into a list of global properties,
-region specific properties, reversal potentials, and mechanism parameters.
+region specific properties, reversal potentials, and mechanism parameters. This is not a generic function that will successfully load any Allen model, but it can be used as a starting point. The function composes 4 components out of the ``json`` file:
 
-.. code-block:: Python
+1. global electro-physical parameters,
+2. a set of electro-physical parameters per region,
+3. a set of reversal potentials per ion species and region,
+4. a set of mechanisms with parameters per region.
 
-  # (3) A function that parses the Allen parameter fit file into components for an arbor.decor
-  def load_allen_fit(fit):
-      from collections import defaultdict
-      import json
-      from dataclasses import dataclass
+.. literalinclude:: ../../python/example/single_cell_allen.py
+   :language: python
+   :dedent:
+   :lines: 12-68
 
-      @dataclass
-      class parameters:
-          cm:    float = None
-          tempK: float = None
-          Vm:    float = None
-          rL:    float = None
+The decor
+---------
 
-      with open(fit) as fd:
-          fit = json.load(fd)
+With the ingredients for the :class:`arbor.decor` extracted, we continue with the function that will return the cable cell from the model as an :class:`arbor.cable_cell`.
 
-      param = defaultdict(parameters)
-      mechs = defaultdict(dict)
-      for block in fit['genome']:
-          mech   = block['mechanism'] or 'pas'
-          region = block['section']
-          name   = block['name']
-          value  = float(block['value'])
-          if name.endswith('_' + mech):
-              name = name[:-(len(mech) + 1)]
-          else:
-              if mech == "pas":
-                  # transform names and values
-                  if name == 'cm':
-                      param[region].cm = value/100.0
-                  elif name == 'Ra':
-                      param[region].rL = value
-                  elif name == 'Vm':
-                      param[region].Vm = value
-                  elif name == 'celsius':
-                      param[region].tempK = value + 273.15
-                  else:
-                      raise Exception(f"Unknown key: {name}")
-                  continue
-              else:
-                  raise Exception(f"Illegal combination {mech} {name}")
-          if mech == 'pas':
-              mech = 'pas'
-          mechs[(region, mech)][name] = value
+.. literalinclude:: ../../python/example/single_cell_allen.py
+   :language: python
+   :dedent:
+   :lines: 80-114
 
-      param = [(r, vs) for r, vs in param.items()]
-      mechs = [(r, m, vs) for (r, m), vs in mechs.items()]
+Step **(4)** creates an empty :class:`arbor.decor`.
 
-      default = parameters(None, # not set in example file
-                          float(fit['conditions'][0]['celsius']) + 273.15,
-                          float(fit['conditions'][0]['v_init']),
-                          float(fit['passive'][0]['ra']))
-
-      erev = []
-      for kv in fit['conditions'][0]['erev']:
-          region = kv['section']
-          for k, v in kv.items():
-              if k == 'section':
-                  continue
-              ion = k[1:]
-              erev.append((region, ion, float(v)))
-
-      pot_offset = fit['fitting'][0]['junction_potential']
-
-      return default, param, erev, mechs, pot_offset
-
-  defaults, regions, ions, mechanisms, pot_offset = load_allen_fit('single_cell_allen_fit.json')
-
-  # (3) Instantiate an empty decor.
-  decor = arbor.decor()
-
-  # (4) assign global electro-physical parameters
-  decor.set_property(tempK=defaults.tempK, Vm=defaults.Vm,
-                      cm=defaults.cm, rL=defaults.rL)
-  decor.set_ion('ca', int_con=5e-5, ext_con=2.0, method=arbor.mechanism('nernst/x=ca'))
-  # (5) override regional electro-physical parameters
-  for region, vs in regions:
-      decor.paint('"'+region+'"', tempK=vs.tempK, Vm=vs.Vm, cm=vs.cm, rL=vs.rL)
-  # (6) set reversal potentials
-  for region, ion, e in ions:
-      decor.paint('"'+region+'"', ion, rev_pot=e)
-  # (7) assign ion dynamics
-  for region, mech, values in mechanisms:
-      decor.paint('"'+region+'"', arbor.mechanism(mech, values))
-
-  # (8) attach stimulus and spike detector
-  decor.place('"midpoint"', arbor.iclamp(200, 1000, 0.15))
-  decor.place('"midpoint"', arbor.spike_detector(-40))
-
-  # (9) discretisation strategy: max compartment length
-  decor.discretization(arbor.cv_policy_max_extent(20))
-
-
-Step **(3)** creates an empty :class:`arbor.decor`.
-
-Step **(4)** assigns global (cell-wide) properties using :func:`arbor.decor.set_property`. In addition, initial
+Step **(5)** assigns global (cell-wide) properties using :func:`arbor.decor.set_property`. In addition, initial
 internal and external calcium concentrations are set, and configured to be mediated by the Nernst equation.
 
 .. note::
@@ -183,71 +100,51 @@ internal and external calcium concentrations are set, and configured to be media
     written, then the nernst equation is used continuously during the simulation to update the reversal potential of
     the ion according to the nernst equation
 
-Step **(5)** overrides the global properties for all *regions* for which the fit parameters file specifies adapted
-values. Regional properties are :func:`painted `arbor.paint`, and are painted over the defaults.
+Step **(6)** overrides the global properties for all *regions* for which the fit parameters file specifies adapted
+values. Regional properties are :func:`painted <arbor.decor.paint>`, and are painted over (e.g. replacing) the defaults.
 
-Step **(6)** sets the regional reversal potentials.
+Step **(7)** sets the regional reversal potentials.
 
-Step **(7)** assigns the regional mechanisms.
+Step **(8)** assigns the regional mechanisms.
 
 Now that the electrodynamics are all set up, let's move on to the experimental setup.
 
-Step **(8)** configures the :class:`stimulus <arbor.iclamp>` of 150 nA for a duration of 1 s, starting after 200 ms
+Step **(9)** configures the :class:`stimulus <arbor.iclamp>` of 150 nA for a duration of 1 s, starting after 200 ms
 of the start of the simulation. We'll also install a :class:`arbor.spike_detector` that triggers at -40 mV. (The
 location is usually the soma, as is confirmed by coordinates found in the experimental dataset at
 ``488683423.nwb/general/intracellular_ephys/Electrode 1/location``)
 
-Step **(9)** specifies a maximum :term:`control volume` length of 20 μm.
+Step **(10)** specifies a maximum :term:`control volume` length of 20 μm.
+
+Step **(11)** returns the :class:`arbor.cable_cell`.
 
 The model
 ---------
 
-.. code-block:: python
+.. literalinclude:: ../../python/example/single_cell_allen.py
+   :language: python
+   :dedent:
+   :lines: 116-127
 
-  # (10) Create cell, model
-  cell = arbor.cable_cell(morphology, labels, decor)
-  model = arbor.single_cell_model(cell)
+Step **(12)** instantiates the :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model`.
 
-  # (11) Set the probe
-  model.probe('voltage', '"midpoint"', frequency=200000)
+Step **(13)** shows how to install a probe to the ``"midpoint"``, with a sampling frequency of 200 kHz.
 
-  # (12) Install the Allen mechanism catalogue.
-  model.catalogue.extend(arbor.allen_catalogue(), "")
+Step **(14)** installs the :class:`arbor.allen_catalogue`, thereby making its mechanisms available to the definitions added to the decor.
 
-  # (13) Run simulation
-  model.run(tfinal=1400, dt=0.005)
-
-Step **(10)** creates the :class:`arbor.cable_cell` and :class:`arbor.single_cell_model`.
-
-Step **(11)** shows how to install a probe to the ``"midpoint"``, with a sampling frequency of 200 kHz.
-
-Step **(12)** installs the :class:`arbor.allen_catalogue`, thereby making its mechanisms available to the definitions added to the decor.
-
-Step **(13)** starts the simulation for a duration of 1.4 s and a timestep of 5 ms.
+Step **(15)** starts the simulation for a duration of 1.4 s and a timestep of 5 ms.
 
 The result
 ----------
 
-Let's look at the result! In step **(14)** we first load the reference generated with Neuron and the AllenSDK.
-Then, we place Arbor's output, accessible after the simulation ran through
-:class:`arbor.single_cell_model.traces`. Then, we plot them, together with the :class:`arbor.single_cell_model.spikes`.
+Let's look at the result! In step **(16)** we first load the reference generated with Neuron and the AllenSDK. Because this was sampled at 200 kHz, we take every tenth value through a list comprehension.
+Then, we extract Arbor's output, accessible after the simulation ran at
+:class:`arbor.single_cell_model.traces`. Then, we plot them, together with the :class:`arbor.single_cell_model.spikes` in step **(17)**.
 
-.. code-block:: python
-
-  # (14) Load reference data and plot results.
-  reference = pandas.read_csv('single_cell_allen_neuron_ref.csv')
-
-  df = pandas.DataFrame()
-  for t in model.traces:
-      # need to shift by junction potential, see allen db
-      df=df.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': [i-pot_offset for i in t.value], 'Variable': t.variable, 'Simulator': 'Arbor'}))
-  # neuron outputs V instead of mV
-  df=df.append(pandas.DataFrame({'t/ms': reference['t/ms'], 'U/mV': 1000.0*reference['U/mV'], 'Variable': 'voltage', 'Simulator':'Neuron'}))
-
-  seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Simulator",col="Variable",ci=None)
-
-  plt.scatter(model.spikes, [-40]*len(model.spikes), color=seaborn.color_palette()[2], zorder=20)
-  plt.savefig('single_cell_allen_result.svg')
+.. literalinclude:: ../../python/example/single_cell_allen.py
+   :language: python
+   :dedent:
+   :lines: 129-
 
 .. figure:: single_cell_allen_result.svg
     :width: 400
