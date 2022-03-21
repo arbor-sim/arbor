@@ -154,6 +154,7 @@ A full list of our software attributions can be found `here <https://github.com/
    contrib/example
    contrib/test
    contrib/release
+   contrib/dependency-management
 
 .. meta::
    :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo

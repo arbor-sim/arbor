@@ -22,15 +22,10 @@ Minimum requirements
 The non distributed (i.e. no MPI) version of Arbor can be compiled on Linux or OS X systems
 with very few tools.
 
-.. table:: Required Tools
-
-    =========== ============================================
-    Tool        Notes
-    =========== ============================================
-    Git         To check out the code, minimum version 2.0.
-    CMake       To set up the build, minimum version 3.18.
-    compiler    A C++17 compiler. See `compilers <install-compilers_>`_.
-    =========== ============================================
+.. csv-table:: List of requirements
+   :file: ../dependencies.csv
+   :widths: 10, 20, 10, 70, 1
+   :header-rows: 1
 
 .. _install-compilers:
 
@@ -38,18 +33,7 @@ Compilers
 ~~~~~~~~~
 
 Arbor requires a C++ compiler that fully supports C++17.
-We recommend using GCC or Clang, for which Arbor has been tested and optimised.
-
-.. table:: Supported Compilers
-
-    =========== ============ ============================================
-    Compiler    Min version  Notes
-    =========== ============ ============================================
-    GCC         8.4.0
-    Clang       8.0          Needs GCC 8 or later for standard library.
-    Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
-    Hip Clang   ROCm 3.9     HIP support is currently experimental.
-    =========== ============ ============================================
+We recommend using GCC or Clang, for which Arbor has been tested and optimised, see notes in the above table.
 
 .. _note_CC:
 
