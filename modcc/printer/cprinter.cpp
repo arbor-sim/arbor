@@ -516,6 +516,11 @@ namespace {
     };
 }
 
+// Return the indices that need to be read at the beginning
+// of an APIMethod in the order that they should be read
+// eg:
+//   node_index_ = node_index[i];
+//   domain_index_ = vec_di[node_index_];
 std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& indexed_vars, const std::string& index) {
     std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
@@ -523,22 +528,30 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
         if (!d.scalar()) {
             auto nested = !d.inner_index_var().empty();
             if (nested) {
+                // Need to read 2 indices: outer[inner[index]]
                 index_prop inner_index_prop = {d.inner_index_var(), index, d.index_var_kind};
                 index_prop outer_index_prop = {d.outer_index_var(), d.inner_index_var()+"i_", d.index_var_kind};
+
+                // Check that the outer and inner indices haven't already been added to the list
                 auto inner_it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                auto outer_it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // The inner index needs to be read before the outer index
                 if (inner_it == indices.end()) {
                     indices.push_front(inner_index_prop);
                 }
-                auto outer_it = std::find(indices.begin(), indices.end(), outer_index_prop);
                 if (outer_it == indices.end()) {
                     indices.push_back(outer_index_prop);
                 }
             }
             else {
-                index_prop inner_index_prop = {d.outer_index_var(), index, d.index_var_kind};
-                auto it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                // Need to read 1 index: outer[index]
+                index_prop outer_index_prop = {d.outer_index_var(), index, d.index_var_kind};
+                auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // Check that the index hasn't already been added to the list
                 if (it == indices.end()) {
-                    indices.push_front(inner_index_prop);
+                    indices.push_front(outer_index_prop);
                 }
             }
         }
