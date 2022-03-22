@@ -26,7 +26,9 @@ The rest: ``doc/dependencies.csv``:
 User platforms
 --------------
 
-Although Arbor should in principle run everywhere modern compilers are found, a couple of user platforms impose hard requirements on Arbor compatiblity. That is: Arbor should build without hassle on this set of platforms. If not, we have a bug.
+Although Arbor should in principle run everywhere modern compilers are found, a couple of user platforms
+are essential. These environments must be able to build Arbor without issue, if not we consider this a bug.
+Also, build instructions for each of them must be given in the documentation.
 
 * Ubuntu LTS-latest
 * Ubuntu LTS-latest-1
@@ -50,7 +52,7 @@ Dependency update rules
    * This prevents Spack builds from pulling in ``master``, when a more recent version than available is required. `See here <https://spack.readthedocs.io/en/latest/packaging_guide.html#version-comparison>`_.
    * This is a manual check, e.g. for pybind: `see pybind package.py <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/py-pybind11/package.py>`_
 7. Actually updating shall remain a manual process. Update may require nontrivial updates to Arbor, and updates to Spack upstream (e.g. make PR for pybind update).
-8. A dependency update shall have a separate PR, and such PR updates a single dependency at a time.
+8. A dependency update shall have a separate PR, and such a PR updates a single dependency at a time, unless the dependency update requires other dependencies to be updated.
 9. This PR requires review by at least two reviewers.
 
    * There appears to be no way to enforce that, unless we enforce it for all PRs.
