@@ -64,11 +64,16 @@ class brunel_recipe (arbor.recipe):
         gen = RandomState(gid + self.seed_)
         connections=[]
         # Add incoming excitatory connections.
-        for i in sample_subset(gen, gid, 0, self.ncells_exc_, self.in_degree_exc_):
-            connections.append(arbor.connection((i,"src"), "tgt", self.weight_exc_, self.delay_))
+        connections = [
+            arbor.connection((i,"src"), "tgt", self.weight_exc_, self.delay_)
+            for i in sample_subset(gen, gid, 0, self.ncells_exc_, self.in_degree_exc_)
+        ]
         # Add incoming inhibitory connections.
-        for i in sample_subset(gen, gid, self.ncells_exc_, self.ncells_exc_ + self.ncells_inh_, self.in_degree_inh_):
-            connections.append(arbor.connection((i,"src"), "tgt", self.weight_inh_, self.delay_))
+        connections += [
+            arbor.connection((i,"src"), "tgt", self.weight_inh_, self.delay_)
+            for i in sample_subset(gen, gid, self.ncells_exc_, self.ncells_exc_ + self.ncells_inh_, self.in_degree_inh_)
+        ]
+
         return connections
 
     def cell_description(self, gid):
