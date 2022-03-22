@@ -3,9 +3,14 @@
 Dependency management
 =====================
 
-Arbor relies on a (small) number of dependencies. Some are configured before building (e.g. a C++ compiler, optionally MPI bindings, libxml2, etc.), and some are present in the repo, either as a `git submodule <https://git-scm.com/docs/git-submodule>`_ or as copy.
+Arbor relies on a (small) number of dependencies. We can distinguish three kinds of deps:
 
-The in-repo dependencies are located in ``ext/``, with the exception of `Pybind11 <https://github.com/pybind/pybind11>`_, which lives in ``python/pybind11``.
+0. Source management dependencies: Git.
+1. Build dependencies. E.g. CMake, compilers like GCC or CUDA.
+2. Linking dependencies. E.g. MPI, libxml2.
+3. Source dependencies. These are present as `git submodules <https://git-scm.com/docs/git-submodule>`_ or as copy in ``ext/``. Their use is optional: users who need integration with their package manager (e.g. apt, spack, yum) can link to those versions instead.
+
+Note that the actual dependencies of your build configuration may vary.
 
 In addition, ``spack/package.py`` contains a copy of the Spack package definition `upstream <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_. Here instructions for both in-repo and configure-time dependencies are defined.
 
@@ -14,9 +19,7 @@ This document contains rules for when and how to update dependencies, and what t
 List of dependencies
 --------------------
 
-In repo deps: see earlier comment.
-
-The rest: ``doc/dependencies.csv``:
+A full list of dependencies is maintained at ``doc/dependencies.csv``:
 
 .. csv-table:: List of configure time dependencies
    :file: ../dependencies.csv
@@ -42,12 +45,12 @@ Also, build instructions for each of them must be given in the documentation.
 Dependency update rules
 -----------------------
 
-1. Submodule update notification occurs through ``.github/workflows/check-submodules.yml``.
+1. ``doc/dependencies.csv``, git submodules and ``spack/package.py`` shall be in sync.
 2. Dependencies shall be set to a (commit hash corresponding to a) specific version tag. (All current dependencies use semver.)
-3. Git submodules and dependencies in ``spack/package.py`` shall be in sync.
-4. The version shall be compatible with the user platforms (see above).
-5. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
-6. Submodules shall not be updated past the most recent version of the dependency in Spack.
+3. The version shall be compatible with the user platforms (see above).
+4. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
+5. The version shall be the lowest possible. More recent versions of submodules are automatically tested through ``.github/workflows/check-submodules.yml``, to catch merge problems early.
+6. Moreover, dependencies shall not be updated past the most recent version of the dependency in Spack.
 
    * This prevents Spack builds from pulling in ``master``, when a more recent version than available is required. `See here <https://spack.readthedocs.io/en/latest/packaging_guide.html#version-comparison>`_.
    * This is a manual check, e.g. for pybind: `see pybind package.py <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/py-pybind11/package.py>`_
@@ -57,6 +60,6 @@ Dependency update rules
 
    * There appears to be no way to enforce that, unless we enforce it for all PRs.
    * Optionally we could have a PR template auto-assigning to some or all of us, which means we'll at least be notified.
-10. We will try to keep deps up to date.
+10. We will try to keep compatible to a wide range in dependency versions.
 
    * This includes making other components in `ext` git submodules, such that updates are more easily tracked.
