@@ -883,7 +883,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 }
             }
             if (dep.write_concentration_ext) {
-                write_xi.insert(ion);
+                write_xo.insert(ion);
                 for (auto c: support) {
                     bool ok = init_econc_mask[ion].insert(c.first, 0.);
                     if (!ok) {
@@ -1041,7 +1041,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 write_xi.insert(ion);
             }
             if (dep.write_concentration_ext) {
-                write_xi.insert(ion);
+                write_xo.insert(ion);
             }
         }
 
@@ -1113,7 +1113,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 write_xi.insert(ion);
             }
             if (dep.write_concentration_ext) {
-                write_xi.insert(ion);
+                write_xo.insert(ion);
             }
         }
 

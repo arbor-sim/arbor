@@ -59,9 +59,9 @@ ion_state::ion_state(
     unsigned align
 ):
     alignment(min_alignment(align)),
-    write_eX(ion_data.revpot_written),
-    write_Xo(ion_data.econc_written),
-    write_Xi(ion_data.iconc_written),
+    write_eX_(ion_data.revpot_written),
+    write_Xo_(ion_data.econc_written),
+    write_Xi_(ion_data.iconc_written),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
@@ -81,8 +81,8 @@ ion_state::ion_state(
 }
 
 void ion_state::init_concentration() {
-    if (write_Xi) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
-    if (write_Xo) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
+    if (write_Xi_) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
+    if (write_Xo_) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
 
 void ion_state::zero_current() {
@@ -91,9 +91,9 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    if (write_Xi) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
-    if (write_Xo) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
-    if (write_eX) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
+    if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
+    if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
 }
 
 // istim_state methods:

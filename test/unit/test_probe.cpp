@@ -553,11 +553,11 @@ void run_ion_density_probe_test(const context& ctx) {
     auto fvm_info = lcell.initialize({0}, rec);
     // We skipped FVM layout here, so we need to set these manually
     auto& state = backend_access<Backend>::state(lcell);
-    state.ion_data["ca"].write_Xi = true;
-    state.ion_data["ca"].write_Xo = true;
+    state.ion_data["ca"].write_Xi_ = true;
+    state.ion_data["ca"].write_Xo_ = true;
     state.ion_data["ca"].init_concentration();
-    state.ion_data["na"].write_Xi = true;
-    state.ion_data["na"].write_Xo = true;
+    state.ion_data["na"].write_Xi_ = true;
+    state.ion_data["na"].write_Xo_ = true;
     state.ion_data["na"].init_concentration();
     // Now, re-init cell
     lcell.reset();
