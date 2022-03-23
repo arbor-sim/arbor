@@ -459,7 +459,7 @@ void shared_state::take_samples(const sample_event_stream::state& s, array& samp
 }
 
 // Debug interface
-std::ostream& operator<<(std::ostream& o, shared_state& s) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " cv_to_intdom " << s.cv_to_intdom << "\n";
     o << " time         " << s.time << "\n";
     o << " time_to      " << s.time_to << "\n";

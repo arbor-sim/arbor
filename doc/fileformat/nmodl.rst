@@ -191,3 +191,155 @@ contain full ``segments``).
 
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
 as it can lead to vastly different model behavior.
+
+Tips for Faster NMODL
+======================
+
+NMODL is a language without formal specification and many unexpected
+characteristics (many of which are not supported in Arbor), which results in
+existing NMODL files being treated as difficult to understand and best left
+as-is. This in turn leads to sub-optimal performance, especially since
+mechanisms take up a large amount of the simulations' runtime budget. With some
+understanding of the subject matter, however, it is quite straightforward to
+obtain clean and performant NMODL files. We regularly have seen speed-ups
+factors of roughly three from optimising NMODL.
+
+First, let us discuss how NMODL becomes part of an Arbor simulation. NMODL
+mechanisms are given in ``.mod`` files, whose layout and syntax has been
+discussed above. These are compiled by ``modcc`` into a series of callbacks as
+specified by the :ref:`mechanism_abi`. These operate on data held in Arbor's
+internal storage. But, ``modcc`` does not generate machine code, it goes through
+C++ (and/or CUDA) as an intermediary which is processed by a standard C++
+compiler like GCC (or nvcc) to produce either a shared object (for external
+catalogues) and code directly linked into Arbor (the built-in catalogues).
+
+Now, we turn to a series of tips we found helpful in producing fast NMODL
+mechanisms. Note that if you are looking for help with NMODL in the context of
+NEURON this guide might not help.
+
+``RANGE``
+---------
+
+Parameters and ``ASSIGNED`` variables marked as ``RANGE`` will be stored as an
+array with one entry per CV in Arbor. Reading and writing these incurs a memory
+access and thus affects cache and memory utilisation metrics. It is often more
+efficient to use ``LOCAL`` variables instead, even if that means foregoing the
+ability to re-use a computed value. Compute is so much faster than memory on
+modern hardware that re-use at the expense of memory accesses is seldom
+profitable, except for the most complex terms. ``LOCAL`` variables become just
+that in the generated code: a local variable that is likely residing in a
+register and used only as long as needed.
+
+``PROCEDURE``
+-------------
+
+Prefer ``FUNCTION`` over ``PROCEDURE``. The latter *require* ``ASSIGNED RANGE``
+variables to return values and thus stress the memory system, which, as noted
+above, is not most efficient on current hardware. Also, they may not be inlined,
+as opposed to a ``FUNCTION``.
+
+```PARAMETER``
+--------------
+
+``PARAMETER`` should only be used for values that must be set by the simulator.
+All fixed values should be ``CONSTANT`` instead. These will be inlined by
+``modcc`` and propagated through the computations which can uncover more
+optimisation potential.
+
+Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
+----------------------------------------------------------------------------
+
+This is often done using a ``PROCEDURE``, which we now know is inefficient. On top,
+this ``PROCEDURE`` will likely compute more outputs than strictly needed to
+accomodate both blocks. DRY code is a good idea nevertheless, so use a series of
+``FUNCTION`` instead to compute common expressions.
+
+This leads naturally to a common optimisation in H-H style ion channels. If you
+heeded the advice above, you will likely see this patter emerge:
+
+.. code::
+
+   na   = n_alpha()
+   nb   = n_beta()
+   ntau = 1/(na + nb)
+   ninf = na*ntau
+
+   n' = (ninf - n)/ntau
+
+Written out in this explicit way it becomes obvious that this can be expressed
+compactly as
+
+.. code::
+
+   na   = n_alpha()
+   nb   = n_beta()
+   nrho = na + nb
+
+   n' = na - n*nrho
+
+The latter code is faster, but neither ``modcc`` nor the external C++ compiler
+will perform this optimisation [#]_. This is less easy to
+see when partially hidden in a ``PROCEDURE``.
+
+.. [#] GCC/Clang *might* attempt it if asked to relax floating point accuracy
+       with ``-ffast-math`` or ``-Ofast``. However, Arbor refrains from using
+       this option when compiling mechanism code.
+
+Complex Expressions in Current Computation
+------------------------------------------
+
+``modcc``, Arbor's NMODL compiler, applies symbolic differentiation to the
+current expression to find the conductance as ``g = d I/d U`` which are then
+used to compute the voltage update. ``g`` is thus computed multiple times every
+timestep and if the corresponding expression is inefficient, it will cost more
+time than needed. The differentiation implementation quite naive and will not
+optimise the resulting expressions. This is an internal detail of Arbor and
+might change in the future, but for now this particular optimisation can help to
+produce better performing code. Here is an example
+
+.. code::
+
+  : BAD, will compute m^4 * h every step
+  i = m^4 * h * (v - e)
+
+  : GOOD, will just use a constant value of g
+  LOCAL g
+  g = m^4 * h
+  i = g * (v - e)
+
+Note that we do not lose accuracy here, since Arbor does not support
+higher-order ODEs and thus will treat ``g`` as a constant across
+a single timestep even if ``g`` actually depends on ``v``.
+
+Specialised Functions
+---------------------
+
+Another common pattern is the use of a guarded exponential of the form
+
+.. code::
+
+   if (x != 1) {
+     r = x*exp(1 - x)
+   } else {
+     r = x
+   }
+
+This incurs some extra cost on most platforms. However, it can be written in
+Arbor's NMODL dialect as
+
+.. code::
+
+   exprelr(x)
+
+which is more efficient and has the same guarantees. NMODL files originating
+from NEURON often use this or related functions, e.g. ``vtrap(x, y) =
+y*exprelr(x/y)``.
+
+Small Tips and Micro-Optimisations
+----------------------------------
+
+- Divisions cost a bit more than multiplications and additions.
+- ``m * m`` is more efficient than ``m^2``. This holds for higher powers as well
+  and if you want to squeeze out the utmost of performance use
+  exponentiation-by-squaring. (Although GCC does this for you. Most of the
+  time.)

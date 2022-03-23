@@ -25,7 +25,7 @@ execution_context::execution_context(const proc_allocation& resources):
                            : std::make_shared<gpu_context>())
 {}
 
-context make_context(const proc_allocation& p) {
+ARB_ARBOR_API context make_context(const proc_allocation& p) {
     return context(new execution_context(p));
 }
 
@@ -39,7 +39,7 @@ execution_context::execution_context(const proc_allocation& resources, MPI_Comm 
 {}
 
 template <>
-context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
+ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
     return context(new execution_context(p, comm));
 }
 #endif
@@ -54,31 +54,31 @@ execution_context::execution_context(
 {}
 
 template <>
-context make_context(const proc_allocation& p, dry_run_info d) {
+ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d) {
     return context(new execution_context(p, d));
 }
 
-std::string distribution_type(const context& ctx) {
+ARB_ARBOR_API std::string distribution_type(const context& ctx) {
     return ctx->distributed->name();
 }
 
-bool has_gpu(const context& ctx) {
+ARB_ARBOR_API bool has_gpu(const context& ctx) {
     return ctx->gpu->has_gpu();
 }
 
-unsigned num_threads(const context& ctx) {
+ARB_ARBOR_API unsigned num_threads(const context& ctx) {
     return ctx->thread_pool->get_num_threads();
 }
 
-unsigned num_ranks(const context& ctx) {
+ARB_ARBOR_API unsigned num_ranks(const context& ctx) {
     return ctx->distributed->size();
 }
 
-unsigned rank(const context& ctx) {
+ARB_ARBOR_API unsigned rank(const context& ctx) {
     return ctx->distributed->id();
 }
 
-bool has_mpi(const context& ctx) {
+ARB_ARBOR_API bool has_mpi(const context& ctx) {
     return ctx->distributed->name() == "MPI";
 }
 

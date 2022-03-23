@@ -43,11 +43,11 @@ inline bool is_valid_symbol_char(char c) {
     }
 }
 
-std::ostream& operator<<(std::ostream& o, const src_location& l) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const src_location& l) {
     return o << l.line << ":" << l.column;
 }
 
-std::ostream& operator<<(std::ostream& o, const tok& t) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const tok& t) {
     switch (t) {
         case tok::nil:    return o << "nil";
         case tok::lparen: return o << "lparen";
@@ -62,7 +62,7 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
     return o << "<unknown>";
 }
 
-std::ostream& operator<<(std::ostream& o, const token& t) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const token& t) {
     if (t.kind==tok::string) {
         return o << util::pprintf("\"{}\"", t.spelling);
     }
@@ -432,11 +432,11 @@ std::ostream& print(std::ostream& o, const s_expr& x, int indent) {
     return o << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const s_expr& x) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     return print(o, x, 1);
 }
 
-std::size_t length(const s_expr& l) {
+ARB_ARBOR_API std::size_t length(const s_expr& l) {
     // The length of an atom is 1.
     if (l.is_atom() && l) {
         return 1;
@@ -448,7 +448,7 @@ std::size_t length(const s_expr& l) {
     return 1+length(l.tail());
 }
 
-src_location location(const s_expr& l) {
+ARB_ARBOR_API src_location location(const s_expr& l) {
     if (l.is_atom()) return l.atom().loc;
     return location(l.head());
 }
@@ -514,7 +514,7 @@ s_expr parse(lexer& L) {
 
 }
 
-s_expr parse_s_expr(const std::string& line) {
+ARB_ARBOR_API s_expr parse_s_expr(const std::string& line) {
     lexer l(line.c_str());
     s_expr result = impl::parse(l);
     const bool err = result.is_atom()? result.atom().kind==tok::error: false;

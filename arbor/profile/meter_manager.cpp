@@ -101,7 +101,7 @@ const std::vector<double>& meter_manager::times() const {
 
 // Build a report of meters, for use at the end of a simulation
 // for output to file or analysis.
-meter_report make_meter_report(const meter_manager& manager, const context& ctx) {
+ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, const context& ctx) {
     meter_report report;
 
     // Add the times to the meter outputs
@@ -131,7 +131,7 @@ meter_report make_meter_report(const meter_manager& manager, const context& ctx)
 }
 
 // Print easy to read report of meters to a stream.
-std::ostream& operator<<(std::ostream& o, const meter_report& report) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& report) {
     o << "\n---- meters -------------------------------------------------------------------------------\n";
     o << strprintf("meter%16s", "");
     for (auto const& m: report.meters) {

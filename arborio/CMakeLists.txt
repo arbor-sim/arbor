@@ -23,6 +23,7 @@ add_library(arborio-private-headers INTERFACE)
 
 target_include_directories(arborio-public-headers INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 target_include_directories(arborio-private-headers INTERFACE
@@ -39,6 +40,11 @@ else ()
 endif()
 
 target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
+
+export_visibility(arborio)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arborio/export.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arborio)
 
 install(DIRECTORY include/arborio
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

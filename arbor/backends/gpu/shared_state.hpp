@@ -28,7 +28,7 @@ namespace gpu {
  *     Xo_     cao              external calcium concentration
  */
 
-struct ion_state {
+struct ARB_ARBOR_API ion_state {
     iarray node_index_; // Instance to CV map.
     array iX_;          // (A/m²) current density
     array eX_;          // (mV) reversal potential
@@ -62,7 +62,7 @@ struct ion_state {
     void reset();
 };
 
-struct istim_state {
+struct ARB_ARBOR_API istim_state {
     // Immutable data (post construction/initialization):
     iarray accu_index_;     // Instance to accumulator index (accu_stim_ index) map.
     iarray accu_to_cv_;     // Accumulator index to CV map.
@@ -99,7 +99,7 @@ struct istim_state {
     istim_state() = default;
 };
 
-struct shared_state {
+struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -202,7 +202,7 @@ struct shared_state {
 };
 
 // For debugging only
-std::ostream& operator<<(std::ostream& o, shared_state& s);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 } // namespace arb

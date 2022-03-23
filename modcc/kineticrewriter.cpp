@@ -30,7 +30,7 @@ private:
     std::map<std::string, expression_ptr> dterms;
 };
 
-expression_ptr kinetic_rewrite(BlockExpression* block) {
+ARB_LIBMODCC_API expression_ptr kinetic_rewrite(BlockExpression* block) {
     KineticRewriter visitor;
     block->accept(&visitor);
     return visitor.as_block(false);

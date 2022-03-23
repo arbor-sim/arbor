@@ -281,9 +281,17 @@ TEST(mechcat, names) {
 #ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
+#if defined(ARB_ARBOR_SHARED_LIBRARY)
+#if defined(ARB_ON_MACOS)
+    EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.dylib"), bad_catalogue_error);
+#else
+    EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.so"), bad_catalogue_error);
+#endif
+#else
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);
     const mechanism_catalogue cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
     EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
+#endif
 }
 #endif
 

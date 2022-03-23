@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/context.hpp>
 #include <arbor/profile/timer.hpp>
 
@@ -33,15 +34,16 @@ struct profile {
     double wall_time;
 };
 
+// TODO: remove declaration and update the docs
 void profiler_clear();
-void profiler_initialize(context& ctx);
-void profiler_enter(std::size_t region_id);
-void profiler_leave();
+ARB_ARBOR_API void profiler_initialize(context& ctx);
+ARB_ARBOR_API void profiler_enter(std::size_t region_id);
+ARB_ARBOR_API void profiler_leave();
 
-profile profiler_summary();
-std::size_t profiler_region_id(const std::string& name);
+ARB_ARBOR_API profile profiler_summary();
+ARB_ARBOR_API std::size_t profiler_region_id(const std::string& name);
 
-std::ostream& operator<<(std::ostream&, const profile&);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const profile&);
 
 } // namespace profile
 } // namespace arb

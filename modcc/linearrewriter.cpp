@@ -25,7 +25,7 @@ private:
     std::vector<std::string> state_vars;
 };
 
-expression_ptr linear_rewrite(BlockExpression* block, std::vector<std::string> state_vars) {
+ARB_LIBMODCC_API expression_ptr linear_rewrite(BlockExpression* block, std::vector<std::string> state_vars) {
     LinearRewriter visitor(state_vars);
     block->accept(&visitor);
     return visitor.as_block(false);

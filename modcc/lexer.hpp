@@ -11,6 +11,7 @@
 #include "location.hpp"
 #include "error.hpp"
 #include "token.hpp"
+#include <libmodcc/export.hpp>
 
 // status of the lexer
 enum class lexerStatus {
@@ -29,7 +30,7 @@ bool is_keyword(Token const& t);
 
 // class that implements the lexer
 // takes a range of characters as input parameters
-class Lexer {
+class ARB_LIBMODCC_API Lexer {
 public:
     Lexer(const char* begin, const char* end)
     :   begin_(begin),

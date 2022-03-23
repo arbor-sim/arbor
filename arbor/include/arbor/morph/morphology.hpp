@@ -4,6 +4,7 @@
 #include <ostream>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/util/lexcmp_def.hpp>
@@ -12,7 +13,7 @@ namespace arb {
 
 struct morphology_impl;
 
-class morphology {
+class ARB_ARBOR_API morphology {
     // Hold an immutable copy of the morphology implementation.
     std::shared_ptr<const morphology_impl> impl_;
 
@@ -54,7 +55,7 @@ public:
 // without a morphology.
 // A morphology is required to assert the invariant that an mextent does
 // not contain branches not in the morphology.
-struct mextent {
+struct ARB_ARBOR_API mextent {
     mextent() = default;
     mextent(const mextent&) = default;
     mextent(mextent&&) = default;
@@ -107,19 +108,15 @@ private:
 
 // Morphology utility functions.
 
-mlocation canonical(const morphology&, mlocation);
+ARB_ARBOR_API mlocation canonical(const morphology&, mlocation);
 
 // Find the set of locations in an mlocation_list for which there
 // are no other locations that are more proximal in that list.
-mlocation_list minset(const morphology&, const mlocation_list&);
+ARB_ARBOR_API mlocation_list minset(const morphology&, const mlocation_list&);
 
 // Find the set of locations in an mlocation_list for which there
 // are no other locations that are more distal in the list.
-mlocation_list maxset(const morphology&, const mlocation_list&);
-
-// Reduced representation of an extent, excluding zero-length cables
-// that are covered by more proximal or non-zero-length cables.
-mcable_list canonical(const morphology& m, const mextent& a);
+ARB_ARBOR_API mlocation_list maxset(const morphology&, const mlocation_list&);
 
 // Determine the components of an extent.
 //
@@ -148,7 +145,7 @@ mcable_list canonical(const morphology& m, const mextent& a);
 // directed-path-connected in X, and such that for all x in E_i and all y in
 // E_j, with i not equal to j, x and y are not directed-path-connected in X.
 
-std::vector<mextent> components(const morphology& m, const mextent&);
+ARB_ARBOR_API std::vector<mextent> components(const morphology& m, const mextent&);
 
 
 } // namespace arb
