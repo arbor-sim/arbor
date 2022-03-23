@@ -119,10 +119,10 @@ class chain_recipe(arbor.recipe):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 5
+ncells_per_chain = 2
 
 # Number of chains
-nchains = 3
+nchains = 2
 
 # Total number of cells
 ncells = nchains * ncells_per_chain
@@ -130,9 +130,14 @@ ncells = nchains * ncells_per_chain
 #Instantiate recipe
 recipe = chain_recipe(ncells_per_chain, nchains)
 
-# Create a default execution context, domain decomposition and simulation
-context = arbor.context()
-decomp = arbor.partition_load_balance(recipe, context)
+# context = arbor.context(gpu_id = None)
+# groups = [arbor.group_description(arbor.cell_kind.cable, [0, 1], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [2, 3], arbor.backend.multicore)]
+# decomp = arbor.partition_by_group(recipe, context, groups)
+# sim = arbor.simulation(recipe, decomp, context)
+
+context = arbor.context(gpu_id = None)
+groups = [arbor.group_description(arbor.cell_kind.cable, [0], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [1], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [2], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [3], arbor.backend.multicore)]
+decomp = arbor.partition_by_group(recipe, context, groups)
 sim = arbor.simulation(recipe, decomp, context)
 
 # Set spike generators to record
