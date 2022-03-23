@@ -157,7 +157,7 @@ static TokenString token_strings[] = {
 
 /// set up lookup tables for converting between tokens and their
 /// string representations
-void initialize_token_maps() {
+ARB_LIBMODCC_API void initialize_token_maps() {
     // ensure that tables are initialized only once
     std::lock_guard<std::mutex> g(mutex);
 
@@ -181,18 +181,18 @@ void initialize_token_maps() {
     }
 }
 
-std::string token_string(tok token) {
+ARB_LIBMODCC_API std::string token_string(tok token) {
     auto pos = token_map.find(token);
     return pos==token_map.end() ? std::string("<unknown token>") : pos->second;
 }
 
-bool is_keyword(Token const& t) {
+ARB_LIBMODCC_API bool is_keyword(Token const& t) {
     for(Keyword *k=keywords; k->name!=nullptr; ++k)
         if(t.type == k->type)
             return true;
     return false;
 }
 
-std::ostream& operator<< (std::ostream& os, Token const& t) {
+ARB_LIBMODCC_API std::ostream& operator<< (std::ostream& os, Token const& t) {
     return os << "<<" << token_string(t.type) << ", " << t.spelling << ", " << t.location << ">>";
 }

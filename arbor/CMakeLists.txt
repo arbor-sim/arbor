@@ -136,5 +136,10 @@ endif()
 
 set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
+export_visibility(arbor)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
+
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

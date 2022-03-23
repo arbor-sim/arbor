@@ -5,19 +5,19 @@
 namespace arb {
 namespace mpi {
 
-int rank(MPI_Comm comm) {
+ARB_ARBOR_API int rank(MPI_Comm comm) {
     int r;
     MPI_OR_THROW(MPI_Comm_rank, comm, &r);
     return r;
 }
 
-int size(MPI_Comm comm) {
+ARB_ARBOR_API int size(MPI_Comm comm) {
     int s;
     MPI_OR_THROW(MPI_Comm_size, comm, &s);
     return s;
 }
 
-void barrier(MPI_Comm comm) {
+ARB_ARBOR_API void barrier(MPI_Comm comm) {
     MPI_OR_THROW(MPI_Barrier, comm);
 }
 

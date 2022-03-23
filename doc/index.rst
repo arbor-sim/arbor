@@ -1,10 +1,13 @@
 Arbor
 =====
 
-|testbadge| |zlatest|
+|testbadge| |zlatest| |gitter|
 
 .. |testbadge| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
+
+.. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
+    :target: https://gitter.im/arbor-sim/community
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 

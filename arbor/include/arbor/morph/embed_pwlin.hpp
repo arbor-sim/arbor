@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
@@ -19,7 +20,7 @@ template <typename X> struct pw_elements;
 // values defined over contiguous intervals.
 using pw_constant_fn = util::pw_elements<double>;
 
-struct embed_pwlin {
+struct ARB_ARBOR_API embed_pwlin {
     explicit embed_pwlin(const arb::morphology& m);
 
     // Segment queries.

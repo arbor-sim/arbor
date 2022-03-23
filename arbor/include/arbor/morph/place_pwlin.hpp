@@ -7,6 +7,7 @@
 #include <limits>
 #include <utility>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/math.hpp>
@@ -70,7 +71,7 @@ public:
 
 struct place_pwlin_data;
 
-struct place_pwlin {
+struct ARB_ARBOR_API place_pwlin {
     explicit place_pwlin(const morphology& m, const isometry& iso = isometry{});
 
     // Any point corresponding to the location loc.

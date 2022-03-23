@@ -40,6 +40,9 @@ using util::value_by_key;
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
+// instantiate template class
+template class arb::fvm_lowered_cell_impl<arb::multicore::backend>;
+
 namespace {
     struct system {
         std::vector<soma_cell_builder> builders;

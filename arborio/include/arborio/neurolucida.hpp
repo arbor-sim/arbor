@@ -7,18 +7,19 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
+#include <arborio/export.hpp>
 
 namespace arborio {
 
 // Common base-class for arborio run-time errors.
-struct asc_exception: public arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE asc_exception: public arb::arbor_exception {
     asc_exception(const std::string& what_arg):
         arb::arbor_exception(what_arg)
     {}
 };
 
 // Generic error parsing asc data.
-struct asc_parse_error: asc_exception {
+struct ARB_SYMBOL_VISIBLE asc_parse_error: asc_exception {
     asc_parse_error(const std::string& error_msg, unsigned line, unsigned column);
     std::string message;
     unsigned line;
@@ -26,7 +27,7 @@ struct asc_parse_error: asc_exception {
 };
 
 // An unsupported ASC description feature was encountered.
-struct asc_unsupported: asc_exception {
+struct ARB_SYMBOL_VISIBLE asc_unsupported: asc_exception {
     asc_unsupported(const std::string& error_msg);
     std::string message;
 };
@@ -39,7 +40,10 @@ struct asc_morphology {
     arb::label_dict labels;
 };
 
+// Perform the parsing of the input as a string.
+ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input);
+
 // Load asc morphology from file with name filename.
-asc_morphology load_asc(std::string filename);
+ARB_ARBORIO_API asc_morphology load_asc(std::string filename);
 
 } // namespace arborio

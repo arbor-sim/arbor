@@ -3,6 +3,7 @@
 #include <iosfwd>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/spike_event.hpp>
 
@@ -21,7 +22,7 @@ namespace impl {
     // The tournament tree is used internally by the merge_events method, and
     // it is not intended for use elsewhere. It is exposed here for unit testing
     // of its functionality.
-    class tourney_tree {
+    class ARB_ARBOR_API tourney_tree {
         using key_val = std::pair<unsigned, spike_event>;
 
     public:

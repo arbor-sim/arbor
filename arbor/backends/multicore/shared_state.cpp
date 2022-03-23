@@ -347,7 +347,7 @@ void shared_state::take_samples(
 }
 
 // (Debug interface only.)
-std::ostream& operator<<(std::ostream& out, const shared_state& s) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
 
     out << "n_intdom     " << s.n_intdom << "\n";

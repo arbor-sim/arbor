@@ -13,12 +13,12 @@
 
 namespace arbenv {
 
-unsigned long default_concurrency() {
+ARB_ARBORENV_API unsigned long default_concurrency() {
     unsigned long env_thread = get_env_num_threads();
     return env_thread? env_thread: thread_concurrency();
 }
 
-unsigned long get_env_num_threads() {
+ARB_ARBORENV_API unsigned long get_env_num_threads() {
     constexpr const char* env_var = "ARBENV_NUM_THREADS";
     std::optional<long long> env_val = read_env_integer(env_var, throw_on_invalid);
     if (!env_val) return 0;
@@ -31,7 +31,7 @@ unsigned long get_env_num_threads() {
 
 #ifdef ARB_HAVE_GPU
 
-int default_gpu() {
+ARB_ARBORENV_API int default_gpu() {
     constexpr const char* env_var = "ARBENV_GPU_ID";
     int n_device = -1;
     get_device_count(&n_device); // error => leave n_device == -1
@@ -56,7 +56,7 @@ int default_gpu() {
 
 #else
 
-int default_gpu() {
+ARB_ARBORENV_API int default_gpu() {
     return -1;
 }
 

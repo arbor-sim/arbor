@@ -17,6 +17,7 @@ def setup(app):
     app.add_js_file("latest-warning.js")
 
 extensions = [
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
@@ -27,6 +28,10 @@ master_doc = 'index'
 
 html_logo = 'images/arbor-lines-proto-colour.svg'
 html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
+
+intersphinx_mapping = {
+    'sphinx': ('https://lfpykit.readthedocs.io/en/latest/', None),
+}
 
 project = 'Arbor'
 copyright = '2017-2021, ETHZ & FZJ'

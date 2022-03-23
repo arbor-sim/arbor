@@ -4,7 +4,7 @@
 
 namespace arb {
 
-std::ostream& operator<<(std::ostream& o, const spike_event& ev) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const spike_event& ev) {
      return o << "E[tgt " << ev.target << ", t " << ev.time << ", w " << ev.weight << "]";
 }
 

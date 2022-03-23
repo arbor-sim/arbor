@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphology.hpp>
 
@@ -16,7 +17,7 @@ namespace arb {
 struct mprovider;
 struct region_tag {};
 
-class region {
+class ARB_SYMBOL_VISIBLE region {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
@@ -120,64 +121,64 @@ class locset;
 namespace reg {
 
 // An empty region.
-region nil();
+ARB_ARBOR_API region nil();
 
 // An explicit cable section.
-region cable(msize_t, double, double);
+ARB_ARBOR_API region cable(msize_t, double, double);
 
 // An explicit branch.
-region branch(msize_t);
+ARB_ARBOR_API region branch(msize_t);
 
 // Region with all segments with segment tag id.
-region tagged(int id);
+ARB_ARBOR_API region tagged(int id);
 
 // Region corresponding to a single segment.
-region segment(int id);
+ARB_ARBOR_API region segment(int id);
 
 // Region up to `distance` distal from points in `start`.
-region distal_interval(locset start, double distance);
+ARB_ARBOR_API region distal_interval(locset start, double distance);
 
 // Region up to `distance` proximal from points in `start`.
-region proximal_interval(locset end, double distance);
+ARB_ARBOR_API region proximal_interval(locset end, double distance);
 
 // Region with all segments with radius less than/less than or equal to r
-region radius_lt(region reg, double r);
-region radius_le(region reg, double r);
+ARB_ARBOR_API region radius_lt(region reg, double r);
+ARB_ARBOR_API region radius_le(region reg, double r);
 
 // Region with all segments with radius greater than/greater than or equal to r
-region radius_gt(region reg, double r);
-region radius_ge(region reg, double r);
+ARB_ARBOR_API region radius_gt(region reg, double r);
+ARB_ARBOR_API region radius_ge(region reg, double r);
 
 // Region with all segments with projection less than/less than or equal to r
-region z_dist_from_root_lt(double r);
-region z_dist_from_root_le(double r);
+ARB_ARBOR_API region z_dist_from_root_lt(double r);
+ARB_ARBOR_API region z_dist_from_root_le(double r);
 
 // Region with all segments with projection greater than/greater than or equal to r
-region z_dist_from_root_gt(double r);
-region z_dist_from_root_ge(double r);
+ARB_ARBOR_API region z_dist_from_root_gt(double r);
+ARB_ARBOR_API region z_dist_from_root_ge(double r);
 
 // Region with all segments in a cell.
-region all();
+ARB_ARBOR_API region all();
 
 // Region including all covers of included fork points.
 // (Pre-image of projection onto the topological tree.)
-region complete(region);
+ARB_ARBOR_API region complete(region);
 
 // Region associated with a name.
-region named(std::string);
+ARB_ARBOR_API region named(std::string);
 
 } // namespace reg
 
 // Union of two regions.
-region join(region, region);
+ARB_ARBOR_API region join(region, region);
 
 // Intersection of two regions.
-region intersect(region, region);
+ARB_ARBOR_API region intersect(region, region);
 
 // Closed complement of a region.
-region complement(region);
+ARB_ARBOR_API region complement(region);
 
 // (Closure of) set difference of two regions.
-region difference(region a, region b);
+ARB_ARBOR_API region difference(region a, region b);
 
 } // namespace arb

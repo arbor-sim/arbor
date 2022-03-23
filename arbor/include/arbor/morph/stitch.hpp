@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/label_dict.hpp>
@@ -42,7 +43,7 @@ struct mstitch {
 struct stitch_builder_impl;
 struct stitched_morphology;
 
-struct stitch_builder {
+struct ARB_ARBOR_API stitch_builder {
     stitch_builder();
 
     stitch_builder(const stitch_builder&) = delete;
@@ -71,7 +72,7 @@ private:
 
 struct stitched_morphology_impl;
 
-struct stitched_morphology {
+struct ARB_ARBOR_API stitched_morphology {
     stitched_morphology() = delete;
     stitched_morphology(const stitch_builder&); // implicit
     stitched_morphology(stitch_builder&&); // implicit

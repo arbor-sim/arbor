@@ -245,7 +245,7 @@ void solve_matrix_fine(
 
 } // namespace kernels
 
-void gather(
+ARB_ARBOR_API void gather(
     const fvm_value_type* from,
     fvm_value_type* to,
     const fvm_index_type* p,
@@ -257,7 +257,7 @@ void gather(
     kernels::gather<<<griddim, blockdim>>>(from, to, p, n);
 }
 
-void scatter(
+ARB_ARBOR_API void scatter(
     const fvm_value_type* from,
     fvm_value_type* to,
     const fvm_index_type* p,
@@ -269,7 +269,7 @@ void scatter(
     kernels::scatter<<<griddim, blockdim>>>(from, to, p, n);
 }
 
-void assemble_matrix_fine(
+ARB_ARBOR_API void assemble_matrix_fine(
     fvm_value_type* d,
     fvm_value_type* rhs,
     const fvm_value_type* invariant_d,
@@ -308,7 +308,7 @@ void assemble_matrix_fine(
 // num_levels   = [3, 2, 3, ...]
 // num_cells    = [2, 3, ...]
 // num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
-void solve_matrix_fine(
+ARB_ARBOR_API void solve_matrix_fine(
     fvm_value_type* rhs,
     fvm_value_type* d,                     // diagonal values
     const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)

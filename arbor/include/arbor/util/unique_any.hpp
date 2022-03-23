@@ -5,6 +5,7 @@
 #include <typeinfo>
 #include <type_traits>
 
+#include <arbor/export.hpp>
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/extra_traits.hpp>
 
@@ -44,7 +45,7 @@
 namespace arb {
 namespace util {
 
-class unique_any {
+class ARB_SYMBOL_VISIBLE unique_any {
 public:
     constexpr unique_any() = default;
 

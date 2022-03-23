@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
@@ -25,7 +26,7 @@ namespace arb {
 // to build the data structures required for efficient spike communication and
 // event generation.
 
-class communicator {
+class ARB_ARBOR_API communicator {
 public:
     communicator() {}
 

@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include "tree.hpp"
 
 namespace arb {
@@ -9,7 +10,7 @@ namespace gpu {
 
 using size_type = int;
 
-struct forest {
+struct ARB_ARBOR_API forest {
     forest(const std::vector<size_type>& p, const std::vector<size_type>& cell_cv_divs);
 
     void optimize();

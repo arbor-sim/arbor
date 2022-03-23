@@ -87,13 +87,13 @@ private:
     bool found_ = false;
 };
 
-bool involves_identifier(Expression* e, const identifier_set& ids) {
+ARB_LIBMODCC_API bool involves_identifier(Expression* e, const identifier_set& ids) {
     FindIdentifierVisitor v(ids);
     e->accept(&v);
     return v.found();
 }
 
-bool involves_identifier(Expression* e, const std::string& id) {
+ARB_LIBMODCC_API bool involves_identifier(Expression* e, const std::string& id) {
     identifier_set ids = {id};
     FindIdentifierVisitor v(ids);
     e->accept(&v);
@@ -262,7 +262,7 @@ private:
     std::string id_;
 };
 
-double expr_value(Expression* e) {
+ARB_LIBMODCC_API double expr_value(Expression* e) {
     return e && e->is_number()? e->is_number()->value(): NAN;
 }
 
@@ -547,14 +547,14 @@ public:
     }
 };
 
-expression_ptr constant_simplify(Expression* e) {
+ARB_LIBMODCC_API expression_ptr constant_simplify(Expression* e) {
     ConstantSimplifyVisitor csimp_visitor;
     e->accept(&csimp_visitor);
     return csimp_visitor.result();
 }
 
 
-expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
+ARB_LIBMODCC_API expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
     if (!involves_identifier(e, id)) {
         return make_expression<NumberExpression>(e->location(), 0);
     }
@@ -644,7 +644,7 @@ private:
     const substitute_map& sub_;
 };
 
-expression_ptr substitute(Expression* e, const std::string& id, Expression* sub) {
+ARB_LIBMODCC_API expression_ptr substitute(Expression* e, const std::string& id, Expression* sub) {
     substitute_map subs;
     subs[id] = sub->clone();
     SubstituteVisitor sub_visitor(subs);
@@ -652,13 +652,13 @@ expression_ptr substitute(Expression* e, const std::string& id, Expression* sub)
     return sub_visitor.result();
 }
 
-expression_ptr substitute(Expression* e, const substitute_map& sub) {
+ARB_LIBMODCC_API expression_ptr substitute(Expression* e, const substitute_map& sub) {
     SubstituteVisitor sub_visitor(sub);
     e->accept(&sub_visitor);
     return sub_visitor.result();
 }
 
-linear_test_result linear_test(Expression* e, const std::vector<std::string>& vars) {
+ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector<std::string>& vars) {
     linear_test_result result;
     auto loc = e->location();
     auto zero = [loc]() { return make_expression<IntegerExpression>(loc, 0); };

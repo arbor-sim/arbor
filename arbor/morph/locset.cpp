@@ -33,7 +33,7 @@ void assert_valid(mlocation x) {
 
 struct nil_: locset_tag {};
 
-locset nil() {
+ARB_ARBOR_API locset nil() {
     return locset{nil_{}};
 }
 
@@ -52,7 +52,7 @@ struct location_: locset_tag {
     mlocation loc;
 };
 
-locset location(msize_t branch, double pos) {
+ARB_ARBOR_API locset location(msize_t branch, double pos) {
     mlocation loc{branch, pos};
     assert_valid(loc);
     return locset{location_{loc}};
@@ -101,7 +101,7 @@ std::ostream& operator<<(std::ostream& o, const location_list_& x) {
 
 struct terminal_: locset_tag {};
 
-locset terminal() {
+ARB_ARBOR_API locset terminal() {
     return locset{terminal_{}};
 }
 
@@ -162,7 +162,7 @@ mlocation_list thingify_(const proximal_translate_& dt, const mprovider& p) {
     return L;
 }
 
-locset proximal_translate(locset ls, double distance) {
+ARB_ARBOR_API locset proximal_translate(locset ls, double distance) {
     return locset(proximal_translate_{ls, distance});
 }
 
@@ -177,7 +177,7 @@ struct distal_translate_: locset_tag {
     double distance;
 };
 
-locset distal_translate(locset ls, double distance) {
+ARB_ARBOR_API locset distal_translate(locset ls, double distance) {
     return locset(distal_translate_{ls, distance});
 }
 
@@ -253,7 +253,7 @@ std::ostream& operator<<(std::ostream& o, const distal_translate_& l) {
 
 struct root_: locset_tag {};
 
-locset root() {
+ARB_ARBOR_API locset root() {
     return locset{root_{}};
 }
 
@@ -269,7 +269,7 @@ std::ostream& operator<<(std::ostream& o, const root_& x) {
 
 struct segments_: locset_tag {};
 
-locset segment_boundaries() {
+ARB_ARBOR_API locset segment_boundaries() {
     return locset{segments_{}};
 }
 
@@ -289,7 +289,7 @@ struct on_branches_: locset_tag {
     double pos;
 };
 
-locset on_branches(double pos) {
+ARB_ARBOR_API locset on_branches(double pos) {
     return locset{on_branches_{pos}};
 }
 
@@ -315,7 +315,7 @@ struct named_: locset_tag {
     std::string name;
 };
 
-locset named(std::string name) {
+ARB_ARBOR_API locset named(std::string name) {
     return locset(named_{std::move(name)});
 }
 
@@ -334,7 +334,7 @@ struct most_distal_: locset_tag {
     region reg;
 };
 
-locset most_distal(region reg) {
+ARB_ARBOR_API locset most_distal(region reg) {
     return locset(most_distal_{std::move(reg)});
 }
 
@@ -358,7 +358,7 @@ struct most_proximal_: locset_tag {
     region reg;
 };
 
-locset most_proximal(region reg) {
+ARB_ARBOR_API locset most_proximal(region reg) {
     return locset(most_proximal_{std::move(reg)});
 }
 
@@ -386,7 +386,7 @@ struct boundary_: locset_tag {
     region reg;
 };
 
-locset boundary(region reg) {
+ARB_ARBOR_API locset boundary(region reg) {
     return locset(boundary_(std::move(reg)));
 };
 
@@ -422,7 +422,7 @@ struct cboundary_: locset_tag {
     region reg;
 };
 
-locset cboundary(region reg) {
+ARB_ARBOR_API locset cboundary(region reg) {
     return locset(cboundary_(std::move(reg)));
 };
 
@@ -462,7 +462,7 @@ struct on_components_: locset_tag {
     region reg;
 };
 
-locset on_components(double relpos, region reg) {
+ARB_ARBOR_API locset on_components(double relpos, region reg) {
     return locset(on_components_(relpos, std::move(reg)));
 }
 
@@ -541,7 +541,7 @@ struct uniform_: locset_tag {
     uint64_t seed;
 };
 
-locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
+ARB_ARBOR_API locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
     return locset(uniform_{reg, left, right, seed});
 }
 
@@ -647,7 +647,7 @@ struct lsup_: locset_tag {
     lsup_(locset arg): arg(std::move(arg)) {}
 };
 
-locset support(locset arg) {
+ARB_ARBOR_API locset support(locset arg) {
     return locset{lsup_{std::move(arg)}};
 }
 
@@ -686,7 +686,7 @@ mlocation_list thingify_(const lrestrict_& P, const mprovider& p) {
     return L;
 }
 
-locset restrict(locset ls, region reg) {
+ARB_ARBOR_API locset restrict(locset ls, region reg) {
     return locset{lrestrict_{std::move(ls), std::move(reg)}};
 }
 
@@ -704,11 +704,11 @@ locset intersect(locset lhs, locset rhs) {
     return locset(ls::land(std::move(lhs), std::move(rhs)));
 }
 
-locset join(locset lhs, locset rhs) {
+ARB_ARBOR_API locset join(locset lhs, locset rhs) {
     return locset(ls::lor(std::move(lhs), std::move(rhs)));
 }
 
-locset sum(locset lhs, locset rhs) {
+ARB_ARBOR_API locset sum(locset lhs, locset rhs) {
     return locset(ls::lsum(std::move(lhs), std::move(rhs)));
 }
 
