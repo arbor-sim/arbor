@@ -126,6 +126,11 @@ lid_hopefully round_robin_state::update(const label_resolution_map::range_set& r
     return lid;
 }
 
+lid_hopefully round_robin_halt_state::update(const label_resolution_map::range_set& range_set) {
+    auto lid = range_set.at(state);
+    return lid;
+}
+
 lid_hopefully assert_univalent_state::update(const label_resolution_map::range_set& range_set) {
     if (range_set.size() != 1) {
         return util::unexpected("range is not univalent");
@@ -139,6 +144,8 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol) {
     switch (pol) {
     case lid_selection_policy::round_robin:
         return round_robin_state();
+	case lid_selection_policy::round_robin_halt:
+        return round_robin_halt_state();
     case lid_selection_policy::assert_univalent:
        return assert_univalent_state();
     default: return assert_univalent_state();
