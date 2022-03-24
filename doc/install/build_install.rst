@@ -11,21 +11,53 @@ Then we cover installing and running on `HPC clusters <cluster_>`_, followed by 
 .. note::
     To get help in case of problems installing Arbor, please make an issue on the Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 
+Getting the code
+================
+
+The easiest way to acquire the latest version of Arbor is to check the code out from
+the `Github repository <https://github.com/arbor-sim/arbor>`_:
+
+.. code-block:: bash
+
+    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
+
+We recommend using a recursive checkout, because Arbor uses Git submodules for some
+of its library dependencies.
+The CMake configuration attempts to detect if a required submodule is available, and
+will print a helpful warning
+or error message if not, but it is up to the user to ensure that all required
+submodules are downloaded.
+
+The Git submodules can be updated, or initialized in a project that didn't use a
+recursive checkout:
+
+.. code-block:: bash
+
+    git submodule update --init --recursive
+
+You can also point your browser to Arbor's
+`Github page <https://github.com/arbor-sim/arbor>`_ and download a zip file.
+If you use the zip file, then don't forget to run Git submodule update manually.
+
 .. _install_requirements:
 
 Requirements
 ============
 
-Minimum requirements
---------------------
+Dependencies
+------------
 
-The non distributed (i.e. no MPI) version of Arbor can be compiled on Linux or OS X systems
-with very few tools.
+A full list of dependencies and minimum versions supported thereof is maintained in the file ``doc/dependencies.csv``, for completeness shown also in the following table.
 
 .. csv-table:: List of requirements
    :file: ../dependencies.csv
    :widths: 10, 20, 10, 70, 1
    :header-rows: 1
+
+Minimum requirements
+--------------------
+
+Arbor can be configured with various features, which may introduce additional dependencies. The non distributed (i.e. no MPI) version of Arbor can be compiled on Linux or OS X systems with very few tools. In the table above the blank lines in the "Build option/target" column reflect the minimum you need, provided you have obtained a copy of Arbor which includes the git submodules.
 
 .. _install-compilers:
 
@@ -144,34 +176,6 @@ If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git
 and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
 
 It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
-
-Getting the code
-================
-
-The easiest way to acquire the latest version of Arbor is to check the code out from
-the `Github repository <https://github.com/arbor-sim/arbor>`_:
-
-.. code-block:: bash
-
-    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
-
-We recommend using a recursive checkout, because Arbor uses Git submodules for some
-of its library dependencies.
-The CMake configuration attempts to detect if a required submodule is available, and
-will print a helpful warning
-or error message if not, but it is up to the user to ensure that all required
-submodules are downloaded.
-
-The Git submodules can be updated, or initialized in a project that didn't use a
-recursive checkout:
-
-.. code-block:: bash
-
-    git submodule update --init --recursive
-
-You can also point your browser to Arbor's
-`Github page <https://github.com/arbor-sim/arbor>`_ and download a zip file.
-If you use the zip file, then don't forget to run Git submodule update manually.
 
 .. _building:
 

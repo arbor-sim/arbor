@@ -26,6 +26,15 @@ A full list of dependencies is maintained at ``doc/dependencies.csv``:
    :widths: 10, 20, 10, 70, 1
    :header-rows: 1
 
+.. note::
+
+   CMake can generate an overview of the dependency tree. Run the following in the build dir:
+
+   .. code-block:: bash
+
+      cmake --graphviz=graphviz/graph .
+      dot graphviz/graph -T png -o graphviz/graph.png
+
 User platforms
 --------------
 
