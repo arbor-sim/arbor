@@ -61,14 +61,14 @@ public:
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
 
-    // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
+    value_type time() const override { return tmin_; }
+
+    // Generates intdom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
     // Fills cell_to_intdom map; returns number of intdoms
     fvm_size_type fvm_intdom(
         const recipe& rec,
         const std::vector<cell_gid_type>& gids,
         std::vector<fvm_index_type>& cell_to_intdom);
-
-    value_type time() const override { return tmin_; }
 
     //Exposed for testing purposes
     std::vector<mechanism_ptr>& mechanisms() {
@@ -162,10 +162,12 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     set_tmin(0);
 
     for (auto& m: revpot_mechanisms_) {
+        m->set_time(state_->time, state_->dt);
         m->initialize();
     }
 
     for (auto& m: mechanisms_) {
+        m->set_time(state_->time, state_->dt);
         m->initialize();
     }
 
@@ -211,14 +213,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     sample_events_.init(std::move(staged_samples));
 
     arb_assert((assert_tmin(), true));
-    unsigned remaining_steps = dt_steps(tmin_, tfinal, dt_max);
     PL();
 
     // TODO: Consider devolving more of this to back-end routines (e.g.
     // per-compartment dt probably not a win on GPU), possibly rumbling
     // complete fvm state into shared state object.
 
-    while (remaining_steps) {
+    while (state_->time<tfinal) {
         // Update any required reversal potentials based on ionic concs.
 
         for (auto& m: revpot_mechanisms_) {
@@ -237,6 +238,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         for (auto& m: mechanisms_) {
             auto state = state_->deliverable_events.marked_events();
             arb_deliverable_event_stream events;
+            // TODO: really? shouldn't there be 1 stream always?
             events.n_streams = state.n;
             events.begin     = state.begin_offset;
             events.end       = state.end_offset;
@@ -249,16 +251,18 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->deliverable_events.drop_marked_events();
 
         // Update event list and integration step times.
-
         state_->update_time_to(dt_max, tfinal);
-        state_->deliverable_events.event_time_if_before(state_->time_to);
-        state_->set_dt();
+        for (auto& m: mechanisms_) {
+            m->set_time(state_->time, state_->dt);
+        }
+        for (auto& m: revpot_mechanisms_) {
+            m->set_time(state_->time, state_->dt);
+        }
         PL();
 
         // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we
-        // want to use mean current contributions as opposed to point
-        // sample.)
+        // (Note: performed after dt, time_to calculation, in case we want to
+        // use mean current contributions as opposed to point sample.)
 
         PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
@@ -275,7 +279,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Integrate voltage by matrix solve.
 
         PE(advance:integrate:matrix:build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
+        matrix_.assemble(state_->dt, state_->voltage, state_->current_density, state_->conductivity);
         PL();
         PE(advance:integrate:matrix:solve);
         matrix_.solve(state_->voltage);
@@ -296,7 +300,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Update time and test for spike threshold crossings.
 
         PE(advance:integrate:threshold);
-        threshold_watcher_.test(&state_->time_since_spike);
+        threshold_watcher_.test(&state_->time_since_spike, state_->time, state_->time_to);
         PL();
 
         PE(advance:integrate:post)
@@ -307,8 +311,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         PL();
 
-        std::swap(state_->time_to, state_->time);
-        state_->time_ptr = state_->time.data();
+        state_->time = state_->time_to;
 
         // Check for non-physical solutions:
 
@@ -320,12 +323,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Check for end of integration.
 
-        PE(advance:integrate:stepsupdate);
-        if (!--remaining_steps) {
-            tmin_ = state_->time_bounds().first;
-            remaining_steps = dt_steps(tmin_, tfinal, dt_max);
-        }
-        PL();
+        //PE(advance:integrate:stepsupdate);
+        //--remaining_steps;
+        //PL();
     }
 
     set_tmin(tfinal);
@@ -446,20 +446,14 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
-    auto nintdom = fvm_intdom(rec, gids, fvm_info.cell_to_intdom);
-
     // Discretize cells, build matrix.
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
 
-    std::vector<index_type> cv_to_intdom(D.size());
-    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_intdom.begin(),
-                   [&fvm_info](index_type i){ return fvm_info.cell_to_intdom[i]; });
-
     arb_assert(D.n_cell() == ncell);
     matrix_ = matrix<backend>(D.geometry.cv_parent, D.geometry.cell_cv_divs,
-                              D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom);
-    sample_events_ = sample_event_stream(nintdom);
+                              D.cv_capacitance, D.face_conductance, D.cv_area);
+    sample_events_ = sample_event_stream();
 
     // Discretize and build gap junction info.
 
@@ -496,10 +490,31 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
+    const auto ncv = D.size();
     state_ = std::make_unique<shared_state>(
-                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
-                D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
+                ncell,
+                ncv,
+                max_detector,
+                std::move(cv_to_cell),
+                D.init_membrane_potential,
+                D.temperature_K,
+                D.diam_um,
+                std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
+    /*
+    shared_state(
+        fvm_size_type n_intdom,
+        fvm_size_type n_cell,
+        fvm_size_type n_cv,
+        fvm_size_type n_detector,
+        const std::vector<fvm_index_type>& cv_to_cell_vec,
+        const std::vector<fvm_value_type>& init_membrane_potential,
+        const std::vector<fvm_value_type>& temperature_K,
+        const std::vector<fvm_value_type>& diam,
+        const std::vector<fvm_index_type>& src_to_spike,
+        unsigned align
+    );
+    */
 
     // Instantiate mechanisms, ions, and stimuli.
 
@@ -552,7 +567,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
                 if (config.target.empty()) continue;
 
-                target_handle handle(mech_id, i, cv_to_intdom[cv]);
+                target_handle handle(mech_id, i);
                 if (config.multiplicity.empty()) {
                     fvm_info.target_handles[config.target[i]] = handle;
                 }

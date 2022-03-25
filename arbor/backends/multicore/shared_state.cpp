@@ -144,7 +144,7 @@ void istim_state::reset() {
     std::copy(envl_divs_.data(), envl_divs_.data()+n, envl_index_.begin());
 }
 
-void istim_state::add_current(const array& time, const iarray& cv_to_intdom, array& current_density) {
+void istim_state::add_current(const fvm_value_type& time, array& current_density) {
     constexpr double two_pi = 2*math::pi<double>;
 
     // Consider vectorizing...
@@ -158,24 +158,23 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
         fvm_index_type ai = accu_index_[i];
         fvm_index_type cv = accu_to_cv_[ai];
-        double t = time[cv_to_intdom[cv]];
 
-        if (ei_left==ei_right || t<envl_times_[ei_left]) continue;
+        if (ei_left==ei_right || time<envl_times_[ei_left]) continue;
 
         fvm_index_type& ei = envl_index_[i];
-        while (ei+1<ei_right && envl_times_[ei+1]<=t) ++ei;
+        while (ei+1<ei_right && envl_times_[ei+1]<=time) ++ei;
 
         double J = envl_amplitudes_[ei]; // current density (A/m²)
         if (ei+1<ei_right) {
             // linearly interpolate:
-            arb_assert(envl_times_[ei]<=t && envl_times_[ei+1]>t);
+            arb_assert(envl_times_[ei]<=time && envl_times_[ei+1]>time);
             double J1 = envl_amplitudes_[ei+1];
-            double u = (t-envl_times_[ei])/(envl_times_[ei+1]-envl_times_[ei]);
+            double u = (time-envl_times_[ei])/(envl_times_[ei+1]-envl_times_[ei]);
             J = math::lerp(J, J1, u);
         }
 
         if (frequency_[i]) {
-            J *= std::sin(two_pi*frequency_[i]*t + phase_[i]);
+            J *= std::sin(two_pi*frequency_[i]*time + phase_[i]);
         }
 
         accu_stim_[ai] += J;
@@ -186,10 +185,9 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 // shared_state methods:
 
 shared_state::shared_state(
-    fvm_size_type n_intdom,
     fvm_size_type n_cell,
+    fvm_size_type n_cv,
     fvm_size_type n_detector,
-    const std::vector<fvm_index_type>& cv_to_intdom_vec,
     const std::vector<fvm_index_type>& cv_to_cell_vec,
     const std::vector<fvm_value_type>& init_membrane_potential,
     const std::vector<fvm_value_type>& temperature_K,
@@ -199,15 +197,9 @@ shared_state::shared_state(
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
-    n_intdom(n_intdom),
     n_detector(n_detector),
-    n_cv(cv_to_intdom_vec.size()),
-    cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
+    n_cv(n_cv),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
-    time(n_intdom, pad(alignment)),
-    time_to(n_intdom, pad(alignment)),
-    dt_intdom(n_intdom, pad(alignment)),
-    dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
     conductivity(n_cv, pad(alignment)),
@@ -216,15 +208,8 @@ shared_state::shared_state(
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
-    deliverable_events(n_intdom)
+    deliverable_events()
 {
-    time_ptr = time.data();
-
-    // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
-    if (n_cv>0) {
-        std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
-        std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
-    }
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
@@ -254,8 +239,7 @@ void shared_state::reset() {
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
     util::fill(current_density, 0);
     util::fill(conductivity, 0);
-    util::fill(time, 0);
-    util::fill(time_to, 0);
+    time = 0;
     util::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
@@ -281,47 +265,18 @@ void shared_state::ions_init_concentration() {
 }
 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
-    using simd::assign;
-    using simd::indirect;
-    using simd::add;
-    using simd::min;
-    for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
-        simd_value_type t;
-        assign(t, indirect(time.data()+i, simd_width));
-        t = min(add(t, dt_step), tmax);
-        indirect(time_to.data()+i, simd_width) = t;
-    }
-}
-
-void shared_state::set_dt() {
-    using simd::assign;
-    using simd::indirect;
-    using simd::sub;
-    for (fvm_size_type j = 0; j<n_intdom; j+=simd_width) {
-        simd_value_type t, t_to;
-        assign(t, indirect(time.data()+j, simd_width));
-        assign(t_to, indirect(time_to.data()+j, simd_width));
-
-        auto dt = sub(t_to,t);
-        indirect(dt_intdom.data()+j, simd_width) = dt;
-    }
-
-    for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type intdom_idx;
-        assign(intdom_idx, indirect(cv_to_intdom.data()+i, simd_width));
-
-        simd_value_type dt;
-        assign(dt, indirect(dt_intdom.data(), intdom_idx, simd_width));
-        indirect(dt_cv.data()+i, simd_width) = dt;
-    }
+    auto tnext = std::min(time+dt_step, tmax);
+    // round up target time if it is very close to tmax
+    time_to = tnext+(1e-8*dt_step) >= tmax ? tmax: tnext;
+    dt = time_to - time;
 }
 
 void shared_state::add_stimulus_current() {
-     stim_data.add_current(time, cv_to_intdom, current_density);
+     stim_data.add_current(time, current_density);
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
-    return util::minmax_value(time);
+    return {time, time};
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
@@ -340,7 +295,7 @@ void shared_state::take_samples(
         // Null handles are explicitly permitted, and always give a sample of zero.
         // (Note: probably not worth explicitly vectorizing this.)
         for (auto p = begin; p<end; ++p) {
-            sample_time[p->offset] = time[i];
+            sample_time[p->offset] = time;
             sample_value[p->offset] = p->handle? *p->handle: 0;
         }
     }
@@ -350,13 +305,10 @@ void shared_state::take_samples(
 std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
 
-    out << "n_intdom     " << s.n_intdom << "\n";
     out << "n_cv         " << s.n_cv << "\n";
-    out << "cv_to_intdom " << csv(s.cv_to_intdom) << "\n";
-    out << "time         " << csv(s.time) << "\n";
-    out << "time_to      " << csv(s.time_to) << "\n";
-    out << "dt_intdom    " << csv(s.dt_intdom) << "\n";
-    out << "dt_cv        " << csv(s.dt_cv) << "\n";
+    out << "time         " << s.time << "\n";
+    out << "time_to      " << s.time_to << "\n";
+    out << "dt           " << s.dt << "\n";
     out << "voltage      " << csv(s.voltage) << "\n";
     out << "init_voltage " << csv(s.init_voltage) << "\n";
     out << "temperature  " << csv(s.temperature_degC) << "\n";
@@ -467,15 +419,14 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     util::padded_allocator<> pad(m.data_alignment());
 
     // Set internal variables
-    m.time_ptr_ptr   = &time_ptr;
+    //m.time_ptr_ptr   = &time_ptr;
 
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
     m.ppack_.width            = pos_data.cv.size();
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    m.ppack_.vec_di           = cv_to_intdom.data();
-    m.ppack_.vec_dt           = dt_cv.data();
+    //m.ppack_.vec_di           = cv_to_intdom.data();
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
     m.ppack_.vec_g            = conductivity.data();
@@ -484,7 +435,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
-    m.ppack_.vec_t            = nullptr;
+    m.ppack_.dt               = dt;
+    m.ppack_.t                = 0;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();

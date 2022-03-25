@@ -195,7 +195,7 @@ struct probe_association_map {
 
 struct fvm_initialization_data {
     // Map from gid to integration domain id
-    std::vector<fvm_index_type> cell_to_intdom;
+    //std::vector<fvm_index_type> cell_to_intdom;
 
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles;

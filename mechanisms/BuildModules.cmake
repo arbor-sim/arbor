@@ -91,8 +91,10 @@ function("make_catalogue")
     SOURCE_DIR "${MK_CAT_SOURCES}"
     DEST_DIR "${MK_CAT_OUT_DIR}"
     ${external_modcc} # NB: expands to 'MODCC <binary>' to add an optional argument
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N arb::${MK_CAT_NAME}_catalogue
-    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
+    #MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N arb::${MK_CAT_NAME}_catalogue
+    #GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
+    MODCC_FLAGS -t cpu ${ARB_MODCC_FLAGS} -N arb::${MK_CAT_NAME}_catalogue
+    GENERATES .hpp _cpu.cpp
     TARGET build_catalogue_${MK_CAT_NAME}_mods)
 
   set(catalogue_${MK_CAT_NAME}_source ${CMAKE_CURRENT_BINARY_DIR}/${MK_CAT_NAME}_catalogue.cpp)

@@ -44,14 +44,15 @@ TEST(abi, multicore_initialisation) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    arb_size_type ndetector = 0;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell, 0,
-                                              cv_to_intdom, cv_to_intdom,
+    arb::multicore::shared_state shared_state(ncell, ncv, ndetector,
+                                              cv_to_cell,
                                               vinit, temp, diam, src_to_spike,
                                               mech.data_alignment());
 
@@ -122,14 +123,15 @@ TEST(abi, multicore_null) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 0;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    arb_size_type ndetector = 0;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell, 0,
-                                              cv_to_intdom, cv_to_intdom,
+    arb::multicore::shared_state shared_state(ncell, ncv, ndetector,
+                                              cv_to_cell,
                                               vinit, temp, diam, src_to_spike,
                                               mech.data_alignment());
 

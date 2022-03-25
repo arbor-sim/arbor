@@ -75,7 +75,7 @@ TEST(synapses, syn_basic_state) {
 
     int num_syn = 4;
     int num_comp = 4;
-    int num_intdom = 1;
+    int num_cells = 1;
 
     value_type temp_K = *neuron_parameter_defaults.temperature_K;
 
@@ -87,10 +87,10 @@ TEST(synapses, syn_basic_state) {
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
-    shared_state state(num_intdom,
-        num_intdom,
+    shared_state state(
+        num_cells,
+        num_comp,
         0,
-        std::vector<index_type>(num_comp, 0),
         std::vector<index_type>(num_comp, 0),
         std::vector<value_type>(num_comp, -65),
         std::vector<value_type>(num_comp, temp_K),
@@ -100,8 +100,7 @@ TEST(synapses, syn_basic_state) {
 
     state.reset();
     fill(state.current_density, 1.0);
-    fill(state.time_to, 0.1);
-    state.set_dt();
+    state.update_time_to(0.1, 0.1);
 
     std::vector<index_type> syn_cv(num_syn, 0);
     std::vector<index_type> syn_mult(num_syn, 1);
@@ -150,10 +149,10 @@ TEST(synapses, syn_basic_state) {
     // and exp2syn synapses 0 and 2.
 
     std::vector<deliverable_event> events = {
-        {0., {0, 1, 0}, 3.14f},
-        {0., {0, 3, 0}, 1.41f},
-        {0., {1, 0, 0}, 2.71f},
-        {0., {1, 2, 0}, 0.07f}
+        {0., {0, 1}, 3.14f},
+        {0., {0, 3}, 1.41f},
+        {0., {1, 0}, 2.71f},
+        {0., {1, 2}, 0.07f}
     };
     state.deliverable_events.init(events);
     state.deliverable_events.mark_until_after(state.time);

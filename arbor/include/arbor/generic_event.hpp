@@ -49,11 +49,6 @@ auto event_time(const Event& ev) {
 }
 
 template <typename Event>
-auto event_index(const Event& ev) {
-    return ev.index;
-}
-
-template <typename Event>
 auto event_data(const Event& ev) {
     return ev.data;
 }
@@ -74,14 +69,10 @@ namespace impl {
     // Wrap in `impl::` namespace to obtain correct ADL for return type.
 
     using ::arb::event_time;
-    using ::arb::event_index;
     using ::arb::event_data;
 
     template <typename Event>
     using event_time_type = decltype(event_time(std::declval<Event>()));
-
-    template <typename Event>
-    using event_index_type = decltype(event_index(std::declval<Event>()));
 
     template <typename Event>
     using event_data_type = decltype(event_data(std::declval<Event>()));
@@ -89,9 +80,6 @@ namespace impl {
 
 template <typename Event>
 using event_time_type = impl::event_time_type<Event>;
-
-template <typename Event>
-using event_index_type = impl::event_index_type<Event>;
 
 template <typename Event>
 using event_data_type = impl::event_data_type<Event>;

@@ -1,0 +1,7 @@
+- rename `multi_event_stream` and simplify unit tests
+- hoist time state information from `shared_state` completely.
+- exact sampling, for which there are two approaches:
+    - remove it completely
+    - if enabled, force step size to next time point in stream.
+    - rip out the sampling types and just record sampled values at every step, then post-process during sample callbacks.
+- GPU implementations

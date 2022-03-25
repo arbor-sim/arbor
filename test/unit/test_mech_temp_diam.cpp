@@ -22,7 +22,7 @@ void run_celsius_test() {
 
     fvm_size_type ncell = 1;
     fvm_size_type ncv = 3;
-    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
+    std::vector<fvm_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "celsius_test");
     auto& celsius_test = instance.mech;
@@ -36,7 +36,7 @@ void run_celsius_test() {
     std::vector<fvm_index_type> src_to_spike = {};
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-        ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
+        ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;
@@ -72,7 +72,7 @@ void run_diam_test() {
 
     fvm_size_type ncell = 1;
     fvm_size_type ncv = 3;
-    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
+    std::vector<fvm_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "diam_test");
     auto& celsius_test = instance.mech;
@@ -93,7 +93,7 @@ void run_diam_test() {
     }
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
+            ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
 
 
     shared_state->instantiate(*celsius_test, 0, overrides, layout);

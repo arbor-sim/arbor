@@ -31,8 +31,6 @@ public:
     array face_conductance;    // [μS]
     array cv_area;             // [μm^2]
 
-    iarray cell_to_intdom;
-
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
@@ -42,15 +40,13 @@ public:
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area,
-                 const std::vector<index_type>& cell_to_intdom):
+                 const std::vector<value_type>& area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
-        cv_area(area.begin(), area.end()),
-        cell_to_intdom(cell_to_intdom.begin(), cell_to_intdom.end())
+        cv_area(area.begin(), area.end())
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
@@ -80,35 +76,26 @@ public:
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-    //   dt_intdom       [ms]      (per integration domain)
+    //   dt              [ms]
     //   voltage         [mV]      (per control volume)
     //   current density [A.m^-2]  (per control volume)
     //   conductivity    [kS.m^-2] (per control volume)
-    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
+    void assemble(const T& dt, const_view voltage, const_view current, const_view conductivity) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         const index_type ncells = cell_cv_part.size();
 
+        const value_type oodt_factor = 1e-3/dt; // [1/µs]
+
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
-            auto dt = dt_intdom[cell_to_intdom[m]];
+            for (auto i: util::make_span(cell_cv_part[m])) {
+                auto area_factor = 1e-3*cv_area[i]; // [1e-9·m²]
 
-            if (dt>0) {
-                value_type oodt_factor = 1e-3/dt; // [1/µs]
-                for (auto i: util::make_span(cell_cv_part[m])) {
-                    auto area_factor = 1e-3*cv_area[i]; // [1e-9·m²]
+                auto gi = oodt_factor*cv_capacitance[i] + area_factor*conductivity[i]; // [μS]
 
-                    auto gi = oodt_factor*cv_capacitance[i] + area_factor*conductivity[i]; // [μS]
-
-                    d[i] = gi + invariant_d[i];
-                    // convert current to units nA
-                    rhs[i] = gi*voltage[i] - area_factor*current[i];
-                }
-            }
-            else {
-                for (auto i: util::make_span(cell_cv_part[m])) {
-                    d[i] = 0;
-                    rhs[i] = voltage[i];
-                }
+                d[i] = gi + invariant_d[i];
+                // convert current to units nA
+                rhs[i] = gi*voltage[i] - area_factor*current[i];
             }
         }
     }

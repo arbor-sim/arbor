@@ -181,16 +181,18 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         v.data_var = "vec_g";
         v.readonly = false;
         break;
+        /*
     case sourceKind::dt:
-        v.data_var = "vec_dt";
+        v.data_var = "dt";
+        v.index_var_kind = index_kind::none;
         v.readonly = true;
         break;
     case sourceKind::time:
-        v.data_var = "vec_t";
-        v.cell_index_var = "vec_di";
-        v.index_var_kind = index_kind::cell;
+        v.data_var = "t";
+        v.index_var_kind = index_kind::none;
         v.readonly = true;
         break;
+        */
     case sourceKind::ion_current_density:
         v.data_var = ion_pfx+".current_density";
         v.scale = 0.1;

@@ -1197,9 +1197,6 @@ TEST(fvm_lowered, cell_group_gj) {
     auto fvm_info_0 = fvcell0.initialize(gids_cg0, rec);
     auto fvm_info_1 = fvcell1.initialize(gids_cg1, rec);
 
-    auto num_dom0 = fvcell0.fvm_intdom(rec, gids_cg0, fvm_info_0.cell_to_intdom);
-    auto num_dom1 = fvcell1.fvm_intdom(rec, gids_cg1, fvm_info_1.cell_to_intdom);
-
     fvm_cv_discretization D0 = fvm_cv_discretize(cell_group0, neuron_parameter_defaults, *context);
     fvm_cv_discretization D1 = fvm_cv_discretize(cell_group1, neuron_parameter_defaults, *context);
 
@@ -1224,13 +1221,6 @@ TEST(fvm_lowered, cell_group_gj) {
         EXPECT_EQ(expected[i], GJ0[i]);
         EXPECT_EQ(expected[i], GJ1[i+10]);
     }
-
-    std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
-    EXPECT_EQ(6u, num_dom0);
-    EXPECT_EQ(6u, num_dom1);
-
-    EXPECT_EQ(expected_doms, fvm_info_0.cell_to_intdom);
-    EXPECT_EQ(expected_doms, fvm_info_1.cell_to_intdom);
 }
 
 namespace {

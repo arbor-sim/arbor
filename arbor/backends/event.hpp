@@ -13,11 +13,10 @@ namespace arb {
 struct target_handle {
     cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
     cell_local_size_type mech_index; // instance of the mechanism
-    cell_size_type intdom_index;     // which integration domain (acts as index into e.g. vec_t)
 
     target_handle() {}
-    target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type intdom_index):
-        mech_id(mech_id), mech_index(mech_index), intdom_index(intdom_index) {}
+    target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index):
+        mech_id(mech_id), mech_index(mech_index) {}
 };
 
 struct deliverable_event {
@@ -29,11 +28,6 @@ struct deliverable_event {
     deliverable_event(time_type time, target_handle handle, float weight):
         time(time), weight(weight), handle(handle) {}
 };
-
-// Stream index accessor function for multi_event_stream:
-inline cell_size_type event_index(const deliverable_event& ev) {
-    return ev.handle.intdom_index;
-}
 
 // Subset of event information required for mechanism delivery.
 struct deliverable_event_data {
@@ -59,17 +53,11 @@ struct raw_probe_info {
 
 struct sample_event {
     time_type time;
-    cell_size_type intdom_index;  // which integration domain probe is on
     raw_probe_info raw;           // event payload: what gets put where on sample
 };
 
 inline raw_probe_info event_data(const sample_event& ev) {
     return ev.raw;
 }
-
-inline cell_size_type event_index(const sample_event& ev) {
-    return ev.intdom_index;
-}
-
 
 } // namespace arb
