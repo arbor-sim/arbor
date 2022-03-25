@@ -10,3 +10,7 @@
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt.git
 	branch = master
+[submodule "ext/random123"]
+	path = ext/random123
+	url = https://github.com/DEShawResearch/random123
+	branch = main
