@@ -44,15 +44,9 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-<<<<<<< HEAD
-    unsigned num_cells = 10;
-    double min_delay = 10;
-    double duration = 200;
-=======
-    unsigned num_cells = 20;
+    unsigned num_cells = 100;
     double min_delay = 10;
     double duration = 1000;
->>>>>>> 7df6f6d7 (wip - python integration remaining)
     cell_parameters cell;
 };
 
@@ -196,7 +190,7 @@ int main(int argc, char** argv) {
         if (root) {
             sim.set_epoch_callback(arb::epoch_progress_bar());
         }
-        std::cout << "running simulation\n\n";
+        std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
