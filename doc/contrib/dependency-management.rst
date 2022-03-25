@@ -35,6 +35,8 @@ A full list of dependencies is maintained at ``doc/dependencies.csv``:
       cmake --graphviz=graphviz/graph .
       dot graphviz/graph -T png -o graphviz/graph.png
 
+   This plot can be tweaked with the ``CMakeGraphVizOptions.cmake`` file in the root of the project, which currently excludes tests, the ``lmorpho`` morphology generator and all C++ examples.
+
 User platforms
 --------------
 
