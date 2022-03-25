@@ -44,9 +44,15 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
+<<<<<<< HEAD
     unsigned num_cells = 10;
     double min_delay = 10;
     double duration = 200;
+=======
+    unsigned num_cells = 20;
+    double min_delay = 10;
+    double duration = 1000;
+>>>>>>> 7df6f6d7 (wip - python integration remaining)
     cell_parameters cell;
 };
 
@@ -187,7 +193,10 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        std::cout << "running simulation" << std::endl;
+        if (root) {
+            sim.set_epoch_callback(arb::epoch_progress_bar());
+        }
+        std::cout << "running simulation\n\n";
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
@@ -197,7 +206,7 @@ int main(int argc, char** argv) {
 
         // Write spikes to file
         if (root) {
-            std::cout << "\n" << ns << " spikes generated at rate of "
+            std::cout << "\n\n" << ns << " spikes generated at rate of "
                       << params.duration/ns << " ms between spikes\n";
             std::ofstream fid("spikes.gdf");
             if (!fid.good()) {

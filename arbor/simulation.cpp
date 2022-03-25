@@ -115,6 +115,7 @@ public:
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
+    epoch_function epoch_callback_;
 
 private:
     // Record last computed epoch (integration interval).
@@ -407,10 +408,13 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     epoch current = next_epoch(prev, t_interval_);
     epoch next = next_epoch(current, t_interval_);
 
+    if (epoch_callback_) epoch_callback_(current.t0, tfinal);
+
     if (next.empty()) {
         enqueue(current);
         update(current);
         exchange(current);
+        if (epoch_callback_) epoch_callback_(current.t1, tfinal);
     }
     else {
         enqueue(current);
@@ -418,6 +422,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         g.run([&]() { enqueue(next); });
         g.run([&]() { update(current); });
         g.wait();
+        if (epoch_callback_) epoch_callback_(current.t1, tfinal);
 
         for (;;) {
             prev = current;
@@ -428,6 +433,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
             g.run([&]() { exchange(prev); enqueue(next); });
             g.run([&]() { update(current); });
             g.wait();
+            if (epoch_callback_) epoch_callback_(current.t1, tfinal);
         }
 
         g.run([&]() { exchange(prev); });
@@ -435,6 +441,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         g.wait();
 
         exchange(current);
+        if (epoch_callback_) epoch_callback_(current.t1, tfinal);
     }
 
     // Record current epoch for next run() invocation.
@@ -558,10 +565,41 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
     impl_->local_export_callback_ = std::move(export_callback);
 }
 
+void simulation::set_epoch_callback(epoch_function epoch_callback, bool global) {
+    impl_->epoch_callback_ = std::move(epoch_callback);
+}
+
 void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
 
 simulation::~simulation() = default;
+
+epoch_function epoch_progress_bar() {
+    struct impl {
+        double t0 = 0;
+        unsigned calls = 0;
+
+        const char* PBSTR = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
+        unsigned PBWIDTH = 50;
+
+        void operator() (double t, double tfinal) {
+            if (calls==0) {
+                t0 = t;
+            }
+
+            double percentage = (tfinal==t0)? 1: (t-t0)/(tfinal-t0);
+            int val = percentage * 100;
+            int lpad = percentage * PBWIDTH;
+            int rpad = PBWIDTH - lpad;
+            printf("\r%3d%% [%.*s%*s]  %12ums", val, lpad, PBSTR, rpad, "", (unsigned)t);
+            fflush(stdout);
+
+            ++calls;
+        }
+    };
+
+    return impl{};
+}
 
 } // namespace arb
