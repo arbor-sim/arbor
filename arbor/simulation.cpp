@@ -575,7 +575,7 @@ void simulation::inject_events(const cse_vector& events) {
 
 simulation::~simulation() = default;
 
-epoch_function epoch_progress_bar() {
+ARB_ARBOR_API epoch_function epoch_progress_bar() {
     struct impl {
         double t0 = 0;
         unsigned calls = 0;

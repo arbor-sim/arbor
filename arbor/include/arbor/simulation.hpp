@@ -74,6 +74,6 @@ private:
 };
 
 // An epoch callback function that prints out a text progress bar.
-epoch_function epoch_progress_bar();
+ARB_ARBOR_API epoch_function epoch_progress_bar();
 
 } // namespace arb
