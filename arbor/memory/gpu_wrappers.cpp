@@ -2,10 +2,11 @@
 #include <string>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/version.hpp>
 
 #include "util.hpp"
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 
 #include <arbor/gpu/gpu_api.hpp>
 

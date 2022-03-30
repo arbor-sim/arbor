@@ -33,7 +33,8 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
 
     out << fmt::format("#pragma once\n\n"
                        "#include <cmath>\n"
-                       "#include <{}mechanism_abi.h>\n\n",
+                       "#include <{0}version.hpp>\n"
+                       "#include <{0}mechanism_abi.h>\n\n",
                        arb_header_prefix());
     out << fmt::format("extern \"C\" {{\n"
                        "  arb_mechanism_type make_{0}_{1}_type() {{\n"
@@ -112,8 +113,9 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
         << fmt::format("  arb_mechanism_interface* make_{0}_{1}_interface_multicore();\n"
                        "  arb_mechanism_interface* make_{0}_{1}_interface_gpu();\n"
                        "\n"
-                       "  [[gnu::weak]]\n"
+                       "  #ifndef ARB_GPU_ENABLED\n"
                        "  arb_mechanism_interface* make_{0}_{1}_interface_gpu() {{ return nullptr; }}\n"
+                       "  #endif\n"
                        "\n"
                        "  arb_mechanism make_{0}_{1}() {{\n"
                        "    static arb_mechanism result = {{}};\n"
