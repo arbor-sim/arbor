@@ -369,9 +369,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             D.face_conductance[i] = 100/resistance; // 100 scales to µS.
             for (auto& [ion, info]: diffusive_ions) {
                 double resistance = embedding.integrate_ixa(span, info.axial_inv_diffusivity[0].at(bid));
-
-                info.face_diffusivity[i] = 1.0/resistance; // TODO: figure out scaling
-                std::cout << resistance << '\t' << info.face_diffusivity[i] << '\n';
+                info.face_diffusivity[i] = 1.0/resistance; // TODO(TH): figure out scaling
             }
         }
 

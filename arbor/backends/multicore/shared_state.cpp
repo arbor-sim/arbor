@@ -249,6 +249,11 @@ void shared_state::integrate_voltage() {
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
+            std::cout << ion << "\tCV\tXd\tgX\n";
+            for (int ix = 0; ix < n_cv; ix++) {
+                std::cout << '\t' << ix << '\t' << data.Xd_[ix] << '\t' << data.gX_[ix] << '\n';
+            }
+
             data.solver->assemble(dt_intdom,
                                   data.Xd_,
                                   voltage,

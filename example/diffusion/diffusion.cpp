@@ -16,7 +16,6 @@
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 
-
 using namespace arborio::literals;
 
 struct recipe: public arb::recipe {
@@ -33,8 +32,8 @@ struct recipe: public arb::recipe {
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         arb::segment_tree tree;
         auto p = arb::mnpos;
-        p = tree.append(p, {-3, 0, 0, 3}, {  3, 0, 0, 3}, 1);
-        p = tree.append(p, { 3, 0, 0, 1}, {303, 0, 0, 1}, 3);
+        p = tree.append(p, {-3, 0, 0, 3}, { 3, 0, 0, 3}, 1);
+        p = tree.append(p, { 3, 0, 0, 1}, {33, 0, 0, 1}, 3);
         arb::morphology morph{tree};
 
         arb::label_dict dict;
@@ -44,6 +43,7 @@ struct recipe: public arb::recipe {
         arb::decor decor;
         decor.set_default(arb::init_int_concentration{"na", 0.2});
         decor.set_default(arb::ion_diffusivity{"na", 0.005});
+        decor.paint("soma"_lab, arb::init_int_concentration{"na", 1.2});
         decor.paint("soma"_lab, arb::density("hh"));
         decor.paint("soma"_lab, arb::ion_diffusivity{"na", 0.005});
         decor.paint("dend"_lab, arb::density("pas"));
@@ -55,24 +55,23 @@ struct recipe: public arb::recipe {
 };
 
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    const arb::mcable_list* test;
-    std::cerr << pm.meta.type().name() << '\n'
-              << std::any{test}.type().name() << '\n'
-              << "Same typedid: " << (std::any{test}.type().name() == pm.meta.type().name()) << '\n';
-    auto* cables_ptr = std::any_cast<const arb::mcable_list*>(pm.meta);
-    std::cerr << pm.meta.type().name() << '\n'
-              << std::any{test}.type().name() << '\n';
+    std::cerr << pm.meta.type().name() << '\n';
+    // Just to check...
+    const arb::mcable_list* foo;
+    std::any bar = foo;
+    std::cerr << bar.type().name() << '\n';
 
-    unsigned n_cable = cables_ptr->size();
+    auto* ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
+    assert(ptr);
+    auto n_cable = ptr->size();
 
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
-        auto* value_range = std::any_cast<const arb::cable_sample_range*>(samples[i].data);
+        auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
         assert(value_range);
         assert(n_cable==value_range->second-value_range->first);
-
         for (unsigned j = 0; j<n_cable; ++j) {
-            arb::mcable where = (*cables_ptr)[j];
+            arb::mcable where = (*ptr)[j];
             std::cout << samples[i].time << ", "
                       << where.prox_pos << ", "
                       << where.dist_pos << ", "
@@ -92,5 +91,5 @@ int main(int argc, char** argv) {
                     arb::regular_schedule(0.1),
                     sampler);
 
-    sim.run(100, 0.005);
+    sim.run(0.01, 0.005);
 }
