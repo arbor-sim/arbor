@@ -48,6 +48,7 @@ struct ARB_ARBOR_API ion_state {
     array iX_;              // (A/m²)  current density
     array eX_;              // (mV)    reversal potential
     array Xi_;              // (mM)    internal concentration
+    array Xd_;              // (mM)    diffusive internal concentration
     array Xo_;              // (mM)    external concentration
     array gX_;              // (kS/m²) per-species conductivity
 

@@ -63,6 +63,7 @@ ion_state::ion_state(
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
     Xi_(ion_data.cv.size(), NAN, pad(alignment)),
+    Xd_(ion_data.cv.size(), NAN, pad(alignment)),
     Xo_(ion_data.cv.size(), NAN, pad(alignment)),
     gX_(ion_data.cv.size(), NAN, pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
@@ -80,6 +81,7 @@ ion_state::ion_state(
 
 void ion_state::init_concentration() {
     std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
+    // NB. No resetting Xd here!
     std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
 
@@ -91,6 +93,7 @@ void ion_state::zero_current() {
 void ion_state::reset() {
     zero_current();
     std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
+    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
     std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
     std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
 }
@@ -246,49 +249,13 @@ void shared_state::integrate_voltage() {
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
-            std::cout << " * Gij: ";
-            for (auto xi: data.solver->face_diffusivity) std::cout << xi << ' ';
-            std::cout << '\n';
-
             data.solver->assemble(dt_intdom,
-                                  data.Xi_,
+                                  data.Xd_,
                                   voltage,
                                   data.iX_,
                                   data.gX_,
                                   data.charge[0]);
-            std::cout << "Before:\n";
-            std::cout << " * Xi: ";
-            for (auto xi: data.Xi_) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * RHS: ";
-            for (auto xi: data.solver->rhs) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * d: ";
-            for (auto xi: data.solver->d) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * u: ";
-            for (auto xi: data.solver->u) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * invariant: ";
-            for (auto xi: data.solver->invariant_d) std::cout << xi << ' ';
-            std::cout << '\n';
             data.solver->solve(data.Xi_);
-            std::cout << "After:\n";
-            std::cout << " * Xi: ";
-            for (auto xi: data.Xi_) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * RHS: ";
-            for (auto xi: data.solver->rhs) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * d: ";
-            for (auto xi: data.solver->d) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * u: ";
-            for (auto xi: data.solver->u) std::cout << xi << ' ';
-            std::cout << '\n';
-            std::cout << " * invariant: ";
-            for (auto xi: data.solver->invariant_d) std::cout << xi << ' ';
-            std::cout << '\n';
         }
     }
 }

@@ -273,7 +273,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
     std::unordered_map<std::string, mcable_map<double>> inverse_diffusivity_map;
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 
-    // Collect all elible ions: those where any cable has finite diffusivity
+    // Collect all eglible ions: those where any cable has finite diffusivity
     for (const auto& [ion, data]: global_dflt.ion_data) {
         if (data.diffusivity.value_or(0.0) > 0.0) {
             diffusive_ions[ion] = {};
@@ -284,10 +284,10 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             diffusive_ions[ion] = {};
         }
     }
-    for (const auto& [ion, data]: cell.region_assignments().get<ion_diffusivity>()) {
+    for (const auto& [ion, data]: diffusivity_map) {
         auto diffusive = std::any_of(data.begin(),
                                      data.end(),
-                                     [](const auto& kv) { return kv.second.value != 0.0; });
+                                     [](const auto& kv) { return kv.second.value > 0.0; });
         if (diffusive) {
             diffusive_ions[ion] = {};
         }
@@ -295,36 +295,27 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
 
     // Remap diffusivity to resistivity
     for (auto& [ion, data]: diffusive_ions) {
+        auto& id_map = inverse_diffusivity_map[ion];
+        // Treat specific assignments
         if (auto map = diffusivity_map.find(ion); map != diffusivity_map.end()) {
-            const auto [i, vs] = *map;
-            std::cout << "Ion " << ion << " diffusivity\n";
-            for (const auto& [k, v]: vs) {
-                std::cout << k.branch << ": " << v.value << "\n";
-                inverse_diffusivity_map[ion].insert(k, 1.0/v.value);
+            for (const auto& [k, v]: map->second) {
+                id_map.insert(k, 1.0/v.value);
             }
         }
-    }
-
-    for (auto& [ion, data]: diffusive_ions) {
         // Fetch defaults, either global or per cell
         auto gd = *(value_by_key(dflt.ion_data,        ion).value().diffusivity
                   | value_by_key(global_dflt.ion_data, ion).value().diffusivity);
-        data.face_diffusivity.resize(n_cv);
+        // Write inverse diffusivity / diffuse resistivity map
         auto& id = data.axial_inv_diffusivity;
         id.resize(1);
         msize_t n_branch = D.geometry.n_branch(0);
         id.reserve(n_branch);
-        std::cout << "Ion " << ion << " default diffusivity: " << gd << '\n';
-        std::cout << "Ion " << ion << " inverse diffusivity\n";
-        for (auto [c, d]: inverse_diffusivity_map[ion]) {
-            std::cout << c.branch << ": " << d << "\n";
-        }
         for (msize_t i = 0; i<n_branch; ++i) {
-            auto pw = pw_over_cable(inverse_diffusivity_map[ion],
-                                    mcable{i, 0., 1.},
-                                    1.0/gd);
+            auto pw = pw_over_cable(id_map, mcable{i, 0., 1.}, 1.0/gd);
             id[0].push_back(pw);
         }
+        // Prepare conductivity map
+        data.face_diffusivity.resize(n_cv);
     }
 
     D.axial_resistivity.resize(1);
