@@ -25,6 +25,7 @@ TEST(abi, multicore_initialisation) {
 
     arb_mechanism_type type{};
     type.abi_version = ARB_MECH_ABI_VERSION;
+    type.name       = "dummy";
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
@@ -102,6 +103,7 @@ TEST(abi, multicore_null) {
 
     arb_mechanism_type type{};
     type.abi_version = ARB_MECH_ABI_VERSION;
+    type.name       = "dummy";
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
@@ -166,6 +168,7 @@ TEST(abi, gpu_initialisation) {
 
     arb_mechanism_type type{};
     type.abi_version = ARB_MECH_ABI_VERSION;
+    type.name       = "dummy";
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();
@@ -242,6 +245,7 @@ TEST(abi, gpu_null) {
 
     arb_mechanism_type type{};
     type.abi_version = ARB_MECH_ABI_VERSION;
+    type.name       = "dummy";
     type.globals    = globals.data(); type.n_globals    = globals.size();
     type.parameters = params.data();  type.n_parameters = params.size();
     type.state_vars = states.data();  type.n_state_vars = states.size();

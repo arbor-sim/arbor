@@ -27,6 +27,42 @@ template <typename T> struct constant_type {
     template <typename> using type = T;
 };
 
+// Helper for debugging: print outermost DSL constructor
+std::string show(const paintable& item) {
+    std::stringstream os;
+    std::visit(
+        [&] (const auto& p) {
+            using T = std::decay_t<decltype(p)>;
+            if constexpr (std::is_same_v<init_membrane_potential, T>) {
+                os << "init-membrane-potential";
+            }
+            else if constexpr (std::is_same_v<axial_resistivity, T>) {
+                os << "axial-resistivity";
+            }
+            else if constexpr (std::is_same_v<temperature_K, T>) {
+                os << "temperature-kelvin";
+            }
+            else if constexpr (std::is_same_v<membrane_capacitance, T>) {
+                os << "membrane-capacitance";
+            }
+            else if constexpr (std::is_same_v<init_int_concentration, T>) {
+                os << "ion-internal-concentration";
+            }
+            else if constexpr (std::is_same_v<init_ext_concentration, T>) {
+                os << "ion-external-concentration";
+            }
+            else if constexpr (std::is_same_v<init_reversal_potential, T>) {
+                os << "ion-reversal-potential";
+            }
+            else if constexpr (std::is_same_v<density, T>) {
+                os << "density:" << p.mech.name();
+            }
+        },
+        item);
+    return os.str();
+}
+
+
 struct cable_cell_impl {
     using value_type = cable_cell::value_type;
     using index_type = cable_cell::index_type;
@@ -132,7 +168,8 @@ struct cable_cell_impl {
             if (c.prox_pos==c.dist_pos) continue;
 
             if (!mm.insert(c, prop)) {
-                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+                std::stringstream rg; rg << reg;
+                throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at '{}'", show(prop), rg.str(), c));
             }
         }
     }

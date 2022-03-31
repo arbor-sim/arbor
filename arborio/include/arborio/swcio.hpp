@@ -6,49 +6,50 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/morph/morphology.hpp>
+#include <arborio/export.hpp>
 
 namespace arborio {
 
 // SWC exceptions are thrown by `parse_swc`, and correspond
 // to inconsistent, or in `strict` mode, dubious SWC data.
 
-struct swc_error: public arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE swc_error: public arb::arbor_exception {
     swc_error(const std::string& msg, int record_id);
     int record_id;
 };
 
 // Parent id in record has no corresponding SWC record,
 // nor is the record the root record with parent id -1.
-struct swc_no_such_parent: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_no_such_parent: swc_error {
     explicit swc_no_such_parent(int record_id);
 };
 
 // Parent id is greater than or equal to record id.
-struct swc_record_precedes_parent: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_record_precedes_parent: swc_error {
     explicit swc_record_precedes_parent(int record_id);
 };
 
 // Multiple records cannot have the same id.
-struct swc_duplicate_record_id: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_duplicate_record_id: swc_error {
     explicit swc_duplicate_record_id(int record_id);
 };
 
 // Smells like a spherical soma.
-struct swc_spherical_soma: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_spherical_soma: swc_error {
     explicit swc_spherical_soma(int record_id);
 };
 
 // Segment cannot have samples with different tags
-struct swc_mismatched_tags: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_mismatched_tags: swc_error {
     explicit swc_mismatched_tags(int record_id);
 };
 
 // Only tags 1, 2, 3, 4 supported
-struct swc_unsupported_tag: swc_error {
+struct ARB_SYMBOL_VISIBLE swc_unsupported_tag: swc_error {
     explicit swc_unsupported_tag(int record_id);
 };
 
-struct swc_record {
+struct ARB_ARBORIO_API swc_record {
     int id = 0;          // sample number
     int tag = 0;         // structure identifier (tag)
     double x = 0;        // sample coordinates
@@ -79,7 +80,7 @@ struct swc_record {
     friend std::istream& operator>>(std::istream&, swc_record&);
 };
 
-struct swc_data {
+struct ARB_ARBORIO_API swc_data {
 private:
     std::string metadata_;
     std::vector<swc_record> records_;
@@ -114,8 +115,8 @@ public:
 //
 // SWC records are returned in id order.
 
-swc_data parse_swc(std::istream&);
-swc_data parse_swc(const std::string&);
+ARB_ARBORIO_API swc_data parse_swc(std::istream&);
+ARB_ARBORIO_API swc_data parse_swc(const std::string&);
 
 // Convert a valid, ordered sequence of SWC records into a morphology.
 //
@@ -126,7 +127,7 @@ swc_data parse_swc(const std::string&);
 // and distal point of the segment, while the proximal point is taken from the
 // parent record.
 
-arb::morphology load_swc_arbor(const swc_data& data);
+ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data);
 
 // As above, will convert a valid, ordered sequence of SWC records into a morphology
 //
@@ -134,6 +135,6 @@ arb::morphology load_swc_arbor(const swc_data& data);
 //
 // Complies inferred SWC rules from NEURON, explicitly listed in the docs.
 
-arb::morphology load_swc_neuron(const swc_data& data);
+ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data);
 
 } // namespace arborio

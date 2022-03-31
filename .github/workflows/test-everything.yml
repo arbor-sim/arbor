@@ -1,4 +1,4 @@
-name: Arbor
+name: Test Everything
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    name: "Default"
+  testallconfigs:
+    name: "Tests across OSes, versions, compilers, and build configs."
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
@@ -19,7 +19,7 @@ jobs:
             cc:    "gcc-8",
             cxx:   "g++-8",
             py:    "3.6",
-            cmake: "3.12.x",
+            cmake: "3.18.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -29,7 +29,7 @@ jobs:
             cc:    "clang-8",
             cxx:   "clang++-8",
             py:    "3.6",
-            cmake: "3.12.x",
+            cmake: "3.18.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -39,7 +39,7 @@ jobs:
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.6",
-            cmake: "3.12.x",
+            cmake: "3.18.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -49,7 +49,7 @@ jobs:
             cc:    "gcc-10",
             cxx:   "g++-10",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -59,7 +59,7 @@ jobs:
             cc:    "gcc-10",
             cxx:   "g++-10",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "OFF",
             simd:  "ON"
           }
@@ -69,20 +69,21 @@ jobs:
             cc:    "clang-10",
             cxx:   "clang++-10",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-10.15", # TODO: 11.0 is still private preview, fix later.
+            os:    "macos-11",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.9",
-            cmake: "3.19.x",
+            cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
+        variant: [static, shared]
     env:
         CC:         ${{ matrix.config.cc }}
         CXX:        ${{ matrix.config.cxx }}
@@ -92,13 +93,17 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
     steps:
-      - name: Get clang/gcc 8
+      - name: "Linux: get clang/gcc 8, libxml2"
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
+          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8 libxml2-dev
+      - name: "MacOS: get libxml2"
+        if: ${{ startsWith(matrix.config.os, 'macos') }}
+        run: |
+          brew install libxml2 
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.7
+        uses: jwlawson/actions-setup-cmake@v1.12
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
@@ -145,11 +150,20 @@ jobs:
           mpic++ --show
           mpicc --show
           echo $PYTHONPATH
-      - name: Build arbor
+      - if:   ${{ matrix.variant == 'static' }}
+        name: Build arbor
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
+          make -j4 tests examples pyarb html
+          cd -
+      - if:   ${{ matrix.variant == 'shared' }}
+        name: Build arbor
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON -DBUILD_SHARED_LIBS=ON
           make -j4 tests examples pyarb html
           cd -
       - name: Install arbor
@@ -176,7 +190,28 @@ jobs:
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python3 -m unittest discover -v -s python
+      # - name: Run Python examples (plotting leads to time outs on macos, the step under testpip is enough)
+      #   run: scripts/run_python_examples.sh
+      - name: Build and test a catalogue
+        run: |
+          arbor-build-catalogue -v default mechanisms/default
+          ./scripts/test-catalogue.py ./default-catalogue.so
+  testpip:
+    name: "Pip build test + Python examples test"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Python packages
+        run:  pip install numpy setuptools scikit-build ninja cmake
+      - name: Clone w/ submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Build and install Arbor using pip + build flags
+        run: python3 -m pip install --verbose --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=native" .
+      - name: Check that build flags match
+        run: |
+          python3 -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
+      - name: Run Python tests
+        run: python3 -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
-      - name: Build a catalogue
-        run: build-catalogue -v default mechanisms/default

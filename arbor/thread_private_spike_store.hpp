@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 
@@ -18,7 +19,7 @@ struct local_spike_store_type;
 /// The thread private buffer of the calling thread.
 /// The insert() and gather() methods add a vector of spikes to the buffer,
 /// and collate all of the buffers into a single vector respectively.
-class thread_private_spike_store {
+class ARB_ARBOR_API thread_private_spike_store {
 public :
     thread_private_spike_store();
     ~thread_private_spike_store();

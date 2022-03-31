@@ -4,7 +4,6 @@
 #include <set>
 #include <regex>
 
-#define FMT_HEADER_ONLY YES
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/compile.h>
@@ -43,7 +42,7 @@ static std::string ion_field(const IonDep& ion) { return fmt::format("ion_{}",  
 static std::string ion_index(const IonDep& ion) { return fmt::format("ion_{}_index", ion.name); }
 
 
-std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
+ARB_LIBMODCC_API std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name       = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
@@ -93,7 +92,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     return out.str();
 }
 
-std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
+ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
 
@@ -186,16 +185,26 @@ std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt
         << "using ::arb::gpu::max;\n\n";
 
     // Procedures as __device__ functions.
-    auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
+    auto emit_procedure_proto = [&] (ProcedureExpression* e) {
         out << fmt::format("__device__\n"
                            "void {}(arb_mechanism_ppack params_, int tid_",
                            e->name());
         for(auto& arg: e->args()) out << ", arb_value_type " << arg->is_argument()->name();
-        out << ") {\n" << indent
+        out << ")";
+    };
+
+    auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
+        emit_procedure_proto(e);
+        out << " {\n" << indent
             << "PPACK_IFACE_BLOCK;\n"
             << cuprint(e->body())
             << popindent << "}\n\n";
     };
+
+    for (auto& p: module_normal_procedures(module_)) {
+        emit_procedure_proto(p);
+        out << ";\n\n";
+    }
 
     for (auto& p: module_normal_procedures(module_)) {
         emit_procedure_kernel(p);

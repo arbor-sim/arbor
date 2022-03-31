@@ -34,7 +34,7 @@
 
 // Implementation macros for ARB_PP_FOREACH:
 
-#define ARB_PP_FOREACH_1_(M, A, ...)  M(A)
+#define ARB_PP_FOREACH_1_(M, A)  M(A)
 #define ARB_PP_FOREACH_2_(M, A, ...)  M(A) ARB_PP_FOREACH_1_(M, __VA_ARGS__)
 #define ARB_PP_FOREACH_3_(M, A, ...)  M(A) ARB_PP_FOREACH_2_(M, __VA_ARGS__)
 #define ARB_PP_FOREACH_4_(M, A, ...)  M(A) ARB_PP_FOREACH_3_(M, __VA_ARGS__)

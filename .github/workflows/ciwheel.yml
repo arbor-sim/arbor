@@ -2,9 +2,14 @@ name: Arbor on Wheels
 
 on:
   push:
-    branches: [ ciwheel ]
+    branches: 
+      - ciwheel
+      - v*rc
     tags:
       - v*
+
+  schedule:
+    - cron: '0 2 * * 0' # run at 2 AM every sunday
 
 jobs:
   build_binary_wheels:
@@ -22,29 +27,29 @@ jobs:
 
       - name: Build wheels Linux
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        uses: pypa/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v2.3.0
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
-          CIBW_BUILD: "cp3?-manylinux_x86_64"
-          CIBW_SKIP: "cp35-*"
+          CIBW_BEFORE_ALL: yum -y install libxml2-devel
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools scikit-build ninja cmake
+          CIBW_BUILD: "cp3*-manylinux_x86_64"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS_LINUX: x86_64
-          # CIBW_TEST_COMMAND: TODO
+          CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair -w {dest_dir} {wheel} && python /project/scripts/patchwheel.py {dest_dir}'
+          CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       - name: Build wheels macos
         if: ${{ startsWith(matrix.os, 'macos') }}
-        uses: pypa/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v2.3.0
         with:
           output-dir: dist
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
-          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools
-          CIBW_BUILD: "cp3?-macosx_x86_64"
-          CIBW_SKIP: "cp35-*"
+          CIBW_BEFORE_BUILD: python -m pip install numpy setuptools scikit-build ninja cmake
+          CIBW_BUILD: "cp3*-macosx_x86_64"
           CIBW_ARCHS_MACOS: x86_64 universal2
-          # CIBW_TEST_COMMAND: TODO
+          CIBW_TEST_COMMAND: python -m unittest discover -v -s {project}/python
 
       # this action runs auditwheel automatically with the following args:
       # https://cibuildwheel.readthedocs.io/en/stable/options/#repair-wheel-command
@@ -61,12 +66,20 @@ jobs:
     steps:
       - name: Set up Python
         uses: actions/setup-python@v2
+      - name: Get packages
+        run: python -m pip install numpy setuptools scikit-build ninja cmake
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
       - name: Make sdist
         run:  python setup.py sdist
+      - name: Install sdist
+        run:  python -m pip install dist/arbor*.tar.gz
+      - name: Run Python tests
+        run: python3 -m unittest discover -v -s python
+      - name: Run Python examples
+        run: scripts/run_python_examples.sh
       - uses: actions/upload-artifact@v2
         with:
           name: dist

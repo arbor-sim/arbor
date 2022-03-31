@@ -86,7 +86,7 @@ void solve_matrix_interleaved(
 
 } // namespace kernels
 
-void solve_matrix_flat(
+ARB_ARBOR_API void solve_matrix_flat(
     fvm_value_type* rhs,
     fvm_value_type* d,
     const fvm_value_type* u,

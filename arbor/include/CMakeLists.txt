@@ -46,6 +46,10 @@ if(ARB_WITH_PROFILING)
     # define ARB_PROFILE_ENABLED in version.hpp
     list(APPEND arb_features PROFILE)
 endif()
+if(ARB_USE_BUNDLED_LIBS)
+    # define ARB_BUNDLED_ENABLED in version.hpp
+    list(APPEND arb_features BUNDLED)
+endif()
 if(ARB_VECTORIZE)
     list(APPEND arb_features VECTORIZE)
 endif()

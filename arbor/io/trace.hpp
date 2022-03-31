@@ -21,7 +21,7 @@
 //
 // TRACE output is to std::cerr is serialized.
 
-#define TRACE(vars...) arb::impl::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
+#define TRACE(...) arb::impl::debug_emit_trace(__FILE__, __LINE__, #__VA_ARGS__, ##__VA_ARGS__)
 
 
 // DEBUG << ...;

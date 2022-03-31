@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arbor/export.hpp>
 #include <arbor/schedule.hpp>
 
 namespace arb {
@@ -7,7 +8,7 @@ namespace arb {
 // Cell description returned by recipe::cell_description(gid) for cells with
 // recipe::cell_kind(gid) returning cell_kind::benchmark
 
-struct benchmark_cell {
+struct ARB_SYMBOL_VISIBLE benchmark_cell {
     cell_tag_type source; // Label of source.
     cell_tag_type target; // Label of target.
 

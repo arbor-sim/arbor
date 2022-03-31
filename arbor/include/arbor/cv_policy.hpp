@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 
@@ -70,7 +71,7 @@ struct cv_policy_base {
 
 using cv_policy_base_ptr = std::unique_ptr<cv_policy_base>;
 
-struct cv_policy {
+struct ARB_SYMBOL_VISIBLE cv_policy {
     cv_policy(const cv_policy_base& ref) { // implicit
         policy_ptr = ref.clone();
     }
@@ -102,8 +103,8 @@ private:
     cv_policy_base_ptr policy_ptr;
 };
 
-cv_policy operator+(const cv_policy&, const cv_policy&);
-cv_policy operator|(const cv_policy&, const cv_policy&);
+ARB_ARBOR_API cv_policy operator+(const cv_policy&, const cv_policy&);
+ARB_ARBOR_API cv_policy operator|(const cv_policy&, const cv_policy&);
 
 
 // Common flags for CV policies; bitwise composable.
@@ -115,7 +116,7 @@ namespace cv_policy_flag {
     };
 }
 
-struct cv_policy_explicit: cv_policy_base {
+struct ARB_ARBOR_API cv_policy_explicit: cv_policy_base {
     explicit cv_policy_explicit(locset locs, region domain = reg::all()):
         locs_(std::move(locs)), domain_(std::move(domain)) {}
 
@@ -132,7 +133,7 @@ private:
     region domain_;
 };
 
-struct cv_policy_single: cv_policy_base {
+struct ARB_ARBOR_API cv_policy_single: cv_policy_base {
     explicit cv_policy_single(region domain = reg::all()):
         domain_(domain) {}
 
@@ -148,7 +149,7 @@ private:
     region domain_;
 };
 
-struct cv_policy_max_extent: cv_policy_base {
+struct ARB_ARBOR_API cv_policy_max_extent: cv_policy_base {
     cv_policy_max_extent(double max_extent, region domain, cv_policy_flag::value flags = cv_policy_flag::none):
          max_extent_(max_extent), domain_(std::move(domain)), flags_(flags) {}
 
@@ -169,7 +170,7 @@ private:
     cv_policy_flag::value flags_;
 };
 
-struct cv_policy_fixed_per_branch: cv_policy_base {
+struct ARB_ARBOR_API cv_policy_fixed_per_branch: cv_policy_base {
     cv_policy_fixed_per_branch(unsigned cv_per_branch, region domain, cv_policy_flag::value flags = cv_policy_flag::none):
          cv_per_branch_(cv_per_branch), domain_(std::move(domain)), flags_(flags) {}
 
@@ -190,7 +191,7 @@ private:
     cv_policy_flag::value flags_;
 };
 
-struct cv_policy_every_segment: cv_policy_base {
+struct ARB_ARBOR_API cv_policy_every_segment: cv_policy_base {
     explicit cv_policy_every_segment(region domain = reg::all()):
          domain_(std::move(domain)) {}
 

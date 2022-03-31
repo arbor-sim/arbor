@@ -43,11 +43,11 @@ inline bool is_valid_symbol_char(char c) {
     }
 }
 
-std::ostream& operator<<(std::ostream& o, const src_location& l) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const src_location& l) {
     return o << l.line << ":" << l.column;
 }
 
-std::ostream& operator<<(std::ostream& o, const tok& t) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const tok& t) {
     switch (t) {
         case tok::nil:    return o << "nil";
         case tok::lparen: return o << "lparen";
@@ -62,7 +62,7 @@ std::ostream& operator<<(std::ostream& o, const tok& t) {
     return o << "<unknown>";
 }
 
-std::ostream& operator<<(std::ostream& o, const token& t) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const token& t) {
     if (t.kind==tok::string) {
         return o << util::pprintf("\"{}\"", t.spelling);
     }
@@ -125,6 +125,16 @@ private:
     // Consume and return the next token in the stream.
     void parse() {
         using namespace std::string_literals;
+#define ARB_CASE_LETTERS                                                                           \
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i':  \
+        case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':  \
+        case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':            \
+        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I':  \
+        case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':  \
+        case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+#define ARB_CASE_DIGITS                                                                            \
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8':  \
+        case '9':
 
         while (!empty()) {
             switch (*stream_) {
@@ -166,11 +176,10 @@ private:
                 case ')':
                     token_ = {loc(), tok::rparen, {character()}};
                     return;
-                case 'a' ... 'z':
-                case 'A' ... 'Z':
+                ARB_CASE_LETTERS
                     token_ = symbol();
                     return;
-                case '0' ... '9':
+                ARB_CASE_DIGITS
                     token_ = number();
                     return;
                 case '"':
@@ -200,6 +209,8 @@ private:
                     return;
             }
         }
+#undef ARB_CASE_LETTERS
+#undef ARB_CASE_DIGITS
 
         if (!empty()) {
             // todo: handle error: should never hit this
@@ -421,11 +432,11 @@ std::ostream& print(std::ostream& o, const s_expr& x, int indent) {
     return o << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const s_expr& x) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const s_expr& x) {
     return print(o, x, 1);
 }
 
-std::size_t length(const s_expr& l) {
+ARB_ARBOR_API std::size_t length(const s_expr& l) {
     // The length of an atom is 1.
     if (l.is_atom() && l) {
         return 1;
@@ -437,7 +448,7 @@ std::size_t length(const s_expr& l) {
     return 1+length(l.tail());
 }
 
-src_location location(const s_expr& l) {
+ARB_ARBOR_API src_location location(const s_expr& l) {
     if (l.is_atom()) return l.atom().loc;
     return location(l.head());
 }
@@ -503,7 +514,7 @@ s_expr parse(lexer& L) {
 
 }
 
-s_expr parse_s_expr(const std::string& line) {
+ARB_ARBOR_API s_expr parse_s_expr(const std::string& line) {
     lexer l(line.c_str());
     s_expr result = impl::parse(l);
     const bool err = result.is_atom()? result.atom().kind==tok::error: false;

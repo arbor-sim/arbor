@@ -12,6 +12,8 @@ set(arbor_sources
     cell_group_factory.cpp
     common_types_io.cpp
     cv_policy.cpp
+    domdecexcept.cpp
+    domain_decomposition.cpp
     execution_context.cpp
     gpu_context.cpp
     event_binner.cpp
@@ -28,6 +30,7 @@ set(arbor_sources
     mechinfo.cpp
     memory/gpu_wrappers.cpp
     memory/util.cpp
+    morph/cv_data.cpp
     morph/embed_pwlin.cpp
     morph/label_dict.cpp
     morph/locset.cpp
@@ -55,6 +58,7 @@ set(arbor_sources
     threading/threading.cpp
     thread_private_spike_store.cpp
     tree.cpp
+    util/dylib.cpp
     util/hostname.cpp
     util/unwind.cpp
     version.cpp
@@ -131,6 +135,11 @@ if(ARB_WITH_CUDA_CLANG)
 endif()
 
 set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+
+export_visibility(arbor)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

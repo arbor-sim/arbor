@@ -12,7 +12,7 @@
 
 namespace arb {
 
-void check_global_properties(const cable_cell_global_properties& G) {
+ARB_ARBOR_API void check_global_properties(const cable_cell_global_properties& G) {
     auto& param = G.default_parameters;
 
     if (!param.init_membrane_potential) {

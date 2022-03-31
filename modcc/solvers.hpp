@@ -12,8 +12,9 @@
 #include "symdiff.hpp"
 #include "symge.hpp"
 #include "visitor.hpp"
+#include <libmodcc/export.hpp>
 
-expression_ptr remove_unused_locals(BlockExpression* block);
+ARB_LIBMODCC_API expression_ptr remove_unused_locals(BlockExpression* block);
 
 class SolverVisitorBase: public BlockRewriterBase {
 protected:
@@ -56,7 +57,7 @@ public:
     }
 };
 
-class CnexpSolverVisitor : public SolverVisitorBase {
+class ARB_LIBMODCC_API CnexpSolverVisitor : public SolverVisitorBase {
 public:
     using SolverVisitorBase::visit;
 
@@ -67,7 +68,7 @@ public:
     virtual void visit(AssignmentExpression *e) override;
 };
 
-class SystemSolver {
+class ARB_LIBMODCC_API SystemSolver {
 protected:
     // Symbolic matrix for backwards Euler step.
     symge::sym_matrix A_;
@@ -132,7 +133,7 @@ public:
 
 };
 
-class SparseSolverVisitor : public SolverVisitorBase {
+class ARB_LIBMODCC_API SparseSolverVisitor : public SolverVisitorBase {
 protected:
     solverVariant solve_variant_;
 
@@ -185,7 +186,7 @@ public:
     }
 };
 
-class SparseNonlinearSolverVisitor : public SolverVisitorBase {
+class ARB_LIBMODCC_API SparseNonlinearSolverVisitor : public SolverVisitorBase {
 protected:
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
@@ -231,7 +232,7 @@ public:
     }
 };
 
-class LinearSolverVisitor : public SolverVisitorBase {
+class ARB_LIBMODCC_API LinearSolverVisitor : public SolverVisitorBase {
 protected:
     // 'Current' differential equation is for variable with this
     // index in `dvars`.

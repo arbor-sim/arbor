@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arbor/export.hpp>
 #include <arbor/fvm_types.hpp>
 
 namespace arb {
@@ -25,7 +26,7 @@ struct istim_pp {
     fvm_value_type* current_density;
 };
 
-void istim_add_current_impl(int n, const istim_pp& pp);
+ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp);
 
 } // namespace gpu
 } // namespace arb

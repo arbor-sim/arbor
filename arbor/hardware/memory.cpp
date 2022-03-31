@@ -15,7 +15,11 @@ namespace hw {
 
 #if defined(__linux__)
 memory_size_type allocated_memory() {
+#if defined(__GLIBC__) && (__GLIBC__ > 2 || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 33)))
+    auto m = mallinfo2();
+#else
     auto m = mallinfo();
+#endif
     return m.hblkhd + m.uordblks;
 }
 #else

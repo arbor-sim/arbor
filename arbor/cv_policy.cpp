@@ -44,7 +44,7 @@ struct cv_policy_plus_: cv_policy_base {
     cv_policy lhs_, rhs_;
 };
 
-cv_policy operator+(const cv_policy& lhs, const cv_policy& rhs) {
+ARB_ARBOR_API cv_policy operator+(const cv_policy& lhs, const cv_policy& rhs) {
     return cv_policy_plus_(lhs, rhs);
 }
 
@@ -70,7 +70,7 @@ struct cv_policy_bar_: cv_policy_base {
     cv_policy lhs_, rhs_;
 };
 
-cv_policy operator|(const cv_policy& lhs, const cv_policy& rhs) {
+ARB_ARBOR_API cv_policy operator|(const cv_policy& lhs, const cv_policy& rhs) {
     return cv_policy_bar_(lhs, rhs);
 }
 

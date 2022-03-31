@@ -7,7 +7,7 @@
 
 namespace sup {
 
-std::fstream open_or_throw(const path& p, std::ios_base::openmode mode, bool exclusive) {
+ARB_SUP_API std::fstream open_or_throw(const path& p, std::ios_base::openmode mode, bool exclusive) {
     if (exclusive && exists(p)) {
         throw std::runtime_error(strsub("file % already exists", p));
     }

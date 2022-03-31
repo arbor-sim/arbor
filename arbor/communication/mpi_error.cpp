@@ -4,7 +4,7 @@
 
 namespace arb {
 
-const mpi_error_category_impl& mpi_error_category() {
+ARB_ARBOR_API const mpi_error_category_impl& mpi_error_category() {
     static mpi_error_category_impl the_category;
     return the_category;
 }

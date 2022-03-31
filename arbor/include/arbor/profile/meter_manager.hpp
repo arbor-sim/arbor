@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/context.hpp>
 #include <arbor/profile/meter.hpp>
 #include <arbor/profile/timer.hpp>
@@ -28,7 +29,7 @@ struct measurement {
     measurement(std::string, std::string, const std::vector<double>&, const context&);
 };
 
-class meter_manager {
+class ARB_ARBOR_API meter_manager {
 private:
     bool started_ = false;
 
@@ -58,8 +59,8 @@ struct meter_report {
     std::vector<std::string> hosts;
 };
 
-meter_report make_meter_report(const meter_manager& manager, const context& ctx);
-std::ostream& operator<<(std::ostream& o, const meter_report& report);
+ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, const context& ctx);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
 } // namespace profile
 } // namespace arb

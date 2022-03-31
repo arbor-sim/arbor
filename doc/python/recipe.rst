@@ -196,6 +196,10 @@ Event generator and schedules
 
         Returns a view of monotonically increasing time values in the half-open interval [t0, t1).
 
+    .. attribute:: tstop
+
+        No events delivered after this time [ms].
+
 An example of an event generator reads as follows:
 
 .. container:: example-code
