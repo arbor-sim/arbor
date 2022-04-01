@@ -1,6 +1,6 @@
 NEURON {
     SUFFIX hh
-    USEION na READ ena, nad WRITE ina
+    USEION na READ ena WRITE ina
     USEION k  READ ek  WRITE ik
     NONSPECIFIC_CURRENT il
     RANGE gnabar, gkbar, gl, el, q10
@@ -69,7 +69,7 @@ DERIVATIVE states {
     alpha = h_alpha(v)
     beta  = h_beta(v)
     sum   = alpha + beta
-    h'    = (alpha - h*sum)*q10 + nad
+    h'    = (alpha - h*sum)*q10
                       
     : potassium activation system
     alpha = n_alpha(v)
