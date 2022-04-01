@@ -42,7 +42,7 @@ struct recipe: public arb::recipe {
 
         arb::decor decor;
         decor.set_default(arb::init_int_concentration{"na", 0.2});
-        decor.set_default(arb::ion_diffusivity{"na", 0.005});
+        decor.set_default(arb::ion_diffusivity{"na", 0.5});
         decor.paint("soma"_lab, arb::init_int_concentration{"na", 1.2});
         decor.paint("soma"_lab, arb::density("hh"));
         decor.paint("soma"_lab, arb::ion_diffusivity{"na", 0.005});
@@ -55,16 +55,9 @@ struct recipe: public arb::recipe {
 };
 
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    std::cerr << pm.meta.type().name() << '\n';
-    // Just to check...
-    const arb::mcable_list* foo;
-    std::any bar = foo;
-    std::cerr << bar.type().name() << '\n';
-
-    auto* ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
+    auto ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
     assert(ptr);
     auto n_cable = ptr->size();
-
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
         auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);

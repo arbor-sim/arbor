@@ -249,18 +249,17 @@ void shared_state::integrate_voltage() {
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
-            std::cout << ion << "\tCV\tXd\tgX\n";
+            printf("%3s\t%3s\t%5s\t%7s\n", ion.c_str(), "CV", "Xd", "gX");
             for (int ix = 0; ix < n_cv; ix++) {
-                std::cout << '\t' << ix << '\t' << data.Xd_[ix] << '\t' << data.gX_[ix] << '\n';
+                printf("   \t%3d\t%.3f\t%.5f\n", ix, data.Xd_[ix], data.gX_[ix]);
             }
-
             data.solver->assemble(dt_intdom,
                                   data.Xd_,
                                   voltage,
                                   data.iX_,
                                   data.gX_,
                                   data.charge[0]);
-            data.solver->solve(data.Xi_);
+            data.solver->solve(data.Xd_);
         }
     }
 }
@@ -535,12 +534,13 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
         auto& ion_state = m.ppack_.ion_states[idx];
         ion_state = {0};
-        ion_state.current_density        = oion->iX_.data();
-        ion_state.reversal_potential     = oion->eX_.data();
-        ion_state.internal_concentration = oion->Xi_.data();
-        ion_state.external_concentration = oion->Xo_.data();
-        ion_state.ionic_charge           = oion->charge.data();
-        ion_state.conductivity           = oion->gX_.data();
+        ion_state.current_density         = oion->iX_.data();
+        ion_state.reversal_potential      = oion->eX_.data();
+        ion_state.internal_concentration  = oion->Xi_.data();
+        ion_state.external_concentration  = oion->Xo_.data();
+        ion_state.diffusive_concentration = oion->Xd_.data();
+        ion_state.ionic_charge            = oion->charge.data();
+        ion_state.conductivity            = oion->gX_.data();
     }
 
     // Initialize state and parameter vectors with default values.

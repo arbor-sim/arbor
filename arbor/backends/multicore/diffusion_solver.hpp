@@ -82,6 +82,7 @@ struct diffusion_solver {
     //   voltage         [mV]      (per control volume)
     //   current density [A.m^-2]  (per control volume and species)
     //   diffusivity     [???]     (per control volume)
+    //   charge          [e]
     void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity, fvm_value_type q) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
