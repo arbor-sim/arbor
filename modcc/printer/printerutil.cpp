@@ -218,6 +218,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::ion_diffusive:
         v.data_var = ion_pfx+".diffusive_concentration";
         v.readonly = false;
+        v.accumulate = false;
         break;
     case sourceKind::ion_econc:
         v.data_var = ion_pfx+".external_concentration";

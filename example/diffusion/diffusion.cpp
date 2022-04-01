@@ -21,7 +21,7 @@ using namespace arborio::literals;
 struct recipe: public arb::recipe {
     recipe() {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.default_parameters.discretization = arb::cv_policy_max_extent{3};
+        gprop.default_parameters.discretization = arb::cv_policy_max_extent{6};
     }
 
     arb::cell_size_type num_cells()                             const override { return 1; }
@@ -42,10 +42,12 @@ struct recipe: public arb::recipe {
 
         arb::decor decor;
         decor.set_default(arb::init_int_concentration{"na", 0.2});
-        decor.set_default(arb::ion_diffusivity{"na", 0.5});
+        decor.set_default(arb::ion_diffusivity{"na", 1e-12});
         decor.paint("soma"_lab, arb::init_int_concentration{"na", 1.2});
         decor.paint("soma"_lab, arb::density("hh"));
-        decor.paint("soma"_lab, arb::ion_diffusivity{"na", 0.005});
+        decor.place("(location 0 0.5)"_ls, arb::synapse("inject"), "Zap");
+        decor.paint("(all)"_reg, arb::density("decay"));
+        decor.paint("soma"_lab, arb::ion_diffusivity{"na", 0.0});
         decor.paint("dend"_lab, arb::density("pas"));
 
         return arb::cable_cell(morph, dict, decor);
