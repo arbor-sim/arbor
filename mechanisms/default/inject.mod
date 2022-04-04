@@ -5,13 +5,7 @@ NEURON {
 
 
 PARAMETER {
-  alpha = 2.0
-}
-
-STATE { nad }
-
-INITIAL {
-     nad = 2.0
+  alpha = 200
 }
 
 BREAKPOINT {}

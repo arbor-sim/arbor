@@ -544,7 +544,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
     out << "arb_value_type " << cprint(local) << " = ";
 
-    if (local->is_read()) {
+    if (local->is_read() || local->is_write()) {
         auto d = decode_indexed_variable(local->external_variable());
         out << scaled(d.scale) << deref(d) << ";\n";
     }
@@ -564,13 +564,17 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
 
-    if (d.accumulate) {
-        out << deref(d) << " = fma("
-            << scaled(coeff) << pp_var_pfx << "weight[i_], "
-            << from->name() << ", " << deref(d) << ");\n";
-    }
-    else {
+    if (d.additive) {
         out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
+    } else {
+        if (d.accumulate) {
+            out << deref(d) << " = fma("
+                << scaled(coeff) << pp_var_pfx << "weight[i_], "
+                << from->name() << ", " << deref(d) << ");\n";
+        }
+        else {
+            out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
+        }
     }
     EXIT(out);
 }

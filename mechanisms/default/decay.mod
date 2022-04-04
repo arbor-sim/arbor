@@ -1,23 +1,18 @@
 NEURON {
     SUFFIX decay
-    USEION na READ nai WRITE nad
-    RANGE tau
+    USEION na WRITE nad
 }
 
-STATE { nad }
+INITIAL { F = nad }
 
-INITIAL {
-   nad = 2
-}
-
-PARAMETER {
-   tau = 0.9
-}
+STATE { F }
 
 BREAKPOINT {
-   SOLVE dX METHOD cnexp
+   SOLVE dF METHOD cnexp
+   nad = F
 }
 
-DERIVATIVE dX {
-   nad' = -tau*nad
+DERIVATIVE dF {
+   F = nad
+   F' = -5*F
 }

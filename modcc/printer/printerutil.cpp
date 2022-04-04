@@ -141,6 +141,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     v.index_var_kind = index_kind::node;
     v.scale = 1;
     v.accumulate = true;
+    v.additive = false;
     v.readonly = true;
 
     std::string ion_pfx;
@@ -219,6 +220,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.data_var = ion_pfx+".diffusive_concentration";
         v.readonly = false;
         v.accumulate = false;
+        v.additive = true;
         break;
     case sourceKind::ion_econc:
         v.data_var = ion_pfx+".external_concentration";

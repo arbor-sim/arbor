@@ -42,15 +42,18 @@ struct recipe: public arb::recipe {
 
         arb::decor decor;
         decor.set_default(arb::init_int_concentration{"na", 0.2});
-        decor.set_default(arb::ion_diffusivity{"na", 1e-12});
+        decor.set_default(arb::ion_diffusivity{"na", 0.05});
         decor.paint("soma"_lab, arb::init_int_concentration{"na", 1.2});
         decor.paint("soma"_lab, arb::density("hh"));
         decor.place("(location 0 0.5)"_ls, arb::synapse("inject"), "Zap");
         decor.paint("(all)"_reg, arb::density("decay"));
-        decor.paint("soma"_lab, arb::ion_diffusivity{"na", 0.0});
         decor.paint("dend"_lab, arb::density("pas"));
 
         return arb::cable_cell(morph, dict, decor);
+    }
+
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        return {arb::explicit_generator({{{"Zap"}, 0.002, 0.005}})};
     }
 
     arb::cable_cell_global_properties gprop;
@@ -86,5 +89,5 @@ int main(int argc, char** argv) {
                     arb::regular_schedule(0.1),
                     sampler);
 
-    sim.run(0.01, 0.005);
+    sim.run(0.02, 0.005);
 }
