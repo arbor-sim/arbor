@@ -122,7 +122,7 @@ handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(nc
 # (15) Run simulation for 100 ms
 sim.progress_banner()
 sim.run(100)
-print('\nSimulation finished')
+print('Simulation finished')
 
 # (16) Print spike times
 print('spikes:')

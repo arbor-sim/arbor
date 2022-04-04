@@ -578,24 +578,30 @@ simulation::~simulation() = default;
 ARB_ARBOR_API epoch_function epoch_progress_bar() {
     struct impl {
         double t0 = 0;
-        unsigned calls = 0;
-
-        const char* PBSTR = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
-        unsigned PBWIDTH = 50;
+        bool first = true;
 
         void operator() (double t, double tfinal) {
-            if (calls==0) {
+            constexpr unsigned bar_width = 50;
+            static const std::string bar_buffer(bar_width+1, '-');
+
+            if (first) {
+                first = false;
                 t0 = t;
             }
 
             double percentage = (tfinal==t0)? 1: (t-t0)/(tfinal-t0);
             int val = percentage * 100;
-            int lpad = percentage * PBWIDTH;
-            int rpad = PBWIDTH - lpad;
-            printf("\r%3d%% [%.*s%*s]  %12ums", val, lpad, PBSTR, rpad, "", (unsigned)t);
-            fflush(stdout);
+            int lpad = percentage * bar_width;
+            int rpad = bar_width - lpad;
+            printf("\r%3d%% |%.*s%*s|  %12ums", val, lpad, bar_buffer.c_str(), rpad, "", (unsigned)t);
 
-            ++calls;
+            if (t==tfinal) {
+                // Print new line and reset counters on the last step.
+                printf("\n");
+                t0 = tfinal;
+                first = true;
+            }
+            fflush(stdout);
         }
     };
 

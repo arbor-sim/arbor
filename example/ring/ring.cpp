@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
 
         // Write spikes to file
         if (root) {
-            std::cout << "\n\n" << ns << " spikes generated at rate of "
+            std::cout << "\n" << ns << " spikes generated at rate of "
                       << params.duration/ns << " ms between spikes\n";
             std::ofstream fid("spikes.gdf");
             if (!fid.good()) {
