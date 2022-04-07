@@ -11,8 +11,7 @@ class recipe (A.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = A.neuron_cable_properties()
-        self.the_cat = A.default_catalogue()
-        self.the_props.register(self.the_cat)
+        self.the_props.catalogue = A.default_catalogue()
 
     def num_cells(self):
         return 1
@@ -43,7 +42,7 @@ dec.discretization(A.cv_policy('(max-extent 5)'))
 dec.set_ion('na', int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
 dec.paint('(tag 1)', ion_name="na", int_con=100.0, diff=0.01)
 
-prb = [A.cable_probe_ion_int_concentration_cell('na'),]
+prb = [A.cable_probe_ion_diff_concentration_cell('na'),]
 cel = A.cable_cell(tree, A.label_dict(), dec)
 rec = recipe(cel, prb)
 ctx = A.context()
