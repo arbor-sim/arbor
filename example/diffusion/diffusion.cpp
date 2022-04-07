@@ -44,19 +44,19 @@ struct recipe: public arb::recipe {
 
         arb::decor decor;
         decor.set_default(arb::init_int_concentration{"na", 0.2});
-        decor.set_default(arb::ion_diffusivity{"na", 0.05});
+        decor.set_default(arb::ion_diffusivity{"na", 1e-12});
         decor.paint("soma"_lab, arb::init_int_concentration{"na", 1.2});
-        decor.paint("soma"_lab, arb::density("hh"));
-        decor.place("(location 0 0.5)"_ls, arb::synapse("inject"), "Zap");
+        // decor.paint("soma"_lab, arb::density("hh"));
+        // decor.place("(location 0 0.5)"_ls, arb::synapse("inject"), "Zap");
         decor.paint("(all)"_reg, arb::density("decay"));
-        decor.paint("dend"_lab, arb::density("pas"));
+        // decor.paint("dend"_lab, arb::density("pas"));
 
         return arb::cable_cell(morph, dict, decor);
     }
 
-    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
-        return {arb::explicit_generator({{{"Zap"}, 0.002, 0.005}})};
-    }
+    // std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        // return {arb::explicit_generator({{{"Zap"}, 0.002, 0.005}})};
+    // }
 
     arb::cable_cell_global_properties gprop;
 };
@@ -67,6 +67,7 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
     auto n_cable = ptr->size();
     std::cout << "index=" << pm.index << " id=" << pm.id << " tag=" << pm.tag << '\n';
     std::cout << std::fixed << std::setprecision(4);
+    return;
     for (std::size_t i = 0; i<n; ++i) {
         auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
         assert(value_range);
@@ -92,5 +93,5 @@ int main(int argc, char** argv) {
                     arb::regular_schedule(0.01),
                     sampler);
 
-    sim.run(0.02, 0.005);
+    sim.run(0.2, 0.005);
 }

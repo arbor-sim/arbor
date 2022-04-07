@@ -322,7 +322,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << popindent << "}\n\n";
 
     out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
-    emit_body(current_api);
+    emit_body(current_api, true);
     out << popindent << "}\n\n";
 
     out << "static void write_ions(arb_mechanism_ppack* pp) {\n" << indent;
