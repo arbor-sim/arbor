@@ -27,9 +27,11 @@ struct recipe: public arb::recipe {
     arb::cell_size_type num_cells()                             const override { return 1; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type)            const override { return arb::cell_kind::cable; }
     std::any get_global_properties(arb::cell_kind)              const override { return gprop; }
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::cable_probe_membrane_voltage_cell{}}; }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::cable_probe_ion_diff_concentration_cell{"na"}}; }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
+        // Stick morphology
+        // O-----
         arb::segment_tree tree;
         auto p = arb::mnpos;
         p = tree.append(p, {-3, 0, 0, 3}, { 3, 0, 0, 3}, 1);
@@ -63,6 +65,7 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
     auto ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
     assert(ptr);
     auto n_cable = ptr->size();
+    std::cout << "index=" << pm.index << " id=" << pm.id << " tag=" << pm.tag << '\n';
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
         auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
@@ -86,7 +89,7 @@ int main(int argc, char** argv) {
                         context);
 
     sim.add_sampler(arb::all_probes,
-                    arb::regular_schedule(0.1),
+                    arb::regular_schedule(0.01),
                     sampler);
 
     sim.run(0.02, 0.005);

@@ -767,6 +767,8 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
         cable_probe_ion_current_cell,
         cable_probe_ion_int_concentration,
         cable_probe_ion_int_concentration_cell,
+        cable_probe_ion_diff_concentration,
+        cable_probe_ion_diff_concentration_cell,
         cable_probe_ion_ext_concentration,
         cable_probe_ion_ext_concentration_cell>;
 
@@ -1095,6 +1097,16 @@ void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_
     }
 }
 
+template <typename B>
+void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
+    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+        auto opt_i = R.ion_location_index(p.ion, loc);
+        if (!opt_i) continue;
+
+        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).Xd_.data()+*opt_i}, loc});
+    }
+}
+
 // Common implementation for int and ext concentrations across whole cell:
 template <typename B>
 void resolve_ion_conc_common(const std::vector<fvm_index_type>& ion_cvs, const fvm_value_type* src, probe_resolution_data<B>& R) {
@@ -1124,6 +1136,12 @@ template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
     resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xo_.data(), R);
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_ion_diff_concentration_cell& p, probe_resolution_data<B>& R) {
+    if (!R.state->ion_data.count(p.ion)) return;
+    resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xd_.data(), R);
 }
 
 } // namespace arb

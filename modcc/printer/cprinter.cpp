@@ -52,7 +52,7 @@ struct index_prop {
 void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
-void emit_api_body(std::ostream&, APIMethod*, bool cv_loop = true, bool ppack_iface=true);
+void emit_api_body(std::ostream&, APIMethod*, bool cv_loop = true, bool ppack_iface=true, bool use_additive=false);
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
 void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices, simd_expr_constraint constraint);
 
@@ -230,11 +230,11 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     }
 
     // Make implementations
-    auto emit_body = [&](APIMethod *p) {
+    auto emit_body = [&](APIMethod *p, bool add=false) {
         if (with_simd) {
-            emit_simd_api_body(out, p, vars.scalars);
+            emit_simd_api_body(out, p, vars.scalars); // TODO add additive
         } else {
-            emit_api_body(out, p);
+            emit_api_body(out, p, true, true, add);
         }
     };
 
@@ -318,7 +318,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << popindent << "}\n\n";
 
     out << "static void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
-    emit_body(state_api);
+    emit_body(state_api, true);
     out << popindent << "}\n\n";
 
     out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
@@ -343,7 +343,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                            pp_var_pfx,
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent << indent;
-        emit_api_body(out, net_receive_api, false, false);
+        emit_api_body(out, net_receive_api, false, false, true);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     } else {
         out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
@@ -554,7 +554,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     EXIT(out);
 }
 
-void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
+void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, bool use_additive) {
     if (!external->is_write()) return;
     ENTER(out);
     auto d = decode_indexed_variable(external);
@@ -565,7 +565,9 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     }
 
     if (d.additive) {
-        out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
+        if (use_additive) {
+            out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
+        }
     } else {
         if (d.accumulate) {
             out << deref(d) << " = fma("
@@ -579,7 +581,7 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     EXIT(out);
 }
 
-void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppack_iface) {
+void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppack_iface, bool use_additive) {
     ENTER(out);
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
@@ -599,7 +601,7 @@ void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppac
         out << cprint(body);
 
         for (auto& sym: indexed_vars) {
-            emit_state_update(out, sym, sym->external_variable());
+            emit_state_update(out, sym, sym->external_variable(), use_additive);
         }
         cv_loop && out << popindent << "}\n";
     }

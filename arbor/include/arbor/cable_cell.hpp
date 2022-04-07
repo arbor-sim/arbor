@@ -162,6 +162,21 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_int_concentration_cell {
     std::string ion;
 };
 
+// Ionic diffusive concentration [mmol/L] of ion `source` at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_diff_concentration {
+    locset locations;
+    std::string ion;
+};
+
+// Ionic diffusiev concentration [mmol/L] of ion `source` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_diff_concentration_cell {
+    std::string ion;
+};
+
 // Ionic external concentration [mmol/L] of ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
