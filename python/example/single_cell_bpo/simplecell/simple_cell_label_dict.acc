@@ -1,9 +1,8 @@
 (arbor-component
   (meta-data (version "0.1-dev"))
   (label-dict 
-    (region-def "all" (tag 0)) 
-    (region-def "apical" (tag 1)) 
-    (region-def "axonal" (tag 2)) 
-    (region-def "basal" (tag 3)) 
-    (region-def "somatic" (tag 4)) 
-    (region-def "myelinated" (tag 5))))
+    (region-def "all" (all)) 
+    (region-def "apic" (tag 4)) 
+    (region-def "axon" (tag 2)) 
+    (region-def "dend" (tag 3)) 
+    (region-def "soma" (tag 1)) ))

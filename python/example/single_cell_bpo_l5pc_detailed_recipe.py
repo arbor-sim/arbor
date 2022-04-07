@@ -33,7 +33,7 @@ if False:
 # Add a label for the parts of the morphology with radius greater than 1.5 μm.
 labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
 # Join regions "last" and "gt_1.5"
-labels['custom'] = '(join (region "last") (region "gt_1.5"))'
+labels['custom'] = '(join (region "dend") (region "gt_1.5"))'
 
 # Locsets:
 
@@ -43,7 +43,7 @@ labels['terminal'] = '(terminal)'
 # Add a label for the terminal locations in the "custom" region:
 labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
 # Add a label for the terminal locations in the "axon" region:
-labels['axonal_terminal'] = '(restrict (locset "terminal") (region "axonal"))'
+labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
 
 # (3) Create and populate the decor.
 
@@ -63,15 +63,15 @@ if False:
     decor.paint('"dend"', density('Ih', {'gbar': 0.001}))
 
 # Place stimuli and spike detectors.
-decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
-decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
-decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
-decor.place('"axonal_terminal"', arbor.spike_detector(-10), 'detector')
+decor.place('"root"', arbor.iclamp(10, 10, current=50), 'iclamp0')
+decor.place('"root"', arbor.iclamp(30, 1, current=20), 'iclamp1')
+decor.place('"root"', arbor.iclamp(50, 1, current=20), 'iclamp2')
+decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
 
 # Single CV for the "soma" region
-soma_policy = arbor.cv_policy_single('"somatic"')
+soma_policy = arbor.cv_policy_single('"soma"')
 # Single CV for the "soma" region
-dflt_policy = arbor.cv_policy_max_extent(1.0)
+dflt_policy = arbor.cv_policy_max_extent(10)
 # default policy everywhere except the soma
 policy = dflt_policy | soma_policy
 # Set cv_policy
@@ -79,11 +79,11 @@ decor.discretization(policy)
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morpho, labels, decor)
+cell = arbor.cable_cell(morpho.morphology, labels, decor)
 
 # (5) Declare a probe.
 
-probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
+probe = arbor.cable_probe_membrane_voltage('"axon_terminal"')
 
 # (6) Create a class that inherits from arbor.recipe
 class single_recipe (arbor.recipe):
@@ -96,7 +96,7 @@ class single_recipe (arbor.recipe):
         self.the_cell = cell
         self.the_probes = probes
 
-        self.the_props = arbor.cable_global_properties()
+        self.the_props = arbor.neuron_cable_properties()
         if False:
             self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
             self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')

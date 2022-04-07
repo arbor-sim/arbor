@@ -1,6 +1,6 @@
 { 
   "cell_model_name": "l5pc",
-  "produced_by": "Created by BluePyOpt(1.12.4) at 2022-03-17 17:55:13.338184", 
+  "produced_by": "Created by BluePyOpt(1.12.5) at 2022-04-06 17:58:14.571857", 
   "morphology": "C060114A7.asc",
   "label_dict": "l5pc_label_dict.acc",
   "decor": "l5pc_decor.acc"
