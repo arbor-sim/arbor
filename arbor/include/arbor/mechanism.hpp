@@ -102,6 +102,9 @@ struct mechanism_layout {
     // Number of logical point processes at in-instance index;
     // if empty, point processes are not coalesced and all multipliers are 1.
     std::vector<fvm_index_type> multiplicity;
+
+    std::vector<arb_size_type> gids;
+    std::vector<arb_size_type> inst_ids;
 };
 
 struct mechanism_overrides {

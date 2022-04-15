@@ -86,6 +86,11 @@ void CExprEmitter::visit(UnaryExpression* e) {
 }
 
 void CExprEmitter::visit(AssignmentExpression* e) {
+    auto lhs = e->lhs();
+    if (lhs->is_identifier() &&
+        lhs->is_identifier()->symbol() &&
+        lhs->is_identifier()->symbol()->is_white_noise())
+            out_ << "auto ";
     e->lhs()->accept(this);
     out_ << " = ";
     e->rhs()->accept(this);

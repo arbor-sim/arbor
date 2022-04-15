@@ -440,6 +440,14 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
+void shared_state::set_prng_states(mechanism& m, const std::vector<arb_size_type>& values)
+{
+    if (!m.ppack_.width) return;
+    arb_size_type* data = m.ppack_.prng_states[0];
+    auto width_padded = extend_width<arb_size_type>(m, m.ppack_.width);
+    copy_extend(values, util::range_n(data, width_padded), values.back());
+}
+
 // The derived class (typically generated code from modcc) holds pointers that need
 // to be set to point inside the shared state, or into the allocated parameter/variable
 // data block.
@@ -497,6 +505,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     store.parameters_.resize(m.mech_.n_parameters); m.ppack_.parameters = store.parameters_.data();
     store.ion_states_.resize(m.mech_.n_ions);       m.ppack_.ion_states = store.ion_states_.data();
 
+    store.prng_states_.resize(3); m.ppack_.prng_states = store.prng_states_.data();
+
     // Set ion views
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
@@ -523,7 +533,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
-
+        
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
         for (auto idx: make_span(m.mech_.n_globals)) {
@@ -585,6 +595,17 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
+    }
+
+    // make bulk size index storage for PRNG
+    {
+        // Allocate bulk storage
+        std::size_t index_width_padded = extend_width<arb_size_type>(m, pos_data.cv.size());
+        std::size_t count = 2;
+        store.sindices_ = sarray(count*index_width_padded, 0, pad);
+        chunk_writer writer(store.sindices_.data(), index_width_padded);
+        m.ppack_.prng_states[0] = writer.append(pos_data.gids, 0);
+        m.ppack_.prng_states[1] = writer.append(pos_data.inst_ids, 0);
     }
 }
 

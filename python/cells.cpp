@@ -505,6 +505,8 @@ void register_cells(pybind11::module& m) {
         .def("check", [](const arb::cable_cell_global_properties& props) {
                 arb::check_global_properties(props);},
                 "Test whether all default parameters and ion species properties have been set.")
+        .def_readwrite("coalesce_synapses",  &arb::cable_cell_global_properties::coalesce_synapses,
+                "Flag for enabling/disabling linear syanpse coalescing.")
         // set cable properties
         .def("set_property",
             [](arb::cable_cell_global_properties& props,

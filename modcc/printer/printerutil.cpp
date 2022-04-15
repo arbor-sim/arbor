@@ -76,6 +76,8 @@ ARB_LIBMODCC_API public_variable_ids_t public_variable_ids(const Module& m) {
         }
     }
 
+    ids.white_noise_ids = m.white_noise_block().parameters;
+
     return ids;
 }
 
@@ -227,6 +229,20 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::diameter:
         v.data_var = "diam_um";
         v.readonly = true;
+        break;
+    case sourceKind::gid:
+        v.data_var = "gid";
+        v.readonly = true;
+        v.other_index_var = "";
+        v.node_index_var = "";
+        v.index_var_kind = index_kind::other;
+        break;
+    case sourceKind::mech_inst:
+        v.data_var = "mech_inst";
+        v.readonly = true;
+        v.other_index_var = "";
+        v.node_index_var = "";
+        v.index_var_kind = index_kind::other;
         break;
     default:
         throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());

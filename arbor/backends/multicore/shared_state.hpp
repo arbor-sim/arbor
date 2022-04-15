@@ -110,11 +110,13 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
+        sarray sindices_;
         constraint_partition constraints_;
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
+        std::vector<arb_size_type*>   prng_states_;
     };
 
     unsigned alignment = 1;   // Alignment and padding multiple.
@@ -166,6 +168,8 @@ struct ARB_ARBOR_API shared_state {
     void instantiate(mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+
+    void set_prng_states(mechanism&, const std::vector<arb_size_type>&);
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 

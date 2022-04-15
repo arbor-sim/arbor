@@ -23,6 +23,7 @@ class ARB_LIBMODCC_API BlockExpression;
 class ARB_LIBMODCC_API IfExpression;
 class ARB_LIBMODCC_API LocalDeclaration;
 class ARB_LIBMODCC_API ArgumentExpression;
+class ARB_LIBMODCC_API APIFunctionCallExpression;
 class ARB_LIBMODCC_API FunctionExpression;
 class ARB_LIBMODCC_API DerivativeExpression;
 class ARB_LIBMODCC_API PrototypeExpression;
@@ -51,6 +52,7 @@ class ARB_LIBMODCC_API PostEventExpression;
 class ARB_LIBMODCC_API APIMethod;
 class ARB_LIBMODCC_API IndexedVariable;
 class ARB_LIBMODCC_API LocalVariable;
+class ARB_LIBMODCC_API WhiteNoise;
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
@@ -94,6 +96,7 @@ enum class symbolKind {
     variable,         ///< variable at module scope
     indexed_variable, ///< a variable that is indexed
     local_variable,   ///< variable at local scope
+    white_noise,      ///< white noise variable
 };
 std::string to_string(symbolKind k);
 
@@ -101,6 +104,7 @@ std::string to_string(symbolKind k);
 enum class solverMethod {
     cnexp, // for diagonal linear ODE systems.
     sparse, // for non-diagonal linear ODE systems.
+    stochastic,
     none
 };
 
@@ -113,6 +117,7 @@ static std::string to_string(solverMethod m) {
     switch(m) {
         case solverMethod::cnexp:  return std::string("cnexp");
         case solverMethod::sparse: return std::string("sparse");
+        case solverMethod::stochastic: return std::string("stochastic");
         case solverMethod::none:   return std::string("none");
     }
     return std::string("<error : undefined solverMethod>");
@@ -160,34 +165,35 @@ public:
     virtual expression_ptr clone() const;
 
     // easy lookup of properties
-    virtual CallExpression*        is_call()              {return nullptr;}
-    virtual CallExpression*        is_function_call()     {return nullptr;}
-    virtual CallExpression*        is_procedure_call()    {return nullptr;}
-    virtual BlockExpression*       is_block()             {return nullptr;}
-    virtual IfExpression*          is_if()                {return nullptr;}
-    virtual LocalDeclaration*      is_local_declaration() {return nullptr;}
-    virtual ArgumentExpression*    is_argument()          {return nullptr;}
-    virtual FunctionExpression*    is_function()          {return nullptr;}
-    virtual DerivativeExpression*  is_derivative()        {return nullptr;}
-    virtual PrototypeExpression*   is_prototype()         {return nullptr;}
-    virtual IdentifierExpression*  is_identifier()        {return nullptr;}
-    virtual NumberExpression*      is_number()            {return nullptr;}
-    virtual IntegerExpression*     is_integer()           {return nullptr;}
-    virtual BinaryExpression*      is_binary()            {return nullptr;}
-    virtual UnaryExpression*       is_unary()             {return nullptr;}
-    virtual AssignmentExpression*  is_assignment()        {return nullptr;}
-    virtual ConserveExpression*    is_conserve()          {return nullptr;}
-    virtual LinearExpression*      is_linear()            {return nullptr;}
-    virtual ReactionExpression*    is_reaction()          {return nullptr;}
-    virtual StoichExpression*      is_stoich()            {return nullptr;}
-    virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
-    virtual ConditionalExpression* is_conditional()       {return nullptr;}
-    virtual CompartmentExpression* is_compartment()       {return nullptr;}
-    virtual InitialBlock*          is_initial_block()     {return nullptr;}
-    virtual SolveExpression*       is_solve_statement()   {return nullptr;}
-    virtual Symbol*                is_symbol()            {return nullptr;}
-    virtual ConductanceExpression* is_conductance_statement() {return nullptr;}
-    virtual PDiffExpression*       is_pdiff()             {return nullptr;}
+    virtual CallExpression*            is_call()              {return nullptr;}
+    virtual CallExpression*            is_function_call()     {return nullptr;}
+    virtual CallExpression*            is_procedure_call()    {return nullptr;}
+    virtual BlockExpression*           is_block()             {return nullptr;}
+    virtual IfExpression*              is_if()                {return nullptr;}
+    virtual LocalDeclaration*          is_local_declaration() {return nullptr;}
+    virtual ArgumentExpression*        is_argument()          {return nullptr;}
+    virtual APIFunctionCallExpression* is_api_function_call() {return nullptr;}
+    virtual FunctionExpression*        is_function()          {return nullptr;}
+    virtual DerivativeExpression*      is_derivative()        {return nullptr;}
+    virtual PrototypeExpression*       is_prototype()         {return nullptr;}
+    virtual IdentifierExpression*      is_identifier()        {return nullptr;}
+    virtual NumberExpression*          is_number()            {return nullptr;}
+    virtual IntegerExpression*         is_integer()           {return nullptr;}
+    virtual BinaryExpression*          is_binary()            {return nullptr;}
+    virtual UnaryExpression*           is_unary()             {return nullptr;}
+    virtual AssignmentExpression*      is_assignment()        {return nullptr;}
+    virtual ConserveExpression*        is_conserve()          {return nullptr;}
+    virtual LinearExpression*          is_linear()            {return nullptr;}
+    virtual ReactionExpression*        is_reaction()          {return nullptr;}
+    virtual StoichExpression*          is_stoich()            {return nullptr;}
+    virtual StoichTermExpression*      is_stoich_term()       {return nullptr;}
+    virtual ConditionalExpression*     is_conditional()       {return nullptr;}
+    virtual CompartmentExpression*     is_compartment()       {return nullptr;}
+    virtual InitialBlock*              is_initial_block()     {return nullptr;}
+    virtual SolveExpression*           is_solve_statement()   {return nullptr;}
+    virtual Symbol*                    is_symbol()            {return nullptr;}
+    virtual ConductanceExpression*     is_conductance_statement() {return nullptr;}
+    virtual PDiffExpression*           is_pdiff()             {return nullptr;}
 
     virtual bool is_lvalue() const {return false;}
     virtual bool is_global_lvalue() const {return false;}
@@ -239,6 +245,7 @@ public :
     virtual APIMethod*            is_api_method()        {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
+    virtual WhiteNoise*           is_white_noise()       {return nullptr;}
 
 private :
     std::string name_;
@@ -248,6 +255,10 @@ private :
 
 enum class localVariableKind {
     local, argument
+};
+
+enum class localVariableType {
+    value, size
 };
 
 // an identifier
@@ -573,9 +584,11 @@ class ARB_LIBMODCC_API LocalVariable : public Symbol {
 public :
     LocalVariable(Location loc,
                   std::string name,
-                  localVariableKind kind=localVariableKind::local)
+                  localVariableKind kind=localVariableKind::local,
+                  localVariableType type=localVariableType::value)
     :   Symbol(std::move(loc), std::move(name), symbolKind::local_variable),
-        kind_(kind)
+        kind_(kind),
+        type_(type)
     {}
 
     LocalVariable* is_local_variable() override {
@@ -584,6 +597,10 @@ public :
 
     localVariableKind kind() const {
         return kind_;
+    }
+
+    localVariableType type() const {
+        return type_;
     }
 
     bool is_indexed() const {
@@ -626,8 +643,33 @@ public :
 private :
     IndexedVariable *external_=nullptr;
     localVariableKind kind_;
+    localVariableType type_;
 };
 
+class ARB_LIBMODCC_API WhiteNoise : public Symbol {
+public:
+    WhiteNoise(Location loc, std::string name)
+    :   Symbol(std::move(loc), std::move(name), symbolKind::white_noise),
+        index_(get_index())
+    {}
+    
+    ~WhiteNoise() {}
+
+    WhiteNoise* is_white_noise() override {return this; }
+
+    std::string to_string() const override;
+    void accept(Visitor *v) override;
+
+    unsigned int index() const noexcept { return index_; }
+
+private:
+    static unsigned int get_index()
+    {
+        static unsigned int idx_ = 0;
+        return idx_++;
+    }
+    unsigned int index_ = 0;
+};
 
 // a SOLVE statement
 class ARB_LIBMODCC_API SolveExpression : public Expression {
@@ -1185,6 +1227,40 @@ private:
 
     std::vector<expression_ptr> args_;
     expression_ptr body_;
+};
+
+class ARB_LIBMODCC_API APIFunctionCallExpression : public Expression {
+protected:
+    std::string name_;
+    std::vector<expression_ptr> args_;
+public:
+    APIFunctionCallExpression(std::string const & name, std::vector<expression_ptr>&& args)
+    :   Expression(Location{}),
+        name_{name},
+        args_{std::move(args)}
+    {
+        //args_.reserve(args.size());
+        //for (auto& e : args) {
+        //    auto id = e->is_identifier();
+        //    if (!id)
+        //        throw compiler_exception(
+        //        " attempt to initialize APIFunctionCallExpression with non-identifier expressions, i.e.\n"
+        //        + e->to_string(), location_);
+        //    args_.push_back( make_expression<IdentifierExpression>(Location{}, id->spelling()) );
+        //}
+    }
+
+    std::string const& name() const {
+        return name_;
+    }
+    std::vector<expression_ptr>& arguments() { return args_; }
+    std::vector<expression_ptr> const & arguments() const { return args_; }
+
+    APIFunctionCallExpression* is_api_function_call() override {return this;}
+    std::string to_string() const override;
+    void accept(Visitor *v) override;
+    expression_ptr clone() const override;
+    void semantic(scope_ptr scp) override;
 };
 
 ////////////////////////////////////////////////////////////

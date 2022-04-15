@@ -634,6 +634,9 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
                 arb_assert(L.param_values[j].first==R.param_values[j].first);
                 append(L.param_values[j].second, R.param_values[j].second);
             }
+
+            append(L.gids, R.gids);
+            append(L.inst_ids, R.inst_ids);
         }
     }
 
@@ -703,7 +706,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx);
+    fvm_size_type cell_idx,
+    cell_gid_type gid);
 
 ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
@@ -715,7 +719,7 @@ ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
 {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
-        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i);
+        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i, gids[i]);
     });
 
     fvm_mechanism_data combined;
@@ -732,7 +736,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx)
+    fvm_size_type cell_idx,
+    cell_gid_type gid)
 {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -842,6 +847,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         std::vector<double> param_on_cv(n_param);
 
+        arb_size_type inst_id = 0;
         for (auto cv: D.geometry.cell_cvs(cell_idx)) {
             double area = 0;
             util::fill(param_on_cv, 0.);
@@ -864,6 +870,10 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 for (auto i: count_along(param_on_cv)) {
                     config.param_values[i].second.push_back(param_on_cv[i]*oo_area);
                 }
+                // tuple (gid, mech_id, inst_id) gives unique identifier for any mechanism and can
+                // be used to prime the RNG for multistreaming
+                config.gids.push_back(gid);
+                config.inst_ids.push_back(inst_id++);
             }
         }
 
@@ -1022,6 +1032,11 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 }
             }
             config.target.push_back(in.target_index);
+
+            // tuple (gid, mech_id, i) gives unique identifier for any mechanism and can
+            // be used to prime the RNG for multistreaming (i is intance id per cell)
+            config.gids.push_back(gid);
+            config.inst_ids.push_back(i);
 
             prev = &in;
         }

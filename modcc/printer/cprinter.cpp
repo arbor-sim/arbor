@@ -167,6 +167,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         << "\n"
         "using ::arb::math::exprelr;\n"
         "using ::arb::math::safeinv;\n"
+        "using ::arb::math::normal_rand;\n"
         "using ::std::abs;\n"
         "using ::std::cos;\n"
         "using ::std::exp;\n"
@@ -238,7 +239,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         }
     };
 
-    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);
+    const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
     const auto& assigned_ids = module_.assigned_block().parameters;
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
@@ -266,6 +267,8 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
+    out << fmt::format("[[maybe_unused]] auto* {}gid = pp->prng_states[0];\\\n", pp_var_pfx);
+    out << fmt::format("[[maybe_unused]] auto* {}mech_inst = pp->prng_states[1];\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
         out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
@@ -443,6 +446,26 @@ void CPrinter::visit(IdentifierExpression *e) {
 void CPrinter::visit(LocalVariable* sym) {
     out_ << sym->name();
 }
+    
+void CPrinter::visit(WhiteNoise* sym) {
+    out_ << sym->name();
+}
+
+void CPrinter::visit(APIFunctionCallExpression* e) {
+    out_
+        << e->name()
+        << fmt::format(FMT_COMPILE("(i_, {0}mechanism_id"), pp_var_pfx);
+    auto& args = e->is_api_function_call()->arguments();
+    for (unsigned i=0; i<args.size(); ++i) {
+        auto& expr = args[i];
+        out_ << ", ";
+        if (expr->is_integer())
+            out_ << expr->is_integer()->integer_value();
+        else
+            expr->accept(this);
+        if (i==(args.size()-1)) out_ << ")";
+    }
+}
 
 void CPrinter::visit(VariableExpression *sym) {
     out_ << fmt::format("{}{}{}", pp_var_pfx, sym->name(), sym->is_range() ? "[i_]": "");
@@ -474,7 +497,7 @@ void CPrinter::visit(BlockExpression* block) {
     }
 
     for (auto& stmt: block->statements()) {
-        if (!stmt->is_local_declaration()) {
+        if (!stmt->is_local_declaration() && !stmt->is_api_function_call()) {
             stmt->accept(this);
             out_ << (stmt->is_if()? "": ";\n");
         }
@@ -532,6 +555,7 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
                     indices.push_back(index_var);
                 }
                 else {
+                    if (source_index_i_name(index_var) != "i_")
                     indices.push_front(index_var);
                 }
             }
@@ -542,7 +566,8 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
-    out << "arb_value_type " << cprint(local) << " = ";
+    //out << "arb_value_type " << cprint(local) << " = ";
+    out << "auto " << cprint(local) << " = ";
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());

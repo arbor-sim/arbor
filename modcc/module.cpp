@@ -18,6 +18,8 @@
 #include "symdiff.hpp"
 #include "visitor.hpp"
 
+//#define LOGGING
+
 class NrnCurrentRewriter: public BlockRewriterBase {
     expression_ptr id(const std::string& name, Location loc) {
         return make_expression<IdentifierExpression>(loc, name);
@@ -142,9 +144,9 @@ bool Module::semantic() {
     // that all symbols are correctly used
     ////////////////////////////////////////////////////////////////////////////
 
-    // first add variables defined in the NEURON, ASSIGNED and PARAMETER
+    // first add variables defined in the NEURON, ASSIGNED, WHITE_NOISE and PARAMETER
     // blocks these symbols have "global" scope, i.e. they are visible to all
-    // functions and procedurs in the mechanism
+    // functions and procedures in the mechanism
     add_variables_to_symbols();
 
     // Helper which iterates over a vector of Symbols, moving them into the
@@ -153,6 +155,7 @@ bool Module::semantic() {
     // is already in the symbol table.
     bool linear_homogeneous = true;
     std::vector<std::string> state_vars;
+    std::vector<std::string> white_noise_vars;
     auto move_symbols = [this] (std::vector<symbol_ptr>& symbol_list) {
         for(auto& symbol: symbol_list) {
             bool is_found = (symbols_.find(symbol->name()) != symbols_.end());
@@ -257,6 +260,13 @@ bool Module::semantic() {
     for (auto& sym: symbols_) {
         Location loc;
 
+        // get white noise variable names
+        auto wn = sym.second->is_white_noise();
+        if (wn) {
+            white_noise_vars.push_back(wn->name());
+            continue;
+        }
+
         auto state = sym.second->is_variable();
         if (!state || !state->is_state()) continue;
         state_vars.push_back(state->name());
@@ -300,6 +310,11 @@ bool Module::semantic() {
 
     for(auto& e : *proc_init->body()) {
         auto solve_expression = e->is_solve_statement();
+        if (!white_noise_vars.empty() && involves_identifier(e, white_noise_vars)) {
+            error("An error occured while compiling the INITIAL block. "
+                  "White noise is not allowed.", e->location());
+            return false;
+        }
         if (solve_expression) {
             // Grab SOLVE statements, put them in `body` after translation.
             std::set<std::string> solved_ids;
@@ -402,19 +417,33 @@ bool Module::semantic() {
         // Calculate linearity and homogeneity of the statements in the derivative block.
         bool linear = true;
         bool homogeneous = true;
+        bool stochastic = false;
+        bool needs_substitution = false;
         for (auto& s: solve_body->is_block()->statements()) {
+            if (!white_noise_vars.empty() && involves_identifier(s, white_noise_vars))
+                stochastic = true;
             if(s->is_assignment() && !state_vars.empty()) {
                 linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                if (!s->is_assignment()->lhs()->is_derivative() && !r.is_constant)
+                    needs_substitution = true;
                 linear &= r.is_linear;
                 homogeneous &= r.is_homogeneous;
             }
         }
         linear_homogeneous &= (linear & homogeneous);
 
+        if (stochastic && (solve_expression->method() != solverMethod::stochastic)) {
+            error("SOLVE expression '" + solve_expression->name() + "' involves white noise and can "
+                  "only be solved using the stochastic method", solve_expression->location());
+            return false;
+        }
+
         // Construct solver based on system kind, linearity and solver method.
         std::unique_ptr<SolverVisitorBase> solver;
         switch(solve_expression->method()) {
         case solverMethod::cnexp:
+            if (needs_substitution)
+                warning("Assignments to local variables containing state variables will not be integrated in time");
             solver = std::make_unique<CnexpSolverVisitor>();
             break;
         case solverMethod::sparse: {
@@ -426,6 +455,9 @@ bool Module::semantic() {
             }
             break;
         }
+        case solverMethod::stochastic:
+                solver = std::make_unique<EulerMaruyamaSolverVisitor>(white_noise_vars);
+            break;
         case solverMethod::none:
             if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
@@ -437,6 +469,7 @@ bool Module::semantic() {
         }
         // Perform semantic analysis on the solve block statements and solve them.
         solve_body->semantic(advance_state_scope);
+
         solve_body->accept(solver.get());
 
         if (auto solve_block = solver->as_block(false)) {
@@ -456,7 +489,6 @@ bool Module::semantic() {
             // Copy body into advance_state.
             for (auto& stmt: solve_block->is_block()->statements()) {
                 api_state->body()->statements().push_back(std::move(stmt));
-
             }
         }
         else {
@@ -581,6 +613,15 @@ void Module::add_variables_to_symbols() {
             make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
     };
 
+    auto create_white_noise = [this](Token const & token) -> symbol_ptr&
+    {
+        if (symbols_.count(token.spelling)) {
+            throw compiler_exception(
+                pprintf("the symbol % already exists", yellow(token.spelling)), token.location);
+        }
+        return symbols_[token.spelling] = make_symbol<WhiteNoise>(token.location, token.spelling);
+    };
+
     sourceKind current_kind = kind_==moduleKind::density? sourceKind::current_density: sourceKind::current;
     sourceKind conductance_kind = kind_==moduleKind::density? sourceKind::conductivity: sourceKind::conductance;
 
@@ -593,6 +634,9 @@ void Module::add_variables_to_symbols() {
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
     // indirection in printers.
+    create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
+    create_indexed_variable("gid", sourceKind::gid, accessKind::read, "", Location());
+    create_indexed_variable("mech_inst", sourceKind::mech_inst, accessKind::read, "", Location());
 
     // Add state variables.
     for (const Id& id: state_block_) {
@@ -616,7 +660,7 @@ void Module::add_variables_to_symbols() {
             create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
         }
         else if (id.name() == "t") {
-            create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
+            //create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
         }
         else {
             // Parameters are scalar by default, but may later be changed to range.
@@ -763,6 +807,10 @@ void Module::add_variables_to_symbols() {
                 "unable to find symbol " + yellow(var.spelling) + " in symbols",
                 var.location);
         }
+    }
+
+    for (const Id& id: white_noise_block_) {
+        create_white_noise(id.token);
     }
 }
 

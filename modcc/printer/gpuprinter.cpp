@@ -145,7 +145,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                    "auto& {0}index_constraints __attribute__((unused)) = params_.index_constraints;\\\n"),
                        pp_var_pfx);
 
-    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);
+    const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
     const auto& assigned_ids = module_.assigned_block().parameters;
 
     auto global = 0;

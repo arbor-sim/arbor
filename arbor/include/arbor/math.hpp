@@ -238,6 +238,17 @@ inline quaternion rotation_z(double psi) {
     return {std::cos(psi/2), 0, 0, std::sin(psi/2)};
 }
 
+inline double normal_rand(
+    std::uint64_t i_, 
+    std::uint64_t mech_id,
+    std::uint64_t var_id,
+    std::uint64_t gid,
+    double time,
+    std::uint64_t mech_inst)
+{
+    return 0;
+}
+
 } // namespace math
 } // namespace arb
 

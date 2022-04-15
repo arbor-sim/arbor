@@ -11,6 +11,8 @@ inline std::string to_string(symbolKind k) {
             return std::string("indexed variable");
         case symbolKind::local_variable:
             return std::string("local");
+        case symbolKind::white_noise:
+            return std::string("white noise");
         case symbolKind::procedure:
             return std::string("procedure");
         case symbolKind::function:
@@ -73,6 +75,18 @@ std::string LocalVariable::to_string() const {
     if(is_indexed()) {
         s += " -> " + yellow(external_->name());
     }
+    return s;
+}
+
+/*******************************************************************************
+  WhiteNoise
+*******************************************************************************/
+
+std::string WhiteNoise::to_string() const {
+    std::string s = blue("White Noise") + " " + yellow(name());
+    //if(is_indexed()) {
+    //    s += " -> " + yellow(external_->name());
+    //}
     return s;
 }
 
@@ -770,6 +784,33 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
 }
 
 /*******************************************************************************
+  APIFunctionCallExpression
+*******************************************************************************/
+
+std::string APIFunctionCallExpression::to_string() const {
+    std::string str = blue("API function call ") + " " + yellow(name()) + " ( ";
+    for (unsigned i=0; i<args_.size(); ++i)
+        if (i==(args_.size()-1))
+            str += args_[i]->to_string() + " )";
+        else
+            str += args_[i]->to_string() + ", ";
+    return str;
+}
+
+void APIFunctionCallExpression::semantic(scope_ptr scp) {
+    for (auto& expr : args_)
+        expr->semantic(scp);
+}
+
+expression_ptr APIFunctionCallExpression::clone() const {
+    std::vector<expression_ptr> new_args;
+    new_args.reserve(args_.size());
+    for (auto& arg : args_)
+        new_args.push_back(arg->clone());
+    return make_expression<APIFunctionCallExpression>(name(), std::move(new_args));
+}
+
+/*******************************************************************************
   UnaryExpression
 *******************************************************************************/
 void UnaryExpression::semantic(scope_ptr scp) {
@@ -1008,6 +1049,9 @@ void Symbol::accept(Visitor *v) {
 void LocalVariable::accept(Visitor *v) {
     v->visit(this);
 }
+void WhiteNoise::accept(Visitor *v) {
+    v->visit(this);
+}
 void IdentifierExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1063,6 +1107,9 @@ void PostEventExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void APIMethod::accept(Visitor *v) {
+    v->visit(this);
+}
+void APIFunctionCallExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void FunctionExpression::accept(Visitor *v) {

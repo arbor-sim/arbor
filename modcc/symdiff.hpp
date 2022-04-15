@@ -84,6 +84,7 @@ inline expression_ptr substitute(const expression_ptr& e, const substitute_map& 
 struct linear_test_result {
     bool is_linear = false;
     bool is_homogeneous = false;
+    bool is_constant = true;
     expression_ptr constant;
     std::map<std::string, expression_ptr> coef;
 

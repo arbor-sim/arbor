@@ -57,6 +57,7 @@ public:
     void parse_parameter_block();
     void parse_constant_block();
     void parse_assigned_block();
+    void parse_white_noise_block();
     void parse_title();
 
     std::unordered_map<std::string, std::string> constants_map_;

@@ -534,6 +534,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         layout.peer_cv = config.peer_cv;
         layout.weight.resize(layout.cv.size());
 
+        layout.gids = config.gids;
+        layout.inst_ids = config.inst_ids;
+        //layout.mech_inst.resize(layout.gids.size());
+
         std::vector<fvm_index_type> multiplicity_divs;
         auto multiplicity_part = util::make_partition(multiplicity_divs, layout.multiplicity);
 

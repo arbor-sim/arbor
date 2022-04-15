@@ -104,6 +104,9 @@ typedef struct arb_mechanism_ppack {
     arb_value_type** state_vars;                    // Array of integrable state.      (Array)
     arb_value_type*  globals;                       // Array of global constant state. (Scalar)
     arb_ion_state*   ion_states;                    // Array of views into shared state.
+
+    arb_size_type prng_seed;
+    arb_size_type** prng_states;
 } arb_mechanism_ppack;
 
 
@@ -206,6 +209,7 @@ typedef struct arb_mechanism_type {
     arb_size_type             n_parameters;
     arb_ion_info*             ions;             // Ion properties
     arb_size_type             n_ions;
+    arb_size_type             n_white_noise;
 } arb_mechanism_type;
 
 #ifdef __cplusplus

@@ -82,6 +82,13 @@ public:
         if (!found()) e->false_branch()->accept(this);
     }
 
+    void visit(APIFunctionCallExpression* e) override {
+        for (auto& arg : e->arguments()) {
+            if (found()) return;
+            arg->accept(this);
+        }
+    }
+
 private:
     const identifier_set& ids_;
     bool found_ = false;
@@ -669,7 +676,10 @@ ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector
         if (!coef) {
             return linear_test_result{};
         }
-        if (!is_zero(coef)) result.coef[id] = std::move(coef);
+        if (!is_zero(coef)) {
+            result.coef[id] = std::move(coef);
+            result.is_constant = false;
+        }
 
         result.constant = substitute(result.constant, id, zero());
     }
@@ -701,4 +711,3 @@ done:
 
     return result;
 }
-
