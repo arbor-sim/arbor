@@ -4,7 +4,7 @@
 #include <type_traits>
 
 // Generic accessors for event types used in `event_queue` and
-// `multi_event_stream`.
+// `event_stream`.
 //
 // 1. event_time(const Event&):
 //
@@ -15,14 +15,14 @@
 // 2. event_index(const Event&):
 //
 //    Returns the stream index associated with the event (an
-//    unsigned index type), for use with `multi_event_stream`.
+//    unsigned index type), for use with `event_stream`.
 //    Default implementation returns `e.index` for an event `e`.
 //
 // 3. event_data(const Event&):
 //
 //    Returns the event _payload_, viz. the event data that
 //    does not include (necessarily) the time or index. This
-//    is used with `multi_event_stream`.
+//    is used with `event_stream`.
 //    Default implementation returns `e.data` for an event `e`.
 //
 // The type aliases event_time_type<Event> and event_index_type<Event>

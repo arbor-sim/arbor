@@ -158,11 +158,9 @@ TEST(synapses, syn_basic_state) {
     state.deliverable_events.mark_until_after(state.time);
 
     auto marked = state.deliverable_events.marked_events();
-    arb_deliverable_event_stream evts;
-    evts.n_streams = marked.n;
-    evts.begin     = marked.begin_offset;
-    evts.end       = marked.end_offset;
-    evts.events    = (arb_deliverable_event_data*) marked.ev_data; // FIXME(TH): This relies on bit-castability
+    arb_deliverable_event_stream evts{};
+    evts.begin     = (arb_deliverable_event_data*)marked.begin_marked;
+    evts.end       = (arb_deliverable_event_data*)marked.end_marked;
 
     expsyn->deliver_events(evts);
     exp2syn->deliver_events(evts);

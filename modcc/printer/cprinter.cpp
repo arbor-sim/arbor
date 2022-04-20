@@ -332,19 +332,17 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto ncell = stream_ptr->n_streams;\n"
-                                       "    for (arb_size_type c = 0; c<ncell; ++c) {{\n"
-                                       "        auto begin  = stream_ptr->events + stream_ptr->begin[c];\n"
-                                       "        auto end    = stream_ptr->events + stream_ptr->end[c];\n"
-                                       "        for (auto p = begin; p<end; ++p) {{\n"
-                                       "            auto i_     = p->mech_index;\n"
-                                       "            auto {1} = p->weight;\n"
-                                       "            if (p->mech_id=={0}mechanism_id) {{\n"),
+                                       "    auto begin  = stream_ptr->begin;\n"
+                                       "    auto end    = stream_ptr->end;\n"
+                                       "    for (auto p = begin; p<end; ++p) {{\n"
+                                       "        auto i_     = p->mech_index;\n"
+                                       "        auto {1} = p->weight;\n"
+                                       "        if (p->mech_id=={0}mechanism_id) {{\n"),
                            pp_var_pfx,
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent << indent;
         emit_api_body(out, net_receive_api, false, false);
-        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
+        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     } else {
         out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
     }

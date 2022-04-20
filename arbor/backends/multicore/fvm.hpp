@@ -7,7 +7,7 @@
 
 #include "backends/event.hpp"
 #include "backends/multicore/matrix_state.hpp"
-#include "backends/multicore/multi_event_stream.hpp"
+#include "backends/multicore/event_stream.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/shared_state.hpp"
 #include "backends/multicore/threshold_watcher.hpp"

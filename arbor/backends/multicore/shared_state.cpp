@@ -23,7 +23,7 @@
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
-#include "multi_event_stream.hpp"
+#include "event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
 
@@ -288,16 +288,14 @@ void shared_state::take_samples(
     array& sample_time,
     array& sample_value)
 {
-    for (fvm_size_type i = 0; i<s.n_streams(); ++i) {
-        auto begin = s.begin_marked(i);
-        auto end = s.end_marked(i);
+    auto begin = s.begin_marked;
+    auto end = s.end_marked;
 
-        // Null handles are explicitly permitted, and always give a sample of zero.
-        // (Note: probably not worth explicitly vectorizing this.)
-        for (auto p = begin; p<end; ++p) {
-            sample_time[p->offset] = time;
-            sample_value[p->offset] = p->handle? *p->handle: 0;
-        }
+    // Null handles are explicitly permitted, and always give a sample of zero.
+    // (Note: probably not worth explicitly vectorizing this.)
+    for (auto p = begin; p<end; ++p) {
+        sample_time[p->offset] = time;
+        sample_value[p->offset] = p->handle? *p->handle: 0;
     }
 }
 

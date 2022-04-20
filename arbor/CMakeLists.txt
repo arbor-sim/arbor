@@ -72,8 +72,8 @@ if(ARB_WITH_GPU)
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_fine.cu
         backends/gpu/matrix_solve.cu
-        backends/gpu/multi_event_stream.cpp
-        backends/gpu/multi_event_stream.cu
+        backends/gpu/event_stream.cpp
+        backends/gpu/event_stream.cu
         backends/gpu/shared_state.cu
         backends/gpu/forest.cpp
         backends/gpu/stimulus.cu

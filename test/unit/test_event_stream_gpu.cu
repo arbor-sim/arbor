@@ -3,11 +3,11 @@
 #endif
 
 #include <backends/event.hpp>
-#include <backends/multi_event_stream_state.hpp>
+#include <backends/event_stream_state.hpp>
 
 using namespace arb;
 
-using stream_state = multi_event_stream_state<deliverable_event_data>;
+using stream_state = event_stream_state<deliverable_event_data>;
 
 namespace kernel {
 __global__

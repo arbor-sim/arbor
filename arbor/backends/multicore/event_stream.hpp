@@ -12,7 +12,7 @@
 #include <arbor/generic_event.hpp>
 
 #include "backends/event.hpp"
-#include "backends/multi_event_stream_state.hpp"
+#include "backends/event_stream_state.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
@@ -21,7 +21,7 @@ namespace arb {
 namespace multicore {
 
 template <typename Event>
-class multi_event_stream {
+class event_stream {
 public:
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -30,11 +30,11 @@ public:
     using event_time_type = ::arb::event_time_type<Event>;
     using event_data_type = ::arb::event_data_type<Event>;
 
-    using state = multi_event_stream_state<event_data_type>;
+    using state = event_stream_state<event_data_type>;
 
-    multi_event_stream() {}
+    event_stream() {}
 
-    bool empty() const { return span_begin_==ev_data_.size(); }
+    bool empty() const { return span_begin_==(index_type)ev_data_.size(); }
 
     void clear() {
         ev_data_.clear();
@@ -49,7 +49,7 @@ public:
         using ::arb::event_data;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw arbor_internal_error("multicore/multi_event_stream: too many events for size type");
+            throw arbor_internal_error("multicore/event_stream: too many events for size type");
         }
 
         util::assign_by(ev_data_, staged, [](const Event& ev) { return event_data(ev); });
@@ -58,8 +58,8 @@ public:
         span_begin_ = span_end_ = 0;
     }
 
-    // Designate for processing events `ev` at head of each event stream `i`
-    // until `event_time(ev)` > `t_until[i]`.
+    // Designate for processing events `ev` at head of the event stream
+    // until `event_time(ev)` > `t_until`.
     void mark_until_after(const fvm_value_type& t_until) {
         using ::arb::event_time;
 
@@ -69,8 +69,8 @@ public:
         }
     }
 
-    // Designate for processing events `ev` at head of each event stream `i`
-    // while `t_until[i]` > `event_time(ev)`.
+    // Designate for processing events `ev` at head the stream
+    // while `t_until` > `event_time(ev)`.
     void mark_until(const arb::fvm_value_type& t_until) {
         using ::arb::event_time;
 
@@ -87,39 +87,26 @@ public:
 
     // Interface for access to marked events by mechanisms/kernels:
     state marked_events() const {
-        return {1, ev_data_.data(), &span_begin_, &span_end_};
+        return {ev_data_.data()+span_begin_, ev_data_.data()+span_end_};
     }
 
-    friend std::ostream& operator<<(std::ostream& out, const multi_event_stream<Event>& m) {
-        /*
-        auto n_ev = m.ev_data_.size();
-        auto n = m.n_streams();
+    friend std::ostream& operator<<(std::ostream& out, const event_stream<Event>& m) {
+        int n_ev = m.ev_data_.size();
 
-        out << "\n[";
-        unsigned i = 0;
-        for (unsigned ev_i = 0; ev_i<n_ev; ++ev_i) {
-            while (i<n && m.span_end_[i]<=ev_i) ++i;
-            out << (i<n? util::strprintf(" % 7d ", i): "      ?");
-        }
-        out << "]\n[";
+        out << "[";
 
-        i = 0;
-        for (unsigned ev_i = 0; ev_i<n_ev; ++ev_i) {
-            while (i<n && m.span_end_[i]<=ev_i) ++i;
-
-            bool discarded = i<n && m.span_begin_[i]>ev_i;
-            bool marked = i<n && m.mark_[i]>ev_i;
+        for (int ev_i = 0; ev_i<n_ev; ++ev_i) {
+            bool discarded = ev_i<m.span_begin_;
+            bool marked = !discarded && ev_i<m.span_end_;
 
             if (discarded) {
                 out << "        x";
             }
             else {
-                out << util::strprintf(" % 7.3f%c", m.ev_time_[ev_i], marked?'*':' ');
+                out << util::strprintf(" % 7.3f%c", m.ev_time_[ev_i]-1, marked?'*':' ');
             }
         }
-        out << "]\n";
-        */
-        return out << "[multi_event_stream thingy]";
+        return out << "]";
     }
 
 private:

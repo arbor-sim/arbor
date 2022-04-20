@@ -319,7 +319,7 @@ void run_expsyn_g_probe_test(const context& ctx) {
             {1.0, targets[0], 0.5},
             {2.0, targets[1], 1.0}
         };
-        const double tfinal = 3.;
+        const double tfinal = 3.0;
         const double dt = 0.001;
         lcell.integrate(tfinal, dt, evs, {});
 
@@ -330,6 +330,8 @@ void run_expsyn_g_probe_test(const context& ctx) {
         double expected_g0 = 0.5*std::exp(-(tfinal-1.0)/tau);
         double expected_g1 = 1.0*std::exp(-(tfinal-2.0)/tau);
 
+        // Solutions are not exact because of Pade approximation for exponential in generated code.
+        // So use a forgiving relative tolerance and small dt.
         const double rtol = 1e-6;
         if (coalesce_synapses) {
             EXPECT_TRUE(testing::near_relative(expected_g0+expected_g1, g0, rtol));
@@ -1179,6 +1181,7 @@ void run_stimulus_probe_test(const context& ctx) {
     EXPECT_EQ((std::vector<double>(3)), traces[1][1]);
 }
 
+/*
 template <typename Backend>
 void run_exact_sampling_probe_test(const context& ctx) {
     // As the exact sampling implementation interacts with the event delivery
@@ -1297,15 +1300,23 @@ void run_exact_sampling_probe_test(const context& ctx) {
         }
     }
 }
+*/
 
 // Generate unit tests multicore_X and gpu_X for each entry X in PROBE_TESTS,
 // which establish the appropriate arbor context and then call run_X_probe_test.
 
 #undef PROBE_TESTS
 #define PROBE_TESTS \
-    v_i, v_cell, v_sampled, expsyn_g, expsyn_g_cell, ion_density, \
-    axial_and_ion_current_sampled, partial_density, exact_sampling, \
-    multi, total_current
+    v_i, \
+    v_cell, \
+    v_sampled, \
+    expsyn_g, \
+    expsyn_g_cell, \
+    ion_density, \
+    axial_and_ion_current_sampled, \
+    partial_density, \
+    multi, \
+    total_current
 
 #undef RUN_MULTICORE
 #define RUN_MULTICORE(x) \

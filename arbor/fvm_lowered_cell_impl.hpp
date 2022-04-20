@@ -215,12 +215,18 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     arb_assert((assert_tmin(), true));
     PL();
 
-    // TODO: Consider devolving more of this to back-end routines (e.g.
-    // per-compartment dt probably not a win on GPU), possibly rumbling
-    // complete fvm state into shared state object.
-
     while (state_->time<tfinal) {
-        // Update any required reversal potentials based on ionic concs.
+        // Set time, dt and time_to for the time step
+        state_->update_time_to(dt_max, tfinal);
+        // Update integration step time information visible to mechanisms.
+        for (auto& m: mechanisms_) {
+            m->set_time(state_->time, state_->dt);
+        }
+        for (auto& m: revpot_mechanisms_) {
+            m->set_time(state_->time, state_->dt);
+        }
+
+        // Update any required reversal potentials based on ionic concentrations
 
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
@@ -228,36 +234,28 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        PE(advance:integrate:events);
-        state_->deliverable_events.mark_until_after(state_->time);
-        PL();
-
         PE(advance:integrate:current:zero);
         state_->zero_currents();
         PL();
+
+        PE(advance:integrate:events);
+        // Mark all events due before the mid point of this time step for delivery
+        const auto step_midpoint = state_->time+state_->dt/2.;
+        state_->deliverable_events.mark_until_after(step_midpoint);
+
+        auto ev_state = state_->deliverable_events.marked_events();
+        arb_deliverable_event_stream events{
+                (arb_deliverable_event_data*) ev_state.begin_marked,
+                (arb_deliverable_event_data*) ev_state.end_marked};
+
         for (auto& m: mechanisms_) {
-            auto state = state_->deliverable_events.marked_events();
-            arb_deliverable_event_stream events;
-            // TODO: really? shouldn't there be 1 stream always?
-            events.n_streams = state.n;
-            events.begin     = state.begin_offset;
-            events.end       = state.end_offset;
-            events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-            m->deliver_events(events);
+            if (ev_state.size()) {
+                m->deliver_events(events);
+            }
             m->update_current();
         }
 
-        PE(advance:integrate:events);
         state_->deliverable_events.drop_marked_events();
-
-        // Update event list and integration step times.
-        state_->update_time_to(dt_max, tfinal);
-        for (auto& m: mechanisms_) {
-            m->set_time(state_->time, state_->dt);
-        }
-        for (auto& m: revpot_mechanisms_) {
-            m->set_time(state_->time, state_->dt);
-        }
         PL();
 
         // Add stimulus current contributions.
@@ -271,7 +269,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Take samples at cell time if sample time in this step interval.
 
         PE(advance:integrate:samples);
-        sample_events_.mark_until(state_->time_to);
+        //sample_events_.mark_until(state_->time_to);
+        sample_events_.mark_until_after(step_midpoint);
         state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
         sample_events_.drop_marked_events();
         PL();
@@ -320,12 +319,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             assert_voltage_bounded(check_voltage_mV_);
             PL();
         }
-
-        // Check for end of integration.
-
-        //PE(advance:integrate:stepsupdate);
-        //--remaining_steps;
-        //PL();
     }
 
     set_tmin(tfinal);
@@ -501,20 +494,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 D.diam_um,
                 std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
-    /*
-    shared_state(
-        fvm_size_type n_intdom,
-        fvm_size_type n_cell,
-        fvm_size_type n_cv,
-        fvm_size_type n_detector,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
-        const std::vector<fvm_value_type>& init_membrane_potential,
-        const std::vector<fvm_value_type>& temperature_K,
-        const std::vector<fvm_value_type>& diam,
-        const std::vector<fvm_index_type>& src_to_spike,
-        unsigned align
-    );
-    */
 
     // Instantiate mechanisms, ions, and stimuli.
 

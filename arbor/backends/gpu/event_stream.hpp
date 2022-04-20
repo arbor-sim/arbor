@@ -8,7 +8,7 @@
 #include <arbor/generic_event.hpp>
 
 #include "backends/event.hpp"
-#include "backends/multi_event_stream_state.hpp"
+#include "backends/event_stream_state.hpp"
 #include "memory/array.hpp"
 #include "memory/copy.hpp"
 #include "profile/profiler_macro.hpp"
@@ -18,7 +18,7 @@ namespace arb {
 namespace gpu {
 
 // Base class provides common implementations across event types.
-class multi_event_stream_base {
+class event_stream_base {
 public:
     using size_type = cell_size_type;
     using value_type = fvm_value_type;
@@ -52,9 +52,9 @@ public:
     void event_time_if_before(view t_until);
 
 protected:
-    multi_event_stream_base() {}
+    event_stream_base() {}
 
-    explicit multi_event_stream_base(size_type n_stream):
+    explicit event_stream_base(size_type n_stream):
         n_stream_(n_stream),
         span_begin_(n_stream),
         span_end_(n_stream),
@@ -69,7 +69,7 @@ protected:
         using ::arb::event_index;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw arbor_internal_error("gpu/multi_event_stream: too many events for size type");
+            throw arbor_internal_error("gpu/event_stream: too many events for size type");
         }
 
         arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
@@ -120,22 +120,22 @@ protected:
 };
 
 template <typename Event>
-class multi_event_stream: public multi_event_stream_base {
+class event_stream: public event_stream_base {
 public:
     using event_data_type = ::arb::event_data_type<Event>;
     using data_array = memory::device_vector<event_data_type>;
 
-    using state = multi_event_stream_state<event_data_type>;
+    using state = event_stream_state<event_data_type>;
 
-    multi_event_stream() {}
+    event_stream() {}
 
-    explicit multi_event_stream(size_type n_stream):
-        multi_event_stream_base(n_stream) {}
+    explicit event_stream(size_type n_stream):
+        event_stream_base(n_stream) {}
 
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
     void init(const std::vector<Event>& staged) {
-        multi_event_stream_base::init(staged);
+        event_stream_base::init(staged);
 
         tmp_ev_data_.clear();
         tmp_ev_data_.reserve(staged.size());

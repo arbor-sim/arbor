@@ -36,7 +36,7 @@ struct deliverable_event_data {
     float weight;
 };
 
-// Delivery data accessor function for multi_event_stream:
+// Delivery data accessor function for event_stream:
 inline deliverable_event_data event_data(const deliverable_event& ev) {
     return {ev.handle.mech_id, ev.handle.mech_index, ev.weight};
 }

@@ -10,7 +10,7 @@ classes for on-device delivery.
 destinations and event information.
 
 The back-end event management structure is supplied by the corresponding `backend`
-class as `backend::multi_event_stream`. It presents a limited public interface to
+class as `backend::event_stream`. It presents a limited public interface to
 the lowered cell, and is passed by reference as a parameter to the mechanism
 `apply_events` method.
 
@@ -33,8 +33,8 @@ a `target_handle` describing their destination, and a weight.
 
 ### Back-end event streams
 
-`backend::multi_event_stream` represents a set (one per cell/integration domain)
-of event streams. There is one `multi_event_stream` per lowered cell.
+`backend::event_stream` represents a set (one per cell/integration domain)
+of event streams. There is one `event_stream` per lowered cell.
 
 From the perspective of the lowered cell, it must support the methods below.
 In the following, `time` is a `view` or `const_view` of an array with one
@@ -51,7 +51,7 @@ element per stream.
 
 *  `void clear()`
 
-   Retire all events, leaving the `multi_event_stream` in an empty state.
+   Retire all events, leaving the `event_stream` in an empty state.
 
 *  `void mark_until_after(const_view time)`
 
@@ -70,7 +70,7 @@ element per stream.
 ## Event delivery and integration timeline
 
 Event delivery is performed as part of the integration loop within the lowered
-cell implementation. The interface is provided by the `multi_event_stream`
+cell implementation. The interface is provided by the `event_stream`
 described above, together with the mechanism method that handles the delivery proper,
 `mechanism::deliver_events` and a `backend` static method that computes the
 integration step end time before considering any pending events.
@@ -80,11 +80,11 @@ For `fvm_multicell` one integration step comprises:
 1.  Events for each cell that are due at that cell's corresponding time are
     gathered with `events_.mark_events(time_)` where `time_` is a
     `const_view` of the cell times and `events_` is a reference to the
-    `backend::multi_event_stream` object.
+    `backend::event_stream` object.
 
 2.  Each mechanism is requested to deliver to itself any marked events that
     are associated with that mechanism, via the virtual
-    `mechanism::apply_events(backend::multi_event_stream&)` method.
+    `mechanism::apply_events(backend::event_stream&)` method.
 
     This action must precede the computation of mechanism current contributions
     with `mechanism::compute_currents()`.

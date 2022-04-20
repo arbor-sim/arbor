@@ -17,7 +17,7 @@
 #include "util/rangeutil.hpp"
 
 #include "matrix_state.hpp"
-#include "multi_event_stream.hpp"
+#include "event_stream.hpp"
 #include "threshold_watcher.hpp"
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"

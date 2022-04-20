@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include <backends/event.hpp>
-#include <backends/multi_event_stream_state.hpp>
+#include <backends/event_stream_state.hpp>
 
 #include <arbor/gpu/gpu_api.hpp>
 #include <arbor/gpu/gpu_common.hpp>
@@ -54,7 +54,7 @@ __global__ void set_dt_impl(      T* __restrict__ dt_intdom,
 }
 
 __global__ void take_samples_impl(
-    multi_event_stream_state<raw_probe_info> s,
+    event_stream_state<raw_probe_info> s,
     const fvm_value_type* __restrict__ const time,
     fvm_value_type* __restrict__ const sample_time,
     fvm_value_type* __restrict__ const sample_value)
@@ -105,7 +105,7 @@ void set_dt_impl(
 }
 
 void take_samples_impl(
-    const multi_event_stream_state<raw_probe_info>& s,
+    const event_stream_state<raw_probe_info>& s,
     const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value)
 {
     if (!s.n_streams()) return;

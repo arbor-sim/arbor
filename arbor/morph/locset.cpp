@@ -1,6 +1,6 @@
 #include <algorithm>
-#include <iostream>
 #include <numeric>
+#include <ostream>
 #include <stack>
 
 #include <arbor/math.hpp>

@@ -8,7 +8,7 @@
 #include "backends/event.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
-#include "backends/multi_event_stream_state.hpp"
+#include "backends/event_stream_state.hpp"
 #include "memory/copy.hpp"
 #include "memory/gpu_wrappers.hpp"
 #include "memory/wrappers.hpp"
@@ -39,7 +39,7 @@ void set_dt_impl(
     const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom);
 
 void take_samples_impl(
-    const multi_event_stream_state<raw_probe_info>& s,
+    const event_stream_state<raw_probe_info>& s,
     const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value);
 
 void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v);
