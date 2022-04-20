@@ -1,6 +1,5 @@
 #pragma once
 
-#include "arbor/cv_policy.hpp"
 #include <array>
 #include <random>
 
@@ -23,7 +22,7 @@ struct cell_parameters {
     cell_parameters() = default;
 
     //  Maximum number of levels in the cell (not including the soma)
-    unsigned max_depth = 0;
+    unsigned max_depth = 5;
 
     // The following parameters are described as ranges.
     // The first value is at the soma, and the last value is used on the last level.
@@ -114,7 +113,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     arb::decor decor;
 
     decor.paint("soma"_lab, arb::density("hh"));
-    decor.paint("dend"_lab, arb::density("hh"));
+    decor.paint("dend"_lab, arb::density("pas"));
 
     decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
@@ -132,7 +131,6 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     // Make a CV between every sample in the sample tree.
     decor.set_default(arb::cv_policy_every_segment());
-    decor.set_default(arb::cv_policy_fixed_per_branch(5));
 
     arb::cable_cell cell(arb::morphology(tree), labels, decor);
 
