@@ -11,8 +11,9 @@
 #include "error.hpp"
 #include "expression.hpp"
 #include "module.hpp"
+#include <libmodcc/export.hpp>
 
-std::vector<std::string> namespace_components(const std::string& qualified_namespace);
+ARB_LIBMODCC_API std::vector<std::string> namespace_components(const std::string& qualified_namespace);
 
 // Can use this in a namespace. No __ allowed anywhere, neither _[A-Z], and in _global namespace_ _ followed by anything is verboten.
 const static std::string pp_var_pfx = "_pp_var_";
@@ -79,17 +80,17 @@ inline void assert_has_scope(Expression* expr, const std::string& context) {
 // Scope query functions:
 
 // All local variables in scope with `is_indexed()` true.
-std::vector<LocalVariable*> indexed_locals(scope_ptr scope);
+ARB_LIBMODCC_API std::vector<LocalVariable*> indexed_locals(scope_ptr scope);
 
 // All local variables in scope with `is_arg()` and `is_indexed()` false.
-std::vector<LocalVariable*> pure_locals(scope_ptr scope);
+ARB_LIBMODCC_API std::vector<LocalVariable*> pure_locals(scope_ptr scope);
 
 
 // Module state query functions:
 
 // Normal (not API, net_receive) procedures in module:
 
-std::vector<ProcedureExpression*> normal_procedures(const Module&);
+ARB_LIBMODCC_API std::vector<ProcedureExpression*> normal_procedures(const Module&);
 
 struct public_variable_ids_t {
     std::vector<Id> state_ids;
@@ -99,7 +100,7 @@ struct public_variable_ids_t {
 
 // Public module variables by role.
 
-public_variable_ids_t public_variable_ids(const Module&);
+ARB_LIBMODCC_API public_variable_ids_t public_variable_ids(const Module&);
 
 struct module_variables_t {
     std::vector<VariableExpression*> scalars;
@@ -108,21 +109,21 @@ struct module_variables_t {
 
 // Scalar and array variables with local linkage.
 
-module_variables_t local_module_variables(const Module&);
+ARB_LIBMODCC_API module_variables_t local_module_variables(const Module&);
 
 // "normal" procedures in a module.
 // A normal procedure is one that has been declared with the
 // PROCEDURE keyword in NMODL.
 
-std::vector<ProcedureExpression*> module_normal_procedures(const Module& m);
+ARB_LIBMODCC_API std::vector<ProcedureExpression*> module_normal_procedures(const Module& m);
 
 // Extract key procedures from module.
 
-APIMethod* find_api_method(const Module& m, const char* which);
+ARB_LIBMODCC_API APIMethod* find_api_method(const Module& m, const char* which);
 
-NetReceiveExpression* find_net_receive(const Module& m);
+ARB_LIBMODCC_API NetReceiveExpression* find_net_receive(const Module& m);
 
-PostEventExpression* find_post_event(const Module& m);
+ARB_LIBMODCC_API PostEventExpression* find_post_event(const Module& m);
 
 // For generating vectorized code for reading and writing data sources.
 // node: The data source uses the CV index which is categorized into
@@ -139,7 +140,7 @@ enum class index_kind {
     none
 };
 
-struct indexed_variable_info {
+struct ARB_LIBMODCC_API indexed_variable_info {
     std::string data_var;
     std::string node_index_var;
     std::string cell_index_var;
@@ -157,7 +158,7 @@ struct indexed_variable_info {
     std::string outer_index_var() const;
 };
 
-indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
+ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
 
 template<typename C>
 size_t emit_array(std::ostream& out, const C& vars) {

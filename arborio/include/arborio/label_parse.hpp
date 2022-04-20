@@ -9,10 +9,11 @@
 #include <arbor/util/expected.hpp>
 
 #include <arbor/s_expr.hpp>
+#include <arborio/export.hpp>
 
 namespace arborio {
 
-struct label_parse_error: arb::arbor_exception {
+struct ARB_SYMBOL_VISIBLE label_parse_error: arb::arbor_exception {
     explicit label_parse_error(const std::string& msg, const arb::src_location& loc);
     explicit label_parse_error(const std::string& msg): arb::arbor_exception(msg) {}
 };
@@ -20,11 +21,11 @@ struct label_parse_error: arb::arbor_exception {
 template <typename T>
 using parse_label_hopefully = arb::util::expected<T, label_parse_error>;
 
-parse_label_hopefully<std::any> parse_label_expression(const std::string&);
-parse_label_hopefully<std::any> parse_label_expression(const arb::s_expr&);
+ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const std::string&);
+ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const arb::s_expr&);
 
-parse_label_hopefully<arb::region> parse_region_expression(const std::string& s);
-parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s);
+ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const std::string& s);
+ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s);
 
 namespace literals {
 

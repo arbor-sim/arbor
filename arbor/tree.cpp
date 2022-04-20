@@ -372,7 +372,7 @@ void depth_from_root(const tree& t, tree::iarray& depth, tree::int_type segment)
     }
 }
 
-tree::iarray depth_from_root(const tree& t) {
+ARB_ARBOR_API tree::iarray depth_from_root(const tree& t) {
     tree::iarray depth(t.num_segments());
     depth[0] = 0;
     for (auto c: t.children(0)) {

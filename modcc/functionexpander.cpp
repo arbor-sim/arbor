@@ -5,7 +5,7 @@
 #include "error.hpp"
 #include "functionexpander.hpp"
 
-expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e) {
+ARB_LIBMODCC_API expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e) {
     auto zero = make_expression<NumberExpression>(e->location(), 0.);
     auto exprs = make_unique_local_assign(e->scope(), zero);
 
@@ -34,7 +34,7 @@ expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression*
 //       ll0_ = foo(ll1_, y, 1)
 //       a = 2 + ll0_
 /////////////////////////////////////////////////////////////////////
-expression_ptr lower_functions(BlockExpression* block) {
+ARB_LIBMODCC_API expression_ptr lower_functions(BlockExpression* block) {
     auto v = std::make_unique<FunctionCallLowerer>();
     block->accept(v.get());
     return v->as_block(false);

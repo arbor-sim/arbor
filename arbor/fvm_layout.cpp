@@ -170,7 +170,7 @@ namespace impl {
 
 // Merge CV geometry lists in-place.
 
-cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
+ARB_ARBOR_API cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
     using util::append;
     using impl::tail;
     using impl::append_offset;
@@ -204,7 +204,7 @@ cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 
 // Combine two fvm_cv_geometry groups in-place.
 
-fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
+ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
     using util::append;
 
     append(dczn.geometry, right.geometry);
@@ -224,7 +224,7 @@ fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discreti
 // FVM discretization
 // ------------------
 
-fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
+ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
@@ -345,7 +345,7 @@ fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell
     return D;
 }
 
-fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
+ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
     const cable_cell_parameter_set& global_defaults,
     const arb::execution_context& ctx)
 {
@@ -515,7 +515,7 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
 
 // Interpolate membrane voltage from reference points in adjacent CVs.
 
-fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -556,7 +556,7 @@ fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fv
 
 // Axial current as linear combination of membrane voltages at reference points in adjacent CVs.
 
-fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -653,7 +653,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D)
@@ -670,7 +670,7 @@ std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_ma
     return gj_cvs;
 }
 
-std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,
     const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
@@ -705,7 +705,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const fvm_cv_discretization& D,
     fvm_size_type cell_idx);
 
-fvm_mechanism_data fvm_build_mechanism_data(
+ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,

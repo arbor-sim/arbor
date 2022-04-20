@@ -14,7 +14,7 @@ namespace arbenv {
 
 // Take a best guess at the number of threads that can be run concurrently.
 // Will return at least 1.
-unsigned long thread_concurrency() {
+ARB_ARBORENV_API unsigned long thread_concurrency() {
     // Attempt to get count first from affinity information if available.
     unsigned long n = get_affinity().size();
 

@@ -76,7 +76,7 @@ bool segment_tree::is_root(msize_t i) const {
     return parents_[i]==mnpos;
 }
 
-std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
     auto tstr = util::transform_view(m.parents_,
             [](msize_t i) -> std::string {
                 return i==mnpos? "npos": std::to_string(i);

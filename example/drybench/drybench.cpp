@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
         auto ctx = arb::make_context(resources);
 
         ctx = arb::make_context(resources, arb::dry_run_info(params.num_ranks, params.num_cells));
-        arb_assert(arb::num_ranks(ctx)==params.num_ranks);
+        arb_assert(arb::num_ranks(ctx)==(unsigned int)params.num_ranks);
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);

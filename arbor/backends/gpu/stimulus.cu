@@ -52,7 +52,7 @@ void istim_add_current_impl(int n, istim_pp pp) {
 
 } // namespace kernel
 
-void istim_add_current_impl(int n, const istim_pp& pp) {
+ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp) {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(n, block_dim);
     if (!grid_dim) return;

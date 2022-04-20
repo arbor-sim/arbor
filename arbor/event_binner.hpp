@@ -4,12 +4,13 @@
 #include <optional>
 #include <unordered_map>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 
 namespace arb {
 
-class event_binner {
+class ARB_ARBOR_API event_binner {
 public:
     event_binner(): policy_(binning_kind::none), bin_interval_(0) {}
 

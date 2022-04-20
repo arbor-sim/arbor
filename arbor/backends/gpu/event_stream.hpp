@@ -2,13 +2,14 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/generic_event.hpp>
 
 #include "backends/event.hpp"
-#include "backends/event_stream_state.hpp"
+#include "backends/multi_event_stream_state.hpp"
 #include "memory/array.hpp"
 #include "memory/copy.hpp"
 #include "profile/profiler_macro.hpp"
@@ -18,7 +19,7 @@ namespace arb {
 namespace gpu {
 
 // Base class provides common implementations across event types.
-class event_stream_base {
+class ARB_ARBOR_API multi_event_stream_base {
 public:
     using size_type = cell_size_type;
     using value_type = fvm_value_type;
@@ -52,9 +53,9 @@ public:
     void event_time_if_before(view t_until);
 
 protected:
-    event_stream_base() {}
+    multi_event_stream_base() {}
 
-    explicit event_stream_base(size_type n_stream):
+    explicit multi_event_stream_base(size_type n_stream):
         n_stream_(n_stream),
         span_begin_(n_stream),
         span_end_(n_stream),
@@ -69,7 +70,7 @@ protected:
         using ::arb::event_index;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw arbor_internal_error("gpu/event_stream: too many events for size type");
+            throw arbor_internal_error("gpu/multi_event_stream: too many events for size type");
         }
 
         arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
@@ -120,22 +121,22 @@ protected:
 };
 
 template <typename Event>
-class event_stream: public event_stream_base {
+class multi_event_stream: public multi_event_stream_base {
 public:
     using event_data_type = ::arb::event_data_type<Event>;
     using data_array = memory::device_vector<event_data_type>;
 
-    using state = event_stream_state<event_data_type>;
+    using state = multi_event_stream_state<event_data_type>;
 
-    event_stream() {}
+    multi_event_stream() {}
 
-    explicit event_stream(size_type n_stream):
-        event_stream_base(n_stream) {}
+    explicit multi_event_stream(size_type n_stream):
+        multi_event_stream_base(n_stream) {}
 
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
     void init(const std::vector<Event>& staged) {
-        event_stream_base::init(staged);
+        multi_event_stream_base::init(staged);
 
         tmp_ev_data_.clear();
         tmp_ev_data_.reserve(staged.size());

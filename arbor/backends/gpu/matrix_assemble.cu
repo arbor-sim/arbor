@@ -154,7 +154,7 @@ void assemble_matrix_interleaved(
 
 } // namespace kernels
 
-void assemble_matrix_flat(
+ARB_ARBOR_API void assemble_matrix_flat(
         fvm_value_type* d,
         fvm_value_type* rhs,
         const fvm_value_type* invariant_d,

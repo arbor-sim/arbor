@@ -342,27 +342,27 @@ void print(std::ostream& o,
 // convenience functions for instrumenting code.
 //
 
-void profiler_leave() {
+ARB_ARBOR_API void profiler_leave() {
     profiler::get_global_profiler().leave();
 }
 
-region_id_type profiler_region_id(const std::string& name) {
+ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
     if (!is_valid_region_string(name)) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
     }
     return profiler::get_global_profiler().region_index(name);
 }
 
-void profiler_enter(region_id_type region_id) {
+ARB_ARBOR_API void profiler_enter(region_id_type region_id) {
     profiler::get_global_profiler().enter(region_id);
 }
 
-void profiler_initialize(context& ctx) {
+ARB_ARBOR_API void profiler_initialize(context& ctx) {
     profiler::get_global_profiler().initialize(ctx->thread_pool);
 }
 
 // Print profiler statistics to an ostream
-std::ostream& operator<<(std::ostream& o, const profile& prof) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile& prof) {
     char buf[80];
 
     auto tree = make_profile_tree(prof);
@@ -373,19 +373,18 @@ std::ostream& operator<<(std::ostream& o, const profile& prof) {
     return o;
 }
 
-profile profiler_summary() {
+ARB_ARBOR_API profile profiler_summary() {
     return profiler::get_global_profiler().results();
 }
 
 #else
 
-void profiler_leave() {}
-void profiler_enter(region_id_type) {}
-profile profiler_summary();
-void profiler_print(const profile& prof, float threshold) {};
-profile profiler_summary() {return profile();}
-region_id_type profiler_region_id(const std::string&) {return 0;}
-std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
+ARB_ARBOR_API void profiler_leave() {}
+ARB_ARBOR_API void profiler_enter(region_id_type) {}
+ARB_ARBOR_API profile profiler_summary();
+ARB_ARBOR_API profile profiler_summary() {return profile();}
+ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
 
 #endif // ARB_HAVE_PROFILING
 

@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/recipe.hpp>
@@ -13,7 +14,7 @@
 
 namespace arb {
 
-class lif_cell_group: public cell_group {
+class ARB_ARBOR_API lif_cell_group: public cell_group {
 public:
     using value_type = double;
 

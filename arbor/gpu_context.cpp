@@ -14,7 +14,7 @@ enum gpu_flags {
     has_atomic_double = 1
 };
 
-gpu_context_handle make_gpu_context(int id) {
+ARB_ARBOR_API gpu_context_handle make_gpu_context(int id) {
     return std::make_shared<gpu_context>(id);
 }
 

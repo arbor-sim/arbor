@@ -3,9 +3,11 @@
 #include <cstdlib>
 #include <memory>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 
-class gpu_context {
+class ARB_ARBOR_API gpu_context {
     int id_ = -1;
     std::size_t attributes_ = 0;
 
@@ -21,6 +23,6 @@ public:
 };
 
 using gpu_context_handle = std::shared_ptr<gpu_context>;
-gpu_context_handle make_gpu_context(int id);
+ARB_ARBOR_API gpu_context_handle make_gpu_context(int id);
 
 } // namespace arb

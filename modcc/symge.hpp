@@ -3,13 +3,14 @@
 #include <stdexcept>
 
 #include "msparse.hpp"
+#include <libmodcc/export.hpp>
 
 // Symbolic sparse matrix manipulation for symbolic Gauss-Jordan elimination
 // (used in `sparse` solver).
 
 namespace symge {
 
-struct symbol_error: public std::runtime_error {
+struct ARB_LIBMODCC_API symbol_error: public std::runtime_error {
     symbol_error(const std::string& what): std::runtime_error(what) {}
 };
 
@@ -154,6 +155,6 @@ using sym_matrix = msparse::matrix<symbol>;
 // pivots taken from the diagonal elements. New symbol definitions due to fill-in
 // will be added via the provided symbol table.
 // Returns a vector of vectors of symbols, partitioned by row of the matrix
-std::vector<std::vector<symge::symbol>> gj_reduce(sym_matrix& A, symbol_table& table);
+ARB_LIBMODCC_API std::vector<std::vector<symge::symbol>> gj_reduce(sym_matrix& A, symbol_table& table);
 
 } // namespace symge

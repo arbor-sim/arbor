@@ -11,6 +11,8 @@
 #include <variant>
 #include <vector>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 
 struct src_location {
@@ -24,7 +26,7 @@ struct src_location {
     {}
 };
 
-std::ostream& operator<<(std::ostream& o, const src_location& l);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const src_location& l);
 
 enum class tok {
     nil,
@@ -38,7 +40,7 @@ enum class tok {
     error       // special error state marker
 };
 
-std::ostream& operator<<(std::ostream&, const tok&);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const tok&);
 
 struct token {
     src_location loc;
@@ -46,7 +48,7 @@ struct token {
     std::string spelling;
 };
 
-std::ostream& operator<<(std::ostream&, const token&);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const token&);
 
 struct symbol {
     std::string str;
@@ -57,7 +59,7 @@ inline symbol operator"" _symbol(const char* chars, size_t size) {
     return {chars};
 }
 
-struct s_expr {
+struct ARB_ARBOR_API s_expr {
     template <typename U>
     struct s_pair {
         U head = U();
@@ -242,16 +244,16 @@ struct s_expr {
     const_iterator cbegin() const { return {*this}; }
     const_iterator cend()   const { return const_iterator::sentinel{}; }
 
-    friend std::ostream& operator<<(std::ostream& o, const s_expr& x);
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& o, const s_expr& x);
 };
 
 // Build s-expr from string
-s_expr parse_s_expr(const std::string& line);
+ARB_ARBOR_API s_expr parse_s_expr(const std::string& line);
 
 // Length of the s-expr
-std::size_t length(const s_expr& l);
+ARB_ARBOR_API std::size_t length(const s_expr& l);
 
 // Location of the head of the s-expr
-src_location location(const s_expr& l);
+ARB_ARBOR_API src_location location(const s_expr& l);
 } // namespace arb
 

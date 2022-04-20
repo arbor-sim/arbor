@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
@@ -23,7 +24,7 @@
 
 namespace arb {
 
-class mc_cell_group: public cell_group {
+class ARB_ARBOR_API mc_cell_group: public cell_group {
 public:
     mc_cell_group() = default;
 

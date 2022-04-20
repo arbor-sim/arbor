@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
@@ -14,7 +15,7 @@
 
 namespace arb {
 
-class spike_source_cell_group: public cell_group {
+class ARB_ARBOR_API spike_source_cell_group: public cell_group {
 public:
     spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
