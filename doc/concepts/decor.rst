@@ -62,6 +62,7 @@ The types of dynamics, and where they can be defined, are
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
    density mechanism,       ✓, --, --
+   scaled-mechanism (density),  ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -166,7 +167,24 @@ Take for example the built-in mechanism for passive leaky dynamics:
 
 .. _cablecell-ions:
 
-4. Ion species
+.. _cablecell-scaled-mechs:
+
+4. Scaled mechanisms
+~~~~~~~~~~~~~~~~~~~~~
+:ref:`Inhomogenous expressions  <labels-iexpr>` can be applied to mechanisms, to scale parameters on a cable cell.
+These expressions are evaluated at mid-points of the internal cable partion of the cell and multiplied with the set parameter value.
+Currently, only :ref:`density mechanisms <cablecell-density-mechs>` are supported.
+
+.. code-block:: Python
+
+    # Create mechanism with custom conductance (range)
+    m = arbor.mechanism('pas', {'g': 0.1})
+
+    decor = arbor.decor()
+    # paint a scaled density mechanism, where 'g' is scaled by the radius along the cell.
+    decor.paint('"soma"', arbor.scaled_mechanism(arbor.density(m), {'g': '(radius 0.5)'}))
+
+5. Ion species
 ~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default

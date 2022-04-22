@@ -98,6 +98,16 @@ the region of cables that have radius less than 0.5 μm
 
 .. _labels-expressions:
 
+.. glossary::
+  iexpr
+    An iexpr is an inhomogeneous expression, that can be evaluated at any point on a cell.
+
+Some common inhomogeneous expression:
+
+* radius: The radius of the cell at a location.
+* distance: Distance to a locset or region from a location.
+* exp: The exponential function of the return value of an iexpr at a location.
+
 Expressions
 -----------
 
@@ -608,6 +618,120 @@ Region expressions
 
       Two regions (left and middle) and their intersection (right).
 
+
+.. _labels-iexpr:
+
+Inhomogeneous Expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. label:: (scalar value:real)
+
+    A scalar of given value.
+
+.. label:: (distance scale:real loc:locset)
+
+    The minimum distance to points within the locset ``loc``. The scaling parameter  ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (distance scale:real reg:region)
+
+    The minimum distance to the region ``reg``. Evaluates to zero within the region. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (proximal-distance scale:real loc:locset)
+
+    The minimum distance in proximal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied with the distance, such that the result is unitless.
+
+    .. figure:: ../gen-images/iexpr_prox_dis.svg
+      :width: 600
+      :align: center
+
+      Example of a proximal-distance expression with a single input location. **Left**: Input location. **Right**: Area, where the expression evaluates to non-zero values.
+
+.. label:: (proximal-distance scale:real reg:region)
+
+    The minimum distance in proximal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (distal-distance scale:real loc:locset)
+
+    The minimum distance in distal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied with the distance, such that the result is unitless.
+
+    .. figure:: ../gen-images/iexpr_dist_dis.svg
+      :width: 600
+      :align: center
+
+      Example of a distal-distance expression with a single input location. **Left**: Input location. **Right**: Area, where the expression evaluates to non-zero values.
+
+.. label:: (distal-distance scale:real reg:region)
+
+    The minimum distance in distal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (interpolation prox_value:real prox_loc:locset dist_value:real dist_loc:locset)
+
+    Interpolates between the closest point in proximal direction in locset ``prox_loc`` and the closest point in 
+    distal direction ``dist_loc`` with the assosiated unitless values ``prox_value`` and ``dist_value``.
+    Evaluates to zero, if no point is located in each required direction.
+
+    .. figure:: ../gen-images/iexpr_interp.svg
+      :width: 600
+      :align: center
+
+      Example of an interpolation expression. **Left**: A single proximal location locset. **Middle**: Terminal locations as distal locset.
+      **Right**: Area, where the expression evaluates to non-zero values.
+
+.. label:: (interpolation prox_value:real prox_reg:region dist_value:real dist_reg:region)
+
+    Interpolates between the region ``prox_reg`` in proximal diretion and the region ``dist_reg`` in distal direction
+    with the assosiated unitless values ``prox_value`` and ``dist_value``. If evaluated inside either region, returns the corresponding value.
+    Evaluates to zero, if no region is located in each required direction.
+
+.. label:: (radius scale:real)
+
+    The radius of the cell at a given point multiplied with the ``scale`` parameter with unit :math:`{\mu m}^{-1}`.
+
+.. label:: (diameter scale:real)
+
+    The diameter of the cell at a given point multiplied with the ``scale`` parameter with unit :math:`{\mu m}^{-1}`.
+
+.. label:: (add (iexpr | real) (iexpr | real) [... (iexpr | real)])
+
+    Addition of at least two inhomogeneous expressions or real numbers.
+
+.. label:: (sub (iexpr | real) (iexpr | real) [... (iexpr | real)])
+
+    Subtraction of at least two inhomogeneous expressions or real numbers.
+    The expression is evaluated from the left to right, subtracting each element from the first one in turn.
+
+.. label:: (mul (iexpr | real) (iexpr | real) [... (iexpr | real)])
+
+    Multiplication of at least two inhomogeneous expressions or real numbers.
+
+.. label:: (div (iexpr | real) (iexpr | real) [... (iexpr | real)])
+
+    Division of at least two inhomogeneous expressions or real numbers.
+    The expression is evaluated from the left to right, dividing the first element by each divisor in turn.
+
+.. label:: (exp value:iexpr)
+
+    The exponential function of the inhomogeneous expression ``value``.
+
+.. label:: (exp value:real)
+
+    The exponential function of the real input ``value``.
+
+.. label:: (log value:iexpr)
+
+    The logarithm of the inhomogeneous expression ``value``.
+
+.. label:: (log value:real)
+
+    The logarithm of the real input ``value``.
+
+
 .. _labels-thingify:
 
 Thingification
@@ -674,7 +798,7 @@ Label Dictionaries
 .. glossary::
   label
     A label is a string assigned to an :ref:`expression <labels-expressions>`, and used to refer to the expression or the
-    concrete :term:`region` or :term:`locset` generated when the expression is applied to a morphology.
+    concrete :term:`region` or :term:`locset` or :term:`iexpr` generated when the expression is applied to a morphology.
 
 Although any string is a valid label, it is a good idea to avoid labels that would
 also be valid expressions in the region DSL; creating a label ``"(tag 1)"`` will only
@@ -686,7 +810,7 @@ lead to confusion.
 
 Label dictionaries are used to create a cable-cell along with the :ref:`morphology <morph>`
 and a :ref:`decor <cablecell-decoration>`. The decorations can be painted or placed on
-the regions or locsets defined in the label dictionary by referring to their labels.
+the regions, locsets or iexpr defined in the label dictionary by referring to their labels.
 
 .. code-block:: python
    :caption: Example of a label dictionary in python:
@@ -697,7 +821,8 @@ the regions or locsets defined in the label dictionary by referring to their lab
       'dend': '(tag 3)',  # dend is every cable with tab 3 in the morphology
       'root': '(root)',   # typically the start of the soma is at the root of the cell.
       'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
-      'axon_end': '(restrict (terminal) (region "axon"))'} # end of the axon.
+      'axon_end': '(restrict (terminal) (region "axon"))',  # end of the axon.
+      'rad_expr': '(radius 0.5)'}  # iexpr evaluating the radius scaled by 0.5
     })
 
 
