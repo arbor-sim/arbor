@@ -68,7 +68,6 @@ also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).''')
 
     parser.add_argument('-C', '--no-cpu',
                         action='store_true',
-                        default=False,
                         help='Disable CPU support.')
 
     parser.add_argument('-d', '--debug',
