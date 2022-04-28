@@ -130,25 +130,28 @@ Release
 Post Release
 ------------
 
-0. Update and submit Zenodo release if necessary.
-1. Announce on our website
-2. Announce on HBP newsletter newsletter@humanbrainproject.eu, HBP Twitter/socials evan.hancock@ebrains.eu
-3. [AUTOMATED] Add tagged version of docs on ReadTheDocs
-4. HBP internal admin
+#. Update and submit Zenodo release if necessary.
+#. Announce on our website
+#. Announce on HBP newsletter newsletter@humanbrainproject.eu, HBP Twitter/socials evan.hancock@ebrains.eu
+#. [AUTOMATED] Add tagged version of docs on ReadTheDocs
+#. HBP internal admin
 
-  - Plus: https://plus.humanbrainproject.eu/components/2691/
-  - TC Wiki: https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
-  - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
-    - Update howto: https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software
-    - Previous update as template: https://github.com/bweyers/HBPVisCatalogue/issues/480
-    - Supported file formats
-      - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
-      - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
-  - Send an update to the folk in charge of HBP Twitter if we want to shout about it
+   - Plus: https://plus.humanbrainproject.eu/components/2691/
+   - TC Wiki: https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
+   - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
+ 
+     - Update howto: https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software
+     - Previous update as template: https://github.com/bweyers/HBPVisCatalogue/issues/480
+     - Supported file formats
+ 
+       - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
+       - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
+ 
+   - Send an update to the folk in charge of HBP Twitter if we want to shout about it
 
-5. FZJ admin
+#. FZJ admin
 
-  - https://juser.fz-juelich.de/submit
+   - https://juser.fz-juelich.de/submit
 
 .. _GH tags: https://github.com/arbor-sim/arbor/tags
 .. _AUTOMATED: https://github.com/arbor-sim/arbor/blob/master/.github/workflows/ebrains.yml 
