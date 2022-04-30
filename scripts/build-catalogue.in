@@ -67,8 +67,7 @@ also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).''')
                         help='Enable GPU support, valid options: cuda|hip|cuda-clang.')
 
     parser.add_argument('-C', '--no-cpu',
-                        action='store_false',
-                        default=True,
+                        action='store_true',
                         help='Disable CPU support.')
 
     parser.add_argument('-d', '--debug',

@@ -30,7 +30,7 @@ html_logo = 'images/arbor-lines-proto-colour.svg'
 html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
 
 intersphinx_mapping = {
-    'sphinx': ('https://lfpykit.readthedocs.io/en/latest/', None),
+    'lfpykit': ('https://lfpykit.readthedocs.io/en/latest/', None),
 }
 
 project = 'Arbor'
