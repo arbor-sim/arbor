@@ -565,7 +565,7 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
     impl_->local_export_callback_ = std::move(export_callback);
 }
 
-void simulation::set_epoch_callback(epoch_function epoch_callback, bool global) {
+void simulation::set_epoch_callback(epoch_function epoch_callback) {
     impl_->epoch_callback_ = std::move(epoch_callback);
 }
 

@@ -60,7 +60,7 @@ public:
 
     // Register a callback that will be called at the end of each epoch, and at the
     // start of the simulation.
-    void set_epoch_callback(epoch_function = epoch_function{}, bool global=true);
+    void set_epoch_callback(epoch_function = epoch_function{});
 
     // Add events directly to targets.
     // Must be called before calling simulation::run, and must contain events that
