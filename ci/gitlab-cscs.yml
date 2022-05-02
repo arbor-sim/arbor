@@ -101,7 +101,7 @@ single_node_release:
   only: ['master', 'staging', 'trying']
   stage: test
   script:
-    - unit --gtest_filter="-mechcat.loading"
+    - unit --gtest_filter="-mechcat.loading:test_exception.terminate_if_no_wait_DeathTest"
     - unit-local
     - unit-modcc
   variables:

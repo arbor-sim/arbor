@@ -73,8 +73,7 @@ The recipe is where the different cells and the :ref:`connections <interconnecti
 
 Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired
 number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main differences
-are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**
-(``make_cable_cell()`` returns the cell above).
+are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
 
 Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
 previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 (inducing a conductance of 0.01 μS
@@ -108,7 +107,7 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 61-111
+   :lines: 61-110
 
 The execution
 *************
@@ -136,7 +135,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 113-126
+   :lines: 111-125
 
 The results
 ***********
@@ -145,7 +144,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 128-131
+   :lines: 126-131
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -157,7 +156,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 133-141
+   :lines: 133-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 
@@ -170,4 +169,4 @@ We plot the results using pandas and seaborn:
 The full code
 *************
 
-You can find the full code of the example at ``python/examples/network_ring.py``.
+You can find the full code of the example at ``python/example/network_ring.py``.
