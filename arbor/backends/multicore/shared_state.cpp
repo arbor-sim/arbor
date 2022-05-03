@@ -249,9 +249,9 @@ void shared_state::integrate_voltage() {
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
-            printf("%3s\t%3s\t%5s\t%7s\n", ion.c_str(), "CV", "Xd", "gX");
+            printf("%3s\t%3s\t%5s\t%7s\t%7s\t%7s\t%7s\n", ion.c_str(), "CV", "Xd", "gX", "bX", "Xi", "iX");
             for (int ix = 0; ix < n_cv; ix++) {
-                printf("   \t%3d\t%.3f\t%.5f\n", ix, data.Xd_[ix], data.gX_[ix]);
+                printf("   \t%3d\t%.3f\t%.5f\t%.5f\t%.5f\t%.5f\n", ix, data.Xd_[ix], data.gX_[ix], data.solver->face_diffusivity[ix], data.Xi_[ix], data.iX_[ix]);
             }
             data.solver->assemble(dt_intdom,
                                   data.Xd_,

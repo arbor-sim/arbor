@@ -1,8 +1,7 @@
 NEURON {
   POINT_PROCESS inject
-  USEION na WRITE nad
+  USEION na WRITE nad, nai, ina
 }
-
 
 PARAMETER {
   alpha = 200

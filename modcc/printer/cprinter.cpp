@@ -558,25 +558,27 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     if (!external->is_write()) return;
     ENTER(out);
     auto d = decode_indexed_variable(external);
-    double coeff = 1./d.scale;
-
-    if (d.readonly) {
-        throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
+    if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
+    std::string var, scale, weight, name = from->name();
+    {
+        std::stringstream v, s, w;
+        v << deref(d); var = v.str();
+        s << scaled(1./d.scale); scale = s.str();
+        w << pp_var_pfx << "weight[i_]"; weight = w.str();
     }
-
     if (d.additive) {
         if (use_additive) {
-            out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
+            out << fmt::format("{3} -= {0};\n"
+                               "{0} = fma({1}{2}, {3}, {0});\n",
+                               var, scale, weight, name);
         }
-    } else {
-        if (d.accumulate) {
-            out << deref(d) << " = fma("
-                << scaled(coeff) << pp_var_pfx << "weight[i_], "
-                << from->name() << ", " << deref(d) << ");\n";
-        }
-        else {
-            out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
-        }
+    }
+    else if (d.accumulate) {
+        out << fmt::format("{0} = fma({1}{2}, {3}, {0});\n",
+                           var, scale, weight, name);
+    }
+    else {
+        out << fmt::format("{} = {}{};\n", var, scale, name);
     }
     EXIT(out);
 }

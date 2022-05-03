@@ -35,7 +35,7 @@ struct recipe: public arb::recipe {
         arb::segment_tree tree;
         auto p = arb::mnpos;
         p = tree.append(p, {-3, 0, 0, 3}, { 3, 0, 0, 3}, 1);
-        p = tree.append(p, { 3, 0, 0, 1}, {33, 0, 0, 1}, 3);
+        p = tree.append(p, { 3, 0, 0, 3}, {33, 0, 0, 3}, 3);
         arb::morphology morph{tree};
 
         arb::label_dict dict;
@@ -43,20 +43,16 @@ struct recipe: public arb::recipe {
         dict.set("dend", arb::reg::tagged(3));
 
         arb::decor decor;
-        decor.set_default(arb::init_int_concentration{"na", 0.2});
-        decor.set_default(arb::ion_diffusivity{"na", 1e-12});
-        decor.paint("soma"_lab, arb::init_int_concentration{"na", 1.2});
-        // decor.paint("soma"_lab, arb::density("hh"));
-        // decor.place("(location 0 0.5)"_ls, arb::synapse("inject"), "Zap");
+        decor.set_default(arb::init_int_concentration{"na", 1.0});
+        decor.set_default(arb::ion_diffusivity{"na", 1e-2});
+        decor.place("(location 0 0.5)"_ls, arb::synapse("inject"), "Zap");
         decor.paint("(all)"_reg, arb::density("decay"));
-        // decor.paint("dend"_lab, arb::density("pas"));
-
         return arb::cable_cell(morph, dict, decor);
     }
 
-    // std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
-        // return {arb::explicit_generator({{{"Zap"}, 0.002, 0.005}})};
-    // }
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        return {arb::explicit_generator({{{"Zap"}, 0.001, 0.005}})};
+    }
 
     arb::cable_cell_global_properties gprop;
 };
@@ -93,5 +89,5 @@ int main(int argc, char** argv) {
                     arb::regular_schedule(0.01),
                     sampler);
 
-    sim.run(0.2, 0.005);
+    sim.run(0.02, 0.005);
 }

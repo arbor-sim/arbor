@@ -29,7 +29,7 @@ class recipe (A.recipe):
         return self.the_props
 
 tree = A.segment_tree()
-s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(  3, 0, 0, 3), tag=1)
+s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint( 3, 0, 0, 3), tag=1)
 _ = tree.append(s,       A.mpoint( 3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
 
 dec = A.decor()
