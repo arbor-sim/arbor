@@ -6,6 +6,7 @@
 #include <numeric>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 
 #include "memory/memory.hpp"
@@ -14,7 +15,7 @@
 
 namespace arb {
 
-class tree {
+class ARB_ARBOR_API tree {
 public:
     using int_type   = cell_lid_type;
     using size_type  = cell_local_size_type;
@@ -113,7 +114,7 @@ private:
 
 // Calculates the depth of each branch from the root of a cell segment tree.
 // The root has depth 0, it's children have depth 1, and so on.
-tree::iarray depth_from_root(const tree& t);
+ARB_ARBOR_API tree::iarray depth_from_root(const tree& t);
 
 // Check if c[0] == 0 and c[i] < 0 holds for i != 0
 // Also handle the valid case of c[0]==value_type(-1)

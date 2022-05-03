@@ -14,9 +14,11 @@
 #include <iostream>
 #include <fstream>
 
+#include <sup/export.hpp>
 #include <sup/path.hpp>
 
 namespace sup {
+
 
 template <typename charT, typename traitsT = std::char_traits<charT> >
 class basic_null_streambuf: public std::basic_streambuf<charT, traitsT> {
@@ -42,7 +44,7 @@ protected:
     }
 };
 
-class mask_stream {
+class ARB_SUP_API mask_stream {
 public:
     explicit mask_stream(bool mask): mask_(mask) {}
 
@@ -87,7 +89,7 @@ private:
     bool mask_;
 };
 
-std::fstream open_or_throw(const sup::path& p, std::ios_base::openmode, bool exclusive);
+ARB_SUP_API std::fstream open_or_throw(const sup::path& p, std::ios_base::openmode, bool exclusive);
 
 inline std::fstream open_or_throw(const sup::path& p, bool exclusive) {
     using std::ios_base;

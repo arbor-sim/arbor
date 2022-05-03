@@ -32,7 +32,7 @@ std::optional<mcable> intersect(const mcable& a, const mcable& b) {
 
 struct nil_: region_tag {};
 
-region nil() {
+ARB_ARBOR_API region nil() {
     return region{nil_{}};
 }
 
@@ -52,7 +52,7 @@ struct cable_: region_tag {
     mcable cable;
 };
 
-region cable(msize_t id, double prox, double dist) {
+ARB_ARBOR_API region cable(msize_t id, double prox, double dist) {
     mcable c{id, prox, dist};
     if (!test_invariants(c)) {
         throw invalid_mcable(c);
@@ -60,7 +60,7 @@ region cable(msize_t id, double prox, double dist) {
     return region(cable_{c});
 }
 
-region branch(msize_t bid) {
+ARB_ARBOR_API region branch(msize_t bid) {
     return cable(bid, 0, 1);
 }
 
@@ -137,7 +137,7 @@ struct tagged_: region_tag {
     int tag;
 };
 
-region tagged(int id) {
+ARB_ARBOR_API region tagged(int id) {
     return region(tagged_{id});
 }
 
@@ -170,7 +170,7 @@ struct segment_: region_tag {
     int id;
 };
 
-region segment(int id) {
+ARB_ARBOR_API region segment(int id) {
     return region(segment_{id});
 }
 
@@ -194,7 +194,7 @@ std::ostream& operator<<(std::ostream& o, const segment_& reg) {
 
 struct all_: region_tag {};
 
-region all() {
+ARB_ARBOR_API region all() {
     return region(all_{});
 }
 
@@ -220,7 +220,7 @@ struct distal_interval_: region_tag {
     double distance; //um
 };
 
-region distal_interval(locset start, double distance) {
+ARB_ARBOR_API region distal_interval(locset start, double distance) {
     return region(distal_interval_{start, distance});
 }
 
@@ -295,7 +295,7 @@ struct proximal_interval_: region_tag {
     double distance; //um
 };
 
-region proximal_interval(locset end, double distance) {
+ARB_ARBOR_API region proximal_interval(locset end, double distance) {
     return region(proximal_interval_{end, distance});
 }
 
@@ -368,7 +368,7 @@ struct radius_lt_: region_tag {
     double val; //um
 };
 
-region radius_lt(region reg, double val) {
+ARB_ARBOR_API region radius_lt(region reg, double val) {
     return region(radius_lt_{reg, val});
 }
 
@@ -387,7 +387,7 @@ struct radius_le_: region_tag {
     double val; //um
 };
 
-region radius_le(region reg, double val) {
+ARB_ARBOR_API region radius_le(region reg, double val) {
     return region(radius_le_{reg, val});
 }
 
@@ -406,7 +406,7 @@ struct radius_gt_: region_tag {
     double val; //um
 };
 
-region radius_gt(region reg, double val) {
+ARB_ARBOR_API region radius_gt(region reg, double val) {
     return region(radius_gt_{reg, val});
 }
 
@@ -425,7 +425,7 @@ struct radius_ge_: region_tag {
     double val; //um
 };
 
-region radius_ge(region reg, double val) {
+ARB_ARBOR_API region radius_ge(region reg, double val) {
     return region(radius_ge_{reg, val});
 }
 
@@ -521,7 +521,7 @@ std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
     return o << "(projection-ge " << r.val << ")";
 }
 
-region z_dist_from_root_lt(double r0) {
+ARB_ARBOR_API region z_dist_from_root_lt(double r0) {
     if (r0 == 0) {
         return {};
     }
@@ -530,19 +530,19 @@ region z_dist_from_root_lt(double r0) {
     return intersect(std::move(lt), std::move(gt));
 }
 
-region z_dist_from_root_le(double r0) {
+ARB_ARBOR_API region z_dist_from_root_le(double r0) {
     region le = reg::projection_le(r0);
     region ge = reg::projection_ge(-r0);
     return intersect(std::move(le), std::move(ge));
 }
 
-region z_dist_from_root_gt(double r0) {
+ARB_ARBOR_API region z_dist_from_root_gt(double r0) {
     region lt = reg::projection_lt(-r0);
     region gt = reg::projection_gt(r0);
     return region{join(std::move(lt), std::move(gt))};
 }
 
-region z_dist_from_root_ge(double r0) {
+ARB_ARBOR_API region z_dist_from_root_ge(double r0) {
     region lt = reg::projection_le(-r0);
     region gt = reg::projection_ge(r0);
     return region{join(std::move(lt), std::move(gt))};
@@ -554,7 +554,7 @@ struct named_: region_tag {
     std::string name;
 };
 
-region named(std::string name) {
+ARB_ARBOR_API region named(std::string name) {
     return region(named_{std::move(name)});
 }
 
@@ -573,7 +573,7 @@ struct super_: region_tag {
     region reg;
 };
 
-region complete(region r) {
+ARB_ARBOR_API region complete(region r) {
     return region(super_{std::move(r)});
 }
 
@@ -733,19 +733,19 @@ std::ostream& operator<<(std::ostream& o, const reg_minus& x) {
 // namespace with region so that ADL allows for construction of expressions
 // with regions without having to namespace qualify these operations.
 
-region intersect(region l, region r) {
+ARB_ARBOR_API region intersect(region l, region r) {
     return region{reg::reg_and(std::move(l), std::move(r))};
 }
 
-region join(region l, region r) {
+ARB_ARBOR_API region join(region l, region r) {
     return region{reg::reg_or(std::move(l), std::move(r))};
 }
 
-region complement(region r) {
+ARB_ARBOR_API region complement(region r) {
     return region{reg::reg_not(std::move(r))};
 }
 
-region difference(region l, region r) {
+ARB_ARBOR_API region difference(region l, region r) {
     return region{reg::reg_minus(std::move(l), std::move(r))};
 }
 

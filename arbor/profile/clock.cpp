@@ -23,7 +23,7 @@ inline tick_type posix_clock_gettime_ns(clockid_t clock) {
     return nanoseconds;
 };
 
-tick_type posix_clock_gettime_monotonic_ns() {
+ARB_ARBOR_API tick_type posix_clock_gettime_monotonic_ns() {
     return posix_clock_gettime_ns(CLOCK_MONOTONIC);
 }
 

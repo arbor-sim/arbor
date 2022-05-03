@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
@@ -49,7 +50,7 @@ using cable_sample_range = std::pair<const double*, const double*>;
 // calls to an attached sampler, one per valid location matched by the expression.
 //
 // Metadata for point process probes.
-struct cable_probe_point_info {
+struct ARB_SYMBOL_VISIBLE cable_probe_point_info {
     cell_lid_type target;   // Target number of point process instance on cell.
     unsigned multiplicity;  // Number of combined instances at this site.
     mlocation loc;          // Point on cell morphology where instance is placed.
@@ -58,48 +59,48 @@ struct cable_probe_point_info {
 // Voltage estimate [mV] at `location`, interpolated.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cable_probe_membrane_voltage {
+struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage {
     locset locations;
 };
 
 // Voltage estimate [mV], reported against each cable in each control volume. Not interpolated.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_membrane_voltage_cell {};
+struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage_cell {};
 
 // Axial current estimate [nA] at `location`, interpolated.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cable_probe_axial_current {
+struct ARB_SYMBOL_VISIBLE cable_probe_axial_current {
     locset locations;
 };
 
 // Total current density [A/m²] across membrane _excluding_ capacitive and stimulus current at `location`.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mlocation`
-struct cable_probe_total_ion_current_density {
+struct ARB_SYMBOL_VISIBLE cable_probe_total_ion_current_density {
     locset locations;
 };
 
 // Total ionic current [nA] across membrane _excluding_ capacitive current across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_total_ion_current_cell {};
+struct ARB_SYMBOL_VISIBLE cable_probe_total_ion_current_cell {};
 
 // Total membrane current [nA] across components of the cell _excluding_ stimulus currents.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_total_current_cell {};
+struct ARB_SYMBOL_VISIBLE cable_probe_total_current_cell {};
 
 // Stimulus currents [nA] across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_stimulus_current_cell {};
+struct ARB_SYMBOL_VISIBLE cable_probe_stimulus_current_cell {};
 
 // Value of state variable `state` in density mechanism `mechanism` in CV at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cable_probe_density_state {
+struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
     locset locations;
     std::string mechanism;
     std::string state;
@@ -108,7 +109,7 @@ struct cable_probe_density_state {
 // Value of state variable `state` in density mechanism `mechanism` across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_density_state_cell {
+struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
     std::string mechanism;
     std::string state;
 };
@@ -116,7 +117,7 @@ struct cable_probe_density_state_cell {
 // Value of state variable `key` in point mechanism `source` at target `target`.
 // Sample value type: `double`
 // Sample metadata type: `cable_probe_point_info`
-struct cable_probe_point_state {
+struct ARB_SYMBOL_VISIBLE cable_probe_point_state {
     cell_lid_type target;
     std::string mechanism;
     std::string state;
@@ -126,7 +127,7 @@ struct cable_probe_point_state {
 // Metadata has one entry of type cable_probe_point_info for each matched (possibly coalesced) instance.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `std::vector<cable_probe_point_info>`
-struct cable_probe_point_state_cell {
+struct ARB_SYMBOL_VISIBLE cable_probe_point_state_cell {
     std::string mechanism;
     std::string state;
 };
@@ -134,7 +135,7 @@ struct cable_probe_point_state_cell {
 // Current density [A/m²] across membrane attributed to the ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cable_probe_ion_current_density {
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_current_density {
     locset locations;
     std::string ion;
 };
@@ -142,14 +143,14 @@ struct cable_probe_ion_current_density {
 // Total ionic current [nA] attributed to the ion `source` across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_ion_current_cell {
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_current_cell {
     std::string ion;
 };
 
 // Ionic internal concentration [mmol/L] of ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cable_probe_ion_int_concentration {
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_int_concentration {
     locset locations;
     std::string ion;
 };
@@ -157,14 +158,14 @@ struct cable_probe_ion_int_concentration {
 // Ionic internal concentration [mmol/L] of ion `source` across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_ion_int_concentration_cell {
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_int_concentration_cell {
     std::string ion;
 };
 
 // Ionic external concentration [mmol/L] of ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
-struct cable_probe_ion_ext_concentration {
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration {
     locset locations;
     std::string ion;
 };
@@ -172,7 +173,7 @@ struct cable_probe_ion_ext_concentration {
 // Ionic external concentration [mmol/L] of ion `source` across components of the cell.
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
-struct cable_probe_ion_ext_concentration_cell {
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration_cell {
     std::string ion;
 };
 
@@ -220,7 +221,7 @@ using cable_cell_location_map = static_typed_map<location_assignment,
     synapse, junction, i_clamp, threshold_detector>;
 
 // High-level abstract representation of a cell.
-class cable_cell {
+class ARB_SYMBOL_VISIBLE cable_cell {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;

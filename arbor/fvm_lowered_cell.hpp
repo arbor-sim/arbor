@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -235,6 +236,6 @@ struct fvm_lowered_cell {
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx);
+ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx);
 
 } // namespace arb

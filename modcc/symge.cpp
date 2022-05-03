@@ -81,7 +81,7 @@ double estimate_cost(const sym_matrix& A, pivot p) {
 // that are symbols that are either primitive, or defined (in the symbol
 // table) as products or differences of products of other symbols.
 // Returns a vector of vectors of symbols, partitioned by row of the matrix
-std::vector<std::vector<symge::symbol>> gj_reduce(sym_matrix& A, symbol_table& table) {
+ARB_LIBMODCC_API std::vector<std::vector<symge::symbol>> gj_reduce(sym_matrix& A, symbol_table& table) {
     std::vector<std::vector<symge::symbol>> row_symbols;
 
     if (A.nrow()>A.ncol()) throw std::runtime_error("improper matrix for reduction");

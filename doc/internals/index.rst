@@ -9,6 +9,7 @@ Here we document internal components of Arbor. These pages can be useful if you'
    :caption: Arbor Internals:
    :maxdepth: 2
 
+   export
    util
    simd_api
    extending_catalogues

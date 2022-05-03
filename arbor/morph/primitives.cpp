@@ -36,7 +36,7 @@ int multiplicity(T& it, T end) {
 
 
 // interpolate between two points.
-mpoint lerp(const mpoint& a, const mpoint& b, double u) {
+ARB_ARBOR_API mpoint lerp(const mpoint& a, const mpoint& b, double u) {
     return { math::lerp(a.x, b.x, u),
              math::lerp(a.y, b.y, u),
              math::lerp(a.z, b.z, u),
@@ -44,12 +44,12 @@ mpoint lerp(const mpoint& a, const mpoint& b, double u) {
 }
 
 // test if two morphology sample points share the same location.
-bool is_collocated(const mpoint& a, const mpoint& b) {
+ARB_ARBOR_API bool is_collocated(const mpoint& a, const mpoint& b) {
     return a.x==b.x && a.y==b.y && a.z==b.z;
 }
 
 // calculate the distance between two morphology sample points.
-double distance(const mpoint& a, const mpoint& b) {
+ARB_ARBOR_API double distance(const mpoint& a, const mpoint& b) {
     double dx = a.x - b.x;
     double dy = a.y - b.y;
     double dz = a.z - b.z;
@@ -57,18 +57,18 @@ double distance(const mpoint& a, const mpoint& b) {
     return std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-bool test_invariants(const mlocation& l) {
+ARB_ARBOR_API bool test_invariants(const mlocation& l) {
     return (0.<=l.pos && l.pos<=1.) && l.branch!=mnpos;
 }
 
-mlocation_list sum(const mlocation_list& lhs, const mlocation_list& rhs) {
+ARB_ARBOR_API mlocation_list sum(const mlocation_list& lhs, const mlocation_list& rhs) {
     mlocation_list v;
     v.resize(lhs.size() + rhs.size());
     std::merge(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), v.begin());
     return v;
 }
 
-mlocation_list join(const mlocation_list& lhs, const mlocation_list& rhs) {
+ARB_ARBOR_API mlocation_list join(const mlocation_list& lhs, const mlocation_list& rhs) {
     mlocation_list L;
     L.reserve(lhs.size()+rhs.size());
 
@@ -91,7 +91,7 @@ mlocation_list join(const mlocation_list& lhs, const mlocation_list& rhs) {
     return L;
 }
 
-mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs) {
+ARB_ARBOR_API mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs) {
     mlocation_list L;
     L.reserve(lhs.size()+rhs.size());
 
@@ -118,41 +118,41 @@ mlocation_list intersection(const mlocation_list& lhs, const mlocation_list& rhs
     return L;
 }
 
-mlocation_list support(mlocation_list L) {
+ARB_ARBOR_API mlocation_list support(mlocation_list L) {
     util::unique_in_place(L);
     return L;
 }
 
-bool test_invariants(const mcable& c) {
+ARB_ARBOR_API bool test_invariants(const mcable& c) {
     return (0.<=c.prox_pos && c.prox_pos<=c.dist_pos && c.dist_pos<=1.) && c.branch!=mnpos;
 }
 
-bool test_invariants(const mcable_list& l) {
+ARB_ARBOR_API bool test_invariants(const mcable_list& l) {
     return std::is_sorted(l.begin(), l.end())
         && l.end()==std::find_if(l.begin(), l.end(), [](const mcable& c) {return !test_invariants(c);});
 }
 
-std::ostream& operator<<(std::ostream& o, const mpoint& p) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mpoint& p) {
     return o << "(point " << p.x << " " << p.y << " " << p.z << " " << p.radius << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const msegment& s) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const msegment& s) {
     return o << "(segment " << s.id << " " << s.prox << " " << s.dist << " " << s.tag << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const mlocation& l) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mlocation& l) {
     return o << "(location " << l.branch << " " << l.pos << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const mlocation_list& l) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mlocation_list& l) {
     return o << "(list " << io::sepval(l, ' ') << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const mcable& c) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mcable& c) {
     return o << "(cable " << c.branch << " " << c.prox_pos << " " << c.dist_pos << ")";
 }
 
-std::ostream& operator<<(std::ostream& o, const mcable_list& c) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const mcable_list& c) {
     return o << "(list " << io::sepval(c, ' ') << ")";
 }
 

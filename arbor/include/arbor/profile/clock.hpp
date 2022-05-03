@@ -1,5 +1,7 @@
 #pragma once
 
+#include <arbor/export.hpp>
+
 typedef unsigned long long tick_type;
 
 // Assuming POSIX monotonic clock is available; add
@@ -9,7 +11,7 @@ typedef unsigned long long tick_type;
 namespace arb {
 namespace profile {
 
-tick_type posix_clock_gettime_monotonic_ns();
+ARB_ARBOR_API tick_type posix_clock_gettime_monotonic_ns();
 
 struct posix_clock_monotonic {
     static constexpr double seconds_per_tick() { return 1.e-9; }

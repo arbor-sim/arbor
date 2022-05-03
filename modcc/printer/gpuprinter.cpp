@@ -42,7 +42,7 @@ static std::string ion_field(const IonDep& ion) { return fmt::format("ion_{}",  
 static std::string ion_index(const IonDep& ion) { return fmt::format("ion_{}_index", ion.name); }
 
 
-std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
+ARB_LIBMODCC_API std::string emit_gpu_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name       = module_.module_name();
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
@@ -92,7 +92,7 @@ std::string emit_gpu_cpp_source(const Module& module_, const printer_options& op
     return out.str();
 }
 
-std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
+ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
 

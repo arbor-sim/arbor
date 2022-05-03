@@ -8,6 +8,7 @@
 #include <arborenv/arbenvexcept.hpp>
 #include <arborenv/concurrency.hpp>
 #include <arborenv/gpu_env.hpp>
+#include <arborenv/export.hpp>
 
 namespace arbenv {
 
@@ -15,7 +16,7 @@ namespace arbenv {
 // if set and non-zero, throwing arbev::invalid_env_value if it has an invalid
 // value, or else return the value determined by arbenv::thread_concurrency().
 
-unsigned long default_concurrency();
+ARB_ARBORENV_API unsigned long default_concurrency();
 
 // If Arbor is built without GPU support, return -1.
 //
@@ -29,7 +30,7 @@ unsigned long default_concurrency();
 // Throws arbenv::invalid_env_value if ARBENV_GPU_ID is not an int value, or
 // arbenv::no_such_gpu if it doesn't correspond to a valid GPU id.
 
-int default_gpu();
+ARB_ARBORENV_API int default_gpu();
 
 // Construct default proc_allocation from `default_concurrency()` and
 // `default_gpu()`.
@@ -44,6 +45,6 @@ inline arb::proc_allocation default_allocation() {
 //   non-numeric, non-positive, or out of range value.
 // * Returns zero if ARBENV_NUM_THREADS is unset, or set and empty.
 
-unsigned long get_env_num_threads();
+ARB_ARBORENV_API unsigned long get_env_num_threads();
 
 } // namespace arbenv

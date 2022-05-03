@@ -6,11 +6,12 @@
 #include "expression.hpp"
 #include "visitor.hpp"
 #include "marks.hpp"
+#include <libmodcc/export.hpp>
 
 // Common functionality for generating source from binary expressions
 // and conditional structures with C syntax.
 
-class CExprEmitter: public Visitor {
+class ARB_LIBMODCC_API CExprEmitter: public Visitor {
 public:
     CExprEmitter(std::ostream& out, Visitor* fallback):
         out_(out), fallback_(fallback)
@@ -37,7 +38,7 @@ inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
     e->accept(&emitter);
 }
 
-class SimdExprEmitter: public CExprEmitter {
+class ARB_LIBMODCC_API SimdExprEmitter: public CExprEmitter {
     using CExprEmitter::visit;
 public:
     SimdExprEmitter(
@@ -95,4 +96,4 @@ struct as_c_double {
     as_c_double(double value): value(value) {}
 };
 
-std::ostream& operator<<(std::ostream&, as_c_double);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream&, as_c_double);

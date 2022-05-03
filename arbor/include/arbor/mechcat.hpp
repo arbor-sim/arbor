@@ -6,6 +6,7 @@
 #include <typeindex>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechanism_abi.h>
@@ -39,7 +40,7 @@ namespace arb {
 // catalogue_state comprises the private implementation of mechanism_catalogue.
 struct catalogue_state;
 
-class mechanism_catalogue {
+class ARB_ARBOR_API mechanism_catalogue {
 public:
     using value_type = double;
 
@@ -109,11 +110,11 @@ private:
 };
 
 // References to global mechanism catalogues.
-const mechanism_catalogue& global_default_catalogue();
-const mechanism_catalogue& global_allen_catalogue();
-const mechanism_catalogue& global_bbp_catalogue();
+ARB_ARBOR_API const mechanism_catalogue& global_default_catalogue();
+ARB_ARBOR_API const mechanism_catalogue& global_allen_catalogue();
+ARB_ARBOR_API const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
-const mechanism_catalogue& load_catalogue(const std::string&);
+ARB_ARBOR_API const mechanism_catalogue& load_catalogue(const std::string&);
 
 } // namespace arb

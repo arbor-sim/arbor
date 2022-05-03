@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 namespace threading {
 
@@ -68,7 +70,7 @@ struct priority_task {
 
 namespace impl {
 
-class notification_queue {
+class ARB_ARBOR_API notification_queue {
     // Number of priority levels in notification queues.
     static constexpr int n_priority = max_async_task_priority+1;
 
@@ -120,7 +122,7 @@ private:
 
 }// namespace impl
 
-class task_system {
+class ARB_ARBOR_API task_system {
 private:
     // Number of notification queues.
     unsigned count_;

@@ -1,5 +1,6 @@
 #include <arbor/fvm_types.hpp>
 
+#include <arbor/export.hpp>
 #include <ostream>
 
 namespace arb {
@@ -13,19 +14,19 @@ struct level_metadata {
 };
 
 // C wrappers around kernels
-void gather(
+ARB_ARBOR_API void gather(
     const fvm_value_type* from,
     fvm_value_type* to,
     const fvm_index_type* p,
     unsigned n);
 
-void scatter(
+ARB_ARBOR_API void scatter(
     const fvm_value_type* from,
     fvm_value_type* to,
     const fvm_index_type* p,
     unsigned n);
 
-void assemble_matrix_fine(
+ARB_ARBOR_API void assemble_matrix_fine(
     fvm_value_type* d,
     fvm_value_type* rhs,
     const fvm_value_type* invariant_d,
@@ -39,7 +40,7 @@ void assemble_matrix_fine(
     const fvm_index_type* perm,
     unsigned n);
 
-void solve_matrix_fine(
+ARB_ARBOR_API void solve_matrix_fine(
     fvm_value_type* rhs,
     fvm_value_type* d,                     // diagonal values
     const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)

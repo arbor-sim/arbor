@@ -213,14 +213,14 @@ parse_label_hopefully<std::any> eval(const s_expr& e) {
 
 } // namespace
 
-parse_label_hopefully<std::any> parse_label_expression(const std::string& e) {
+ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const std::string& e) {
     return eval(parse_s_expr(e));
 }
-parse_label_hopefully<std::any> parse_label_expression(const s_expr& s) {
+ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const s_expr& s) {
     return eval(s);
 }
 
-parse_label_hopefully<arb::region> parse_region_expression(const std::string& s) {
+ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const std::string& s) {
     if (auto e = eval(parse_s_expr(s))) {
         if (e->type() == typeid(region)) {
             return {std::move(std::any_cast<region&>(*e))};
@@ -237,7 +237,7 @@ parse_label_hopefully<arb::region> parse_region_expression(const std::string& s)
     }
 }
 
-parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
+ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
     if (auto e = eval(parse_s_expr(s))) {
         if (e->type() == typeid(locset)) {
             return {std::move(std::any_cast<locset&>(*e))};

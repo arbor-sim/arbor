@@ -4,6 +4,7 @@
 #include <tuple>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 
 namespace arb {
@@ -33,6 +34,6 @@ struct cell_spike_events {
 
 using cse_vector = std::vector<cell_spike_events>;
 
-std::ostream& operator<<(std::ostream&, const spike_event&);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const spike_event&);
 
 } // namespace arb

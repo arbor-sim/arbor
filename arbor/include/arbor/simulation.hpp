@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -21,7 +22,7 @@ using spike_export_function = std::function<void(const std::vector<spike>&)>;
 // simulation_state comprises private implementation for simulation class.
 class simulation_state;
 
-class simulation {
+class ARB_ARBOR_API simulation {
 public:
     simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx);
 

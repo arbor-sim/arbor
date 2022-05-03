@@ -9,7 +9,7 @@ set(py_unit_sources
 add_executable(py_unit EXCLUDE_FROM_ALL ${py_unit_sources})
 add_dependencies(tests py_unit)
 
-add_library(py_unit_lib $<TARGET_OBJECTS:pyarb_obj>)
+add_library(py_unit_lib STATIC $<TARGET_OBJECTS:pyarb_obj>)
 target_link_libraries(py_unit_lib PRIVATE arbor pybind11::module)
 
 target_compile_options(py_unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})

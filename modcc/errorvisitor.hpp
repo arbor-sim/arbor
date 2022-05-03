@@ -3,8 +3,9 @@
 #include <iostream>
 #include "visitor.hpp"
 #include "expression.hpp"
+#include <libmodcc/export.hpp>
 
-class ErrorVisitor : public Visitor {
+class ARB_LIBMODCC_API ErrorVisitor : public Visitor {
 public:
     ErrorVisitor(std::string const& m)
         : module_name_(m)

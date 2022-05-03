@@ -592,7 +592,7 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-const mechanism_catalogue& load_catalogue(const std::string& fn) {
+ARB_ARBOR_API const mechanism_catalogue& load_catalogue(const std::string& fn) {
     typedef const void* global_catalogue_t();
     global_catalogue_t* get_catalogue = nullptr;
     try {

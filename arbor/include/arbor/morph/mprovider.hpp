@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/embed_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/label_dict.hpp>
@@ -12,7 +13,7 @@ namespace arb {
 
 using concrete_embedding = embed_pwlin;
 
-struct mprovider {
+struct ARB_ARBOR_API mprovider {
     mprovider(arb::morphology m, const label_dict& dict): mprovider(m, &dict) {}
     explicit mprovider(arb::morphology m): mprovider(m, nullptr) {}
 
