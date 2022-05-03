@@ -566,12 +566,10 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
         s << scaled(1./d.scale); scale = s.str();
         w << pp_var_pfx << "weight[i_]"; weight = w.str();
     }
-    if (d.additive) {
-        if (use_additive) {
+    if (d.additive && use_additive) {
             out << fmt::format("{3} -= {0};\n"
                                "{0} = fma({1}{2}, {3}, {0});\n",
                                var, scale, weight, name);
-        }
     }
     else if (d.accumulate) {
         out << fmt::format("{0} = fma({1}{2}, {3}, {0});\n",
