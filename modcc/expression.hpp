@@ -1229,36 +1229,30 @@ private:
     expression_ptr body_;
 };
 
-class ARB_LIBMODCC_API APIFunctionCallExpression : public Expression {
+class ARB_LIBMODCC_API APIFunctionCallExpression: public Expression {
 protected:
     std::string name_;
     std::vector<expression_ptr> args_;
+    bool pass_index_ = false;
+
 public:
-    APIFunctionCallExpression(std::string const & name, std::vector<expression_ptr>&& args)
-    :   Expression(Location{}),
+    APIFunctionCallExpression(std::string const& name, std::vector<expression_ptr>&& args, bool pass_index = false):
+        Expression(Location{}),
         name_{name},
-        args_{std::move(args)}
-    {
-        //args_.reserve(args.size());
-        //for (auto& e : args) {
-        //    auto id = e->is_identifier();
-        //    if (!id)
-        //        throw compiler_exception(
-        //        " attempt to initialize APIFunctionCallExpression with non-identifier expressions, i.e.\n"
-        //        + e->to_string(), location_);
-        //    args_.push_back( make_expression<IdentifierExpression>(Location{}, id->spelling()) );
-        //}
+        args_{std::move(args)},
+        pass_index_{pass_index} {
     }
 
     std::string const& name() const {
         return name_;
     }
     std::vector<expression_ptr>& arguments() { return args_; }
-    std::vector<expression_ptr> const & arguments() const { return args_; }
+    std::vector<expression_ptr> const& arguments() const { return args_; }
+    bool pass_index() const { return pass_index_; }
 
-    APIFunctionCallExpression* is_api_function_call() override {return this;}
+    APIFunctionCallExpression* is_api_function_call() override { return this; }
     std::string to_string() const override;
-    void accept(Visitor *v) override;
+    void accept(Visitor* v) override;
     expression_ptr clone() const override;
     void semantic(scope_ptr scp) override;
 };

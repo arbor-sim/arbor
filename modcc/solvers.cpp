@@ -574,13 +574,15 @@ void EulerMaruyamaSolverVisitor::visit(BlockExpression* e) {
 
         // make arguments list for call to random number generator
         std::vector<expression_ptr> args;
-        args.push_back(make_expression<IntegerExpression>(Location{}, wn_symbol->index()));
-        args.push_back(make_expression<IdentifierExpression>(Location{}, "t"));
+        args.push_back(make_expression<IdentifierExpression>(Location{}, "prng_seed"));
         args.push_back(make_expression<IdentifierExpression>(Location{}, "gid"));
+        args.push_back(make_expression<IdentifierExpression>(Location{}, "t"));
+        args.push_back(make_expression<IdentifierExpression>(Location{}, "mechanism_id"));
         args.push_back(make_expression<IdentifierExpression>(Location{}, "mech_inst"));
+        args.push_back(make_expression<IntegerExpression>(Location{}, wn_symbol->index()));
 
         // create call to gaussian random number generator
-        auto call = make_expression<APIFunctionCallExpression>("normal_rand", std::move(args));
+        auto call = make_expression<APIFunctionCallExpression>("normal_rand", std::move(args), true);
 
         // assign random number to white noise: w = normal_rand(...)
         auto decl = make_expression<LocalDeclaration>(Location{}, w);

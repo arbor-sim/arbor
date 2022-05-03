@@ -587,6 +587,20 @@ bool Module::semantic() {
 
 /// populate the symbol table with class scope variables
 void Module::add_variables_to_symbols() {
+    // built in variables for which we don't have a token
+    auto create_built_in_variable =
+        [this](const std::string& name, accessKind a, visibilityKind v, linkageKind l,
+               rangeKind r, bool is_state = false) -> symbol_ptr&
+        {
+            auto var = new VariableExpression(Location{}, name);
+            var->access(a);
+            var->visibility(v);
+            var->linkage(l);
+            var->range(r);
+            var->state(is_state);
+            return symbols_[var->name()] = symbol_ptr{var};
+        };
+
     auto create_variable =
         [this](const Token& token, accessKind a, visibilityKind v, linkageKind l,
                rangeKind r, bool is_state = false) -> symbol_ptr&
@@ -634,9 +648,13 @@ void Module::add_variables_to_symbols() {
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
     // indirection in printers.
+
+    // add symbols for random number generator
     create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
     create_indexed_variable("gid", sourceKind::gid, accessKind::read, "", Location());
     create_indexed_variable("mech_inst", sourceKind::mech_inst, accessKind::read, "", Location());
+    create_built_in_variable("prng_seed", accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
+    create_built_in_variable("mechanism_id", accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
 
     // Add state variables.
     for (const Id& id: state_block_) {
@@ -673,6 +691,21 @@ void Module::add_variables_to_symbols() {
             }
         }
     }
+
+    //// add symbols for random number generator
+    //{
+    //    auto var = new VariableExpression(Location{}, "prng_seed");
+    //    var->access(accessKind::read);
+    //    var->visibility(visibilityKind::global);
+    //    var->linkage(linkageKind::local);
+    //    var->range(rangeKind::scalar);
+    //    var->state(false);
+    //    if (symbols_.count(var->name())) {
+    //        throw compiler_exception(
+    //            pprintf("the symbol % uses reserved name", yellow(var->name())), Location{});
+    //    }
+    //    symbols_[var->name()] = symbol_ptr{var};
+    //}
 
     // Remove `celsius`, `diam` and `t` from the parameter block, as they are not true parameters anymore.
     parameter_block_.parameters.erase(

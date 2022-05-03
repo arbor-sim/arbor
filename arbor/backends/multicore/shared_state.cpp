@@ -2,6 +2,7 @@
 #include <cfloat>
 #include <cmath>
 #include <iostream>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -493,6 +494,16 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
     m.ppack_.vec_t            = nullptr;
+
+    // generate random seed if not provided
+    if (m.mech_.user_seed >= 0) {
+        m.ppack_.prng_seed = m.mech_.user_seed;
+    }
+    else {
+        std::random_device rd;
+        std::uniform_int_distribution<int> dist(0);
+        m.ppack_.prng_seed = dist(rd);
+    }
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();

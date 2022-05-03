@@ -681,8 +681,25 @@ void Parser::parse_white_noise_block() {
 
     int success = 1;
 
-    // there are no use cases for curly brace in an WHITE_NOISE block, so we don't have to count them
+    // check for user seed
     get_token();
+    if (token_.type == tok::seed) {
+        get_token();
+        // look for equality
+        if (token_.type == tok::eq) {
+            get_token(); // consume '='
+            // parse value
+            int user_seed = value_signed_integer();
+            if (status_ == lexerStatus::error || user_seed < 0) {
+                success = 0;
+                goto wn_exit;
+            }
+            else
+                block.seed = user_seed;
+        }
+    }
+
+    // there are no use cases for curly brace in an WHITE_NOISE block, so we don't have to count them
     while (token_.type != tok::rbrace && token_.type != tok::eof) {
         int line = location_.line;
         std::vector<Token> variables; // we can have more than one variable on a line

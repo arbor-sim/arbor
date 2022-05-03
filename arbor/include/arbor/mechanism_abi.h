@@ -209,7 +209,8 @@ typedef struct arb_mechanism_type {
     arb_size_type             n_parameters;
     arb_ion_info*             ions;             // Ion properties
     arb_size_type             n_ions;
-    arb_size_type             n_white_noise;
+    //arb_size_type             n_white_noise;
+    arb_index_type            user_seed;
 } arb_mechanism_type;
 
 #ifdef __cplusplus

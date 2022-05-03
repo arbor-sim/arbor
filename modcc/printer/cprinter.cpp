@@ -260,15 +260,16 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
                                    "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
                                    "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\\\n"
-                                   "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"),
+                                   "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"
+                                   "[[maybe_unused]] auto  {0}prng_seed         = pp->prng_seed;\\\n"),
                        pp_var_pfx);
     auto global = 0;
     for (const auto& scalar: global_ids) {
         out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
-    out << fmt::format("[[maybe_unused]] auto* {}gid = pp->prng_states[0];\\\n", pp_var_pfx);
-    out << fmt::format("[[maybe_unused]] auto* {}mech_inst = pp->prng_states[1];\\\n", pp_var_pfx);
+    out << fmt::format("[[maybe_unused]] auto const * {}gid = pp->prng_states[0];\\\n", pp_var_pfx);
+    out << fmt::format("[[maybe_unused]] auto const * {}mech_inst = pp->prng_states[1];\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
         out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
@@ -452,18 +453,19 @@ void CPrinter::visit(WhiteNoise* sym) {
 }
 
 void CPrinter::visit(APIFunctionCallExpression* e) {
-    out_
-        << e->name()
-        << fmt::format(FMT_COMPILE("(i_, {0}mechanism_id"), pp_var_pfx);
+    out_ << e->name() << "( ";
+    if (e->pass_index()) out_ << "i_, ";
     auto& args = e->is_api_function_call()->arguments();
-    for (unsigned i=0; i<args.size(); ++i) {
+    for (unsigned i = 0; i < args.size(); ++i) {
         auto& expr = args[i];
-        out_ << ", ";
         if (expr->is_integer())
             out_ << expr->is_integer()->integer_value();
         else
             expr->accept(this);
-        if (i==(args.size()-1)) out_ << ")";
+        if (i == (args.size() - 1))
+            out_ << " )";
+        else
+            out_ << ", ";
     }
 }
 
