@@ -76,7 +76,6 @@ struct diffusion_solver {
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
     //   dt_intdom       [ms]      (per integration domain)
     //   internal conc   [mM]      (per control volume)
     //   voltage         [mV]      (per control volume)
@@ -90,21 +89,24 @@ struct diffusion_solver {
         for (auto m: util::make_span(0, ncells)) {
             auto dt = dt_intdom[cell_to_intdom[m]];
             if (dt>0) {
-                value_type _1_dt = 1e-3/dt;     // [1/µs]
+                value_type _1_dt = 1e-3/dt;     // 1/µs
                 for (auto i: util::make_span(cell_cv_part[m])) {
-                    auto u = voltage[i];        //
-                    auto g = conductivity[i];   //
-                    auto J = current[i];        //
-                    auto A = 1e-3*cv_area[i]/q; // [1e-9·m²]
-                    auto X = concentration[i];  //
-                    d[i]   = _1_dt   + A*g + invariant_d[i];
-                    rhs[i] = _1_dt*X + A*(u*g - J);
+                    auto u = voltage[i];        // mV
+                    auto g = conductivity[i];   // µS
+                    auto J = current[i];        // A/m^2
+                    auto A = 1e-3*cv_area[i];   // 1e-9·m²
+                    auto X = concentration[i];  // mM
+                    // conversion from current density to concentration change
+                    // using Faraday's constant
+                    auto F = A/(q*96.485332);
+                    d[i]   = _1_dt   + F*g + invariant_d[i];
+                    rhs[i] = _1_dt*X + F*(u*g - J);
                 }
             }
             else {
                 for (auto i: util::make_span(cell_cv_part[m])) {
                     d[i]   = 0;
-                    rhs[i] = concentration[i]; // TODO(TH): Sure?
+                    rhs[i] = concentration[i];
                 }
             }
         }

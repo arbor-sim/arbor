@@ -38,7 +38,6 @@ dec.set_property(Vm=-40)
 dec.discretization(A.cv_policy('(max-extent 5)'))
 
 # Set up ion diffusion
-# TODO(TH) figure out diff scale
 dec.set_ion('na', int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
 dec.paint('(tag 1)', ion_name="na", int_con=100.0, diff=0.01)
 

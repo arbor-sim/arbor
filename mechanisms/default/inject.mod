@@ -7,8 +7,11 @@ PARAMETER {
   alpha = 200
 }
 
-BREAKPOINT {}
+BREAKPOINT {
+    nai = 5
+}
 
 NET_RECEIVE(weight) {
     nad = nad + alpha*weight
+    nai = nai + alpha*weight
 }

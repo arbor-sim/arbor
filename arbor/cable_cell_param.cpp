@@ -66,7 +66,7 @@ cable_cell_parameter_set neuron_parameter_defaults = {
     // membrane capacitance [F/m²]
     0.01,
     // ion defaults:
-    // internal concentration [mM], external concentration [mM], reversal potential [mV], diffusivity [TODO]
+    // internal concentration [mM], external concentration [mM], reversal potential [mV], diffusivity [(um)^2/ms]
     {{"na", {10.0,  140.0,  115 - 65.,               0.0}},
      {"k",  {54.4,    2.5,  -12 - 65.,               0.0}},
      {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5), 0.0}}
