@@ -503,14 +503,12 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // Instantiate mechanisms, ions, and stimuli.
 
-    for (auto& i: mech_data.ions) {
-        const std::string& ion_name = i.first;
-
-        if (auto charge = value_by_key(global_props.ion_species, ion_name)) {
-            state_->add_ion(ion_name, *charge, i.second);
+    for (const auto& [ion, data]: mech_data.ions) {
+        if (auto charge = value_by_key(global_props.ion_species, ion)) {
+            state_->add_ion(ion, *charge, data);
         }
         else {
-            throw cable_cell_error("unrecognized ion '"+ion_name+"' in mechanism");
+            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
         }
     }
 
