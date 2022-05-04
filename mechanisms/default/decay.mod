@@ -1,18 +1,18 @@
 NEURON {
     SUFFIX decay
-    USEION na WRITE nad
+    USEION x WRITE xd
 }
 
-INITIAL { F = nad }
+INITIAL { F = xd }
 
 STATE { F }
 
 BREAKPOINT {
    SOLVE dF METHOD cnexp
-   nad = F
+   xd = F
 }
 
 DERIVATIVE dF {
-   F = nad
+   F = xd
    F' = -5*F
 }
