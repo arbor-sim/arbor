@@ -24,6 +24,7 @@ mechanism_info::mechanism_info(const arb_mechanism_type& m) {
         const auto& v = m.ions[idx];
         ions[v.name] = { v.write_int_concentration,
         v.write_ext_concentration,
+        v.use_diff_concentration,
         v.read_rev_potential,
         v.write_rev_potential,
         v.read_valence,

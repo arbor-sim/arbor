@@ -369,7 +369,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             D.face_conductance[i] = 100/resistance; // 100 scales to µS.
             for (auto& [ion, info]: diffusive_ions) {
                 double resistance = embedding.integrate_ixa(span, info.axial_inv_diffusivity[0].at(bid));
-                info.face_diffusivity[i] = 1e-9/resistance;
+                info.face_diffusivity[i] = 1e-9/resistance; // scale to m^2/s
             }
         }
 
@@ -828,7 +828,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     fvm_mechanism_data M;
 
     // Verify mechanism ion usage, parameter values.
-    auto verify_mechanism = [&gprop](const mechanism_info& info, const mechanism_desc& desc) {
+    auto verify_mechanism = [&gprop, &D](const mechanism_info& info, const mechanism_desc& desc) {
         const auto& global_ions = gprop.ion_species;
 
         for (const auto& pv: desc.values()) {
@@ -840,24 +840,26 @@ fvm_mechanism_data fvm_build_mechanism_data(
             }
         }
 
-        for (const auto& ion: info.ions) {
-            const auto& ion_name = ion.first;
-            const auto& ion_dep = ion.second;
-
-            if (!global_ions.count(ion_name)) {
+        for (const auto& [ion, dep]: info.ions) {
+            if (!global_ions.count(ion)) {
                 throw cable_cell_error(
-                    "mechanism "+desc.name()+" uses ion "+ion_name+ " which is missing in global properties");
+                    "mechanism "+desc.name()+" uses ion "+ion+ " which is missing in global properties");
             }
 
-            if (ion_dep.verify_ion_charge) {
-                if (ion_dep.expected_ion_charge!=global_ions.at(ion_name)) {
+            if (dep.verify_ion_charge) {
+                if (dep.expected_ion_charge!=global_ions.at(ion)) {
                     throw cable_cell_error(
-                        "mechanism "+desc.name()+" uses ion "+ion_name+ " expecting a different valence");
+                        "mechanism "+desc.name()+" uses ion "+ion+ " expecting a different valence");
                 }
             }
 
-            if (ion_dep.write_reversal_potential && (ion_dep.write_concentration_int || ion_dep.write_concentration_ext)) {
+            if (dep.write_reversal_potential && (dep.write_concentration_int || dep.write_concentration_ext)) {
                 throw cable_cell_error("mechanism "+desc.name()+" writes both reversal potential and concentration");
+            }
+
+            auto is_diffusive = D.diffusive_ions.count(ion);
+            if (dep.access_concentration_diff && !is_diffusive) {
+                throw illegal_diffusive_mechanism(desc.name(), ion);
             }
         }
     };
