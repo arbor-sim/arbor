@@ -1,10 +1,10 @@
 NEURON {
   POINT_PROCESS inject
-  USEION na WRITE nad
+  USEION x WRITE xd
 }
 
 BREAKPOINT {}
 
 NET_RECEIVE(weight) {
-    nad = nad + 200.0*weight
+    xd = xd + 200.0*weight
 }
