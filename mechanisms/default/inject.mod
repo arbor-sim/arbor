@@ -1,17 +1,10 @@
 NEURON {
   POINT_PROCESS inject
-  USEION na WRITE nad, nai, ina
+  USEION na WRITE nad
 }
 
-PARAMETER {
-  alpha = 200
-}
-
-BREAKPOINT {
-    nai = 5
-}
+BREAKPOINT {}
 
 NET_RECEIVE(weight) {
-    nad = nad + alpha*weight
-    nai = nai + alpha*weight
+    nad = nad + 200.0*weight
 }

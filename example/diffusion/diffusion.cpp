@@ -61,20 +61,22 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
     auto ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
     assert(ptr);
     auto n_cable = ptr->size();
-    std::cout << "index=" << pm.index << " id=" << pm.id << " tag=" << pm.tag << '\n';
-    std::cout << std::fixed << std::setprecision(4);
-    return;
+    std::cout << "Probe index=" << pm.index << " id=" << pm.id << " tag=" << pm.tag << '\n'
+              << std::fixed << std::setprecision(4)
+              << "  time,   prox,   dist,   Xd\n";
     for (std::size_t i = 0; i<n; ++i) {
         auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
         assert(value_range);
         assert(n_cable==value_range->second-value_range->first);
         for (unsigned j = 0; j<n_cable; ++j) {
             arb::mcable where = (*ptr)[j];
-            std::cout << samples[i].time << ", "
+            std::cout << "  "
+                      << samples[i].time << ", "
                       << where.prox_pos << ", "
                       << where.dist_pos << ", "
                       << value_range->first[j] << '\n';
         }
+        std::cout << '\n';
     }
 }
 
@@ -86,7 +88,7 @@ int main(int argc, char** argv) {
                         context);
 
     sim.add_sampler(arb::all_probes,
-                    arb::regular_schedule(0.01),
+                    arb::regular_schedule(0.005),
                     sampler);
 
     sim.run(0.02, 0.005);

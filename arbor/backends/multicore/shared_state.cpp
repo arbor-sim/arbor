@@ -249,10 +249,6 @@ void shared_state::integrate_voltage() {
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
-            printf("%3s %3s %5s %5s %5s %5s %5s\n", ion.c_str(), "CV", "Xd", "bX", "Xi", "iX", "rL");
-            for (int ix = 0; ix < n_cv; ix++) {
-                printf("    %3d %.3f %.3f %.3f %.3f %.3f\n", ix, data.Xd_[ix], data.solver->face_diffusivity[ix], data.Xi_[ix], data.iX_[ix], solver.face_conductance[ix]);
-            }
             data.solver->assemble(dt_intdom,
                                   data.Xd_,
                                   voltage,
