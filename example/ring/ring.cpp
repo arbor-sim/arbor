@@ -44,9 +44,9 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10;
+    unsigned num_cells = 100;
     double min_delay = 10;
-    double duration = 200;
+    double duration = 1000;
     cell_parameters cell;
 };
 
@@ -187,7 +187,10 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        std::cout << "running simulation" << std::endl;
+        if (root) {
+            sim.set_epoch_callback(arb::epoch_progress_bar());
+        }
+        std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
