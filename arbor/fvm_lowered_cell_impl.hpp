@@ -183,7 +183,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
-    threshold_watcher_.reset();
+    threshold_watcher_.reset(state_->voltage);
 }
 
 template <typename Backend>

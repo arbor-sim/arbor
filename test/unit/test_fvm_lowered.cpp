@@ -589,6 +589,9 @@ TEST(fvm_lowered, ionic_concentrations) {
         layout.cv.push_back(i);
         ion_config.cv.push_back(i);
     }
+    ion_config.econc_written  = true;
+    ion_config.iconc_written  = true;
+    ion_config.revpot_written = true;
     ion_config.init_revpot.assign(ncv, 0.);
     ion_config.init_econc.assign(ncv, 0.);
     ion_config.init_iconc.assign(ncv, 0.);
