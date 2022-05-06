@@ -85,7 +85,7 @@ ion_state::ion_state(
 }
 
 void ion_state::init_concentration() {
-    // NB. No resetting Xd here!
+    // NB. not resetting Xd here, it's controlled via the solver.
     if (write_Xi_) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
