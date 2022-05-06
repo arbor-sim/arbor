@@ -516,23 +516,42 @@ namespace {
     };
 }
 
+// Return the indices that need to be read at the beginning
+// of an APIMethod in the order that they should be read
+// eg:
+//   node_index_ = node_index[i];
+//   domain_index_ = vec_di[node_index_];
 std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& indexed_vars, const std::string& index) {
     std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
             auto nested = !d.inner_index_var().empty();
-            auto outer_index_var = d.outer_index_var();
-            auto inner_index_var = nested? d.inner_index_var()+"i_": index;
-            index_prop index_var = {outer_index_var, inner_index_var, d.index_var_kind};
-            auto it = std::find(indices.begin(), indices.end(), index_var);
-            if (it == indices.end()) {
-                // If an inner index is required, push the outer index_var to the end of the list
-                if (nested) {
-                    indices.push_back(index_var);
+            if (nested) {
+                // Need to read 2 indices: outer[inner[index]]
+                index_prop inner_index_prop = {d.inner_index_var(), index, d.index_var_kind};
+                index_prop outer_index_prop = {d.outer_index_var(), d.inner_index_var()+"i_", d.index_var_kind};
+
+                // Check that the outer and inner indices haven't already been added to the list
+                auto inner_it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                auto outer_it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // The inner index needs to be read before the outer index
+                if (inner_it == indices.end()) {
+                    indices.push_front(inner_index_prop);
                 }
-                else {
-                    indices.push_front(index_var);
+                if (outer_it == indices.end()) {
+                    indices.push_back(outer_index_prop);
+                }
+            }
+            else {
+                // Need to read 1 index: outer[index]
+                index_prop outer_index_prop = {d.outer_index_var(), index, d.index_var_kind};
+                auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // Check that the index hasn't already been added to the list
+                if (it == indices.end()) {
+                    indices.push_front(outer_index_prop);
                 }
             }
         }
@@ -968,7 +987,6 @@ void emit_simd_body_for_loop(
 void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                   const std::vector<LocalVariable*>& indexed_vars,
                                   const std::vector<VariableExpression*>& scalars,
-                                  bool requires_weight,
                                   const std::list<index_prop>& indices,
                                   const simd_expr_constraint& constraint,
                                   std::string underlying_constraint_name) {
@@ -978,12 +996,10 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                        "    arb_index_type index_ = {0}index_constraints.{1}[i_];\n",
                        pp_var_pfx,
                        underlying_constraint_name)
-        << indent;
-    if (requires_weight) {
-        out << fmt::format("simd_value w_;\n"
-                           "assign(w_, indirect(({}weight+index_), simd_width_));\n",
-                           pp_var_pfx);
-    }
+        << indent
+        << fmt::format("simd_value w_;\n"
+                       "assign(w_, indirect(({}weight+index_), simd_width_));\n",
+                       pp_var_pfx);
 
     emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint);
 
@@ -994,22 +1010,8 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
 void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<VariableExpression*>& scalars) {
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
-    bool requires_weight = false;
 
     ENTER(out);
-    for (auto& s: body->is_block()->statements()) {
-        if (s->is_assignment()) {
-            for (auto& v: indexed_vars) {
-                if (s->is_assignment()->lhs()->is_identifier()->name() == v->external_variable()->name()) {
-                    auto info = decode_indexed_variable(v->external_variable());
-                    if (info.accumulate) {
-                        requires_weight = true;
-                    }
-                    break;
-                }
-            }
-        }
-    }
     std::list<index_prop> indices = gather_indexed_vars(indexed_vars, "index_");
     std::vector<LocalVariable*> scalar_indexed_vars;
     for (auto& sym: indexed_vars) {
@@ -1027,25 +1029,25 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             simd_expr_constraint constraint = simd_expr_constraint::contiguous;
             std::string underlying_constraint = "contiguous";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
 
             //Generate for loop for all independent simd_vectors
             constraint = simd_expr_constraint::other;
             underlying_constraint = "independent";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
 
             //Generate for loop for all simd_vectors that have no optimizing constraints
             constraint = simd_expr_constraint::other;
             underlying_constraint = "none";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
 
             //Generate for loop for all constant simd_vectors
             constraint = simd_expr_constraint::constant;
             underlying_constraint = "constant";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, requires_weight, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
 
         }
         else {

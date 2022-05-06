@@ -59,13 +59,14 @@ ion_state::ion_state(
     unsigned align
 ):
     alignment(min_alignment(align)),
+    write_eX_(ion_data.revpot_written),
+    write_Xo_(ion_data.econc_written),
+    write_Xi_(ion_data.iconc_written),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    Xi_(ion_data.cv.size(), NAN, pad(alignment)),
-    Xd_(ion_data.cv.size(), NAN, pad(alignment)),
-    Xo_(ion_data.cv.size(), NAN, pad(alignment)),
-    gX_(ion_data.cv.size(), NAN, pad(alignment)),
+    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
+    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
     init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
@@ -77,12 +78,16 @@ ion_state::ion_state(
     arb_assert(node_index_.size()==init_Xo_.size());
     arb_assert(node_index_.size()==eX_.size());
     arb_assert(node_index_.size()==init_eX_.size());
+    if (ion_data.is_diffusive) {
+        gX_ = {ion_data.cv.size(), NAN, pad(alignment)};
+        Xd_ = {ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)};
+    }
 }
 
 void ion_state::init_concentration() {
-    std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
-    // NB. No resetting Xd here!
-    std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
+    // NB. not resetting Xd here, it's controlled via the solver.
+    if (write_Xi_) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
+    if (write_Xo_) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
 
 void ion_state::zero_current() {
@@ -92,10 +97,10 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
-    std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
-    std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
+    if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
+    if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
 }
 
 // istim_state methods:
@@ -263,8 +268,8 @@ void shared_state::integrate_diffusion() {
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
-    const fvm_ion_config& ion_info)
-{
+    const fvm_ion_config& ion_info,
+    ion_state::solver_ptr&& solver) {
     ion_data.emplace(std::piecewise_construct,
         std::forward_as_tuple(ion_name),
         std::forward_as_tuple(charge, ion_info, alignment));

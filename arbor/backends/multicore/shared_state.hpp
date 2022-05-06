@@ -39,10 +39,15 @@ namespace multicore {
  *     Xi_     cai              internal calcium concentration
  *     Xo_     cao              external calcium concentration
  */
-
 struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
+    using solver_ptr = std::unique_ptr<solver_type>;
     unsigned alignment = 1; // Alignment and padding multiple.
+
+    bool write_eX_;          // is eX written?
+    bool write_Xo_;          // is Xo written?
+    bool write_Xi_;          // is Xi written?
+    bool write_Xd_;          // is Xi written?
 
     iarray node_index_;     // Instance to CV map.
     array iX_;              // (A/m²)  current density
@@ -60,7 +65,7 @@ struct ARB_ARBOR_API ion_state {
 
     array charge;           // charge of ionic species (global value, length 1)
 
-    std::unique_ptr<solver_type> solver = nullptr;
+    solver_ptr solver = nullptr;
 
     ion_state() = default;
 
@@ -180,7 +185,8 @@ struct ARB_ARBOR_API shared_state {
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const fvm_ion_config& ion_data);
+        const fvm_ion_config& ion_data,
+        ion_state::solver_ptr&& solver);
 
     void configure_stimulus(const fvm_stimulus_config&);
 

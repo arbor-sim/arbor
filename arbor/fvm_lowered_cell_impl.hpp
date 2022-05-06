@@ -183,7 +183,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
-    threshold_watcher_.reset();
+    threshold_watcher_.reset(state_->voltage);
 }
 
 template <typename Backend>
@@ -512,9 +512,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     for (const auto& [ion, data]: mech_data.ions) {
         if (auto charge = value_by_key(global_props.ion_species, ion)) {
-            state_->add_ion(ion, *charge, data);
             if (data.is_diffusive) {
-                state_->ion_data[ion].solver = mk_diff_solver(data.face_diffusivity);
+                state_->add_ion(ion, *charge, data, mk_diff_solver(data.face_diffusivity));
+            } else {
+                state_->add_ion(ion, *charge, data, nullptr);
             }
         }
         else {

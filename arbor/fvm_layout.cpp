@@ -673,9 +673,8 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
     fvm_size_type target_offset = left.n_target;
 
-    for (const auto& kv: right.ions) {
-        fvm_ion_config& L = left.ions[kv.first];
-        const fvm_ion_config& R = kv.second;
+    for (const auto& [k, R]: right.ions) {
+        fvm_ion_config& L = left.ions[k];
 
         append(L.cv, R.cv);
         append(L.init_iconc, R.init_iconc);
@@ -686,6 +685,9 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         append(L.axial_inv_diffusivity, R.axial_inv_diffusivity);
         append(L.face_diffusivity, R.face_diffusivity);
         L.is_diffusive |= R.is_diffusive;
+        L.econc_written  |= R.econc_written;
+        L.iconc_written  |= R.iconc_written;
+        L.revpot_written |= R.revpot_written;
     }
 
     for (const auto& kv: right.mechanisms) {
@@ -825,6 +827,9 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const auto& global_dflt = gprop.default_parameters;
     const auto& dflt = cell.default_parameters();
 
+    std::unordered_set<std::string> write_xi;
+    std::unordered_set<std::string> write_xo;
+
     fvm_mechanism_data M;
 
     // Verify mechanism ion usage, parameter values.
@@ -958,18 +963,20 @@ fvm_mechanism_data fvm_build_mechanism_data(
             }
         }
 
-        for (const auto& iondep: info.ions) {
-            if (iondep.second.write_concentration_int) {
+        for (const auto& [ion, dep]: info.ions) {
+            if (dep.write_concentration_int) {
+                write_xi.insert(ion);
                 for (auto c: support) {
-                    bool ok = init_iconc_mask[iondep.first].insert(c.first, 0.);
+                    bool ok = init_iconc_mask[ion].insert(c.first, 0.);
                     if (!ok) {
                         throw cable_cell_error("overlapping ion concentration writing mechanism "+name);
                     }
                 }
             }
-            if (iondep.second.write_concentration_ext) {
+            if (dep.write_concentration_ext) {
+                write_xo.insert(ion);
                 for (auto c: support) {
-                    bool ok = init_econc_mask[iondep.first].insert(c.first, 0.);
+                    bool ok = init_econc_mask[ion].insert(c.first, 0.);
                     if (!ok) {
                         throw cable_cell_error("overlapping ion concentration writing mechanism "+name);
                     }
@@ -1084,7 +1091,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             return a.target_index<b.target_index;
         });
 
-        bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
+        bool coalesce = info.linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
         config.kind = arb_mechanism_kind_point;
@@ -1119,6 +1126,15 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         // If synapse uses an ion, add to ion support.
         update_ion_support(info, config.cv);
+
+        for (const auto& [ion, dep]: info.ions) {
+            if (dep.write_concentration_int) {
+                write_xi.insert(ion);
+            }
+            if (dep.write_concentration_ext) {
+                write_xo.insert(ion);
+            }
+        }
 
         M.n_target += config.target.size();
         if (!config.cv.empty()) M.mechanisms[name] = std::move(config);
@@ -1182,6 +1198,16 @@ fvm_mechanism_data fvm_build_mechanism_data(
             }
             lid_junction_desc.insert({pm.lid, std::move(per_lid)});
         }
+
+        for (const auto& [ion, dep]: info.ions) {
+            if (dep.write_concentration_int) {
+                write_xi.insert(ion);
+            }
+            if (dep.write_concentration_ext) {
+                write_xo.insert(ion);
+            }
+        }
+
         junction_configs[name] = std::move(config);
     }
 
@@ -1326,6 +1352,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
             config.axial_inv_diffusivity = di->second.axial_inv_diffusivity;
         }
 
+        config.econc_written  = write_xo.count(ion);
+        config.iconc_written  = write_xi.count(ion);
         if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }
 
@@ -1365,6 +1393,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
             if (!writes_this_revpot) {
                 throw cable_cell_error("revpot mechanism for ion "+ion+" does not write this reversal potential");
             }
+
+            M.ions[ion].revpot_written = true;
 
             // Only instantiate if the ion is used.
             if (M.ions.count(ion)) {
