@@ -41,6 +41,7 @@ namespace multicore {
  */
 struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
+    using solver_ptr  = std::unique_ptr<solver_type>;
     unsigned alignment = 1; // Alignment and padding multiple.
 
     bool write_eX_;          // is eX written?
@@ -63,14 +64,15 @@ struct ARB_ARBOR_API ion_state {
 
     array charge;           // charge of ionic species (global value, length 1)
 
-    std::unique_ptr<solver_type> solver = nullptr;
+    solver_ptr solver = nullptr;
 
     ion_state() = default;
 
     ion_state(
         int charge,
         const fvm_ion_config& ion_data,
-        unsigned align
+        unsigned align,
+        solver_ptr ptr
     );
 
     // Set ion concentrations to weighted proportion of default concentrations.
@@ -183,7 +185,8 @@ struct ARB_ARBOR_API shared_state {
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const fvm_ion_config& ion_data);
+        const fvm_ion_config& ion_data,
+        ion_state::solver_ptr solver);
 
     void configure_stimulus(const fvm_stimulus_config&);
 

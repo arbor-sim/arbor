@@ -394,6 +394,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             cv_length += embedding.integrate_length(c);
         }
 
+        // Average out diffusivity
         for (auto& [ion, info]: diffusive_ions) {
             info.face_diffusivity[i] *= cv_length;
         }

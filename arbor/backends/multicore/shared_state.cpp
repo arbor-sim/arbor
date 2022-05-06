@@ -56,7 +56,8 @@ using pad = util::padded_allocator<>;
 ion_state::ion_state(
     int charge,
     const fvm_ion_config& ion_data,
-    unsigned align
+    unsigned align,
+    solver_ptr ptr
 ):
     alignment(min_alignment(align)),
     write_eX_(ion_data.revpot_written),
@@ -74,7 +75,8 @@ ion_state::ion_state(
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
     init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    charge(1u, charge, pad(alignment))
+    charge(1u, charge, pad(alignment)),
+    solver(std::move(ptr))
 {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
@@ -266,10 +268,11 @@ void shared_state::integrate_diffusion() {
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
-    const fvm_ion_config& ion_info) {
+    const fvm_ion_config& ion_info,
+    ion_state::solver_ptr ptr) {
     ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(ion_name),
-        std::forward_as_tuple(charge, ion_info, alignment));
+                     std::forward_as_tuple(ion_name),
+                     std::forward_as_tuple(charge, ion_info, alignment, std::move(ptr)));
 }
 
 void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
