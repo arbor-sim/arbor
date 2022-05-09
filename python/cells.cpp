@@ -549,7 +549,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
             pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
-            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [(um)^2/ms]."),
+            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [m^2/s]."),
             "Set the global default properties of ion species named 'ion'.\n"
             "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
             "If 'ion' in not one of these ions it will be added to the list, making it\n"
@@ -615,7 +615,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
             pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
-            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [(um)^2/ms]."),
+            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [m^2/s]."),
             "Set the properties of ion species named 'ion' that will be applied\n"
             "by default everywhere on the cell. Species concentrations and reversal\n"
             "potential can be overridden on specific regions using the paint interface, \n"
@@ -662,7 +662,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
             pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
             pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
-            pybind11::arg_v("diff",    pybind11::none(), "Diffusivity [(um)^2/ms]"),
+            pybind11::arg_v("diff",    pybind11::none(), "Diffusivity [m^2/s]"),
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",

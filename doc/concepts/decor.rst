@@ -188,7 +188,7 @@ Each ion species has the following properties:
 2. *external concentration*: concentration on exterior of the membrane [mM].
 3. *reversal potential*: reversal potential [mV].
 4. *reversal potential mechanism*:  method for calculating reversal potential.
-5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero [(um)^2/ms].
+5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero [m^2/s].
 
 Properties 1, 2 and 3 must be defined, and are used as the initial values for
 each quantity at the start of the simulation. They are specified globally,

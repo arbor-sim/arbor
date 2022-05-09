@@ -369,7 +369,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             D.face_conductance[i] = 100/resistance; // 100 scales to µS.
             for (auto& [ion, info]: diffusive_ions) {
                 double resistance = embedding.integrate_ixa(span, info.axial_inv_diffusivity[0].at(bid));
-                info.face_diffusivity[i] = 1e-9/resistance; // scale to m^2/s
+                info.face_diffusivity[i] = 1.0/resistance; // scale to m^2/s
             }
         }
 
@@ -394,15 +394,14 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             cv_length += embedding.integrate_length(c);
         }
 
-        // Average out diffusivity
-        for (auto& [ion, info]: diffusive_ions) {
-            info.face_diffusivity[i] *= cv_length;
-        }
-
-
         if (D.cv_area[i]>0) {
-            D.init_membrane_potential[i] /= D.cv_area[i];
-            D.temperature_K[i] /= D.cv_area[i];
+            auto A = D.cv_area[i];
+            D.init_membrane_potential[i] /= A;
+            D.temperature_K[i] /= A;
+
+            for (auto& [ion, info]: diffusive_ions) {
+                info.face_diffusivity[i] /= A;
+            }
 
             // If parent is trivial, and there is no grandparent, then we can use values from this CV
             // to get initial values for the parent. (The other case, when there is a grandparent, is

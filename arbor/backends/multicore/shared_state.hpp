@@ -48,7 +48,6 @@ struct ARB_ARBOR_API ion_state {
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
     bool write_Xi_;          // is Xi written?
-    bool write_Xd_;          // is Xi written?
 
     iarray node_index_;     // Instance to CV map.
     array iX_;              // (A/m²)  current density
