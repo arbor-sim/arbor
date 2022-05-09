@@ -187,7 +187,7 @@ struct ARB_ARBOR_API shared_state {
         const std::string& ion_name,
         int charge,
         const fvm_ion_config& ion_data,
-        ion_state::solver_ptr solver);
+        ion_state::solver_ptr solver=nullptr);
 
     void configure_stimulus(const fvm_stimulus_config&);
 
