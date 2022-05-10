@@ -158,9 +158,17 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
     }
     const auto& range_set = label_map_->at(iden.gid, iden.label.tag);
 
-    // Construct state if if doesn't exist
+	// Selected policy round_robin_halt
+	if (iden.label.policy == lid_selection_policy::round_robin_halt) {
+		// Use state of round_robin policy if it exists
+		if (state_map_[iden.gid][iden.label.tag].count(lid_selection_policy::round_robin)) {
+			state_map_[iden.gid][iden.label.tag][iden.label.policy] = state_map_[iden.gid][iden.label.tag][lid_selection_policy::round_robin];
+		}
+	}
+
+    // Construct state if it doesn't exist
     if (!state_map_[iden.gid][iden.label.tag].count(iden.label.policy)) {
-        state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(iden.label.policy);
+        	state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(iden.label.policy);
     }
 
     auto lid = std::visit([range_set](auto& state) { return state.update(range_set); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);

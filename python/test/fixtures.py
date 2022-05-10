@@ -140,34 +140,10 @@ class empty_recipe(arbor.recipe):
     """
     pass
 
-
-@_fixture
-def cable_cell():
-    # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
-    tree = arbor.segment_tree()
-    tree.append(
-        arbor.mnpos,
-        arbor.mpoint(-3, 0, 0, 3),
-        arbor.mpoint(3, 0, 0, 3),
-        tag=1,
-    )
-
-    # (2) Define the soma and its midpoint
-    labels = arbor.label_dict({'soma':   '(tag 1)',
-                               'midpoint': '(location 0 0.5)'})
-
-    # (3) Create cell and set properties
-    decor = arbor.decor()
-    decor.set_property(Vm=-40)
-    decor.paint('"soma"', arbor.density('hh'))
-    decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
-    decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
-    return arbor.cable_cell(tree, labels, decor)
-
 @_fixture
 class art_spiker_recipe(arbor.recipe):
     """
-    Recipe fixture with 3 artificial spiking cells.
+    Recipe fixture with 3 artificial spiking cells and one cable cell.
     """
     def __init__(self):
         super().__init__()
@@ -201,15 +177,43 @@ class art_spiker_recipe(arbor.recipe):
         else:
             return [arbor.cable_probe_membrane_voltage('"midpoint"')]
 
-    @cable_cell
-    def _cable_cell(self, cable_cell):
-        return cable_cell
+    def _cable_cell_elements(self):
+        # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
+        tree = arbor.segment_tree()
+        tree.append(
+            arbor.mnpos,
+            arbor.mpoint(-3, 0, 0, 3),
+            arbor.mpoint(3, 0, 0, 3),
+            tag=1,
+        )
+
+        # (2) Define the soma and its midpoint
+        labels = arbor.label_dict({'soma':   '(tag 1)',
+                                   'midpoint': '(location 0 0.5)'})
+
+        # (3) Create cell and set properties
+        decor = arbor.decor()
+        decor.set_property(Vm=-40)
+        decor.paint('"soma"', arbor.density('hh'))
+        decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+        decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+
+        # return tuple of tree, labels, and decor for creating a cable cell (can still be modified before calling arbor.cable_cell())
+        return tree, labels, decor
 
     def cell_description(self, gid):
         if gid < 3:
             return arbor.spike_source_cell("src", arbor.explicit_schedule(self.trains[gid]))
         else:
-            return self._cable_cell()
+            tree, labels, decor = self._cable_cell_elements()
+            return arbor.cable_cell(tree, labels, decor)
+
+@_fixture
+def sum_weight_hh_spike():
+	""" Fixture returning connection weight which is just small enough to evoke an immediate spike
+        at t=1ms in the 'hh' neuron in 'art_spiker_recipe'
+    """
+	return 47.5
 
 @_fixture
 @context
