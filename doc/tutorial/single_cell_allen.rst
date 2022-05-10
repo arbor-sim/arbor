@@ -21,7 +21,7 @@ Obtaining the model
 -------------------
 
 We need a model for which morphological data is available. We'll take
-`a cell from the mouse's visual cortex <http://celltypes.brain-map.org/experiment/electrophysiology/488683425>`_.
+`a cell from the mouse's visual cortex <https://celltypes.brain-map.org/experiment/electrophysiology/488683425>`_.
 As the ``README`` in the "Biophysical - all active" model (zip) file explains, the data set is created for use with the Allen SDK and the
 Neuron simulator. Instructions about running the model with the
 Allen SDK and Neuron `can be found here <https://allensdk.readthedocs.io/en/latest/biophysical_models.html>`_.
@@ -48,7 +48,7 @@ and how the labels can be set **(2)**. Let's being a new function that will buil
    :dedent:
    :lines: 70-78
 
-Step **(1)** loads the ``swc`` file using :func:`arbor.load_swc_allen`. Since the ``swc`` specification is informal, a few different interpretations exist, and we use the appropriate one. The interpretations are described :ref:`here <formatswc-arbor>`.
+Step **(1)** loads the ``swc`` file using :func:`arbor.load_swc_neuron`. Since the ``swc`` specification is informal, a few different interpretations exist, and we use the appropriate one. The interpretations are described :ref:`here <formatswc-arbor>`.
 
 Step **(2)** sets the labels to the defaults of the ``swc``
 `specification <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_,
@@ -89,16 +89,16 @@ With the ingredients for the :class:`arbor.decor` extracted, we continue with th
 Step **(4)** creates an empty :class:`arbor.decor`.
 
 Step **(5)** assigns global (cell-wide) properties using :func:`arbor.decor.set_property`. In addition, initial
-internal and external calcium concentrations are set, and configured to be mediated by the Nernst equation.
+internal and external calcium concentrations are set, and configured to be determined by the Nernst equation.
 
 .. note::
-    Setting the calcium reversal potential to be mediated by the Nernst equation has to be done manually, in order to mirror
+    Setting the calcium reversal potential to be determined by the Nernst equation has to be done manually, in order to mirror
     `an implicit Neuron behavior <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_,
     for which the fit parameters were obtained. This behavior can be stated as the following rule:
 
     If the internal or external concentration of an ion is written, and its reversal potential is read but not
-    written, then the nernst equation is used continuously during the simulation to update the reversal potential of
-    the ion according to the nernst equation
+    written, then the Nernst equation is used continuously during the simulation to update the reversal potential of
+    the ion according to the Nernst equation
 
 Step **(6)** overrides the global properties for all *regions* for which the fit parameters file specifies adapted
 values. Regional properties are :func:`painted <arbor.decor.paint>`, and are painted over (e.g. replacing) the defaults.
@@ -107,7 +107,7 @@ Step **(7)** sets the regional reversal potentials.
 
 Step **(8)** assigns the regional mechanisms.
 
-Now that the electrodynamics are all set up, let's move on to the experimental setup.
+Now that the electro-physiology is all set up, let's move on to the experimental setup.
 
 Step **(9)** configures the :class:`stimulus <arbor.iclamp>` of 150 nA for a duration of 1 s, starting after 200 ms
 of the start of the simulation. We'll also install a :class:`arbor.spike_detector` that triggers at -40 mV. (The
