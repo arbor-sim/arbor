@@ -14,5 +14,5 @@ BREAKPOINT {
 
 DERIVATIVE dF {
    F = xd
-   F' = -5*F
+   F' = -0.05*F
 }

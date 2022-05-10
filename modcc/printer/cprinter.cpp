@@ -776,7 +776,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     ENTER(out);
     out << "simd_value " << local->name();
 
-    if (local->is_read()) {
+    if (local->is_read() || local->is_write()) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scalar()) {
             out << " = simd_cast<simd_value>(" << pp_var_pfx << d.data_var
