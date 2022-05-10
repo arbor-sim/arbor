@@ -57,8 +57,7 @@ ion_state::ion_state(
     int charge,
     const fvm_ion_config& ion_data,
     unsigned align,
-    solver_ptr ptr
-):
+    solver_ptr ptr):
     alignment(min_alignment(align)),
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
@@ -76,8 +75,7 @@ ion_state::ion_state(
     reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
     init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
     charge(1u, charge, pad(alignment)),
-    solver(std::move(ptr))
-{
+    solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
     arb_assert(node_index_.size()==eX_.size());
