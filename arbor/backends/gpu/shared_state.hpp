@@ -12,8 +12,7 @@
 
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
-#include "backends/gpu/cable_solver.hpp"
-#include "backends/gpu/diffusion_solver.hpp"
+#include "backends/gpu/fvm.hpp"
 
 namespace arb {
 namespace gpu {
@@ -30,7 +29,7 @@ namespace gpu {
  *     Xo_     cao              external calcium concentration
  */
 struct ARB_ARBOR_API ion_state {
-    using solver_type = diffusion_solver;
+    using solver_type = backend::diffusion_state;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     bool write_eX_;          // is eX written?
@@ -110,6 +109,7 @@ struct ARB_ARBOR_API istim_state {
 };
 
 struct ARB_ARBOR_API shared_state {
+
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -122,6 +122,7 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
+    using cable_solver = backend::matrix_state;
     cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());

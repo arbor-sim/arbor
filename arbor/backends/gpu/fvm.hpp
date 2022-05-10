@@ -17,6 +17,7 @@
 #include "threshold_watcher.hpp"
 
 #include "matrix_state_fine.hpp"
+#include "diffusion_state.hpp"
 
 namespace arb {
 namespace gpu {
@@ -43,6 +44,7 @@ struct backend {
     }
 
     using matrix_state = arb::gpu::matrix_state_fine<value_type, index_type>;
+    using diffusion_state = arb::gpu::diffusion_state<value_type, index_type>;
     using threshold_watcher = arb::gpu::threshold_watcher;
 
     using deliverable_event_stream = arb::gpu::deliverable_event_stream;

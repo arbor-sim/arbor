@@ -24,7 +24,6 @@ struct diffusion_solver {
     array u;     // [μS]
     array rhs;   // [nA]
 
-    array face_diffusivity;    // [μS]
     array cv_area;             // [μm^2]
 
     iarray cell_to_intdom;
@@ -47,7 +46,6 @@ struct diffusion_solver {
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()),
-        face_diffusivity(diff.begin(), diff.end()),
         cv_area(area.begin(), area.end()),
         cell_to_intdom(cell_to_intdom.begin(), cell_to_intdom.end())
     {
@@ -60,7 +58,7 @@ struct diffusion_solver {
         invariant_d = array(n, 0);
         if (n >= 1) { // skip empty matrix, ie cell with empty morphology
             for (auto i: util::make_span(1u, n)) {
-                auto gij = face_diffusivity[i];
+                auto gij = diff[i];
                 u[i]           =  -gij;
                 invariant_d[i] +=  gij;
                 // Also add to our parent, if present
