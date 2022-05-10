@@ -42,6 +42,7 @@ struct recipe: public arb::recipe {
         decor.set_default(arb::init_int_concentration{"na", 0.0});
         decor.set_default(arb::ion_diffusivity{"na", 0.005});
         decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 200.0*l}}), "Zap");
+        decor.paint("(all)", arb::density("decay"));
         return arb::cable_cell(morph, {}, decor);
     }
 
