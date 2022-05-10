@@ -186,7 +186,7 @@ modifying the reversal potential (for example ``nernst``) can only be applied (f
 at a global level on a given cell. While in Neuron, different mechanisms can be used for
 calculating the reversal potential of an ion on different parts of the morphology.
 This is due to the different methods Arbor and NEURON use for discretising the morphology.
-(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section``can only
+(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section`` can only
 contain full ``segments``).
 
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
