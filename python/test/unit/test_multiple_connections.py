@@ -149,9 +149,9 @@ class TestMultipleConnections(unittest.TestCase):
 			elif gid == 3:
 				source_label_0 = arb.cell_global_label(0, "spike_source") # referring to the "spike_source" label of neuron 0
 				target_label_uni = arb.cell_local_label("postsyn_target", arb.selection_policy.univalent) # referring to an only item in the "postsyn_target" label group of neuron 3
-				conn_2_3 = arb.connection(source_label_0, target_label_uni, weight, 0.2) # connection from neuron 0 to 3
+				conn_0_3 = arb.connection(source_label_0, target_label_uni, weight, 0.2) # connection from neuron 0 to 3
 
-				return [conn_2_3]
+				return [conn_0_3]
 		art_spiker_recipe.connections_on = types.MethodType(connections_on, art_spiker_recipe)
 
 		# define new method 'cell_description()' and overwrite the original one in the 'art_spiker_recipe' object
