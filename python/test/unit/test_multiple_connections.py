@@ -19,6 +19,12 @@ class TestMultipleConnections(unittest.TestCase):
 	# Method that does the final evaluation for both tests
 	def evaluateOutcome(self, sim, handle_mem):
 
+		# membrane potential at around 1.0 ms shall be above the spiking threshold (only testing this if the the current node keeps the data, cf. GitHub issue #1892)
+		if len(sim.samples(handle_mem)) > 0:
+			data_mem, _ = sim.samples(handle_mem)[0]
+			print(data_mem[(data_mem[:, 0] >= 1.0), 1])
+			self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.04), 1], -10)
+
 		# spike in neuron 3 shall occur at around 1.0 ms, when the added input from all connections will cause threshold crossing
 		spike_times = sim.spikes()["time"]
 		spike_gids = sim.spikes()["source"]["gid"]
@@ -27,19 +33,13 @@ class TestMultipleConnections(unittest.TestCase):
 		self.assertEqual([2, 1, 0, 3], spike_gids.tolist())
 		self.assertAlmostEqual(spike_times[(spike_gids == 3)][0], 1.00, delta=0.04)
 
-		# membrane potential at around 1.0 ms shall be above the spiking threshold (only testing this if the the current node keeps the data, cf. GitHub issue #1892)
-		if len(sim.samples(handle_mem)) > 0:
-			data_mem, _ = sim.samples(handle_mem)[0]
-			#print(data_mem[(data_mem[:, 0] >= 1.0), 1])
-			self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.04), 1], -10)
-
 	@fixtures.context
 	@fixtures.art_spiker_recipe
 	@fixtures.sum_weight_hh_spike
 	def test_multiple_connections(self, context, art_spiker_recipe, sum_weight_hh_spike):
 		runtime = 2 # ms
 		dt = 0.01 # ms
-		weight = sum_weight_hh_spike # connection strength which is just small enough so that all connections (exc. and inh.) from neuron 0 added up will evoke an immediate spike
+		weight = sum_weight_hh_spike # connection strength which is just enough to evoke an immediate spike; equals the summed weight of all connections (exc. and inh.) from neuron 0 and 1
 
 		# define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
 		def connections_on(self, gid):
@@ -137,7 +137,7 @@ class TestMultipleConnections(unittest.TestCase):
 	def test_uni_connection(self, context, art_spiker_recipe, sum_weight_hh_spike):
 		runtime = 2 # ms
 		dt = 0.01 # ms
-		weight = sum_weight_hh_spike # set connection strength to the net sum of the connections in test_multiple_connections() (to evoke an immediate spike)
+		weight = sum_weight_hh_spike # set connection strength to the net sum of the connections in test_multiple_connections() (just enough to evoke an immediate spike)
 
 		# define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
 		def connections_on(self, gid):
