@@ -15,6 +15,23 @@ thereby testing the selection policies 'round_robin', 'round_robin_halt', and 'u
 """
 
 class TestMultipleConnections(unittest.TestCase):
+	
+	# Method that does the final evaluation for both tests
+	def evaluateOutcome(self, sim, handle_mem):
+
+		# spike in neuron 3 shall occur at around 1.0 ms, when the added input from all connections will cause threshold crossing
+		spike_times = sim.spikes()["time"]
+		spike_gids = sim.spikes()["source"]["gid"]
+		#print(list(zip(*[spike_times, spike_gids])))
+		self.assertGreater(sum(spike_gids == 3), 0)
+		self.assertEqual([2, 1, 0, 3], spike_gids.tolist())
+		self.assertAlmostEqual(spike_times[(spike_gids == 3)][0], 1.00, delta=0.04)
+
+		# membrane potential at around 1.0 ms shall be above the spiking threshold (only testing this if the the current node keeps the data, cf. GitHub issue #1892)
+		if len(sim.samples(handle_mem)) > 0:
+			data_mem, _ = sim.samples(handle_mem)[0]
+			#print(data_mem[(data_mem[:, 0] >= 1.0), 1])
+			self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.04), 1], -10)
 
 	@fixtures.context
 	@fixtures.art_spiker_recipe
@@ -68,7 +85,6 @@ class TestMultipleConnections(unittest.TestCase):
 				decor.place('"midpoint"', arb.synapse(syn_mechanism2), "postsyn_target") # place synaptic input from one presynaptic neuron at the center of the soma
 				decor.place('"midpoint"', arb.synapse(syn_mechanism1), "postsyn_target") # place synaptic input from another presynaptic neuron at the center of the soma
 				                                                                         # (using the same label as above!)
-
 				return arb.cable_cell(tree, labels, decor)
 		art_spiker_recipe.cell_description = types.MethodType(cell_description, art_spiker_recipe)
 
@@ -113,17 +129,7 @@ class TestMultipleConnections(unittest.TestCase):
 		sim.run(runtime, dt)
 	
 		# evaluate the outcome
-		data_mem, _ = sim.samples(handle_mem)[0]
-		#print(data_mem[(data_mem[:, 0] >= 1.0), 1])
-		self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.04), 1], -10)
-		spike_times = sim.spikes()["time"]
-		spike_gids = sim.spikes()["source"]["gid"]
-		#print(list(zip(*[spike_times, spike_gids])))
-		self.assertGreater(sum(spike_gids == 3), 0)
-		self.assertEqual([2, 1, 0, 3], spike_gids.tolist())
-
-		# spike in neuron 3 shall occur at around 1.0 ms, when the added input from all connections will cause threshold crossing
-		self.assertAlmostEqual(spike_times[(spike_gids == 3)][0], 1.00, delta=0.04)
+		self.evaluateOutcome(sim, handle_mem)
 
 	@fixtures.context
 	@fixtures.art_spiker_recipe
@@ -161,8 +167,8 @@ class TestMultipleConnections(unittest.TestCase):
 				syn_mechanism.set('w', weight) # set weight for excitation
 				syn_mechanism.set("tau", dt) # set minimal decay time
 				decor.place('"midpoint"', arb.synapse(syn_mechanism), "postsyn_target") # place synaptic input for one neuron at the center of the soma
-				return arb.cable_cell(tree, labels, decor)
 
+				return arb.cable_cell(tree, labels, decor)
 		art_spiker_recipe.cell_description = types.MethodType(cell_description, art_spiker_recipe)
 
 		# read connections from recipe for testing
@@ -186,15 +192,5 @@ class TestMultipleConnections(unittest.TestCase):
 		sim.run(runtime, dt)
 	
 		# evaluate the outcome
-		data_mem, _ = sim.samples(handle_mem)[0]
-		#print(data_mem[(data_mem[:, 0] >= 1.0), 1])
-		self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.04), 1], -10)
-		spike_times = sim.spikes()["time"]
-		spike_gids = sim.spikes()["source"]["gid"]
-		#print(list(zip(*[spike_times, spike_gids])))
-		self.assertGreater(sum(spike_gids == 3), 0)
-		self.assertEqual([2, 1, 0, 3], spike_gids.tolist())
-
-		# spike in neuron 3 shall occur at around 1.0 ms, when the input will cause threshold crossing
-		self.assertAlmostEqual(spike_times[(spike_gids == 3)][0], 1.00, delta=0.04)
+		self.evaluateOutcome(sim, handle_mem)
 
