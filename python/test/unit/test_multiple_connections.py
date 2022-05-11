@@ -24,7 +24,7 @@ class TestMultipleConnections(unittest.TestCase):
 			data_mem, _ = sim.samples(handle_mem)[0]
 			print(data_mem[(data_mem[:, 0] >= 1.0), 1])
 			self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.04), 1], -10)
-			self.assertLess(data_mem[(np.round(data_mem[:, 0], 2) == 1.08), 1], -10)
+			self.assertLess(data_mem[(np.round(data_mem[:, 0], 2) == 1.06), 1], -10)
 
 		# spike in neuron 3 should occur at around 1.0 ms, when the added input from all connections will cause threshold crossing
 		spike_times = sim.spikes()["time"]

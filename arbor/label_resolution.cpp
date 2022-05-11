@@ -127,7 +127,7 @@ lid_hopefully round_robin_state::update(const label_resolution_map::range_set& r
     return lid;
 }
 
-cell_size_type round_robin_state::get() {
+cell_lid_type round_robin_state::get() {
     return state;
 }
 
@@ -136,7 +136,7 @@ lid_hopefully round_robin_halt_state::update(const label_resolution_map::range_s
     return lid;
 }
 
-cell_size_type round_robin_halt_state::get() {
+cell_lid_type round_robin_halt_state::get() {
     return state;
 }
 
@@ -148,7 +148,7 @@ lid_hopefully assert_univalent_state::update(const label_resolution_map::range_s
     return range_set.at(0);
 }
 
-cell_size_type assert_univalent_state::get() {
+cell_lid_type assert_univalent_state::get() {
     return 0;
 }
 
@@ -165,42 +165,51 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol) {
     }
 }
 
+resolver::state_variant resolver::construct_state(lid_selection_policy pol, cell_lid_type state) {
+    switch (pol) {
+    case lid_selection_policy::round_robin:
+        return round_robin_state(state);
+	case lid_selection_policy::round_robin_halt:
+        return round_robin_halt_state(state);
+    case lid_selection_policy::assert_univalent:
+       return assert_univalent_state();
+    default: return assert_univalent_state();
+    }
+}
+
 cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
     if (!label_map_->count(iden.gid, iden.label.tag)) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag, "label does not exist");
     }
     const auto& range_set = label_map_->at(iden.gid, iden.label.tag);
-	
-	std::cout << "Resolving label";
 
 	// Policy round_robin_halt
 	if (iden.label.policy == lid_selection_policy::round_robin_halt) {
-		std::cout << "," << std::endl << "policy round_robin_halt," << std::endl;
+		// Output
+		std::cout << std::endl << "Resolving label, policy round_robin_halt," << std::endl;
 
-		// Use state of existing round_robin policy, if possible
+		// Use state of round_robin policy if existent
 		if (state_map_[iden.gid][iden.label.tag].count(lid_selection_policy::round_robin)) {
-			state_map_[iden.gid][iden.label.tag][iden.label.policy] = state_map_[iden.gid][iden.label.tag][lid_selection_policy::round_robin];
+			cell_lid_type prev_state_rr = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][lid_selection_policy::round_robin]);
+        	state_map_[iden.gid][iden.label.tag][lid_selection_policy::round_robin_halt] = construct_state(lid_selection_policy::round_robin_halt, prev_state_rr);
 		}
-		// Construct state of round_robin policy and use it
-		else {
-        	state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(lid_selection_policy::round_robin);
-   		}
 	}
+	// Policy round_robin
 	else if (iden.label.policy == lid_selection_policy::round_robin) {
-		std::cout << "," << std::endl << "policy round_robin," << std::endl;
+		// Output
+		std::cout << std::endl << "Resolving label, policy round_robin," << std::endl;
 	}
-	else if (iden.label.policy == lid_selection_policy::assert_univalent) {
-		std::cout << "," << std::endl << "policy assert_univalent," << std::endl;
+	
+	// Construct state if it doesn't exist
+	if (!state_map_[iden.gid][iden.label.tag].count(iden.label.policy)) {
+	    	state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(iden.label.policy);
 	}
 
-    // Other policies: construct state if it doesn't exist
-    if (!state_map_[iden.gid][iden.label.tag].count(iden.label.policy)) {
-        	state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(iden.label.policy);
-    }
-
-	// Get state
-	cell_size_type ret_state = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);//[lid_selection_policy::round_robin]);
-	std::cout << "\tstate=" << ret_state;
+	// Output of old state
+	if (iden.label.policy != lid_selection_policy::assert_univalent) {
+		cell_lid_type ret_state = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
+		std::cout << "\tstate=" << ret_state;
+	}
 
 	// Update state
     auto lid = std::visit([range_set](auto& state) { return state.update(range_set); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
@@ -208,11 +217,13 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
         throw arb::bad_connection_label(iden.gid, iden.label.tag, lid.error());
     }
 
-	// Get new state
-	ret_state = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);//[lid_selection_policy::round_robin]);
-	std::cout << ", state_new=" << ret_state;
+	// Output of new state and lid.value()
+	if (iden.label.policy != lid_selection_policy::assert_univalent) {
+		cell_lid_type ret_state = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
+		std::cout << ", state_new=" << ret_state;
+		std::cout << ", lid.value()=" << lid.value() << std::endl;
+	}
 
-	std::cout << ", lid.value()=" << lid.value() << std::endl << std::endl;
     return lid.value();
 }
 

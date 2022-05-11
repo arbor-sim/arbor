@@ -214,7 +214,7 @@ def sum_weight_hh_spike():
     Fixture returning connection weight for 'expsyn_curr' mechanism which is just enough to evoke an immediate spike
     at t=1ms in the 'hh' neuron in 'art_spiker_recipe'
     """
-	return 50.0 #47.5
+	return 47.5
 
 @_fixture
 @context
