@@ -15,10 +15,12 @@ def load_allen_fit(fit):
 
     # cable parameters convenience class
     class parameters:
-        cm = None
-        tempK = None
-        Vm = None
-        rL = None
+        def __init__(self, **kwargs):
+            self.cm = None
+            self.tempK = None
+            self.Vm = None
+            self.rL = None
+            self.__dict__.update(kwargs)
 
     param = defaultdict(parameters)
     mechs = defaultdict(dict)
@@ -51,10 +53,11 @@ def load_allen_fit(fit):
     regs = [(r, vs) for r, vs in param.items()]
     mechs = [(r, m, vs) for (r, m), vs in mechs.items()]
 
-    default = parameters()
-    default.tempK=float(fit['conditions'][0]['celsius']) + 273.15
-    default.Vm=float(fit['conditions'][0]['v_init'])
-    default.rL=float(fit['passive'][0]['ra'])
+    default = parameters(
+        tempK=float(fit['conditions'][0]['celsius']) + 273.15,
+        Vm=float(fit['conditions'][0]['v_init']),
+        rL=float(fit['passive'][0]['ra'])
+    )
 
     ions = []
     for kv in fit['conditions'][0]['erev']:
