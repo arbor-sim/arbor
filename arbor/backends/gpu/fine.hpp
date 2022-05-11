@@ -78,3 +78,6 @@ ARB_ARBOR_API void scatter(
     fvm_value_type* to,
     const fvm_index_type* p,
     unsigned n);
+
+} // gpu
+} // arb
