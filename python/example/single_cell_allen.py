@@ -82,9 +82,9 @@ def make_cell(swc, fit):
 
     # (4) Instantiate an empty decor.
     decor = arbor.decor()
-    # (5) assign global electro-physical parameters
+    # (5) assign global electro-physiology parameters
     decor.set_property(tempK=dflt.tempK, Vm=dflt.Vm, cm=dflt.cm, rL=dflt.rL)
-    # (6) override regional electro-physical parameters
+    # (6) override regional electro-physiology parameters
     for region, vs in regions:
         decor.paint(f'"{region}"', tempK=vs.tempK, Vm=vs.Vm, cm=vs.cm, rL=vs.rL)
     # (7) set reversal potentials
