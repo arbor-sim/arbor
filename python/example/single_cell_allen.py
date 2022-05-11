@@ -65,9 +65,9 @@ def load_allen_fit(fit):
             ion = k[1:]
             ions.append((region, ion, float(v)))
 
-    return default, regs, ions, mechs
+    return default, regs, ions, mechs, fit['fitting'][0]['junction_potential']
 
-def make_cell(swc, fit, epas_is_param=True):
+def make_cell(swc, fit):
     morphology = arbor.load_swc_neuron(swc)
     # (2) Label the region tags found in the swc with the names used in the parameter fit file.
     # In addition, label the midpoint of the somarbor.
@@ -78,7 +78,7 @@ def make_cell(swc, fit, epas_is_param=True):
                                 'midpoint': '(location 0 0.5)'})
 
     # (3) A function that parses the Allen parameter fit file into components for an arbor.decor
-    dflt, regions, ions, mechanisms = load_allen_fit(fit)
+    dflt, regions, ions, mechanisms, offset = load_allen_fit(fit)
 
     # (4) Instantiate an empty decor.
     decor = arbor.decor()
@@ -97,8 +97,7 @@ def make_cell(swc, fit, epas_is_param=True):
         vs = {}
         sp = '/'
         for k, v in values.items():
-            # pas::e became a global between .5 and .6, toggle epas_is_param
-            if epas_is_param and mech == 'pas' and k == 'e':
+            if mech == 'pas' and k == 'e':
                 nm = f'{nm}{sp}{k}={v}'
                 sp = ','
             else:
@@ -111,10 +110,10 @@ def make_cell(swc, fit, epas_is_param=True):
     decor.discretization(arbor.cv_policy_max_extent(20))
 
     # (11) Create cell
-    return arbor.cable_cell(morphology, labels, decor)
+    return arbor.cable_cell(morphology, labels, decor), offset
 
 # (12) Create cell, model
-cell = make_cell('single_cell_allen.swc', 'single_cell_allen_fit.json')
+cell, offset = make_cell('single_cell_allen.swc', 'single_cell_allen_fit.json')
 model = arbor.single_cell_model(cell)
 
 # (13) Set the probe
@@ -127,7 +126,7 @@ model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 model.run(tfinal=1400, dt=0.005)
 
 # (16) Load and scale reference
-reference = 1000.0*pandas.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] - 14.0
+reference = 1000.0*pandas.read_csv('single_cell_allen_neuron_ref.csv')['U/mV'].values[:-1] + offset
 
 # (17) Plot
 df_list = []
@@ -136,4 +135,5 @@ df_list.append(pandas.DataFrame({'t/ms': model.traces[0].time, 'U/mV':reference,
 df = pandas.concat(df_list,ignore_index=True)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Simulator",ci=None)
 plt.scatter(model.spikes, [-40]*len(model.spikes), color=seaborn.color_palette()[2], zorder=20)
+plt.bar(200, max(reference)-min(reference), 1000, min(reference), align='edge', label='Stimulus', color='0.9')
 plt.savefig('single_cell_allen_result.svg')
