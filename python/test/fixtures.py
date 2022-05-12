@@ -211,10 +211,18 @@ class art_spiker_recipe(arbor.recipe):
 @_fixture
 def sum_weight_hh_spike():
 	""" 
-    Fixture returning connection weight for 'expsyn_curr' mechanism which is just enough to evoke an immediate spike
+    Fixture returning connection weight for 'expsyn_stdp' mechanism which is just enough to evoke an immediate spike
     at t=1ms in the 'hh' neuron in 'art_spiker_recipe'
     """
-	return 47.5
+	return 0.4
+
+@_fixture
+def sum_weight_hh_spike_2():
+	""" 
+    Fixture returning connection weight for 'expsyn_stdp' mechanism which is just enough to evoke an immediate spike
+    at t=1.8ms in the 'hh' neuron in 'art_spiker_recipe'
+    """
+	return 0.36
 
 @_fixture
 @context
