@@ -513,9 +513,8 @@ def generate(path=""):
 
     ####################### iexpr
 
-    label_image(inputs.label_morph, [inputs.iexpr_dis_loc, inputs.iexpr_prox_dis], path+'/iexpr_prox_dis.svg')
-    label_image(inputs.label_morph, [inputs.iexpr_dis_loc, inputs.iexpr_dist_dis], path+'/iexpr_dist_dis.svg')
-    label_image(inputs.label_morph, [inputs.iexpr_interp_prox_loc, inputs.iexpr_interp_dist_loc, inputs.iexpr_interp], path+'/iexpr_interp.svg')
+    label_image(inputs.label_morph, [inputs.iexpr_directional_loc, inputs.iexpr_prox_dis], path+'/iexpr_prox_dis.svg')
+    label_image(inputs.label_morph, [inputs.iexpr_directional_loc, inputs.iexpr_dist_dis], path+'/iexpr_dist_dis.svg')
 
     ####################### Tutorial examples
 

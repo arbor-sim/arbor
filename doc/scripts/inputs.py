@@ -524,12 +524,9 @@ reg_or = {"type": "region", "value": [(0, 0.5, 1.0), (1, 0.0, 1.0)]}
 
 ############# iexpr (label_morph)
 
-iexpr_dis_loc  = {'type': 'locset', 'value': [(0, 1.0)]}
+iexpr_directional_loc  = {'type': 'locset', 'value': [(0, 1.0)]}
 iexpr_dist_dis = {'type': 'region', 'value': [(1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0)]}
 iexpr_prox_dis = {'type': 'region', 'value': [(0, 0.0, 1.0)]}
-iexpr_interp_prox_loc = {'type': 'locset', 'value': [(2, 0.5)]}
-iexpr_interp_dist_loc = {'type': 'locset', 'value': [(1, 1.0), (4, 1.0), (3, 1.0), (5, 1.0)]}
-iexpr_interp = {'type': 'region', 'value': [(2, 0.5, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0)]}
 
 ############# locsets (tutorial_morph)
 

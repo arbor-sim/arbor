@@ -105,7 +105,7 @@ the region of cables that have radius less than 0.5 μm
 Some common inhomogeneous expression:
 
 * radius: The radius of the cell at a location.
-* distance: Distance to a locset or region from a location.
+* distance: Distance to a locset or region from a location along the morphology.
 * exp: The exponential function of the return value of an iexpr at a location.
 
 Expressions
@@ -633,6 +633,13 @@ Inhomogeneous Expressions
     The minimum distance to points within the locset ``loc``. The scaling parameter  ``scale`` has unit :math:`{\mu m}^{-1}` 
     and is multiplied with the distance, such that the result is unitless.
 
+    .. figure:: ../images/iexpr_distance.svg
+      :width: 600
+      :align: center
+
+      The distance between any two points (the evaluation location and a location within the locset), is calculated **along** the entire tree, even across the root.
+      Therefore, a distance expression is defined on the entire cell and only zero if evaluated at a location within the locset (or the scale parameter is set to zero).
+
 .. label:: (distance scale:real reg:region)
 
     The minimum distance to the region ``reg``. Evaluates to zero within the region. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
@@ -676,17 +683,23 @@ Inhomogeneous Expressions
     distal direction ``dist_loc`` with the assosiated unitless values ``prox_value`` and ``dist_value``.
     Evaluates to zero, if no point is located in each required direction.
 
-    .. figure:: ../gen-images/iexpr_interp.svg
+    **Note**: At any fork, an interpolation expression may be discontinuous, if the distance to the closest location within the distal locset differs along each attached branch.
+
+    .. figure:: ../images/iexpr_interp.svg
       :width: 600
       :align: center
 
-      Example of an interpolation expression. **Left**: A single proximal location locset. **Middle**: Terminal locations as distal locset.
-      **Right**: Area, where the expression evaluates to non-zero values.
+      Example of an interpolation expression. **Red**: The root of the morphology. **Blue**: The proximal locset consisting of a single location.
+      **Green**: The distal locset, consisting of four locations. Given these locsets, an interpolation expression only evaluates to non-zero in the highlighted area.
+      For locations 3 and 4 of the distal locset, there is no location within the proximal locset, that is between them and the root (in proximal direction),
+      and therefore an interpolation expression cannot be evaluated and defaults to zero.
+      Contrary, for locations 1 and 2 of the distal locset, there is a location within the proximal locset in proximal direction.
+
 
 .. label:: (interpolation prox_value:real prox_reg:region dist_value:real dist_reg:region)
 
     Interpolates between the region ``prox_reg`` in proximal diretion and the region ``dist_reg`` in distal direction
-    with the assosiated unitless values ``prox_value`` and ``dist_value``. If evaluated inside either region, returns the corresponding value.
+    with the associated unitless values ``prox_value`` and ``dist_value``. If evaluated inside either region, returns the corresponding value.
     Evaluates to zero, if no region is located in each required direction.
 
 .. label:: (radius scale:real)
@@ -715,21 +728,14 @@ Inhomogeneous Expressions
     Division of at least two inhomogeneous expressions or real numbers.
     The expression is evaluated from the left to right, dividing the first element by each divisor in turn.
 
-.. label:: (exp value:iexpr)
+.. label:: (exp value:(iexpr | real))
 
-    The exponential function of the inhomogeneous expression ``value``.
+    The exponential function of the inhomogeneous expression or real ``value``.
 
-.. label:: (exp value:real)
+.. label:: (log value:(iexpr | real))
 
-    The exponential function of the real input ``value``.
+    The logarithm of the inhomogeneous expression or real ``value``.
 
-.. label:: (log value:iexpr)
-
-    The logarithm of the inhomogeneous expression ``value``.
-
-.. label:: (log value:real)
-
-    The logarithm of the real input ``value``.
 
 
 .. _labels-thingify:

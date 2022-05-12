@@ -172,7 +172,7 @@ Take for example the built-in mechanism for passive leaky dynamics:
 4. Scaled mechanisms
 ~~~~~~~~~~~~~~~~~~~~~
 :ref:`Inhomogenous expressions  <labels-iexpr>` can be applied to mechanisms, to scale parameters on a cable cell.
-These expressions are evaluated at mid-points of the internal cable partion of the cell and multiplied with the set parameter value.
+These expressions are evaluated at mid-points of the internal cable partition of the cell and multiplied with the set parameter value.
 Currently, only :ref:`density mechanisms <cablecell-density-mechs>` are supported.
 
 .. code-block:: Python
