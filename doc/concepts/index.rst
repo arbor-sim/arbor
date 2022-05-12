@@ -9,7 +9,7 @@ hardware. The execution can optionally be configured in high detail but comes
 with sensible defaults.
 
 .. raw:: html
-   :file: over3.html
+   :file: index-diag-1.html
 
 To learn how to use Arbor, it is helpful to understand some of its concepts.
 Arbor's design aims to enable scalability through abstraction.

@@ -14,14 +14,11 @@ building phase to provide information about individual cells in the model, such 
 * **Gap junction connections** on each cell.
 * **Probes** on each cell.
 
-.. raw:: html
-   :file: rec2.html
+An example model
+----------------
 
-Recipes are structured to provide a consistent interface for describing each cell in the
-network using their global identifier (`gid`).
-This allows the simulator to be able to quickly look-up properties related to the connections
-going in and out of a cell (think of synapses, gap junctions, but also probes and spike inputs);
-which helps make Arbor fast and easily distributable over many nodes.
+.. raw:: html
+   :file: recipe-diag-1.html
 
 To better illustrate the content of a recipe, let's consider the following network of
 three cells:
@@ -36,7 +33,7 @@ three cells:
   (because cable cells allow complex dynamics such as ``hh``). This is referred to as
   the **kind** of the cell.
 - ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
-  It has a single synapse at the end of the dendrite labeled "syanpse_1" and a gap
+  It has a single synapse at the end of the dendrite labeled "synapse_1" and a gap
   junction mechanism in the middle of the soma labeled "gap_junction_1".
   This is the **description** of the cell. It's also a cable cell, which is its **cell kind**.
 - ``Cell 2``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
@@ -47,7 +44,7 @@ The total **number of cells** in the model is 3. The **kind**, and **description
 is known and can be registered in the recipe. Next is the cell interaction.
 
 The model is designed such that each cell has labeled source, target and gap junction sites.
-A **network connection** can be formed from ``detector_0`` to ``synpase_1``; and a
+A **network connection** can be formed from ``detector_0`` to ``synapse_1``; and a
 **gap junction connection** between ``gap_junction_1`` and ``gap_junction_2``.
 If ``detector_0`` spikes, a spike should be observed on ``gap_junction_2`` after some delay.
 To monitor the voltage on ``gap_junction_2`` and record the spike, a **probe** can be set up
@@ -62,12 +59,21 @@ Technical details of the recipe class are presented in the  :ref:`Python <pyreci
 :ref:`C++ <cpprecipe>` APIs.
 
 Are recipes always necessary?
-------------------------------
+-----------------------------
 
-Yes. However, we provide a python :class:`single_cell_model <py_single_cell_model>`
-that abstracts away the details of a recipe for simulations of  single, stand-alone
-:ref:`cable cells<modelcablecell>`, which absolves the users from having to create the
-recipe themselves. This is possible because the number of cells is fixed and known,
+Yes. They are a fundamental building block in Arbor simulations. Recipes are structured to provide
+a consistent interface for describing each cell in the network using their global identifier (`gid`).
+This allows the simulator to be able to quickly look-up properties related to the connections
+going in and out of a cell (think of synapses, gap junctions, but also probes and spike inputs);
+which helps make Arbor fast and easily distributable over many nodes. It might be instructive to
+see how recipes are used by Arbor:
+
+.. raw:: html
+   :file: recipe-diag-2.html
+
+For single, stand-alone :ref:`cable cells<modelcablecell>` simulations, the Python API provides
+a :class:`single_cell_model <py_single_cell_model>` that abstracts away the details of a recipe.
+This is possible because the number of cells is fixed and known,
 and it is guaranteed that there can be no connections or gap junctions in a model of a
 single cell. The single cell model is able to fill out the details of the recipe under
 the hood, and the user need only provide the cell description, and any probes they wish
