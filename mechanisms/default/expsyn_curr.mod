@@ -23,7 +23,6 @@ STATE {
 }
 
 INITIAL {
-	I = 0
 	g = 0
 }
 
@@ -40,7 +39,9 @@ DERIVATIVE state {
 }
 
 NET_RECEIVE(weight) {
-	: Start of postsynaptic potential
-	g = g + w
+	if (weight >= 0) {
+		: Start of postsynaptic potential
+		g = g + w
+	}
 }
 
