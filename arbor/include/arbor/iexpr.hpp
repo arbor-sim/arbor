@@ -91,19 +91,19 @@ private:
     std::any args_;
 };
 
-ARB_SYMBOL_VISIBLE std::ostream& operator<<(std::ostream& o, const iexpr& e);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const iexpr& e);
 
-ARB_SYMBOL_VISIBLE inline iexpr operator+(iexpr a, iexpr b) { return iexpr::add(std::move(a), std::move(b)); }
+ARB_ARBOR_API inline iexpr operator+(iexpr a, iexpr b) { return iexpr::add(std::move(a), std::move(b)); }
 
-ARB_SYMBOL_VISIBLE inline iexpr operator-(iexpr a, iexpr b) { return iexpr::sub(std::move(a), std::move(b)); }
+ARB_ARBOR_API inline iexpr operator-(iexpr a, iexpr b) { return iexpr::sub(std::move(a), std::move(b)); }
 
-ARB_SYMBOL_VISIBLE inline iexpr operator*(iexpr a, iexpr b) { return iexpr::mul(std::move(a), std::move(b)); }
+ARB_ARBOR_API inline iexpr operator*(iexpr a, iexpr b) { return iexpr::mul(std::move(a), std::move(b)); }
 
-ARB_SYMBOL_VISIBLE inline iexpr operator/(iexpr a, iexpr b) { return iexpr::div(std::move(a), std::move(b)); }
+ARB_ARBOR_API inline iexpr operator/(iexpr a, iexpr b) { return iexpr::div(std::move(a), std::move(b)); }
 
-ARB_SYMBOL_VISIBLE inline iexpr operator+(iexpr a) { return a; }
+ARB_ARBOR_API inline iexpr operator+(iexpr a) { return a; }
 
-ARB_SYMBOL_VISIBLE inline iexpr operator-(iexpr a) { return iexpr::mul(-1.0, std::move(a)); }
+ARB_ARBOR_API inline iexpr operator-(iexpr a) { return iexpr::mul(-1.0, std::move(a)); }
 
 struct ARB_SYMBOL_VISIBLE iexpr_interface {
 
@@ -114,6 +114,6 @@ struct ARB_SYMBOL_VISIBLE iexpr_interface {
 
 using iexpr_ptr = std::shared_ptr<iexpr_interface>;
 
-ARB_SYMBOL_VISIBLE iexpr_ptr thingify(const iexpr& expr, const mprovider& m);
+ARB_ARBOR_API iexpr_ptr thingify(const iexpr& expr, const mprovider& m);
 
 }  // namespace arb
