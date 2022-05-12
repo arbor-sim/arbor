@@ -161,24 +161,23 @@ struct cable_cell_impl {
         this->paint(reg, scaled_mechanism<density>(prop));
     }
 
-    void paint(const region &reg, const scaled_mechanism<density> &prop) {
-      mextent cables = thingify(reg, provider);
-      auto &mm = get_region_map(prop.t_mech);
+    void paint(const region& reg, const scaled_mechanism<density>& prop) {
+        mextent cables = thingify(reg, provider);
+        auto& mm = get_region_map(prop.t_mech);
 
-      std::unordered_map<std::string, iexpr_ptr> im;
-      for(const auto& it : prop.scale_expr) {
-          im.insert_or_assign(it.first, thingify(it.second, provider));
-      }
-
-      for (auto c : cables) {
-        // Skip zero-length cables in extent:
-        if (c.prox_pos == c.dist_pos)
-          continue;
-
-        if (!mm.insert(c, {prop.t_mech, im})) {
-          throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+        std::unordered_map<std::string, iexpr_ptr> im;
+        for (const auto& [fst, snd]: prop.scale_expr) {
+            im.insert_or_assign(fst, thingify(snd, provider));
         }
-      }
+
+        for (const auto& c: cables) {
+            // Skip zero-length cables in extent:
+            if (c.prox_pos == c.dist_pos) continue;
+
+            if (!mm.insert(c, {prop.t_mech, im})) {
+                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+            }
+        }
     }
 
     template <typename TaggedMech>

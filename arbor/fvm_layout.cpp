@@ -932,13 +932,12 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         param_maps.resize(n_param);
 
-        for (auto& on_cable: cables) {
-            const auto& mech = on_cable.second.mech;
-            verify_mechanism(info, mech);
-            mcable cable = on_cable.first;
-            const auto& set_params = mech.values();
+        for (const auto& [cable, density_iexpr]: cables) {
+            const auto& mech = density_iexpr.first.mech;
+            const auto& scale_expr = density_iexpr.second;
 
-            const auto& scale_expr = on_cable.second.second;
+            verify_mechanism(info, mech);
+            const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
