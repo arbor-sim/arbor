@@ -47,14 +47,14 @@ class TestMultipleConnections(unittest.TestCase):
 		# membrane potential should temporarily be above the spiking threshold at around 1.0 ms (only testing this if the current node keeps the data, cf. GitHub issue #1892)
 		if len(sim.samples(handle_mem)) > 0:
 			data_mem, _ = sim.samples(handle_mem)[0]
-			print(data_mem[(data_mem[:, 0] >= 1.0), 1])
+			#print(data_mem[(data_mem[:, 0] >= 1.0), 1])
 			self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.02), 1], -10)
 			self.assertLess(data_mem[(np.round(data_mem[:, 0], 2) == 1.05), 1], -10)
 
 		# neuron 3 should spike at around 1.0 ms, when the added input from all connections will cause threshold crossing
 		spike_times = sim.spikes()["time"]
 		spike_gids = sim.spikes()["source"]["gid"]
-		print(list(zip(*[spike_times, spike_gids])))
+		#print(list(zip(*[spike_times, spike_gids])))
 		self.assertGreater(sum(spike_gids == 3), 0)
 		self.assertAlmostEqual(spike_times[(spike_gids == 3)][0], 1.00, delta=0.04)
 
