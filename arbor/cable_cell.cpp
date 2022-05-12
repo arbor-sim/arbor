@@ -165,7 +165,7 @@ struct cable_cell_impl {
       mextent cables = thingify(reg, provider);
       auto &mm = get_region_map(prop.t_mech);
 
-      std::unordered_map<std::string, std::shared_ptr<iexpr_interface>> im;
+      std::unordered_map<std::string, iexpr_ptr> im;
       for(const auto& it : prop.scale_expr) {
           im.insert_or_assign(it.first, thingify(it.second, provider));
       }

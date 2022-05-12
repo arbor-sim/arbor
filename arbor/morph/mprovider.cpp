@@ -76,7 +76,7 @@ const mlocation_list& mprovider::locset(const std::string& name) const {
     return try_lookup(*this, name, locsets_, locsets_ptr);
 }
 
-const std::shared_ptr<iexpr_interface>& mprovider::iexpr(const std::string& name) const {
+const iexpr_ptr& mprovider::iexpr(const std::string& name) const {
     const auto* locsets_ptr = label_dict_ptr ? &(label_dict_ptr->iexpressions()) : nullptr;
     return try_lookup(*this, name, iexpressions_, locsets_ptr);
 }

@@ -202,7 +202,7 @@ struct cable_cell_impl;
 // Mechanisms and initial ion data are further keyed by
 // mechanism name and ion name respectively.
 
-using iexpr_map = std::unordered_map<std::string, std::shared_ptr<iexpr_interface>>;
+using iexpr_map = std::unordered_map<std::string, iexpr_ptr>;
 
 template <typename T>
 using region_assignment = std::conditional_t<

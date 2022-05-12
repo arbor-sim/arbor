@@ -900,7 +900,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     std::unordered_map<std::string, mcable_map<double>> init_iconc_mask;
     std::unordered_map<std::string, mcable_map<double>> init_econc_mask;
-    std::shared_ptr<iexpr_interface> unit_scale = thingify(iexpr::scalar(1.0), cell.provider());
+    iexpr_ptr unit_scale = thingify(iexpr::scalar(1.0), cell.provider());
 
     // Density mechanisms:
     for (const auto& [name, cables]: assignments.get<density>()) {
@@ -928,7 +928,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
 
         mcable_map<double> support;
-        std::vector<mcable_map<std::pair<double, std::shared_ptr<iexpr_interface>>>> param_maps;
+        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps;
 
         param_maps.resize(n_param);
 

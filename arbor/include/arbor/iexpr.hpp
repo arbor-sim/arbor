@@ -112,6 +112,8 @@ struct ARB_SYMBOL_VISIBLE iexpr_interface {
     virtual ~iexpr_interface() = default;
 };
 
-ARB_SYMBOL_VISIBLE std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m);
+using iexpr_ptr = std::shared_ptr<iexpr_interface>;
+
+ARB_SYMBOL_VISIBLE iexpr_ptr thingify(const iexpr& expr, const mprovider& m);
 
 }  // namespace arb

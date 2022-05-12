@@ -227,75 +227,67 @@ struct interpolation: public iexpr_interface {
 };
 
 struct add: public iexpr_interface {
-    add(std::shared_ptr<iexpr_interface> l, std::shared_ptr<iexpr_interface> r):
-        left(std::move(l)),
-        right(std::move(r)) {}
+    add(iexpr_ptr l, iexpr_ptr r): left(std::move(l)), right(std::move(r)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
         return left->eval(p, c) + right->eval(p, c);
     }
 
-    std::shared_ptr<iexpr_interface> left;
-    std::shared_ptr<iexpr_interface> right;
+    iexpr_ptr left;
+    iexpr_ptr right;
 };
 
 struct sub: public iexpr_interface {
-    sub(std::shared_ptr<iexpr_interface> l, std::shared_ptr<iexpr_interface> r):
-        left(std::move(l)),
-        right(std::move(r)) {}
+    sub(iexpr_ptr l, iexpr_ptr r): left(std::move(l)), right(std::move(r)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
         return left->eval(p, c) - right->eval(p, c);
     }
 
-    std::shared_ptr<iexpr_interface> left;
-    std::shared_ptr<iexpr_interface> right;
+    iexpr_ptr left;
+    iexpr_ptr right;
 };
 
 struct mul: public iexpr_interface {
-    mul(std::shared_ptr<iexpr_interface> l, std::shared_ptr<iexpr_interface> r):
-        left(std::move(l)),
-        right(std::move(r)) {}
+    mul(iexpr_ptr l, iexpr_ptr r): left(std::move(l)), right(std::move(r)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
         return left->eval(p, c) * right->eval(p, c);
     }
 
-    std::shared_ptr<iexpr_interface> left;
-    std::shared_ptr<iexpr_interface> right;
+    iexpr_ptr left;
+    iexpr_ptr right;
 };
 
 struct div: public iexpr_interface {
-    div(std::shared_ptr<iexpr_interface> l, std::shared_ptr<iexpr_interface> r):
-        left(std::move(l)),
-        right(std::move(r)) {}
+    div(iexpr_ptr l, iexpr_ptr r): left(std::move(l)), right(std::move(r)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
         return left->eval(p, c) / right->eval(p, c);
     }
 
-    std::shared_ptr<iexpr_interface> left;
-    std::shared_ptr<iexpr_interface> right;
+    iexpr_ptr left;
+    iexpr_ptr right;
 };
 
 struct exp: public iexpr_interface {
-    exp(std::shared_ptr<iexpr_interface> v): value(std::move(v)) {}
+    exp(iexpr_ptr v): value(std::move(v)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
         return std::exp(value->eval(p, c));
     }
 
-    std::shared_ptr<iexpr_interface> value;
+    iexpr_ptr value;
 };
 
 struct log: public iexpr_interface {
-    log(std::shared_ptr<iexpr_interface> v): value(std::move(v)) {}
+    log(iexpr_ptr v): value(std::move(v)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
         return std::log(value->eval(p, c));
     }
 
-    std::shared_ptr<iexpr_interface> value;
+    iexpr_ptr value;
 };
 
 }  // namespace
@@ -381,12 +373,14 @@ iexpr iexpr::exp(iexpr value) { return iexpr(iexpr_type::exp, std::make_tuple(st
 
 iexpr iexpr::log(iexpr value) { return iexpr(iexpr_type::log, std::make_tuple(std::move(value))); }
 
-iexpr iexpr::named(std::string name) { return iexpr(iexpr_type::named, std::make_tuple(std::move(name))); }
+iexpr iexpr::named(std::string name) {
+    return iexpr(iexpr_type::named, std::make_tuple(std::move(name)));
+}
 
-std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m) {
+iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     switch (expr.type()) {
     case iexpr_type::scalar:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::scalar(
+        return iexpr_ptr(new iexpr_impl::scalar(
             std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args()))));
     case iexpr_type::distance: {
         const auto& scale = std::get<0>(
@@ -396,8 +390,7 @@ std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m)
 
         return std::visit(
             [&](auto&& arg) {
-                return std::shared_ptr<iexpr_interface>(
-                    new iexpr_impl::distance(scale, thingify(arg, m)));
+                return iexpr_ptr(new iexpr_impl::distance(scale, thingify(arg, m)));
             },
             var);
     }
@@ -409,8 +402,7 @@ std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m)
 
         return std::visit(
             [&](auto&& arg) {
-                return std::shared_ptr<iexpr_interface>(
-                    new iexpr_impl::proximal_distance(scale, thingify(arg, m)));
+                return iexpr_ptr(new iexpr_impl::proximal_distance(scale, thingify(arg, m)));
             },
             var);
     }
@@ -422,8 +414,7 @@ std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m)
 
         return std::visit(
             [&](auto&& arg) {
-                return std::shared_ptr<iexpr_interface>(
-                    new iexpr_impl::distal_distance(scale, thingify(arg, m)));
+                return iexpr_ptr(new iexpr_impl::distal_distance(scale, thingify(arg, m)));
             },
             var);
     }
@@ -438,36 +429,36 @@ std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m)
         auto dist_list = std::visit(
             [&](auto&& arg) -> std::variant<mlocation_list, mextent> { return thingify(arg, m); },
             std::get<3>(t));
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::interpolation(
+        return iexpr_ptr(new iexpr_impl::interpolation(
             std::get<0>(t), std::move(prox_list), std::get<2>(t), std::move(dist_list)));
     }
     case iexpr_type::radius:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::radius(
+        return iexpr_ptr(new iexpr_impl::radius(
             std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args()))));
     case iexpr_type::diameter:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::radius(
+        return iexpr_ptr(new iexpr_impl::radius(
             2.0 * std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args()))));
     case iexpr_type::add:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::add(
+        return iexpr_ptr(new iexpr_impl::add(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
             thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
     case iexpr_type::sub:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::sub(
+        return iexpr_ptr(new iexpr_impl::sub(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
             thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
     case iexpr_type::mul:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::mul(
+        return iexpr_ptr(new iexpr_impl::mul(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
             thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
     case iexpr_type::div:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::div(
+        return iexpr_ptr(new iexpr_impl::div(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
             thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
     case iexpr_type::exp:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::exp(
+        return iexpr_ptr(new iexpr_impl::exp(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
     case iexpr_type::log:
-        return std::shared_ptr<iexpr_interface>(new iexpr_impl::log(
+        return iexpr_ptr(new iexpr_impl::log(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
     case iexpr_type::named:
         return m.iexpr(std::get<0>(std::any_cast<const std::tuple<std::string>&>(expr.args())));
@@ -476,7 +467,6 @@ std::shared_ptr<iexpr_interface> thingify(const iexpr& expr, const mprovider& m)
     throw std::runtime_error("thingify iexpr: Unknown iexpr type");
     return nullptr;
 }
-
 
 std::ostream& operator<<(std::ostream& o, const iexpr& e) {
     o << "(";
@@ -521,9 +511,11 @@ std::ostream& operator<<(std::ostream& o, const iexpr& e) {
             std::tuple<double, std::variant<locset, region>, double, std::variant<locset, region>>;
 
         o << "interpolation " << std::get<0>(std::any_cast<const arg_type&>(e.args())) << " ";
-        std::visit([&](auto&& arg) { o << arg; }, std::get<1>(std::any_cast<const arg_type&>(e.args())));
+        std::visit(
+            [&](auto&& arg) { o << arg; }, std::get<1>(std::any_cast<const arg_type&>(e.args())));
         o << " " << std::get<2>(std::any_cast<const arg_type&>(e.args())) << " ";
-        std::visit([&](auto&& arg) { o << arg; }, std::get<3>(std::any_cast<const arg_type&>(e.args())));
+        std::visit(
+            [&](auto&& arg) { o << arg; }, std::get<3>(std::any_cast<const arg_type&>(e.args())));
         break;
     }
     case iexpr_type::radius: {
