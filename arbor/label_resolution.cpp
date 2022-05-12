@@ -29,6 +29,7 @@ void cell_label_range::add_cell() {
 
 void cell_label_range::add_label(cell_tag_type label, lid_range range) {
     if (sizes_.empty()) throw arbor_internal_error("adding label to cell_label_range without cell");
+	std::cout << std::endl << "Label " << label << " (#" << labels_.size() << ") added" << std::endl;
     ++sizes_.back();
     labels_.push_back(std::move(label));
     ranges_.push_back(std::move(range));
@@ -79,7 +80,7 @@ lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
     // Offset into the range containing idx.
     const auto& range_part = part.at(ridx);
     auto offset = idx - range_part.first;
-
+	std::cout << "\trange_set::at: start=" << start << ", offset=" << offset << std::endl;
     return start + offset;
 }
 
@@ -186,7 +187,7 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
 	// Policy round_robin_halt
 	if (iden.label.policy == lid_selection_policy::round_robin_halt) {
 		// Output
-		std::cout << std::endl << "Resolving label, policy round_robin_halt," << std::endl;
+		std::cout << std::endl << "Resolving label " << iden.label.tag << ", policy round_robin_halt," << std::endl;
 
 		// Use state of round_robin policy if existent
 		if (state_map_[iden.gid][iden.label.tag].count(lid_selection_policy::round_robin)) {
@@ -197,7 +198,7 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
 	// Policy round_robin
 	else if (iden.label.policy == lid_selection_policy::round_robin) {
 		// Output
-		std::cout << std::endl << "Resolving label, policy round_robin," << std::endl;
+		std::cout << std::endl << "Resolving label " << iden.label.tag << ", policy round_robin," << std::endl;
 	}
 	
 	// Construct state if it doesn't exist
@@ -208,7 +209,7 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
 	// Output of old state
 	if (iden.label.policy != lid_selection_policy::assert_univalent) {
 		cell_lid_type ret_state = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
-		std::cout << "\tstate=" << ret_state;
+		std::cout << "\tstate=" << ret_state << std::endl;
 	}
 
 	// Update state
@@ -220,8 +221,8 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
 	// Output of new state and lid.value()
 	if (iden.label.policy != lid_selection_policy::assert_univalent) {
 		cell_lid_type ret_state = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
-		std::cout << ", state_new=" << ret_state;
-		std::cout << ", lid.value()=" << lid.value() << std::endl;
+		std::cout << "\tstate_new=" << ret_state << std::endl;
+		std::cout << "\tlid.value()=" << lid.value() << std::endl;
 	}
 
     return lid.value();
