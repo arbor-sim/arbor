@@ -415,6 +415,7 @@ public:
             d.data(),
             rhs.data(),
             invariant_d.data(),
+            concentration.data(),
             voltage.data(),
             current.data(),
             q,
@@ -428,16 +429,16 @@ public:
 
     void solve(array& to) {
         solve_diffusion(rhs.data(),
-                          d.data(),
-                          u.data(),
-                          level_meta.data(),
-                          level_lengths.data(),
-                          level_parents.data(),
-                          block_index.data(),
-                          num_cells_in_block.data(),
-                          data_partition.data(),
-                          num_cells_in_block.size(),
-                          max_branches_per_level);
+                        d.data(),
+                        u.data(),
+                        level_meta.data(),
+                        level_lengths.data(),
+                        level_parents.data(),
+                        block_index.data(),
+                        num_cells_in_block.data(),
+                        data_partition.data(),
+                        num_cells_in_block.size(),
+                        max_branches_per_level);
         // unpermute the solution
         packed_to_flat(rhs, to);
     }

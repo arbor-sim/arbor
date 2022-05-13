@@ -20,6 +20,7 @@ void assemble_diffusion(
         T* __restrict__ const d,
         T* __restrict__ const rhs,
         const T* __restrict__ const invariant_d,
+        const T* __restrict__ const concentration,
         const T* __restrict__ const voltage,
         const T* __restrict__ const current,
         const T q,
@@ -242,8 +243,10 @@ ARB_ARBOR_API void assemble_diffusion(
     fvm_value_type* d,
     fvm_value_type* rhs,
     const fvm_value_type* invariant_d,
+    const fvm_value_type* concentration,
     const fvm_value_type* voltage,
     const fvm_value_type* current,
+    fvm_value_type q,
     const fvm_value_type* conductivity,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
@@ -256,7 +259,7 @@ ARB_ARBOR_API void assemble_diffusion(
     const unsigned num_blocks = impl::block_count(n, block_dim);
 
     kernels::assemble_diffusion<<<num_blocks, block_dim>>>(
-        d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
+        d, rhs, invariant_d, concentration, voltage, current, q, conductivity, cv_capacitance, area,
         cv_to_intdom, dt_intdom, perm, n);
 }
 
