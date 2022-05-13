@@ -12,7 +12,7 @@
 
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
-#include "backends/gpu/fvm.hpp"
+#include "backends/gpu/diffusion_state.hpp"
 
 namespace arb {
 namespace gpu {
@@ -29,7 +29,7 @@ namespace gpu {
  *     Xo_     cao              external calcium concentration
  */
 struct ARB_ARBOR_API ion_state {
-    using solver_type = backend::diffusion_state;
+    using solver_type = diffusion_state<fvm_value_type, fvm_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     bool write_eX_;          // is eX written?
