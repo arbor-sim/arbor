@@ -25,7 +25,6 @@ void assemble_diffusion(
         const T* __restrict__ const current,
         const T q,
         const T* __restrict__ const conductivity,
-        const T* __restrict__ const cv_capacitance,
         const T* __restrict__ const area,
         const I* __restrict__ const cv_to_intdom,
         const T* __restrict__ const dt_intdom,
