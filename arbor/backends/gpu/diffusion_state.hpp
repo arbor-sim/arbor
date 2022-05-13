@@ -411,20 +411,19 @@ public:
     //   current density [A/m²]
     //   conductivity [kS/m²]
     void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity, fvm_value_type q) {
-        assemble_diffusion(
-            d.data(),
-            rhs.data(),
-            invariant_d.data(),
-            concentration.data(),
-            voltage.data(),
-            current.data(),
-            q,
-            conductivity.data(),
-            cv_area.data(),
-            cv_to_intdom.data(),
-            dt_intdom.data(),
-            perm.data(),
-            size());
+        assemble_diffusion(d.data(),
+                           rhs.data(),
+                           invariant_d.data(),
+                           concentration.data(),
+                           voltage.data(),
+                           current.data(),
+                           q,
+                           conductivity.data(),
+                           cv_area.data(),
+                           cv_to_intdom.data(),
+                           dt_intdom.data(),
+                           perm.data(),
+                           size());
     }
 
     void solve(array& to) {
