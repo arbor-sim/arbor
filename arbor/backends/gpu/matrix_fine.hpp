@@ -1,6 +1,8 @@
 #include <arbor/fvm_types.hpp>
-
 #include <arbor/export.hpp>
+
+#include "fine.hpp"
+
 #include <ostream>
 
 namespace arb {
