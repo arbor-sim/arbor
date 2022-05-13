@@ -13,6 +13,7 @@
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
+#include "backends/gpu/matrix_state_fine.hpp"
 
 namespace arb {
 namespace gpu {
@@ -122,7 +123,7 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
-    using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
+    using cable_solver = matrix_state_fine<fvm_value_type, fvm_index_type>;
     cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
