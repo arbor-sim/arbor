@@ -122,7 +122,7 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
-    using cable_solver = backend::matrix_state;
+    using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
     cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
