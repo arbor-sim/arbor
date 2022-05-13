@@ -53,13 +53,15 @@ struct ARB_ARBOR_API ion_state {
 
     array charge;       // charge of ionic species (global, length 1)
 
+    solver_ptr solver = nullptr;
+
     ion_state() = default;
 
     ion_state(
         int charge,
         const fvm_ion_config& ion_data,
-        unsigned align
-    );
+        unsigned align,
+        solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();
