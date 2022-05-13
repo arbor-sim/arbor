@@ -29,25 +29,23 @@ void assemble_diffusion(
         const I* __restrict__ const cv_to_intdom,
         const T* __restrict__ const dt_intdom,
         const I* __restrict__ const perm,
-        unsigned n)
-{
+        unsigned n) {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < n) {
         const auto dt = dt_intdom[cv_to_intdom[tid]];
         const auto p = dt > 0;
         const auto pid = perm[tid];
-
-        auto u = voltage[i];        // mV
-        auto g = conductivity[i];   // µS
-        auto J = current[i];        // A/m^2
-        auto A = 1e-3*cv_area[i];   // 1e-9·m²
-        auto X = concentration[i];  // mM
+        auto u = voltage[tid];        // mV
+        auto g = conductivity[tid];   // µS
+        auto J = current[tid];        // A/m^2
+        auto A = 1e-3*area[tid];      // 1e-9·m²
+        auto X = concentration[tid];  // mM
         // conversion from current density to concentration change
         // using Faraday's constant
         auto F = A/(q*96.485332);
 
-        d[pid]   = p ? (_1_dt   + F*g + invariant_d[i]) : 0;
-        rhs[pid] = p ? (_1_dt*X + F*(u*g - J))          : concentration[tid];
+        d[pid]   = p ? (1e-3/dt   + F*g + invariant_d[tid]) : 0;
+        rhs[pid] = p ? (1e-3/dt*X + F*(u*g - J))            : concentration[tid];
     }
 }
 
