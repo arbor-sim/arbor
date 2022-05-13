@@ -17,7 +17,6 @@ ARB_ARBOR_API void assemble_diffusion(
     const fvm_value_type* current,
     const fvm_value_type q,
     const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
     const fvm_index_type* cv_to_intdom,
     const fvm_value_type* dt_intdom,

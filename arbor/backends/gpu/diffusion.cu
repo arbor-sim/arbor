@@ -248,7 +248,6 @@ ARB_ARBOR_API void assemble_diffusion(
     const fvm_value_type* current,
     fvm_value_type q,
     const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
     const fvm_index_type* cv_to_intdom,
     const fvm_value_type* dt_intdom,
@@ -259,7 +258,7 @@ ARB_ARBOR_API void assemble_diffusion(
     const unsigned num_blocks = impl::block_count(n, block_dim);
 
     kernels::assemble_diffusion<<<num_blocks, block_dim>>>(
-        d, rhs, invariant_d, concentration, voltage, current, q, conductivity, cv_capacitance, area,
+        d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area,
         cv_to_intdom, dt_intdom, perm, n);
 }
 
