@@ -86,7 +86,7 @@ file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -c
-    "import sys,sysconfig;pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx}))"
+    "import sys,sysconfig;scheme=sysconfig.get_default_scheme() if sysconfig.get_default_scheme()!='posix_local' else 'posix_prefix';pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx},scheme=scheme))"
     INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
     OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
     OUTPUT_STRIP_TRAILING_WHITESPACE)
