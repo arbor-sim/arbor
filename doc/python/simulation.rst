@@ -156,6 +156,10 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         be a NumPy array, with the first column corresponding to sample time and subsequent columns holding
         the value or values that were sampled from that probe at that time.
 
+    .. function:: progress_banner()
+
+        Print a progress bar during simulation, with elapsed miliseconds and percentage of simulation completed.
+
 **Types:**
 
 .. class:: binning

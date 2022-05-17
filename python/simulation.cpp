@@ -169,6 +169,10 @@ public:
             return py::list{};
         }
     }
+
+    void progress_banner() {
+        sim_->set_epoch_callback(arb::epoch_progress_bar());
+    }
 };
 
 void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
@@ -236,7 +240,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "Remove sampling associated with the given handle.",
             "handle"_a)
         .def("remove_all_samplers", &simulation_shim::remove_sampler,
-            "Remove all sampling on the simulatr.");
+            "Remove all sampling on the simulatr.")
+        .def("progress_banner", &simulation_shim::progress_banner,
+            "Show a text progress bar during simulation.");
 
 }
 
