@@ -361,6 +361,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                             peer_pos[p].pop_front();
                         }
 
+                        if (cell_group == 1) {
+                            for (auto ix: peer_ix) {
+                                std::cout << ix << " ";
+                            }
+                            std::cout << std::endl;
+                        }
+
                     }
                     // Use trace_prev for gj current calculation
                     m->ppack_.peer_index = peer_ix.data();
