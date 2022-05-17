@@ -44,9 +44,9 @@ zero_thread_requested_error::zero_thread_requested_error(unsigned nbt):
     nbt(nbt)
 {}
 
-bad_probe_id::bad_probe_id(cell_member_type probe_id):
-    arbor_exception(pprintf("bad probe id {}", probe_id)),
-    probe_id(probe_id)
+bad_probeset_id::bad_probeset_id(cell_member_type probeset_id):
+    arbor_exception(pprintf("bad probe id {}", probeset_id)),
+    probeset_id(probeset_id)
 {}
 
 gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):

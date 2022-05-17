@@ -95,7 +95,7 @@ void benchmark_cell_group::clear_spikes() {
 }
 
 void benchmark_cell_group::add_sampler(sampler_association_handle h,
-                                   cell_member_predicate probe_ids,
+                                   cell_member_predicate probeset_ids,
                                    schedule sched,
                                    sampler_function fn,
                                    sampling_policy policy) {}

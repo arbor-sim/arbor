@@ -59,7 +59,7 @@ void lif_cell_group::clear_spikes() {
 }
 
 // TODO: implement sampler
-void lif_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probe_ids,
+void lif_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
                                     schedule sched, sampler_function fn, sampling_policy policy) {}
 void lif_cell_group::remove_sampler(sampler_association_handle h) {}
 void lif_cell_group::remove_all_samplers() {}

@@ -5,14 +5,14 @@ Cable cell probing and sampling
 
 .. module:: arbor
 
-Cable cell probe addresses are defined analogously to their counterparts in
+Cable cell probeset addresses are defined analogously to their counterparts in
 the C++ API (see :ref:`cablecell-probes` for details). Sample data recorded
 by the Arbor simulation object is returned in the form of a NumPy array,
 with the first column holding sample times, and subsequent columns holding
 the corresponding scalar- or vector-valued sample.
 
 Location expressions will be realised as zero or more specific sites on
-a cell; probe addresses defined over location expressions will describe zero,
+a cell; probeset addresses defined over location expressions will describe zero,
 one, or more probes, one per site. They are evaluated in the context of
 the cell on which the probe is attached.
 

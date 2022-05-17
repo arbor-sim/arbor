@@ -65,7 +65,7 @@ context = arbor.context()
 domains = arbor.partition_load_balance(recipe, context)
 
 # (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
-# The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
+# The probe is located on cell 0, and is the 0th probe on that cell, thus has probeset_id (0, 0).
 
 sim = arbor.simulation(recipe, domains, context)
 sim.record(arbor.spike_recording.all)

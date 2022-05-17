@@ -141,13 +141,13 @@ int main() {
     // Set up the probe that will measure voltage in the cell.
 
     // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-    auto probe_id = cell_member_type{0, 0};
+    auto probeset_id = cell_member_type{0, 0};
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1);
     // This is where the voltage samples will be stored as (time, value) pairs
     arb::trace_vector<double> voltage;
-    // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-    sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+    // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
+    sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
     // Run the simulation for 100 ms, with time steps of 0.01 ms.
     sim.run(100, 0.01);

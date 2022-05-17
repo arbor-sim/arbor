@@ -620,11 +620,11 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 D, mech_data, fvm_info.target_handles, mechptr_by_name);
 
             if (!probe_data.empty()) {
-                cell_member_type probe_id{gid, i};
-                fvm_info.probe_map.tag[probe_id] = pi.tag;
+                cell_member_type probeset_id{gid, i};
+                fvm_info.probe_map.tag[probeset_id] = pi.tag;
 
                 for (auto& data: probe_data) {
-                    fvm_info.probe_map.data.insert({probe_id, std::move(data)});
+                    fvm_info.probe_map.data.insert({probeset_id, std::move(data)});
                 }
             }
         }

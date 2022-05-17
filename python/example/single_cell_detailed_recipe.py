@@ -154,8 +154,8 @@ sim = arbor.simulation(recipe, domains, context)
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
 
-probe_id = arbor.cell_member(0,0)
-handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
+probeset_id = arbor.cell_member(0,0)
+handle = sim.sample(probeset_id, arbor.regular_schedule(0.02))
 
 # (7) Run the simulation
 sim.run(tfinal=100, dt=0.025)

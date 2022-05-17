@@ -197,13 +197,13 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
    :language: python
    :lines: 154-158
 
-The lines handling probe sampling warrant a second look. First, we declared ``probe_id`` to be a
+The lines handling probe sampling warrant a second look. First, we declared ``probeset_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
 This variable serves as a global identifier of a probe on a cell, namely the first declared probe on the
 cell with gid = 0, which is id of the :ref:`only probe <tutorialsinglecellswcrecipe-probe>` we created on
 the only cell in the model.
 
-Next, we instructed the simulation to sample ``probe_id`` at a frequency of 50 kHz. That function returns a
+Next, we instructed the simulation to sample ``probeset_id`` at a frequency of 50 kHz. That function returns a
 ``handle`` which we will use to extract the results of the sampling after running the simulation.
 
 The execution
