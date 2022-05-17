@@ -34,6 +34,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
                              cell_label_range& cg_sources,
                              cell_label_range& cg_targets,
+                             cell_gid_type cg,
                              fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {

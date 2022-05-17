@@ -39,6 +39,10 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
+    std::vector<int>
+    gather_cg_cv_map(const std::vector<int>& cg_cv_map) const {
+        return mpi::gather_all(cg_cv_map, comm_);
+    }
     std::vector<std::vector<cell_gid_type>>
     gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
         return mpi::gather_all(local_connections, comm_);

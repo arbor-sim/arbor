@@ -10,9 +10,10 @@ using namespace arb;
 
 TEST(backends, gpu_test) {
     execution_context context;
+    cell_gid_type cg;
 #ifdef ARB_GPU_ENABLED
-    EXPECT_NO_THROW(make_fvm_lowered_cell(backend_kind::gpu, context));
+    EXPECT_NO_THROW(make_fvm_lowered_cell(backend_kind::gpu, context, cg));
 #else
-    EXPECT_ANY_THROW(make_fvm_lowered_cell(backend_kind::gpu, context));
+    EXPECT_ANY_THROW(make_fvm_lowered_cell(backend_kind::gpu, context, cg));
 #endif
 }

@@ -18,9 +18,10 @@ using namespace arborio::literals;
 
 namespace {
     execution_context context;
+    cell_gid_type cg;
 
     fvm_lowered_cell_ptr lowered_cell() {
-        return make_fvm_lowered_cell(backend_kind::multicore, context);
+        return make_fvm_lowered_cell(backend_kind::multicore, context, cg);
     }
 
     cable_cell_description make_cell() {
@@ -43,7 +44,8 @@ ACCESS_BIND(
 TEST(mc_cell_group, get_kind) {
     cable_cell cell = make_cell();
     cell_label_range srcs, tgts;
-    mc_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, lowered_cell()};
+    cell_gid_type cg;
+    mc_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, cg, lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
 }
@@ -56,7 +58,8 @@ TEST(mc_cell_group, test) {
     rec.nernst_ion("k");
 
     cell_label_range srcs, tgts;
-    mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
+    cell_gid_type cg;
+    mc_cell_group group{{0}, rec, srcs, tgts, cg, lowered_cell()};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
@@ -86,7 +89,8 @@ TEST(mc_cell_group, sources) {
     rec.nernst_ion("k");
 
     cell_label_range srcs, tgts;
-    mc_cell_group group{gids, rec, srcs, tgts, lowered_cell()};
+    cell_gid_type cg;
+    mc_cell_group group{gids, rec, srcs, tgts, cg, lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.

@@ -18,6 +18,10 @@
 #include <vector>
 #include <unordered_set>
 
+
+#include <fstream> //todo
+#include <iostream> //todo
+
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell_param.hpp>
@@ -38,6 +42,8 @@
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
+#include <communication/mpi.hpp>
+
 namespace arb {
 
 template <class Backend>
@@ -48,7 +54,9 @@ public:
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
-    fvm_lowered_cell_impl(execution_context ctx): context_(ctx), threshold_watcher_(ctx) {};
+    cell_gid_type cell_group;
+
+    fvm_lowered_cell_impl(execution_context ctx, cell_gid_type cg): context_(ctx), threshold_watcher_(ctx) {cell_group = context_.distributed->id();};
 
     void reset() override;
 
@@ -77,7 +85,7 @@ public:
     }
 
 private:
-    // Host or GPU-side back-end dependent storage.
+    // Host or GPU-side back-end dependent storage.x
     using array = typename backend::array;
     using shared_state = typename backend::shared_state;
     using sample_event_stream = typename backend::sample_event_stream;
@@ -220,10 +228,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // per-compartment dt probably not a win on GPU), possibly rumbling
     // complete fvm state into shared state object.
 
-    // Assume that: 
-    // - all gap junctions are subject to WR
-    // - we only have a single cell group
-
     // Reset state
     multicore::iarray cv_to_intdom_r = state_->cv_to_intdom;
     multicore::iarray cv_to_cell_r   = state_->cv_to_cell;
@@ -260,10 +264,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
     }
 
-    //traces:            gj mech id                                values               
+    //trace vectors for recording voltages
     std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> trace, trace_prev;
-    std::vector<arb_index_type> peer_ix;
-    std::vector<arb_index_type> peer_index_reset;
+
     threshold_watcher threshold_watcher_reset = threshold_watcher_;
 
     // Save starting times
@@ -272,10 +275,26 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tfinal_reset = tfinal;
     value_type dt_max_reset = dt_max;
 
+    std::ofstream file0;
+
+    std::vector<arb_index_type> peer_ix;
+    std::vector<arb_index_type> peer_index_reset;
+    
+    std::vector<int> node_arr;
+    for (auto& m: mechanisms_) {
+        if (m->kind() == arb_mechanism_kind_gap_junction) {
+            for(int i = 0; i<m->ppack_.width; ++i) {
+                node_arr.push_back(m->ppack_.node_index[i]);
+            }
+        }
+    }
+    
     //WR iterations
-    int wr_max = 2;
-    auto eps = 1e-8;
+    int wr_max = 1;
+    auto eps = 1e-7;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
+
+        //std::cout << "Start WR" << std::endl;
 
         // Reset remaining_steps
         if (wr_it > 0) {
@@ -283,8 +302,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Reset error variables for WR break condition
-        std::vector<arb_value_type> err(peer_ix.size(), 0.);
-        auto b = 0;
+        auto max_err = 0.;
 
         // Threshold_watcher reset
         threshold_watcher_ = threshold_watcher_reset;
@@ -317,24 +335,47 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
                 // Map peer_index to position in trace
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
+
                     if (wr_it == 0 && step == 0) {
+                        // iterate through peer indices and check if in same group as node
+                        // if not, set peer = node for guess
+
+                        std::vector<int> peer_guess;
+                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
+                            int node = m->ppack_.node_index[ix];
+                            int peer = m->ppack_.peer_index[ix];
+                            if (std::find(node_arr.begin(), node_arr.end(), peer) != node_arr.end()){
+                                peer_guess.push_back(remove_cv_offset(peer, node_arr));
+                            } else {
+                                peer_guess.push_back(remove_cv_offset(node, node_arr));
+                            }
+                        }
+
                         std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos;
                         for (auto ix = 0; ix < m->ppack_.width; ++ix) {
                             peer_pos[m->ppack_.node_index[ix]].push_back(ix);
-                            peer_index_reset.push_back(m->ppack_.peer_index[ix]);
                         }
                         for (auto it = 0; it < m->ppack_.width; ++it) {
-                            auto p = m->ppack_.peer_index[it];
+                            auto p = peer_guess[it];
                             peer_ix.push_back(peer_pos[p][0]);
                             peer_pos[p].pop_front();
                         }
+
                     }
-                   
                     // Use trace_prev for gj current calculation
+                    m->ppack_.peer_index = peer_ix.data();
+                    
+                    if (wr_it == 0){
+                        std::vector<value_type> v_step;
+                        for (auto ix = 0; ix<m->ppack_.width; ++ix) {
+                            v_step.push_back(state_->voltage[ix]);
+                        }
+                        m->ppack_.vec_v_peer = v_step.data();
+                    }
+                    
                     if (wr_it > 0) {
                         auto gj = m->mechanism_id();
                         m->ppack_.vec_v_peer = trace_prev[gj][step].data();
-                        m->ppack_.peer_index = peer_ix.data();
                     }
                 }
                 
@@ -342,32 +383,29 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
-
-                    // Reset peer index to original array
-                    if (wr_it > 0) {
-                        m->ppack_.peer_index = peer_index_reset.data();
+                        std::cout << "write trace at step = " << step << std::endl;
                     }
 
-                    // Write trace
                     auto gj = m->mechanism_id();
                     std::vector<value_type> v_step(m->ppack_.width, 0.);
+    
                     for(int ix = 0; ix < m->ppack_.width; ++ix) {
                         auto node_cv = m->ppack_.node_index[ix];
                         v_step[ix] = state_->voltage[node_cv];
                     }
                     trace[gj].push_back(v_step);
-
+                    
                     // Calculate error for break condition
+                    /*
                     if (wr_it > 1) {
                         for (auto ix = 0; ix < trace[gj][step].size(); ++ ix){
                             auto node_cv = m->ppack_.node_index[ix];
                             auto err_cv = std::abs(trace[gj][step][node_cv] - trace_prev[gj][step][node_cv]);
-                            err[node_cv] += (err_cv*err_cv);
-                            if (err[node_cv] > eps) {
-                                b += 1;
+                            if (err_cv > max_err) {
+                                max_err = err_cv;
                             }
                         }
-                    }
+                    }*/
                 }
             }
 
@@ -455,7 +493,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Break if no CV has an err > eps or maximum WR iterations reached
-        if ((wr_it > 1 && b == 0) or wr_max == 1 || wr_it == wr_max) {
+        if ((wr_it > 1 && max_err < eps) or wr_max == 1 || wr_it == wr_max) {
+            //std::cout << "break at it = " << wr_it << std::endl;
             break;
         }
 
@@ -501,7 +540,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 *store.second.state_vars_[j] = state_vars_r[store.first][j];
             }
         } 
-        
     }
     
     set_tmin(tfinal);
@@ -638,9 +676,32 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     sample_events_ = sample_event_stream(nintdom);
 
     // Discretize and build gap junction info.
+    //std::unordered_map<cell_member_type, fvm_size_type> gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+    //std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
-    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
-    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+    // Build {gid, lid} -> {cg, cv} map
+    std::unordered_map<cell_member_type, cell_member_type> cg_map = fvm_build_gap_junction_cg_cv_map(cells, gids, cell_group, D);
+
+    std::vector<int> cvs;
+    for (auto element: cg_map){
+        cvs.push_back(int(element.second.index));
+    }
+    int max_cv = 0;
+    for (int i = 0; i<cvs.size(); ++i){
+        if (cvs[i] > max_cv){
+            max_cv = cvs[i];
+        }
+    }    
+
+    //Todo: make this more elegant
+    std::vector<int> num_cvs_group = {int(max_cv)+1};
+    std::vector<int> num_cvs_global = context_.distributed->gather_cg_cv_map(num_cvs_group);
+
+    auto gid_lid_gcv = fvm_convert_cv(cg_map, num_cvs_global);
+    auto gid_lid_gcv_gathered = context_.distributed->gather_cg_cv_map(gid_lid_gcv);
+
+    auto gcv_map = fvm_convert_cv_to_map(gid_lid_gcv_gathered);
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gcv_map, rec);
 
     // Discretize mechanism data.
 

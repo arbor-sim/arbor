@@ -257,6 +257,25 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
+// Maps gj {gid, lid} locations on a cell to their cell group and CV indices.
+ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_build_gap_junction_cg_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    cell_gid_type cg,
+    const fvm_cv_discretization& D);
+
+//ARB_ARBOR_API std::unordered_map<cell_member_type, unsigned> fvm_convert_cv(
+ARB_ARBOR_API std::vector<int> fvm_convert_cv(
+    std::unordered_map<cell_member_type, cell_member_type> cg_cv_map, 
+    std::vector<int> num_cvs);
+
+ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_convert_cv_to_map(
+    std::vector<int> gid_lid_gcv);
+
+ARB_ARBOR_API int remove_cv_offset(
+    const int cv_offset,
+    const std::vector<int> nodes);
+
 // Maps gj {gid, lid} locations on a cell to their CV indices.
 ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
