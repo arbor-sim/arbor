@@ -320,7 +320,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << popindent << "}\n\n";
 
     out << "static void advance_state(arb_mechanism_ppack* pp) {\n" << indent;
-    emit_body(state_api, false);
+    emit_body(state_api);
     out << popindent << "}\n\n";
 
     out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
@@ -580,12 +580,10 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     ENTER(out);
     auto d = decode_indexed_variable(external);
     if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
-    std::string var, scale, weight, name = from->name();
+    std::string var, weight = pp_var_pfx + "weight[i_]", scale = scaled(1.0/d.scale), name = from->name();
     {
         std::stringstream v, s, w;
         v << deref(d); var = v.str();
-        s << scaled(1./d.scale); scale = s.str();
-        w << pp_var_pfx << "weight[i_]"; weight = w.str();
     }
     if (d.additive && use_additive) {
             out << fmt::format("{3} -= {0};\n"
