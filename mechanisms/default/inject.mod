@@ -1,15 +1,20 @@
 NEURON {
   POINT_PROCESS inject
   USEION x WRITE xd
-  RANGE alpha
+  RANGE alpha, beta
 }
 
-PARAMETER {
-    alpha = 200
-}
+ASSIGNED { beta }
 
-BREAKPOINT {}
+PARAMETER { alpha = 200 }
+
+INITIAL { beta = 0 }
+
+BREAKPOINT {
+    xd = xd + beta
+    beta = 0
+}
 
 NET_RECEIVE(weight) {
-    xd = xd + alpha*weight
+    beta = alpha*weight
 }

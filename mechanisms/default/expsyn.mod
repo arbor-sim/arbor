@@ -34,5 +34,6 @@ DERIVATIVE state {
 }
 
 NET_RECEIVE(weight) {
+    i = i + 2
     g = g + weight
 }

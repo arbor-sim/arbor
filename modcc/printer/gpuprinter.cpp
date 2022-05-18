@@ -265,7 +265,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name(),
                            pp_var_pfx);
         out << indent << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, is_point_proc, false, false, true);
+        emit_api_body_cu(out, net_receive_api, is_point_proc, false, false, false);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     }
 
