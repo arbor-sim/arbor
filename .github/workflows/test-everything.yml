@@ -110,6 +110,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.config.py }}
+      - name: Update pip
+        run: python -m pip install --upgrade pip
       - name: OpenMPI cache
         uses: actions/cache@v2
         id:   cache-ompi
@@ -200,6 +202,8 @@ jobs:
     name: "Pip build test + Python examples test"
     runs-on: ubuntu-latest
     steps:
+      - name: Update pip
+        run: python -m pip install --upgrade pip
       - name: Install Python packages
         run:  pip install numpy setuptools scikit-build ninja cmake
       - name: Clone w/ submodules
