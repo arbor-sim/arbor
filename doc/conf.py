@@ -20,6 +20,7 @@ def setup(app):
 
 extensions = [
     'sphinx.ext.intersphinx',
+    'sphinx.ext.graphviz',
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
