@@ -142,7 +142,6 @@ A full list of our software attributions can be found `here <https://github.com/
    python/index
    cpp/index
    dev/index
-   internals/index
 
 .. toctree::
    :caption: Contributing:

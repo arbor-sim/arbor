@@ -1,13 +1,13 @@
 .. _cable_cell:
 
-How the Cable Cell is Made
+How the Cable Cell is made
 ==========================
 
 This is a short tour through the inner workings of a cable cell intended for new
 Arbor developers. Cable cells are not the sole cell type supported in Arbor, but
 both the most common and most complex kind.
 
-This is the introduction from which more detailled descripions will branch out.
+This is the introduction from which more detailed descriptions will branch out.
 As such, we will start with a simple cable cell simulation and how the user input
 is turned into an executable object.
 
@@ -23,12 +23,12 @@ In Arbor's codebase some prefixes are used as a low-key namespacing
 - ``mc_``:: Related to Multi-Compartment (Cells), identical to cable cells the
   difference is purely historical, eg ``mc_cell_group``.
 
-Setting up a Cable Cell Simulation
+Setting up a Cable Cell simulation
 ----------------------------------
 
 Arbor constructs a runnable simulation from three ingredients:
 
-- ``recipe``:: a queriable structure that collects cells, connections, gap
+- ``recipe``:: a queryable structure that collects cells, connections, gap
   junctions, etc.
 - ``context``:: a hardware configuration, summarising threads, GPU, and MPI
   resources to be used.
@@ -90,7 +90,7 @@ Also, mechanisms are concretised using the provided ``mechanism_catalogue`` and
 their internal data is set up in ``shared_state``. See :ref:`Shared state <shared_state>`
 for more details
 
-Main Integration Loop
+Main integration loop
 ---------------------
 
 Now we are in a state to simulate a cell group by calling

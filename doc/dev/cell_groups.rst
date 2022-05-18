@@ -1,5 +1,8 @@
 .. _cell_groups:
 
+Cell groups
+===========
+
 Cell groups represent a union of cells of a single *kind* simulated in lockstep.
 In a sense, their existence is an optimisation, since parts of the internal
 state and computations can be shared between cell in single group. The currently
@@ -11,8 +14,8 @@ Cell groups are created by domain decomposition methods on consideration of soft
 (like performance optimisation) and hard (cells connected by gap junctions must
 be in the same group) constraints.
 
-Cable Cells ``mc_cell_group``
-=============================
+Cable Cell group ``mc_cell_group``
+----------------------------------
 
 Cable cell groups have backing store in ``shared_state`` (given the
 introduction, we now understand that the ``shared`` stands for 'shared' between
