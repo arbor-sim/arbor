@@ -65,11 +65,7 @@ Yes. They are a fundamental building block in Arbor simulations. Recipes are str
 a consistent interface for describing each cell in the network using their global identifier (`gid`).
 This allows the simulator to be able to quickly look-up properties related to the connections
 going in and out of a cell (think of synapses, gap junctions, but also probes and spike inputs);
-which helps make Arbor fast and easily distributable over many nodes. It might be instructive to
-see how recipes are used by Arbor:
-
-.. raw:: html
-   :file: recipe-diag-2.html
+which helps make Arbor fast and easily distributable over many nodes.
 
 For single, stand-alone :ref:`cable cells<modelcablecell>` simulations, the Python API provides
 a :class:`single_cell_model <py_single_cell_model>` that abstracts away the details of a recipe.

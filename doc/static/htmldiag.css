@@ -86,6 +86,28 @@
     font-size: 90%;
     margin: 0 auto 20px;
 }
+
+.diag-cont input[type='checkbox'] {
+     display: none;
+}
+.diag-cont label {
+     display: block;
+}
+.diag-cont label::before {
+     content: '+';
+     display: inline-block;
+}
+.diag-cont input[type=checkbox]:checked+label::before {
+     content: '−';
+}
+.diag-cont input[type=checkbox]+label~div {
+     max-height: 0px;
+     overflow: hidden;
+}
+.diag-cont input[type=checkbox]:checked+label~div{
+     max-height: 100%;
+}
+
 connection .line .arrow {
     top: -5px;
     height: 0px;
