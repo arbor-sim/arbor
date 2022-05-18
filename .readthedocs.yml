@@ -12,8 +12,14 @@ sphinx:
 
 formats: []
 
+build:
+  os: ubuntu-20.04
+  tools:
+    python: "3.10"
+  apt_packages:
+    - graphviz
+
 python:
-  version: 3.7
   system_packages: true
   install:
     - requirements: doc/requirements.txt
