@@ -153,7 +153,8 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         "#include <cstddef>\n"
         "#include <memory>\n"
         "#include <"  << arb_header_prefix() << "mechanism_abi.h>\n"
-        "#include <" << arb_header_prefix() << "math.hpp>\n";
+        "#include <" << arb_header_prefix() << "math.hpp>\n"
+        "#include <" << arb_header_prefix() << "normal_rand.hpp>\n";
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
