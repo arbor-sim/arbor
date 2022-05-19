@@ -828,6 +828,7 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
 
+    auto coeff = d.scale;
     auto ext = external->name();
     auto name = from->name();
     auto data = data_via_ppack(d);
@@ -849,8 +850,35 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                                        data, node, scaled);
                     break;
                 case simd_expr_constraint::constant:
-                    out << fmt::format("indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) = S::mul(w_, {});\n",
-                                       data, node, scaled);
+                    // We need this instead of simple assignment as _constant_ index means we write
+                    // essentially a scalar via a vector, so eg for w=4
+                    //   s <- {1,2,3,4}
+                    // which is undefined. Here s being a scalar is obscured by the use of the index,
+                    // but that turns out to be i{1,1,1,1}. The default (here) is to write this as
+                    //   s <- 1
+                    //   s <- 2
+                    //   s <- 3
+                    //   s <- 4
+                    // Here s is identified via scalar ptr cast to a vector ptr and we want to write
+                    // only -- say -- the value at index 2, thus 3
+                    // /However/ we can write (w/ example values)
+                    //   i  = {2,2,2,2} // index to write to
+                    //   t  = {1,2,3,4} // loaded from i
+                    //   v  = {0,0,5,0} // value we want to write, upcast from scalar
+                    //   store(i, v)    // WRONG results in storing 0
+                    //   add_at_index(i, v - t)
+                    out << fmt::format("{{\n"
+                                       "  auto i_idx_ = indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_);\n"
+                                       "  simd_value t_{}0_;\n"
+                                       "  assign(t_{}0_, i_idx_);\n"
+                                       "  {} -= t_{}0_;\n"
+                                       "  i_idx_ += S::mul(w_, {});\n"
+                                       "}}\n",
+                                       data, node,
+                                       name,
+                                       name,
+                                       scaled, name,
+                                       scaled);
                     break;
                 default:
                     out << fmt::format("indirect({}, {}, simd_width_, constraint_category_) = S::mul(w_, {});\n",
@@ -861,55 +889,87 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
             out << fmt::format("indirect({}, {}, simd_width_, index_constraint::none) = S::mul(w_, {});\n",
                                data, index, scaled);
         }
-    } else
-    if (d.accumulate) {
-        if (d.index_var_kind == index_kind::node) {
-            switch (constraint) {
+    }
+    else {
+   if (d.accumulate) {
+        switch (d.index_var_kind) {
+            case index_kind::node: {
+                switch (constraint) {
                 case simd_expr_constraint::contiguous:
-                    out << fmt::format("{{\n"
-                                       "  simd_value t_{0};\n"
-                                       "  auto i_idx_ = indirect({1} + {2}, simd_width_);\n"
-                                       "  assign(t_{0}, i_idx_);\n"
-                                       "  i_idx_ = S::fma(w_, {3}, t_{0});\n"
-                                       "}}\n",
-                                       ext, data, node, scaled);
+                {
+                    std::string tempvar = "t_" + external->name();
+                    out << "simd_value " << tempvar << ";\n"
+                        << "assign(" << tempvar << ", indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_));\n";
+                    if (coeff != 1) {
+                        out << tempvar << " = S::fma(S::mul(w_, simd_cast<simd_value>(" << as_c_double(coeff) << "))," << from->name() << ", " << tempvar << ");\n";
+                    } else {
+                        out << tempvar << " = S::fma(w_, " << from->name() << ", " << tempvar << ");\n";
+                    }
+                    out << "indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_) = " << tempvar << ";\n";
                     break;
+                }
                 case simd_expr_constraint::constant:
-                    out << fmt::format("indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul(w_, {});\n",
-                                       data, node, scaled);
+                {
+                    out << "indirect(" << data_via_ppack(d) << ", simd_cast<simd_index>(" << node_index_i_name(d) << "), simd_width_, constraint_category_)";
+                    if (coeff != 1) {
+                        out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
+                    } else {
+                        out << " += S::mul(w_, " << from->name() << ");\n";
+                    }
                     break;
-                default:
-                    out << fmt::format("indirect({}, {}, simd_width_, constraint_category_) += S::mul(w_, {});\n",
-                                       data, node, scaled);
+                }
+                default :
+                {
+                    out << "indirect(" << data_via_ppack(d) << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_)";
+                    if (coeff != 1) {
+                        out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
+                    } else {
+                        out << " += S::mul(w_, " << from->name() << ");\n";
+                    }
+                }
+                }
+                break;
             }
-        }
-        else {
-            out << fmt::format("indirect({}, {}, simd_width_, index_constraint::none) += S::mul(w_, {});\n",
-                               data, index, scaled);
+            default: {
+                out << "indirect(" << data_via_ppack(d) << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none)";
+                if (coeff != 1) {
+                    out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
+                } else {
+                    out << " += S::mul(w_, " << from->name() << ");\n";
+                }
+                break;
+            }
         }
     }
     else {
-        if (d.index_var_kind == index_kind::node) {
-            switch (constraint) {
+        switch (d.index_var_kind) {
+            case index_kind::node: {
+                switch (constraint) {
                 case simd_expr_constraint::contiguous:
-                    out << fmt::format("indirect({} + {}, simd_width_) = {};\n",
-                                       data, node, scaled);
+                    out << "indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_) = ";
                     break;
                 case simd_expr_constraint::constant:
-                    out << fmt::format("indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) = {};\n",
-                                       data, node, scaled);
+                    out << "indirect(" << data_via_ppack(d) << ", simd_cast<simd_index>(" << node_index_i_name(d) << "), simd_width_, constraint_category_) = ";
                     break;
                 default:
-                    out << fmt::format("indirect({}, {}, simd_width_, constraint_category_) = {};\n",
-                                       data, node, scaled);
+                    out << "indirect(" << data_via_ppack(d) << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_) = ";
+                }
+                break;
+            }
+            default: {
+                out << "indirect(" << data_via_ppack(d)
+                    << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none) = ";
+                break;
             }
         }
-        else {
-            out << fmt::format("indirect({}, {}, simd_width_, index_constraint::none) = {}",
-                               data, index, scaled);
+
+        if (coeff != 1) {
+            out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
+        } else {
+            out << from->name() << ";\n";
         }
     }
-
+    }
     EXIT(out);
 }
 

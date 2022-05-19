@@ -1,6 +1,6 @@
 NEURON {
   POINT_PROCESS inject
-  USEION x WRITE xd
+  USEION x WRITE xd, ix
   RANGE alpha, beta
 }
 
@@ -12,6 +12,7 @@ INITIAL { beta = 0 }
 
 BREAKPOINT {
     xd = xd + beta
+    ix = ix + beta
     beta = 0
 }
 
