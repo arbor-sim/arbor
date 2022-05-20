@@ -43,8 +43,6 @@ struct backend {
         return memory::on_host(v);
     }
 
-    using matrix_state = arb::gpu::matrix_state_fine<value_type, index_type>;
-    using diffusion_state = arb::gpu::diffusion_state<value_type, index_type>;
     using threshold_watcher = arb::gpu::threshold_watcher;
 
     using deliverable_event_stream = arb::gpu::deliverable_event_stream;

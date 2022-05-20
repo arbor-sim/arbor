@@ -851,22 +851,8 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                     break;
                 case simd_expr_constraint::constant:
                     // We need this instead of simple assignment as _constant_ index means we write
-                    // essentially a scalar via a vector, so eg for w=4
-                    //   s <- {1,2,3,4}
-                    // which is undefined. Here s being a scalar is obscured by the use of the index,
-                    // but that turns out to be i{1,1,1,1}. The default (here) is to write this as
-                    //   s <- 1
-                    //   s <- 2
-                    //   s <- 3
-                    //   s <- 4
-                    // Here s is identified via scalar ptr cast to a vector ptr and we want to write
-                    // only -- say -- the value at index 2, thus 3
-                    // /However/ we can write (w/ example values)
-                    //   i  = {2,2,2,2} // index to write to
-                    //   t  = {1,2,3,4} // loaded from i
-                    //   v  = {0,0,5,0} // value we want to write, upcast from scalar
-                    //   store(i, v)    // WRONG results in storing 0
-                    //   add_at_index(i, v - t)
+                    // essentially a scalar via a vector, so we work around by using this weird construct
+                    // x += v - x.
                     out << fmt::format("{{\n"
                                        "  auto i_idx_ = indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_);\n"
                                        "  simd_value t_{}0_;\n"
