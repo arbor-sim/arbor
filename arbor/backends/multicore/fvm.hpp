@@ -51,14 +51,15 @@ struct backend {
 
     static threshold_watcher voltage_watcher(
         shared_state& state,
-        const std::vector<index_type>& cv,
+        const std::vector<index_type>& detector_cv,
         const std::vector<value_type>& thresholds,
         const execution_context& context)
     {
         return threshold_watcher(
-            state.voltage.data(),
+            //state.voltage.data(),
+            state.voltage.size(),
             state.src_to_spike.data(),
-            cv,
+            detector_cv,
             thresholds,
             context);
     }

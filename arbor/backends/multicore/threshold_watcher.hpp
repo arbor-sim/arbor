@@ -18,22 +18,21 @@ public:
     threshold_watcher(const execution_context& ctx) {}
 
     threshold_watcher(
-        const fvm_value_type* values,
+        const fvm_size_type num_cv,
         const fvm_index_type* src_to_spike,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& context
     ):
-        values_(values),
         src_to_spike_(src_to_spike),
-        n_cv_(cv_index.size()),
+        n_detectors_(cv_index.size()),
         cv_index_(cv_index),
-        is_crossed_(n_cv_),
+        is_crossed_(n_detectors_),
         thresholds_(thresholds),
-        v_prev_(values_, values_+n_cv_)
+        v_prev_(num_cv)
     {
-        arb_assert(n_cv_==thresholds.size());
-        reset();
+        arb_assert(n_detectors_==thresholds.size());
+        // reset() needs to be called before this is ready for use
     }
 
     /// Remove all stored crossings that were detected in previous calls
@@ -45,9 +44,11 @@ public:
     /// Reset state machine for each detector.
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
-    void reset() {
+    void reset(const array& values) {
+        values_ = values.data();
+        std::copy(values.begin(), values.end(), v_prev_.begin());
         clear_crossings();
-        for (fvm_size_type i = 0; i<n_cv_; ++i) {
+        for (fvm_size_type i = 0; i<n_detectors_; ++i) {
             is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
         }
     }
@@ -60,10 +61,12 @@ public:
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
     void test(array* time_since_spike, const fvm_value_type& t_before, const fvm_value_type& t_after) {
+        arb_assert(values_!=nullptr);
+
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
-        for (fvm_size_type i = 0; i<n_cv_; ++i) {
+        for (fvm_size_type i = 0; i<n_detectors_; ++i) {
             auto cv     = cv_index_[i];
-            auto v_prev = v_prev_[i];
+            auto v_prev = v_prev_[cv];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
             fvm_index_type spike_idx = 0;
@@ -94,7 +97,7 @@ public:
                 }
             }
 
-            v_prev_[i] = v;
+            v_prev_[cv] = v;
         }
     }
 
@@ -104,7 +107,7 @@ public:
 
     /// The number of threshold values that are monitored.
     std::size_t size() const {
-        return n_cv_;
+        return n_detectors_;
     }
 
 private:
@@ -115,7 +118,7 @@ private:
     const fvm_index_type* src_to_spike_ = nullptr;
 
     /// Threshold watcher state.
-    fvm_size_type n_cv_ = 0;
+    fvm_size_type n_detectors_ = 0;
     std::vector<fvm_index_type> cv_index_;
     std::vector<fvm_size_type> is_crossed_;
     std::vector<fvm_value_type> thresholds_;

@@ -286,7 +286,7 @@ V_e = M @ I_m.T
 # Plot the morphology and extracellular potential prediction.
 # First we define a couple helper functions:
 def create_polygon(x, y, d):
-    """create a outline for each segment defined by 1D arrays `x`, `y`, `d`
+    """create an outline for each segment defined by 1D arrays `x`, `y`, `d`
     in x,y-plane which can be drawn using `plt.Polygon`
 
     Parameters
@@ -299,46 +299,16 @@ def create_polygon(x, y, d):
     -------
     x, y: nested list
     """
-    # calculate angles
-    dx = abs(np.diff(x))
-    dy = np.diff(y)
-    theta = np.arctan2(dy, dx)
+    x_grad = np.gradient(x)
+    y_grad = np.gradient(y)
+    theta = np.arctan2(y_grad, x_grad)
 
-    x = np.r_[x, x[::-1]]
-    y = np.r_[y, y[::-1]]
+    xp = np.r_[(x + 0.5 * d * np.sin(theta)).ravel(),
+               (x - 0.5 * d * np.sin(theta)).ravel()[::-1]]
+    yp = np.r_[(y - 0.5 * d * np.cos(theta)).ravel(),
+               (y + 0.5 * d * np.cos(theta)).ravel()[::-1]]
 
-    theta = np.r_[theta, theta[::-1]]
-    d = np.r_[d, d[::-1]]
-
-    # 1st corner:
-    x[0] -= 0.5 * d[0] * np.sin(theta[0])
-    y[0] += 0.5 * d[0] * np.cos(theta[0])
-
-    # points between start and end of section, first side
-    x[1:dx.size] -= 0.25 * d[1:dx.size] * (
-        np.sin(theta[:dx.size - 1]) + np.sin(theta[1:dx.size]))
-    y[1:dy.size] += 0.25 * d[1:dy.size] * (
-        np.cos(theta[:dy.size - 1]) + np.cos(theta[1:dx.size]))
-
-    # end of section, first side
-    x[dx.size] -= 0.5 * d[dx.size] * np.sin(theta[dx.size])
-    y[dy.size] += 0.5 * d[dy.size] * np.cos(theta[dy.size])
-
-    # end of section, second side
-    x[dx.size + 1] += 0.5 * d[dx.size + 1] * np.sin(theta[dx.size])
-    y[dy.size + 1] -= 0.5 * d[dy.size + 1] * np.cos(theta[dy.size])
-
-    # points between start and end of section, second side
-    x[::-1][1:dx.size] += 0.25 * d[::-1][1:dx.size] * (
-        np.sin(theta[::-1][:dx.size - 1]) + np.sin(theta[::-1][1:dx.size]))
-    y[::-1][1:dy.size] -= 0.25 * d[::-1][1:dy.size] * (
-        np.cos(theta[::-1][:dy.size - 1]) + np.cos(theta[::-1][1:dx.size]))
-
-    # last corner:
-    x[-1] += 0.5 * d[-1] * np.sin(theta[-1])
-    y[-1] -= 0.5 * d[-1] * np.cos(theta[-1])
-
-    return list(zip(x, y))
+    return list(zip(xp, yp))
 
 
 def get_cv_polycollection(

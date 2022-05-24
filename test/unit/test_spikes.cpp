@@ -70,11 +70,13 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
 
     // create the watch
     backend::threshold_watcher watch(
-            values.data(),
+            values.size(),
             src_to_spike.data(),
             index,
             thresh,
             context);
+
+    watch.reset(values);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking
@@ -193,7 +195,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0);
     values[index[0]] = 10.; // first watch should be intialized to spiking state
     time_before = 0;
-    watch.reset();
+    watch.reset(values);
     EXPECT_EQ(watch.crossings().size(), 0u);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
