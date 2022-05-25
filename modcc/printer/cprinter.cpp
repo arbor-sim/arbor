@@ -854,17 +854,15 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                     // essentially a scalar via a vector, so we work around by using this weird construct
                     // x += v - x.
                     out << fmt::format("{{\n"
-                                       "  auto i_idx_ = indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_);\n"
-                                       "  simd_value t_{}0_;\n"
-                                       "  assign(t_{}0_, i_idx_);\n"
+                                       "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
+                                       "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
                                        "  {} -= t_{}0_;\n"
-                                       "  i_idx_ += S::mul(w_, {});\n"
+                                       "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul(w_, {});\n"
                                        "}}\n",
-                                       data, node,
                                        name,
-                                       name,
+                                       name, data, node,
                                        scaled, name,
-                                       scaled);
+                                       data, node, scaled);
                     break;
                 default:
                     out << fmt::format("indirect({}, {}, simd_width_, constraint_category_) = S::mul(w_, {});\n",
