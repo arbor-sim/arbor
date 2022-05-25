@@ -12,7 +12,6 @@ INITIAL { beta = 0 }
 
 BREAKPOINT {
     xd = xd + beta
-    ix = ix + beta
     beta = 0
 }
 
