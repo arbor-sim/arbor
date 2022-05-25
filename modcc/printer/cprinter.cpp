@@ -581,7 +581,7 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     auto d = decode_indexed_variable(external);
     if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     std::string var, weight = pp_var_pfx + "weight[i_]", scale = scaled(1.0/d.scale), name = from->name();
-    auto coeff = 1/d.scale;
+    double coeff = 1.0/d.scale;
     {
         std::stringstream v, s, w;
         v << deref(d); var = v.str();
