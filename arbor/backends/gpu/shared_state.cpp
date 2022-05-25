@@ -320,7 +320,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        auto& ion_state = m.ppack_.ion_states[idx];
+        auto& ion_state = store.ion_states_[idx];
         ion_state = {0};
         ion_state.current_density         = oion->iX_.data();
         ion_state.reversal_potential      = oion->eX_.data();
