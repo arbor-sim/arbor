@@ -1,0 +1,27 @@
+<div class="diag-cont">
+    <div id="nm">Neural Mass Models
+        <div>The Virtual Brain</div>
+    </div>
+    <div id="pn">Point Neurons
+        <div>NEST</div>
+        <div>BRIAN</div>
+    </div>
+    <div id="dt">Detailed Neurons
+        <div>Arbor</div>
+        <div>(Core)NEURON, NeuroGPU</div>
+        <div>GENESIS</div>
+        <div>MOOSE</div>
+        <div>LEMS</div>
+        <div>jNML</div>
+        <div>EDEN</div>
+    </div>
+    <div id="md">Molecular Dynamics
+        <div>ALMOST</div>
+        <div>NAMD</div>
+    </div>
+</div>
+<div class="diag-caption">An informal hierarchy of the simulator landscape, showing Arbor's position.</div>
+
+<connection width="1" from="#nm" to="#pn" fromX="1" fromY="0.5" toX="0" toY="0.5" tail onlyVisible></connection>
+<connection width="1" from="#pn" to="#dt" fromX="1" fromY="0.5" toX="0" toY="0.5" tail onlyVisible></connection>
+<connection width="1" from="#dt" to="#md" fromX="1" fromY="0.5" toX="0" toY="0.5" tail onlyVisible></connection>

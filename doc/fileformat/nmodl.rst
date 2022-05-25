@@ -122,6 +122,10 @@ Unsupported features
 Arbor-specific features
 -----------------------
 
+* It is required to explicitly pass 'magic' variables like ``v`` into procedures.
+  It makes things more explicit by eliding shared and implicit global state. However, 
+  this is only partially true, as having `PARAMETER v` brings it into scope, *but only* 
+  in `BREAKPOINT`.
 * Arbor's NMODL dialect supports the most widely used features of NEURON. It also
   has some features unavailable in NEURON such as the ``POST_EVENT`` procedure block.
   This procedure has a single argument representing the time since the last spike on
@@ -195,6 +199,9 @@ as it can lead to vastly different model behavior.
 Tips for Faster NMODL
 ---------------------
 
+.. Note::
+  If you are looking for help with NMODL in the context of NEURON this guide might not help.
+
 NMODL is a language without formal specification and many unexpected
 characteristics (many of which are not supported in Arbor), which results in
 existing NMODL files being treated as difficult to understand and best left
@@ -214,8 +221,15 @@ compiler like GCC (or nvcc) to produce either a shared object (for external
 catalogues) and code directly linked into Arbor (the built-in catalogues).
 
 Now, we turn to a series of tips we found helpful in producing fast NMODL
-mechanisms. Note that if you are looking for help with NMODL in the context of
-NEURON this guide might not help.
+mechanisms. In terms of performance of variable declaration, the hierarchy is
+from slowest to fastest:
+
+1. ``RANGE ASSIGNED`` -- mutable array
+2. ``RANGE PARAMETER`` -- configurable array
+3. ``ASSIGNED`` -- mutable
+4. ``PARAMETER`` -- configurable
+5. ``CONSTANT`` -- inlined constant
+
 
 ``RANGE``
 ~~~~~~~~~

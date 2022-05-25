@@ -23,17 +23,32 @@ Arbor GUI
 nmlcc
     Arbor has built-in read support for NeuroML morphologies, but not yet for other NeuroML components (mechanisms, networks). `nmlcc` is compiler/translator that aims to generate complete Arbor inputs for any NeuroML file. `Code repository and Readme <https://github.com/thorstenhater/nmlcc/>`_
 
-.. graphviz:: arbor.dot
-   :caption: Arbor tools in relationship to each other and common file formats. Red outlines indicate currently unplanned format format support.
+.. figure:: arbor.png
    :align: center
+
+   Arbor tools in relationship to each other and common file formats. Red outlines indicate currently unplanned format format support (figure generated from ``arbor.dot``).
 
 Wider ecosystem
 ---------------
 
-.. graphviz:: sims.dot
-   :caption: Arbor in the wider computational neuroscience simulator ecosystem. Simulators exist roughly at these four levels: ranging from the lowest level (molecular dynamics) to the highest (whole brain simulation). Needless to say, each level comes with a higher level of abstraction, but attempt to describe larger structures. Co-simulation or Multiscale simulations refers to the attempt to link up the levels and simulators in an attempt to combine the low level of detail (in regions where it is desired) with the effects of the larger structures. The concrete method to interface between levels are typically the submission of spikes, ion (concentrations), field potentials.
-   :align: center
+Simulators
+~~~~~~~~~~
 
-.. graphviz:: frameworks.dot
-   :caption: Certain tools combine various components to create integrated analysis toolchains.
-   :align: center
+Arbor exists in the wider computational neuroscience simulator ecosystem. Simulators exist roughly at these four levels: ranging from the lowest level (molecular dynamics) to the highest (whole brain simulation). Needless to say, each level comes with a higher level of abstraction, but attempt to describe larger structures. Co-simulation or Multiscale simulations refers to the attempt to link up the levels and simulators in an attempt to combine the low level of detail (in regions where it is desired) with the effects of the larger structures. The concrete method to interface between levels are typically the submission of spikes, ion (concentrations), field potentials.
+
+.. raw:: html
+   :file: index-sims.html
+
+Frameworks
+~~~~~~~~~~
+
+Certain tools combine various components to create integrated experimentation toolchains. They do not only include (interfaces for) simulators, but also converters for file formats, miscellaneous data processing (pre or post), plotting, miscellaneous analysis, and more. An incomplete list:
+
+- `NeuroMLlite <https://github.com/NeuroML/NeuroMLlite>`_ (NML)
+- `OpenSourceBrain <https://www.opensourcebrain.org>`_ (NML2)
+- `jNeuroML, pyNeuroML, jLEMS, pyLEMS <https://docs.neuroml.org>`_ (NML2)
+- `BMTK / SONATA <https://alleninstitute.github.io/bmtk>`_
+- `LFPy, LFPyKit <https://lfpykit.readthedocs.io>`_
+- `NetPyne <http://www.netpyne.org>`_
+- `BluePyOpt <https://bluepyopt.readthedocs.io>`_
+- `Brain Scaffold Builder <https://bsb.readthedocs.io>`_
