@@ -497,6 +497,11 @@ void register_cells(pybind11::module& m) {
             return util::pprintf("(threshold_detector {})", d.threshold);});
 
     // arb::cable_cell_global_properties
+    pybind11::class_<arb::cable_cell_ion_data> ion_data(m, "ion_data");
+    ion_data
+        .def_readonly("internal_concentration", &arb::cable_cell_ion_data::init_int_concentration, "Internal concentration.")
+        .def_readonly("external_concentration", &arb::cable_cell_ion_data::init_ext_concentration, "External concentration.")
+        .def_readonly("reversal_concentration", &arb::cable_cell_ion_data::init_reversal_potential, "Reversal potential.");
 
     pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     gprop
@@ -506,6 +511,24 @@ void register_cells(pybind11::module& m) {
                 arb::check_global_properties(props);},
                 "Test whether all default parameters and ion species properties have been set.")
         // set cable properties
+        .def_property("membrane_potential",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.init_membrane_potential; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.init_membrane_potential = u; })
+        .def_property("membrane_capacitance",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.membrane_capacitance; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.membrane_capacitance = u; })
+        .def_property("temperature",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.temperature_K; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.temperature_K = u; })
+        .def_property("axial_resisitivity",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
+        .def_property_readonly("ion_data",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.ion_data; })
+        .def_property_readonly("ion_valence",
+                      [](const arb::cable_cell_global_properties& props) { return props.ion_species; })
+        .def_property_readonly("ion_reversal_potential",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.reversal_potential_method; })
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
