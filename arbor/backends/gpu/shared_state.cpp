@@ -92,7 +92,7 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
+    memory::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
     if (write_Xi_) memory::copy(reset_Xi_, Xi_);
     if (write_Xo_) memory::copy(reset_Xo_, Xo_);
     if (write_eX_) memory::copy(init_eX_, eX_);
