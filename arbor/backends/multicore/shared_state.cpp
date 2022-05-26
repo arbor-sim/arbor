@@ -443,8 +443,7 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
-void shared_state::set_prng_states(mechanism& m, const std::vector<arb_size_type>& values)
-{
+void shared_state::set_prng_states(mechanism& m, const std::vector<arb_size_type>& values) {
     if (!m.ppack_.width) return;
     arb_size_type* data = m.ppack_.prng_states[0];
     auto width_padded = extend_width<arb_size_type>(m, m.ppack_.width);

@@ -84,9 +84,6 @@ std::string LocalVariable::to_string() const {
 
 std::string WhiteNoise::to_string() const {
     std::string s = blue("White Noise") + " " + yellow(name());
-    //if(is_indexed()) {
-    //    s += " -> " + yellow(external_->name());
-    //}
     return s;
 }
 

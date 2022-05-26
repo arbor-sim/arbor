@@ -104,7 +104,7 @@ std::string to_string(symbolKind k);
 enum class solverMethod {
     cnexp, // for diagonal linear ODE systems.
     sparse, // for non-diagonal linear ODE systems.
-    stochastic,
+    stochastic, // for systems of SDEs
     none
 };
 

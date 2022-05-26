@@ -119,7 +119,7 @@ struct ARB_ARBOR_API shared_state {
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
-        std::vector<arb_size_type*>   prng_states_;
+        std::vector<arb_size_type*>  prng_states_;
     };
 
     unsigned alignment = 1;   // Alignment and padding multiple.
