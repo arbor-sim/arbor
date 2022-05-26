@@ -1,5 +1,5 @@
 #include <cstring>
-#include <iostream>
+//#include <iostream>
 
 #include <Random123/boxmuller.hpp>
 #include <Random123/threefry.h>
@@ -32,15 +32,15 @@ double normal_rand(
     const auto r = rng{}(c, k);
     const auto [a, b] = r123::boxmuller(r[0], r[1]);
 
-    std::cout << "generating random number: "
-              << "\n  seed      = " << seed
-              << "\n  gid       = " << gid
-              << "\n  time      = " << time
-              << "\n  mech_id   = " << mech_id
-              << "\n  mech_inst = " << mech_inst
-              << "\n  var_id    = " << var_id
-              << "\n  r         = " << a
-              << std::endl;
+    //std::cout << "generating random number: "
+    //          << "\n  seed      = " << seed
+    //          << "\n  gid       = " << gid
+    //          << "\n  time      = " << time
+    //          << "\n  mech_id   = " << mech_id
+    //          << "\n  mech_inst = " << mech_inst
+    //          << "\n  var_id    = " << var_id
+    //          << "\n  r         = " << a
+    //          << std::endl;
     return a;
 }
 
