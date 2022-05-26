@@ -497,6 +497,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.vec_t            = nullptr;
 
     // generate random seed if not provided
+    if (overrides.user_seed >= 0) m.mech_.user_seed = overrides.user_seed;
     if (m.mech_.user_seed >= 0) {
         m.ppack_.prng_seed = m.mech_.user_seed;
     }
