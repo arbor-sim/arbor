@@ -455,7 +455,6 @@ void CPrinter::visit(WhiteNoise* sym) {
 
 void CPrinter::visit(APIFunctionCallExpression* e) {
     out_ << e->name() << "( ";
-    if (e->pass_index()) out_ << "i_, ";
     auto& args = e->is_api_function_call()->arguments();
     for (unsigned i = 0; i < args.size(); ++i) {
         auto& expr = args[i];
@@ -542,24 +541,48 @@ namespace {
     };
 }
 
+// Return the indices that need to be read at the beginning
+// of an APIMethod in the order that they should be read
+// eg:
+//   node_index_ = node_index[i];
+//   domain_index_ = vec_di[node_index_];
 std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& indexed_vars, const std::string& index) {
     std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
             auto nested = !d.inner_index_var().empty();
-            auto outer_index_var = d.outer_index_var();
-            auto inner_index_var = nested? d.inner_index_var()+"i_": index;
-            index_prop index_var = {outer_index_var, inner_index_var, d.index_var_kind};
-            auto it = std::find(indices.begin(), indices.end(), index_var);
-            if (it == indices.end()) {
-                // If an inner index is required, push the outer index_var to the end of the list
-                if (nested) {
-                    indices.push_back(index_var);
+            if (nested) {
+                // Need to read 2 indices: outer[inner[index]]
+                index_prop inner_index_prop = {d.inner_index_var(), index, d.index_var_kind};
+                index_prop outer_index_prop = {d.outer_index_var(), d.inner_index_var()+"i_", d.index_var_kind};
+
+                // Check that the outer and inner indices haven't already been added to the list
+                auto inner_it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                auto outer_it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // The inner index needs to be read before the outer index
+                if (inner_it == indices.end()) {
+                    indices.push_front(inner_index_prop);
                 }
-                else {
-                    if (source_index_i_name(index_var) != "i_")
-                    indices.push_front(index_var);
+//<<<<<<< HEAD
+//                else {
+//                    if (source_index_i_name(index_var) != "i_")
+//                    indices.push_front(index_var);
+//=======
+                if (outer_it == indices.end()) {
+                    indices.push_back(outer_index_prop);
+                }
+            }
+            else {
+                // Need to read 1 index: outer[index]
+                index_prop outer_index_prop = {d.outer_index_var(), index, d.index_var_kind};
+                auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // Check that the index hasn't already been added to the list
+                if (it == indices.end()) {
+                    indices.push_front(outer_index_prop);
+//>>>>>>> upstream/master
                 }
             }
         }

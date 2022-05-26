@@ -227,6 +227,11 @@ struct fvm_ion_config {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
 
+    // Keep track whether eX, Xi, Xo are actually to be reset.
+    bool revpot_written = false;
+    bool iconc_written = false;
+    bool econc_written = false;
+
     // Ordered CV indices where ion must be present.
     std::vector<index_type> cv;
 

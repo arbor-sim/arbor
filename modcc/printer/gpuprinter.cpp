@@ -369,22 +369,41 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
         }
     };
 
+    // Gather the indices that need to be read at the beginning
+    // of an APIMethod in the order that they should be read
+    // eg:
+    //   node_index_ = node_index[tid];
+    //   domain_index_ = vec_di[node_index_];
     std::list<index_prop> indices;
     for (auto& sym: indexed_vars) {
         auto d = decode_indexed_variable(sym->external_variable());
         if (!d.scalar()) {
             auto nested = !d.inner_index_var().empty();
-            auto outer_index_var = d.outer_index_var();
-            auto inner_index_var = nested? index_i_name(d.inner_index_var()): "tid_";
-            index_prop index_var = {outer_index_var, inner_index_var};
-            auto it = std::find(indices.begin(), indices.end(), index_var);
-            if (it == indices.end()) {
-                // If an inner index is required, push the outer index_var to the end of the list
-                if (nested) {
-                    indices.push_back(index_var);
+            if (nested) {
+                // Need to read 2 indices: outer[inner[tid]]
+                index_prop inner_index_prop = {d.inner_index_var(), "tid_"};
+                index_prop outer_index_prop = {d.outer_index_var(), index_i_name(d.inner_index_var())};
+
+                // Check that the outer and inner indices haven't already been added to the list
+                auto inner_it = std::find(indices.begin(), indices.end(), inner_index_prop);
+                auto outer_it = std::find(indices.begin(), indices.end(), outer_index_prop);
+
+                // The inner index needs to be read before the outer index
+                if (inner_it == indices.end()) {
+                    indices.push_front(inner_index_prop);
                 }
-                else {
-                    indices.push_front(index_var);
+                if (outer_it == indices.end()) {
+                    indices.push_back(outer_index_prop);
+                }
+            }
+            else {
+                // Need to read 1 index: outer[index]
+                index_prop outer_index_prop = {d.outer_index_var(), "tid_"};
+
+                // Check that the index hasn't already been added to the list
+                auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
+                if (it == indices.end()) {
+                    indices.push_front(outer_index_prop);
                 }
             }
         }

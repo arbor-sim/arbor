@@ -120,6 +120,7 @@ sim.record(arbor.spike_recording.all)
 handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 # (15) Run simulation for 100 ms
+sim.progress_banner()
 sim.run(100)
 print('Simulation finished')
 

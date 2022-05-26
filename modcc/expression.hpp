@@ -1238,14 +1238,12 @@ class ARB_LIBMODCC_API APIFunctionCallExpression: public Expression {
 protected:
     std::string name_;
     std::vector<expression_ptr> args_;
-    bool pass_index_ = false;
 
 public:
-    APIFunctionCallExpression(std::string const& name, std::vector<expression_ptr>&& args, bool pass_index = false):
+    APIFunctionCallExpression(std::string const& name, std::vector<expression_ptr>&& args):
         Expression(Location{}),
         name_{name},
-        args_{std::move(args)},
-        pass_index_{pass_index} {
+        args_{std::move(args)} {
     }
 
     std::string const& name() const {
@@ -1253,7 +1251,6 @@ public:
     }
     std::vector<expression_ptr>& arguments() { return args_; }
     std::vector<expression_ptr> const& arguments() const { return args_; }
-    bool pass_index() const { return pass_index_; }
 
     APIFunctionCallExpression* is_api_function_call() override { return this; }
     std::string to_string() const override;

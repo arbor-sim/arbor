@@ -497,6 +497,11 @@ void register_cells(pybind11::module& m) {
             return util::pprintf("(threshold_detector {})", d.threshold);});
 
     // arb::cable_cell_global_properties
+    pybind11::class_<arb::cable_cell_ion_data> ion_data(m, "ion_data");
+    ion_data
+        .def_readonly("internal_concentration", &arb::cable_cell_ion_data::init_int_concentration, "Internal concentration.")
+        .def_readonly("external_concentration", &arb::cable_cell_ion_data::init_ext_concentration, "External concentration.")
+        .def_readonly("reversal_concentration", &arb::cable_cell_ion_data::init_reversal_potential, "Reversal potential.");
 
     pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     gprop
@@ -508,6 +513,24 @@ void register_cells(pybind11::module& m) {
         .def_readwrite("coalesce_synapses",  &arb::cable_cell_global_properties::coalesce_synapses,
                 "Flag for enabling/disabling linear syanpse coalescing.")
         // set cable properties
+        .def_property("membrane_potential",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.init_membrane_potential; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.init_membrane_potential = u; })
+        .def_property("membrane_capacitance",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.membrane_capacitance; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.membrane_capacitance = u; })
+        .def_property("temperature",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.temperature_K; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.temperature_K = u; })
+        .def_property("axial_resisitivity",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; },
+                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
+        .def_property_readonly("ion_data",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.ion_data; })
+        .def_property_readonly("ion_valence",
+                      [](const arb::cable_cell_global_properties& props) { return props.ion_species; })
+        .def_property_readonly("ion_reversal_potential",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.reversal_potential_method; })
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
@@ -536,8 +559,8 @@ void register_cells(pybind11::module& m) {
                 if (valence) props.ion_species[ion] = *valence;
 
                 auto& data = props.default_parameters.ion_data[ion];
-                if (int_con) data.init_int_concentration = *int_con;
-                if (ext_con) data.init_ext_concentration = *ext_con;
+                if (int_con) data.init_int_concentration  = *int_con;
+                if (ext_con) data.init_ext_concentration  = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
 
                 if (auto m = maybe_method(method)) {

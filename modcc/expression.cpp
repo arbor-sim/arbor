@@ -807,7 +807,7 @@ expression_ptr APIFunctionCallExpression::clone() const {
     new_args.reserve(args_.size());
     for (auto& arg : args_)
         new_args.push_back(arg->clone());
-    return make_expression<APIFunctionCallExpression>(name(), std::move(new_args), pass_index_);
+    return make_expression<APIFunctionCallExpression>(name(), std::move(new_args));
 }
 
 /*******************************************************************************

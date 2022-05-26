@@ -10,3 +10,7 @@
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt.git
 	branch = master
+[submodule "ext/json"]
+	path = ext/json
+	url = https://github.com/nlohmann/json.git
+	branch = master
