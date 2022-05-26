@@ -74,7 +74,6 @@ static Keyword keywords[] = {
     {"cos",         tok::cos},
     {"log",         tok::log},
     {"fabs",        tok::abs},
-    {"fabs",        tok::abs},
     {"exprelr",     tok::exprelr},
     {"safeinv",     tok::safeinv},
     {"CONDUCTANCE", tok::conductance},

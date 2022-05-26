@@ -81,6 +81,8 @@ struct ARB_ARBOR_API mechanism_info {
     bool linear = false;
 
     bool post_events = false;
+
+    bool stochastic = false;
 };
 
 } // namespace arb

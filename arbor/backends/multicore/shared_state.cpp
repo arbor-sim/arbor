@@ -544,7 +544,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
-        
+
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
         for (auto idx: make_span(m.mech_.n_globals)) {

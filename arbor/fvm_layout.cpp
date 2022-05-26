@@ -1003,7 +1003,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             return a.target_index<b.target_index;
         });
 
-        bool coalesce = catalogue[name].linear && gprop.coalesce_synapses;
+        bool coalesce = !catalogue[name].stochastic && catalogue[name].linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
         config.kind = arb_mechanism_kind_point;

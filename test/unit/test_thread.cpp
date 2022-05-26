@@ -67,7 +67,6 @@ struct ftor_parallel_wait {
 TEST(task_system, test_copy) {
     for (int nthreads = 1; nthreads < 20; nthreads*=2) {
         task_system ts(nthreads);
-        std::cout << nthreads << std::endl;
 
         ftor f;
         ts.async(f, 0);

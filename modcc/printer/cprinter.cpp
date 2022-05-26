@@ -448,7 +448,7 @@ void CPrinter::visit(IdentifierExpression *e) {
 void CPrinter::visit(LocalVariable* sym) {
     out_ << sym->name();
 }
-    
+
 void CPrinter::visit(WhiteNoise* sym) {
     out_ << sym->name();
 }
@@ -569,8 +569,13 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
-    //out << "arb_value_type " << cprint(local) << " = ";
-    out << "auto " << cprint(local) << " = ";
+    switch(local->type()){
+        case variableType::size:
+            out << "arb_size_type " << cprint(local) << " = ";
+            break;
+        default:
+            out << "arb_value_type " << cprint(local) << " = ";
+    }
 
     if (local->is_read()) {
         auto d = decode_indexed_variable(local->external_variable());

@@ -114,11 +114,11 @@ enum class solverVariant {
 };
 
 static std::string to_string(solverMethod m) {
-    switch(m) {
-        case solverMethod::cnexp:  return std::string("cnexp");
-        case solverMethod::sparse: return std::string("sparse");
+    switch (m) {
+        case solverMethod::cnexp:      return std::string("cnexp");
+        case solverMethod::sparse:     return std::string("sparse");
         case solverMethod::stochastic: return std::string("stochastic");
-        case solverMethod::none:   return std::string("none");
+        case solverMethod::none:       return std::string("none");
     }
     return std::string("<error : undefined solverMethod>");
 }
@@ -253,12 +253,12 @@ private :
     symbolKind kind_;
 };
 
-enum class localVariableKind {
-    local, argument
+enum class variableType {
+    value, size
 };
 
-enum class localVariableType {
-    value, size
+enum class localVariableKind {
+    local, argument
 };
 
 // an identifier
@@ -545,11 +545,13 @@ public:
                     std::string lookup_name,
                     sourceKind data_source,
                     accessKind acc,
-                    std::string channel="")
+                    std::string channel="",
+                    variableType type=variableType::value)
     :   Symbol(std::move(loc), std::move(lookup_name), symbolKind::indexed_variable),
         access_(acc),
         ion_channel_(std::move(channel)),
-        data_source_(data_source)
+        data_source_(data_source),
+        type_(type)
     {
         // external symbols are either read or write only
         if(access()==accessKind::readwrite) {
@@ -565,6 +567,8 @@ public:
     std::string ion_channel() const { return ion_channel_; }
     sourceKind data_source() const { return data_source_; }
     void data_source(sourceKind k) { data_source_ = k; }
+    variableType type() const { return type_; }
+    void type(variableType t) { type_ = t; }
 
     bool is_ion()   const { return !ion_channel_.empty(); }
     bool is_read()  const { return access_ == accessKind::read;   }
@@ -578,6 +582,7 @@ protected:
     accessKind  access_;
     std::string ion_channel_;
     sourceKind  data_source_;
+    variableType type_;
 };
 
 class ARB_LIBMODCC_API LocalVariable : public Symbol {
@@ -585,7 +590,7 @@ public :
     LocalVariable(Location loc,
                   std::string name,
                   localVariableKind kind=localVariableKind::local,
-                  localVariableType type=localVariableType::value)
+                  variableType type=variableType::value)
     :   Symbol(std::move(loc), std::move(name), symbolKind::local_variable),
         kind_(kind),
         type_(type)
@@ -599,9 +604,8 @@ public :
         return kind_;
     }
 
-    localVariableType type() const {
-        return type_;
-    }
+    variableType type() const { return type_; }
+    void type(variableType t) { type_ = t; }
 
     bool is_indexed() const {
         return external_!=nullptr && external_->data_source()!=sourceKind::no_source;
@@ -635,6 +639,7 @@ public :
 
     void external_variable(IndexedVariable *i) {
         external_ = i;
+        type_ = i->type();
     }
 
     std::string to_string() const override;
@@ -643,7 +648,7 @@ public :
 private :
     IndexedVariable *external_=nullptr;
     localVariableKind kind_;
-    localVariableType type_;
+    variableType type_;
 };
 
 class ARB_LIBMODCC_API WhiteNoise : public Symbol {

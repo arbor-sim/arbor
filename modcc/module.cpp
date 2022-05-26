@@ -18,8 +18,6 @@
 #include "symdiff.hpp"
 #include "visitor.hpp"
 
-//#define LOGGING
-
 class NrnCurrentRewriter: public BlockRewriterBase {
     expression_ptr id(const std::string& name, Location loc) {
         return make_expression<IdentifierExpression>(loc, name);
@@ -469,7 +467,6 @@ bool Module::semantic() {
         }
         // Perform semantic analysis on the solve block statements and solve them.
         solve_body->semantic(advance_state_scope);
-
         solve_body->accept(solver.get());
 
         if (auto solve_block = solver->as_block(false)) {
@@ -590,8 +587,7 @@ void Module::add_variables_to_symbols() {
     // built in variables for which we don't have a token
     auto create_built_in_variable =
         [this](const std::string& name, accessKind a, visibilityKind v, linkageKind l,
-               rangeKind r, bool is_state = false) -> symbol_ptr&
-        {
+               rangeKind r, bool is_state = false) -> symbol_ptr& {
             auto var = new VariableExpression(Location{}, name);
             var->access(a);
             var->visibility(v);
@@ -603,8 +599,7 @@ void Module::add_variables_to_symbols() {
 
     auto create_variable =
         [this](const Token& token, accessKind a, visibilityKind v, linkageKind l,
-               rangeKind r, bool is_state = false) -> symbol_ptr&
-        {
+               rangeKind r, bool is_state = false) -> symbol_ptr& {
             auto var = new VariableExpression(token.location, token.spelling);
             var->access(a);
             var->visibility(v);
@@ -615,20 +610,19 @@ void Module::add_variables_to_symbols() {
         };
 
     // add indexed variables to the table
-    auto create_indexed_variable = [this]
-        (std::string const& name, sourceKind data_source,
-         accessKind acc, std::string ch, Location loc) -> symbol_ptr&
-    {
-        if(symbols_.count(name)) {
+    auto create_indexed_variable =
+        [this](std::string const& name, sourceKind data_source,
+               accessKind acc, std::string ch, Location loc,
+               variableType type = variableType::value) -> symbol_ptr& {
+        if (symbols_.count(name)) {
             throw compiler_exception(
                 pprintf("the symbol % already exists", yellow(name)), loc);
         }
         return symbols_[name] =
-            make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
+            make_symbol<IndexedVariable>(loc, name, data_source, acc, ch, type);
     };
 
-    auto create_white_noise = [this](Token const & token) -> symbol_ptr&
-    {
+    auto create_white_noise = [this](Token const & token) -> symbol_ptr& {
         if (symbols_.count(token.spelling)) {
             throw compiler_exception(
                 pprintf("the symbol % already exists", yellow(token.spelling)), token.location);
@@ -651,8 +645,8 @@ void Module::add_variables_to_symbols() {
 
     // add symbols for random number generator
     create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
-    create_indexed_variable("gid", sourceKind::gid, accessKind::read, "", Location());
-    create_indexed_variable("mech_inst", sourceKind::mech_inst, accessKind::read, "", Location());
+    create_indexed_variable("gid", sourceKind::gid, accessKind::read, "", Location(), variableType::size);
+    create_indexed_variable("mech_inst", sourceKind::mech_inst, accessKind::read, "", Location(), variableType::size);
     create_built_in_variable("prng_seed", accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
     create_built_in_variable("mechanism_id", accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
 
@@ -691,21 +685,6 @@ void Module::add_variables_to_symbols() {
             }
         }
     }
-
-    //// add symbols for random number generator
-    //{
-    //    auto var = new VariableExpression(Location{}, "prng_seed");
-    //    var->access(accessKind::read);
-    //    var->visibility(visibilityKind::global);
-    //    var->linkage(linkageKind::local);
-    //    var->range(rangeKind::scalar);
-    //    var->state(false);
-    //    if (symbols_.count(var->name())) {
-    //        throw compiler_exception(
-    //            pprintf("the symbol % uses reserved name", yellow(var->name())), Location{});
-    //    }
-    //    symbols_[var->name()] = symbol_ptr{var};
-    //}
 
     // Remove `celsius`, `diam` and `t` from the parameter block, as they are not true parameters anymore.
     parameter_block_.parameters.erase(

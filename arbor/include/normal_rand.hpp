@@ -6,6 +6,7 @@ namespace arb {
 namespace math {
 
 double normal_rand(
+    std::uint64_t i_,
     std::uint64_t seed,
     std::uint64_t gid,
     double time,

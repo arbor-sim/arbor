@@ -19,7 +19,7 @@ TEST(Module, open) {
 
 TEST(Module, ion_deps) {
     Module m(io::read_all(DATADIR "/mod_files/test0.mod"), "test0.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
@@ -55,7 +55,7 @@ TEST(Module, ion_deps) {
 
 TEST(Module, identifiers) {
     Module m(io::read_all(DATADIR "/mod_files/test0.mod"), "test0.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
@@ -106,7 +106,7 @@ TEST(Module, linear_mechanisms) {
 TEST(Module, breakpoint) {
     // Test function call in BREAKPOINT block
     Module m(io::read_all(DATADIR "/mod_files/test8.mod"), "test8.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());

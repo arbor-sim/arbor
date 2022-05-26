@@ -29,7 +29,6 @@ public:
     void visit(LocalVariable*) override;
     void visit(WhiteNoise*) override;
     void visit(APIFunctionCallExpression*) override;
-    //void visit(AssignmentExpression* e) override;
 
     // Delegate low-level emits to cexpr_emit:
     void visit(NumberExpression* e) override { cexpr_emit(e, out_, this); }
