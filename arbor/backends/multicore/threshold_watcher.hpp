@@ -111,9 +111,7 @@ public:
     }
 
 private:
-    /// Non-owning pointers to cv-to-intdom map,
-    /// the values for to test against thresholds,
-    /// and pointers to the time arrays
+    // Non-owning pointers
     const fvm_value_type* values_ = nullptr;
     const fvm_index_type* src_to_spike_ = nullptr;
 

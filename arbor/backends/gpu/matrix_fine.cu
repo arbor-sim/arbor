@@ -59,8 +59,7 @@ void assemble_matrix_fine(
         const T* __restrict__ const conductivity,
         const T* __restrict__ const cv_capacitance,
         const T* __restrict__ const area,
-        const I* __restrict__ const cv_to_intdom,
-        const T* __restrict__ const dt_intdom,
+        const T dt,
         const I* __restrict__ const perm,
         unsigned n)
 {
@@ -69,16 +68,12 @@ void assemble_matrix_fine(
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
         // See the model documentation in docs/model for more information.
-        const auto dt = dt_intdom[cv_to_intdom[tid]];
-        const auto p = dt > 0;
+        //const auto p = dt > 0;
         const auto pid = perm[tid];
         const auto area_factor = T(1e-3)*area[tid];
         const auto gi = T(1e-3)*cv_capacitance[tid]/dt + area_factor*conductivity[tid];
-        const auto r_d = gi + invariant_d[tid];
-        const auto r_rhs = gi*voltage[tid] - area_factor*current[tid];
-
-        d[pid]   = p ? r_d : 0;
-        rhs[pid] = p ? r_rhs : voltage[tid];
+        d[pid] = gi + invariant_d[tid];
+        rhs[pid] = gi*voltage[tid] - area_factor*current[tid];
     }
 }
 
@@ -278,8 +273,7 @@ ARB_ARBOR_API void assemble_matrix_fine(
     const fvm_value_type* conductivity,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
-    const fvm_index_type* cv_to_intdom,
-    const fvm_value_type* dt_intdom,
+    const fvm_value_type  dt,
     const fvm_index_type* perm,
     unsigned n)
 {
@@ -288,7 +282,7 @@ ARB_ARBOR_API void assemble_matrix_fine(
 
     kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
         d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
-        cv_to_intdom, dt_intdom, perm, n);
+        dt, perm, n);
 }
 
 // Example:

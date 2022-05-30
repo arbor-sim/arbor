@@ -277,10 +277,6 @@ void shared_state::add_stimulus_current() {
      stim_data.add_current(time, current_density);
 }
 
-std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
-    return {time, time};
-}
-
 std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
     return util::minmax_value(voltage);
 }
@@ -426,7 +422,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.width            = pos_data.cv.size();
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    //m.ppack_.vec_di           = cv_to_intdom.data();
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
     m.ppack_.vec_g            = conductivity.data();

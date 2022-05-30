@@ -80,7 +80,7 @@ public:
         }
     }
 
-    // Remove marked events from front of each event stream.
+    // Remove marked events from front of the event stream.
     void drop_marked_events() {
         span_begin_ = span_end_;
     }

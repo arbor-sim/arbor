@@ -27,7 +27,7 @@ void istim_add_current_impl(int n, istim_pp pp) {
 
     fvm_index_type ai = pp.accu_index[i];
     fvm_index_type cv = pp.accu_to_cv[ai];
-    double t = pp.time[pp.cv_to_intdom[cv]];
+    double t = pp.time;
 
     if (ei_left==ei_right || t<pp.envl_times[ei_left]) return;
 

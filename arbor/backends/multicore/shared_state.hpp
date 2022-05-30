@@ -185,9 +185,6 @@ struct ARB_ARBOR_API shared_state {
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
 
-    // Return minimum and maximum time value [ms] across cells.
-    std::pair<fvm_value_type, fvm_value_type> time_bounds() const;
-
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)
     std::pair<fvm_value_type, fvm_value_type> voltage_bounds() const;

@@ -61,7 +61,7 @@ public:
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) override;
 
-    value_type time() const override { return tmin_; }
+    value_type time() const override { return state_->time; }
 
     // Generates intdom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
     // Fills cell_to_intdom map; returns number of intdoms
@@ -93,7 +93,6 @@ private:
     matrix<backend> matrix_;
     threshold_watcher threshold_watcher_;
 
-    value_type tmin_ = 0;
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
 
@@ -111,15 +110,6 @@ private:
 
     // Throw if absolute value of membrane voltage exceeds bounds.
     void assert_voltage_bounded(fvm_value_type bound);
-
-    // Throw if any cell time not equal to tmin_
-    void assert_tmin();
-
-    // Assign tmin_ and call assert_tmin() if assertions on.
-    void set_tmin(value_type t) {
-        tmin_ = t;
-        arb_assert((assert_tmin(), true));
-    }
 
     static unsigned dt_steps(value_type t0, value_type t1, value_type dt) {
         return t0>=t1? 0: 1+(unsigned)((t1-t0)/dt);
@@ -146,20 +136,8 @@ private:
 };
 
 template <typename Backend>
-void fvm_lowered_cell_impl<Backend>::assert_tmin() {
-    auto time_minmax = state_->time_bounds();
-    if (time_minmax.first != time_minmax.second) {
-        throw arbor_internal_error("fvm_lowered_cell: inconsistent times across cells");
-    }
-    if (time_minmax.first != tmin_) {
-        throw arbor_internal_error("fvm_lowered_cell: out of synchronziation with cell state time");
-    }
-}
-
-template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
-    set_tmin(0);
 
     for (auto& m: revpot_mechanisms_) {
         m->set_time(state_->time, state_->dt);
@@ -212,7 +190,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     state_->deliverable_events.init(std::move(staged_events));
     sample_events_.init(std::move(staged_samples));
 
-    arb_assert((assert_tmin(), true));
     PL();
 
     while (state_->time<tfinal) {
@@ -321,8 +298,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
     }
 
-    set_tmin(tfinal);
-
     const auto& crossings = threshold_watcher_.crossings();
     sample_time_host_ = backend::host_view(sample_time_);
     sample_value_host_ = backend::host_view(sample_value_);
@@ -349,9 +324,8 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(fvm_value_type bound
         return;
     }
 
-    auto t_minmax = state_->time_bounds();
     throw range_check_failure(
-        util::pprintf("voltage solution out of bounds for t in [{}, {}]", t_minmax.first, t_minmax.second),
+        util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
         v_minmax.first<-bound? v_minmax.first: v_minmax.second);
 }
 

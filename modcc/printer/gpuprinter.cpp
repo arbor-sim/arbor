@@ -127,8 +127,8 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                    "auto  {0}n_detectors       __attribute__((unused)) = params_.n_detectors;\\\n"
                                    "auto* {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
                                    "auto* {0}vec_di            __attribute__((unused)) = params_.vec_di;\\\n"
-                                   "auto* {0}vec_t             __attribute__((unused)) = params_.vec_t;\\\n"
-                                   "auto* {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
+                                   "auto  {0}t                 __attribute__((unused)) = params_.t;\\\n"
+                                   "auto  {0}dt                __attribute__((unused)) = params_.dt;\\\n"
                                    "auto* {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
                                    "auto* {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"
                                    "auto* {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
@@ -138,11 +138,11 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                    "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
                                    "auto* {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
                                    "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
-                                   "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
                                    "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"
                                    "auto& {0}events            __attribute__((unused)) = params_.events;\\\n"
                                    "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"
-                                   "auto& {0}index_constraints __attribute__((unused)) = params_.index_constraints;\\\n"),
+                                   "auto& {0}index_constraints __attribute__((unused)) = params_.index_constraints;\\\n"
+                                   "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"),
                        pp_var_pfx);
 
     const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);

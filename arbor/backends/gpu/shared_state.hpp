@@ -91,7 +91,7 @@ struct ARB_ARBOR_API istim_state {
     void reset();
 
     // Contribute to current density:
-    void add_current(const array& time, const iarray& cv_to_intdom, array& current_density);
+    void add_current(const fvm_value_type& time, array& current_density);
 
     // Number of stimuli:
     std::size_t size() const;
@@ -121,12 +121,10 @@ struct ARB_ARBOR_API shared_state {
     fvm_size_type n_detector = 0; // Max number of detectors on all cells.
     fvm_size_type n_cv = 0;       // Total number of CVs.
 
-    iarray cv_to_intdom;     // Maps CV index to intdom index.
     iarray cv_to_cell;       // Maps CV index to cell index.
-    array time;              // Maps intdom index to integration start time [ms].
-    array time_to;           // Maps intdom index to integration stop time [ms].
-    array dt_intdom;         // Maps intdom index to (stop time) - (start time) [ms].
-    array dt_cv;             // Maps CV index to dt [ms].
+    fvm_value_type time;     // integration start time [ms].
+    fvm_value_type time_to;  // integration end time [ms]
+    fvm_value_type dt;       // dt [ms].
     array voltage;           // Maps CV index to membrane voltage [mV].
     array current_density;   // Maps CV index to current density [A/m²].
     array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
@@ -138,8 +136,6 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
-    arb_value_type* time_ptr;
-
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
@@ -148,10 +144,9 @@ struct ARB_ARBOR_API shared_state {
     shared_state() = default;
 
     shared_state(
-        fvm_size_type n_intdom,
+        fvm_size_type n_cv,
         fvm_size_type n_cell,
         fvm_size_type n_detector,
-        const std::vector<fvm_index_type>& cv_to_intdom_vec,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,
         const std::vector<fvm_value_type>& temperature_K,
@@ -179,17 +174,11 @@ struct ARB_ARBOR_API shared_state {
 
     void ions_init_concentration();
 
-    // Set time_to to earliest of time+dt_step and tmax.
+    // Set time_to to earliest of time+dt_step and tmax and set dt
     void update_time_to(fvm_value_type dt_step, fvm_value_type tmax);
-
-    // Set the per-intdom and per-compartment dt from time_to - time.
-    void set_dt();
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
-
-    // Return minimum and maximum time value [ms] across cells.
-    std::pair<fvm_value_type, fvm_value_type> time_bounds() const;
 
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)

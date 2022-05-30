@@ -21,8 +21,7 @@ struct istim_pp {
     fvm_index_type* envl_index;
 
     // Pointers to shared state data:
-    const fvm_value_type* time;
-    const fvm_index_type* cv_to_intdom;
+    fvm_value_type time;
     fvm_value_type* current_density;
 };
 

@@ -58,11 +58,8 @@ struct backend {
         const execution_context& context)
     {
         return threshold_watcher(
-            state.cv_to_intdom.data(),
-            state.src_to_spike.data(),
-            &state.time,
-            &state.time_to,
             state.voltage.size(),
+            state.src_to_spike.data(),
             detector_cv,
             thresholds,
             context);
