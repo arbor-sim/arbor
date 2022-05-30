@@ -27,6 +27,9 @@ using namespace arborio::literals;
 
 using namespace arb;
 
+constexpr double epsilon  = 1e-6;
+constexpr int    with_gpu = -1;
+
 struct linear: public recipe {
     linear(double x, double d, double c): extent{x}, diameter{d}, cv_length{c} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
@@ -76,7 +79,22 @@ struct linear: public recipe {
 
 using result_t = std::vector<std::tuple<double, double, double>>;
 
-result_t run(const linear& rec, int with_gpu=-1) {
+testing::AssertionResult all_near(const result_t& a, const result_t& b, double eps) {
+    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length";
+    std::stringstream res;
+    for (int ix = 0; ix < a.size(); ++ix) {
+        const auto&[ax, ay, az] = a[ix];
+        const auto&[bx, by, bz] = b[ix];
+        if (fabs(ax - bx) > eps) res << " X elements " << ax << " and " << bx << " differ at index " << ix << ".";
+        if (fabs(ay - by) > eps) res << " Y elements " << ay << " and " << by << " differ at index " << ix << ".";
+        if (fabs(az - bz) > eps) res << " Z elements " << az << " and " << bz << " differ at index " << ix << ".";
+    }
+    std::string str = res.str();
+    if (str.empty()) return testing::AssertionSuccess();
+    else             return testing::AssertionFailure() << str;
+}
+
+testing::AssertionResult run(const linear& rec, const result_t exp) {
     result_t sample_values;
     auto sampler = [&sample_values](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
         sample_values.clear();
@@ -95,40 +113,30 @@ result_t run(const linear& rec, int with_gpu=-1) {
     auto sim = simulation{rec, partition_load_balance(rec, ctx), ctx};
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), sampler);
     sim.run(0.11, 0.01);
-    return sample_values;
+    return all_near(sample_values, exp, epsilon);
 }
 
 TEST(diffusion, errors) {
+    auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_decay();
-        ASSERT_THROW(run(rec), illegal_diffusive_mechanism);
+        ASSERT_THROW(simulation(rec, partition_load_balance(rec, ctx), ctx), illegal_diffusive_mechanism);
     }
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_inject();
-        ASSERT_THROW(run(rec), illegal_diffusive_mechanism);
+        ASSERT_THROW(simulation(rec, partition_load_balance(rec, ctx), ctx), illegal_diffusive_mechanism);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0, "(all)"_reg);
-        // ASSERT_THROW(run(rec), cable_cell_error);
+        ASSERT_THROW(simulation(rec, partition_load_balance(rec, ctx), ctx), cable_cell_error);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0);
-        // ASSERT_THROW(run(rec), cable_cell_error);
-    }
-}
-
-void all_near(const result_t& a, const result_t& b, double eps) {
-    EXPECT_EQ(a.size(), b.size());
-    for (int ix = 0; ix < a.size(); ++ix) {
-        const auto&[ax, ay, az] = a[ix];
-        const auto&[bx, by, bz] = b[ix];
-        EXPECT_NEAR(ax, bx, eps);
-        EXPECT_NEAR(ay, by, eps);
-        EXPECT_NEAR(az, bz, eps);
+        ASSERT_THROW(run(rec, {}), cable_cell_error);
     }
 }
 
@@ -137,7 +145,6 @@ TEST(diffusion, by_initial_concentration) {
         .set_diffusivity(0.005)
         .set_concentration(0.0)
         .set_concentration(0.1, "(cable 0 0.5 0.6)"_reg);
-    auto res = run(rec);
     result_t exp = {{0.000000, 0.000000, 0.000000},
                     {0.000000, 0.100000, 0.000000},
                     {0.000000, 0.200000, 0.000000},
@@ -158,7 +165,7 @@ TEST(diffusion, by_initial_concentration) {
                     {0.100000, 0.700000, 0.000023},
                     {0.100000, 0.800000, 0.000000},
                     {0.100000, 0.900000, 0.000000}};
-    all_near(exp, res, 1e-6);
+    EXPECT_TRUE(run(rec, exp));
 }
 
 TEST(diffusion, by_event) {
@@ -167,7 +174,6 @@ TEST(diffusion, by_event) {
         .set_concentration(0.0)
         .add_inject()
         .add_event(0, 0.005);
-    auto res = run(rec);
     result_t exp = {{ 0.000000,  0.000000,  0.000000},
                     { 0.000000,  0.100000,  0.000000},
                     { 0.000000,  0.200000,  0.000000},
@@ -188,7 +194,7 @@ TEST(diffusion, by_event) {
                     { 0.100000,  0.700000,  0.012051},
                     { 0.100000,  0.800000,  0.000100},
                     { 0.100000,  0.900000,  0.000001}};
-    all_near(exp, res, 1e-6);
+    EXPECT_TRUE(run(rec, exp));
 }
 
 TEST(diffusion, decay) {
@@ -196,7 +202,6 @@ TEST(diffusion, decay) {
         .set_diffusivity(1e-300)
         .set_concentration(0.1)
         .add_decay();
-    auto res = run(rec);
     result_t exp = {{ 0.000000,  0.000000,  0.100000},
                     { 0.000000,  0.100000,  0.100000},
                     { 0.000000,  0.200000,  0.100000},
@@ -206,7 +211,7 @@ TEST(diffusion, decay) {
                     { 0.000000,  0.600000,  0.100000},
                     { 0.000000,  0.700000,  0.100000},
                     { 0.000000,  0.800000,  0.100000},
-                    { 0.000000,  0.900000,  0.000000},
+                    { 0.000000,  0.900000,  0.100000},
                     { 0.100000,  0.000000,  0.060647},
                     { 0.100000,  0.100000,  0.060647},
                     { 0.100000,  0.200000,  0.060647},
@@ -216,11 +221,9 @@ TEST(diffusion, decay) {
                     { 0.100000,  0.600000,  0.060647},
                     { 0.100000,  0.700000,  0.060647},
                     { 0.100000,  0.800000,  0.060647},
-                    { 0.100000,  0.900000,  0.000000}};
-    all_near(exp, res, 1e-6);
+                    { 0.100000,  0.900000,  0.060647}};
+    EXPECT_TRUE(run(rec, exp));
 }
-
-
 
 TEST(diffusion, decay_by_initial_concentration) {
     auto rec = linear{30, 3, 6}
@@ -228,7 +231,6 @@ TEST(diffusion, decay_by_initial_concentration) {
         .set_concentration(0.0)
         .set_concentration(0.1, "(cable 0 0.5 0.6)"_reg)
         .add_decay();
-    auto res = run(rec);
     result_t exp = {{ 0.000000,  0.000000,  0.000000},
                     { 0.000000,  0.100000,  0.000000},
                     { 0.000000,  0.200000,  0.000000},
@@ -249,7 +251,7 @@ TEST(diffusion, decay_by_initial_concentration) {
                     { 0.100000,  0.700000,  0.000014},
                     { 0.100000,  0.800000,  0.000000},
                     { 0.100000,  0.900000,  0.000000}};
-    all_near(exp, res, 1e-6);
+    EXPECT_TRUE(run(rec, exp));
 }
 
 TEST(diffusion, decay_by_event) {
@@ -259,7 +261,6 @@ TEST(diffusion, decay_by_event) {
         .add_decay()
         .add_inject()
         .add_event(0, 0.005);
-    auto res = run(rec);
     result_t exp = {{ 0.000000,  0.000000,  0.000000},
                     { 0.000000,  0.100000,  0.000000},
                     { 0.000000,  0.200000,  0.000000},
@@ -280,5 +281,5 @@ TEST(diffusion, decay_by_event) {
                     { 0.100000,  0.700000,  0.007308},
                     { 0.100000,  0.800000,  0.000061},
                     { 0.100000,  0.900000,  0.000000}};
-    all_near(exp, res, 1e-6);
+    EXPECT_TRUE(run(rec, exp));
 }

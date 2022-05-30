@@ -66,7 +66,7 @@ ion_state::ion_state(
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
     Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
-    Xd_(ion_data.cv.size(), NAN, pad(alignment)),
+    Xd_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     gX_(ion_data.cv.size(), NAN, pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),

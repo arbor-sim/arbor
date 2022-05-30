@@ -1,6 +1,6 @@
 NEURON {
     SUFFIX decay
-    USEION x WRITE xd
+    USEION x WRITE xd, ix
 }
 
 INITIAL { F = xd }

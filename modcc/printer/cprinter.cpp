@@ -845,15 +845,12 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
 
     if (d.additive && use_additive) {
         if (d.index_var_kind == index_kind::node) {
-            switch (constraint) {
-                case simd_expr_constraint::contiguous:
+            if (constraint == simd_expr_constraint::contiguous) {
                     out << fmt::format("indirect({} + {}, simd_width_) = S::mul(w_, {});\n",
                                        data, node, scaled);
-                    break;
-                case simd_expr_constraint::constant:
-                    // We need this instead of simple assignment as _constant_ index means we write
-                    // essentially a scalar via a vector, so we work around by using this weird construct
-                    // x += v - x.
+            }
+            else {
+                    // We need this instead of simple assignment!
                     out << fmt::format("{{\n"
                                        "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
                                        "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
@@ -863,10 +860,6 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
                                        name,
                                        name, data, node,
                                        scaled, name,
-                                       data, node, scaled);
-                    break;
-                default:
-                    out << fmt::format("indirect({}, {}, simd_width_, constraint_category_) = S::mul(w_, {});\n",
                                        data, node, scaled);
             }
         }

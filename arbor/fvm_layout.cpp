@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include <sstream>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
@@ -275,19 +276,19 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
 
     // Collect all eglible ions: those where any cable has finite diffusivity
     for (const auto& [ion, data]: global_dflt.ion_data) {
-        if (data.diffusivity.value_or(0.0) > 0.0) {
+        if (data.diffusivity.value_or(0.0) != 0.0) {
             diffusive_ions[ion] = {};
         }
     }
     for (const auto& [ion, data]: dflt.ion_data) {
-        if (data.diffusivity.value_or(0.0) > 0.0) {
+        if (data.diffusivity.value_or(0.0) != 0.0) {
             diffusive_ions[ion] = {};
         }
     }
     for (const auto& [ion, data]: diffusivity_map) {
         auto diffusive = std::any_of(data.begin(),
                                      data.end(),
-                                     [](const auto& kv) { return kv.second.value > 0.0; });
+                                     [](const auto& kv) { return kv.second.value != 0.0; });
         if (diffusive) {
             diffusive_ions[ion] = {};
         }
@@ -299,12 +300,24 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         // Treat specific assignments
         if (auto map = diffusivity_map.find(ion); map != diffusivity_map.end()) {
             for (const auto& [k, v]: map->second) {
+                if (v.value <= 0.0) {
+                    std::stringstream ss;
+                    ss << "Negative diffusivity for " << ion << " in " << k << ".";
+                    throw cable_cell_error{ss.str()};
+                }
+                fprintf(stdout, "%f\n", v.value);
                 id_map.insert(k, 1.0/v.value);
             }
         }
         // Fetch defaults, either global or per cell
         auto gd = *(value_by_key(dflt.ion_data,        ion).value().diffusivity
                   | value_by_key(global_dflt.ion_data, ion).value().diffusivity);
+        if (gd <= 0.0) {
+            std::stringstream ss;
+            ss << "Negative global diffusivity for " << ion << ".";
+            throw cable_cell_error{ss.str()};
+        }
+
         // Write inverse diffusivity / diffuse resistivity map
         auto& id = data.axial_inv_diffusivity;
         id.resize(1);
