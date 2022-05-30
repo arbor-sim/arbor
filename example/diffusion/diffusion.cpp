@@ -38,7 +38,7 @@ struct recipe: public arb::recipe {
         p = tree.append(p, { -30, 0, 0, 3}, {30, 0, 0, 3}, 1);
         arb::morphology morph{tree};
 
-        arb::decor decor;
+         arb::decor decor;
         decor.set_default(arb::init_int_concentration{"na", 0.0});
         decor.set_default(arb::ion_diffusivity{"na", 0.005});
         decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 200.0*l}}), "Zap");
