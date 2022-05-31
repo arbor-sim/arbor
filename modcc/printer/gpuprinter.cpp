@@ -514,22 +514,17 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     else if (is_point_proc && d.accumulate) {
         out << "::arb::gpu::reduce_by_key(";
         if (coeff != 1) out << as_c_double(coeff) << '*';
-
-        out << pp_var_pfx << "weight[tid_]*" << from->name() << ',';
-
-        auto index_var = d.outer_index_var();
-        out << pp_var_pfx << d.data_var << ", " << index_i_name(index_var) << ", lane_mask_);\n";
+        out << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
     }
     else if (d.accumulate) {
-        out << deref(d) << " = fma(";
+        out << var << " = fma(";
         if (coeff != 1) out << as_c_double(coeff) << '*';
-        out << pp_var_pfx << "weight[tid_], " << from->name() << ", " << deref(d) << ");\n";
+        out << weight << ", " << name << ", " << var << ");\n";
     }
     else {
-        out << deref(d) << " = ";
+        out << var << " = ";
         if (coeff != 1) out << as_c_double(coeff) << '*';
-
-        out << from->name() << ";\n";
+        out << name << ";\n";
     }
 }
 
