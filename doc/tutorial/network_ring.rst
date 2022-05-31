@@ -114,7 +114,7 @@ The execution
 
 To create a simulation, we must create an :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
 
-Step **(12)** creates a default execution context, and uses the :func:`arbor.partition_load_balance` to create a
+Step **(12)** creates an execution context that will use all locally available threads, and uses the :func:`arbor.partition_load_balance` to create a
 default domain decomposition. You can print the objects to see what defaults they produce on your system.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
