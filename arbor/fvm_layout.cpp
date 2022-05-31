@@ -5,7 +5,6 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
-#include <sstream>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
@@ -26,6 +25,7 @@
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "util/unique.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 
@@ -301,11 +301,8 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         if (auto map = diffusivity_map.find(ion); map != diffusivity_map.end()) {
             for (const auto& [k, v]: map->second) {
                 if (v.value <= 0.0) {
-                    std::stringstream ss;
-                    ss << "Negative diffusivity for " << ion << " in " << k << ".";
-                    throw cable_cell_error{ss.str()};
+                    throw cable_cell_error{util::pprintf("Illegal diffusivity '{}' for ion '{}' at '{}'.", v.value, ion, k)};
                 }
-                fprintf(stdout, "%f\n", v.value);
                 id_map.insert(k, 1.0/v.value);
             }
         }
@@ -313,9 +310,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         auto gd = *(value_by_key(dflt.ion_data,        ion).value().diffusivity
                   | value_by_key(global_dflt.ion_data, ion).value().diffusivity);
         if (gd <= 0.0) {
-            std::stringstream ss;
-            ss << "Negative global diffusivity for " << ion << ".";
-            throw cable_cell_error{ss.str()};
+            throw cable_cell_error{util::pprintf("Illegal global diffusivity '{}' for ion '{}'.", gd, ion)};
         }
 
         // Write inverse diffusivity / diffuse resistivity map

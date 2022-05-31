@@ -117,21 +117,20 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
 }
 
 TEST(diffusion, errors) {
-    auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_decay();
-        ASSERT_THROW(simulation(rec, partition_load_balance(rec, ctx), ctx), illegal_diffusive_mechanism);
+        ASSERT_THROW(run(rec, {}), illegal_diffusive_mechanism);
     }
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_inject();
-        ASSERT_THROW(simulation(rec, partition_load_balance(rec, ctx), ctx), illegal_diffusive_mechanism);
+        ASSERT_THROW(run(rec, {}), illegal_diffusive_mechanism);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0, "(all)"_reg);
-        ASSERT_THROW(simulation(rec, partition_load_balance(rec, ctx), ctx), cable_cell_error);
+        ASSERT_THROW(run(rec, {}), cable_cell_error);
     }
     {
         // No negative diffusivity
