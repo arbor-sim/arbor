@@ -499,17 +499,12 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto weight = scale + pp_var_pfx + "weight[tid_]";
 
     if (d.additive && use_additive) {
+        out << name << " -= " << var << ";\n";
         if (is_point_proc) {
-            out << fmt::format("{} -= {};\n"
-                               "::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n",
-                               name, var,
-                               weight, name, data, index);
+            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
         }
         else {
-            out << fmt::format("{} -= {};\n"
-                               "{} = fma({}, {}, {});\n",
-                               name, var,
-                               weight, name, var);
+            out << fmt::format("{} = fma({}, {}, {});\n", weight, name, var);
         }
     }
     else if (d.accumulate) {
@@ -521,7 +516,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         }
     }
     else {
-        out << fmt::format("{} = {}{};\n", var, scale, name);
+        out << var << " = " << scale << name << ";\n";
     }
 }
 
