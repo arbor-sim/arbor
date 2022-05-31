@@ -489,9 +489,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
                           IndexedVariable* external, bool is_point_proc, bool use_additive) {
     if (!external->is_write()) return;
     auto d = decode_indexed_variable(external);
-    if (d.readonly) {
-        throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
-    }
+    if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
 
     auto name   = from->name();
     auto scale  = scaled(1.0/d.scale);
@@ -501,24 +499,29 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto weight = scale + pp_var_pfx + "weight[tid_]";
 
     if (d.additive && use_additive) {
-        out << name << " -= " << var << ";\n";
         if (is_point_proc) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+            out << fmt::format("{} -= {};\n"
+                               "::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n",
+                               name, var,
+                               weight, name, data, index);
         }
         else {
-            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
+            out << fmt::format("{} -= {};\n"
+                               "{} = fma({}, {}, {});\n",
+                               name, var,
+                               weight, name, var);
         }
     }
     else if (d.accumulate) {
         if (is_point_proc) {
-            out << "::arb::gpu::reduce_by_key(" << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
+            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
         }
         else {
-            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
+            out << fmt::format("{} = fma({}, {}, {});\n", weight, name, var);
         }
     }
     else {
-        out << var << " = " << scale << name << ";\n";
+        out << fmt::format("{} = {}{};\n", var, scale, name);
     }
 }
 
