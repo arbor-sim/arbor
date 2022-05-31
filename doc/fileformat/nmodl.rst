@@ -133,6 +133,10 @@ Unsupported features
 Arbor-specific features
 -----------------------
 
+* It is required to explicitly pass 'magic' variables like ``v`` into procedures.
+  It makes things more explicit by eliding shared and implicit global state. However, 
+  this is only partially true, as having `PARAMETER v` brings it into scope, *but only* 
+  in `BREAKPOINT`.
 * Arbor's NMODL dialect supports the most widely used features of NEURON. It also
   has some features unavailable in NEURON such as the ``POST_EVENT`` procedure block.
   This procedure has a single argument representing the time since the last spike on
@@ -197,14 +201,17 @@ modifying the reversal potential (for example ``nernst``) can only be applied (f
 at a global level on a given cell. While in Neuron, different mechanisms can be used for
 calculating the reversal potential of an ion on different parts of the morphology.
 This is due to the different methods Arbor and NEURON use for discretising the morphology.
-(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section``can only
+(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section`` can only
 contain full ``segments``).
 
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
 as it can lead to vastly different model behavior.
 
 Tips for Faster NMODL
-======================
+---------------------
+
+.. Note::
+  If you are looking for help with NMODL in the context of NEURON this guide might not help.
 
 NMODL is a language without formal specification and many unexpected
 characteristics (many of which are not supported in Arbor), which results in
@@ -225,11 +232,18 @@ compiler like GCC (or nvcc) to produce either a shared object (for external
 catalogues) and code directly linked into Arbor (the built-in catalogues).
 
 Now, we turn to a series of tips we found helpful in producing fast NMODL
-mechanisms. Note that if you are looking for help with NMODL in the context of
-NEURON this guide might not help.
+mechanisms. In terms of performance of variable declaration, the hierarchy is
+from slowest to fastest:
+
+1. ``RANGE ASSIGNED`` -- mutable array
+2. ``RANGE PARAMETER`` -- configurable array
+3. ``ASSIGNED`` -- mutable
+4. ``PARAMETER`` -- configurable
+5. ``CONSTANT`` -- inlined constant
+
 
 ``RANGE``
----------
+~~~~~~~~~
 
 Parameters and ``ASSIGNED`` variables marked as ``RANGE`` will be stored as an
 array with one entry per CV in Arbor. Reading and writing these incurs a memory
@@ -242,15 +256,15 @@ that in the generated code: a local variable that is likely residing in a
 register and used only as long as needed.
 
 ``PROCEDURE``
--------------
+~~~~~~~~~~~~~
 
 Prefer ``FUNCTION`` over ``PROCEDURE``. The latter *require* ``ASSIGNED RANGE``
 variables to return values and thus stress the memory system, which, as noted
 above, is not most efficient on current hardware. Also, they may not be inlined,
 as opposed to a ``FUNCTION``.
 
-```PARAMETER``
---------------
+``PARAMETER``
+~~~~~~~~~~~~~
 
 ``PARAMETER`` should only be used for values that must be set by the simulator.
 All fixed values should be ``CONSTANT`` instead. These will be inlined by
@@ -258,7 +272,7 @@ All fixed values should be ``CONSTANT`` instead. These will be inlined by
 optimisation potential.
 
 Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
-----------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is often done using a ``PROCEDURE``, which we now know is inefficient. On top,
 this ``PROCEDURE`` will likely compute more outputs than strictly needed to
@@ -297,7 +311,7 @@ see when partially hidden in a ``PROCEDURE``.
        this option when compiling mechanism code.
 
 Complex Expressions in Current Computation
-------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``modcc``, Arbor's NMODL compiler, applies symbolic differentiation to the
 current expression to find the conductance as ``g = d I/d U`` which are then
@@ -323,7 +337,7 @@ higher-order ODEs and thus will treat ``g`` as a constant across
 a single timestep even if ``g`` actually depends on ``v``.
 
 Specialised Functions
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Another common pattern is the use of a guarded exponential of the form
 
@@ -347,7 +361,7 @@ from NEURON often use this or related functions, e.g. ``vtrap(x, y) =
 y*exprelr(x/y)``.
 
 Small Tips and Micro-Optimisations
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Divisions cost a bit more than multiplications and additions.
 - ``m * m`` is more efficient than ``m^2``. This holds for higher powers as well

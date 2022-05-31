@@ -1,7 +1,7 @@
 .. _libref:
 
 Utility wrappers and containers
-##################################
+===============================
 
 .. cpp:namespace:: arb::util
 

@@ -23,7 +23,7 @@ However, we currently do not handle this case in our build scripts as it is not 
 .. Note::
     When linking an application with **static** Arbor libraries the linker may issue warnings (particularly on macos).  Thus, if you encounter problems, try building shared Arbor libraries (cmake option ``-DBUILD_SHARED_LIBS=ON``) instead.
 
-Macro Descripiton
+Macro Description
 -----------------
 
 .. c:macro:: ARB_LIBNAME_API

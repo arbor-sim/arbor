@@ -1,7 +1,7 @@
 .. _cpphardware:
 
-Hardware management
-===================
+Hardware context
+================
 
 Arbor provides two library APIs for working with hardware resources:
 
