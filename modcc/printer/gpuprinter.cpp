@@ -499,6 +499,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto index  = index_i_name(d.outer_index_var());
     auto var    = deref(d);
     auto weight = pp_var_pfx + "weight[tid_]";
+    auto coeff  = 1.0/d.scale;
 
     if (d.additive && use_additive) {
         out << name << " -= " << var << ";\n";
@@ -510,17 +511,25 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
             out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
         }
     }
+    else if (is_point_proc && d.accumulate) {
+        out << "::arb::gpu::reduce_by_key(";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << pp_var_pfx << "weight[tid_]*" << from->name() << ',';
+
+        auto index_var = d.outer_index_var();
+        out << pp_var_pfx << d.data_var << ", " << index_i_name(index_var) << ", lane_mask_);\n";
+    }
     else if (d.accumulate) {
-        if (is_point_proc) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}{}*{}, {}, {}, lane_mask_);\n",
-                               scale, weight, name, data, index);
-        }
-        else {
-            out << var << " = fma(" << scale << weight << ", " << name << ", " << name << ");\n";
-        }
+        out << deref(d) << " = fma(";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+        out << pp_var_pfx << "weight[tid_], " << from->name() << ", " << deref(d) << ");\n";
     }
     else {
-        out << var << " = " << scale << name << ";\n";
+        out << deref(d) << " = ";
+        if (coeff != 1) out << as_c_double(coeff) << '*';
+
+        out << from->name() << ";\n";
     }
 }
 
