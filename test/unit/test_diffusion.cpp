@@ -28,7 +28,11 @@ using namespace arborio::literals;
 using namespace arb;
 
 constexpr double epsilon  = 1e-6;
+#ifdef ARB_GPU_ENABLED
+constexpr int    with_gpu = 0;
+#else
 constexpr int    with_gpu = -1;
+#endif
 
 struct linear: public recipe {
     linear(double x, double d, double c): extent{x}, diameter{d}, cv_length{c} {
