@@ -115,6 +115,7 @@ public:
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
+    epoch_function epoch_callback_;
 
 private:
     // Record last computed epoch (integration interval).
@@ -407,10 +408,13 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     epoch current = next_epoch(prev, t_interval_);
     epoch next = next_epoch(current, t_interval_);
 
+    if (epoch_callback_) epoch_callback_(current.t0, tfinal);
+
     if (next.empty()) {
         enqueue(current);
         update(current);
         exchange(current);
+        if (epoch_callback_) epoch_callback_(current.t1, tfinal);
     }
     else {
         enqueue(current);
@@ -418,6 +422,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         g.run([&]() { enqueue(next); });
         g.run([&]() { update(current); });
         g.wait();
+        if (epoch_callback_) epoch_callback_(current.t1, tfinal);
 
         for (;;) {
             prev = current;
@@ -428,6 +433,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
             g.run([&]() { exchange(prev); enqueue(next); });
             g.run([&]() { update(current); });
             g.wait();
+            if (epoch_callback_) epoch_callback_(current.t1, tfinal);
         }
 
         g.run([&]() { exchange(prev); });
@@ -435,6 +441,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         g.wait();
 
         exchange(current);
+        if (epoch_callback_) epoch_callback_(current.t1, tfinal);
     }
 
     // Record current epoch for next run() invocation.
@@ -558,10 +565,47 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
     impl_->local_export_callback_ = std::move(export_callback);
 }
 
+void simulation::set_epoch_callback(epoch_function epoch_callback) {
+    impl_->epoch_callback_ = std::move(epoch_callback);
+}
+
 void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
 
 simulation::~simulation() = default;
+
+ARB_ARBOR_API epoch_function epoch_progress_bar() {
+    struct impl {
+        double t0 = 0;
+        bool first = true;
+
+        void operator() (double t, double tfinal) {
+            constexpr unsigned bar_width = 50;
+            static const std::string bar_buffer(bar_width+1, '-');
+
+            if (first) {
+                first = false;
+                t0 = t;
+            }
+
+            double percentage = (tfinal==t0)? 1: (t-t0)/(tfinal-t0);
+            int val = percentage * 100;
+            int lpad = percentage * bar_width;
+            int rpad = bar_width - lpad;
+            printf("\r%3d%% |%.*s%*s|  %12ums", val, lpad, bar_buffer.c_str(), rpad, "", (unsigned)t);
+
+            if (t==tfinal) {
+                // Print new line and reset counters on the last step.
+                printf("\n");
+                t0 = tfinal;
+                first = true;
+            }
+            fflush(stdout);
+        }
+    };
+
+    return impl{};
+}
 
 } // namespace arb

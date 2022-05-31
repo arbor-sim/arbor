@@ -85,8 +85,7 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 
 execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -c
-    "import sys,sysconfig;pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx}))"
+    COMMAND ${PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/where.py"
     INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
     OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
     OUTPUT_STRIP_TRAILING_WHITESPACE)

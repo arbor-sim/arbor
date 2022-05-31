@@ -19,16 +19,15 @@ public:
 
     threshold_watcher(
         const fvm_index_type* cv_to_intdom,
-        const fvm_value_type* values,
         const fvm_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
+        const fvm_size_type num_cv,
         const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds,
         const execution_context& context
     ):
         cv_to_intdom_(cv_to_intdom),
-        values_(values),
         src_to_spike_(src_to_spike),
         t_before_ptr_(t_before),
         t_after_ptr_(t_after),
@@ -36,10 +35,10 @@ public:
         cv_index_(cv_index),
         is_crossed_(n_cv_),
         thresholds_(thresholds),
-        v_prev_(values_, values_+n_cv_)
+        v_prev_(num_cv)
     {
         arb_assert(n_cv_==thresholds.size());
-        reset();
+        // reset() needs to be called before this is ready for use
     }
 
     /// Remove all stored crossings that were detected in previous calls
@@ -51,7 +50,9 @@ public:
     /// Reset state machine for each detector.
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
-    void reset() {
+    void reset(const array& values) {
+        values_ = values.data();
+        std::copy(values.begin(), values.end(), v_prev_.begin());
         clear_crossings();
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
             is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
@@ -66,13 +67,15 @@ public:
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
     void test(array* time_since_spike) {
+        arb_assert(values_);
+
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
         const fvm_value_type* t_before = t_before_ptr_->data();
         const fvm_value_type* t_after  = t_after_ptr_->data();
         for (fvm_size_type i = 0; i<n_cv_; ++i) {
             auto cv     = cv_index_[i];
             auto intdom = cv_to_intdom_[cv];
-            auto v_prev = v_prev_[i];
+            auto v_prev = v_prev_[cv];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
             fvm_index_type spike_idx = 0;
@@ -103,7 +106,7 @@ public:
                 }
             }
 
-            v_prev_[i] = v;
+            v_prev_[cv] = v;
         }
     }
 
