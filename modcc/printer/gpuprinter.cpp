@@ -496,23 +496,25 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto data   = pp_var_pfx + d.data_var;
     auto index  = index_i_name(d.outer_index_var());
     auto var    = deref(d);
-    auto weight = scale + pp_var_pfx + "weight[tid_]";
+    auto weight = pp_var_pfx + "weight[tid_]";
+    auto coeff  = 1.0/d.scale;
 
     if (d.additive && use_additive) {
         out << name << " -= " << var << ";\n";
         if (is_point_proc) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+            out << fmt::format("::arb::gpu::reduce_by_key({}{}*{}, {}, {}, lane_mask_);\n",
+                               scale, weight, name, data, index);
         }
         else {
-            out << fmt::format("{} = fma({}, {}, {});\n", weight, name, var);
+            out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
         }
     }
     else if (d.accumulate) {
         if (is_point_proc) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+            out << "::arb::gpu::reduce_by_key(" << scale << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
         }
         else {
-            out << fmt::format("{} = fma({}, {}, {});\n", weight, name, var);
+            out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
         }
     }
     else {
