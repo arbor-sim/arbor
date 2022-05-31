@@ -511,11 +511,13 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
             out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
         }
     }
-    else if (is_point_proc && d.accumulate) {
-        out << "::arb::gpu::reduce_by_key(" << scale << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
-    }
     else if (d.accumulate) {
-        out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
+        if (is_point_proc) {
+            out << "::arb::gpu::reduce_by_key(" << scale << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
+        }
+        else {
+            out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
+        }
     }
     else {
         out << var << " = " << scale << name << ";\n";
