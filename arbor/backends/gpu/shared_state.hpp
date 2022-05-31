@@ -30,7 +30,7 @@ namespace gpu {
  *     Xo_     cao              external calcium concentration
  */
 struct ARB_ARBOR_API ion_state {
-    using solver_type = diffusion_state<fvm_value_type, fvm_index_type>;
+    using solver_type = arb::gpu::diffusion_state<fvm_value_type, fvm_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     bool write_eX_;          // is eX written?
@@ -125,7 +125,7 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
-    using cable_solver = matrix_state_fine<fvm_value_type, fvm_index_type>;
+    using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
     cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
