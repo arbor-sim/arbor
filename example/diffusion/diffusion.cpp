@@ -27,12 +27,12 @@ struct linear: public recipe {
         gprop.default_parameters.discretization = cv_policy_max_extent{d};
     }
 
-    cell_size_type num_cells()                             const override { return 1; }
-    cell_kind get_cell_kind(cell_gid_type)            const override { return cell_kind::cable; }
-    std::any get_global_properties(cell_kind)              const override { return gprop; }
-    std::vector<probe_info> get_probes(cell_gid_type) const override { return {cable_probe_ion_diff_concentration_cell{"na"}}; }
-
-    util::unique_any get_cell_description(cell_gid_type) const override {
+    cell_size_type num_cells()                                   const override { return 1; }
+    cell_kind get_cell_kind(cell_gid_type)                       const override { return cell_kind::cable; }
+    std::any get_global_properties(cell_kind)                    const override { return gprop; }
+    std::vector<probe_info> get_probes(cell_gid_type)            const override { return {cable_probe_ion_diff_concentration_cell{"na"}}; }
+    std::vector<event_generator> event_generators(cell_gid_type) const override { return {explicit_generator({{{"Zap"}, 0.0, 0.005}})}; }
+    util::unique_any get_cell_description(cell_gid_type)         const override {
         // Stick morphology
         // -----|-----
         segment_tree tree;
@@ -44,10 +44,6 @@ struct linear: public recipe {
         decor.place("(location 0 0.5)"_ls, synapse("inject/x=na", {{"alpha", 200.0*l}}), "Zap");
         decor.paint("(all)"_reg, density("decay/x=na"));
         return cable_cell({tree}, {}, decor);
-    }
-
-    std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        return {explicit_generator({{{"Zap"}, 0.0, 0.005}})};
     }
 
     cable_cell_global_properties gprop;

@@ -82,7 +82,7 @@ using result_t = std::vector<std::tuple<double, double, double>>;
 testing::AssertionResult all_near(const result_t& a, const result_t& b, double eps) {
     if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length";
     std::stringstream res;
-    for (int ix = 0; ix < a.size(); ++ix) {
+    for (size_t ix = 0; ix < a.size(); ++ix) {
         const auto&[ax, ay, az] = a[ix];
         const auto&[bx, by, bz] = b[ix];
         if (fabs(ax - bx) > eps) res << " X elements " << ax << " and " << bx << " differ at index " << ix << ".";
