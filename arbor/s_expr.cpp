@@ -413,7 +413,7 @@ std::ostream& print(std::ostream& o, const s_expr& x, int indent) {
     bool first=true;
     o << "(";
     while (it!=end) {
-        if (!first && !it->is_atom() && length(*it)>=0) {
+        if (!first && !it->is_atom()) {
             o << "\n" << in;
             print(o, *it, indent+1);
             ++it;
