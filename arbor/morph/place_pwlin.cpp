@@ -191,7 +191,7 @@ struct p3d {
     friend constexpr double dot(const p3d& l, const p3d& r) {
         return l.x*r.x + l.y*r.y + l.z*r.z;
     }
-    friend double norm(const p3d p) {
+    friend double norm(const p3d& p) {
         return std::sqrt(dot(p, p));
     }
     friend std::ostream& operator<<(std::ostream& o, const p3d& p) {
