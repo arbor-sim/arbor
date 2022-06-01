@@ -19,7 +19,7 @@ struct source_location {
 class backtrace {
 public:
     /// the default constructor will build and store the strack trace.
-    backtrace();
+    backtrace() = default;
 
     /// Creates a new file named backtrace_# where # is a number chosen
     /// The back trace is printed to the file, and a message printed to

@@ -23,7 +23,7 @@ thread_private_spike_store::thread_private_spike_store(const task_system_handle&
     impl_(new local_spike_store_type(ts))
 {}
 
-thread_private_spike_store::~thread_private_spike_store() {}
+thread_private_spike_store::~thread_private_spike_store() = default;
 
 std::vector<spike> thread_private_spike_store::gather() const {
     std::vector<spike> spikes;

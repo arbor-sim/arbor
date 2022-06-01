@@ -21,7 +21,7 @@ struct local_spike_store_type;
 /// and collate all of the buffers into a single vector respectively.
 class ARB_ARBOR_API thread_private_spike_store {
 public :
-    thread_private_spike_store();
+    thread_private_spike_store() = default;
     ~thread_private_spike_store();
 
     thread_private_spike_store(thread_private_spike_store&& t);
