@@ -281,7 +281,7 @@ private:
         }
 
         // test if the symbol matches a keyword
-        auto it = keyword_to_tok.find(symbol.c_str());
+        auto it = keyword_to_tok.find(symbol);
         if (it!=keyword_to_tok.end()) {
             return {start, it->second, std::move(symbol)};
         }
