@@ -22,16 +22,24 @@ namespace gpu {
 
 void test_thresholds_impl(
     int size,
-    fvm_value_type t_after, fvm_value_type t_before,
-    const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
-    fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    fvm_value_type t_after,
+    fvm_value_type t_before,
+    const fvm_index_type* src_to_spike,
+    fvm_value_type* time_since_spike,
+    stack_storage<threshold_crossing>& stack,
+    fvm_index_type* is_crossed,
+    fvm_value_type* prev_values,
+    const fvm_index_type* cv_index,
+    const fvm_value_type* values,
+    const fvm_value_type* thresholds,
     bool record);
 
 void reset_crossed_impl(
     int size,
     fvm_index_type* is_crossed,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+    const fvm_index_type* cv_index,
+    const fvm_value_type* values,
+    const fvm_value_type* thresholds);
 
 
 class threshold_watcher {
