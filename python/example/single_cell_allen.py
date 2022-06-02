@@ -31,23 +31,22 @@ def load_allen_fit(fit):
         value  = float(block['value'])
         if name.endswith('_' + mech):
             name = name[:-(len(mech) + 1)]
-        else:
-            if mech == "pas":
-                # transform names and values
-                if name == 'cm':
-                    # scaling factor NEURON -> Arbor
-                    param[region].cm = value/100.0
-                elif name == 'Ra':
-                    param[region].rL = value
-                elif name == 'Vm':
-                    param[region].Vm = value
-                elif name == 'celsius':
-                    param[region].tempK = value + 273.15
-                else:
-                    raise Exception(f"Unknown key: {name}")
-                continue
+        elif mech == "pas":
+            # transform names and values
+            if name == 'cm':
+                # scaling factor NEURON -> Arbor
+                param[region].cm = value/100.0
+            elif name == 'Ra':
+                param[region].rL = value
+            elif name == 'Vm':
+                param[region].Vm = value
+            elif name == 'celsius':
+                param[region].tempK = value + 273.15
             else:
-                raise Exception(f"Illegal combination {mech} {name}")
+                raise Exception(f"Unknown key: {name}")
+            continue
+        else:
+            raise Exception(f"Illegal combination {mech} {name}")
         mechs[(region, mech)][name] = value
 
     regs = [(r, vs) for r, vs in param.items()]

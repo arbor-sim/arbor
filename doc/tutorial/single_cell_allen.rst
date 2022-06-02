@@ -66,8 +66,8 @@ mechanism name, so some processing needs to take place.
 Step **(3)** shows the precise steps needed to load the fit parameter file into a list of global properties,
 region specific properties, reversal potentials, and mechanism parameters. This is not a generic function that will successfully load any Allen model, but it can be used as a starting point. The function composes 4 components out of the ``json`` file:
 
-1. global electro-physical parameters,
-2. a set of electro-physical parameters per region,
+1. global electro-physiological parameters,
+2. a set of electro-physiological parameters per region,
 3. a set of reversal potentials per ion species and region,
 4. a set of mechanisms with parameters per region.
 
