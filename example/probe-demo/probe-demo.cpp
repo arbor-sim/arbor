@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
     auto* loc = any_cast<const arb::mlocation*>(pm.meta);
     auto* point_info = any_cast<const arb::cable_probe_point_info*>(pm.meta);
-	assert((loc != nullptr) | (point_info != nullptr));
+	assert((loc != nullptr) || (point_info != nullptr));
 
 	loc = loc ? loc : &(point_info->loc);
 
@@ -188,7 +188,7 @@ void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
     auto* cables_ptr = any_cast<const arb::mcable_list*>(pm.meta);
     auto* point_info_ptr = any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
 
-	assert((cables_ptr != nullptr) | (point_info_ptr != nullptr));
+	assert((cables_ptr != nullptr) || (point_info_ptr != nullptr));
 
     unsigned n_entities = cables_ptr ? cables_ptr->size() : point_info_ptr->size();
 
@@ -196,7 +196,8 @@ void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
     for (std::size_t i = 0; i<n; ++i) {
         auto* value_range = any_cast<const arb::cable_sample_range*>(samples[i].data);
         assert(value_range);
-        assert(n_entities==value_range->second-value_range->first);
+        const auto& [lo, hi] = *value_range;
+        assert(n_entities==hi-low);
 
         for (unsigned j = 0; j<n_entities; ++j) {
             std::cout << samples[i].time << ", ";
@@ -207,7 +208,7 @@ void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
 				arb::mlocation loc = (*point_info_ptr)[j].loc;
 				std::cout << loc.pos << ", ";
 			}
-			std::cout << value_range->first[j] << '\n';
+			std::cout << lo[j] << '\n';
         }
     }
 }
