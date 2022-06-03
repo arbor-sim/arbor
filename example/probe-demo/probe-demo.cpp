@@ -197,7 +197,7 @@ void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
         auto* value_range = any_cast<const arb::cable_sample_range*>(samples[i].data);
         assert(value_range);
         const auto& [lo, hi] = *value_range;
-        assert(n_entities==hi-low);
+        assert(n_entities==hi-lo);
 
         for (unsigned j = 0; j<n_entities; ++j) {
             std::cout << samples[i].time << ", ";
