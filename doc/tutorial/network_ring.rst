@@ -116,8 +116,11 @@ To create a simulation, we must create an :class:`arbor.context` and :py:class:`
 
 Step **(12)** initalizes the ``threads`` parameter of :class:`arbor.context` with the ``avail_threads`` flag. By supplying
 this flag, a context is constructed that will use all locally available threads. On your local machine this will match the
-number of cpu-cores, times two if your cpu provides some form of simultaneous multithreading. Especially with large numbers
-of cells you will notice the speed-up. :func:`arbor.partition_load_balance` creates a default domain decomposition, which 
+number of CPU-cores, likely multiplied by two if your CPU provides some form of 
+`multithreading <https://en.wikipedia.org/wiki/Multithreading_(computer_architecture)>`_. Especially with large numbers
+of cells you will notice the speed-up. (You could instantiate the recipe with 5000 cells and observe the difference. Don't
+forget to turn of plotting if you do; it will take more time to generate the image then to run the actual simulation!)
+:func:`arbor.partition_load_balance` creates a default domain decomposition, which 
 for contexts initialized with ``threads=avail_threads`` distributes cells evenly over the available cores. You can print the
 objects to see what defaults they produce on your system.
 
