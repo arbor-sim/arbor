@@ -141,18 +141,19 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
     .. function:: samples(handle)
 
         Retrieve a list of sample data associated with the given :term:`handle`.
-        There will be one entry in the list per probe associated with the :term:`probeset id` used when the sampling was set up.
-        For example, if a probe was placed on a locset describing three positions, the returned list will contain three elements.
+        There will be one entry in the list per probe associated with the :term:`probeset id` used when the sampling was set up. 
+        Each entry is a pair ``(samples, meta)`` where ``meta`` is the probe metadata as would be returned by
+        ``probe_metadata(probeset_id)``, and ``samples`` contains the recorded values.
+        
+        For example, if a probe was placed on a locset describing three positions, ``samples(handle)`` will
+        return a list of length `3`. In each element, you'll find a tuple containing ``metadata`` and ``data``, where ``metadata`` will be a string describing the location, and ``data`` will (usually) be a ``numpy.ndarray``.
 
         An empty list will be returned if no output was recorded for the cell. For simulations
         that are distributed using MPI, handles associated with non-local cells will return an
         empty list.
         It is the responsibility of the caller to gather results over the ranks.
 
-        Each entry is a pair ``(samples, meta)`` where ``meta`` is the probe metadata as would be returned by
-        ``probe_metadata(probeset_id)``, and ``samples`` contains the recorded values.
-
-        The format of the recorded values will depend upon the specifics of the probe, though generally it will
+        The format of the recorded values (``data``) will depend upon the specifics of the probe, though generally it will
         be a NumPy array, with the first column corresponding to sample time and subsequent columns holding
         the value or values that were sampled from that probe at that time.
 
