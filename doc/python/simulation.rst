@@ -275,7 +275,7 @@ Definitions
         or at specific sites (see :ref:`pycablecell-probesample`).
 
     probeset address
-        Probes are described by probeset addresses, and the collection of probeset addresses for a given cell is
+        Probesets are located at a probeset addresses, and the collection of probeset addresses for a given cell is
         provided by the :py:class:`recipe` object. One address may correspond to more than one probe:
         as an example, a request for membrane voltage on a cable cell at sites specified by a location
         expression will generate one probe for each site in that location expression.
