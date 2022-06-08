@@ -616,7 +616,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         std::vector<probe_info> rec_probes = rec.get_probes(gid);
         for (cell_lid_type i: count_along(rec_probes)) {
             probe_info& pi = rec_probes[i];
-            resolve_probe_address(probe_data, cells, cell_idx, std::move(pi.address),
+            resolve_probe_address(probe_data, cells, cell_idx, pi.address,
                 D, mech_data, fvm_info.target_handles, mechptr_by_name);
 
             if (!probe_data.empty()) {
