@@ -107,15 +107,21 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 61-110
+   :lines: 61-109
 
 The execution
 *************
 
 To create a simulation, we must create an :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
 
-Step **(12)** creates a default execution context, and uses the :func:`arbor.partition_load_balance` to create a
-default domain decomposition. You can print the objects to see what defaults they produce on your system.
+Step **(12)** initalizes the ``threads`` parameter of :class:`arbor.context` with the ``avail_threads`` flag. By supplying
+this flag, a context is constructed that will use all locally available threads. On your local machine this will match the
+number of logical cores in your system. Especially with large numbers
+of cells you will notice the speed-up. (You could instantiate the recipe with 5000 cells and observe the difference. Don't
+forget to turn of plotting if you do; it will take more time to generate the image then to run the actual simulation!)
+:func:`arbor.partition_load_balance` creates a default domain decomposition, which 
+for contexts initialized with ``threads=avail_threads`` distributes cells evenly over the available cores. You can print the
+objects to see what defaults they produce on your system.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
 This means the timestamps of the generated events will be kept in memory. Be default, these are discarded.
@@ -135,7 +141,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 111-125
+   :lines: 111-124
 
 The results
 ***********
@@ -144,7 +150,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 126-131
+   :lines: 126-129
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -156,7 +162,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 133-
+   :lines: 131-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 

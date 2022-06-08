@@ -10,6 +10,8 @@ script_path=this_path+'/scripts'
 sys.path.append(script_path)
 
 html_static_path = ['static']
+html_css_files = ['htmldiag.css']
+html_js_files = ['domarrow.js']
 
 def setup(app):
     app.add_object_type('generic', 'gen', 'pair: %s; generic')
@@ -30,11 +32,11 @@ html_logo = 'images/arbor-lines-proto-colour.svg'
 html_favicon = 'images/arbor-lines-proto-colour-notext.svg'
 
 intersphinx_mapping = {
-    'sphinx': ('https://lfpykit.readthedocs.io/en/latest/', None),
+    'lfpykit': ('https://lfpykit.readthedocs.io/en/latest/', None),
 }
 
 project = 'Arbor'
-copyright = '2017-2021, ETHZ & FZJ'
+copyright = '2017-2022, ETHZ & FZJ'
 author = 'ETHZ & FZJ'
 todo_include_todos = True
 

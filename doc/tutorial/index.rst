@@ -3,29 +3,43 @@
 Tutorials
 =========
 
-.. Note::
-    You can find some examples of full Arbor simulations in the ``python/examples`` directory of the
-    `Arbor repository <https://github.com/arbor-sim/arbor>`_.
+Grouped loosely by primary (but not exclusive!) focus, we have a set of tutorials to help you learn by doing. 
 
-    The examples use ``pandas``, ``seaborn`` and ``LFPykit`` for analysis and plotting which are expected to be
-    installed independently from Arbor.
+You can find some examples of full Arbor simulations in the ``python/examples`` directory of the
+`Arbor repository <https://github.com/arbor-sim/arbor>`_.
 
-    In an interactive Python interpreter, you can use ``help()`` on any class or function to get its
-    documentation. (Try, ``help(arbor.simulation)``, for example).
+The examples use ``pandas``, ``seaborn`` and ``LFPykit`` for analysis and plotting which are expected to be
+installed independently from Arbor.
 
-.. Todo::
-    Add more in-depth tutorial-like pages building up examples here.
+In an interactive Python interpreter, you can use ``help()`` on any class or function to get its
+documentation. (Try, ``help(arbor.simulation)``, for example).
+
+Cells
+-----
 
 .. toctree::
    :maxdepth: 1
-   :caption: Tutorials
 
    single_cell_model
    single_cell_recipe
    single_cell_detailed
    single_cell_detailed_recipe
    single_cell_cable
+
+Networks
+--------
+
+.. toctree::
+   :maxdepth: 1
+
    network_ring
    network_ring_mpi
    two_cells_gap_junctions
+
+Probes
+------
+
+.. toctree::
+   :maxdepth: 1
+
    tutorial_lfpykit

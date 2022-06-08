@@ -1,4 +1,5 @@
 #include <arbor/version.hpp>
+#include <arbor/export.hpp>
 
 namespace arb {
 ARB_ARBOR_API const char* source_id = ARB_SOURCE_ID;
