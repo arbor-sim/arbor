@@ -46,8 +46,8 @@ struct parse_error {
         stack.push_back(cpp);
     }
 
-    parse_error& append(cpp_info i) {
-        stack.push_back(i);
+    parse_error& append(const cpp_info& i) {
+        stack.emplace_back(i);
         return *this;
     }
 

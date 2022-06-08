@@ -379,7 +379,7 @@ struct voltage_reference_pair {
 };
 
 // Collection of other locations that are coincident under projection.
-std::vector<mlocation> coincident_locations(const morphology& m, mlocation x) {
+std::vector<mlocation> coincident_locations(const morphology& m, const mlocation& x) {
     std::vector<mlocation> result;
     if (x.pos==0) {
         msize_t parent_bid = m.branch_parent(x.branch);
