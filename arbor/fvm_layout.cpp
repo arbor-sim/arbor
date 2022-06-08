@@ -23,7 +23,7 @@
 #include "util/transform.hpp"
 #include "util/unique.hpp"
 
-//TODO delete me
+//TODO
 #include <iostream>
 
 namespace arb {
@@ -658,74 +658,99 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_build_gap_junction_cg_cv_map(
+// build cg_cv_map = { {gid, lid} -> {cg, cv} }
+// gather function: 
+//      1) take cg_cv_map & split into 4 arrays (gids, lids, cgs, cvs)
+//      2) gather separately
+//      3) update index map function { {gid, cg, cv} ->index } with gathered gids, cgs, cvs
+//      4) use index map as gj_cvs map equivalent
+
+// 1) split cg_cv_map into 4 arrays instead of unordered_map
+ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     unsigned cg,
     const fvm_cv_discretization& D)
 {
+    std::vector<int> gid, lids, cgs, cvs;
+
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, cell_member_type> gj_cg_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
         for (const auto& mech : cells[cell_idx].junctions()) {
             for (const auto& gj: mech.second) {
-                gj_cg_cvs.insert({cell_member_type{gids[cell_idx], gj.lid}, cell_member_type{cg, D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty)}});
-                //std::cout << gids[cell_idx] << " " << gj.lid << "   " << cg << " " << D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty) << std::endl;
+                gid.push_back(gids[cell_idx]);
+                lids.push_back(gj.lid);
+                cgs.push_back(cg);
+                cvs.push_back(D.geometry.location_cv(cell_idx, gj.loc, cv_prefer::cv_nonempty));
             }
         }
     }
-    return gj_cg_cvs;
+    std::vector<std::vector<int>> cg_cv_arr = {gid, lids, cgs, cvs};
+
+    return cg_cv_arr;
+
 }
 
-ARB_ARBOR_API int remove_cv_offset(
-    const int cv_offset,
-    const std::vector<int> nodes)
-{
-    int cv;
-    std::vector<int> node_pos;
+//3) index map function 
 
-    for(int i = 0; i<nodes.size(); ++i){
-        if(nodes[i] == cv_offset){
-            cv = i;
-        }
-    }
-    return cv;
-}
-
-
-//ARB_ARBOR_API std::unordered_map<cell_member_type, unsigned> fvm_convert_cv(
-ARB_ARBOR_API std::vector<int> fvm_convert_cv(
-    std::unordered_map<cell_member_type, cell_member_type> cg_cv_map, 
-    std::vector<int> num_cvs)
-{
-    //std::unordered_map<cell_member_type, unsigned> cv_map;
-    std::vector<int> cv_map;
-    for (auto element: cg_cv_map){
-        auto cvs_prior  = 0;
-        for (int i = 0; i<element.second.gid; ++i) {
-            cvs_prior += num_cvs[i];
-        }
-        cv_map.push_back(element.first.gid);
-        cv_map.push_back(element.first.index);
-        cv_map.push_back(cvs_prior + element.second.index);
-    }
-
-    return cv_map;
-}
-
-ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_convert_cv_to_map(
-    std::vector<int> gid_lid_gcv
+ARB_ARBOR_API std::map<std::tuple<int, int, int>, int> fvm_cell_to_index(
+    const std::vector<int> gids,
+    const std::vector<int> cgs,
+    const std::vector<int> cvs
 )
 {
-    std::unordered_map<cell_member_type, fvm_size_type> gcv_map;
-    for (auto i = 0; i<gid_lid_gcv.size(); ++i) {
-        if (i%3 == 0){
-            gcv_map.insert({cell_member_type{unsigned(gid_lid_gcv[i]), unsigned(gid_lid_gcv[i+1])}, unsigned(gid_lid_gcv[i+2])});
-        }
+    std::map<std::tuple<int, int, int>, int> cell_to_index;
+    std::tuple<int, int, int> element;
+
+    for (int i = 0; i<gids.size(); ++i) {
+        std::cout << "i = " << i << std::endl;
+        element = {gids[i], cgs[i], cvs[i]};
+        cell_to_index[element] = i;
     }
-    return gcv_map;
+
+    return cell_to_index;
 }
 
+ARB_ARBOR_API std::map<int, std::tuple<int, int, int>> fvm_index_to_cell(
+    std::map<std::tuple<int, int, int>, int> cell_to_index
+)
+{
+    std::map<int, std::tuple<int, int, int>> index_to_cell;
+    std::tuple<int, int, int> element;
+
+    for (auto element: cell_to_index){
+        int index = element.second;
+        std::tuple<int, int, int> cell = {get<0>(element.first), get<1>(element.first), get<2>(element.first)};
+        index_to_cell[index] = cell;
+    }
+
+    return index_to_cell;
+}
+
+ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_cv_map(
+    std::vector<int> gids, 
+    std::vector<int> lids, 
+    std::vector<int> cgs, 
+    std::vector<int> cvs,
+    std::map<std::tuple<int, int, int>, int> cell_to_index
+)
+{
+    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs_index;
+
+    for (int i = 0; i<gids.size(); ++i){
+
+        std::tuple<int, int, int> cell = {gids[i], cgs[i], cvs[i]};
+        int index = cell_to_index[cell];
+
+        gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, unsigned(index)});
+    }
+
+    return gj_cvs_index;
+
+}
+
+/*
 ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
@@ -741,7 +766,8 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_
         }
     }
     return gj_cvs;
-}
+}*/
+
 
 ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
@@ -761,7 +787,6 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
 
             auto local_cv = gj_cvs.at({gid, local_idx});
             auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
-            //std::cout << "{local, peer} = " << local_cv << " , " << peer_cv << std::endl;
 
             local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
         }
@@ -769,7 +794,6 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
         util::sort(local_conns);
         gj_conns[gid] = std::move(local_conns);
     }
-    //std::cout << "next group !!" << std::endl;
     return gj_conns;
 }
 
