@@ -26,6 +26,10 @@ Step **(11)** is changed to generate a network with five hundred cells.
 The hardware context
 ********************
 
+The configuration of the :py:class:`arbor.context` will need to be changed to reflect the change in hardware.
+First of all, we scrap setting `threads="avail_threads"` and instead use 
+`MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over nodes, cores and threads.
+
 Step **(12)** uses the Arbor-built-in :py:class:`MPI communicator <arbor.mpi_comm>`, which is identical to the
 ``MPI_COMM_WORLD`` communicator you'll know if you are familiar with MPI. The :py:class:`arbor.context` takes a
 communicator for its ``mpi`` parameter. Note that you can also pass in communicators created with ``mpi4py``.
