@@ -684,7 +684,7 @@ namespace detail {
         #undef ARB_DECLARE_BINARY_COMPARISON_
 
         template <typename T>
-        friend simd_impl<T> arb::simd::fma(const simd_impl<T> a, simd_impl<T> b, simd_impl<T> c);
+        friend simd_impl<T> arb::simd::fma(const simd_impl<T>& a, simd_impl<T> b, simd_impl<T> c);
 
         // Declare Indirect/Indirect indexed/Where Expression copy function as friends
 
