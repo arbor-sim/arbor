@@ -59,9 +59,9 @@ struct ARB_SYMBOL_VISIBLE msegment {
 // Describe a specific location on a morpholology.
 struct ARB_SYMBOL_VISIBLE mlocation {
     // The id of the branch.
-    msize_t branch;
+    msize_t branch = 0;
     // The relative position on the branch ∈ [0,1].
-    double pos;
+    double pos = 0.0;
 
     friend std::ostream& operator<<(std::ostream&, const mlocation&);
 };
