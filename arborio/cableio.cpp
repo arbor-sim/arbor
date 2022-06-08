@@ -68,7 +68,7 @@ s_expr mksexp(const threshold_detector& d) {
 }
 s_expr mksexp(const mechanism_desc& d) {
     std::vector<s_expr> mech;
-    mech.push_back(s_expr(d.name()));
+    mech.emplace_back(d.name());
     std::transform(d.values().begin(), d.values().end(), std::back_inserter(mech),
         [](const auto& x){return slist(s_expr(x.first), x.second);});
     return s_expr{"mechanism"_symbol, slist_range(mech)};
@@ -144,7 +144,7 @@ s_expr mksexp(const morphology& morph) {
     };
     std::vector<s_expr> branches;
     for (msize_t i = 0; i < morph.num_branches(); ++i) {
-        branches.push_back(make_branch(i));
+        branches.emplace_back(make_branch(i));
     }
     return s_expr{"morphology"_symbol, slist_range(branches)};
 }
@@ -218,7 +218,7 @@ arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp
 pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude) {
     return pulse_tuple{delay, duration, amplitude};
 }
-arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq, double phase) {
+arb::i_clamp make_i_clamp_pulse(const pulse_tuple& p, double freq, double phase) {
     return arb::i_clamp::box(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq, phase);
 }
 arb::cv_policy make_cv_policy(const cv_policy& p) {
@@ -235,10 +235,10 @@ T make_wrapped_mechanism(const arb::mechanism_desc& mech) {return T(mech);}
 // Define makers for placeable pairs, paintable pairs, defaultables and decors
 using place_tuple = std::tuple<arb::locset, arb::placeable, std::string>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
-place_tuple make_place(locset where, placeable what, std::string name) {
+place_tuple make_place(const locset& where, const placeable& what, const std::string& name) {
     return place_tuple{where, what, name};
 }
-paint_pair make_paint(region where, paintable what) {
+paint_pair make_paint(const region& where, const paintable& what) {
     return paint_pair{where, what};
 }
 defaultable make_default(defaultable what) {
@@ -259,10 +259,10 @@ decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, default
 // Define maker for locset pairs, region pairs and label_dicts
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
-locset_pair make_locset_pair(std::string name, locset desc) {
+locset_pair make_locset_pair(const std::string& name, const locset& desc) {
     return locset_pair{name, desc};
 }
-region_pair make_region_pair(std::string name, region desc) {
+region_pair make_region_pair(const std::string name, const region& desc) {
     return region_pair{name, desc};
 }
 label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair>>& args) {
@@ -276,7 +276,7 @@ label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pa
 arb::mpoint make_point(double x, double y, double z, double r) {
     return arb::mpoint{x, y, z, r};
 }
-arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int tag) {
+arb::msegment make_segment(unsigned id, const arb::mpoint& prox, const arb::mpoint& dist, int tag) {
     return arb::msegment{id, prox, dist, tag};
 }
 morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) {
@@ -328,10 +328,10 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
     }
     return cable_cell(morpho, dict, dec);
 }
-version_tuple make_version(std::string v) {
+version_tuple make_version(const std::string& v) {
     return version_tuple{v};
 }
-meta_data make_meta_data(version_tuple v) {
+meta_data make_meta_data(const version_tuple& v) {
     return meta_data{std::get<0>(v)};
 }
 template <typename T>
@@ -502,9 +502,11 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         return eval_atom<cableio_parse_error>(e);
     }
 
-    if (e.head().is_atom()) {
+    auto& hd = e.head();
+    if (hd.is_atom()) {
+        auto& atom = hd.atom();
         // If this is not a symbol, parse as a tuple
-        if (e.head().atom().kind != tok::symbol) {
+        if (atom.kind != tok::symbol) {
             auto args = eval_args(e, map, vec);
             if (!args) {
                 return util::unexpected(args.error());
@@ -535,7 +537,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         }
 
         // Find all candidate functions that match the name of the function.
-        auto& name = e.head().atom().spelling;
+        auto& name = atom.spelling;
         auto matches = map.equal_range(name);
 
         // Search for a candidate that matches the argument list.
@@ -661,7 +663,7 @@ eval_vec unnamed_evals{
     make_call<double, double>(std::make_tuple<double, double>, "tuple<double, double>")
 };
 
-inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
+inline parse_hopefully<std::any> parse(arb::s_expr s) {
     return eval(std::move(s), named_evals, unnamed_evals);
 }
 
