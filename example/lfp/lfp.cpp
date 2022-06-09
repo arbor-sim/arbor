@@ -83,6 +83,7 @@ private:
         // Apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
         tree.append(soma_apex, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
+        synapse_location_ = "(on-components 0.5 (tag 1))"_ls;
         auto dec = decor()
             // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
             .set_default(axial_resistivity{100})     // [Ω·cm]
@@ -90,10 +91,10 @@ private:
             // Twenty CVs per branch on the dendrites (tag 4).
             .set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)))
             // Add pas and hh mechanisms:
-            .paint(reg::tagged(1), density("hh")) // (default parameters)
-            .paint(reg::tagged(4), density("pas/e=-70.0"))
+            .paint("(tag 1)"_reg, density("hh")) // (default parameters)
+            .paint("(tag 4)"_reg, density("pas/e=-70.0"))
             // Add exponential synapse at centre of soma.
-            .place("(on_components0.5, (tag 1))"_ls, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
+            .place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
 
         cell_ = cable_cell(tree, {}, dec);
     }
