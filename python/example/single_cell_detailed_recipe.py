@@ -73,7 +73,7 @@ dflt_policy = arbor.cv_policy_max_extent(1.0)
 # default policy everywhere except the soma
 policy = dflt_policy | soma_policy
 # Set cv_policy
-decor.discretization(policy))
+decor.discretization(policy)
 
 # (4) Create the cell.
 
