@@ -11,15 +11,15 @@ tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
 # (2) Define the soma and its midpoint
-labels = arbor.label_dict({'soma':   '(tag 1)',
+labels = arbor.label_dict({'soma':     '(tag 1)',
                            'midpoint': '(location 0 0.5)'})
 
 # (3) Create cell and set properties
-decor = arbor.decor()
-decor.set_property(Vm=-40)
-decor.paint('"soma"', arbor.density('hh'))
-decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
-decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+decor = (arbor.decor()
+         .set_property(Vm=-40)
+         .paint('"soma"', arbor.density('hh'))
+         .place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+         .place('"midpoint"', arbor.spike_detector(-10), "detector"))
 cell = arbor.cable_cell(tree, labels, decor)
 
 # (4) Define a recipe for a single cell and set of probes upon it.

@@ -109,15 +109,17 @@ std::vector<defaultable> cable_cell_parameter_set::serialize() const {
     return D;
 }
 
-void decor::paint(region where, paintable what) {
-    paintings_.push_back({std::move(where), std::move(what)});
+decor& decor::paint(region where, paintable what) {
+    paintings_.emplace_back(std::move(where), std::move(what));
+    return *this;
 }
 
-void decor::place(locset where, placeable what, cell_tag_type label) {
-    placements_.push_back({std::move(where), std::move(what), std::move(label)});
+decor& decor::place(locset where, placeable what, cell_tag_type label) {
+    placements_.emplace_back(std::move(where), std::move(what), std::move(label));
+    return *this;
 }
 
-void decor::set_default(defaultable what) {
+decor& decor::set_default(defaultable what) {
     std::visit(
             [this] (auto&& p) {
                 using T = std::decay_t<decltype(p)>;
@@ -150,6 +152,7 @@ void decor::set_default(defaultable what) {
                 }
             },
             what);
+    return *this;
 }
 
 } // namespace arb

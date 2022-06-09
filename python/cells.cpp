@@ -610,6 +610,7 @@ void register_cells(pybind11::module& m) {
                 if (cm) d.set_default(arb::membrane_capacitance{*cm});
                 if (rL) d.set_default(arb::axial_resistivity{*rL});
                 if (tempK) d.set_default(arb::temperature_K{*tempK});
+                return d;
             },
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
             pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
@@ -625,9 +626,8 @@ void register_cells(pybind11::module& m) {
                 if (int_con) d.set_default(arb::init_int_concentration{ion, *int_con});
                 if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
                 if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
-                if (auto m = maybe_method(method)) {
-                    d.set_default(arb::ion_reversal_potential_method{ion, *m});
-                }
+                if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
+                return d;
             },
             pybind11::arg_v("ion", "name of the ion species."),
             pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
@@ -642,14 +642,14 @@ void register_cells(pybind11::module& m) {
         // Paint mechanisms.
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::density& mechanism) {
-                dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
             },
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
         // Paint membrane/static properties.
         .def("paint",
             [](arb::decor& dec,
-                const char* region,
+               const char* region,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
@@ -658,6 +658,7 @@ void register_cells(pybind11::module& m) {
                 if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
                 if (rL) dec.paint(r, arb::axial_resistivity{*rL});
                 if (tempK) dec.paint(r, arb::temperature_K{*tempK});
+                return dec;
             },
             pybind11::arg_v("region", "the region label or description."),
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
@@ -673,6 +674,7 @@ void register_cells(pybind11::module& m) {
                 if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
+                return dec;
             },
             "region"_a, pybind11::kw_only(), "ion_name"_a,
             pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
@@ -712,11 +714,11 @@ void register_cells(pybind11::module& m) {
             "Add a voltage spike detector at each location in locations."
             "The group of spike detectors has the label 'label', used for forming connections between cells.")
         .def("discretization",
-            [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
+            [](arb::decor& dec, const arb::cv_policy& p) { return dec.set_default(p); },
             pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"))
         .def("discretization",
             [](arb::decor& dec, const std::string& p) {
-                dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
+                return dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
             },
             pybind11::arg_v("policy", "An s-expression string representing a cv_policy used to discretise the "
                                       "cell into compartments for simulation"));

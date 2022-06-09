@@ -28,22 +28,14 @@ class single_recipe(arbor.recipe):
         labels = arbor.label_dict({'soma':   '(tag 1)',
                                    'center': '(location 0 0.5)'})
 
-        decor = arbor.decor()
-        decor.set_property(Vm=-40)
-        decor.paint('(all)', arbor.density('hh'))
+        decor = (arbor.decor()
+                 .set_property(Vm=-40)
+                 .paint('(all)',    arbor.density('hh'))
+                 .place('"center"', arbor.spike_detector(-10), "detector")
+                 .place('"center"', arbor.synapse('expsyn'), "synapse")
+                 .place('"center"', arbor.synapse('expsyn_stdp', {"max_weight", 1.}), "stpd_synapse"))
 
-        decor.place('"center"', arbor.spike_detector(-10), "detector")
-        decor.place('"center"', arbor.synapse('expsyn'), "synapse")
-
-        mech = arbor.mechanism('expsyn_stdp')
-        mech.set("max_weight", 1.)
-        syn = arbor.synapse(mech)
-
-        decor.place('"center"', syn, "stpd_synapse")
-
-        cell = arbor.cable_cell(tree, labels, decor)
-
-        return cell
+        return arbor.cable_cell(tree, labels, decor)
 
     def event_generators(self, gid):
         """two stimuli: one that makes the cell spike, the other to monitor STDP

@@ -78,17 +78,16 @@ class TwoCellsWithGapJunction(arbor.recipe):
                     arbor.mpoint(self.length, 0, 0, self.radius),
                     tag=1)
 
-        labels = arbor.label_dict({'cell' : '(tag 1)', 'gj_site': '(location 0 0.5)'})
+        labels = arbor.label_dict({'cell' : '(tag 1)',
+                                   'gj_site': '(location 0 0.5)'})
 
-        decor = arbor.decor()
-        decor.set_property(Vm=self.Vms[gid])
-        decor.set_property(cm=self.cm)
-        decor.set_property(rL=self.rL)
-
-        # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
-        junction_mech = arbor.junction('gj', {"g" : self.gj_g})
-        decor.place('"gj_site"', junction_mech, 'gj_label')
-        decor.paint('"cell"', arbor.density(f'pas/e={self.Vms[gid]}', {'g': self.g}))
+        decor = (arbor.decor()
+                 .set_property(Vm=self.Vms[gid])
+                 .set_property(cm=self.cm)
+                 .set_property(rL=self.rL)
+                 # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
+                 .place('"gj_site"', arbor.junction('gj', {"g" : self.gj_g}), 'gj_label')
+                 .paint('"cell"',    arbor.density(f'pas/e={self.Vms[gid]}', {'g': self.g})))
 
         if self.cv_policy_max_extent is not None:
             policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
@@ -100,9 +99,8 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
     def gap_junctions_on(self, gid):
         assert gid in [0, 1]
-
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
-        return [arbor.gap_junction_connection((1 if gid == 0 else 0, 'gj_label'), 'gj_label', 1)]
+        return [arbor.gap_junction_connection((int(gid == 0), 'gj_label'), 'gj_label', 1)]
 
 
 if __name__ == "__main__":

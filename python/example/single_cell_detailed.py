@@ -21,55 +21,47 @@ morph = arbor.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
-labels = arbor.label_dict()
-
-# Regions:
-
-# Add labels for tag 1, 2, 3, 4
-labels['soma'] = '(tag 1)'
-labels['axon'] = '(tag 2)'
-labels['dend'] = '(tag 3)'
-labels['last'] = '(tag 4)'
-# Add a label for a region that includes the whole morphology
-labels['all'] = '(all)'
-# Add a label for the parts of the morphology with radius greater than 1.5 μm.
-labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-# Join regions "last" and "gt_1.5"
-labels['custom'] = '(join (region "last") (region "gt_1.5"))'
-
-# Locsets:
-
-# Add a labels for the root of the morphology and all the terminal points
-labels['root']     = '(root)'
-labels['terminal'] = '(terminal)'
-# Add a label for the terminal locations in the "custom" region:
-labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
-# Add a label for the terminal locations in the "axon" region:
-labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
+labels = arbor.label_dict({
+    # Regions:
+    # Add labels for tag defined by swc
+    'soma': '(tag 1)',
+    'axon': '(tag 2)',
+    'dend': '(tag 3)',
+    'last': '(tag 4)',
+    # Add a label for a region that includes the whole morphology
+    'all': '(all)',
+    # Add a label for the parts of the morphology with radius greater than 1.5 μm.
+    'gt_1.5': '(radius-ge (region "all") 1.5)',
+    # Join regions "last" and "gt_1.5"
+    'custom': '(join (region "last") (region "gt_1.5"))',
+    # Locsets:
+    # Add a labels for the root of the morphology and all the terminal points
+    'root':            '(root)',
+    'terminal':        '(term)',
+    # Add a label for the terminal locations in the "custom" region:
+    'custom_terminal': '(restrict (locset "terminal") (region "custom"))',
+    # Add a label for the terminal locations in the "axon" region:
+    'axon_terminal':   '(restrict (locset "terminal") (region "axon"))', })
 
 # (3) Create and populate the decor.
 
-decor = arbor.decor()
-
-# Set the default properties of the cell (this overrides the model defaults).
-decor.set_property(Vm =-55)
-decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-
-# Override the cell defaults.
-decor.paint('"custom"', tempK=270)
-decor.paint('"soma"',   Vm=-50)
-
-# Paint density mechanisms.
-decor.paint('"all"', density('pas'))
-decor.paint('"custom"', density('hh'))
-decor.paint('"dend"',  density('Ih', {'gbar': 0.001}))
-
-# Place stimuli and spike detectors.
-decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
-decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
-decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
-decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
+decor = (arbor.decor()
+         # Set the default properties of the cell (this overrides the model defaults).
+         .set_property(Vm =-55)
+         .set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+         .set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
+         # Override the cell defaults.
+         .paint('"custom"', tempK=270)
+         .paint('"soma"',   Vm=-50)
+         # Paint density mechanisms.
+         .paint('"all"', density('pas'))
+         .paint('"custom"', density('hh'))
+         .paint('"dend"',  density('Ih', {'gbar': 0.001}))
+         # Place stimuli and spike detectors.
+         .place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
+         .place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
+         .place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
+         .place('"axon_terminal"', arbor.spike_detector(-10), 'detector'))
 
 # Single CV for the "soma" region
 soma_policy = arbor.cv_policy_single('"soma"')

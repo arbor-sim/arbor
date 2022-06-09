@@ -42,27 +42,25 @@ labels['root']      = '(root)' # the start of the soma in this morphology is at 
 print("Label dictionary regions: ", labels.regions, "\n")
 print("Label dictionary locsets: ", labels.locsets, "\n")
 
-decor = arbor.decor()
-
-# Set initial membrane potential to -55 mV
-decor.set_property(Vm=-55)
-# Use Nernst to calculate reversal potential for calcium.
-decor.set_ion('ca', method=mech('nernst/x=ca'))
-#decor.set_ion('ca', method='nernst/x=ca')
-# hh mechanism on the soma and axon.
-decor.paint('"soma"', arbor.density('hh'))
-decor.paint('"axon"', arbor.density('hh'))
-# pas mechanism the dendrites.
-decor.paint('"dend"', arbor.density('pas'))
-# Increase resistivity on dendrites.
-decor.paint('"dend"', rL=500)
-# Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-decor.place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
-decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
-decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
-decor.place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
-# Detect spikes at the soma with a voltage threshold of -10 mV.
-decor.place('"axon_end"', arbor.spike_detector(-10), "detector")
+decor = (arbor.decor()
+         # Set initial membrane potential to -55 mV
+         .set_property(Vm=-55)
+         # Use Nernst to calculate reversal potential for calcium.
+         .set_ion('ca', method=mech('nernst/x=ca'))
+         # hh mechanism on the soma and axon.
+         .paint('"soma"', arbor.density('hh'))
+         .paint('"axon"', arbor.density('hh'))
+         # pas mechanism the dendrites.
+         .paint('"dend"', arbor.density('pas'))
+         # Increase resistivity on dendrites.
+         .paint('"dend"', rL=500)
+         # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
+         .place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
+         .place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
+         .place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
+         .place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
+         # Detect spikes at the soma with a voltage threshold of -10 mV.
+         .place('"axon_end"', arbor.spike_detector(-10), "detector"))
 
 # Create the policy used to discretise the cell into CVs.
 # Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
