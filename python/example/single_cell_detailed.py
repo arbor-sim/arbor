@@ -37,7 +37,7 @@ labels = arbor.label_dict({
     # Locsets:
     # Add a labels for the root of the morphology and all the terminal points
     'root':            '(root)',
-    'terminal':        '(term)',
+    'terminal':        '(terminal)',
     # Add a label for the terminal locations in the "custom" region:
     'custom_terminal': '(restrict (locset "terminal") (region "custom"))',
     # Add a label for the terminal locations in the "axon" region:

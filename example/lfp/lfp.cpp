@@ -16,12 +16,16 @@
 #include <arbor/util/any_ptr.hpp>
 #include <arbor/util/unique_any.hpp>
 
+#include <arborio/label_parse.hpp>
+
 using std::any;
 using arb::util::any_cast;
 using arb::util::any_ptr;
 using arb::util::unique_any;
 using arb::cell_gid_type;
 using arb::cell_member_type;
+
+using namespace arborio::literals;
 
 // Recipe represents one cable cell with one synapse, together with probes for total trans-membrane current, membrane voltage,
 // ionic current density, and synaptic conductance. A sequence of spikes are presented to the one synapse on the cell.
@@ -79,22 +83,17 @@ private:
         // Apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
         tree.append(soma_apex, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
-        decor dec;
-
-        // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
-        dec.set_default(axial_resistivity{100});     // [Ω·cm]
-        dec.set_default(membrane_capacitance{0.01}); // [F/m²]
-
-        // Twenty CVs per branch on the dendrites (tag 4).
-        dec.set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)));
-
-        // Add pas and hh mechanisms:
-        dec.paint(reg::tagged(1), density("hh")); // (default parameters)
-        dec.paint(reg::tagged(4), density("pas/e=-70.0"));
-
-        // Add exponential synapse at centre of soma.
-        synapse_location_ = ls::on_components(0.5, reg::tagged(1));
-        dec.place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
+        auto dec = decor()
+            // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
+            .set_default(axial_resistivity{100})     // [Ω·cm]
+            .set_default(membrane_capacitance{0.01}) // [F/m²]
+            // Twenty CVs per branch on the dendrites (tag 4).
+            .set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)))
+            // Add pas and hh mechanisms:
+            .paint(reg::tagged(1), density("hh")) // (default parameters)
+            .paint(reg::tagged(4), density("pas/e=-70.0"))
+            // Add exponential synapse at centre of soma.
+            .place("(on_components0.5, (tag 1))"_ls, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
 
         cell_ = cable_cell(tree, {}, dec);
     }

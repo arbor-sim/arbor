@@ -36,7 +36,6 @@ decor = (arbor.decor()
          .set_property(Vm=-55)
          # Use Nernst to calculate reversal potential for calcium.
          .set_ion('ca', method=arbor.mechanism('nernst/x=ca'))
-         #decor.set_ion('ca', method='nernst/x=ca')
          # hh mechanism on the soma and axon.
          .paint('"soma"', arbor.density('hh'))
          .paint('"axon"', arbor.density('hh'))
