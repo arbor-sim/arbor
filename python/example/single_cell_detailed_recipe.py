@@ -21,31 +21,28 @@ morph = arbor.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
-labels = arbor.label_dict()
-
-# Regions:
-
-# Add labels for tag 1, 2, 3, 4
-labels['soma'] = '(tag 1)'
-labels['axon'] = '(tag 2)'
-labels['dend'] = '(tag 3)'
-labels['last'] = '(tag 4)'
-# Add a label for a region that includes the whole morphology
-labels['all'] = '(all)'
-# Add a label for the parts of the morphology with radius greater than 1.5 μm.
-labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-# Join regions "last" and "gt_1.5"
-labels['custom'] = '(join (region "last") (region "gt_1.5"))'
-
-# Locsets:
-
-# Add a labels for the root of the morphology and all the terminal points
-labels['root']     = '(root)'
-labels['terminal'] = '(terminal)'
-# Add a label for the terminal locations in the "custom" region:
-labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
-# Add a label for the terminal locations in the "axon" region:
-labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
+labels = arbor.label_dict({
+    # Regions:
+    # Add labels for tag 1, 2, 3, 4
+    'soma': '(tag 1)',
+    'axon': '(tag 2)',
+    'dend': '(tag 3)',
+    'last': '(tag 4)',
+    # Add a label for a region that includes the whole morphology
+    'all': '(all)',
+    # Add a label for the parts of the morphology with radius greater than 1.5 μm.
+    'gt_1.5': '(radius-ge (region "all") 1.5)',
+    # Join regions "last" and "gt_1.5"
+    'custom': '(join (region "last") (region "gt_1.5"))',
+    # Locsets:
+    # Add a labels for the root of the morphology and all the terminal points
+    'root': '(root)',
+    'terminal': '(terminal)',
+    # Add a label for the terminal locations in the "custom" region:
+    'custom_terminal': '(restrict (locset "terminal") (region "custom"))',
+    # Add a label for the terminal locations in the "axon" region:
+    'axon_terminal': '(restrict (locset "terminal") (region "axon"))',
+})
 
 # (3) Create and populate the decor.
 
