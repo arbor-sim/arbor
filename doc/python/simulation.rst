@@ -146,7 +146,9 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         ``probe_metadata(probeset_id)``, and ``samples`` contains the recorded values.
         
         For example, if a probe was placed on a locset describing three positions, ``samples(handle)`` will
-        return a list of length `3`. In each element, you'll find a tuple containing ``metadata`` and ``data``, where ``metadata`` will be a string describing the location, and ``data`` will (usually) be a ``numpy.ndarray``.
+        return a list of length `3`. In each element, each corresponding to a location in the locset,
+        you'll find a tuple containing ``metadata`` and ``data``, where ``metadata`` will be a string describing the location,
+        and ``data`` will (usually) be a ``numpy.ndarray``.
 
         An empty list will be returned if no output was recorded for the cell. For simulations
         that are distributed using MPI, handles associated with non-local cells will return an
