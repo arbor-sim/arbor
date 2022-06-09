@@ -34,6 +34,7 @@ Networks
 
    network_ring
    network_ring_mpi
+   single_cell_allen
    two_cells_gap_junctions
 
 Probes
