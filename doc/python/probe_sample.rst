@@ -21,6 +21,12 @@ object for use in the recipe :py:func:`recipe.probes` method.
 More information on probes, probe metadata, and sampling can be found
 in the documentation for the class :class:`simulation`.
 
+.. module:: probe
+
+    An opaque object that is the Python representation of :cpp:class:`probe_info`.
+    
+    See below for ways to create probes.
+
 Membrane voltage
    .. py:function:: cable_probe_membrane_voltage(where)
 
