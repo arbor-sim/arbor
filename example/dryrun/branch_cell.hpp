@@ -110,7 +110,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     labels.set("soma", tagged(stag));
     labels.set("dend", tagged(dtag));
 
-    auto decor = arb::decor{}
+    auto decor = arb::decor()
         .paint("soma"_lab, arb::density("hh"))
         .paint("dend"_lab, arb::density("pas"))
         .set_default(arb::axial_resistivity{100}) // [Ω·cm]
