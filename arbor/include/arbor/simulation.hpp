@@ -4,11 +4,13 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
@@ -25,7 +27,12 @@ class simulation_state;
 
 class ARB_ARBOR_API simulation {
 public:
+
     simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx);
+
+    simulation(const recipe& rec,
+               const context& ctx=make_context(),
+               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, balancer(rec, ctx), ctx) {}
 
     void reset();
 

@@ -176,12 +176,9 @@ if __name__ == "__main__":
         f'(location 0 {r})') for r in np.linspace(0, 1, 11)]
     recipe = Cable(probes, **vars(args))
 
-    # create a default execution context and a default domain decomposition
-    context = arbor.context()
-    domains = arbor.partition_load_balance(recipe, context)
 
     # configure the simulation and handles for the probes
-    sim = arbor.simulation(recipe, domains, context)
+    sim = arbor.simulation(recipe)
     dt = 0.001
     handles = [sim.sample((0, i), arbor.regular_schedule(dt))
                for i in range(len(probes))]

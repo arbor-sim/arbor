@@ -135,12 +135,8 @@ if __name__ == "__main__":
     probes = [arbor.cable_probe_membrane_voltage('"gj_site"')]
     recipe = TwoCellsWithGapJunction(probes, **vars(args))
 
-    # create a default execution context and a default domain decomposition
-    context = arbor.context()
-    domains = arbor.partition_load_balance(recipe, context)
-
     # configure the simulation and handles for the probes
-    sim = arbor.simulation(recipe, domains, context)
+    sim = arbor.simulation(recipe)
 
     dt = 0.01
     handles = []

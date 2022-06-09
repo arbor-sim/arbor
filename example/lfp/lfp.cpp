@@ -79,8 +79,7 @@ private:
         // Apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
         tree.append(soma_apex, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
-        decor dec;
-
+        auto dec = arb::decor();
         // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
         dec.set_default(axial_resistivity{100});     // [Ω·cm]
         dec.set_default(membrane_capacitance{0.01}); // [F/m²]
@@ -183,7 +182,6 @@ struct {
 // Run simulation.
 
 int main(int argc, char** argv) {
-    auto context = arb::make_context();
 
     // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
     auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
@@ -193,7 +191,7 @@ int main(int argc, char** argv) {
     const double sample_dt = 0.1; // [ms]
     const double dt = 0.1;        // [ms]
 
-    arb::simulation sim(R, arb::partition_load_balance(R, context), context);
+    arb::simulation sim(R);
 
     std::vector<position> electrodes = {
         {30, 0, 0},

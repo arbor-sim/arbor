@@ -23,7 +23,7 @@ namespace arb {
 ARB_ARBOR_API domain_decomposition partition_load_balance(
     const recipe& rec,
     const context& ctx,
-    partition_hint_map hint_map)
+    const partition_hint_map& hint_map)
 {
     using util::make_span;
 

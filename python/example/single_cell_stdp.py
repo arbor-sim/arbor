@@ -75,9 +75,7 @@ class single_recipe(arbor.recipe):
 def run(dT, n_pairs=1, do_plots=False):
     recipe = single_recipe(dT, n_pairs)
 
-    context = arbor.context()
-    domains = arbor.partition_load_balance(recipe, context)
-    sim = arbor.simulation(recipe, domains, context)
+    sim = arbor.simulation(recipe)
 
     sim.record(arbor.spike_recording.all)
 
