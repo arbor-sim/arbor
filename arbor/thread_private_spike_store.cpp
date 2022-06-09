@@ -27,18 +27,11 @@ thread_private_spike_store::thread_private_spike_store(const task_system_handle&
 thread_private_spike_store::~thread_private_spike_store() = default;
 
 std::vector<spike> thread_private_spike_store::gather() const {
+    const auto& bs = impl_->buffers_;
+    auto len = std::accumulate(bs.begin(), bs.end(), 0u, [](auto acc, const auto& b) { return acc + b.size(); });
     std::vector<spike> spikes;
-    const auto& buffers = impl_->buffers_;
-    unsigned num_spikes = std::accumulate(buffers.begin(),
-                                          buffers.end(),
-                                          0u,
-                                          [](unsigned acc, const auto& buffer) { return acc + buffer.size(); });
-    spikes.reserve(num_spikes);
-    for (const auto& buffer: buffers) {
-        for (const auto& elt: buffer) {
-            spikes.emplace_back(elt);
-        }
-    }
+    spikes.reserve(len);
+    std::for_each(bs.begin(), bs.end(), [&spikes] (const auto& b) { spikes.insert(spikes.end(), b.begin(), b.end()); });
     return spikes;
 }
 
