@@ -53,7 +53,7 @@ decor = (arbor.decor()
          .set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
          # Override the cell defaults.
          .paint('"custom"', tempK=270)
-         .paint('"soma"',   Vm=-50)
+         .paint('"soma"', Vm=-50)
          # Paint density mechanisms.
          .paint('"all"', density('pas'))
          .paint('"custom"', density('hh'))
@@ -62,15 +62,8 @@ decor = (arbor.decor()
          .place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
          .place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
          .place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
-         .place('"axon_terminal"', arbor.spike_detector(-10), 'detector'))
-# Single CV for the "soma" region
-soma_policy = arbor.cv_policy_single('"soma"')
-# Single CV for the "soma" region
-dflt_policy = arbor.cv_policy_max_extent(1.0)
-# default policy everywhere except the soma
-policy = dflt_policy | soma_policy
-# Set cv_policy
-decor.discretization(policy)
+         .place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
+         .discretization('(join (single "soma") (max-extent 1.0))'))
 
 # (4) Create the cell.
 
