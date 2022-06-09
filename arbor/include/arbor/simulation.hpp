@@ -18,6 +18,7 @@
 namespace arb {
 
 using spike_export_function = std::function<void(const std::vector<spike>&)>;
+using epoch_function = std::function<void(double time, double tfinal)>;
 
 // simulation_state comprises private implementation for simulation class.
 class simulation_state;
@@ -57,6 +58,10 @@ public:
     // spike vector.
     void set_local_spike_callback(spike_export_function = spike_export_function{});
 
+    // Register a callback that will be called at the end of each epoch, and at the
+    // start of the simulation.
+    void set_epoch_callback(epoch_function = epoch_function{});
+
     // Add events directly to targets.
     // Must be called before calling simulation::run, and must contain events that
     // are to be delivered at or after the current simulation time.
@@ -67,5 +72,8 @@ public:
 private:
     std::unique_ptr<simulation_state> impl_;
 };
+
+// An epoch callback function that prints out a text progress bar.
+ARB_ARBOR_API epoch_function epoch_progress_bar();
 
 } // namespace arb

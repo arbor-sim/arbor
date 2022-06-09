@@ -1,0 +1,121 @@
+<div class="diag-cont">
+    <div id="recipe_src">Recipe
+        <div>
+            <input id="collapsible1" type="checkbox" checked><label for="collapsible1">Cell descriptions</label>
+            <div>
+                <input id="collapsible10" type="checkbox"><label for="collapsible10">Cell 0</label>
+                <div>Morphology
+                    <div>Segment Tree
+                        <div>Segment 0 (soma)</div>
+                    </div>
+                </div>
+                <div>Decor
+                    <div>Paintables
+                        <div>hh
+                            <code>(all)</code>
+                        </div>
+                    </div>
+                    <div>Placables
+                        <div>iclamp <code>"midsoma"</code></div>
+                        <div>detector_0 <code>"midsoma"</code></div>
+                    </div>
+                </div>
+                <div>Label dictionary
+                    <div>midsoma
+                        <code>(location 0 0.5)</code>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <input id="collapsible11" type="checkbox"><label for="collapsible11">Cell 1</label>
+                <div>Morphology
+                    <div>Segment Tree
+                        <div>Segment 0 (soma)</div>
+                        <div>Segment 1 (dendrite)</div>
+                        <div>Segment 2 (dendrite)</div>
+                        <div>Segment ...</div>
+                    </div>
+                </div>
+                <div>Decor
+                    <div>Paintables
+                        <div>passive
+                            <code>(all)</code>
+                        </div>
+                    </div>
+                    <div>Placables
+                        <div>synapse_1 <code>"endpoint"</code></div>
+                        <div>gap_junction_1 <code>"midsoma"</code></div>
+                    </div>
+                </div>
+                <div>Label dictionary
+                    <div>midsoma
+                        <code>(location 0 0.5)</code>
+                    </div>
+                    <div>endpoint
+                        <code>(terminal)</code>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <input id="collapsible12" type="checkbox"><label for="collapsible12">Cell 2</label>
+                <div>Morphology
+                    <div>Segment Tree
+                        <div>Segment 0 (soma)</div>
+                        <div>Segment 1 (dendrite)</div>
+                        <div>Segment 2 (dendrite)</div>
+                        <div>Segment ...</div>
+                    </div>
+                </div>
+                <div>Decor
+                    <div>Paintables
+                        <div>passive
+                            <code>(all)</code>
+                        </div>
+                    </div>
+                    <div>Placables
+                        <div>gap_junction_2 <code>"midsoma"</code></div>
+                    </div>
+                </div>
+                <div>Label dictionary
+                    <div>midsoma
+                        <code>(location 0 0.5)</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <input id="collapsible2" type="checkbox"><label for="collapsible2">Cell kinds</label>
+            <div>Cell 0
+                <div>type <code>arbor.cable_cell</code></div>
+            </div>
+            <div>Cell 1
+                <div>type <code>arbor.cable_cell</code></div>
+            </div>
+            <div>Cell 2
+                <div>type <code>arbor.cable_cell</code></div>
+            </div>
+        </div>
+        <div>
+            <input id="collapsible3" type="checkbox"><label for="collapsible3">Connections</label>
+            <div>Connection 1
+                <div>from <code>detector_0</code></div>
+                <div>to <code>synapse_1</code></div>
+            </div>
+            <div>Gap Junction 1
+                <div>from <code>gap_junction_1</code></div>
+                <div>to <code>gap_junction_2</code></div>
+            </div>
+        </div>
+        <div>
+            <input id="collapsible4" type="checkbox"><label for="collapsible4">Probes</label>
+            <div>Probe 1
+                <div>gid
+                    <code>2</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="diag-caption">
+    An example recipe. Click "+" and "-" to (de)collapse contents.
+</div>

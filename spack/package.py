@@ -27,7 +27,7 @@ class Arbor(CMakePackage, CudaPackage):
     variant('python', default=True, description='Enable Python frontend support')
     variant('vectorize', default=False, description='Enable vectorization of computational kernels')
 
-    # https://docs.arbor-sim.org/en/latest/install/build_install.html?highlight=requirements#compilers
+    # https://docs.arbor-sim.org/en/latest/install/build_install.html#compilers
     conflicts('%gcc@:8.3')
     conflicts('%clang@:7')
     # Cray compiler v9.2 and later is Clang-based.
