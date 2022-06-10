@@ -33,7 +33,7 @@ class single_recipe(arbor.recipe):
                  .paint('(all)',    arbor.density('hh'))
                  .place('"center"', arbor.spike_detector(-10), "detector")
                  .place('"center"', arbor.synapse('expsyn'), "synapse")
-                 .place('"center"', arbor.synapse('expsyn_stdp', {"max_weight", 1.}), "stpd_synapse"))
+                 .place('"center"', arbor.synapse('expsyn_stdp', {"max_weight": 1.}), "stpd_synapse"))
 
         return arbor.cable_cell(tree, labels, decor)
 
@@ -52,12 +52,12 @@ class single_recipe(arbor.recipe):
         return [spike, stdp]
 
     def probes(self, gid):
+        mk = lambda w: arbor.cable_probe_point_state(1, "expsyn_stdp", w)
         return [arbor.cable_probe_membrane_voltage('"center"'),
-                arbor.cable_probe_point_state(1, "expsyn_stdp", "g"),
-                arbor.cable_probe_point_state(1, "expsyn_stdp", "apost"),
-                arbor.cable_probe_point_state(1, "expsyn_stdp", "apre"),
-                arbor.cable_probe_point_state(
-                    1, "expsyn_stdp", "weight_plastic")
+                mk("g"),
+                mk("apost"),
+                mk("apre"),
+                mk("weight_plastic")
                 ]
 
     def global_properties(self, kind):
