@@ -355,8 +355,6 @@ endif()
 #--------------
 
 if(ARB_WITH_GPU)
-    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
-
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
         add_compile_options(

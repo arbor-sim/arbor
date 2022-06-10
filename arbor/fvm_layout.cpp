@@ -808,7 +808,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         fvm_mechanism_config config;
         if (info.kind != arb_mechanism_kind_density) {
-            throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
         config.kind = arb_mechanism_kind_density;
 
@@ -918,7 +918,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         mechanism_info info = catalogue[name];
 
         if (info.kind != arb_mechanism_kind_point) {
-            throw cable_cell_error("expected point mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected point mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
 
         post_events |= info.post_events;
@@ -1077,7 +1077,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     for (const auto& [name, placements]: cell.junctions()) {
         mechanism_info info = catalogue[name];
         if (info.kind != arb_mechanism_kind_gap_junction) {
-            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
 
         fvm_mechanism_config config;
@@ -1268,7 +1268,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             const mechanism_desc& revpot = *maybe_revpot;
             mechanism_info info = catalogue[revpot.name()];
             if (info.kind != arb_mechanism_kind_reversal_potential) {
-                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechsnism_kind_str(info.kind));
+                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechanism_kind_str(info.kind));
             }
 
             verify_mechanism(info, revpot);
