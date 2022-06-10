@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import arbor
-import numpy
-import pandas
-import seaborn  # You may have to pip install these.
+import numpy as np
+import pandas as pd
+import seaborn as sns # You may have to pip install these.
 
 
 class single_recipe(arbor.recipe):
@@ -41,7 +41,7 @@ class single_recipe(arbor.recipe):
         """two stimuli: one that makes the cell spike, the other to monitor STDP
         """
 
-        stimulus_times = numpy.linspace(50, 500, self.n_pairs)
+        stimulus_times = np.linspace(50, 500, self.n_pairs)
 
         # strong enough stimulus
         spike = arbor.event_generator("synapse", 1., arbor.explicit_schedule(stimulus_times))
@@ -74,36 +74,28 @@ def run(dT, n_pairs=1, do_plots=False):
     sim.record(arbor.spike_recording.all)
 
     reg_sched = arbor.regular_schedule(0.1)
-    handle_mem = sim.sample((0, 0), reg_sched)
-    handle_g = sim.sample((0, 1), reg_sched)
-    handle_apost = sim.sample((0, 2), reg_sched)
-    handle_apre = sim.sample((0, 3), reg_sched)
-    handle_weight_plastic = sim.sample((0, 4), reg_sched)
+    handles = {'U': sim.sample((0, 0), reg_sched),
+               'g': sim.sample((0, 1), reg_sched),
+               'apost': sim.sample((0, 2), reg_sched),
+               'apre': sim.sample((0, 3), reg_sched),
+               'weight_plastic': sim.sample((0, 4), reg_sched),}
 
     sim.run(tfinal=600)
 
     if do_plots:
         print("Plotting detailed results ...")
-
-        for (handle, var) in [(handle_mem, 'U'),
-                              (handle_g, "g"),
-                              (handle_apost, "apost"),
-                              (handle_apre, "apre"),
-                              (handle_weight_plastic, "weight_plastic")]:
-
+        for var, handle in handles.items():
             data, meta = sim.samples(handle)[0]
 
-            df = pandas.DataFrame({'t/ms': data[:, 0], var: data[:, 1]})
-            seaborn.relplot(data=df, kind="line", x="t/ms", y=var,
-                            ci=None).savefig('single_cell_stdp_result_{}.svg'.format(var))
+            df = pd.DataFrame({'t/ms': data[:, 0], var: data[:, 1]})
+            sns.relplot(data=df, kind="line", x="t/ms", y=var, ci=None) \
+               .savefig(f'single_cell_stdp_result_{var}.svg')
 
-    weight_plastic, meta = sim.samples(handle_weight_plastic)[0]
-
+    weight_plastic, _ = sim.samples(handles['weight_plastic'])[0]
     return weight_plastic[:, 1][-1]
 
 
-data = numpy.array([(dT, run(dT)) for dT in numpy.arange(-20, 20, 0.5)])
-df = pandas.DataFrame({'t/ms': data[:, 0], 'dw': data[:, 1]})
+data = np.array([(dT, run(dT)) for dT in np.arange(-20, 20, 0.5)])
+df = pd.DataFrame({'t/ms': data[:, 0], 'dw': data[:, 1]})
 print("Plotting results ...")
-seaborn.relplot(data=df, x="t/ms", y="dw", kind="line",
-                ci=None).savefig('single_cell_stdp.svg')
+sns.relplot(data=df, x="t/ms", y="dw", kind="line", ci=None).savefig('single_cell_stdp.svg')
