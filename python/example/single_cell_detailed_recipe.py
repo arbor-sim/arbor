@@ -41,8 +41,7 @@ labels = arbor.label_dict({
     # Add a label for the terminal locations in the "custom" region:
     'custom_terminal': '(restrict (locset "terminal") (region "custom"))',
     # Add a label for the terminal locations in the "axon" region:
-    'axon_terminal': '(restrict (locset "terminal") (region "axon"))',
-})
+    'axon_terminal': '(restrict (locset "terminal") (region "axon"))',})
 
 # (3) Create and populate the decor.
 
@@ -63,7 +62,7 @@ decor = (arbor.decor()
          .place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
          .place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
          .place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
-         .discretization('(join (single "soma") (max-extent 1.0))'))
+         .discretization('(replace (single "soma") (max-extent 1.0))'))
 
 # (4) Create the cell.
 
