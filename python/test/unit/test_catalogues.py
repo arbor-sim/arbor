@@ -55,7 +55,7 @@ class TestCatalogues(unittest.TestCase):
         rcp = recipe()
         ctx = arb.context()
         dom = arb.partition_load_balance(rcp, ctx)
-        sim = arb.simulation(rcp, dom, ctx)
+        sim = arb.simulation(rcp, ctx, dom)
         sim.run(tfinal=30)
 
     def test_empty(self):

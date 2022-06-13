@@ -87,7 +87,7 @@ class TestCableProbes(unittest.TestCase):
         recipe = cc_recipe()
         context = A.context()
         dd = A.partition_load_balance(recipe, context)
-        sim = A.simulation(recipe, dd, context)
+        sim = A.simulation(recipe, context, dd)
 
         all_cv_cables = [A.cable(0, 0, 1)]
 
