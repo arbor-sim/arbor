@@ -62,7 +62,7 @@ decor.paint('"dend"',  density('Ih', {'gbar': 0.001}))
 decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
 decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
 decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
-decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector'))
+decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
 
 # Single CV for the "soma" region
 soma_policy = arbor.cv_policy_single('"soma"')
