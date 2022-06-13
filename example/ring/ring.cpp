@@ -162,7 +162,8 @@ int main(int argc, char** argv) {
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
 
         // Construct the model.
-        arb::simulation sim(recipe, context);
+        auto decomposition = arb::partition_load_balance(recipe, context);
+        arb::simulation sim(recipe, context, decomposition);
 
         // Set up the probe that will measure voltage in the cell.
 
