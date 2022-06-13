@@ -28,7 +28,7 @@ namespace arb {
 
 class ARB_ARBOR_API communicator {
 public:
-    communicator() {}
+    communicator() = default;
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,

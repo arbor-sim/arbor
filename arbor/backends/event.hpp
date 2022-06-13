@@ -15,7 +15,7 @@ struct target_handle {
     cell_local_size_type mech_index; // instance of the mechanism
     cell_size_type intdom_index;     // which integration domain (acts as index into e.g. vec_t)
 
-    target_handle() {}
+    target_handle() = default;
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type intdom_index):
         mech_id(mech_id), mech_index(mech_index), intdom_index(intdom_index) {}
 };
