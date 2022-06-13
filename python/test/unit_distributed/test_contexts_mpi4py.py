@@ -8,10 +8,10 @@ import arbor as arb
 from .. import fixtures, cases
 
 # check Arbor's configuration of mpi
-mpi_enabled    = arb.__config__["mpi"]
+mpi_enabled = arb.__config__["mpi"]
 mpi4py_enabled = arb.__config__["mpi4py"]
 
-if (mpi_enabled and mpi4py_enabled):
+if mpi_enabled and mpi4py_enabled:
     import mpi4py.MPI as mpi
 
 """
@@ -28,7 +28,7 @@ class TestContexts_mpi4py(unittest.TestCase):
         comm = arb.mpi_comm(mpi.COMM_WORLD)
 
         # test that set communicator is MPI_COMM_WORLD
-        self.assertEqual(str(comm), '<arbor.mpi_comm: MPI_COMM_WORLD>')
+        self.assertEqual(str(comm), "<arbor.mpi_comm: MPI_COMM_WORLD>")
 
     def test_context_mpi4py(self):
         comm = arb.mpi_comm(mpi.COMM_WORLD)
@@ -50,11 +50,13 @@ class TestContexts_mpi4py(unittest.TestCase):
     def test_exceptions_context_arbmpi(self):
         alloc = arb.proc_allocation()
 
-        with self.assertRaisesRegex(RuntimeError,
-            "mpi must be None, or an MPI communicator"):
-            arb.context(mpi='MPI_COMM_WORLD')
-        with self.assertRaisesRegex(RuntimeError,
-            "mpi must be None, or an MPI communicator"):
+        with self.assertRaisesRegex(
+            RuntimeError, "mpi must be None, or an MPI communicator"
+        ):
+            arb.context(mpi="MPI_COMM_WORLD")
+        with self.assertRaisesRegex(
+            RuntimeError, "mpi must be None, or an MPI communicator"
+        ):
             arb.context(alloc, mpi=0)
 
     def test_finalized_mpi4py(self):
