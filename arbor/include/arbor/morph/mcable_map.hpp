@@ -57,8 +57,7 @@ struct mcable_map {
     bool insert(const mcable& c, T value) {
         auto opt_it = insertion_point(c);
         if (!opt_it) return false;
-
-        elements_.insert(*opt_it, value_type{c, std::move(value)});
+        elements_.emplace(*opt_it, c, std::move(value));
         assert_invariants();
         return true;
     }
@@ -67,12 +66,10 @@ struct mcable_map {
     bool emplace(const mcable& c, Args&&... args) {
         auto opt_it = insertion_point(c);
         if (!opt_it) return false;
-
         elements_.emplace(*opt_it,
            std::piecewise_construct,
            std::forward_as_tuple(c),
            std::forward_as_tuple(std::forward<Args>(args)...));
-
         assert_invariants();
         return true;
     }
@@ -82,7 +79,6 @@ struct mcable_map {
         s.reserve(elements_.size());
         std::transform(elements_.begin(), elements_.end(), std::back_inserter(s),
             [](const auto& x) { return x.first; });
-
         return s;
     }
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import arbor as arb
 
-cat = 'cat-catalogue.so'
+cat = Path('cat-catalogue.so').resolve()
 
 class recipe(arb.recipe):
     def __init__(self):
@@ -14,7 +14,7 @@ class recipe(arb.recipe):
         self.props = arb.neuron_cable_properties()
         self.props.catalogue = arb.load_catalogue(cat)
         d = arb.decor()
-        d.paint('(all)', 'dummy')
+        d.paint('(all)', arb.density('dummy'))
         d.set_property(Vm=0.0)
         self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
 
@@ -30,10 +30,10 @@ class recipe(arb.recipe):
     def cell_description(self, gid):
         return self.cell
 
-if not Path(cat).is_file():
+if not cat.is_file():
     print("""Catalogue not found in this directory.
-Please ensure it has been compiled by calling")
-  <arbor>/scripts/build-catalogue cat <arbor>/python/examples/cat
+Please ensure it has been compiled by calling
+  <arbor>/scripts/build-catalogue cat <arbor>/python/example/cat
 where <arbor> is the location of the arbor source tree.""")
     exit(1)
 

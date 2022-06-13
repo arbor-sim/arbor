@@ -5,13 +5,14 @@
 
 #include <mpi.h>
 
+#include <arbor/version.hpp>
 #include <arborenv/arbenvexcept.hpp>
 #include <arborenv/gpu_env.hpp>
 #include "gpu_uuid.hpp"
 
 namespace arbenv {
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 
 template <>
 ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
@@ -100,7 +101,7 @@ ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     return -1;
 }
 
-#endif // def ARB_HAVE_GPU
+#endif // def ARB_GPU_ENABLED
 
 } // namespace arbenv
 
