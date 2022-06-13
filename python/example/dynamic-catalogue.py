@@ -6,6 +6,7 @@ import arbor as arb
 
 cat = Path("cat-catalogue.so").resolve()
 
+
 class recipe(arb.recipe):
     def __init__(self):
         arb.recipe.__init__(self)
@@ -30,11 +31,14 @@ class recipe(arb.recipe):
     def cell_description(self, gid):
         return self.cell
 
+
 if not cat.is_file():
-    print("""Catalogue not found in this directory.
+    print(
+        """Catalogue not found in this directory.
 Please ensure it has been compiled by calling
   <arbor>/scripts/build-catalogue cat <arbor>/python/example/cat
-where <arbor> is the location of the arbor source tree.""")
+where <arbor> is the location of the arbor source tree."""
+    )
     exit(1)
 
 rcp = recipe()
