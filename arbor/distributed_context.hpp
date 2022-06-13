@@ -66,6 +66,10 @@ public:
         return impl_->gather_gids(local_gids);
     }
 
+    std::vector<int> gather_cg_cv_map(const std::vector<int>& cg_cv_map) const {
+        return impl_->gather_cg_cv_map(cg_cv_map);
+    }
+
     gj_connection_vector gather_gj_connections(const gj_connection_vector& local_connections) const {
         return impl_->gather_gj_connections(local_connections);
     }
@@ -106,6 +110,8 @@ private:
             gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
             gather_gids(const gid_vector& local_gids) const = 0;
+        virtual std::vector<int> 
+            gather_cg_cv_map(const std::vector<int>& cg_cv_map) const = 0;
         virtual gj_connection_vector
             gather_gj_connections(const gj_connection_vector& local_connections) const = 0;
         virtual cell_label_range
@@ -136,6 +142,10 @@ private:
         gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const override {
             return wrapped.gather_gids(local_gids);
+        }
+        std::vector<int>
+        gather_cg_cv_map(const std::vector<int>& cg_cv_map) const override {
+            return wrapped.gather_cg_cv_map(cg_cv_map);
         }
         std::vector<std::vector<cell_gid_type>>
         gather_gj_connections(const gj_connection_vector& local_connections) const override {
@@ -190,6 +200,10 @@ struct local_context {
                 std::vector<cell_gid_type>(local_gids),
                 {0u, static_cast<count_type>(local_gids.size())}
         );
+    }
+    std::vector<int>
+    gather_cg_cv_map(const std::vector<int>& cg_cv_map) const {
+        return {};
     }
     std::vector<std::vector<cell_gid_type>>
     gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {

@@ -275,6 +275,29 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
     const std::unordered_map<cell_member_type, fvm_size_type>& gj_cv,
     const recipe& rec);
 
+
+ARB_ARBOR_API std::map<std::tuple<int, int, int>, int> fvm_cell_to_index(
+    const std::vector<int> gids,
+    const std::vector<int> cgs,
+    const std::vector<int> cvs);
+
+ARB_ARBOR_API std::map<int, std::tuple<int, int, int>> fvm_index_to_cell(
+    std::map<std::tuple<int, int, int>, int> cell_to_index);
+
+ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_cv_map(
+    std::vector<int> gids, 
+    std::vector<int> lids, 
+    std::vector<int> cgs, 
+    std::vector<int> cvs,
+    std::map<std::tuple<int, int, int>, int> cell_to_index);
+
+// 1) split cg cv map into 4 arrays
+ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    unsigned cg,
+    const fvm_cv_discretization& D);
+
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;

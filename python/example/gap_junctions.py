@@ -3,6 +3,7 @@
 import arbor
 import pandas, seaborn
 import matplotlib.pyplot as plt
+import mpi4py.MPI as mpi
 
 # Construct chains of cells linked with gap junctions,
 # Chains are connected by synapses.
@@ -22,7 +23,7 @@ def make_cable_cell(gid):
     # Build a segment tree
     tree = arbor.segment_tree()
 
-    # Soma with radius 5 μm and length 2 * radius = 10 μm, (tag = 1)
+    # Soma with radius 5 μm and length 2 * radius = 10 m, (tag = 1)
     s = tree.append(arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(0, 0, 0, 5), tag=1)
 
     # Single dendrite with radius 2 μm and length 40 μm, (tag = 2)
@@ -37,7 +38,9 @@ def make_cable_cell(gid):
     labels['synapse_site'] = '(location 0 0.6)'
 
     # Gap junction site at connection point of soma and dendrite
-    labels['gj_site'] = '(location 0 0.2)'
+    labels['gj_site_0'] = '(location 0 0.2)'
+    # TODO delete me
+    labels['gj_site_1'] = '(location 0 0.5)'
 
     # Label root of the tree
     labels['root'] = '(root)'
@@ -49,7 +52,8 @@ def make_cable_cell(gid):
 
     # Attach one synapse and gap junction each on their labeled sites
     decor.place('"synapse_site"', arbor.synapse('expsyn'), 'syn')
-    decor.place('"gj_site"', arbor.junction('gj'), 'gj')
+    decor.place('"gj_site_0"', arbor.junction('gj'), 'gj_0')
+    decor.place('"gj_site_1"', arbor.junction('gj'), 'gj_1')
 
     # Attach spike detector to cell root
     decor.place('"root"', arbor.spike_detector(-10), 'detector')
@@ -97,10 +101,14 @@ class chain_recipe(arbor.recipe):
         prev_cell = gid - 1
 
         if next_cell < chain_end:
-            conns.append(arbor.gap_junction_connection((gid+1, 'gj'), 'gj', 0.015))
+            conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
         if prev_cell >= chain_begin:
-            conns.append(arbor.gap_junction_connection((gid-1, 'gj'), 'gj', 0.015))
-        
+            conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
+        #if gid == 1:
+        #    conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
+        #if gid == 2:
+        #    conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
+
         return conns
 
     # Event generator at first cell
@@ -113,16 +121,17 @@ class chain_recipe(arbor.recipe):
 
     # Place a probe at the root of each cell
     def probes(self, gid):
+        return []
         return [arbor.cable_probe_membrane_voltage('"root"')]
 
     def global_properties(self, kind):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 5
+ncells_per_chain = 3
 
 # Number of chains
-nchains = 3
+nchains = 2
 
 # Total number of cells
 ncells = nchains * ncells_per_chain
@@ -130,8 +139,21 @@ ncells = nchains * ncells_per_chain
 #Instantiate recipe
 recipe = chain_recipe(ncells_per_chain, nchains)
 
-# Create a default execution context, domain decomposition and simulation
-context = arbor.context()
+#context = arbor.context()
+#decomp = arbor.partition_load_balance(recipe, context)
+#sim = arbor.simulation(recipe, decomp, context)
+
+#context = arbor.context(gpu_id = None)
+#groups = [arbor.group_description(arbor.cell_kind.cable, [0, 1], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [2, 3], arbor.backend.multicore)]
+#decomp = arbor.partition_by_group(recipe, context, groups)
+#sim = arbor.simulation(recipe, decomp, context)
+
+alloc   = arbor.proc_allocation(1, None)
+comm    = arbor.mpi_comm(mpi.COMM_WORLD)
+context = arbor.context(alloc, comm)
+print(context)
+groups = [arbor.group_description(arbor.cell_kind.cable, [0], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [1], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [2], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [3], arbor.backend.multicore)]
+#decomp = arbor.partition_by_group(recipe, context, groups)
 decomp = arbor.partition_load_balance(recipe, context)
 sim = arbor.simulation(recipe, decomp, context)
 
@@ -139,24 +161,24 @@ sim = arbor.simulation(recipe, decomp, context)
 sim.record(arbor.spike_recording.all)
 
 # Sampler
-handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+#handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 # Run simulation for 100 ms
 sim.run(100)
 print('Simulation finished')
 
 # Print spike times
-print('spikes:')
-for sp in sim.spikes():
-    print(' ', sp)
+#print('spikes:')
+#for sp in sim.spikes():
+#    print(' ', sp)
 
 # Plot the results
-print("Plotting results ...")
-df_list = []
-for gid in range(ncells):
-    samples, meta = sim.samples(handles[gid])[0]
-    df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
+#print("Plotting results ...")
+#df_list = []
+#for gid in range(ncells):
+#    samples, meta = sim.samples(handles[gid])[0]
+#    df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
 
-df = pandas.concat(df_list,ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None)
-plt.show()
+#df = pandas.concat(df_list,ignore_index=True)
+#seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None)
+#plt.show()

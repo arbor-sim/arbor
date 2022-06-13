@@ -32,6 +32,7 @@ public:
                   const recipe& rec,
                   cell_label_range& cg_sources,
                   cell_label_range& cg_targets,
+                  cell_gid_type cg,
                   fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {

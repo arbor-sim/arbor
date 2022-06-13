@@ -7,6 +7,7 @@
 // implementation details may be tested in the unit tests.
 // It should otherwise only be used in `fvm_lowered_cell.cpp`.
 
+#include <array>
 #include <cmath>
 #include <iterator>
 #include <memory>
@@ -16,6 +17,10 @@
 #include <utility>
 #include <vector>
 #include <unordered_set>
+
+
+#include <fstream> //todo
+#include <iostream> //todo
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -37,6 +42,8 @@
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
+#include <communication/mpi.hpp>
+
 namespace arb {
 
 template <class Backend>
@@ -47,7 +54,11 @@ public:
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
-    fvm_lowered_cell_impl(execution_context ctx): context_(ctx), threshold_watcher_(ctx) {};
+    cell_gid_type cell_group;
+    std::map<std::tuple<int, int, int>, int> cell_to_index;
+    std::map<int, std::tuple<int, int, int>> index_to_cell;
+
+    fvm_lowered_cell_impl(execution_context ctx, cell_gid_type cg): context_(ctx), threshold_watcher_(ctx) {cell_group = context_.distributed->id();};
 
     void reset() override;
 
@@ -76,7 +87,7 @@ public:
     }
 
 private:
-    // Host or GPU-side back-end dependent storage.
+    // Host or GPU-side back-end dependent storage.x
     using array = typename backend::array;
     using shared_state = typename backend::shared_state;
     using sample_event_stream = typename backend::sample_event_stream;
@@ -188,6 +199,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     threshold_watcher_.reset(state_->voltage);
 }
 
+
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tfinal,
@@ -198,7 +210,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     set_gpu();
 
     // Integration setup
-    PE(advance:integrate:setup);
+    PE(advance_integrate_setup);
     threshold_watcher_.clear_crossings();
 
     auto n_samples = staged_samples.size();
@@ -218,116 +230,344 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // per-compartment dt probably not a win on GPU), possibly rumbling
     // complete fvm state into shared state object.
 
-    while (remaining_steps) {
-        // Update any required reversal potentials based on ionic concs.
+    // Reset state
+    multicore::iarray cv_to_intdom_r = state_->cv_to_intdom;
+    multicore::iarray cv_to_cell_r   = state_->cv_to_cell;
 
-        for (auto& m: revpot_mechanisms_) {
-            m->update_current();
+    array time_r            = state_->time;
+    array time_to_r         = state_->time_to;
+    array dt_intdom_r       = state_->dt_intdom;
+    array dt_cv_r           = state_->dt_cv;
+    array voltage_r         = state_->voltage;
+    array current_density_r = state_->current_density;
+    array conductivity_r    = state_->conductivity;
+
+    array time_since_spike_r = state_->time_since_spike;
+    multicore::deliverable_event_stream deliverable_events_r = state_->deliverable_events;
+    multicore::iarray src_to_spike_r = state_->src_to_spike;
+    
+    multicore::istim_state stim_data_r = state_->stim_data;
+    std::unordered_map<std::string, multicore::ion_state> ion_data_r = state_->ion_data;
+    
+    std::unordered_map<unsigned, multicore::shared_state::mech_storage> storage_r;
+    std::unordered_map<unsigned, std::vector<arb_value_type>>           parameters_r;
+    std::unordered_map<unsigned, std::vector<arb_value_type>>           state_vars_r;
+    
+    for (auto store: state_->storage) {
+        storage_r[store.first].data_        = store.second.data_;
+        storage_r[store.first].indices_     = store.second.indices_;
+        //storage_r[store.first].constraints_ = store.second.constraints_;
+        storage_r[store.first].ion_states_  = store.second.ion_states_;
+        for (auto i = 0; i<store.second.parameters_.size(); ++i) {
+            parameters_r[store.first].push_back(*store.second.parameters_[i]);
         }
-
-        // Deliver events and accumulate mechanism current contributions.
-
-        PE(advance:integrate:events);
-        state_->deliverable_events.mark_until_after(state_->time);
-        PL();
-
-        PE(advance:integrate:current:zero);
-        state_->zero_currents();
-        PL();
-        for (auto& m: mechanisms_) {
-            auto state = state_->deliverable_events.marked_events();
-            arb_deliverable_event_stream events;
-            events.n_streams = state.n;
-            events.begin     = state.begin_offset;
-            events.end       = state.end_offset;
-            events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-            m->deliver_events(events);
-            m->update_current();
+        for (auto j = 0; j<store.second.state_vars_.size(); ++j) {
+            state_vars_r[store.first].push_back(*store.second.state_vars_[j]);
         }
+    }
 
-        PE(advance:integrate:events);
-        state_->deliverable_events.drop_marked_events();
+    //trace vectors for recording voltages
+    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> trace, trace_prev;
 
-        // Update event list and integration step times.
+    threshold_watcher threshold_watcher_reset = threshold_watcher_;
 
-        state_->update_time_to(dt_max, tfinal);
-        state_->deliverable_events.event_time_if_before(state_->time_to);
-        state_->set_dt();
-        PL();
+    // Save starting times
+    unsigned max_steps = remaining_steps;
+    value_type tmin_reset = tmin_;
+    value_type tfinal_reset = tfinal;
+    value_type dt_max_reset = dt_max;
 
-        // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we
-        // want to use mean current contributions as opposed to point
-        // sample.)
+    std::ofstream file0;
 
-        PE(advance:integrate:stimuli)
-        state_->add_stimulus_current();
-        PL();
-
-        // Take samples at cell time if sample time in this step interval.
-
-        PE(advance:integrate:samples);
-        sample_events_.mark_until(state_->time_to);
-        state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
-        sample_events_.drop_marked_events();
-        PL();
-
-        // Integrate voltage by matrix solve.
-
-        PE(advance:integrate:matrix:build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
-        PL();
-        PE(advance:integrate:matrix:solve);
-        matrix_.solve(state_->voltage);
-        PL();
-
-        // Integrate mechanism state.
-
-        for (auto& m: mechanisms_) {
-            m->update_state();
-        }
-
-        // Update ion concentrations.
-
-        PE(advance:integrate:ionupdate);
-        update_ion_state();
-        PL();
-
-        // Update time and test for spike threshold crossings.
-
-        PE(advance:integrate:threshold);
-        threshold_watcher_.test(&state_->time_since_spike);
-        PL();
-
-        PE(advance:integrate:post)
-        if (post_events_) {
-            for (auto& m: mechanisms_) {
-                m->post_event();
+    std::vector<arb_index_type> peer_ix;
+    std::vector<arb_index_type> peer_index_reset;
+    
+    std::vector<int> node_arr;
+    for (auto& m: mechanisms_) {
+        if (m->kind() == arb_mechanism_kind_gap_junction) {
+            for(int i = 0; i<m->ppack_.width; ++i) {
+                node_arr.push_back(m->ppack_.node_index[i]);
             }
         }
-        PL();
+    }
+    std::vector<value_type> v_start = {};
+    
+    //WR iterations
+    int wr_max = 10;
+    auto eps = 1e-7;
+    for (int wr_it = 0; wr_it < wr_max; wr_it++){
 
-        std::swap(state_->time_to, state_->time);
-        state_->time_ptr = state_->time.data();
 
-        // Check for non-physical solutions:
+        // Reset remaining_steps
+        if (wr_it > 0) {
+            remaining_steps = dt_steps(tmin_reset, tfinal_reset, dt_max_reset);
+        }
 
-        if (check_voltage_mV_>0) {
-            PE(advance:integrate:physicalcheck);
-            assert_voltage_bounded(check_voltage_mV_);
+        // Reset error variables for WR break condition
+        // auto max_err = 0.;
+        std::vector<int> nodes;
+
+
+        // Threshold_watcher reset
+        threshold_watcher_ = threshold_watcher_reset;
+
+        while (remaining_steps) {
+            auto step = max_steps-remaining_steps;
+            
+            // Update any required reversal potentials based on ionic concs.
+            for (auto& m: revpot_mechanisms_) {
+                m->update_current();
+            }
+
+            // Deliver events and accumulate mechanism current contributions.
+
+            PE(advance_integrate_events);
+            state_->deliverable_events.mark_until_after(state_->time);
+            PL();
+
+            PE(advance_integrate_current_zero);
+            state_->zero_currents();
+            PL();
+            for (auto& m: mechanisms_) {
+                auto state = state_->deliverable_events.marked_events();
+                arb_deliverable_event_stream events;
+                events.n_streams = state.n;
+                events.begin     = state.begin_offset;
+                events.end       = state.end_offset;
+                events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
+                m->deliver_events(events);
+
+                // Map peer_index to position in trace
+                if (m->kind() == arb_mechanism_kind_gap_junction) {
+
+                    if (wr_it == 0 && step == 0) {
+                        // iterate through peer indices and check if in same group as node
+
+                        std::vector<int> peer_guess;
+                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
+                            int node = m->ppack_.node_index[ix];
+                            nodes.push_back(node);
+                            int peer = m->ppack_.peer_index[ix];
+                            //if (std::find(node_arr.begin(), node_arr.end(), peer) != node_arr.end()){
+                            if (cell_group == get<1>(index_to_cell[peer])){
+                                peer_guess.push_back(get<2>(index_to_cell[peer]));
+                            } else {
+                                peer_guess.push_back(get<2>(index_to_cell[node]));
+                            }
+                        }
+
+                        std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos;
+                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
+                            peer_pos[m->ppack_.node_index[ix]].push_back(ix);
+                            //peer_index_reset.push_back(m->ppack_.peer_index[ix]);
+                        }
+
+                        for (auto it = 0; it < m->ppack_.width; ++it) {
+                            auto p = m->ppack_.peer_index[it];
+                            peer_ix.push_back(peer_pos[p][0]);
+                            peer_pos[p].pop_front();
+                        }
+
+                    }
+                    
+                    m->ppack_.peer_index = peer_ix.data();
+                    // peer index is now set to version without offset! 
+
+                    if (wr_it == 0){
+                        v_start = {};
+
+                        for (auto ix = 0; ix<m->ppack_.width; ++ix) {
+                            auto node = get<2>(index_to_cell[m->ppack_.node_index[ix]]);
+                            v_start.push_back(state_->voltage[node]);
+                        }
+                        m->ppack_.vec_v_peer = v_start.data();
+                    }
+
+                    if (wr_it > 0) {
+                        auto gj = m->mechanism_id();
+                        m->ppack_.vec_v_peer = trace_prev[gj][step].data();
+                    }
+                }
+                
+                m->update_current();
+
+                //update traces
+                if (m->kind() == arb_mechanism_kind_gap_junction) {
+
+                    auto gj = m->mechanism_id();
+                    std::vector<value_type> v_step(m->ppack_.width, 0.);
+    
+                    for(int ix = 0; ix < m->ppack_.width; ++ix) {
+                        auto node_cv = get<2>(index_to_cell[m->ppack_.node_index[ix]]);
+                        v_step[ix] = state_->voltage[node_cv];
+                    }
+                    trace[gj].push_back(v_step);
+                    
+                    /*
+                    if (cell_group == 1){
+                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test.txt", std::ios::app);
+                        if (wr_it == 0 && step == 0) {
+                            file0 << remaining_steps << std::endl;
+                            for (auto cv = 0; cv < m->ppack_.width-1; ++ cv) {
+                                file0 << m->ppack_.node_index[cv];
+                            }
+                            file0 << m->ppack_.node_index[m->ppack_.width-1] << std::endl;
+                        }
+
+                        for (auto j = 0; j<m->ppack_.width; ++j) {
+                            file0 << trace[gj][step][j] << ", ";
+                        }
+                        file0 << std::endl;
+                        file0.close();
+                    }*/
+
+                    // Calculate error for break condition
+                    /*
+                    if (wr_it > 1) {
+                        for (auto ix = 0; ix < trace[gj][step].size(); ++ ix){
+                            auto node_cv = m->ppack_.node_index[ix];
+                            auto err_cv = std::abs(trace[gj][step][node_cv] - trace_prev[gj][step][node_cv]);
+                            if (err_cv > max_err) {
+                                max_err = err_cv;
+                            }
+                        }
+                    }*/
+                }
+            }
+
+            PE(advance_integrate_events);
+            state_->deliverable_events.drop_marked_events();
+
+            // Update event list and integration step times.
+
+            state_->update_time_to(dt_max, tfinal);
+            state_->deliverable_events.event_time_if_before(state_->time_to);
+            state_->set_dt();
+            PL();
+
+            // Add stimulus current contributions.
+            // (Note: performed after dt, time_to calculation, in case we
+            // want to use mean current contributions as opposed to point
+            // sample.)
+
+            PE(advance_integrate_stimuli)
+            state_->add_stimulus_current();
+            PL();
+
+            // Take samples at cell time if sample time in this step interval.
+
+            PE(advance_integrate_samples);
+            sample_events_.mark_until(state_->time_to);
+            state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
+            sample_events_.drop_marked_events();
+            PL();
+
+            // Integrate voltage by matrix solve.
+
+            PE(advance_integrate_matrix_build);
+            matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
+            PL();
+            PE(advance_integrate_matrix_solve);
+            matrix_.solve(state_->voltage);
+            PL();
+
+            // Integrate mechanism state.
+
+            for (auto& m: mechanisms_) {
+                m->update_state();
+            }
+
+            // Update ion concentrations.
+
+            PE(advance_integrate_ionupdate);
+            update_ion_state();
+            PL();
+
+            // Update time and test for spike threshold crossings.
+
+            PE(advance_integrate_threshold);
+            threshold_watcher_.test(&state_->time_since_spike);
+            PL();
+
+            PE(advance_integrate_post)
+            if (post_events_) {
+                for (auto& m: mechanisms_) {
+                    m->post_event();
+                }
+            }
+            PL();
+
+            std::swap(state_->time_to, state_->time);
+            state_->time_ptr = state_->time.data();
+
+            // Check for non-physical solutions:
+
+            if (check_voltage_mV_>0) {
+                PE(advance_integrate_physicalcheck);
+                assert_voltage_bounded(check_voltage_mV_);
+                PL();
+            }
+
+            // Check for end of integration.
+
+            PE(advance_integrate_stepsupdate);
+            if (!--remaining_steps) {
+                tmin_ = state_->time_bounds().first;
+                remaining_steps = dt_steps(tmin_, tfinal, dt_max);
+            }
             PL();
         }
 
-        // Check for end of integration.
+        // Break if no CV has an err > eps or maximum WR iterations reached
+        //if ((wr_it > 1 && max_err < eps) or wr_max == 1 || wr_it == wr_max) {
+        //    //std::cout << "break at it = " << wr_it << std::endl;
+        //    break;
+        //}
 
-        PE(advance:integrate:stepsupdate);
-        if (!--remaining_steps) {
-            tmin_ = state_->time_bounds().first;
-            remaining_steps = dt_steps(tmin_, tfinal, dt_max);
-        }
-        PL();
+        // Reset traces
+        trace_prev = trace;
+        trace = {};
+
+        // Reset state
+        std::copy(dt_intdom_r.begin(), dt_intdom_r.end(), state_->dt_intdom.begin());
+        std::copy(dt_cv_r.begin(), dt_cv_r.end(), state_->dt_cv.begin());
+
+        std::copy(time_r.begin(), time_r.end(), state_->time.begin());
+        std::copy(time_to_r.begin(), time_to_r.end(), state_->time_to.begin());
+        state_->dt_intdom = dt_intdom_r;
+        state_->dt_cv = dt_cv_r;
+        state_->current_density = current_density_r;
+        state_->conductivity = conductivity_r;
+
+        std::copy(voltage_r.begin(), voltage_r.end(), state_->voltage.begin());
+
+        std::copy(cv_to_intdom_r.begin(), cv_to_intdom_r.end(), state_->cv_to_intdom.begin());
+        std::copy(cv_to_cell_r.begin(), cv_to_cell_r.end(), state_->cv_to_cell.begin());            
+            
+        std::copy(current_density_r.begin(), current_density_r.end(), state_->current_density.begin());
+        std::copy(conductivity_r.begin(), conductivity_r.end(), state_->conductivity.begin());
+            
+        std::copy(time_since_spike_r.begin(), time_since_spike_r.end(), state_->time_since_spike.begin());
+        std::copy(src_to_spike_r.begin(), src_to_spike_r.end(), state_->src_to_spike.begin());
+            
+        //state_->stim_data = stim_data_r;
+        //state_->ion_data = ion_data_r;
+        state_->deliverable_events = deliverable_events_r; 
+         
+        for (auto store: state_->storage) {
+            std::copy(storage_r[store.first].data_.begin(), storage_r[store.first].data_.end(), store.second.data_.begin());
+            std::copy(storage_r[store.first].indices_.begin(), storage_r[store.first].indices_.end(), store.second.indices_.begin());
+            //store.second.constraints_ = storage_r[store.first].constraints_;
+            std::copy(storage_r[store.first].ion_states_.begin(), storage_r[store.first].ion_states_.end(), store.second.ion_states_.begin());
+            for (auto i = 0; i<store.second.parameters_.size(); ++i) {
+                *store.second.parameters_[i] = parameters_r[store.first][i];
+            }
+            for (auto j = 0; j<store.second.state_vars_.size(); ++j) {
+                *store.second.state_vars_[j] = state_vars_r[store.first][j];
+            }
+        } 
     }
-
+    
     set_tmin(tfinal);
 
     const auto& crossings = threshold_watcher_.crossings();
@@ -462,9 +702,30 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     sample_events_ = sample_event_stream(nintdom);
 
     // Discretize and build gap junction info.
+    //std::unordered_map<cell_member_type, fvm_size_type> gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
+    //std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
-    auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
-    auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
+
+    // 1) split cg cv map into 4 arrays instead of one unordered map
+    std::vector<std::vector<int>> cv_cg_arr = fvm_build_gap_junction_cv_arr(cells, gids, cell_group, D);
+    std::vector<int> gids_gathered, lids_gathered, cgs_gathered, cvs_gathered;
+
+    // 2) gather separately
+    gids_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[0]);
+    lids_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[1]);
+    cgs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[2]);
+    cvs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[3]);
+    
+    //3) cell to index map {gid, cg, cv} -> ix and ix -> {gid, cg, cv}
+    cell_to_index = fvm_cell_to_index(gids_gathered, cgs_gathered, cvs_gathered);
+    index_to_cell = fvm_index_to_cell(cell_to_index);
+
+    //equivalent to previous gj_cvs = { {gid, lid} : cv } but with a global index
+    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs_index = fvm_index_to_cv_map(gids_gathered, lids_gathered, cgs_gathered, cvs_gathered, cell_to_index);
+
+    //resolve gap junctions with global index map
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs_index, rec);
+
 
     // Discretize mechanism data.
 

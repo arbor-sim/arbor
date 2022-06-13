@@ -155,7 +155,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.readonly = true;
         break;
     case sourceKind::peer_voltage:
-        v.data_var="vec_v";
+        v.data_var="vec_v_peer";
         v.other_index_var = "peer_index";
         v.node_index_var = "";
         v.index_var_kind = index_kind::other;

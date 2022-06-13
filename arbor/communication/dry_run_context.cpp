@@ -70,6 +70,10 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    std::vector<int>
+    gather_cg_cv_map(const std::vector<int>& local_map) const {
+       return {};
+    }
     std::vector<std::vector<cell_gid_type>>
     gather_gj_connections(const std::vector<std::vector<cell_gid_type>> & local_connections) const {
         auto local_size = local_connections.size();

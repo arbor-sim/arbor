@@ -479,6 +479,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.vec_di           = cv_to_intdom.data();
     m.ppack_.vec_dt           = dt_cv.data();
     m.ppack_.vec_v            = voltage.data();
+    m.ppack_.vec_v_peer       = voltage.data();
     m.ppack_.vec_i            = current_density.data();
     m.ppack_.vec_g            = conductivity.data();
     m.ppack_.temperature_degC = temperature_degC.data();

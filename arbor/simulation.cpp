@@ -193,14 +193,15 @@ simulation_state::simulation_state(
     std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
     std::vector<cell_labels_and_gids> cg_targets(cell_groups_.size());
     foreach_group_index(
-        [&](cell_group_ptr& group, int i) {
-          const auto& group_info = decomp.group(i);
+        [&](cell_group_ptr& group, int cg) {
+          const auto& group_info = decomp.group(cg);
           cell_label_range sources, targets;
-          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
+
+          auto factory = cell_kind_implementation(group_info.kind, cg, group_info.backend, ctx);
           group = factory(group_info.gids, rec, sources, targets);
 
-          cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
-          cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
+          cg_sources[cg] = cell_labels_and_gids(std::move(sources), group_info.gids);
+          cg_targets[cg] = cell_labels_and_gids(std::move(targets), group_info.gids);
         });
 
     cell_labels_and_gids local_sources, local_targets;

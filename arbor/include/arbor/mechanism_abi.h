@@ -86,6 +86,7 @@ typedef struct arb_mechanism_ppack {
     const arb_value_type* vec_t;
     arb_value_type* vec_dt;
     arb_value_type* vec_v;
+    arb_value_type* vec_v_peer;                  // Other side of gap junction, default to vec_v.
     arb_value_type* vec_i;
     arb_value_type* vec_g;
     arb_value_type* temperature_degC;
