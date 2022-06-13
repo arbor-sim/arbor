@@ -28,11 +28,11 @@ class simulation_state;
 class ARB_ARBOR_API simulation {
 public:
 
-    simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx);
+    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp);
 
     simulation(const recipe& rec,
                const context& ctx=make_context(),
-               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, balancer(rec, ctx), ctx) {}
+               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
 
     void reset();
 

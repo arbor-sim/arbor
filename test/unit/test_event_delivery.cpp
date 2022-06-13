@@ -49,17 +49,18 @@ using gid_vector = std::vector<cell_gid_type>;
 using group_gids_type = std::vector<gid_vector>;
 
 std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& group_gids) {
-    arb::context ctx = make_context(proc_allocation{});
-    unsigned n = R.num_cells();
 
+    unsigned n = R.num_cells();
     std::vector<group_description> groups;
     for (const auto& gidvec: group_gids) {
         groups.emplace_back(cell_kind::cable, gidvec, backend_kind::multicore);
     }
-    auto D = domain_decomposition(R, ctx, groups);
-    std::vector<spike> spikes;
 
-    simulation sim(R, D, ctx);
+    auto C = make_context();
+    auto D = domain_decomposition(R, C, groups);
+    simulation sim(R, C, D);
+
+    std::vector<spike> spikes;
     sim.set_global_spike_callback(
             [&spikes](const std::vector<spike>& ss) {
                 spikes.insert(spikes.end(), ss.begin(), ss.end());

@@ -244,12 +244,12 @@ int main(int argc, char** argv) {
 
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
-        simulation sim(recipe, context,
-                       [group_size](auto& r, auto& c) {
-                           partition_hint_map hints;
-                           hints[cell_kind::lif].cpu_group_size = group_size;
-                           return partition_load_balance(r, c, hints);
-                       });
+        partition_hint_map hints;
+        hints[cell_kind::lif].cpu_group_size = group_size;
+
+        simulation sim(recipe,
+                       context,
+                       [&hints](auto& r, auto& c) { return partition_load_balance(r, c, hints); });
 
         // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;

@@ -487,7 +487,7 @@ TEST(fvm_lowered, derived_mechs) {
         float times[] = {10.f, 20.f};
 
         auto decomp = partition_load_balance(rec, context);
-        simulation sim(rec, decomp, context);
+        simulation sim(rec, context, decomp);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 
@@ -518,7 +518,7 @@ TEST(fvm_lowered, null_region) {
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     auto decomp = partition_load_balance(rec, context);
-    simulation sim(rec, decomp, context);
+    simulation sim(rec, context, decomp);
     EXPECT_NO_THROW(sim.run(30.0, 1.f/1024));
 }
 
