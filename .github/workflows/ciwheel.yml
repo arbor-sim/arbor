@@ -25,23 +25,23 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       - name: Update pip
-        run: python -m pip install --upgrade pip
+        run: python3 -m pip install --upgrade pip
         
       - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel
+        run: python3 -m pip install cibuildwheel
 
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir dist
+        run: python3 -m cibuildwheel --output-dir dist
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
           CIBW_BEFORE_ALL_LINUX: "yum -y install libxml2-devel"
-          CIBW_BEFORE_BUILD: "python -m pip install numpy setuptools scikit-build ninja cmake"
+          CIBW_BEFORE_BUILD: "python3 -m pip install numpy setuptools scikit-build ninja cmake"
           CIBW_BUILD: "{cp3*-manylinux_x86_64,cp3*-musllinux_x86_64,cp3*-musllinux_aarch64,cp3*-macosx_x86_64}"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2014"
           CIBW_ARCHS_LINUX: "x86_64"
           CIBW_ARCHS_MACOS: "x86_64"
-          CIBW_REPAIR_WHEEL_COMMAND: "auditwheel repair -w {dest_dir} {wheel} && python /project/scripts/patchwheel.py {dest_dir}"
-          CIBW_TEST_COMMAND: "python -m unittest discover -v -s {project}/python"
+          CIBW_REPAIR_WHEEL_COMMAND: "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
+          CIBW_TEST_COMMAND: "python3 -m unittest discover -v -s {project}/python"
       
       - uses: actions/upload-artifact@v2
         with:
@@ -56,17 +56,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
       - name: Update pip
-        run: python -m pip install --upgrade pip
+        run: python3 -m pip install --upgrade pip
       - name: Get packages
-        run: python -m pip install numpy setuptools scikit-build ninja cmake
+        run: python3 -m pip install numpy setuptools scikit-build ninja cmake
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
       - name: Make sdist
-        run:  python setup.py sdist
+        run:  python3 setup.py sdist
       - name: Install sdist
-        run:  python -m pip install dist/arbor*.tar.gz
+        run:  python3 -m pip install dist/arbor*.tar.gz
       - name: Run Python tests
         run: python3 -m unittest discover -v -s python
       - name: Run Python examples
