@@ -34,9 +34,10 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
 .. note::
 
    All methods on decor objects (``paint``, ``place``, and ``set_default``)
-   return a reference to the objects so you can chain them together. This save
-   some repetition. In Python, you might need to wrap the whole expression in
-   parentheses.
+   return a reference to the objects so you can chain them together. This saves
+   some repetition. You can break long statements over multiple lines, but in
+   Python this requires use of continuation lines ``\`` or wrapping the whole
+   expression into parentheses.
 
 .. _cablecell-paint:
 
