@@ -98,9 +98,14 @@ class TwoCellsWithGapJunction(arbor.recipe):
         return arbor.cable_cell(tree, labels, decor)
 
     def gap_junctions_on(self, gid):
-        assert gid in [0, 1]
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
-        return [arbor.gap_junction_connection((int(gid == 0), 'gj_label'), 'gj_label', 1)]
+        if gid == 0:
+            tgt = 1
+        elif gid == 1:
+            tgt = 0
+        else:
+            raise RuntimeError("Invalid GID for example.")
+        return [arbor.gap_junction_connection(tgt, 'gj_label'), 'gj_label', 1)]
 
 
 if __name__ == "__main__":

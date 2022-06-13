@@ -44,24 +44,25 @@ labels = arbor.label_dict({
     'axon_terminal':   '(restrict (locset "terminal") (region "axon"))', })
 
 # (3) Create and populate the decor.
+# NB. This can be written more compactly using method chaining
 
-decor = (arbor.decor()
-         # Set the default properties of the cell (this overrides the model defaults).
-         .set_property(Vm =-55)
-         .set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-         .set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-         # Override the cell defaults.
-         .paint('"custom"', tempK=270)
-         .paint('"soma"',   Vm=-50)
-         # Paint density mechanisms.
-         .paint('"all"', density('pas'))
-         .paint('"custom"', density('hh'))
-         .paint('"dend"',  density('Ih', {'gbar': 0.001}))
-         # Place stimuli and spike detectors.
-         .place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
-         .place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
-         .place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
-         .place('"axon_terminal"', arbor.spike_detector(-10), 'detector'))
+decor = arbor.decor()
+# Set the default properties of the cell (this overrides the model defaults).
+decor.set_property(Vm =-55)
+decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
+decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
+# Override the cell defaults.
+decor.paint('"custom"', tempK=270)
+decor.paint('"soma"',   Vm=-50)
+# Paint density mechanisms.
+decor.paint('"all"', density('pas'))
+decor.paint('"custom"', density('hh'))
+decor.paint('"dend"',  density('Ih', {'gbar': 0.001}))
+# Place stimuli and spike detectors.
+decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
+decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
+decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
+decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector'))
 
 # Single CV for the "soma" region
 soma_policy = arbor.cv_policy_single('"soma"')
