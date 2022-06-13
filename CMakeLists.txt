@@ -174,11 +174,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Data and internal scripts go here
-set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
 # Derived paths for arbor-build-catalogue
-get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_FULL_BINDIR} REALPATH)
-get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_FULL_DATAROOTDIR} REALPATH)
-get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_FULL_LIBDIR} REALPATH)
+get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_BINDIR} REALPATH)
+get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_DATAROOTDIR} REALPATH)
+get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_LIBDIR} REALPATH)
 file(RELATIVE_PATH ARB_REL_DATADIR ${absolute_full_bindir} ${absolute_full_datarootdir}/arbor)
 file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${absolute_full_bindir} ${absolute_full_libdir}/cmake/arbor)
 
@@ -226,7 +226,7 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 # Add scripts and supporting CMake for setting up external catalogues
 
 configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
