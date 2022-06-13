@@ -36,7 +36,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
           CIBW_BEFORE_ALL_LINUX: "yum -y install libxml2-devel"
           CIBW_BEFORE_BUILD: "python -m pip install numpy setuptools scikit-build ninja cmake"
-          CIBW_BUILD: "{cp3*-manylinux_x86_64,cp3*-macosx_x86_64}"
+          CIBW_BUILD: "{cp3*-manylinux_x86_64,cp3*-musllinux_x86_64,cp3*-musllinux_aarch64,cp3*-macosx_universal2}"
           #CIBW_BUILD: {"cp3*-manylinux_x86_64", "cp3*-musllinux_x86_64", "cp3*-macosx_x86_64"} Later
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2014"
           CIBW_ARCHS_LINUX: "x86_64"
