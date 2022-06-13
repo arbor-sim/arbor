@@ -32,6 +32,7 @@ jobs:
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir dist
+        env:
           MACOSX_DEPLOYMENT_TARGET: "10.15" #needed to undo some CIBW settings
           CIBW_BEFORE_ALL_LINUX: yum -y install libxml2-devel
           CIBW_BEFORE_BUILD: python -m pip install numpy setuptools scikit-build ninja cmake
