@@ -262,7 +262,7 @@ public:
     }
 
     // do nothing for destructor: we don't own the memory in range
-    ~array_view() {}
+    ~array_view() = default;
 
     // test whether memory overlaps that referenced by other
     template <
@@ -428,7 +428,7 @@ public:
     }
 
     // do nothing for destructor: we don't own the memory in range
-    ~const_array_view() {}
+    ~const_array_view() = default;
 
     // test whether memory overlaps that referenced by other
     template <

@@ -176,7 +176,7 @@ struct catalogue_state {
 
     // Set mechanism info (unchecked).
     void bind(const std::string& name, mechanism_info info) {
-        info_map_[name] = mechanism_info_ptr(new mechanism_info(std::move(info)));
+        info_map_[name] = std::make_unique<mechanism_info>(std::move(info));
     }
 
     // Add derived mechanism (unchecked).
@@ -488,9 +488,12 @@ struct catalogue_state {
             }
         }
 
-        apply_globals(apply_globals, implicit_deriv? implicit_deriv->parent: name, over);
         if (implicit_deriv) {
-            apply_deriv(over, implicit_deriv.value());
+            apply_globals(apply_globals, implicit_deriv->parent, over);
+            apply_deriv(over, *implicit_deriv);
+        }
+        else {
+            apply_globals(apply_globals, name, over);
         }
 
         return over;

@@ -104,7 +104,7 @@ detail::simd_mask_impl<T> logical_not(const detail::simd_mask_impl<T>& a) {
 }
 
 template <typename T>
-detail::simd_impl<T> fma(const detail::simd_impl<T> a, detail::simd_impl<T> b, detail::simd_impl<T> c) {
+detail::simd_impl<T> fma(const detail::simd_impl<T>& a, detail::simd_impl<T> b, detail::simd_impl<T> c) {
     return detail::simd_impl<T>::wrap(T::fma(a.value_, b.value_, c.value_));
 }
 
@@ -684,7 +684,7 @@ namespace detail {
         #undef ARB_DECLARE_BINARY_COMPARISON_
 
         template <typename T>
-        friend simd_impl<T> arb::simd::fma(const simd_impl<T> a, simd_impl<T> b, simd_impl<T> c);
+        friend simd_impl<T> arb::simd::fma(const simd_impl<T>& a, simd_impl<T> b, simd_impl<T> c);
 
         // Declare Indirect/Indirect indexed/Where Expression copy function as friends
 
