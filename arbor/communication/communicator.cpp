@@ -132,7 +132,7 @@ std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_s
 time_type communicator::min_delay() {
     auto local_min = std::numeric_limits<time_type>::max();
     for (auto& con : connections_) {
-        local_min = std::min(local_min, con.delay());
+        local_min = std::min(local_min, time_type(con.delay));
     }
 
     return distributed_->min(local_min);
@@ -189,9 +189,9 @@ void communicator::make_event_queues(
             auto sp = spks.begin();
             auto cn = cons.begin();
             while (cn!=cons.end() && sp!=spks.end()) {
-                auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
+                auto sources = std::equal_range(sp, spks.end(), cn->source, spike_pred());
                 for (auto s: make_range(sources)) {
-                    queues[cn->index_on_domain()].push_back(cn->make_event(s));
+                    queues[cn->index_on_domain].push_back(cn->make_event(s));
                 }
 
                 sp = sources.first;
@@ -204,7 +204,7 @@ void communicator::make_event_queues(
             while (cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c: make_range(targets)) {
-                    queues[c.index_on_domain()].push_back(c.make_event(*sp));
+                    queues[c.index_on_domain].push_back(c.make_event(*sp));
                 }
 
                 cn = targets.first;
