@@ -153,29 +153,21 @@ gathered_vector<spike> communicator::exchange(std::vector<spike> local_spikes) {
     return global_spikes;
 }
 
-void communicator::make_event_queues(
-        const gathered_vector<spike>& global_spikes,
-        std::vector<pse_vector>& queues)
-{
+void communicator::make_event_queues(const gathered_vector<spike>& global_spikes,
+                                     std::vector<pse_vector>& queues) {
     arb_assert(queues.size()==num_local_cells_);
-
-    using util::subrange_view;
-    using util::make_span;
-    using util::make_range;
-
+    // Predicate for partitioning
+    struct spike_pred {
+        bool operator()(const spike& spk, const cell_member_type& src) { return spk.source < src; }
+        bool operator()(const cell_member_type& src, const spike& spk) { return src < spk.source; }
+    };
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;
-    for (auto dom: make_span(num_domains_)) {
-        auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
-        auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
-
-        struct spike_pred {
-            bool operator()(const spike& spk, const cell_member_type& src)
-                {return spk.source<src;}
-            bool operator()(const cell_member_type& src, const spike& spk)
-                {return src<spk.source;}
-        };
-
+    for (auto dom: util::make_span(num_domains_)) {
+        auto cons = util::subrange_view(connections_,           cp[dom], cp[dom+1]);
+        auto spks = util::subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
+        auto sp = spks.begin(), se = spks.end();
+        auto cn = cons.begin(), ce = cons.end();
         // We have a choice of whether to walk spikes or connections:
         // i.e., we can iterate over the spikes, and for each spike search
         // the for connections that have the same source; or alternatively
@@ -186,27 +178,19 @@ void communicator::make_event_queues(
         // complexity of order max(S log(C), C log(S)), where S is the
         // number of spikes, and C is the number of connections.
         if (cons.size()<spks.size()) {
-            auto sp = spks.begin();
-            auto cn = cons.begin();
-            while (cn!=cons.end() && sp!=spks.end()) {
-                auto sources = std::equal_range(sp, spks.end(), cn->source, spike_pred());
-                for (auto s: make_range(sources)) {
-                    queues[cn->index_on_domain].push_back(cn->make_event(s));
-                }
-
+            while (cn!=ce && sp!=se) {
+                auto qix = cn->index_on_domain;
+                auto src = cn->source;
+                auto sources = std::equal_range(sp, se, src, spike_pred());
+                for (auto s: util::make_range(sources)) queues[qix].push_back(cn->make_event(s));
                 sp = sources.first;
                 ++cn;
             }
         }
         else {
-            auto cn = cons.begin();
-            auto sp = spks.begin();
-            while (cn!=cons.end() && sp!=spks.end()) {
-                auto targets = std::equal_range(cn, cons.end(), sp->source);
-                for (auto c: make_range(targets)) {
-                    queues[c.index_on_domain].push_back(c.make_event(*sp));
-                }
-
+            while (cn!=ce && sp!=se) {
+                auto targets = std::equal_range(cn, ce, sp->source);
+                for (auto c: util::make_range(targets)) queues[c.index_on_domain].push_back(c.make_event(*sp));
                 cn = targets.first;
                 ++sp;
             }
