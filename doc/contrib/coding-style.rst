@@ -18,7 +18,8 @@ run the following commands to apply it:
    black --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)' . scripts/build-catalogue.in
 
 The formatter can also be run with ``--check`` to list offending files and
-``--diff`` to preview changes.
+``--diff`` to preview changes. Most editors can `integrate with black
+<https://black.readthedocs.io/en/stable/integrations/editors.html>`__.
 
 C++
 ---
