@@ -55,8 +55,8 @@ public:
     using size_type = fvm_size_type;
 
     cell_gid_type cell_group;
-    std::map<std::tuple<int, int, int>, int> cell_to_index;
-    std::map<int, std::tuple<int, int, int>> index_to_cell;
+    std::map<std::tuple<int, int, int, int>, int> cell_to_index;
+    std::map<int, std::tuple<int, int, int, int>> index_to_cell;
 
     fvm_lowered_cell_impl(execution_context ctx, cell_gid_type cg): context_(ctx), threshold_watcher_(ctx) {cell_group = context_.distributed->id();};
 
@@ -281,19 +281,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     std::vector<arb_index_type> peer_ix;
     std::vector<arb_index_type> peer_index_reset;
+
+    //todo do i need this
+    std::vector<arb_index_type> peer_ix_start;
     
-    std::vector<int> node_arr;
-    for (auto& m: mechanisms_) {
-        if (m->kind() == arb_mechanism_kind_gap_junction) {
-            for(int i = 0; i<m->ppack_.width; ++i) {
-                node_arr.push_back(m->ppack_.node_index[i]);
-            }
-        }
-    }
     std::vector<value_type> v_start = {};
     
     //WR iterations
-    int wr_max = 10;
+    int wr_max = 1;
     auto eps = 1e-7;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
 
@@ -337,66 +332,89 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
                 m->deliver_events(events);
 
-                // Map peer_index to position in trace
+
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
 
                     if (wr_it == 0 && step == 0) {
-                        // iterate through peer indices and check if in same group as node
+                        if (cell_group == 1) {
 
-                        std::vector<int> peer_guess;
-                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
-                            int node = m->ppack_.node_index[ix];
-                            nodes.push_back(node);
-                            int peer = m->ppack_.peer_index[ix];
-                            //if (std::find(node_arr.begin(), node_arr.end(), peer) != node_arr.end()){
-                            if (cell_group == get<1>(index_to_cell[peer])){
-                                peer_guess.push_back(get<2>(index_to_cell[peer]));
-                            } else {
-                                peer_guess.push_back(get<2>(index_to_cell[node]));
+                            std::cout << "peer index = { ";
+                            for (int j = 0; j < m->ppack_.width; ++j) {
+                                std::cout << m->ppack_.peer_index[j] << " ";
+                                //std::cout << get<2>(index_to_cell[m->ppack_.peer_index[j]]) << " ";
                             }
+                            std::cout << "}" << std::endl;
                         }
+                    } 
+                        
+                    if (wr_it == 0 && step == 0) {
 
-                        std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos;
-                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
-                            peer_pos[m->ppack_.node_index[ix]].push_back(ix);
-                            //peer_index_reset.push_back(m->ppack_.peer_index[ix]);
+                        std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos = {};
+                        
+                        for (auto ix = 0; ix<m->ppack_.width; ++ix) {
+                            auto node = m->ppack_.node_index[ix];
+                            peer_pos[node].push_back(ix);
+                            peer_index_reset.push_back(m->ppack_.peer_index[ix]);
                         }
 
                         for (auto it = 0; it < m->ppack_.width; ++it) {
-                            auto p = m->ppack_.peer_index[it];
+                            //if peer in same group as node use peer index
+                            //if peer not in same group as node, use node index instead
+                            int p = m->ppack_.peer_index[it];
+
+                            //check group 
+                            if (get<1>(index_to_cell[p]) != cell_group) {
+                                p = m->ppack_.node_index[it];
+                            }
+
                             peer_ix.push_back(peer_pos[p][0]);
                             peer_pos[p].pop_front();
                         }
-
+                        
+                        /*
+                        if (cell_group == 1) {
+                            std::cout << "peer index trace = { ";
+                            for (auto i = 0; i < m->ppack_.width; ++i) {
+                                std::cout << peer_ix[i] << " ";
+                            }
+                            std::cout << "}" << std::endl;
+                        }*/
+                        
                     }
-                    
-                    m->ppack_.peer_index = peer_ix.data();
-                    // peer index is now set to version without offset! 
 
-                    if (wr_it == 0){
-                        v_start = {};
-
-                        for (auto ix = 0; ix<m->ppack_.width; ++ix) {
-                            auto node = get<2>(index_to_cell[m->ppack_.node_index[ix]]);
-                            v_start.push_back(state_->voltage[node]);
+                    //transform peer index between index and cell description and use peer_ix=node_ix if not in same group for accessing state_->voltage in first iteration
+                    if (wr_it == 0) {
+                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
+                            if (cell_group == get<1>(index_to_cell[m->ppack_.peer_index[ix]])) {
+                                peer_ix_start.push_back(get<2>(index_to_cell[m->ppack_.peer_index[ix]]));
+                            } else {
+                                peer_ix_start.push_back(get<2>(index_to_cell[m->ppack_.node_index[ix]]));
+                            }
                         }
-                        m->ppack_.vec_v_peer = v_start.data();
+                        m->ppack_.peer_index = peer_ix_start.data();
                     }
 
+                    // Use trace_prev for gj current calculation
                     if (wr_it > 0) {
                         auto gj = m->mechanism_id();
                         m->ppack_.vec_v_peer = trace_prev[gj][step].data();
+                        m->ppack_.peer_index = peer_ix.data();
                     }
                 }
-                
+               
                 m->update_current();
 
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
 
+                    // Reset peer index to original array
+                    if (wr_it > 0) {
+                        m->ppack_.peer_index = peer_index_reset.data();
+                    }
+
+                    // Write trace
                     auto gj = m->mechanism_id();
                     std::vector<value_type> v_step(m->ppack_.width, 0.);
-    
                     for(int ix = 0; ix < m->ppack_.width; ++ix) {
                         auto node_cv = get<2>(index_to_cell[m->ppack_.node_index[ix]]);
                         v_step[ix] = state_->voltage[node_cv];
@@ -404,31 +422,34 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     trace[gj].push_back(v_step);
                     
                     /*
-                    if (cell_group == 1){
-                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test.txt", std::ios::app);
+                    if (cell_group == 0){
+
+                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/plot/mpi_test.txt", std::ios::app);
                         if (wr_it == 0 && step == 0) {
                             file0 << remaining_steps << std::endl;
                             for (auto cv = 0; cv < m->ppack_.width-1; ++ cv) {
-                                file0 << m->ppack_.node_index[cv];
+                                file0 << get<2>(index_to_cell[m->ppack_.node_index[cv]]);
                             }
-                            file0 << m->ppack_.node_index[m->ppack_.width-1] << std::endl;
+                            file0 << get<2>(index_to_cell[m->ppack_.node_index[m->ppack_.width-1]]);
                         }
 
                         for (auto j = 0; j<m->ppack_.width; ++j) {
-                            file0 << trace[gj][step][j] << ", ";
+                            file0 << trace[gj][step][j] << ",";// << ", ";
                         }
                         file0 << std::endl;
                         file0.close();
-                    }*/
-
+                    }
+                    */
+                    
                     // Calculate error for break condition
                     /*
                     if (wr_it > 1) {
                         for (auto ix = 0; ix < trace[gj][step].size(); ++ ix){
                             auto node_cv = m->ppack_.node_index[ix];
                             auto err_cv = std::abs(trace[gj][step][node_cv] - trace_prev[gj][step][node_cv]);
-                            if (err_cv > max_err) {
-                                max_err = err_cv;
+                            err[node_cv] += (err_cv*err_cv);
+                            if (err[node_cv] > eps) {
+                                b += 1;
                             }
                         }
                     }*/
@@ -717,7 +738,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     cvs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[3]);
     
     //3) cell to index map {gid, cg, cv} -> ix and ix -> {gid, cg, cv}
-    cell_to_index = fvm_cell_to_index(gids_gathered, cgs_gathered, cvs_gathered);
+    cell_to_index = fvm_cell_to_index(gids_gathered, cgs_gathered, cvs_gathered, lids_gathered);
     index_to_cell = fvm_index_to_cell(cell_to_index);
 
     //equivalent to previous gj_cvs = { {gid, lid} : cv } but with a global index

@@ -694,34 +694,34 @@ ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
 
 //3) index map function 
 
-ARB_ARBOR_API std::map<std::tuple<int, int, int>, int> fvm_cell_to_index(
+ARB_ARBOR_API std::map<std::tuple<int, int, int, int>, int> fvm_cell_to_index(
     const std::vector<int> gids,
     const std::vector<int> cgs,
-    const std::vector<int> cvs
+    const std::vector<int> cvs, 
+    const std::vector<int> lids
 )
 {
-    std::map<std::tuple<int, int, int>, int> cell_to_index;
-    std::tuple<int, int, int> element;
+    std::map<std::tuple<int, int, int, int>, int> cell_to_index;
+    std::tuple<int, int, int, int> element;
 
     for (int i = 0; i<gids.size(); ++i) {
-        std::cout << "i = " << i << std::endl;
-        element = {gids[i], cgs[i], cvs[i]};
+        element = {gids[i], cgs[i], cvs[i], lids[i]};
         cell_to_index[element] = i;
     }
 
     return cell_to_index;
 }
 
-ARB_ARBOR_API std::map<int, std::tuple<int, int, int>> fvm_index_to_cell(
-    std::map<std::tuple<int, int, int>, int> cell_to_index
+ARB_ARBOR_API std::map<int, std::tuple<int, int, int, int>> fvm_index_to_cell(
+    std::map<std::tuple<int, int, int, int>, int> cell_to_index
 )
 {
-    std::map<int, std::tuple<int, int, int>> index_to_cell;
-    std::tuple<int, int, int> element;
+    std::map<int, std::tuple<int, int, int, int>> index_to_cell;
+    std::tuple<int, int, int, int> element;
 
     for (auto element: cell_to_index){
         int index = element.second;
-        std::tuple<int, int, int> cell = {get<0>(element.first), get<1>(element.first), get<2>(element.first)};
+        std::tuple<int, int, int, int> cell = {get<0>(element.first), get<1>(element.first), get<2>(element.first), get<3>(element.first)};
         index_to_cell[index] = cell;
     }
 
@@ -733,21 +733,19 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_c
     std::vector<int> lids, 
     std::vector<int> cgs, 
     std::vector<int> cvs,
-    std::map<std::tuple<int, int, int>, int> cell_to_index
+    std::map<std::tuple<int, int, int, int>, int> cell_to_index
 )
 {
     std::unordered_map<cell_member_type, fvm_size_type> gj_cvs_index;
-
+    
     for (int i = 0; i<gids.size(); ++i){
 
-        std::tuple<int, int, int> cell = {gids[i], cgs[i], cvs[i]};
+        std::tuple<int, int, int, int> cell = {gids[i], cgs[i], cvs[i], lids[i]};
         int index = cell_to_index[cell];
-
         gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, unsigned(index)});
     }
-
+    
     return gj_cvs_index;
-
 }
 
 /*

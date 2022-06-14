@@ -276,20 +276,21 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
     const recipe& rec);
 
 
-ARB_ARBOR_API std::map<std::tuple<int, int, int>, int> fvm_cell_to_index(
+ARB_ARBOR_API std::map<std::tuple<int, int, int, int>, int> fvm_cell_to_index(
     const std::vector<int> gids,
     const std::vector<int> cgs,
-    const std::vector<int> cvs);
+    const std::vector<int> cvs, 
+    const std::vector<int> lids);
 
-ARB_ARBOR_API std::map<int, std::tuple<int, int, int>> fvm_index_to_cell(
-    std::map<std::tuple<int, int, int>, int> cell_to_index);
+ARB_ARBOR_API std::map<int, std::tuple<int, int, int, int>> fvm_index_to_cell(
+    std::map<std::tuple<int, int, int, int>, int> cell_to_index);
 
 ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_cv_map(
     std::vector<int> gids, 
     std::vector<int> lids, 
     std::vector<int> cgs, 
     std::vector<int> cvs,
-    std::map<std::tuple<int, int, int>, int> cell_to_index);
+    std::map<std::tuple<int, int, int, int>, int> cell_to_index);
 
 // 1) split cg cv map into 4 arrays
 ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
