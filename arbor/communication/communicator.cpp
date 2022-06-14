@@ -96,16 +96,17 @@ communicator::communicator(const recipe& rec,
     connections_.resize(n_cons);
     util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
-    std::size_t pos = 0;
+    auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
+        auto index = cell.index_on_domain;
         auto source_resolver = resolver(&source_resolution_map);
         for (const auto& c: cell.conns) {
-            const auto i = offsets[src_domains[pos]]++;
             auto src_lid = source_resolver.resolve(c.source);
             auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
-            connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
-            ++pos;
+            auto offset  = offsets[*src_domain]++;
+            ++src_domain;
+            connections_[offset] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, index};
         }
     }
 
@@ -119,9 +120,7 @@ communicator::communicator(const recipe& rec,
     // This is num_domains_ independent sorts, so it can be parallelized trivially.
     const auto& cp = connection_part_;
     threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
-        [&](cell_size_type i) {
-            util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
-        });
+                                   [&](cell_size_type i) { util::sort(util::subrange_view(connections_, cp[i], cp[i+1])); });
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -130,11 +129,9 @@ std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_s
 }
 
 time_type communicator::min_delay() {
-    auto local_min = std::numeric_limits<time_type>::max();
-    for (auto& con : connections_) {
-        local_min = std::min(local_min, time_type(con.delay));
-    }
-
+    auto local_min = std::reduce(connections_.begin(), connections_.end(),
+                                 std::numeric_limits<time_type>::max(),
+                                 [](auto&& acc, auto&& el) { return std::min(acc, time_type(el.delay)); });
     return distributed_->min(local_min);
 }
 
