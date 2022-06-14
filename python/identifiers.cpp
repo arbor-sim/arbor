@@ -18,7 +18,9 @@ void register_identifiers(py::module& m) {
     py::enum_<arb::lid_selection_policy>(m, "selection_policy",
         "Enumeration used to identify a selection policy, used by the model for selecting one of possibly multiple locations on the cell associated with a labeled item.")
         .value("round_robin", arb::lid_selection_policy::round_robin,
-               "iterate round-robin over all possible locations.")
+               "Iterate round-robin over all possible locations.")
+		.value("round_robin_halt", arb::lid_selection_policy::round_robin_halt,
+               "Halts at the current location until the round_robin policy is called (again).")
         .value("univalent", arb::lid_selection_policy::assert_univalent,
                "Assert that there is only one possible location associated with a labeled item on the cell. The model throws an exception if the assertion fails.");
 
