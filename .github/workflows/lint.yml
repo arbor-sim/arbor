@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: "Lint"
+    name: Lint
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -15,10 +15,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Update pip
-        run: |
-          python -m pip install --upgrade pip
-          pip install black
-      - name: Lint python
-        run: |
-          black --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)' . scripts/build-catalogue.in
+      - name: Python Formatting
+        uses: psf/black@stable
+        options: "--check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)"
+        src: "scripts/build-catalogue.in ."
