@@ -6,16 +6,22 @@ if(ARB_USE_BUNDLED_JSON)
   set(json_library_name ext-json PARENT_SCOPE)
 endif()
 
+# Random123 (DE Shaw Research) counter-based random number generators (header-only)
+
+add_library(ext-random123 INTERFACE)
+if(ARB_USE_BUNDLED_RANDOM123)
+    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/random123/include)
+    install(TARGETS ext-random123 EXPORT arbor-targets)
+else()
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
+install(TARGETS ext-random123 EXPORT arbor-targets)
+
 # tinyopt command line parsing libary (header-only).
 
 add_library(ext-tinyopt INTERFACE)
 target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
-
-# Random123 (DE Shaw Research) counter-based random number generators (header-only)
-
-add_library(ext-random123 INTERFACE)
-target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/random123/include)
-install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Google benchmark for microbenchmarks:
 

@@ -242,6 +242,7 @@ endif()
 add_subdirectory(ext)
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
