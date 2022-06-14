@@ -88,13 +88,23 @@ private:
 };
 
 struct ARB_ARBOR_API round_robin_state {
-    cell_size_type state = 0;
+    cell_lid_type state = 0;
     round_robin_state() : state(0) {};
     round_robin_state(cell_lid_type state) : state(state) {};
+    cell_lid_type get();
+    lid_hopefully update(const label_resolution_map::range_set& range);
+};
+
+struct ARB_ARBOR_API round_robin_halt_state {
+    cell_lid_type state = 0;
+    round_robin_halt_state() : state(0) {};
+    round_robin_halt_state(cell_lid_type state) : state(state) {};
+    cell_lid_type get();
     lid_hopefully update(const label_resolution_map::range_set& range);
 };
 
 struct ARB_ARBOR_API assert_univalent_state {
+    cell_lid_type get();
     lid_hopefully update(const label_resolution_map::range_set& range);
 };
 
@@ -105,9 +115,10 @@ struct ARB_ARBOR_API resolver {
     cell_lid_type resolve(const cell_global_label_type& iden);
 
 private:
-    using state_variant = std::variant<round_robin_state, assert_univalent_state>;
+    using state_variant = std::variant<round_robin_state, round_robin_halt_state, assert_univalent_state>;
 
     state_variant construct_state(lid_selection_policy pol);
+    state_variant construct_state(lid_selection_policy pol, cell_lid_type state);
 
     const label_resolution_map* label_map_;
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, state_variant>>> state_map_;

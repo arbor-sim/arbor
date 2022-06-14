@@ -54,6 +54,10 @@ cells and members of cell-local collections.
 
       Iterate over the items of the group in a round-robin fashion.
 
+   .. cpp:enumerator:: round_robin_halt
+
+      Halts at the current item of the group until the round_robin policy is called (again).
+
    .. cpp:enumerator:: assert_univalent
 
       Assert that ony one item is available in the group. Throws an exception if the assertion
