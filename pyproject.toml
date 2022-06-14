@@ -1,0 +1,3 @@
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = "libxml2-dev" 
