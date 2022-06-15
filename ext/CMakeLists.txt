@@ -8,15 +8,14 @@ endif()
 
 # Random123 (DE Shaw Research) counter-based random number generators (header-only)
 
-add_library(ext-random123 INTERFACE)
 if(ARB_USE_BUNDLED_RANDOM123)
+    check_git_submodule(random123 random123)
+    if(NOT random123_avail)
+        message(FATAL_ERROR "Required Random123 submodule is not available.")
+    endif()
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/random123/include)
-    install(TARGETS ext-random123 EXPORT arbor-targets)
-else()
-    find_package(Random123 REQUIRED)
-    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+    message(STATUS "Using Random123 submodule: ${CMAKE_CURRENT_SOURCE_DIR}>/random123")
 endif()
-install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # tinyopt command line parsing libary (header-only).
 

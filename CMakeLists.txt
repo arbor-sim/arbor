@@ -232,6 +232,8 @@ install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} P
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
+cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
   find_package(nlohmann_json)
@@ -239,10 +241,17 @@ if(NOT ARB_USE_BUNDLED_JSON)
 else()
   unset(nlohmann_json_DIR CACHE)
 endif()
+
+cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+add_library(ext-random123 INTERFACE)
+if(NOT ARB_USE_BUNDLED_RANDOM123)
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
+
 add_subdirectory(ext)
 
-cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
