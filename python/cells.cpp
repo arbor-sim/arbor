@@ -74,28 +74,37 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
     return s;
 }
 
-//
+// location helpers
+arb::region region_from_string(std::string reg) {
+    std::replace(reg.begin(), reg.end(), '\'', '"');
+    return arborio::parse_region_expression(reg).unwrap();
+}
+
+arb::locset locset_from_string(std::string ls) {
+    std::replace(ls.begin(), ls.end(), '\'', '"');
+    return arborio::parse_locset_expression(ls).unwrap();
+}
+
 // cv_policy helpers
-//
 
 arb::cv_policy make_cv_policy_single(const std::string& reg) {
-    return arb::cv_policy_single(arborio::parse_region_expression(reg).unwrap());
+    return arb::cv_policy_single(region_from_string(reg));
 }
 
 arb::cv_policy make_cv_policy_explicit(const std::string& locset, const std::string& reg) {
-    return arb::cv_policy_explicit(arborio::parse_locset_expression(locset).unwrap(), arborio::parse_region_expression(reg).unwrap());
+    return arb::cv_policy_explicit(locset_from_string(locset), region_from_string(reg));
 }
 
 arb::cv_policy make_cv_policy_every_segment(const std::string& reg) {
-    return arb::cv_policy_every_segment(arborio::parse_region_expression(reg).unwrap());
+    return arb::cv_policy_every_segment(region_from_string(reg));
 }
 
 arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std::string& reg) {
-    return arb::cv_policy_fixed_per_branch(cv_per_branch, arborio::parse_region_expression(reg).unwrap());
+    return arb::cv_policy_fixed_per_branch(cv_per_branch, region_from_string(reg));
 }
 
 arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
-    return arb::cv_policy_max_extent(cv_length, arborio::parse_region_expression(reg).unwrap());
+    return arb::cv_policy_max_extent(cv_length, region_from_string(reg));
 }
 
 // Helper for finding a mechanism description in a Python object.
@@ -390,7 +399,7 @@ void register_cells(pybind11::module& m) {
               else throw pyarb_error(util::pprintf("{} does not name a valid integration axis. "
                                                    "Only 'area' and 'length' are supported)", integrate_along));
 
-              auto object_vec = arb::intersect_region(arborio::parse_region_expression(reg).unwrap(), cvs, integrate_area);
+              auto object_vec = arb::intersect_region(region_from_string(reg), cvs, integrate_area);
               auto tuple_vec = std::vector<pybind11::tuple>(object_vec.size());
               std::transform(object_vec.begin(), object_vec.end(), tuple_vec.begin(),
                              [](const auto& t)  { return pybind11::make_tuple(t.idx, t.proportion); });
@@ -642,7 +651,7 @@ void register_cells(pybind11::module& m) {
         // Paint mechanisms.
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::density& mechanism) {
-                dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+                dec.paint(region_from_string(region), mechanism);
             },
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
@@ -653,7 +662,7 @@ void register_cells(pybind11::module& m) {
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
-                auto r = arborio::parse_region_expression(region).unwrap();
+                auto r = region_from_string(region);
                 if (Vm) dec.paint(r, arb::init_membrane_potential{*Vm});
                 if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
                 if (rL) dec.paint(r, arb::axial_resistivity{*rL});
@@ -669,7 +678,7 @@ void register_cells(pybind11::module& m) {
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
                optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
-                auto r = arborio::parse_region_expression(region).unwrap();
+                auto r = region_from_string(region);
                 if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
@@ -682,7 +691,7 @@ void register_cells(pybind11::module& m) {
         // Place synapses
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::synapse& mechanism, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
+                return dec.place(locset_from_string(locset), mechanism, label_name);
             },
             "locations"_a, "synapse"_a, "label"_a,
             "Place one instance of 'synapse' on each location in 'locations'."
@@ -690,7 +699,7 @@ void register_cells(pybind11::module& m) {
         // Place gap junctions.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::junction& mechanism, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
+                return dec.place(locset_from_string(locset), mechanism, label_name);
             },
             "locations"_a, "junction"_a, "label"_a,
             "Place one instance of 'junction' on each location in 'locations'."
@@ -698,7 +707,7 @@ void register_cells(pybind11::module& m) {
         // Place current clamp stimulus.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::i_clamp& stim, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim, label_name);
+                return dec.place(locset_from_string(locset), stim, label_name);
             },
             "locations"_a, "iclamp"_a, "label"_a,
             "Add a current stimulus at each location in locations."
@@ -706,7 +715,7 @@ void register_cells(pybind11::module& m) {
         // Place spike detector.
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::threshold_detector& d, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), d, label_name);
+                return dec.place(locset_from_string(locset), d, label_name);
             },
             "locations"_a, "detector"_a, "label"_a,
             "Add a voltage spike detector at each location in locations."
@@ -744,11 +753,11 @@ void register_cells(pybind11::module& m) {
             "The number of unbranched cable sections in the morphology.")
         // Get locations associated with a locset label.
         .def("locations",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arborio::parse_locset_expression(label).unwrap());},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_locset(locset_from_string(label));},
             "label"_a, "The locations of the cell morphology for a locset label.")
         // Get cables associated with a region label.
         .def("cables",
-            [](arb::cable_cell& c, const char* label) {return c.concrete_region(arborio::parse_region_expression(label).unwrap()).cables();},
+            [](arb::cable_cell& c, const char* label) {return c.concrete_region(region_from_string(label)).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})

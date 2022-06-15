@@ -11,6 +11,15 @@ TODO: Coverage for more than just iclamp.
 """
 
 class TestDecorClasses(unittest.TestCase):
+    def test_labels(self):
+        decor = A.decor()
+
+        decor.paint("(all)",            A.density("hh"))
+        decor.paint("'all'",            A.density("hh"))
+        decor.paint("\"all\"",          A.density("hh"))
+        decor.paint('"all"',            A.density("hh"))
+        decor.paint("(region \"all\")", A.density("hh"))
+
     def test_iclamp(self):
         # Constant amplitude iclamp:
         clamp = A.iclamp(10);

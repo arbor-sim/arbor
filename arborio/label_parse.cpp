@@ -147,7 +147,7 @@ std::string eval_description(const char* name, const std::vector<std::any>& args
     };
 
     const auto nargs = args.size();
-    std::string msg = concat("'", name, "' with ", nargs, "argument", nargs!=1u?"s:" : ":");
+    std::string msg = concat("'", name, "' with ", nargs, " argument", nargs!=1u?"s:" : ":");
     if (nargs) {
         msg += " (";
         bool first = true;
