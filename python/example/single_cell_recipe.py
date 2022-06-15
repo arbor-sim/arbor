@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas, seaborn  # You may have to pip install these.
+import pandas  # You may have to pip install these.
+import seaborn  # You may have to pip install these.
 
 # The corresponding generic recipe version of `single_cell_model.py`.
 

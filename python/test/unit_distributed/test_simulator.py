@@ -3,9 +3,8 @@
 # test_simulator.py
 
 import unittest
-import numpy as np
 import arbor as A
-from .. import fixtures, cases
+from .. import cases
 
 mpi_enabled = A.__config__["mpi"]
 
@@ -56,7 +55,7 @@ class lifN_recipe(A.recipe):
 class TestSimulator(unittest.TestCase):
     def init_sim(self):
         comm = A.mpi_comm()
-        context = A.context(threads=1, gpu_id=None, mpi=A.mpi_comm())
+        context = A.context(threads=1, gpu_id=None, mpi=comm)
         self.rank = context.rank
         self.ranks = context.ranks
 

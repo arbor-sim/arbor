@@ -5,7 +5,7 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures, cases
+from .. import cases
 
 # check Arbor's configuration of mpi and gpu
 mpi_enabled = arb.__config__["mpi"]
@@ -14,6 +14,7 @@ gpu_enabled = arb.__config__["gpu"]
 """
 all tests for distributed arb.domain_decomposition
 """
+
 
 # Dummy recipe
 class homo_recipe(arb.recipe):
@@ -173,7 +174,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             context = arb.context(threads=1, gpu_id=None)
 
         N = context.ranks
-        I = context.rank
+        R = context.rank
 
         # 10 cells per domain
         n_local = 10
@@ -186,12 +187,12 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         self.assertEqual(decomp.num_global_cells, n_global)
         self.assertEqual(len(decomp.groups), n_local)
 
-        b = I * n_local
-        e = (I + 1) * n_local
+        b = R * n_local
+        e = (R + 1) * n_local
         gids = list(range(b, e))
 
         for gid in gids:
-            self.assertEqual(I, decomp.gid_domain(gid))
+            self.assertEqual(R, decomp.gid_domain(gid))
 
         # Each cell group contains 1 cell of kind cable
         # Each group should also be tagged for cpu execution
@@ -206,7 +207,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             self.assertEqual(grp.kind, arb.cell_kind.cable)
 
     # 1 node with 1 cpu core, 1 gpu; assumes all cells will be placed on gpu in a single cell group
-    @unittest.skipIf(gpu_enabled == False, "GPU not enabled")
+    @unittest.skipIf(gpu_enabled is False, "GPU not enabled")
     def test_domain_decomposition_homogenous_GPU(self):
 
         if mpi_enabled:
@@ -216,7 +217,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             context = arb.context(threads=1, gpu_id=0)
 
         N = context.ranks
-        I = context.rank
+        R = context.rank
 
         # 10 cells per domain
         n_local = 10
@@ -229,12 +230,12 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         self.assertEqual(decomp.num_global_cells, n_global)
         self.assertEqual(len(decomp.groups), 1)
 
-        b = I * n_local
-        e = (I + 1) * n_local
+        b = R * n_local
+        e = (R + 1) * n_local
         gids = list(range(b, e))
 
         for gid in gids:
-            self.assertEqual(I, decomp.gid_domain(gid))
+            self.assertEqual(R, decomp.gid_domain(gid))
 
         # Each cell group contains 1 cell of kind cable
         # Each group should also be tagged for gpu execution
@@ -256,7 +257,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             context = arb.context(threads=1, gpu_id=None)
 
         N = context.ranks
-        I = context.rank
+        R = context.rank
 
         # 10 cells per domain
         n_local = 10
@@ -270,12 +271,12 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         self.assertEqual(decomp.num_global_cells, n_global)
         self.assertEqual(len(decomp.groups), n_local)
 
-        b = I * n_local
-        e = (I + 1) * n_local
+        b = R * n_local
+        e = (R + 1) * n_local
         gids = list(range(b, e))
 
         for gid in gids:
-            self.assertEqual(I, decomp.gid_domain(gid))
+            self.assertEqual(R, decomp.gid_domain(gid))
 
         # Each cell group contains 1 cell of kind cable
         # Each group should also be tagged for cpu execution
@@ -422,12 +423,10 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
 
     def test_domain_decomposition_exceptions(self):
         nranks = 1
-        rank = 0
         if mpi_enabled:
             comm = arb.mpi_comm()
             context = arb.context(threads=1, gpu_id=None, mpi=comm)
             nranks = context.ranks
-            rank = context.rank
         else:
             context = arb.context(threads=1, gpu_id=None)
 
@@ -442,7 +441,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             RuntimeError,
             "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0",
         ):
-            decomp1 = arb.partition_load_balance(recipe, context, hints1)
+            arb.partition_load_balance(recipe, context, hints1)
 
         hint2 = arb.partition_hint()
         hint2.prefer_gpu = True
@@ -453,4 +452,4 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             RuntimeError,
             "unable to perform load balancing because cell_kind::cable has invalid suggested gpu_cell_group size of 0",
         ):
-            decomp2 = arb.partition_load_balance(recipe, context, hints2)
+            arb.partition_load_balance(recipe, context, hints2)

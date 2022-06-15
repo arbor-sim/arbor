@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys, os
-import subprocess as sp
-from tempfile import TemporaryDirectory
+import sys
+import os
+import make_images
 
 # Add /scripts to path. Used for Furo theme and to generate images
 this_path = os.path.split(os.path.abspath(__file__))[0]
@@ -57,8 +57,6 @@ print("--- generating images ---")
 img_path = this_path + "/gen-images"
 if not os.path.exists(img_path):
     os.mkdir(img_path)
-
-import make_images
 
 make_images.generate(img_path)
 

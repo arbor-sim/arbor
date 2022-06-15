@@ -1,7 +1,7 @@
 import representation
 from representation import Segment
 
-############# morphologies
+# morphologies
 
 tmp = [
     [
@@ -261,7 +261,7 @@ tmp = [
 tutorial_network_ring_morph = representation.make_morph(tmp)
 
 
-############# locsets (label_morph)
+# locsets (label_morph)
 
 ls_root = {"type": "locset", "value": [(0, 0.0)]}
 ls_term = {"type": "locset", "value": [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
@@ -393,7 +393,7 @@ ls_distal_translate_multi = {
     ],
 }
 
-############# regions (label_morph)
+# regions (label_morph)
 
 reg_empty = {"type": "region", "value": []}
 reg_all = {
@@ -521,14 +521,14 @@ reg_rhs = {"type": "region", "value": [(1, 0.0, 1.0)]}
 reg_and = {"type": "region", "value": [(1, 0.0, 0.5)]}
 reg_or = {"type": "region", "value": [(0, 0.5, 1.0), (1, 0.0, 1.0)]}
 
-############# locsets (tutorial_morph)
+# locsets (tutorial_morph)
 
 tut_ls_root = {"type": "locset", "value": [(0, 0.0)]}
 tut_ls_terminal = {"type": "locset", "value": [(1, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]}
 tut_ls_custom_terminal = {"type": "locset", "value": [(3, 1.0), (4, 1.0)]}
 tut_ls_axon_terminal = {"type": "locset", "value": [(5, 1.0)]}
 
-############# regions (tutorial_morph)
+# regions (tutorial_morph)
 
 tut_reg_all = {
     "type": "region",
@@ -562,12 +562,12 @@ tut_reg_custom = {
     ],
 }
 
-############# locsets (tutorial_network_ring_morph)
+# locsets (tutorial_network_ring_morph)
 
 tut_network_ring_ls_synapse_site = {"type": "locset", "value": [(1, 0.5)]}
 tut_network_ring_ls_root = {"type": "locset", "value": [(0, 0.0)]}
 
-############# regions (tutorial_network_ring_morph)
+# regions (tutorial_network_ring_morph)
 
 tut_network_ring_reg_soma = {"type": "region", "value": [(0, 0.0, 0.1935483870967742)]}
 tut_network_ring_reg_dend = {

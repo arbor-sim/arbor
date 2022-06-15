@@ -5,7 +5,6 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures
 
 """
 all tests for non-distributed arb.context

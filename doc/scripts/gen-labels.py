@@ -10,18 +10,16 @@ def is_collocated(l, r):
 
 
 def write_morphology(name, morph):
-    string = "tmp = [".format(name)
+    string = "tmp = ["
     for i in range(morph.num_branches):
-        first = True
+        last_dist = None
         sections = "["
         for seg in morph.branch_segments(i):
-            if not first:
+            if last_dist is not None:
                 if is_collocated((seg.prox.x, seg.prox.y), (last_dist.x, last_dist.y)):
                     sections += ", "
                 else:
                     sections += "], ["
-
-            first = False
             p = seg.prox
             d = seg.dist
             sections += "Segment(({}, {}, {}), ({}, {}, {}), {})".format(

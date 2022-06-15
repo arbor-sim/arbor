@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas, seaborn
+import pandas
+import seaborn
 from math import sqrt
 
 # Construct a cell with the following morphology.
@@ -30,14 +31,14 @@ def make_cable_cell(gid):
 
     # Attach two dendrites (tag=3) of length 50 μm to the end of the first dendrite.
     # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    b1 = tree.append(
+    tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 2),
         arbor.mpoint(50 + 50 / sqrt(2), 50 / sqrt(2), 0, 0.5),
         tag=3,
     )
     # Constant radius of 1 μm over the length of the dendrite.
-    b2 = tree.append(
+    tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 1),
         arbor.mpoint(50 + 50 / sqrt(2), -50 / sqrt(2), 0, 1),

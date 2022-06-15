@@ -1,10 +1,8 @@
 import arbor
 import functools
 from functools import lru_cache as cache
-import unittest
 from pathlib import Path
 import subprocess
-import warnings
 import atexit
 
 _mpi_enabled = arbor.__config__["mpi"]

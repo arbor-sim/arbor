@@ -3,7 +3,16 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack import *
+from spack import (
+    CMakePackage,
+    CudaPackage,
+    version,
+    variant,
+    depends_on,
+    conflicts,
+    extends,
+    when,
+)
 
 
 class Arbor(CMakePackage, CudaPackage):
