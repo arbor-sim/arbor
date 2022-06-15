@@ -81,10 +81,15 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
 // allow escape sequences.
 std::string sanitize_label(const std::string& inp) {
     std::string str;
-    bool in_quote = false;
+    bool dq = false;
+    char ls = 0;
     for (auto c: inp) {
-        in_quote ^= c == '"';
-        if (c == '\'' && !in_quote) c = '"';
+        // Check for double quotes here, since 'foo'bar' is a syntax error anyhow
+        dq ^= c == '"';
+        // Replace ' -> " unless in ""
+        if (c == '\'' && !dq) c = '"';
+        // Unescape single quotes
+        if (c == '\'' && ls == '\\') str.pop_back();
         str.push_back(c);
     }
     return str;
@@ -274,11 +279,12 @@ void register_cells(pybind11::module& m) {
             "Initialize a label dictionary from an iterable of key, definition pairs")
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
-                l.set(name, desc);})
+                l.set(name, sanitize_label(desc));})
         .def("__getitem__",
-            [](label_dict_proxy& l, const char* name) {
-                if (auto v = l.getitem(name)) return v.value();
-                throw pybind11::key_error(name);
+             [](label_dict_proxy& l, const char* name) {
+                auto key = sanitize_label(name);
+                if (auto v = l.getitem(key)) return v.value();
+                throw pybind11::key_error(key);
             })
         .def("__len__", &label_dict_proxy::size)
         .def("__iter__",
