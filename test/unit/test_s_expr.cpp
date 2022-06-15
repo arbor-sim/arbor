@@ -3,7 +3,6 @@
 
 #include "../test/gtest.h"
 
-#include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/cv_policy.hpp>
 #include <arbor/s_expr.hpp>
