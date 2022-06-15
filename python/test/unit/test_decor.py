@@ -19,6 +19,8 @@ class TestDecorClasses(unittest.TestCase):
         decor.paint("\"all\"",          A.density("hh"))
         decor.paint('"all"',            A.density("hh"))
         decor.paint("(region \"all\")", A.density("hh"))
+        decor.paint("(region \"al'l\")", A.density("hh"))
+        decor.paint("(region 'all')", A.density("hh"))
 
     def test_iclamp(self):
         # Constant amplitude iclamp:

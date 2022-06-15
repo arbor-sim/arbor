@@ -44,7 +44,7 @@ TEST(s_expr, atoms) {
         EXPECT_EQ(a.spelling, spelling);
     }
     // test parsing of strings
-    for (auto spelling: {"foo", "dog cat", ""}) {
+    for (auto spelling: {"foo", "dog cat", "", "'", "'quoted", "in'fix"}) {
         auto s = "\""s+spelling+"\"";
         auto a = get_atom(parse_s_expr(s));
         EXPECT_EQ(a.kind, tok::string);

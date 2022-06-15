@@ -75,14 +75,29 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
 }
 
 // location helpers
-arb::region region_from_string(std::string reg) {
-    std::replace(reg.begin(), reg.end(), '\'', '"');
-    return arborio::parse_region_expression(reg).unwrap();
+
+// Convert ' -> " _unless_ in a quoted string inside the s-exp lang.
+// This simple implementation is fine, as our s-exp strings do not
+// allow escape sequences.
+std::string sanitize_label(const std::string& inp) {
+    std::string str;
+    bool in_quote = false;
+    for (auto c: inp) {
+        in_quote ^= c == '"';
+        if (c == '\'' && !in_quote) c = '"';
+        str.push_back(c);
+    }
+    return str;
 }
 
-arb::locset locset_from_string(std::string ls) {
-    std::replace(ls.begin(), ls.end(), '\'', '"');
-    return arborio::parse_locset_expression(ls).unwrap();
+arb::region region_from_string(const std::string& inp) {
+    auto str = sanitize_label(inp);
+    return arborio::parse_region_expression(str).unwrap();
+}
+
+arb::locset locset_from_string(const std::string& inp) {
+    auto str = sanitize_label(inp);
+    return arborio::parse_locset_expression(str).unwrap();
 }
 
 // cv_policy helpers
