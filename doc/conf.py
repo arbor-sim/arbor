@@ -57,7 +57,7 @@ img_path = this_path + "/gen-images"
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-import make_images   # noqa:E402
+import make_images  # noqa:E402
 
 make_images.generate(img_path)
 

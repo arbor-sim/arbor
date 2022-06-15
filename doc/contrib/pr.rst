@@ -129,6 +129,14 @@ Each pull request is reviewed according to these guidelines:
    summary as commit message.
 -  Consider using Gitpod to review larger PRs, see under checks on the Github PR page.
 
+.. _contribpr-lint:
+
+Pull requests will also be subject to automated checks
+
+- Python formatting will be checked using the `black <https://black.readthedocs.io/en/stable/index.html>`__ formatter
+- Python files will be checked for common errors and code smells using `flake8 <https://flake8.pycqa.org/en/latest/>`__
+- C++ code will be run against a suite of sanitizers under the `clang <https://clang.llvm.org/docs/index.html>`__ umbrella
+
 .. _contribpr-merge:
 
 Merging a PR

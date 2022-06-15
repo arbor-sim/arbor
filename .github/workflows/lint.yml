@@ -18,7 +18,7 @@ jobs:
       - name: Python Formatting
         uses: psf/black@stable
         with:
-          options: --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)'
+          options: --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme|doc/scripts/input.py)'
           src: scripts/build-catalogue.in .
       - name: Python flake8
         uses: py-actions/flake8@v2
