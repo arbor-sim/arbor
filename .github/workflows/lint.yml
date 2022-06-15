@@ -18,5 +18,5 @@ jobs:
       - name: Python Formatting
         uses: psf/black@stable
         with:
-          options: "--check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)"
-          src: "scripts/build-catalogue.in ."
+          options: --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)'
+          src: scripts/build-catalogue.in .
