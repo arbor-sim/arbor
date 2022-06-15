@@ -22,4 +22,5 @@ jobs:
           src: scripts/build-catalogue.in .
       - name: Python flake8
         uses: py-actions/flake8@v2
-        path: scripts/build-catalogue.in .
+        with:
+          path: scripts/build-catalogue.in .
