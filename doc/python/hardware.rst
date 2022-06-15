@@ -1,7 +1,7 @@
 .. _pyhardware:
 
-Hardware management
-===================
+Hardware context
+================
 
 Arbor provides two ways for working with hardware resources:
 

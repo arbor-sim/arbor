@@ -27,7 +27,7 @@ class Arbor(CMakePackage, CudaPackage):
     variant('python', default=True, description='Enable Python frontend support')
     variant('vectorize', default=False, description='Enable vectorization of computational kernels')
 
-    # https://docs.arbor-sim.org/en/latest/install/build_install.html?highlight=requirements#compilers
+    # https://docs.arbor-sim.org/en/latest/install/build_install.html#compilers
     conflicts('%gcc@:8.3')
     conflicts('%clang@:7')
     # Cray compiler v9.2 and later is Clang-based.
@@ -39,6 +39,7 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on('fmt@7.1:', when='@0.5.3:')  # required by the modcc compiler
     depends_on('nlohmann-json')
+    depends_on('random123')
     depends_on('cuda@10:', when='+cuda')
     depends_on('libxml2', when='+neuroml')
 

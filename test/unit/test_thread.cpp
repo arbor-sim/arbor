@@ -72,7 +72,8 @@ TEST(task_system, test_copy) {
         ts.async(f, 0);
 
         // Copy into new ftor and move ftor into a task (std::function<void()>)
-        EXPECT_EQ(1, nmove);
+        // move ctor is elided with some compilers
+        //EXPECT_EQ(1, nmove);
         EXPECT_EQ(1, ncopy);
         reset();
     }
@@ -99,7 +100,8 @@ TEST(notification_queue, test_copy) {
     q.push({task(f), 0});
 
     // Copy into new ftor and move ftor into a task (std::function<void()>)
-    EXPECT_EQ(1, nmove);
+    // move ctor is elided with some compilers
+    //EXPECT_EQ(1, nmove);
     EXPECT_EQ(1, ncopy);
     reset();
 }

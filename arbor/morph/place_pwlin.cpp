@@ -191,7 +191,7 @@ struct p3d {
     friend constexpr double dot(const p3d& l, const p3d& r) {
         return l.x*r.x + l.y*r.y + l.z*r.z;
     }
-    friend double norm(const p3d p) {
+    friend double norm(const p3d& p) {
         return std::sqrt(dot(p, p));
     }
     friend std::ostream& operator<<(std::ostream& o, const p3d& p) {
@@ -220,9 +220,7 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
             // v and w are the proximal and distal ends of the segment.
             const p3d v = seg.prox;
             const p3d w = seg.dist;
-
             const p3d vw = w-v;
-            const p3d vp = p-v;
             const double wvs = dot(vw, vw);
             if (wvs==0.) { // zero length segment is a special case
                 const double distance = norm(p-v);
@@ -237,7 +235,7 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
                 //   t=0 -> proximal end of the segment
                 //   t=1 -> distal end of the segment
                 // values are clamped to the range [0, 1]
-                const double t = std::max(0., std::min(1., dot(vw, vp) / wvs));
+                const double t = std::max(0., std::min(1., dot(vw, p-v) / wvs));
                 const double distance =
                     t<=0.? norm(p-v):
                     t>=1.? norm(p-w):

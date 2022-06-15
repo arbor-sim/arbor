@@ -187,7 +187,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_value_ = array(n_samples);
     }
 
-    state_->deliverable_events.init(std::move(staged_events));
+    auto& events = state_->deliverable_events;
+    events.init(std::move(staged_events));
     sample_events_.init(std::move(staged_samples));
 
     PL();
@@ -560,10 +561,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
 
         if (config.kind==arb_mechanism_kind_reversal_potential) {
-            revpot_mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
+            revpot_mechanisms_.emplace_back(minst.mech.release());
         }
         else {
-            mechanisms_.push_back(mechanism_ptr(minst.mech.release()));
+            mechanisms_.emplace_back(minst.mech.release());
         }
     }
 
@@ -584,7 +585,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         std::vector<probe_info> rec_probes = rec.get_probes(gid);
         for (cell_lid_type i: count_along(rec_probes)) {
             probe_info& pi = rec_probes[i];
-            resolve_probe_address(probe_data, cells, cell_idx, std::move(pi.address),
+            resolve_probe_address(probe_data, cells, cell_idx, pi.address,
                 D, mech_data, fvm_info.target_handles, mechptr_by_name);
 
             if (!probe_data.empty()) {

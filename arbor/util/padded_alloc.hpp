@@ -38,7 +38,7 @@ struct padded_allocator {
     using propagate_on_container_swap = std::true_type;
     using is_always_equal = std::false_type;
 
-    padded_allocator() noexcept {}
+    padded_allocator() noexcept = default;
 
     template <typename U>
     padded_allocator(const padded_allocator<U>& b) noexcept: alignment_(b.alignment()) {}

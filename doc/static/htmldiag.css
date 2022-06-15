@@ -1,0 +1,138 @@
+.diag-cont {
+    display: flex;
+}
+.diag-cont code {
+    font-family: monospace;
+    background-color: rgb(255, 231, 196, 0.5);
+    border: 1px solid rgb(0, 0, 0, 0.5);
+}
+.diag-cont .diag-note {
+    background-color: rgb(221, 191, 146);
+    border-radius: 5px;
+    border: none;
+    position: absolute;
+    top: -60px;
+    left: 25%;
+}
+.diag-cont .diag-left {
+    border: none;
+    background-color: rgb(195, 221, 146);
+    border-radius: 10px 10px 10px 0px;
+    float: left;
+    width: 75%;
+}
+.diag-cont .diag-left2 {
+    border: none;
+    background-color: rgb(194, 146, 221);
+    border-radius: 10px 10px 10px 0px;
+    float: left;
+    width: 75%;
+}
+.diag-cont .diag-right {
+    border: none;
+    background-color: rgb(221, 164, 146);
+    border-radius: 10px 10px 0px 10px;
+    float: right;
+    width: 75%;
+}
+.diag-cont .diag-right2 {
+    border: none;
+    background-color: rgb(146, 151, 221);
+    border-radius: 10px 10px 0px 10px;
+    float: right;
+    width: 75%;
+}
+.diag-cont .diag-right3 {
+    border: none;
+    background-color: rgb(255, 231, 196);
+    border-radius: 10px 10px 0px 10px;
+    float: right;
+    width: 75%;
+}
+.diag-cont div {
+    border: 1px solid rgb(0, 0, 0, 0.5);
+}
+.diag-dim {
+    opacity: 0.3;
+}
+.diag-col {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: none !important;
+}
+.diag-cont > div {
+    flex: 1;
+    margin: 5px;
+    padding: 5px;
+    position: relative;
+    background-color: rgb(245, 245, 245);
+}
+.diag-cont div div {
+    margin: 5px;
+    padding: 5px;
+    position: relative;
+    background-color: rgb(255, 255, 255);
+}
+.diag-spacer {
+    border: none !important;
+    background: none !important;
+    height: 1em;
+}
+.diag-caption {
+    width: 90%;
+    text-align: justify;
+    font-style: italic;
+    font-size: 90%;
+    margin: 0 auto 20px;
+}
+
+.diag-cont input[type='checkbox'] {
+     display: none;
+}
+.diag-cont label {
+     display: block;
+}
+.diag-cont label::before {
+     content: '+';
+     display: inline-block;
+}
+.diag-cont input[type=checkbox]:checked+label::before {
+     content: '−';
+}
+.diag-cont input[type=checkbox]+label~div {
+     max-height: 0px;
+     overflow: hidden;
+}
+.diag-cont input[type=checkbox]:checked+label~div{
+     max-height: 100%;
+}
+
+connection .line .arrow {
+    top: -5px;
+    height: 0px;
+    width: 0px;
+    position: absolute;
+    border-bottom: 6px solid transparent;
+    border-top: 6px solid transparent;
+    background-clip: border-box;
+}
+connection .line .arrow-fw {
+    border-right: 12px solid black;
+}
+connection .line .arrow-bw {
+    left: 100%;
+    border-left: 12px solid black;
+    transform: translateX(-12px);
+}
+connection .line .text {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+}
+connection .line {
+    position:absolute;
+    height:2px;
+    background-color: black;
+}

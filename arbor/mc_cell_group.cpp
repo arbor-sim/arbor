@@ -38,7 +38,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
     gids_(gids), lowered_(std::move(lowered))
 {
     // Default to no binning of events
-    set_binning_policy(binning_kind::none, 0);
+    mc_cell_group::set_binning_policy(binning_kind::none, 0);
 
     // Build lookup table for gid to local index.
     for (auto i: util::count_along(gids_)) {
