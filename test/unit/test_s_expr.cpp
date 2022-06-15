@@ -49,6 +49,13 @@ TEST(s_expr, atoms) {
         auto a = get_atom(parse_s_expr(s));
         EXPECT_EQ(a.kind, tok::string);
     }
+    // test parsing of strings: errors
+    for (auto spelling: {"\"double\"", "\\\"double\\\"", "in\"side", "in\\\"side"}) {
+        auto s = "\""s+spelling+"\"";
+        auto a = get_atom(parse_s_expr(s));
+        EXPECT_EQ(a.kind, tok::error);
+    }
+
 }
 
 TEST(s_expr, atoms_in_parens) {
