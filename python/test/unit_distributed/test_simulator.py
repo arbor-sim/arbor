@@ -13,6 +13,7 @@ mpi_enabled = A.__config__["mpi"]
 test for MPI distribution of spike recording
 """
 
+
 class lifN_recipe(A.recipe):
     def __init__(self, n_cell):
         A.recipe.__init__(self)
@@ -31,21 +32,25 @@ class lifN_recipe(A.recipe):
     def event_generators(self, gid):
         sched_dt = 0.25
         weight = 400
-        return [A.event_generator("tgt", weight, A.regular_schedule(sched_dt)) for gid in range(0, self.num_cells())]
+        return [
+            A.event_generator("tgt", weight, A.regular_schedule(sched_dt))
+            for gid in range(0, self.num_cells())
+        ]
 
     def probes(self, gid):
         return []
 
-    def global_properties(self,kind):
+    def global_properties(self, kind):
         return self.props
 
     def cell_description(self, gid):
         c = A.lif_cell("src", "tgt")
-        if gid%2==0:
+        if gid % 2 == 0:
             c.t_ref = 2
         else:
             c.t_ref = 4
         return c
+
 
 @cases.skipIfNotDistributed()
 class TestSimulator(unittest.TestCase):
@@ -76,7 +81,7 @@ class TestSimulator(unittest.TestCase):
         self.assertEqual({(self.rank, 0)}, {s for s, t in spikes})
 
         times = sorted([t for s, t in spikes])
-        if self.rank%2==0:
+        if self.rank % 2 == 0:
             self.assertEqual([0, 2, 4, 6, 8], times)
         else:
             self.assertEqual([0, 4, 8], times)
@@ -87,5 +92,9 @@ class TestSimulator(unittest.TestCase):
         sim.run(9, 0.01)
         spikes = sim.spikes().tolist()
 
-        expected = [((s, 0), t) for s in range(0, self.ranks) for t in ([0, 2, 4, 6, 8] if s%2==0 else [0, 4, 8])]
+        expected = [
+            ((s, 0), t)
+            for s in range(0, self.ranks)
+            for t in ([0, 2, 4, 6, 8] if s % 2 == 0 else [0, 4, 8])
+        ]
         self.assertEqual(expected, sorted(spikes))

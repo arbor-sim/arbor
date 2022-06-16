@@ -113,7 +113,7 @@ struct ARB_ARBOR_API cv_geometry: public cell_cv_data_impl {
         return branch_cv_map.at(cell_idx).size();
     }
 
-    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const;
+    size_type location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const;
 
     cv_geometry(const cable_cell& cell, const locset& ls);
 };
@@ -180,10 +180,10 @@ struct fvm_voltage_interpolant {
 };
 
 // Interpolated membrane voltage.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site);
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site);
 
 // Axial current as linear combiantion of voltages.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site);
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site);
 
 
 // Post-discretization data for point and density mechanism instantiation.

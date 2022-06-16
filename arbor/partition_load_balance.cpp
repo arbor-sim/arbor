@@ -27,8 +27,9 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
 {
     using util::make_span;
 
-    unsigned num_domains = ctx->distributed->size();
-    unsigned domain_id = ctx->distributed->id();
+    const auto& dist = ctx->distributed;
+    unsigned num_domains = dist->size();
+    unsigned domain_id = dist->id();
     const bool gpu_avail = ctx->gpu->has_gpu();
     auto num_global_cells = rec.num_cells();
 
@@ -63,7 +64,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
 
     // Gather the global gj_connection table.
     // The global gj_connection table after gathering is indexed by gid.
-    auto global_gj_connection_table = ctx->distributed->gather_gj_connections(local_gj_connection_table);
+    auto global_gj_connection_table = dist->gather_gj_connections(local_gj_connection_table);
 
     // Make all gj_connections bidirectional.
     std::vector<std::unordered_set<cell_gid_type>> missing_peers(global_gj_connection_table.size());
@@ -224,7 +225,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
 
     // Exchange gid list with all other nodes
     // global all-to-all to gather a local copy of the global gid list on each node.
-    auto global_gids = ctx->distributed->gather_gids(local_gids);
+    auto global_gids = dist->gather_gids(local_gids);
 
     return domain_decomposition(rec, ctx, groups);
 }

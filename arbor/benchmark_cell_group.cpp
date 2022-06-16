@@ -39,7 +39,7 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
         cg_targets.add_label(c.target, {0, 1});
     }
 
-    reset();
+    benchmark_cell_group::reset();
 }
 
 void benchmark_cell_group::reset() {

@@ -46,8 +46,8 @@ struct parse_error {
         stack.push_back(cpp);
     }
 
-    parse_error& append(cpp_info i) {
-        stack.push_back(i);
+    parse_error& append(const cpp_info& i) {
+        stack.emplace_back(i);
         return *this;
     }
 
@@ -165,9 +165,9 @@ bool is_marker_symbol(const asc::token& t) {
 //  (Color Red)                 ; labeled
 //  (Color RGB (152, 251, 152)) ; RGB literal
 struct asc_color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
 };
 
 [[maybe_unused]]

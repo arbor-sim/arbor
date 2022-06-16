@@ -1,0 +1,22 @@
+name: Sanitize
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Lint
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Clone w/ submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Python Formatting
+        uses: psf/black@stable
+        with:
+          options: --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme)'
+          src: scripts/build-catalogue.in .

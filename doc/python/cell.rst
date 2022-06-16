@@ -18,6 +18,10 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
       Iterate over the items of the group in a round-robin fashion.
 
+   .. attribute:: round_robin_halt
+
+      Halts at the current item of the group until the round_robin policy is called (again).
+
    .. attribute:: univalent
 
       Assert that only one item is available in the group. Throws an exception if the assertion
