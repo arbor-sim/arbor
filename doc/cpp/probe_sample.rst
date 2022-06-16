@@ -11,7 +11,7 @@ Cable cell probes
 Various properties of a cable cell can be sampled. They fall into two classes: scalar
 probes are associated with a single real value, such as a membrane voltage
 or mechanism state value at a particular location; vector probes return
-multiple values corresponding to a quantity sampled over a whole cell.
+multiple values corresponding to a quantity sampled at a set of points on the cell.
 
 The sample data associated with a cable cell probe will either be a ``double``
 for scalar probes, or a ``cable_sample_range`` describing a half-open range
