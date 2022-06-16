@@ -131,11 +131,14 @@ Each pull request is reviewed according to these guidelines:
 
 .. _contribpr-lint:
 
-Pull requests will also be subject to automated checks
+Pull requests will also be subject to a series of automated checks
 
 - Python formatting will be checked using the `black <https://black.readthedocs.io/en/stable/index.html>`__ formatter
 - Python files will be checked for common errors and code smells using `flake8 <https://flake8.pycqa.org/en/latest/>`__
-- C++ code will be run against a suite of sanitizers under the `clang <https://clang.llvm.org/docs/index.html>`__ umbrella
+- C++ code will be run against a suite of sanitizers under the `clang <https://clang.llvm.org/docs/index.html>`__ umbrella. The following checks are enabled
+  - `undefined behavior <https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html>`__: under/overflow, null-deref, ...
+  - `threads <https://clang.llvm.org/docs/ThreadSanitizer.html>`__: data races and other threading related issues
+  - `memory <https://clang.llvm.org/docs/AddressSanitizer.html>`__: illegal accesses, use-after-free, double free, ...
 
 .. _contribpr-merge:
 
