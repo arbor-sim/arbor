@@ -89,7 +89,7 @@ endforeach()
 
 set(unit_sources
     ../common_cells.cpp
-    test_abi.cpp
+   #test_abi.cpp
     test_asc.cpp
     test_any_cast.cpp
     test_any_ptr.cpp
@@ -186,13 +186,13 @@ if(ARB_WITH_GPU)
     list(APPEND unit_sources
         test_intrin.cu
         test_gpu_stack.cu
-        test_event_stream_gpu.cu
+       #test_event_stream_gpu.cu
         test_reduce_by_key.cu
 
-        test_matrix_cpuvsgpu.cpp
-        test_matrix_gpu.cpp
+       #test_matrix_cpuvsgpu.cpp
+       #test_matrix_gpu.cpp
         test_mc_cell_group_gpu.cpp
-        test_event_stream_gpu.cpp
+       #test_event_stream_gpu.cpp
         test_spikes_gpu.cpp
         test_vector_gpu.cpp
     )
@@ -200,7 +200,6 @@ endif()
 
 if(ARB_WITH_NEUROML)
     list(APPEND unit_sources
-
         test_nml_morphology.cpp
     )
 endif()

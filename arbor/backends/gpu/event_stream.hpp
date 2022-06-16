@@ -99,6 +99,7 @@ public:
     }
 
     state marked_events() const {
+        std::cout << "RETURNING: " << span_begin_ << "--" << span_end_ << "\n";
         return {ev_data_.data()+span_begin_, ev_data_.data()+span_end_};
     }
 

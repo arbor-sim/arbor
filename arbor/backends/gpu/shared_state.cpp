@@ -163,8 +163,8 @@ void istim_state::add_current(const fvm_value_type& time, array& current_density
 // Shared state methods:
 
 shared_state::shared_state(
-        fvm_size_type n_cv,
         fvm_size_type n_cell,
+        fvm_size_type n_cv,
         fvm_size_type n_detector,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,

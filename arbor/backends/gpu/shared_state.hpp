@@ -144,8 +144,8 @@ struct ARB_ARBOR_API shared_state {
     shared_state() = default;
 
     shared_state(
-        fvm_size_type n_cv,
         fvm_size_type n_cell,
+        fvm_size_type n_cv,
         fvm_size_type n_detector,
         const std::vector<fvm_index_type>& cv_to_cell_vec,
         const std::vector<fvm_value_type>& init_membrane_potential,
