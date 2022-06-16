@@ -8,9 +8,9 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-build = "{cp3*-manylinux_x86_64,cp3*-macosx_universal2,cp3*-musllinux_x86_64,cp3*-musllinux_aarch64}"
+build = ["cp3*-manylinux_x86_64","cp3*-macosx_universal2","cp3*-musllinux_x86_64","cp3*-musllinux_aarch64"]
 before-build = "python3 -m pip install numpy setuptools scikit-build ninja cmake auditwheel"
-test-command: "python3 -m unittest discover -v -s {project}/python"
+test-command = "python3 -m unittest discover -v -s {project}/python"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
