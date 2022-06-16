@@ -7,6 +7,27 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.cibuildwheel]
+build = "{cp3*-manylinux_x86_64,cp3*-macosx_universal2,cp3*-musllinux_x86_64,cp3*-musllinux_aarch64}"
+before-build = "python3 -m pip install numpy setuptools scikit-build ninja cmake auditwheel"
+test-command: "python3 -m unittest discover -v -s {project}/python"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "10.15"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+manylinux-x86_64-image = "manylinux2014"
+before-all = "yum -y install libxml2-devel"
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
+
+[tool.cibuildwheel.linux]
+select = "*-musllinux*"
+before-all = "apk add libxml2-dev"
+
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-before-all = "libxml2-dev" 
+before-all = "apk add libxml2-dev"
