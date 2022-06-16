@@ -1,0 +1,23 @@
+[flake8]
+max-line-length = 88
+extend-ignore =
+              # for black
+              E203,
+              # zealous line lengths
+              E501,
+              # ambiguous varnames I ./. l etc
+              E741,
+select = C,E,F,W,B,B950
+max_complexity = 15
+extend-exclude =
+               # 3rd party
+               ext,
+               python/pybind11,
+               # auto-generated
+               doc/scripts/inputs.py
+               # hidden
+               .*,
+               # artifacts
+               build,
+               # nah, don't care
+               spack/package.py
