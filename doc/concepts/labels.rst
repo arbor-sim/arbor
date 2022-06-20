@@ -654,7 +654,7 @@ Inhomogeneous Expressions
       :width: 600
       :align: center
 
-      Example of a proximal-distance expression with a single input location. **Left**: Input location. **Right**: Area, where the expression evaluates to non-zero values.
+      Example of a proximal-distance expression with a single input location. **Left**: Input location. **Right**: Area where the expression evaluates to non-zero values.
 
 .. label:: (proximal-distance scale:real reg:region)
 

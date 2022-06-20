@@ -171,8 +171,9 @@ Take for example the built-in mechanism for passive leaky dynamics:
 
 4. Scaled mechanisms
 ~~~~~~~~~~~~~~~~~~~~~
-:ref:`Inhomogenous expressions  <labels-iexpr>` can be applied to mechanisms, to scale parameters on a cable cell.
-These expressions are evaluated at mid-points of the internal cable partition of the cell and multiplied with the set parameter value.
+:ref:`Inhomogenous expressions  <labels-iexpr>` can be applied to mechanisms, to scale parameters on a cable cell, such that a parameter is inhomogenous along the cell.
+It is useful to have a quantity smoothly varying along the dendrite, for example with the distance from the root.
+These expressions yield a scaling factor, which is multiplied with the base value of the selected parameter. Internally, the value of each parameter is evaluated at mid-points of the cable partition of the cell.
 Currently, only :ref:`density mechanisms <cablecell-density-mechs>` are supported.
 
 .. code-block:: Python
@@ -181,8 +182,8 @@ Currently, only :ref:`density mechanisms <cablecell-density-mechs>` are supporte
     m = arbor.mechanism('pas', {'g': 0.1})
 
     decor = arbor.decor()
-    # paint a scaled density mechanism, where 'g' is scaled by the radius along the cell.
-    decor.paint('"soma"', arbor.scaled_mechanism(arbor.density(m), {'g': '(radius 0.5)'}))
+    # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
+    decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
 
 5. Ion species
 ~~~~~~~~~~~~~~
