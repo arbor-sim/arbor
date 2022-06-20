@@ -1,36 +1,18 @@
-# 'single' example.
+# Diffusion example.
 
-Example of simulating a single neuron with morphology described by an SWC file.
+Example of simulating a simple linear neuron with a diffusing sodium
+concentration. An event injecting more Na into the centre is fired at t=0. The
+measured concentrations will be written to disk further analysis.
 
-A cell is constructed from a supplied morphology with H–H channels
-on the soma and passive channels on the dendrites. A simple exponential
-synapse is added at the end of the last dendrite in the morphology,
-and is triggered at time t = 1 ms.
-
-The simulation outputs a trace of the soma membrane voltage in a simple CSV
-format.
-
-## Features
-
-The example demonstrates the use of:
-
-* Generating a morphology from an SWC file.
-* Using a morphology to construct a cable cell.
-* Injecting an artificial spike event into the simulation.
-* Adding a voltage probe to a cell and running a sampler on the simulation.
-
-## Running the example
-
-By default, `single-cell` will simulate a 'ball-and-stick' neuron for 20 ms,
-with a maxium dt of 0.025 ms and samples taken every 0.1 ms. The default
-synaptic weight is 0.01 µS.
-
-### Command line options
-
-| Option                | Effect |
-|-----------------------|--------|
-| -m, --morphology FILE | Load the morphology from FILE in SWC format |
-| -d, --dt TIME         | Set the maximum integration time step [ms] |
-| -t, --t-end TIME      | Set the simulation duration [ms] |
-| -w, --weight WEIGHT   | Set the synaptic weight [µS] |
-
+ |    |  Option  | Meaning                         | Default     |
+ |----|----------|---------------------------------|-------------|
+ | -t | --tfinal | Length of the simulation period | 1 ms        |
+ | -d | --dt     | Simulation time step            | 0.01 ms     |
+ | -s | --ds     | Sampling interval               | 0.1 ms      |
+ | -g | --gpu    | Use GPU id, enabled if >=0      | -1          |
+ | -l | --length | Length of stick                 | 30 um       |
+ | -x | --dx     | Discretisation                  | 1 um        |
+ | -i | --Xi     | Initial Na concentration        | 0 mM        |
+ | -b | --beta   | Na diffusivity                  | 0.005 m^2/s |
+ | -o | --output | Save samples                    | log.csv     |
+ 

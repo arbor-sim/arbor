@@ -57,7 +57,7 @@ public:
     std::string non_specific_current = "";
     using BlockRewriterBase::visit;
 
-        virtual void finalize() override {
+    virtual void finalize() override {
         // Take current name 'iX' and strip off leading 'i' to get ion name.
         auto i2ion = [this](const auto& name) { return id("conductivity_" + name.substr(1) + "_"); };
         if (has_current_update_) {

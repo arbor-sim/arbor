@@ -140,7 +140,7 @@ ARB_ARBOR_API cv_geometry& append(cv_geometry&, const cv_geometry&);
 struct fvm_diffusion_info {
     using value_type = fvm_value_type;
     std::vector<value_type> face_diffusivity;
-    std::vector<std::vector<pw_constant_fn>>axial_inv_diffusivity;
+    std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
 };
     
 struct fvm_cv_discretization {
@@ -163,7 +163,7 @@ struct fvm_cv_discretization {
     std::vector<value_type> diam_um;          // [µm]
 
     // For each cell, one piece-wise constant value per branch.
-    std::vector<std::vector<pw_constant_fn>>axial_resistivity; // [Ω·cm]
+    std::vector<std::vector<pw_constant_fn>> axial_resistivity; // [Ω·cm]
 
     // For each diffusive ion species, their properties
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
