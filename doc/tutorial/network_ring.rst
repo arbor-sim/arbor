@@ -114,8 +114,14 @@ The execution
 
 To create a simulation, we must create an :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
 
-Step **(12)** creates a default execution context, and uses the :func:`arbor.partition_load_balance` to create a
-default domain decomposition. You can print the objects to see what defaults they produce on your system.
+Step **(12)** initalizes the ``threads`` parameter of :class:`arbor.context` with the ``avail_threads`` flag. By supplying
+this flag, a context is constructed that will use all locally available threads. On your local machine this will match the
+number of logical cores in your system. Especially with large numbers
+of cells you will notice the speed-up. (You could instantiate the recipe with 5000 cells and observe the difference. Don't
+forget to turn of plotting if you do; it will take more time to generate the image then to run the actual simulation!)
+:func:`arbor.partition_load_balance` creates a default domain decomposition, which 
+for contexts initialized with ``threads=avail_threads`` distributes cells evenly over the available cores. You can print the
+objects to see what defaults they produce on your system.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
 This means the timestamps of the generated events will be kept in memory. Be default, these are discarded.

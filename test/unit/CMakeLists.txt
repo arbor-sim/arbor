@@ -242,6 +242,10 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
   add_dependencies(unit dummy-catalogue)
 endif()
 
+if(ARB_WITH_GPU)
+  target_compile_definitions(unit PRIVATE ARB_GPU_ENABLED)
+endif()
+
 if(ARB_WITH_NVCC)
     target_compile_options(unit PRIVATE -DARB_CUDA)
 endif()

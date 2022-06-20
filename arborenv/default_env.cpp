@@ -1,11 +1,12 @@
 #include <limits>
 #include <optional>
 
+#include <arbor/version.hpp>
 #include <arborenv/arbenvexcept.hpp>
 #include <arborenv/concurrency.hpp>
 #include <arborenv/default_env.hpp>
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 #include "gpu_api.hpp"
 #endif
 
@@ -29,7 +30,7 @@ ARB_ARBORENV_API unsigned long get_env_num_threads() {
     return *env_val;
 }
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 
 ARB_ARBORENV_API int default_gpu() {
     constexpr const char* env_var = "ARBENV_GPU_ID";
@@ -60,7 +61,7 @@ ARB_ARBORENV_API int default_gpu() {
     return -1;
 }
 
-#endif // def ARB_HAVE_GPU
+#endif // def ARB_GPU_ENABLED
 
 } // namespace arbenv
 

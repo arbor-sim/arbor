@@ -109,7 +109,7 @@ cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
     cell_cv_divs = {0, (fvm_index_type)n_cv};
 }
 
-fvm_size_type cv_geometry::location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const {
+fvm_size_type cv_geometry::location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const {
     auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
     auto zero_extent = [&pw_cv_offset](auto j) {
         return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
@@ -269,9 +269,15 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
     double dflt_potential =   *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
     double dflt_temperature = *(dflt.temperature_K | global_dflt.temperature_K);
 
+    const auto& assignments = cell.region_assignments();
+    const auto& resistivity = assignments.get<axial_resistivity>();
+    const auto& capacitance = assignments.get<membrane_capacitance>();
+    const auto& potential   = assignments.get<init_membrane_potential>();
+    const auto& temperature = assignments.get<temperature_K>();
+    const auto& diffusivity = assignments.get<ion_diffusivity>();
+
     // Set up for ion diffusivity
-    const auto& diffusivity_map = cell.region_assignments().get<ion_diffusivity>();
-    std::unordered_map<std::string, mcable_map<double>> inverse_diffusivity_map;
+    std::unordered_map<std::string, mcable_map<double>> inverse_diffusivity;
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 
     // Collect all eglible ions: those where any cable has finite diffusivity
@@ -285,7 +291,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             diffusive_ions[ion] = {};
         }
     }
-    for (const auto& [ion, data]: diffusivity_map) {
+    for (const auto& [ion, data]: diffusivity) {
         auto diffusive = std::any_of(data.begin(),
                                      data.end(),
                                      [](const auto& kv) { return kv.second.value != 0.0; });
@@ -296,9 +302,9 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
 
     // Remap diffusivity to resistivity
     for (auto& [ion, data]: diffusive_ions) {
-        auto& id_map = inverse_diffusivity_map[ion];
+        auto& id_map = inverse_diffusivity[ion];
         // Treat specific assignments
-        if (auto map = diffusivity_map.find(ion); map != diffusivity_map.end()) {
+        if (auto map = diffusivity.find(ion); map != diffusivity.end()) {
             for (const auto& [k, v]: map->second) {
                 if (v.value <= 0.0) {
                     throw cable_cell_error{util::pprintf("Illegal diffusivity '{}' for ion '{}' at '{}'.", v.value, ion, k)};
@@ -328,16 +334,15 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
 
     D.axial_resistivity.resize(1);
     msize_t n_branch = D.geometry.n_branch(0);
-    D.axial_resistivity[0].reserve(n_branch);
+    auto& ax_res_0 = D.axial_resistivity[0];
+    ax_res_0.reserve(n_branch);
     for (msize_t i = 0; i<n_branch; ++i) {
-        D.axial_resistivity[0].push_back(pw_over_cable(cell.region_assignments().get<axial_resistivity>(),
-                    mcable{i, 0., 1.}, dflt_resistivity));
+        ax_res_0.emplace_back(pw_over_cable(resistivity, mcable{i, 0., 1.}, dflt_resistivity));
     }
 
     const auto& embedding = cell.embedding();
     for (auto i: count_along(D.geometry.cv_parent)) {
         auto cv_cables = D.geometry.cables(i);
-
         // Computing face_conductance and face_diffusivity
         //
         // Flux between adjacent CVs is computed as if there were no membrane currents, and with the CV voltage
@@ -345,7 +350,6 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         //     * If the CV is unbranched, the reference point is taken to be the CV midpoint.
         //     * If the CV is branched, the reference point is taken to be closest branch point to
         //       the interface between the two CVs.
-
         D.face_conductance[i] = 0;
         for (auto& [ion, info]: diffusive_ions) {
             info.face_diffusivity[i] = 0.0;
@@ -354,7 +358,6 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         fvm_index_type p = D.geometry.cv_parent[i];
         if (p!=-1) {
             auto parent_cables = D.geometry.cables(p);
-
             msize_t bid = cv_cables.front().branch;
             double parent_refpt = 0;
             double cv_refpt = 1;
@@ -388,17 +391,10 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         double cv_length = 0;
 
         for (mcable c: cv_cables) {
-            D.cv_area[i] += embedding.integrate_area(c);
-
-            D.cv_capacitance[i] += embedding.integrate_area(c.branch,
-                pw_over_cable(cell.region_assignments().get<membrane_capacitance>(), c, dflt_capacitance));
-
-            D.init_membrane_potential[i] += embedding.integrate_area(c.branch,
-                pw_over_cable(cell.region_assignments().get<init_membrane_potential>(), c, dflt_potential));
-
-            D.temperature_K[i] += embedding.integrate_area(c.branch,
-                pw_over_cable(cell.region_assignments().get<temperature_K>(), c, dflt_temperature));
-
+            D.cv_area[i]                 += embedding.integrate_area(c);
+            D.cv_capacitance[i]          += embedding.integrate_area(c.branch, pw_over_cable(capacitance, c, dflt_capacitance));
+            D.init_membrane_potential[i] += embedding.integrate_area(c.branch, pw_over_cable(potential,   c, dflt_potential));
+            D.temperature_K[i]           += embedding.integrate_area(c.branch, pw_over_cable(temperature, c, dflt_temperature));
             cv_length += embedding.integrate_length(c);
         }
 
@@ -410,11 +406,9 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             for (auto& [ion, info]: diffusive_ions) {
                 info.face_diffusivity[i] /= A;
             }
-
             // If parent is trivial, and there is no grandparent, then we can use values from this CV
             // to get initial values for the parent. (The other case, when there is a grandparent, is
             // caught below.)
-
             if (p!=-1 && D.geometry.cv_parent[p]==-1 && D.cv_area[p]==0) {
                 D.init_membrane_potential[p] = D.init_membrane_potential[i];
                 D.temperature_K[p] = D.temperature_K[i];
@@ -422,7 +416,6 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         }
         else if (p!=-1) {
             // Use parent CV to get a sensible initial value for voltage and temp on zero-size CVs.
-
             D.init_membrane_potential[i] = D.init_membrane_potential[p];
             D.temperature_K[i] = D.temperature_K[p];
         }
@@ -479,7 +472,7 @@ struct voltage_reference_pair {
 };
 
 // Collection of other locations that are coincident under projection.
-std::vector<mlocation> coincident_locations(const morphology& m, mlocation x) {
+std::vector<mlocation> coincident_locations(const morphology& m, const mlocation& x) {
     std::vector<mlocation> result;
     if (x.pos==0) {
         msize_t parent_bid = m.branch_parent(x.branch);
@@ -502,7 +495,7 @@ std::vector<mlocation> coincident_locations(const morphology& m, mlocation x) {
 
 // Test if location intersects (sorted) sequence of cables.
 template <typename Seq>
-bool cables_intersect_location(Seq&& cables, mlocation x) {
+bool cables_intersect_location(Seq&& cables, const mlocation& x) {
     struct cmp_branch {
         bool operator()(const mcable& c, msize_t bid) const { return c.branch<bid; }
         bool operator()(msize_t bid, const mcable& c) const { return bid<c.branch; }
@@ -516,7 +509,7 @@ bool cables_intersect_location(Seq&& cables, mlocation x) {
         [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
 }
 
-voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, fvm_size_type cell_idx, mlocation site) {
+voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, fvm_size_type cell_idx, const mlocation& site) {
     voltage_reference site_ref, parent_ref, child_ref;
     bool check_parent = true, check_child = true;
     msize_t bid = site.branch;
@@ -530,7 +523,7 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
         return mlocation{c.branch, (c.prox_pos+c.dist_pos)/2};
     };
 
-    auto cv_contains_fork = [&](auto cv, mlocation x) {
+    auto cv_contains_fork = [&](auto cv, const mlocation& x) {
         // CV contains fork if it intersects any location coincident with x
         // other than x itselfv.
 
@@ -606,7 +599,7 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
 
 // Interpolate membrane voltage from reference points in adjacent CVs.
 
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -647,7 +640,7 @@ ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& 
 
 // Axial current as linear combination of membrane voltages at reference points in adjacent CVs.
 
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -844,6 +837,8 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     fvm_mechanism_data M;
 
+    const auto& assignments = cell.region_assignments();
+
     // Verify mechanism ion usage, parameter values.
     auto verify_mechanism = [&gprop, &D](const mechanism_info& info, const mechanism_desc& desc) {
         const auto& global_ions = gprop.ion_species;
@@ -905,13 +900,12 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     // Density mechanisms:
 
-    for (const auto& entry: cell.region_assignments().get<density>()) {
-        const std::string& name = entry.first;
+    for (const auto& [name, cables]: assignments.get<density>()) {
         mechanism_info info = catalogue[name];
 
         fvm_mechanism_config config;
         if (info.kind != arb_mechanism_kind_density) {
-            throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected density mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
         config.kind = arb_mechanism_kind_density;
 
@@ -935,7 +929,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         param_maps.resize(n_param);
 
-        for (auto& on_cable: entry.second) {
+        for (auto& on_cable: cables) {
             const auto& mech = on_cable.second.mech;
             verify_mechanism(info, mech);
             mcable cable = on_cable.first;
@@ -1021,7 +1015,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         mechanism_info info = catalogue[name];
 
         if (info.kind != arb_mechanism_kind_point) {
-            throw cable_cell_error("expected point mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected point mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
 
         post_events |= info.post_events;
@@ -1180,7 +1174,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     for (const auto& [name, placements]: cell.junctions()) {
         mechanism_info info = catalogue[name];
         if (info.kind != arb_mechanism_kind_gap_junction) {
-            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechsnism_kind_str(info.kind));
+            throw cable_cell_error("expected gap_junction mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
         }
 
         fvm_mechanism_config config;
@@ -1293,10 +1287,9 @@ fvm_mechanism_data fvm_build_mechanism_data(
     }
 
     // Ions:
-
-    auto initial_iconc_map = cell.region_assignments().get<init_int_concentration>();
-    auto initial_econc_map = cell.region_assignments().get<init_ext_concentration>();
-    auto initial_rvpot_map = cell.region_assignments().get<init_reversal_potential>();
+    auto initial_iconc_map = assignments.get<init_int_concentration>();
+    auto initial_econc_map = assignments.get<init_ext_concentration>();
+    auto initial_rvpot_map = assignments.get<init_reversal_potential>();
 
     for (const auto& [ion, cvs]: ion_support) {
         fvm_ion_config config;
@@ -1315,14 +1308,15 @@ fvm_mechanism_data fvm_build_mechanism_data(
         auto dflt_rvpot = global_ion_data.init_reversal_potential.value();
 
         if (auto ion_data = value_by_key(dflt.ion_data, ion)) {
-            dflt_iconc = ion_data.value().init_int_concentration.value_or(dflt_iconc);
-            dflt_econc = ion_data.value().init_ext_concentration.value_or(dflt_econc);
-            dflt_rvpot = ion_data.value().init_reversal_potential.value_or(dflt_rvpot);
+            auto val = ion_data.value();
+            dflt_iconc = val.init_int_concentration.value_or(dflt_iconc);
+            dflt_econc = val.init_ext_concentration.value_or(dflt_econc);
+            dflt_rvpot = val.init_reversal_potential.value_or(dflt_rvpot);
         }
 
-        const mcable_map<init_int_concentration>&  iconc_on_cable = initial_iconc_map[ion];
-        const mcable_map<init_ext_concentration>&  econc_on_cable = initial_econc_map[ion];
-        const mcable_map<init_reversal_potential>& rvpot_on_cable = initial_rvpot_map[ion];
+        const auto& iconc_on_cable = initial_iconc_map[ion];
+        const auto& econc_on_cable = initial_econc_map[ion];
+        const auto& rvpot_on_cable = initial_rvpot_map[ion];
 
         auto pw_times = [](const pw_elements<double>& pwa, const pw_elements<double>& pwb) {
             return pw_zip_with(pwa, pwb, [](std::pair<double, double>, double a, double b) { return a*b; });
@@ -1378,26 +1372,26 @@ fvm_mechanism_data fvm_build_mechanism_data(
             const mechanism_desc& revpot = *maybe_revpot;
             mechanism_info info = catalogue[revpot.name()];
             if (info.kind != arb_mechanism_kind_reversal_potential) {
-                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechsnism_kind_str(info.kind));
+                throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechanism_kind_str(info.kind));
             }
 
             verify_mechanism(info, revpot);
             revpot_specified.insert(ion);
 
             bool writes_this_revpot = false;
-            for (auto& iondep: info.ions) {
-                if (iondep.second.write_reversal_potential) {
-                    if (revpot_tbl.count(iondep.first)) {
-                        auto& existing_revpot_desc = revpot_tbl.at(iondep.first);
+            for (auto& [name, info]: info.ions) {
+                if (info.write_reversal_potential) {
+                    if (revpot_tbl.count(name)) {
+                        auto& existing_revpot_desc = revpot_tbl.at(name);
                         if (existing_revpot_desc.name() != revpot.name() || existing_revpot_desc.values() != revpot.values()) {
                             throw cable_cell_error("inconsistent revpot ion assignment for mechanism "+revpot.name());
                         }
                     }
                     else {
-                        revpot_tbl[iondep.first] = revpot;
+                        revpot_tbl[name] = revpot;
                     }
 
-                    writes_this_revpot |= iondep.first==ion;
+                    writes_this_revpot |= name==ion;
                 }
             }
 
