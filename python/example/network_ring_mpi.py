@@ -31,15 +31,16 @@ def make_cable_cell(gid):
     b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(50, 0, 0, 2), tag=3)
 
     # Attach two dendrites (tag=3) of length 50 μm to the end of the first dendrite.
+    # As there's no further use for them, we discard the returned handles.
     # (b1) Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    tree.append(
+    _ = tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 2),
         arbor.mpoint(50 + 50 / sqrt(2), 50 / sqrt(2), 0, 0.5),
         tag=3,
     )
     # (b2) Constant radius of 1 μm over the length of the dendrite.
-    tree.append(
+    _ = tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 1),
         arbor.mpoint(50 + 50 / sqrt(2), -50 / sqrt(2), 0, 1),
