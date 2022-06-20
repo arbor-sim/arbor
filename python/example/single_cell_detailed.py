@@ -21,15 +21,11 @@ morph = arbor.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
-labels = arbor.label_dict()
+# Pre-defined SWC regions
+labels = arbor.label_dict(swc=True)
 
 # Regions:
 
-# Add labels for tag 1, 2, 3, 4
-labels["soma"] = "(tag 1)"
-labels["axon"] = "(tag 2)"
-labels["dend"] = "(tag 3)"
-labels["last"] = "(tag 4)"
 # Add a label for a region that includes the whole morphology
 labels["all"] = "(all)"
 # Add a label for the parts of the morphology with radius greater than 1.5 μm.

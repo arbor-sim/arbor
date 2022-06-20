@@ -16,7 +16,9 @@ struct label_dict_proxy {
     std::vector<std::string> locsets;
     std::vector<std::string> regions;
 
-    label_dict_proxy() = default;
+    label_dict_proxy(bool swc=false): dict{} {
+        if (swc) dict = arb::label_dict::with_swc_tags();
+    }
 
     label_dict_proxy(const str_map& in) {
         for (auto& i: in) {
