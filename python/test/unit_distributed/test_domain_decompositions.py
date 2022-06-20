@@ -232,6 +232,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
 
         b = R * n_local
         e = (R + 1) * n_local
+
         gids = list(range(b, e))
 
         for gid in gids:
@@ -273,6 +274,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
 
         b = R * n_local
         e = (R + 1) * n_local
+
         gids = list(range(b, e))
 
         for gid in gids:

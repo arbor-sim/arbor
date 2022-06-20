@@ -203,7 +203,6 @@ if debug:
 
         def __exit__(*args, **kwargs):
             pass
-
 else:
     from tempfile import TemporaryDirectory
 

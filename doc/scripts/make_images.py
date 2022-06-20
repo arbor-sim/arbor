@@ -1,9 +1,14 @@
+import copy
 import svgwrite
 import math
 import inputs
 
 tag_colors_colorscheme = ["white", "#ffc2c2", "gray", "#c2caff", "#81c8aa"]
 tag_colors_bwscheme = ["lightgray"] * len(tag_colors_colorscheme)
+
+#
+# ############################################
+#
 
 
 def translate(x, f, xshift):
@@ -387,7 +392,7 @@ def generate(path=""):
         path + "/ysoma_morph3.svg",
     )
 
-    # locsets
+    ####################### locsets
 
     label_image(
         inputs.label_morph,
@@ -441,7 +446,7 @@ def generate(path=""):
         path + "/distal_translate_label.svg",
     )
 
-    # regions
+    ####################### regions
 
     label_image(
         inputs.label_morph,
@@ -506,7 +511,7 @@ def generate(path=""):
     label_image(inputs.label_morph, [inputs.reg_radgt5], path + "/radiusgt_label.svg")
     label_image(inputs.label_morph, [inputs.reg_radge5], path + "/radiusge_label.svg")
 
-    # Tutorial examples
+    ####################### Tutorial examples
 
     morph_image([inputs.tutorial_morph], ["segments"], path + "/tutorial_morph.svg")
     morph_image(
@@ -523,7 +528,7 @@ def generate(path=""):
         lab_sc=6,
     )
 
-    # locsets
+    ####################### locsets
 
     label_image(
         inputs.tutorial_morph,
@@ -542,7 +547,7 @@ def generate(path=""):
         loc_sc=6,
     )
 
-    # regions
+    ####################### regions
     label_image(
         inputs.tutorial_morph,
         [
