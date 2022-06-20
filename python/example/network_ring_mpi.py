@@ -118,7 +118,7 @@ context = arbor.context(mpi=comm)
 print(context)
 
 # (13) Create a default domain decomposition and simulation
-sim = arbor.simulation(recipe, context=context)
+sim = arbor.simulation(recipe, context)
 
 # (14) Set spike generators to record
 sim.record(arbor.spike_recording.all)

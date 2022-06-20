@@ -3,7 +3,6 @@
 #include <vector>
 #include <iostream>
 
-#include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/place_pwlin.hpp>
