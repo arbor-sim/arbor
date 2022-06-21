@@ -88,6 +88,7 @@ cell = arbor.cable_cell(morph, labels, decor)
 
 probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
 
+
 # (6) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
 
@@ -145,14 +146,8 @@ class single_recipe(arbor.recipe):
 # Pass the probe in a list because that it what single_recipe expects.
 recipe = single_recipe(cell, [probe])
 
-# (4) Create an execution context
-context = arbor.context()
-
-# (5) Create a domain decomposition
-domains = arbor.partition_load_balance(recipe, context)
-
-# (6) Create a simulation
-sim = arbor.simulation(recipe, domains, context)
+# (7) Create a simulation
+sim = arbor.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
@@ -160,10 +155,10 @@ sim.record(arbor.spike_recording.all)
 probeset_id = arbor.cell_member(0, 0)
 handle = sim.sample(probeset_id, arbor.regular_schedule(0.02))
 
-# (7) Run the simulation
+# (8) Run the simulation
 sim.run(tfinal=100, dt=0.025)
 
-# (8) Print or display the results
+# (9) Print or display the results
 spikes = sim.spikes()
 print(len(spikes), "spikes recorded:")
 for s in spikes:

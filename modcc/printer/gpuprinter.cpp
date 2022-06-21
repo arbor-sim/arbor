@@ -19,10 +19,19 @@ using io::indent;
 using io::popindent;
 using io::quote;
 
-void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc, bool cv_loop = true, bool ppack=true);
+static std::string scaled(double coeff) {
+    std::stringstream ss;
+    if (coeff != 1) {
+        ss << as_c_double(coeff) << '*';
+    }
+    return ss.str();
+}
+
+
+void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc, bool cv_loop = true, bool ppack=true, bool additive=false);
 void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* proc);
 void emit_state_read_cu(std::ostream& out, LocalVariable* local);
-void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, bool is_point_proc);
+void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, bool is_point_proc, bool use_additive);
 
 const char* index_id(Symbol *s);
 
@@ -211,14 +220,14 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     }
 
     // API methods as __global__ kernels.
-    auto emit_api_kernel = [&] (APIMethod* e) {
+    auto emit_api_kernel = [&] (APIMethod* e, bool additive=false) {
         // Only print the kernel if the method is not empty.
         if (!e->body()->statements().empty()) {
             out << "__global__\n"
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, is_point_proc);
+            emit_api_body_cu(out, e, is_point_proc, true, true, additive);
             out << popindent << "}\n\n";
         }
     };
@@ -237,7 +246,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                            pp_var_pfx);
     }
     emit_api_kernel(state_api);
-    emit_api_kernel(current_api);
+    emit_api_kernel(current_api, true);
     emit_api_kernel(write_ions_api);
 
     // event delivery
@@ -256,7 +265,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name(),
                            pp_var_pfx);
         out << indent << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, is_point_proc, false, false);
+        emit_api_body_cu(out, net_receive_api, is_point_proc, false, false, false);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     }
 
@@ -357,7 +366,7 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool cv_loop, bool ppack) {
+void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool cv_loop, bool ppack, bool additive) {
     auto body = e->body();
     auto indexed_vars = indexed_locals(e->scope());
 
@@ -435,7 +444,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
         out << cuprint(body);
 
         for (auto& sym: indexed_vars) {
-            emit_state_update_cu(out, sym, sym->external_variable(), is_point_proc);
+            emit_state_update_cu(out, sym, sym->external_variable(), is_point_proc, additive);
         }
         cv_loop && out << popindent << "}\n";
     }
@@ -463,7 +472,7 @@ namespace {
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
     out << "arb_value_type " << cuprint(local) << " = ";
 
-    if (local->is_read()) {
+    if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scale != 1) {
             out << as_c_double(d.scale) << "*";
@@ -477,36 +486,39 @@ void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
 
 
 void emit_state_update_cu(std::ostream& out, Symbol* from,
-                          IndexedVariable* external, bool is_point_proc) {
+                          IndexedVariable* external, bool is_point_proc, bool use_additive) {
     if (!external->is_write()) return;
-
     auto d = decode_indexed_variable(external);
-    double coeff = 1./d.scale;
-
     if (d.readonly) {
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
 
-    if (is_point_proc && d.accumulate) {
-        out << "::arb::gpu::reduce_by_key(";
-        if (coeff != 1) out << as_c_double(coeff) << '*';
+    auto name   = from->name();
+    auto scale  = scaled(1.0/d.scale);
+    auto data   = pp_var_pfx + d.data_var;
+    auto index  = index_i_name(d.outer_index_var());
+    auto var    = deref(d);
+    auto weight = scale + pp_var_pfx + "weight[tid_]";
 
-        out << pp_var_pfx << "weight[tid_]*" << from->name() << ',';
-
-        auto index_var = d.outer_index_var();
-        out << pp_var_pfx << d.data_var << ", " << index_i_name(index_var) << ", lane_mask_);\n";
+    if (d.additive && use_additive) {
+        out << name << " -= " << var << ";\n";
+        if (is_point_proc) {
+            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+        }
+        else {
+            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
+        }
     }
     else if (d.accumulate) {
-        out << deref(d) << " = fma(";
-        if (coeff != 1) out << as_c_double(coeff) << '*';
-
-        out << pp_var_pfx << "weight[tid_], " << from->name() << ", " << deref(d) << ");\n";
+        if (is_point_proc) {
+            out << "::arb::gpu::reduce_by_key(" << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
+        }
+        else {
+            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
+        }
     }
     else {
-        out << deref(d) << " = ";
-        if (coeff != 1) out << as_c_double(coeff) << '*';
-
-        out << from->name() << ";\n";
+        out << var << " = " << scale << name << ";\n";
     }
 }
 

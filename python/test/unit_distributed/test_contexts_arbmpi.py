@@ -5,7 +5,7 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures, cases
+from .. import cases
 
 """
 all tests for distributed arb.context using arbor mpi wrappers

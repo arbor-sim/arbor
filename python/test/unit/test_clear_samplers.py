@@ -6,9 +6,8 @@ import unittest
 import arbor as A
 import numpy as np
 
-# to be able to run .py file from child directory
-import sys, os
-from .. import fixtures, cases
+from .. import fixtures
+from .. import cases
 
 """
 all tests for the simulator wrapper

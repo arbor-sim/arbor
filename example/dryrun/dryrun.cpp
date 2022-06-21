@@ -174,10 +174,8 @@ int main(int argc, char** argv) {
                 params.num_ranks, params.cell, params.min_delay);
         arb::symmetric_recipe recipe(std::move(tile));
 
-        auto decomp = arb::partition_load_balance(recipe, ctx);
-
         // Construct the model.
-        arb::simulation sim(recipe, decomp, ctx);
+        arb::simulation sim(recipe, ctx);
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
         auto probeset_id = cell_member_type{0, 0};

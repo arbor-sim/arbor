@@ -5,7 +5,6 @@ import sys
 import os
 import re
 import numpy as np
-import neuron
 from neuron import h
 
 # This is super annoying: without neuron.gui, need
@@ -277,7 +276,6 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     )
 
     # and section reports too
-    vreport_t = list(vreport_t_hoc)
     for name, length, nseg, ps, vs in vreports:
         obs = np.column_stack([np.array(v) for v in vs])
         xs = [length * p for p in ps]

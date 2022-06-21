@@ -1,31 +1,12 @@
 #include <arbor/fvm_types.hpp>
-
 #include <arbor/export.hpp>
+
+#include "fine.hpp"
+
 #include <ostream>
 
 namespace arb {
 namespace gpu {
-
-struct level_metadata {
-    unsigned num_branches = 0; // Number of branches in a level
-    unsigned max_length = 0;   // Length of the longest branch
-    unsigned matrix_data_index = 0;   // Index into data values (d, u, rhs) of the first branch
-    unsigned level_data_index  = 0;   // Index into data values (lengths, parents) of each level
-};
-
-// C wrappers around kernels
-ARB_ARBOR_API void gather(
-    const fvm_value_type* from,
-    fvm_value_type* to,
-    const fvm_index_type* p,
-    unsigned n);
-
-ARB_ARBOR_API void scatter(
-    const fvm_value_type* from,
-    fvm_value_type* to,
-    const fvm_index_type* p,
-    unsigned n);
-
 ARB_ARBOR_API void assemble_matrix_fine(
     fvm_value_type* d,
     fvm_value_type* rhs,

@@ -826,7 +826,7 @@ void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
     };
-    simulation sim(rec, partition_load_balance(rec, ctx, phints), ctx);
+    simulation sim(rec, ctx, partition_load_balance(rec, ctx, phints));
 
     // Take a sample at 20 tau, and run sim for just a bit longer.
 
@@ -913,7 +913,7 @@ auto run_simple_samplers(
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
     };
-    simulation sim(rec, partition_load_balance(rec, ctx, phints), ctx);
+    simulation sim(rec, ctx, partition_load_balance(rec, ctx, phints));
 
     std::vector<trace_vector<SampleData, SampleMeta>> traces(n_probe);
     for (unsigned i = 0; i<n_probe; ++i) {
@@ -1278,13 +1278,13 @@ void run_exact_sampling_probe_test(const context& ctx) {
     };
     domain_decomposition one_cell_group = partition_load_balance(rec, ctx, phints);
 
-    simulation lax_sim(rec, one_cell_group, ctx);
+    simulation lax_sim(rec, ctx, one_cell_group);
     for (unsigned i = 0; i<n_cell; ++i) {
         lax_sim.add_sampler(one_probe({i, 0}), sample_sched, make_simple_sampler(lax_traces.at(i)), sampling_policy::lax);
     }
     lax_sim.run(t_end, max_dt);
 
-    simulation exact_sim(rec, one_cell_group, ctx);
+    simulation exact_sim(rec, ctx, one_cell_group);
     for (unsigned i = 0; i<n_cell; ++i) {
         exact_sim.add_sampler(one_probe({i, 0}), sample_sched, make_simple_sampler(exact_traces.at(i)), sampling_policy::exact);
     }
@@ -1366,7 +1366,7 @@ TEST(probe, get_probe_metadata) {
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
     };
-    simulation sim(rec, partition_load_balance(rec, ctx, phints), ctx);
+    simulation sim(rec, ctx, partition_load_balance(rec, ctx, phints));
 
     std::vector<probe_metadata> mm = sim.get_probe_metadata({0, 0});
     ASSERT_EQ(3u, mm.size());

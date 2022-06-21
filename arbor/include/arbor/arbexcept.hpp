@@ -128,6 +128,12 @@ struct ARB_SYMBOL_VISIBLE no_such_parameter: arbor_exception {
     std::string param_name;
 };
 
+struct ARB_SYMBOL_VISIBLE illegal_diffusive_mechanism: arbor_exception {
+    explicit illegal_diffusive_mechanism(const std::string& mech, const std::string& ion);
+    std::string mech;
+    std::string ion;
+};
+
 struct ARB_SYMBOL_VISIBLE invalid_parameter_value: arbor_exception {
     invalid_parameter_value(const std::string& mech_name, const std::string& param_name, const std::string& value_str);
     invalid_parameter_value(const std::string& mech_name, const std::string& param_name, double value);

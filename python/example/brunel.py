@@ -6,19 +6,21 @@ import numpy as np
 from numpy.random import RandomState
 
 """
-A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
-Each neuron in the network receives in_degree_prop * nexc excitatory connections
-chosen randomly, in_degree_prop * ninh inhibitory connections and next (external) Poisson connections.
-All the connections have the same delay. The strenght of excitatory and Poisson connections is given by
-parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
-Poisson neurons all spike independently with expected number of spikes given by parameter poiss_lambda.
-Because of the refractory period, the activity is mostly driven by Poisson neurons and
-recurrent connections have a small effect.
+A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory
+LIF neurons. Each neuron in the network receives in_degree_prop * nexc
+excitatory connections chosen randomly, in_degree_prop * ninh inhibitory
+connections and next (external) Poisson connections. All the connections have
+the same delay. The strenght of excitatory and Poisson connections is given by
+parameter weight, whereas the strength of inhibitory connections is
+rel_inh_strength * weight. Poisson neurons all spike independently with expected
+number of spikes given by parameter poiss_lambda. Because of the refractory
+period, the activity is mostly driven by Poisson neurons and recurrent
+connections have a small effect.
 
 Call with parameters, for example:
 ./brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123 -f spikes.txt
-
 """
+
 
 # Samples m unique values in interval [start, end) - gid.
 # We exclude gid because we don't want self-loops.
@@ -257,7 +259,7 @@ if __name__ == "__main__":
 
     meters.checkpoint("load-balance", context)
 
-    sim = arbor.simulation(recipe, decomp, context)
+    sim = arbor.simulation(recipe, context, decomp)
     sim.record(arbor.spike_recording.all)
 
     meters.checkpoint("simulation-init", context)

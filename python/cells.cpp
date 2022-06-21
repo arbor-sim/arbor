@@ -549,7 +549,7 @@ void register_cells(pybind11::module& m) {
             [](arb::cable_cell_global_properties& props, const char* ion,
                optional<double> valence, optional<double> int_con,
                optional<double> ext_con, optional<double> rev_pot,
-               pybind11::object method)
+               pybind11::object method, optional<double> diff)
             {
                 if (!props.ion_species.count(ion) && !valence) {
                     throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
@@ -560,6 +560,7 @@ void register_cells(pybind11::module& m) {
                 if (int_con) data.init_int_concentration  = *int_con;
                 if (ext_con) data.init_ext_concentration  = *ext_con;
                 if (rev_pot) data.init_reversal_potential = *rev_pot;
+                if (diff)    data.diffusivity             = *diff;
 
                 if (auto m = maybe_method(method)) {
                     props.default_parameters.reversal_potential_method[ion] = *m;
@@ -571,6 +572,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
             pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
+            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [m^2/s]."),
             "Set the global default properties of ion species named 'ion'.\n"
             "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
             "If 'ion' in not one of these ions it will be added to the list, making it\n"
@@ -620,11 +622,13 @@ void register_cells(pybind11::module& m) {
         .def("set_ion",
             [](arb::decor& d, const char* ion,
                optional<double> int_con, optional<double> ext_con,
-               optional<double> rev_pot, pybind11::object method)
+               optional<double> rev_pot, pybind11::object method,
+               optional<double> diff)
             {
                 if (int_con) d.set_default(arb::init_int_concentration{ion, *int_con});
                 if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
                 if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
+                if (diff)    d.set_default(arb::ion_diffusivity{ion, *diff});
                 if (auto m = maybe_method(method)) {
                     d.set_default(arb::ion_reversal_potential_method{ion, *m});
                 }
@@ -634,6 +638,7 @@ void register_cells(pybind11::module& m) {
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
             pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
+            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [m^2/s]."),
             "Set the properties of ion species named 'ion' that will be applied\n"
             "by default everywhere on the cell. Species concentrations and reversal\n"
             "potential can be overridden on specific regions using the paint interface, \n"
@@ -668,16 +673,19 @@ void register_cells(pybind11::module& m) {
         // Paint ion species initial conditions on a region.
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
-               optional<double> int_con, optional<double> ext_con, optional<double> rev_pot) {
+               optional<double> int_con, optional<double> ext_con,
+               optional<double> rev_pot, optional<double> diff) {
                 auto r = arborio::parse_region_expression(region).unwrap();
                 if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
+                if (diff)    dec.paint(r, arb::ion_diffusivity{name, *diff});
             },
             "region"_a, pybind11::kw_only(), "ion_name"_a,
             pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
             pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
             pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
+            pybind11::arg_v("diff",    pybind11::none(), "Diffusivity [m^2/s]"),
             "Set ion species properties conditions on a region.")
         // Place synapses
         .def("place",

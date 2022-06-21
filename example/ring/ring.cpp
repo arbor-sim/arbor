@@ -13,6 +13,7 @@
 
 #include <arborio/label_parse.hpp>
 
+#include <arbor/load_balance.hpp>
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -160,10 +161,9 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
 
-        auto decomp = arb::partition_load_balance(recipe, context);
-
         // Construct the model.
-        arb::simulation sim(recipe, decomp, context);
+        auto decomposition = arb::partition_load_balance(recipe, context);
+        arb::simulation sim(recipe, context, decomposition);
 
         // Set up the probe that will measure voltage in the cell.
 

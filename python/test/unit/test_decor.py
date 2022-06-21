@@ -3,8 +3,6 @@
 import unittest
 import arbor as A
 
-from .. import fixtures
-
 """
 Tests for decor and decoration wrappers.
 TODO: Coverage for more than just iclamp.

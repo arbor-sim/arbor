@@ -132,11 +132,8 @@ int main() {
     // Create an instance of our recipe.
     generator_recipe recipe;
 
-    // Make the domain decomposition for the model
-    auto decomp = arb::partition_load_balance(recipe, context);
-
     // Construct the model.
-    arb::simulation sim(recipe, decomp, context);
+    arb::simulation sim(recipe, context);
 
     // Set up the probe that will measure voltage in the cell.
 

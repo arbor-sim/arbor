@@ -133,7 +133,7 @@ TEST(lif_cell_group, throw) {
     probe_recipe rec;
     auto context = make_context();
     auto decomp = partition_load_balance(rec, context);
-    EXPECT_THROW(simulation(rec, decomp, context), bad_cell_probe);
+    EXPECT_THROW(simulation(rec, context, decomp), bad_cell_probe);
 }
 
 TEST(lif_cell_group, recipe)
@@ -153,7 +153,7 @@ TEST(lif_cell_group, spikes) {
     auto context = make_context();
 
     auto decomp = partition_load_balance(recipe, context);
-    simulation sim(recipe, decomp, context);
+    simulation sim(recipe, context, decomp);
 
     cse_vector events;
 
@@ -193,7 +193,7 @@ TEST(lif_cell_group, ring)
     auto decomp = partition_load_balance(recipe, context);
 
     // Creates a simulation with a ring recipe of lif neurons
-    simulation sim(recipe, decomp, context);
+    simulation sim(recipe, context, decomp);
 
     std::vector<spike> spike_buffer;
 

@@ -1,4 +1,5 @@
-import sys, sysconfig
+import sys
+import sysconfig
 
 pfx = sys.stdin.read()
 try:

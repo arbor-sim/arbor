@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import arbor
-import pandas, seaborn
+import pandas
+import seaborn
 import matplotlib.pyplot as plt
 
 # Construct chains of cells linked with gap junctions,
@@ -28,7 +29,7 @@ def make_cable_cell(gid):
     )
 
     # Single dendrite with radius 2 μm and length 40 μm, (tag = 2)
-    b = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
+    tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
     labels = arbor.label_dict()
@@ -133,10 +134,8 @@ ncells = nchains * ncells_per_chain
 # Instantiate recipe
 recipe = chain_recipe(ncells_per_chain, nchains)
 
-# Create a default execution context, domain decomposition and simulation
-context = arbor.context()
-decomp = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, decomp, context)
+# Create a default simulation
+sim = arbor.simulation(recipe)
 
 # Set spike generators to record
 sim.record(arbor.spike_recording.all)

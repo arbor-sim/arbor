@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas, seaborn
+import pandas
+import seaborn
 from math import sqrt
 
 # Construct a cell with the following morphology.
@@ -25,19 +26,19 @@ def make_cable_cell(gid):
         arbor.mnpos, arbor.mpoint(-12, 0, 0, 6), arbor.mpoint(0, 0, 0, 6), tag=1
     )
 
-    # Single dendrite (tag=3) of length 50 μm and radius 2 μm attached to soma.
+    # (b0) Single dendrite (tag=3) of length 50 μm and radius 2 μm attached to soma.
     b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(50, 0, 0, 2), tag=3)
 
     # Attach two dendrites (tag=3) of length 50 μm to the end of the first dendrite.
-    # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    b1 = tree.append(
+    # (b1) Radius tapers from 2 to 0.5 μm over the length of the dendrite.
+    tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 2),
         arbor.mpoint(50 + 50 / sqrt(2), 50 / sqrt(2), 0, 0.5),
         tag=3,
     )
-    # Constant radius of 1 μm over the length of the dendrite.
-    b2 = tree.append(
+    # (b2) Constant radius of 1 μm over the length of the dendrite.
+    tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 1),
         arbor.mpoint(50 + 50 / sqrt(2), -50 / sqrt(2), 0, 1),
@@ -123,9 +124,8 @@ ncells = 4
 recipe = ring_recipe(ncells)
 
 # (12) Create an execution context using all locally available threads, domain decomposition and simulation
-context = arbor.context("avail_threads")
-decomp = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, decomp, context)
+ctx = arbor.context("avail_threads")
+sim = arbor.simulation(recipe, context=ctx)
 
 # (13) Set spike generators to record
 sim.record(arbor.spike_recording.all)

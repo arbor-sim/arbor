@@ -7,6 +7,7 @@ import seaborn
 import pandas
 import matplotlib.pyplot as plt
 
+
 # (3) A function that parses the Allen parameter fit file into components for an arbor.decor
 # NB. Needs to be adjusted when using a different model
 def load_allen_fit(fit):
