@@ -133,10 +133,8 @@ ncells = nchains * ncells_per_chain
 # Instantiate recipe
 recipe = chain_recipe(ncells_per_chain, nchains)
 
-# Create a default execution context, domain decomposition and simulation
-context = arbor.context()
-decomp = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, decomp, context)
+# Create a default simulation
+sim = arbor.simulation(recipe)
 
 # Set spike generators to record
 sim.record(arbor.spike_recording.all)

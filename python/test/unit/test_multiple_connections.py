@@ -134,8 +134,7 @@ class TestMultipleConnections(unittest.TestCase):
         self.assertAlmostEqual(connections_from_recipe[3].delay, 1.4)
 
         # construct domain_decomposition and simulation object
-        dd = arb.partition_load_balance(art_spiker_recipe, context)
-        sim = arb.simulation(art_spiker_recipe, dd, context)
+        sim = arb.simulation(art_spiker_recipe, context)
         sim.record(arb.spike_recording.all)
 
         # create schedule and handle to record the membrane potential of neuron 3
@@ -365,9 +364,8 @@ class TestMultipleConnections(unittest.TestCase):
         self.assertAlmostEqual(connections_from_recipe[1].weight, weight2)
         self.assertAlmostEqual(connections_from_recipe[1].delay, 1.4)
 
-        # construct domain_decomposition and simulation object
-        dd = arb.partition_load_balance(art_spiker_recipe, context)
-        sim = arb.simulation(art_spiker_recipe, dd, context)
+        # construct simulation object
+        sim = arb.simulation(art_spiker_recipe, context)
         sim.record(arb.spike_recording.all)
 
         # create schedule and handle to record the membrane potential of neuron 3

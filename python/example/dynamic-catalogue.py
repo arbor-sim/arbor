@@ -42,7 +42,5 @@ where <arbor> is the location of the arbor source tree."""
     exit(1)
 
 rcp = recipe()
-ctx = arb.context()
-dom = arb.partition_load_balance(rcp, ctx)
-sim = arb.simulation(rcp, dom, ctx)
+sim = arb.simulation(rcp)
 sim.run(tfinal=30)
