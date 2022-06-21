@@ -208,7 +208,6 @@ if __name__ == "__main__":
     ]
     recipe = Cable(probes, **vars(args))
 
-
     # configure the simulation and handles for the probes
     sim = arbor.simulation(recipe)
     dt = 0.001
