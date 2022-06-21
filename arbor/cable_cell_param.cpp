@@ -44,10 +44,7 @@ ARB_ARBOR_API void check_global_properties(const cable_cell_global_properties& G
         if (!data.init_ext_concentration) {
             throw cable_cell_error("missing init_ext_concentration for ion "+ion);
         }
-        if (!data.diffusivity) {
-            throw cable_cell_error("missing diffusivity for ion "+ion);
-        }
-        else if (data.diffusivity.value() < 0.0) {
+        if (data.diffusivity && *data.diffusivity < 0.0) {
             throw cable_cell_error("negative diffusivity for ion "+ion);
         }
         if (!data.init_reversal_potential && !param.reversal_potential_method.count(ion)) {
