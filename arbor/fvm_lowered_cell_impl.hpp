@@ -279,14 +279,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     std::ofstream file0;
 
-    std::vector<arb_index_type> peer_ix;
-    std::vector<arb_index_type> peer_index_reset;
+    std::vector<arb_index_type> node_ix_group;
+    std::vector<arb_index_type> peer_ix_group;
 
-    //todo do i need this
-    std::vector<arb_index_type> peer_ix_start;
-    
-    std::vector<value_type> v_start = {};
-    
     //WR iterations
     int wr_max = 1;
     auto eps = 1e-7;
@@ -335,92 +330,64 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
 
-                    if (wr_it == 0 && step == 0) {
-                        if (cell_group == 1) {
+                    std::vector<arb_index_type> peer_ix(m->ppack_.width, 0);
 
-                            std::cout << "peer index = { ";
-                            for (int j = 0; j < m->ppack_.width; ++j) {
-                                std::cout << m->ppack_.peer_index[j] << " ";
-                                //std::cout << get<2>(index_to_cell[m->ppack_.peer_index[j]]) << " ";
-                            }
-                            std::cout << "}" << std::endl;
-                        }
-                    } 
+                    if (wr_it == 0 && step == 0) {
                         
-                    if (wr_it == 0 && step == 0) {
+                        for (int i = 0; i<m->ppack_.width; ++i) {
+                            node_ix_group.push_back(get<2>(index_to_cell[m->ppack_.node_index[i]]));
+                        }
 
+                        for (int i = 0; i<m->ppack_.width; ++i) {
+                            int cg_node = get<1>(index_to_cell[m->ppack_.node_index[i]]);
+                            int cg_peer = get<1>(index_to_cell[m->ppack_.peer_index[i]]);
+                            std::cout << "cell_group node = " << cg_node << " cell_group peer = " << cg_peer << std::endl;
+                            std::cout << " tmin = " << tmin_ << std::endl;
+                            if (cg_peer == cg_node) {
+                                peer_ix_group.push_back(get<2>(index_to_cell[m->ppack_.peer_index[i]]));
+                            } else {
+                                peer_ix_group.push_back(get<2>(index_to_cell[m->ppack_.node_index[i]]));
+                            }
+                        }
+
+                        //Setup peer_pos map
                         std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos = {};
-                        
-                        for (auto ix = 0; ix<m->ppack_.width; ++ix) {
-                            auto node = m->ppack_.node_index[ix];
-                            peer_pos[node].push_back(ix);
-                            peer_index_reset.push_back(m->ppack_.peer_index[ix]);
+                        for (auto i = 0; i<m->ppack_.width; ++i) {
+                            auto node = node_ix_group[i];
+                            peer_pos[node].push_back(i);
                         }
 
-                        for (auto it = 0; it < m->ppack_.width; ++it) {
-                            //if peer in same group as node use peer index
-                            //if peer not in same group as node, use node index instead
-                            int p = m->ppack_.peer_index[it];
-
-                            //check group 
-                            if (get<1>(index_to_cell[p]) != cell_group) {
-                                p = m->ppack_.node_index[it];
-                            }
-
-                            peer_ix.push_back(peer_pos[p][0]);
+                        for (auto i = 0; i<m->ppack_.width; ++i){
+                            auto p = peer_ix_group[i];
+                            peer_ix[i] = peer_pos[p][0];
                             peer_pos[p].pop_front();
                         }
-                        
-                        /*
-                        if (cell_group == 1) {
-                            std::cout << "peer index trace = { ";
-                            for (auto i = 0; i < m->ppack_.width; ++i) {
-                                std::cout << peer_ix[i] << " ";
-                            }
-                            std::cout << "}" << std::endl;
-                        }*/
-                        
                     }
 
-                    //transform peer index between index and cell description and use peer_ix=node_ix if not in same group for accessing state_->voltage in first iteration
-                    if (wr_it == 0) {
-                        for (auto ix = 0; ix < m->ppack_.width; ++ix) {
-                            if (cell_group == get<1>(index_to_cell[m->ppack_.peer_index[ix]])) {
-                                peer_ix_start.push_back(get<2>(index_to_cell[m->ppack_.peer_index[ix]]));
-                            } else {
-                                peer_ix_start.push_back(get<2>(index_to_cell[m->ppack_.node_index[ix]]));
-                            }
-                        }
-                        m->ppack_.peer_index = peer_ix_start.data();
+                    if (wr_it == 0 && step == 0) {
+                        m->ppack_.peer_index = peer_ix_group.data();
                     }
-
-                    // Use trace_prev for gj current calculation
-                    if (wr_it > 0) {
+                    if (wr_it > 0 && step == 0) {
                         auto gj = m->mechanism_id();
-                        m->ppack_.vec_v_peer = trace_prev[gj][step].data();
                         m->ppack_.peer_index = peer_ix.data();
+                        m->ppack_.vec_v_peer = trace_prev[gj][step].data();
                     }
                 }
-               
+                
                 m->update_current();
 
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
 
-                    // Reset peer index to original array
-                    if (wr_it > 0) {
-                        m->ppack_.peer_index = peer_index_reset.data();
-                    }
-
-                    // Write trace
+                    //write trace
                     auto gj = m->mechanism_id();
                     std::vector<value_type> v_step(m->ppack_.width, 0.);
                     for(int ix = 0; ix < m->ppack_.width; ++ix) {
-                        auto node_cv = get<2>(index_to_cell[m->ppack_.node_index[ix]]);
+                        auto node_cv = node_ix_group[ix];
                         v_step[ix] = state_->voltage[node_cv];
                     }
                     trace[gj].push_back(v_step);
-                    
+
                     /*
                     if (cell_group == 0){
 
@@ -428,9 +395,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         if (wr_it == 0 && step == 0) {
                             file0 << remaining_steps << std::endl;
                             for (auto cv = 0; cv < m->ppack_.width-1; ++ cv) {
-                                file0 << get<2>(index_to_cell[m->ppack_.node_index[cv]]);
+                                file0 << node_ix_group[cv];
                             }
-                            file0 << get<2>(index_to_cell[m->ppack_.node_index[m->ppack_.width-1]]);
+                            file0 << node_ix_group[m->ppack_.width-1] << std::endl;
                         }
 
                         for (auto j = 0; j<m->ppack_.width; ++j) {
@@ -440,19 +407,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         file0.close();
                     }
                     */
-                    
-                    // Calculate error for break condition
-                    /*
-                    if (wr_it > 1) {
-                        for (auto ix = 0; ix < trace[gj][step].size(); ++ ix){
-                            auto node_cv = m->ppack_.node_index[ix];
-                            auto err_cv = std::abs(trace[gj][step][node_cv] - trace_prev[gj][step][node_cv]);
-                            err[node_cv] += (err_cv*err_cv);
-                            if (err[node_cv] > eps) {
-                                b += 1;
-                            }
-                        }
-                    }*/
                 }
             }
 
@@ -538,7 +492,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             }
             PL();
         }
-
+        
         // Break if no CV has an err > eps or maximum WR iterations reached
         //if ((wr_it > 1 && max_err < eps) or wr_max == 1 || wr_it == wr_max) {
         //    //std::cout << "break at it = " << wr_it << std::endl;
@@ -587,6 +541,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 *store.second.state_vars_[j] = state_vars_r[store.first][j];
             }
         } 
+
+        std::cout << "finished iteration " << wr_it << " in cell group " << cell_group << std::endl;
     }
     
     set_tmin(tfinal);
