@@ -114,7 +114,7 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
         }
     };
     auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
-    auto sim = simulation{rec, partition_load_balance(rec, ctx), ctx};
+    auto sim = simulation{rec, ctx, partition_load_balance(rec, ctx)};
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), sampler);
     sim.run(0.11, 0.01);
     return all_near(sample_values, exp, epsilon);
