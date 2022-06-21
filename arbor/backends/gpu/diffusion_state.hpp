@@ -12,15 +12,15 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "tree.hpp"
-#include "fine.hpp"
-#include "matrix_fine.hpp"
+#include "diffusion.hpp"
 #include "forest.hpp"
+#include "fine.hpp"
 
 namespace arb {
 namespace gpu {
 
 template <typename T, typename I>
-struct matrix_state_fine {
+struct diffusion_state {
 public:
     using value_type = T;
     using size_type = I;
@@ -41,7 +41,6 @@ public:
 
     // Required for matrix assembly
     array cv_area;             // [μm^2]
-    array cv_capacitance;      // [pF]
 
     // Invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -86,16 +85,14 @@ public:
     iarray perm;
 
 
-    matrix_state_fine() = default;
+    diffusion_state() = default;
 
     // constructor for fine-grained matrix.
-    matrix_state_fine(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divs,
-                 const std::vector<value_type>& cap,
-                 const std::vector<value_type>& face_conductance,
-                 const std::vector<value_type>& area,
-                 const std::vector<size_type>& cell_intdom)
-    {
+    diffusion_state(const std::vector<size_type>& p,
+                    const std::vector<size_type>& cell_cv_divs,
+                    const std::vector<value_type>& face_diffusivity,
+                    const std::vector<value_type>& area,
+                    const std::vector<size_type>& cell_intdom) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
@@ -361,7 +358,6 @@ public:
         //
         // face_conductance : not needed, don't store
         // d, u, rhs        : packed
-        // cv_capacitance   : flat
         // invariant_d      : flat
         // cv_to_cell       : flat
         // area             : flat
@@ -371,7 +367,7 @@ public:
         std::vector<value_type> temp_u_shuffled(matrix_size, 0);
         array u_shuffled;
         for (auto i: make_span(1u, matrix_size)) {
-            auto gij = face_conductance[i];
+            auto gij = face_diffusivity[i];
 
             temp_u_shuffled[i] = -gij;
             invariant_d_tmp[i] += gij;
@@ -392,10 +388,6 @@ public:
 
         // the invariant part of d and cv_area are in flat form
         cv_area = memory::make_const_view(area);
-
-        // the cv_capacitance can be copied directly because it is
-        // to be stored in flat format
-        cv_capacitance = memory::make_const_view(cap);
         invariant_d = memory::make_const_view(invariant_d_tmp);
 
         // calculate the cv -> cell mappings
@@ -410,7 +402,6 @@ public:
             cv_to_intdom_tmp[i] = cell_intdom[cv_to_cell_tmp[i]];
         }
         cv_to_intdom = memory::make_const_view(cv_to_intdom_tmp);
-
     }
 
     // Assemble the matrix
@@ -419,34 +410,34 @@ public:
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
-    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
-        assemble_matrix_fine(
-            d.data(),
-            rhs.data(),
-            invariant_d.data(),
-            voltage.data(),
-            current.data(),
-            conductivity.data(),
-            cv_capacitance.data(),
-            cv_area.data(),
-            cv_to_intdom.data(),
-            dt_intdom.data(),
-            perm.data(),
-            size());
+    void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity, fvm_value_type q) {
+        assemble_diffusion(d.data(),
+                           rhs.data(),
+                           invariant_d.data(),
+                           concentration.data(),
+                           voltage.data(),
+                           current.data(),
+                           q,
+                           conductivity.data(),
+                           cv_area.data(),
+                           cv_to_intdom.data(),
+                           dt_intdom.data(),
+                           perm.data(),
+                           size());
     }
 
     void solve(array& to) {
-        solve_matrix_fine(rhs.data(),
-                          d.data(),
-                          u.data(),
-                          level_meta.data(),
-                          level_lengths.data(),
-                          level_parents.data(),
-                          block_index.data(),
-                          num_cells_in_block.data(),
-                          data_partition.data(),
-                          num_cells_in_block.size(),
-                          max_branches_per_level);
+        solve_diffusion(rhs.data(),
+                        d.data(),
+                        u.data(),
+                        level_meta.data(),
+                        level_lengths.data(),
+                        level_parents.data(),
+                        block_index.data(),
+                        num_cells_in_block.data(),
+                        data_partition.data(),
+                        num_cells_in_block.size(),
+                        max_branches_per_level);
         // unpermute the solution
         packed_to_flat(rhs, to);
     }
@@ -457,14 +448,12 @@ private:
     void flat_to_packed(const array& from, array& to ) {
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);
-
         scatter(from.data(), to.data(), perm.data(), perm.size());
     }
 
     void packed_to_flat(const array& from, array& to ) {
         arb_assert(from.size()==data_size);
         arb_assert(to.size()==matrix_size);
-
         gather(from.data(), to.data(), perm.data(), perm.size());
     }
 };

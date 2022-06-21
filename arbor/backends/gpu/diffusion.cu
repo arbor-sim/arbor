@@ -3,12 +3,11 @@
 #include <arbor/gpu/gpu_common.hpp>
 
 #include "matrix_common.hpp"
-#include "matrix_fine.hpp"
+#include "diffusion.hpp"
 
 namespace arb {
 namespace gpu {
 namespace kernels {
-
 /// GPU implementation of Hines matrix assembly.
 /// Fine layout.
 /// For a given time step size dt:
@@ -17,35 +16,36 @@ namespace kernels {
 ///     - compute the RHS of the linear system to solve.
 template <typename T, typename I>
 __global__
-void assemble_matrix_fine(
+void assemble_diffusion(
         T* __restrict__ const d,
         T* __restrict__ const rhs,
         const T* __restrict__ const invariant_d,
+        const T* __restrict__ const concentration,
         const T* __restrict__ const voltage,
         const T* __restrict__ const current,
+        const T q,
         const T* __restrict__ const conductivity,
-        const T* __restrict__ const cv_capacitance,
         const T* __restrict__ const area,
         const I* __restrict__ const cv_to_intdom,
         const T* __restrict__ const dt_intdom,
         const I* __restrict__ const perm,
-        unsigned n)
-{
+        unsigned n) {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < n) {
-        // The 1e-3 is a constant of proportionality required to ensure that the
-        // conductance (gi) values have units μS (micro-Siemens).
-        // See the model documentation in docs/model for more information.
         const auto dt = dt_intdom[cv_to_intdom[tid]];
         const auto p = dt > 0;
         const auto pid = perm[tid];
-        const auto area_factor = T(1e-3)*area[tid];
-        const auto gi = T(1e-3)*cv_capacitance[tid]/dt + area_factor*conductivity[tid];
-        const auto r_d = gi + invariant_d[tid];
-        const auto r_rhs = gi*voltage[tid] - area_factor*current[tid];
+        auto u = voltage[tid];        // mV
+        auto g = conductivity[tid];   // µS
+        auto J = current[tid];        // A/m^2
+        auto A = 1e-3*area[tid];      // 1e-9·m²
+        auto X = concentration[tid];  // mM
+        // conversion from current density to concentration change
+        // using Faraday's constant
+        auto F = A/(q*96.485332);
 
-        d[pid]   = p ? r_d : 0;
-        rhs[pid] = p ? r_rhs : voltage[tid];
+        d[pid]   = p ? (1e-3/dt   + F*g + invariant_d[tid]) : 0;
+        rhs[pid] = p ? (1e-3/dt*X + F*(u*g - J))            : concentration[tid];
     }
 }
 
@@ -60,7 +60,7 @@ void assemble_matrix_fine(
 /// number of branches.
 template <typename T>
 __global__
-void solve_matrix_fine(
+void solve_diffusion(
     T* __restrict__ const rhs,
     T* __restrict__ const d,
     const T* __restrict__ const u,
@@ -212,14 +212,15 @@ void solve_matrix_fine(
 
 } // namespace kernels
 
-ARB_ARBOR_API void assemble_matrix_fine(
+ARB_ARBOR_API void assemble_diffusion(
     fvm_value_type* d,
     fvm_value_type* rhs,
     const fvm_value_type* invariant_d,
+    const fvm_value_type* concentration,
     const fvm_value_type* voltage,
     const fvm_value_type* current,
+    fvm_value_type q,
     const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
     const fvm_index_type* cv_to_intdom,
     const fvm_value_type* dt_intdom,
@@ -229,8 +230,8 @@ ARB_ARBOR_API void assemble_matrix_fine(
     const unsigned block_dim = 128;
     const unsigned num_blocks = impl::block_count(n, block_dim);
 
-    kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
-        d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
+    kernels::assemble_diffusion<<<num_blocks, block_dim>>>(
+        d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area,
         cv_to_intdom, dt_intdom, perm, n);
 }
 
@@ -251,7 +252,7 @@ ARB_ARBOR_API void assemble_matrix_fine(
 // num_levels   = [3, 2, 3, ...]
 // num_cells    = [2, 3, ...]
 // num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
-ARB_ARBOR_API void solve_matrix_fine(
+ARB_ARBOR_API void solve_diffusion(
     fvm_value_type* rhs,
     fvm_value_type* d,                     // diagonal values
     const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
@@ -264,7 +265,7 @@ ARB_ARBOR_API void solve_matrix_fine(
     unsigned num_blocks,                   // number of blocks
     unsigned blocksize)                    // size of each block
 {
-    kernels::solve_matrix_fine<<<num_blocks, blocksize>>>(
+    kernels::solve_diffusion<<<num_blocks, blocksize>>>(
         rhs, d, u, level_meta, level_lengths, level_parents, block_index,
         num_cells);
 }

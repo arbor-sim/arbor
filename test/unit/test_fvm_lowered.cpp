@@ -48,8 +48,7 @@ using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 using shared_state = backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_cell::state_)
 
-using matrix = arb::matrix<arb::multicore::backend>;
-ACCESS_BIND(matrix fvm_cell::*, private_matrix_ptr, &fvm_cell::matrix_)
+using matrix = arb::multicore::cable_solver;
 
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr, &fvm_cell::mechanisms_)
 
@@ -202,8 +201,8 @@ TEST(fvm_lowered, matrix_init)
     fvm_cell fvcell(*context);
     fvcell.initialize({0}, cable1d_recipe(cell));
 
-    auto& J = fvcell.*private_matrix_ptr;
     auto& S = fvcell.*private_state_ptr;
+    auto& J = S->solver;
     EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values
@@ -211,14 +210,13 @@ TEST(fvm_lowered, matrix_init)
     fvcell.integrate(0.01, 0.01, {}, {});
 
     auto n = J.size();
-    auto& mat = J.state_;
 
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), isnan));
-    EXPECT_FALSE(arb::util::any_of(mat.d, isnan));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), isnan));
+    EXPECT_FALSE(arb::util::any_of(J.d, isnan));
     EXPECT_FALSE(arb::util::any_of(S->voltage, isnan));
 
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), ispos));
-    EXPECT_FALSE(arb::util::any_of(mat.d, isneg));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), ispos));
+    EXPECT_FALSE(arb::util::any_of(J.d, isneg));
 }
 
 TEST(fvm_lowered, target_handles) {
