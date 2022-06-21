@@ -331,6 +331,8 @@ TEST(iexpr, round_tripping) {
         round_trip_label<arb::iexpr>("(radius)"));
     EXPECT_EQ("(diameter 1)",
         round_trip_label<arb::iexpr>("(diameter)"));
+    EXPECT_EQ("(scalar 3.14159)",
+        round_trip_label<arb::iexpr>("(pi)"));
 }
 
 TEST(regloc, round_tripping) {

@@ -120,6 +120,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
 
     {"scalar", make_call<double>(arb::iexpr::scalar, "iexpr with 1 argument: (value:double)")},
 
+    {"pi", make_call<>(arb::iexpr::pi, "iexpr with no argument")},
+
     {"distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
     {"distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::distance),

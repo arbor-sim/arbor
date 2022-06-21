@@ -628,6 +628,10 @@ Inhomogeneous Expressions
 
     A scalar of given value.
 
+.. label:: (pi)
+
+    A scalar expression representing the pi constant.
+
 .. label:: (distance scale:real loc:locset)
 
     The minimum distance to points within the locset ``loc``. The scaling parameter  ``scale`` has unit :math:`{\mu m}^{-1}` 

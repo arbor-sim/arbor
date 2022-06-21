@@ -15,6 +15,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/math.hpp>
 
 namespace arb {
 
@@ -296,6 +297,8 @@ struct log: public iexpr_interface {
 iexpr::iexpr(double value) { *this = iexpr::scalar(value); }
 
 iexpr iexpr::scalar(double value) { return iexpr(iexpr_type::scalar, std::make_tuple(value)); }
+
+iexpr iexpr::pi() { return iexpr::scalar(math::pi<double>); }
 
 iexpr iexpr::distance(double scale, locset loc) {
     return iexpr(

@@ -43,6 +43,8 @@ struct ARB_SYMBOL_VISIBLE iexpr {
 
     static iexpr scalar(double value);
 
+    static iexpr pi();
+
     static iexpr distance(double scale, locset loc);
 
     static iexpr distance(locset loc);
