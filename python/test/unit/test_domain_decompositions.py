@@ -15,7 +15,7 @@ all tests for non-distributed arb.domain_decomposition
 """
 
 # Dummy recipe
-class homo_recipe (arb.recipe):
+class homo_recipe(arb.recipe):
     def __init__(self, n=4):
         arb.recipe.__init__(self)
         self.ncells = n
@@ -27,11 +27,12 @@ class homo_recipe (arb.recipe):
         return []
 
     def cell_kind(self, gid):
-            return arb.cell_kind.cable
+        return arb.cell_kind.cable
+
 
 # Heterogenous cell population of cable and rss cells.
 # Interleaved so that cells with even gid are cable cells, and even gid are spike source cells.
-class hetero_recipe (arb.recipe):
+class hetero_recipe(arb.recipe):
     def __init__(self, n=4):
         arb.recipe.__init__(self)
         self.ncells = n
@@ -43,10 +44,11 @@ class hetero_recipe (arb.recipe):
         return []
 
     def cell_kind(self, gid):
-        if (gid%2):
+        if gid % 2:
             return arb.cell_kind.spike_source
         else:
             return arb.cell_kind.cable
+
 
 class TestDomain_Decompositions(unittest.TestCase):
     # 1 cpu core, no gpus; assumes all cells will be put into cell groups of size 1
@@ -96,7 +98,7 @@ class TestDomain_Decompositions(unittest.TestCase):
 
         self.assertEqual(len(grp.gids), n_cells)
         self.assertEqual(grp.gids[0], 0)
-        self.assertEqual(grp.gids[-1], n_cells-1)
+        self.assertEqual(grp.gids[-1], n_cells - 1)
         self.assertEqual(grp.backend, arb.backend.gpu)
         self.assertEqual(grp.kind, arb.cell_kind.cable)
 
@@ -132,7 +134,7 @@ class TestDomain_Decompositions(unittest.TestCase):
         kinds = [arb.cell_kind.cable, arb.cell_kind.spike_source]
         for k in kinds:
             gids = kind_lists[k]
-            self.assertEqual(len(gids), int(n_cells/2))
+            self.assertEqual(len(gids), int(n_cells / 2))
             for gid in gids:
                 self.assertEqual(k, recipe.cell_kind(gid))
 
@@ -148,7 +150,7 @@ class TestDomain_Decompositions(unittest.TestCase):
         self.assertEqual(decomp.num_global_cells, n_cells)
 
         # one cell group with n_cells/2 on gpu, and n_cells/2 groups on cpu
-        expected_groups = int(n_cells/2) + 1
+        expected_groups = int(n_cells / 2) + 1
         self.assertEqual(len(decomp.groups), expected_groups)
 
         grps = range(expected_groups)
@@ -157,16 +159,16 @@ class TestDomain_Decompositions(unittest.TestCase):
         for i in grps:
             grp = decomp.groups[i]
             k = grp.kind
-            if (k == arb.cell_kind.cable):
+            if k == arb.cell_kind.cable:
                 self.assertEqual(grp.backend, arb.backend.gpu)
-                self.assertEqual(len(grp.gids), int(n_cells/2))
+                self.assertEqual(len(grp.gids), int(n_cells / 2))
                 for gid in grp.gids:
-                    self.assertTrue(gid%2==0)
+                    self.assertTrue(gid % 2 == 0)
                     n += 1
-            elif (k == arb.cell_kind.spike_source):
+            elif k == arb.cell_kind.spike_source:
                 self.assertEqual(grp.backend, arb.backend.multicore)
                 self.assertEqual(len(grp.gids), 1)
-                self.assertTrue(grp.gids[0]%2)
+                self.assertTrue(grp.gids[0] % 2)
                 n += 1
         self.assertEqual(n_cells, n)
 
@@ -183,7 +185,12 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_hint = arb.partition_hint()
         spike_hint.prefer_gpu = False
         spike_hint.cpu_group_size = 4
-        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+        hints = dict(
+            [
+                (arb.cell_kind.cable, cable_hint),
+                (arb.cell_kind.spike_source, spike_hint),
+            ]
+        )
 
         decomp = arb.partition_load_balance(recipe, context, hints)
 
@@ -194,11 +201,13 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_groups = []
 
         for g in decomp.groups:
-            self.assertTrue(g.kind == arb.cell_kind.cable or g.kind == arb.cell_kind.spike_source)
+            self.assertTrue(
+                g.kind == arb.cell_kind.cable or g.kind == arb.cell_kind.spike_source
+            )
 
-            if (g.kind == arb.cell_kind.cable):
+            if g.kind == arb.cell_kind.cable:
                 cable_groups.append(g.gids)
-            elif (g.kind == arb.cell_kind.spike_source):
+            elif g.kind == arb.cell_kind.spike_source:
                 spike_groups.append(g.gids)
 
         self.assertEqual(exp_cable_groups, cable_groups)
@@ -217,10 +226,17 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_hint = arb.partition_hint()
         spike_hint.prefer_gpu = False
         spike_hint.gpu_group_size = 1
-        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+        hints = dict(
+            [
+                (arb.cell_kind.cable, cable_hint),
+                (arb.cell_kind.spike_source, spike_hint),
+            ]
+        )
 
-        with self.assertRaisesRegex(RuntimeError,
-            "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0"):
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0",
+        ):
             decomp = arb.partition_load_balance(recipe, context, hints)
 
         cable_hint = arb.partition_hint()
@@ -229,8 +245,15 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_hint = arb.partition_hint()
         spike_hint.prefer_gpu = True
         spike_hint.gpu_group_size = 0
-        hints = dict([(arb.cell_kind.cable, cable_hint), (arb.cell_kind.spike_source, spike_hint)])
+        hints = dict(
+            [
+                (arb.cell_kind.cable, cable_hint),
+                (arb.cell_kind.spike_source, spike_hint),
+            ]
+        )
 
-        with self.assertRaisesRegex(RuntimeError,
-            "unable to perform load balancing because cell_kind::spike_source has invalid suggested gpu_cell_group size of 0"):
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "unable to perform load balancing because cell_kind::spike_source has invalid suggested gpu_cell_group size of 0",
+        ):
             decomp = arb.partition_load_balance(recipe, context, hints)
