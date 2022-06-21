@@ -10,6 +10,8 @@ from .. import fixtures, cases
 """
 all tests for distributed arb.context using arbor mpi wrappers
 """
+
+
 @cases.skipIfNotDistributed()
 class TestContexts_arbmpi(unittest.TestCase):
     # Initialize mpi only once in this class (when adding classes move initialization to setUpModule()
@@ -19,6 +21,7 @@ class TestContexts_arbmpi(unittest.TestCase):
         if not arb.mpi_is_initialized():
             arb.mpi_init()
             self.local_mpi = True
+
     # Finalize mpi only once in this class (when adding classes move finalization to setUpModule()
     @classmethod
     def tearDownClass(self):
@@ -32,7 +35,7 @@ class TestContexts_arbmpi(unittest.TestCase):
         comm = arb.mpi_comm()
 
         # test that by default communicator is MPI_COMM_WORLD
-        self.assertEqual(str(comm), '<arbor.mpi_comm: MPI_COMM_WORLD>')
+        self.assertEqual(str(comm), "<arbor.mpi_comm: MPI_COMM_WORLD>")
 
     def test_context_arbmpi(self):
         comm = arb.mpi_comm()
@@ -54,11 +57,13 @@ class TestContexts_arbmpi(unittest.TestCase):
     def test_exceptions_context_arbmpi(self):
         alloc = arb.proc_allocation()
 
-        with self.assertRaisesRegex(RuntimeError,
-            "mpi must be None, or an MPI communicator"):
-            arb.context(mpi='MPI_COMM_WORLD')
-        with self.assertRaisesRegex(RuntimeError,
-            "mpi must be None, or an MPI communicator"):
+        with self.assertRaisesRegex(
+            RuntimeError, "mpi must be None, or an MPI communicator"
+        ):
+            arb.context(mpi="MPI_COMM_WORLD")
+        with self.assertRaisesRegex(
+            RuntimeError, "mpi must be None, or an MPI communicator"
+        ):
             arb.context(alloc, mpi=0)
 
     def test_finalized_arbmpi(self):
