@@ -10,13 +10,20 @@ import arbor as arb
 from .. import fixtures
 
 """
-tests for multiple connections onto the same postsynaptic label and for one connection that has the same net impact as the multiple-connection paradigm,
-thereby testing the selection policies 'round_robin', 'round_robin_halt', and 'univalent'
+Tests for multiple connections onto the same postsynaptic label and for one
+connection that has the same net impact as the multiple-connection paradigm,
+thereby testing the selection policies 'round_robin', 'round_robin_halt', and
+'univalent'
 
-NOTE: In principle, a plasticity (STDP) mechanism is employed here to test if a selected connection uses the correct instance of the mechanism.
-      Thus, the scenario in Test #1 is intentionally "a wrong one", as opposed to the scenario in Test #2. In Test #1, one presynaptic neuron effectively connects _via one synapse_ to two postsynaptic neurons,
-      and the spike at t=0.8ms in presynaptic neuron 0 will enhance potentiation in both the first and the second synapse mechanism. In Test #2, this is prevented by the 'round_robin_halt' policy, whereby the 
-      potentiation in the second synapse mechanism is only enhanced by spikes of presynaptic neuron 1.
+NOTE: In principle, a plasticity (STDP) mechanism is employed here to test if a
+      selected connection uses the correct instance of the mechanism. Thus, the
+      scenario in Test #1 is intentionally "a wrong one", as opposed to the
+      scenario in Test #2. In Test #1, one presynaptic neuron effectively
+      connects _via one synapse_ to two postsynaptic neurons, and the spike at
+      t=0.8ms in presynaptic neuron 0 will enhance potentiation in both the
+      first and the second synapse mechanism. In Test #2, this is prevented by
+      the 'round_robin_halt' policy, whereby the potentiation in the second
+      synapse mechanism is only enhanced by spikes of presynaptic neuron 1.
 """
 
 

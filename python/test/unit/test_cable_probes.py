@@ -2,7 +2,6 @@
 
 import unittest
 import arbor as A
-from .. import fixtures
 
 """
 tests for cable probe wrappers

@@ -260,8 +260,8 @@ def plot_results(cell, electrode):
         xlim=[-150, 150],
         ylim=[-100, 600],
         title="morphology",
-        xlabel="x ($\mu$m)",
-        ylabel="y ($\mu$m)",
+        xlabel=r"x ($\mu$m)",
+        ylabel=r"y ($\mu$m)",
     )
     ax_syn = fig.add_subplot(
         332, ylabel="nA", title="synaptic current", xlabel="time (ms)"
@@ -273,7 +273,7 @@ def plot_results(cell, electrode):
         338, ylabel="nA", xlabel="time (ms)", title="membrane current"
     )
     ax_ep = fig.add_subplot(
-        133, ylabel="$\mu$V", xlabel="time (ms)", title="Extracellular potential"
+        133, ylabel=r"$\mu$V", xlabel="time (ms)", title="Extracellular potential"
     )
 
     plot_comp_idx = 0

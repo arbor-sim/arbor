@@ -6,7 +6,6 @@ import unittest
 import arbor as A
 import numpy as N
 import math
-from .. import fixtures
 
 """
 tests for morphology-related classes
@@ -115,7 +114,6 @@ class TestPlacePwlin(unittest.TestCase):
         x0p = iso(s0p)
         x0d = iso(s0d)
         x1p = iso(s1p)
-        x1d = iso(s1d)
 
         L0 = place.at(A.location(0, 0))
         L0s = place.all_at(A.location(0, 0))

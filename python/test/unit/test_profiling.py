@@ -6,7 +6,6 @@ import unittest
 
 import arbor as arb
 import functools
-from .. import fixtures
 
 """
 all tests for profiling

@@ -7,10 +7,15 @@ import nrn_validation as V
 
 V.override_defaults_from_args()
 
+
 # dendrite geometry: 100 µm long, varying diameter.
 length = 100.0
 npoints = 200
-radius = lambda x: math.exp(-x) * (math.sin(40 * x) * 0.05 + 0.1) + 0.1
+
+
+def radius(x):
+    return math.exp(-x) * (math.sin(40 * x) * 0.05 + 0.1) + 0.1
+
 
 xs = [float(i) / (npoints - 1) for i in range(npoints)]
 geom = [(length * x, 2.0 * radius(x)) for x in xs]

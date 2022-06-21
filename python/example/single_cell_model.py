@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas, seaborn  # You may have to pip install these.
+import pandas  # You may have to pip install these.
+import seaborn  # You may have to pip install these.
 
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
 tree = arbor.segment_tree()

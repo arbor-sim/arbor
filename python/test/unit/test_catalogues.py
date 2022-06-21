@@ -15,7 +15,7 @@ class recipe(arb.recipe):
         self.props = arb.neuron_cable_properties()
         try:
             self.props.catalogue = arb.load_catalogue("dummy-catalogue.so")
-        except:
+        except Exception:
             print("Catalogue not found. Are you running from build directory?")
             raise
         self.props.catalogue = arb.default_catalogue()

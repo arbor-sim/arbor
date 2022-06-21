@@ -5,7 +5,7 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures, cases
+from .. import cases
 
 # check Arbor's configuration of mpi
 mpi_enabled = arb.__config__["mpi"]
@@ -17,6 +17,8 @@ if mpi_enabled and mpi4py_enabled:
 """
 all tests for distributed arb.context using mpi4py
 """
+
+
 # Only test class if env var ARB_WITH_MPI4PY=ON
 @cases.skipIfNotDistributed()
 class TestContexts_mpi4py(unittest.TestCase):
