@@ -102,12 +102,6 @@ the region of cables that have radius less than 0.5 μm
   iexpr
     An iexpr is an inhomogeneous expression, that can be evaluated at any point on a cell.
 
-Some common inhomogeneous expression:
-
-* radius: The radius of the cell at a location.
-* distance: Distance to a locset or region from a location along the morphology.
-* exp: The exponential function of the return value of an iexpr at a location.
-
 Expressions
 -----------
 
