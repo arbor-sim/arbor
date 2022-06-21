@@ -52,21 +52,23 @@ struct index_prop {
 void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
-void emit_api_body(std::ostream&, APIMethod*, bool cv_loop = true, bool ppack_iface=true);
-void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars);
+void emit_api_body(std::ostream&, APIMethod*, bool cv_loop = true, bool ppack_iface=true, bool use_additive=false);
+void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars, bool use_additive);
 void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices, simd_expr_constraint constraint);
 
 void emit_simd_body_for_loop(std::ostream& out,
                              BlockExpression* body,
                              const std::vector<LocalVariable*>& indexed_vars,
                              const std::list<index_prop>& indices,
-                             const simd_expr_constraint& constraint);
+                             const simd_expr_constraint& constraint,
+                             bool use_additive);
 
 void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const std::vector<LocalVariable*>& indexed_vars,
                                        const std::list<index_prop>& indices,
                                        const simd_expr_constraint& constraint,
-                                       std::string constraint_name);
+                                       std::string constraint_name,
+                                       bool use_additive);
 
 struct cprint {
     Expression* expr_;
@@ -230,11 +232,11 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     }
 
     // Make implementations
-    auto emit_body = [&](APIMethod *p) {
+    auto emit_body = [&](APIMethod *p, bool add=false) {
         if (with_simd) {
-            emit_simd_api_body(out, p, vars.scalars);
+            emit_simd_api_body(out, p, vars.scalars, add);
         } else {
-            emit_api_body(out, p);
+            emit_api_body(out, p, true, true, add);
         }
     };
 
@@ -322,7 +324,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << popindent << "}\n\n";
 
     out << "static void compute_currents(arb_mechanism_ppack* pp) {\n" << indent;
-    emit_body(current_api);
+    emit_body(current_api, true);
     out << popindent << "}\n\n";
 
     out << "static void write_ions(arb_mechanism_ppack* pp) {\n" << indent;
@@ -343,7 +345,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                            pp_var_pfx,
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent << indent;
-        emit_api_body(out, net_receive_api, false, false);
+        emit_api_body(out, net_receive_api, false, false, true);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     } else {
         out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
@@ -563,7 +565,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
     out << "arb_value_type " << cprint(local) << " = ";
 
-    if (local->is_read()) {
+    if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
         auto d = decode_indexed_variable(local->external_variable());
         out << scaled(d.scale) << deref(d) << ";\n";
     }
@@ -573,17 +575,23 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     EXIT(out);
 }
 
-void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
+void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, bool use_additive) {
     if (!external->is_write()) return;
     ENTER(out);
     auto d = decode_indexed_variable(external);
-    double coeff = 1./d.scale;
-
-    if (d.readonly) {
-        throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
+    if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
+    std::string var, weight = pp_var_pfx + "weight[i_]", scale = scaled(1.0/d.scale), name = from->name();
+    double coeff = 1.0/d.scale;
+    {
+        std::stringstream v, s, w;
+        v << deref(d); var = v.str();
     }
-
-    if (d.accumulate) {
+    if (d.additive && use_additive) {
+            out << fmt::format("{3} -= {0};\n"
+                               "{0} = fma({1}{2}, {3}, {0});\n",
+                               var, scale, weight, name);
+    }
+    else if (d.accumulate) {
         out << deref(d) << " = fma("
             << scaled(coeff) << pp_var_pfx << "weight[i_], "
             << from->name() << ", " << deref(d) << ");\n";
@@ -594,7 +602,7 @@ void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* externa
     EXIT(out);
 }
 
-void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppack_iface) {
+void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppack_iface, bool use_additive) {
     ENTER(out);
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
@@ -614,7 +622,7 @@ void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppac
         out << cprint(body);
 
         for (auto& sym: indexed_vars) {
-            emit_state_update(out, sym, sym->external_variable());
+            emit_state_update(out, sym, sym->external_variable(), use_additive);
         }
         cv_loop && out << popindent << "}\n";
     }
@@ -768,7 +776,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     ENTER(out);
     out << "simd_value " << local->name();
 
-    if (local->is_read()) {
+    if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
         auto d = decode_indexed_variable(local->external_variable());
         if (d.scalar()) {
             out << " = simd_cast<simd_value>(" << pp_var_pfx << d.data_var
@@ -813,97 +821,88 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
     EXIT(out);
 }
 
-void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simd_expr_constraint constraint) {
+void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simd_expr_constraint constraint, bool use_additive) {
     if (!external->is_write()) return;
+    ENTER(out);
 
     auto d = decode_indexed_variable(external);
-    double coeff = 1./d.scale;
-
     if (d.readonly) {
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
 
-    ENTER(out);
+    auto ext = external->name();
+    auto name = from->name();
+    auto data = data_via_ppack(d);
+    auto node = node_index_i_name(d);
+    auto index = index_i_name(d.outer_index_var());
 
-    if (d.accumulate) {
-        switch (d.index_var_kind) {
-            case index_kind::node: {
-                switch (constraint) {
+    std::string scaled = name;
+    if (d.scale != 1.0) {
+        std::stringstream ss;
+        ss << "S::mul(" << name << ", simd_cast<simd_value>(" << as_c_double(1/d.scale) << "))";
+        scaled = ss.str();
+    }
+
+    if (d.additive && use_additive) {
+        if (d.index_var_kind == index_kind::node) {
+            if (constraint == simd_expr_constraint::contiguous) {
+                    out << fmt::format("indirect({} + {}, simd_width_) = S::mul(w_, {});\n",
+                                       data, node, scaled);
+            }
+            else {
+                    // We need this instead of simple assignment!
+                    out << fmt::format("{{\n"
+                                       "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
+                                       "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
+                                       "  {} -= t_{}0_;\n"
+                                       "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul(w_, {});\n"
+                                       "}}\n",
+                                       name,
+                                       name, data, node,
+                                       scaled, name,
+                                       data, node, scaled);
+            }
+        }
+        else {
+            out << fmt::format("indirect({}, {}, simd_width_, index_constraint::none) = S::mul(w_, {});\n",
+                               data, index, scaled);
+        }
+    }
+    else if (d.accumulate) {
+        if (d.index_var_kind == index_kind::node) {
+            std::string tempvar = "t_" + external->name();
+            switch (constraint) {
                 case simd_expr_constraint::contiguous:
-                {
-                    std::string tempvar = "t_" + external->name();
                     out << "simd_value " << tempvar << ";\n"
-                        << "assign(" << tempvar << ", indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_));\n";
-                    if (coeff != 1) {
-                        out << tempvar << " = S::fma(S::mul(w_, simd_cast<simd_value>(" << as_c_double(coeff) << "))," << from->name() << ", " << tempvar << ");\n";
-                    } else {
-                        out << tempvar << " = S::fma(w_, " << from->name() << ", " << tempvar << ");\n";
-                    }
-                    out << "indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_) = " << tempvar << ";\n";
+                        << "assign(" << tempvar << ", indirect(" << data << " + " << node << ", simd_width_));\n"
+                        << tempvar << " = S::fma(w_, " << scaled << ", " << tempvar << ");\n"
+                        << "indirect(" << data << " + " << node << ", simd_width_) = " << tempvar << ";\n";
                     break;
-                }
                 case simd_expr_constraint::constant:
-                {
-                    out << "indirect(" << data_via_ppack(d) << ", simd_cast<simd_index>(" << node_index_i_name(d) << "), simd_width_, constraint_category_)";
-                    if (coeff != 1) {
-                        out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
-                    } else {
-                        out << " += S::mul(w_, " << from->name() << ");\n";
-                    }
+                    out << "indirect(" << data << ", simd_cast<simd_index>(" << node << "), simd_width_, constraint_category_) += S::mul(w_, " << scaled << ");\n";
                     break;
-                }
-                default :
-                {
-                    out << "indirect(" << data_via_ppack(d) << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_)";
-                    if (coeff != 1) {
-                        out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
-                    } else {
-                        out << " += S::mul(w_, " << from->name() << ");\n";
-                    }
-                }
-                }
-                break;
+                default:
+                    out << "indirect(" << data << ", " << node << ", simd_width_, constraint_category_) += S::mul(w_, " << scaled << ");\n";
             }
-            default: {
-                out << "indirect(" << data_via_ppack(d) << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none)";
-                if (coeff != 1) {
-                    out << " += S::mul(w_, S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << "), " << from->name() << "));\n";
-                } else {
-                    out << " += S::mul(w_, " << from->name() << ");\n";
-                }
+        } else {
+            out << "indirect(" << data << ", " << index << ", simd_width_, index_constraint::none) += S::mul(w_, " << scaled << ");\n";
+        }
+    }
+    else if (d.index_var_kind == index_kind::node) {
+        switch (constraint) {
+            case simd_expr_constraint::contiguous:
+                out << "indirect(" << data << " + " << node << ", simd_width_) = " << scaled << ";\n";
                 break;
-            }
+            case simd_expr_constraint::constant:
+                out << "indirect(" << data << ", simd_cast<simd_index>(" << node << "), simd_width_, constraint_category_) = " << scaled << ";\n";
+                break;
+            default:
+                out << "indirect(" << data << ", " << node << ", simd_width_, constraint_category_) = " << scaled << ";\n";
         }
     }
     else {
-        switch (d.index_var_kind) {
-            case index_kind::node: {
-                switch (constraint) {
-                case simd_expr_constraint::contiguous:
-                    out << "indirect(" << data_via_ppack(d) << " + " << node_index_i_name(d) << ", simd_width_) = ";
-                    break;
-                case simd_expr_constraint::constant:
-                    out << "indirect(" << data_via_ppack(d) << ", simd_cast<simd_index>(" << node_index_i_name(d) << "), simd_width_, constraint_category_) = ";
-                    break;
-                default:
-                    out << "indirect(" << data_via_ppack(d) << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_) = ";
-                }
-                break;
-            }
-            default: {
-                out << "indirect(" << data_via_ppack(d)
-                    << ", " << index_i_name(d.outer_index_var()) << ", simd_width_, index_constraint::none) = ";
-                break;
-            }
-        }
-
-        if (coeff != 1) {
-            out << "(S::mul(simd_cast<simd_value>(" << as_c_double(coeff) << ")," << from->name() << "));\n";
-        } else {
-            out << from->name() << ";\n";
-        }
+        out << "indirect(" << data << ", " << index << ", simd_width_, index_constraint::none) = " << scaled << ";\n";
     }
-
     EXIT(out);
 }
 
@@ -959,7 +958,8 @@ void emit_simd_body_for_loop(
         const std::vector<LocalVariable*>& indexed_vars,
         const std::vector<VariableExpression*>& scalars,
         const std::list<index_prop>& indices,
-        const simd_expr_constraint& constraint) {
+        const simd_expr_constraint& constraint,
+        bool use_additive) {
     ENTER(out);
     emit_simd_index_initialize(out, indices, constraint);
 
@@ -973,17 +973,18 @@ void emit_simd_body_for_loop(
     out << printer;
 
     for (auto& sym: indexed_vars) {
-        emit_simd_state_update(out, sym, sym->external_variable(), constraint);
+        emit_simd_state_update(out, sym, sym->external_variable(), constraint, use_additive);
     }
     EXIT(out);
 }
 
 void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
-                                  const std::vector<LocalVariable*>& indexed_vars,
-                                  const std::vector<VariableExpression*>& scalars,
-                                  const std::list<index_prop>& indices,
-                                  const simd_expr_constraint& constraint,
-                                  std::string underlying_constraint_name) {
+                                       const std::vector<LocalVariable*>& indexed_vars,
+                                       const std::vector<VariableExpression*>& scalars,
+                                       const std::list<index_prop>& indices,
+                                       const simd_expr_constraint& constraint,
+                                       std::string underlying_constraint_name,
+                                       bool use_additive) {
     ENTER(out);
     out << fmt::format("constraint_category_ = index_constraint::{1};\n"
                        "for (auto i_ = 0ul; i_ < {0}index_constraints.n_{1}; i_++) {{\n"
@@ -995,13 +996,13 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                        "assign(w_, indirect(({}weight+index_), simd_width_));\n",
                        pp_var_pfx);
 
-    emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint);
+    emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint, use_additive);
 
     out << popindent << "}\n";
     EXIT(out);
 }
 
-void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<VariableExpression*>& scalars) {
+void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<VariableExpression*>& scalars, bool use_additive) {
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
@@ -1023,25 +1024,25 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, const std::vector<
             simd_expr_constraint constraint = simd_expr_constraint::contiguous;
             std::string underlying_constraint = "contiguous";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, use_additive);
 
             //Generate for loop for all independent simd_vectors
             constraint = simd_expr_constraint::other;
             underlying_constraint = "independent";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, use_additive);
 
             //Generate for loop for all simd_vectors that have no optimizing constraints
             constraint = simd_expr_constraint::other;
             underlying_constraint = "none";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, use_additive);
 
             //Generate for loop for all constant simd_vectors
             constraint = simd_expr_constraint::constant;
             underlying_constraint = "constant";
 
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, use_additive);
 
         }
         else {

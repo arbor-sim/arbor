@@ -124,9 +124,8 @@ ncells = 4
 recipe = ring_recipe(ncells)
 
 # (12) Create an execution context using all locally available threads, domain decomposition and simulation
-context = arbor.context("avail_threads")
-decomp = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, decomp, context)
+ctx = arbor.context("avail_threads")
+sim = arbor.simulation(recipe, context=ctx)
 
 # (13) Set spike generators to record
 sim.record(arbor.spike_recording.all)

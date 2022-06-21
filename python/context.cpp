@@ -123,7 +123,7 @@ void register_contexts(pybind11::module& m) {
         .def("__repr__", util::to_string<proc_allocation_shim>);
 
     // context
-    pybind11::class_<context_shim> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
+    pybind11::class_<context_shim, std::shared_ptr<context_shim>> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
     context
         .def(pybind11::init(
             [](unsigned threads, pybind11::object gpu, pybind11::object mpi){

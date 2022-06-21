@@ -137,6 +137,12 @@ ARB_ARBOR_API cv_geometry& append(cv_geometry&, const cv_geometry&);
 // to the CV, or in the absence of any internal forks, is exact at the
 // midpoint of an unbranched CV.
 
+struct fvm_diffusion_info {
+    using value_type = fvm_value_type;
+    std::vector<value_type> face_diffusivity;
+    std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
+};
+    
 struct fvm_cv_discretization {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -158,6 +164,9 @@ struct fvm_cv_discretization {
 
     // For each cell, one piece-wise constant value per branch.
     std::vector<std::vector<pw_constant_fn>> axial_resistivity; // [Ω·cm]
+
+    // For each diffusive ion species, their properties
+    std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 };
 
 // Combine two fvm_cv_geometry groups in-place.
@@ -242,6 +251,10 @@ struct fvm_ion_config {
 
     // Ion-specific (initial) reversal potential per CV.
     std::vector<value_type> init_revpot;
+
+    // diffusivity
+    bool is_diffusive = false;
+    std::vector<value_type> face_diffusivity;
 };
 
 struct fvm_stimulus_config {

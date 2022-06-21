@@ -259,7 +259,7 @@ if __name__ == "__main__":
 
     meters.checkpoint("load-balance", context)
 
-    sim = arbor.simulation(recipe, decomp, context)
+    sim = arbor.simulation(recipe, context, decomp)
     sim.record(arbor.spike_recording.all)
 
     meters.checkpoint("simulation-init", context)

@@ -171,7 +171,7 @@ public:
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
-        sim_ = std::make_unique<arb::simulation>(rec, domdec, ctx_);
+        sim_ = std::make_unique<arb::simulation>(rec, ctx_, domdec);
 
         // Create one trace for each probe.
         traces_.reserve(probes_.size());

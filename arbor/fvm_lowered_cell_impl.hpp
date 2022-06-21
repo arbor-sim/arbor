@@ -27,7 +27,6 @@
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
-#include "matrix.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
 #include "util/maputil.hpp"
@@ -77,10 +76,10 @@ public:
 
 private:
     // Host or GPU-side back-end dependent storage.
-    using array = typename backend::array;
-    using shared_state = typename backend::shared_state;
+    using array               = typename backend::array;
+    using shared_state        = typename backend::shared_state;
     using sample_event_stream = typename backend::sample_event_stream;
-    using threshold_watcher = typename backend::threshold_watcher;
+    using threshold_watcher   = typename backend::threshold_watcher;
 
     execution_context context_;
 
@@ -90,7 +89,6 @@ private:
     sample_event_stream sample_events_;
     array sample_time_;
     array sample_value_;
-    matrix<backend> matrix_;
     threshold_watcher threshold_watcher_;
 
     value_type tmin_ = 0;
@@ -273,13 +271,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_events_.drop_marked_events();
         PL();
 
-        // Integrate voltage by matrix solve.
-
-        PE(advance:integrate:matrix:build);
-        matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
+        // Integrate voltage / solve cable eq
+        PE(advance:integrate:voltage);
+        state_->integrate_voltage();
         PL();
-        PE(advance:integrate:matrix:solve);
-        matrix_.solve(state_->voltage);
+        // Compute ionic diffusion effects
+        PE(advance:integrate:diffusion);
+        state_->integrate_diffusion();
         PL();
 
         // Integrate mechanism state.
@@ -458,8 +456,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                    [&fvm_info](index_type i){ return fvm_info.cell_to_intdom[i]; });
 
     arb_assert(D.n_cell() == ncell);
-    matrix_ = matrix<backend>(D.geometry.cv_parent, D.geometry.cell_cv_divs,
-                              D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom);
     sample_events_ = sample_event_stream(nintdom);
 
     // Discretize and build gap junction info.
@@ -502,11 +498,26 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
                 data_alignment? data_alignment: 1u);
 
+    state_->solver =
+        {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
+
     // Instantiate mechanisms, ions, and stimuli.
+    auto mk_diff_solver = [&](const auto& fd) {
+        // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
+        return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
+                                                                          D.geometry.cell_cv_divs,
+                                                                          fd,
+                                                                          D.cv_area,
+                                                                          fvm_info.cell_to_intdom);
+    };
 
     for (const auto& [ion, data]: mech_data.ions) {
         if (auto charge = value_by_key(global_props.ion_species, ion)) {
-            state_->add_ion(ion, *charge, data);
+            if (data.is_diffusive) {
+                state_->add_ion(ion, *charge, data, mk_diff_solver(data.face_diffusivity));
+            } else {
+                state_->add_ion(ion, *charge, data, nullptr);
+            }
         }
         else {
             throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
@@ -758,6 +769,8 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
         cable_probe_ion_current_cell,
         cable_probe_ion_int_concentration,
         cable_probe_ion_int_concentration_cell,
+        cable_probe_ion_diff_concentration,
+        cable_probe_ion_diff_concentration_cell,
         cable_probe_ion_ext_concentration,
         cable_probe_ion_ext_concentration_cell>;
 
@@ -1086,6 +1099,16 @@ void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_
     }
 }
 
+template <typename B>
+void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
+    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+        auto opt_i = R.ion_location_index(p.ion, loc);
+        if (!opt_i) continue;
+
+        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).Xd_.data()+*opt_i}, loc});
+    }
+}
+
 // Common implementation for int and ext concentrations across whole cell:
 template <typename B>
 void resolve_ion_conc_common(const std::vector<fvm_index_type>& ion_cvs, const fvm_value_type* src, probe_resolution_data<B>& R) {
@@ -1115,6 +1138,12 @@ template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
     resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xo_.data(), R);
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_ion_diff_concentration_cell& p, probe_resolution_data<B>& R) {
+    if (!R.state->ion_data.count(p.ion)) return;
+    resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xd_.data(), R);
 }
 
 } // namespace arb

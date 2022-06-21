@@ -56,8 +56,8 @@ using pad = util::padded_allocator<>;
 ion_state::ion_state(
     int charge,
     const fvm_ion_config& ion_data,
-    unsigned align
-):
+    unsigned align,
+    solver_ptr ptr):
     alignment(min_alignment(align)),
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
@@ -66,14 +66,16 @@ ion_state::ion_state(
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
     Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
+    Xd_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
+    gX_(ion_data.cv.size(), NAN, pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
     init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
     init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    charge(1u, charge, pad(alignment))
-{
+    charge(1u, charge, pad(alignment)),
+    solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
     arb_assert(node_index_.size()==eX_.size());
@@ -81,16 +83,19 @@ ion_state::ion_state(
 }
 
 void ion_state::init_concentration() {
+    // NB. not resetting Xd here, it's controlled via the solver.
     if (write_Xi_) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
 
 void ion_state::zero_current() {
+    util::fill(gX_, 0);
     util::fill(iX_, 0);
 }
 
 void ion_state::reset() {
     zero_current();
+    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
     if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
     if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
@@ -239,13 +244,33 @@ shared_state::shared_state(
     }
 }
 
+void shared_state::integrate_voltage() {
+    solver.assemble(dt_intdom, voltage, current_density, conductivity);
+    solver.solve(voltage);
+}
+
+void shared_state::integrate_diffusion() {
+    for (auto& [ion, data]: ion_data) {
+        if (data.solver) {
+            data.solver->assemble(dt_intdom,
+                                  data.Xd_,
+                                  voltage,
+                                  data.iX_,
+                                  data.gX_,
+                                  data.charge[0]);
+            data.solver->solve(data.Xd_);
+        }
+    }
+}
+
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
-    const fvm_ion_config& ion_info) {
+    const fvm_ion_config& ion_info,
+    ion_state::solver_ptr ptr) {
     ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(ion_name),
-        std::forward_as_tuple(charge, ion_info, alignment));
+                     std::forward_as_tuple(ion_name),
+                     std::forward_as_tuple(charge, ion_info, alignment, std::move(ptr)));
 }
 
 void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
@@ -503,9 +528,18 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-        ion_state* oion = ptr_by_key(ion_data, ion_binding);
+        auto* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
-        m.ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+
+        auto& ion_state = m.ppack_.ion_states[idx];
+        ion_state = {0};
+        ion_state.current_density         = oion->iX_.data();
+        ion_state.reversal_potential      = oion->eX_.data();
+        ion_state.internal_concentration  = oion->Xi_.data();
+        ion_state.external_concentration  = oion->Xo_.data();
+        ion_state.diffusive_concentration = oion->Xd_.data();
+        ion_state.ionic_charge            = oion->charge.data();
+        ion_state.conductivity            = oion->gX_.data();
     }
 
     // Initialize state and parameter vectors with default values.
