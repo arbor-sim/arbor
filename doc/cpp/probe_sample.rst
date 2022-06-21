@@ -386,10 +386,11 @@ as a way of passing additional metadata about a probe to any sampler
 that polls it, with a view to samplers that handle multiple probes,
 possibly with different value types.
 
-probeset addresses are decoupled from the cell descriptions themselves —
+Probeset addresses are decoupled from the cell descriptions themselves —
 this allows a recipe implementation to construct probes independently
 of the cells themselves. It is the responsibility of a cell group implementation
-to parse the probeset address objects wrapped in the ``any address`` field.
+to parse the probeset address objects wrapped in the ``any address`` field,
+thus the order of probes returned is important.
 
 The _k_th element of the vector returned by ``get_probes(gid)`` is
 identified with a probe-id: ``cell_member_type{gid, k}``.

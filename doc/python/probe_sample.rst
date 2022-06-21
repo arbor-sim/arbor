@@ -3,13 +3,17 @@
 Cable cell probing and sampling
 ===============================
 
+.. figure:: probe_sample-diag.svg
+    :width: 800
+    :align: center
+
+    A schematic view of how handles let you access sampled data measured at a probeset.
+
 .. module:: arbor
 
-Cable cell probesets are defined analogously to their counterparts in
-the C++ API (see :ref:`cablecell-probes` for details). Sample data recorded
-by the Arbor simulation object is returned in the form of a NumPy array,
-with the first column holding sample times, and subsequent columns holding
-the corresponding scalar- or vector-valued sample.
+Sample data recorded by the Arbor simulation object is returned in the form 
+of a NumPy array, with the first column holding sample times, and subsequent 
+columns holding the corresponding scalar- or vector-valued sample.
 
 Probesets are defined over a location expression and will describe zero,
 one, or more probes, one per site. They are evaluated in the context of
@@ -21,7 +25,14 @@ object for use in the recipe :py:func:`recipe.probes` method.
 More information on probes, probe metadata, and sampling can be found
 in the documentation for the class :class:`simulation`.
 
-.. module:: probe
+.. note::
+
+   Cable cell probesets are defined analogously to their counterparts in
+   the C++ API (see :ref:`cablecell-probes` for details). Some details 
+   like `probe_tag` are not exposed in Python, as having Python probe callbacks
+   has proven to be too slow.
+
+.. class:: probe
 
     An opaque object that is the Python representation of :cpp:class:`probe_info`.
     
