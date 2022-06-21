@@ -45,15 +45,27 @@ struct ARB_SYMBOL_VISIBLE iexpr {
 
     static iexpr distance(double scale, locset loc);
 
+    static iexpr distance(locset loc);
+
     static iexpr distance(double scale, region reg);
+
+    static iexpr distance(region reg);
 
     static iexpr proximal_distance(double scale, locset loc);
 
+    static iexpr proximal_distance(locset loc);
+
     static iexpr proximal_distance(double scale, region reg);
+
+    static iexpr proximal_distance(region reg);
 
     static iexpr distal_distance(double scale, locset loc);
 
+    static iexpr distal_distance(locset loc);
+
     static iexpr distal_distance(double scale, region reg);
+
+    static iexpr distal_distance(region reg);
 
     static iexpr interpolation(double prox_value,
         locset prox_list,
@@ -67,7 +79,11 @@ struct ARB_SYMBOL_VISIBLE iexpr {
 
     static iexpr radius(double scale);
 
+    static iexpr radius();
+
     static iexpr diameter(double scale);
+
+    static iexpr diameter();
 
     static iexpr add(iexpr left, iexpr right);
 

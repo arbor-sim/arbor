@@ -640,10 +640,18 @@ Inhomogeneous Expressions
       The distance between any two points (the evaluation location and a location within the locset), is calculated **along** the entire tree, even across the root.
       Therefore, a distance expression is defined on the entire cell and only zero if evaluated at a location within the locset (or the scale parameter is set to zero).
 
+.. label:: (distance loc:locset)
+
+    A distance expression with a default scaling factor of 1.0.
+
 .. label:: (distance scale:real reg:region)
 
     The minimum distance to the region ``reg``. Evaluates to zero within the region. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
     and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (distance reg:region)
+
+    A distance expression with a default scaling factor of 1.0.
 
 .. label:: (proximal-distance scale:real loc:locset)
 
@@ -656,10 +664,18 @@ Inhomogeneous Expressions
 
       Example of a proximal-distance expression with a single input location. **Left**: Input location. **Right**: Area where the expression evaluates to non-zero values.
 
+.. label:: (proximal-distance loc:locset)
+
+    A proximal-distance expression with a default scaling factor of 1.0.
+
 .. label:: (proximal-distance scale:real reg:region)
 
     The minimum distance in proximal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
     and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (proximal-distance reg:region)
+
+    A proximal-distance expression with a default scaling factor of 1.0.
 
 .. label:: (distal-distance scale:real loc:locset)
 
@@ -672,10 +688,18 @@ Inhomogeneous Expressions
 
       Example of a distal-distance expression with a single input location. **Left**: Input location. **Right**: Area, where the expression evaluates to non-zero values.
 
+.. label:: (distal-distance loc:locset)
+
+    A distal-distance expression with a default scaling factor of 1.0.
+
 .. label:: (distal-distance scale:real reg:region)
 
     The minimum distance in distal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
     and is multiplied with the distance, such that the result is unitless.
+
+.. label:: (distal-distance reg:region)
+
+    A distal-distance expression with a default scaling factor of 1.0.
 
 .. label:: (interpolation prox_value:real prox_loc:locset dist_value:real dist_loc:locset)
 
@@ -706,9 +730,17 @@ Inhomogeneous Expressions
 
     The radius of the cell at a given point multiplied with the ``scale`` parameter with unit :math:`{\mu m}^{-1}`.
 
+.. label:: (radius)
+
+    A radius expression with a default scaling factor of 1.0.
+
 .. label:: (diameter scale:real)
 
     The diameter of the cell at a given point multiplied with the ``scale`` parameter with unit :math:`{\mu m}^{-1}`.
+
+.. label:: (diameter)
+
+    A diameter expression with a default scaling factor of 1.0.
 
 .. label:: (add (iexpr | real) (iexpr | real) [... (iexpr | real)])
 

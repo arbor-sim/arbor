@@ -302,9 +302,17 @@ iexpr iexpr::distance(double scale, locset loc) {
         iexpr_type::distance, std::make_tuple(scale, std::variant<locset, region>(std::move(loc))));
 }
 
+iexpr iexpr::distance(locset loc) {
+    return iexpr::distance(1.0, std::move(loc));
+}
+
 iexpr iexpr::distance(double scale, region reg) {
     return iexpr(
         iexpr_type::distance, std::make_tuple(scale, std::variant<locset, region>(std::move(reg))));
+}
+
+iexpr iexpr::distance(region reg) {
+    return iexpr::distance(1.0, std::move(reg));
 }
 
 iexpr iexpr::proximal_distance(double scale, locset loc) {
@@ -312,9 +320,17 @@ iexpr iexpr::proximal_distance(double scale, locset loc) {
         std::make_tuple(scale, std::variant<locset, region>(std::move(loc))));
 }
 
+iexpr iexpr::proximal_distance(locset loc) {
+    return iexpr::proximal_distance(1.0, std::move(loc));
+}
+
 iexpr iexpr::proximal_distance(double scale, region reg) {
     return iexpr(iexpr_type::proximal_distance,
         std::make_tuple(scale, std::variant<locset, region>(std::move(reg))));
+}
+
+iexpr iexpr::proximal_distance(region reg) {
+    return iexpr::proximal_distance(1.0, std::move(reg));
 }
 
 iexpr iexpr::distal_distance(double scale, locset loc) {
@@ -322,9 +338,17 @@ iexpr iexpr::distal_distance(double scale, locset loc) {
         std::make_tuple(scale, std::variant<locset, region>(std::move(loc))));
 }
 
+iexpr iexpr::distal_distance(locset loc) {
+    return iexpr::distal_distance(1.0, std::move(loc));
+}
+
 iexpr iexpr::distal_distance(double scale, region reg) {
     return iexpr(iexpr_type::distal_distance,
         std::make_tuple(scale, std::variant<locset, region>(std::move(reg))));
+}
+
+iexpr iexpr::distal_distance(region reg) {
+    return iexpr::distal_distance(1.0, std::move(reg));
 }
 
 iexpr iexpr::interpolation(double prox_value,
@@ -351,7 +375,11 @@ iexpr iexpr::interpolation(double prox_value,
 
 iexpr iexpr::radius(double scale) { return iexpr(iexpr_type::radius, std::make_tuple(scale)); }
 
+iexpr iexpr::radius() { return iexpr::radius(1.0); }
+
 iexpr iexpr::diameter(double scale) { return iexpr(iexpr_type::diameter, std::make_tuple(scale)); }
+
+iexpr iexpr::diameter() { return iexpr::diameter(1.0); }
 
 iexpr iexpr::add(iexpr left, iexpr right) {
     return iexpr(iexpr_type::add, std::make_tuple(std::move(left), std::move(right)));

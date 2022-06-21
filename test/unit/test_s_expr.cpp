@@ -313,6 +313,24 @@ TEST(iexpr, round_tripping) {
         round_trip_label<arb::iexpr>("(mul 1.1 2.2 3.3 4.4)"));
     EXPECT_EQ("(div (div (div (scalar 1.1) (scalar 2.2)) (scalar 3.3)) (scalar 4.4))",
         round_trip_label<arb::iexpr>("(div 1.1 2.2 3.3 4.4)"));
+
+    // test default constructors
+    EXPECT_EQ("(distance 1 (location 3 0.2))",
+        round_trip_label<arb::iexpr>("(distance (location 3 0.2))"));
+    EXPECT_EQ("(distance 1 (region \"foo\"))",
+        round_trip_label<arb::iexpr>("(distance (region \"foo\"))"));
+    EXPECT_EQ("(distal-distance 1 (location 3 0.2))",
+        round_trip_label<arb::iexpr>("(distal-distance (location 3 0.2))"));
+    EXPECT_EQ("(distal-distance 1 (region \"foo\"))",
+        round_trip_label<arb::iexpr>("(distal-distance (region \"foo\"))"));
+    EXPECT_EQ("(proximal-distance 1 (location 3 0.2))",
+        round_trip_label<arb::iexpr>("(proximal-distance (location 3 0.2))"));
+    EXPECT_EQ("(proximal-distance 1 (region \"foo\"))",
+        round_trip_label<arb::iexpr>("(proximal-distance (region \"foo\"))"));
+    EXPECT_EQ("(radius 1)",
+        round_trip_label<arb::iexpr>("(radius)"));
+    EXPECT_EQ("(diameter 1)",
+        round_trip_label<arb::iexpr>("(diameter)"));
 }
 
 TEST(regloc, round_tripping) {

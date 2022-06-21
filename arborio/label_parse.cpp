@@ -122,27 +122,41 @@ std::unordered_multimap<std::string, evaluator> eval_map {
 
     {"distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
+    {"distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::distance),
+            "iexpr with 1 argument: (loc:locset)")},
     {"distance", make_call<double, arb::region>(static_cast<arb::iexpr(*)(double, arb::region)>(arb::iexpr::distance),
             "iexpr with 2 arguments: (scale:double, reg:region)")},
+    {"distance", make_call<arb::region>(static_cast<arb::iexpr(*)(arb::region)>(arb::iexpr::distance),
+            "iexpr with 1 argument: (reg:region)")},
 
     {"proximal-distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::proximal_distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
+    {"proximal-distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::proximal_distance),
+            "iexpr with 1 argument: (loc:locset)")},
     {"proximal-distance", make_call<double, arb::region>(static_cast<arb::iexpr(*)(double, arb::region)>(arb::iexpr::proximal_distance),
             "iexpr with 2 arguments: (scale:double, reg:region)")},
+    {"proximal-distance", make_call<arb::region>(static_cast<arb::iexpr(*)(arb::region)>(arb::iexpr::proximal_distance),
+            "iexpr with 1 arguments: (reg:region)")},
 
     {"distal-distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::distal_distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
+    {"distal-distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::distal_distance),
+            "iexpr with 1 argument: (loc:locset)")},
     {"distal-distance", make_call<double, arb::region>(static_cast<arb::iexpr(*)(double, arb::region)>(arb::iexpr::distal_distance),
             "iexpr with 2 arguments: (scale:double, reg:region)")},
+    {"distal-distance", make_call<arb::region>(static_cast<arb::iexpr(*)(arb::region)>(arb::iexpr::distal_distance),
+            "iexpr with 1 argument: (reg:region)")},
 
     {"interpolation", make_call<double, arb::locset, double, locset>(static_cast<arb::iexpr(*)(double, arb::locset, double, arb::locset)>(arb::iexpr::interpolation),
             "iexpr with 4 arguments: (prox_value:double, prox_list:locset, dist_value:double, dist_list:locset)")},
     {"interpolation", make_call<double, arb::region, double, region>(static_cast<arb::iexpr(*)(double, arb::region, double, arb::region)>(arb::iexpr::interpolation),
             "iexpr with 4 arguments: (prox_value:double, prox_list:region, dist_value:double, dist_list:region)")},
 
-    {"radius", make_call<double>(arb::iexpr::radius, "iexpr with 1 argument: (value:double)")},
+    {"radius", make_call<double>(static_cast<arb::iexpr(*)(double)>(arb::iexpr::radius), "iexpr with 1 argument: (value:double)")},
+    {"radius", make_call<>(static_cast<arb::iexpr(*)()>(arb::iexpr::radius), "iexpr with no argument")},
 
-    {"diameter", make_call<double>(arb::iexpr::diameter, "iexpr with 1 argument: (value:double)")},
+    {"diameter", make_call<double>(static_cast<arb::iexpr(*)(double)>(arb::iexpr::diameter), "iexpr with 1 argument: (value:double)")},
+    {"diameter", make_call<>(static_cast<arb::iexpr(*)()>(arb::iexpr::diameter), "iexpr with no argument")},
 
     {"exp", make_call<arb::iexpr>(arb::iexpr::exp, "iexpr with 1 argument: (value:iexpr)")},
     {"exp", make_call<double>(arb::iexpr::exp, "iexpr with 1 argument: (value:double)")},
