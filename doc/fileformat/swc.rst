@@ -41,7 +41,7 @@ is interpreted as a fork point in the morphology, and acts as the proximal point
    The SWC file format allows association of ``tags`` with parts of the
    morphology and reserves tag values 1-4 for soma, axon, basal dendrite, and
    apical dendrite. In Arbor, these tags can be added to a
-   :class:`arbor.label_dict` using the ``add_swc_tags`` method.
+   :class:`arbor.label_dict` using the :meth:`~arbor.label_dict.add_swc_tags` method.
 
 
 .. _formatswc-arbor:

@@ -125,7 +125,7 @@ The SWC file format allows association of ``tags`` with parts of the morphology
 and reserves tag values 1-4 for commonly used sections (see `here
 <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`__
 for the SWC file format). In Arbor, these tags can be added to a :class:`arbor.label_dict` using
-the ``add_swc_tags`` method, which will define
+the :meth:`~arbor.label_dict.add_swc_tags` method, which will define
 
 .. list-table:: Default SWC Tags
    :widths: 25 25 50
