@@ -30,8 +30,8 @@ labels = arbor.label_dict().add_swc_tags()
 labels["all"] = "(all)"
 # Add a label for the parts of the morphology with radius greater than 1.5 μm.
 labels["gt_1.5"] = '(radius-ge (region "all") 1.5)'
-# Join regions "last" and "gt_1.5"
-labels["custom"] = '(join (region "last") (region "gt_1.5"))'
+# Join regions "apic" and "gt_1.5"
+labels["custom"] = '(join (region "apic") (region "gt_1.5"))'
 
 # Locsets:
 
