@@ -18,19 +18,12 @@ class ARB_ARBOR_API label_dict {
 
 public:
     // construct a label dict with SWC tags predefined
-    static label_dict with_swc_tags() {
-        auto res = label_dict{};
-        res.set("soma", reg::tagged(1));
-        res.set("axon", reg::tagged(2));
-        res.set("dend", reg::tagged(3));
-        res.set("apic", reg::tagged(4));
-        return res;
-    }
+    label_dict& add_swc_tags();
 
     void import(const label_dict& other, const std::string& prefix = "");
 
-    void set(const std::string& name, locset ls);
-    void set(const std::string& name, region reg);
+    label_dict& set(const std::string& name, locset ls);
+    label_dict& set(const std::string& name, region reg);
 
     std::optional<arb::region> region(const std::string& name) const;
     std::optional<arb::locset> locset(const std::string& name) const;

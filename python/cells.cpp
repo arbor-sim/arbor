@@ -231,13 +231,8 @@ void register_cells(pybind11::module& m) {
         "A dictionary of labelled region and locset definitions, with a\n"
         "unique label assigned to each definition.");
     label_dict
-        .def(pybind11::init<bool>(),
-             "Create an empty label dictionary. Optionally add standard SWC tagged regions.\n"
-             " - soma: (tag 1)\n"
-             " - axon: (tag 2)\n"
-             " - dend: (tag 3)\n"
-             " - apic: (tag 4)",
-             "swc"_a)
+        .def(pybind11::init<>(),
+             "Create an empty label dictionary.")
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
             "Initialize a label dictionary from a dictionary with string labels as keys,"
             " and corresponding definitions as strings.")
@@ -254,6 +249,13 @@ void register_cells(pybind11::module& m) {
                 return ld;
             }),
             "Initialize a label dictionary from an iterable of key, definition pairs")
+        .def("add_swc_tags",
+             [](label_dict_proxy& l) { return l.add_swc_tags(); },
+             "Add standard SWC tagged regions.\n"
+             " - soma: (tag 1)\n"
+             " - axon: (tag 2)\n"
+             " - dend: (tag 3)\n"
+             " - apic: (tag 4)")
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
                 l.set(name, desc);})

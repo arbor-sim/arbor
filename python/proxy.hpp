@@ -16,14 +16,20 @@ struct label_dict_proxy {
     std::vector<std::string> locsets;
     std::vector<std::string> regions;
 
-    label_dict_proxy(bool swc=false): dict{} {
-        if (swc) dict = arb::label_dict::with_swc_tags();
-    }
+    label_dict_proxy() = default;
 
     label_dict_proxy(const str_map& in) {
         for (auto& i: in) {
             set(i.first, i.second);
         }
+    }
+
+    label_dict_proxy& add_swc_tags() {
+        set("soma", "(tag 1)");
+        set("axon", "(tag 2)");
+        set("dend", "(tag 3)");
+        set("apic", "(tag 4)");
+        return *this;
     }
 
     label_dict_proxy(const arb::label_dict& label_dict): dict(label_dict) {
@@ -57,7 +63,7 @@ struct label_dict_proxy {
         //    (and vice versa.)
         //  * the description is not well formed, e.g. it contains a syntax error.
         //  * the description is well-formed, but describes neither a region or locset.
-        try{
+        try {
             // Evaluate the s-expression to build a region/locset.
             auto result = arborio::parse_label_expression(desc);
             if (!result) { // an error parsing / evaluating description.

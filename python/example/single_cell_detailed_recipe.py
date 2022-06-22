@@ -22,7 +22,7 @@ morph = arbor.load_swc_arbor(filename)
 # (2) Create and populate the label dictionary.
 
 # Label dict, with Pre-defined labels soma, axon, dend, and apic
-labels = arbor.label_dict(swc=True)
+labels = arbor.label_dict().add_swc_tags()
 
 # Regions:
 
