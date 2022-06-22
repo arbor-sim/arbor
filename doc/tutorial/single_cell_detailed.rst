@@ -121,16 +121,44 @@ can be stored in a :class:`arbor.label_dict`.
 
    More information on region and location expressions is available :ref:`here <labels>`.
 
-First, we can define some **regions**, These are continuous parts of the morphology,
-They can correspond to full segments or parts of segments. Our morphology already has some
-pre-established regions determined by the ``tag`` parameter of the segments. They are
-defined as follows:
+The SWC file format allows association of ``tags`` with parts of the morphology
+and reserves tag values 1-4 for commonly used sections (see `here
+<http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`__
+for the SWC file format). In Arbor, these tags can be added to a :class:`arbor.label_dict` using
+the ``add_swc_tags`` method, which will define
 
-.. literalinclude:: ../../python/example/single_cell_detailed.py
-   :language: python
-   :lines: 22-32
+.. list-table:: Default SWC Tags
+   :widths: 25 25 50
+   :header-rows: 1
 
-This will generate the following regions when applied to the previously defined morphology:
+   * - Tag
+     - Label
+     - Section
+   * - 1
+     - ``"soma"``
+     - Soma
+   * - 2
+     - ``"axon"``
+     - Axon
+   * - 3
+     - ``"dend"``
+     - Basal dendrite
+   * - 4
+     - ``"apic"``
+     - Apical dendrite
+
+You can alternatively define these regions by hand, using
+
+.. code-block:: python
+
+  labels = arbor.label_dict({
+    "soma": "(tag 1)",
+    "axon": "(tag 2)",
+    "dend": "(tag 3)",
+    "apic": "(tag 4)",
+  })
+
+Both ways will generate the following regions when applied to the previously defined morphology:
 
 .. figure:: ../gen-images/tutorial_tag.svg
   :width: 800
