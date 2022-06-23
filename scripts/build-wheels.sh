@@ -16,11 +16,12 @@ set -e -u -x
 yum -y install libxml2-devel
 
 rm -rf /src_dir/arbor/_skbuild
+rm -rf /opt/python/cp36-cp36m
 
 export CIBUILDWHEEL=1 #Set condition for cmake
 
-for PYBIN in /opt/python/cp3{7..10}*/bin; do
-#     "${PYBIN}/python" -m pip install pip ninja cmake wheel scikit-build auditwheel -U
+for PYBIN in /opt/python/cp3*/bin; do
+    "${PYBIN}/python" -m pip install pip auditwheel -U
     export PATH="${PYBIN}":$PATH
     "${PYBIN}/python" -m pip wheel --wheel-dir="/src_dir/builtwheel${PYBIN}/" /src_dir/arbor
     "${PYBIN}/python" -m auditwheel repair /src_dir/builtwheel${PYBIN}/arbor*.whl -w /src_dir/wheelhouse
