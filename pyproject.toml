@@ -1,11 +1,11 @@
 [project]
 name = "arbor"
-#version = {file = ["VERSION"]}
+#version = {file = "VERSION"}
 #license = {file = ["LICENSE"]}
 #readme = {file = ["python/readme.md"]}
-version = "0.6.99"
+#version = "0.6.99"
+dynamic = ["version", "readme"]
 license = {file = "LICENSE"}
-readme = "python/readme.md"
 
 description = "High performance simulation of networks of multicompartment neurons."
 requires-python = ">=3.6"
@@ -35,6 +35,10 @@ dependencies = [
 
 [tool.setuptools]
 py-modules = ["arbor"]
+
+[tool.setuptools.dynamic]
+version = {file = ["VERSION"]}
+readme = {file = ["python/readme.md"]}
 
 [project.urls]
 homepage = "https://arbor-sim.org"
