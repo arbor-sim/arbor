@@ -74,8 +74,7 @@ def make_cable_cell(morphology, clamp_location):
     cvs_per_branch = 3
 
     # Label dictionary
-    defs = {}
-    labels = arbor.label_dict(defs)
+    labels = arbor.label_dict()
 
     # decor
     decor = arbor.decor()

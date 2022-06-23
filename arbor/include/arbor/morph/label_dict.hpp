@@ -17,10 +17,13 @@ class ARB_ARBOR_API label_dict {
     reg_map regions_;
 
 public:
+    // construct a label dict with SWC tags predefined
+    label_dict& add_swc_tags();
+
     void import(const label_dict& other, const std::string& prefix = "");
 
-    void set(const std::string& name, locset ls);
-    void set(const std::string& name, region reg);
+    label_dict& set(const std::string& name, locset ls);
+    label_dict& set(const std::string& name, region reg);
 
     std::optional<arb::region> region(const std::string& name) const;
     std::optional<arb::locset> locset(const std::string& name) const;
