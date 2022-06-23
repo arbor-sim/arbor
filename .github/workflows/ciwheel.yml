@@ -48,13 +48,13 @@ jobs:
       - name: Update pip
         run: python3 -m pip install --upgrade pip
       - name: Get packages
-        run: python3 -m pip install numpy setuptools scikit-build ninja cmake
+        run: python3 -m pip install build #numpy setuptools scikit-build ninja cmake
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
       - name: Make sdist
-        run:  python3 setup.py sdist
+        run: python -m build -s
       - name: Install sdist
         run:  python3 -m pip install dist/arbor*.tar.gz
       - name: Run Python tests
