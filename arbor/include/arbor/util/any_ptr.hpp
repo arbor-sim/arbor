@@ -37,7 +37,7 @@ namespace arb {
 namespace util {
 
 struct ARB_SYMBOL_VISIBLE any_ptr {
-    any_ptr() {}
+    any_ptr() = default;
 
     any_ptr(std::nullptr_t) {}
 

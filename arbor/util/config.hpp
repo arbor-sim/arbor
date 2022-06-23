@@ -1,5 +1,7 @@
 #pragma once
 
+#include <arbor/version.hpp>
+
 namespace arb {
 namespace config {
 
@@ -29,7 +31,7 @@ constexpr bool has_power_measurement = true;
 constexpr bool has_power_measurement = false;
 #endif
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 constexpr bool has_gpu = true;
 #else
 constexpr bool has_gpu = false;

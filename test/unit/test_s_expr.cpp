@@ -479,6 +479,9 @@ std::ostream& operator<<(std::ostream& o, const membrane_capacitance& p) {
 std::ostream& operator<<(std::ostream& o, const init_int_concentration& p) {
     return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << ')';
 }
+std::ostream& operator<<(std::ostream& o, const ion_diffusivity& p) {
+    return o << "(ion-diffusivity \"" << p.ion << "\" " << p.value << ')';
+}
 std::ostream& operator<<(std::ostream& o, const init_ext_concentration& p) {
     return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << ')';
 }

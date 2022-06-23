@@ -144,8 +144,7 @@ int main(int argc, char** argv) {
 
         cable_recipe R(opt.probe_addr, opt.n_cv);
 
-        auto context = arb::make_context();
-        arb::simulation sim(R, arb::partition_load_balance(R, context), context);
+        arb::simulation sim(R);
 
         sim.add_sampler(arb::all_probes,
                 arb::regular_schedule(opt.sample_dt),

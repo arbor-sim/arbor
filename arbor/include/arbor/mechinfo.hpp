@@ -36,6 +36,8 @@ struct ion_dependency {
     bool write_concentration_int = false;
     bool write_concentration_ext = false;
 
+    bool access_concentration_diff = false;
+
     bool read_reversal_potential = false;
     bool write_reversal_potential = false;
 

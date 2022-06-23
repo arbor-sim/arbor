@@ -27,7 +27,7 @@ public:
     using value_type = Event;
     using event_time_type = ::arb::event_time_type<Event>;
 
-    event_queue() {}
+    event_queue() = default;
 
     void push(const value_type& e) {
          queue_.push(e);

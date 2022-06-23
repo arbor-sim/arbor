@@ -101,7 +101,7 @@ private:
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
         virtual std::unique_ptr<interface> clone() override {
-            return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
+            return std::make_unique<wrap<Impl>>(wrapped);
         }
 
         virtual mextent thingify(const mprovider& m) override {

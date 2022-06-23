@@ -1,0 +1,33 @@
+name: Sanitize
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Lint
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Get packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+      - name: Clone w/ submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Python Formatting
+        uses: psf/black@stable
+        with:
+          options: --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme|doc/scripts/inputs.py)'
+          src: scripts/build-catalogue.in .
+      - name: Python analysis
+        run: |
+          flake8 scripts/build-catalogue.in .

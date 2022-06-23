@@ -246,9 +246,10 @@ int main(int argc, char** argv) {
 
         partition_hint_map hints;
         hints[cell_kind::lif].cpu_group_size = group_size;
-        auto decomp = partition_load_balance(recipe, context, hints);
 
-        simulation sim(recipe, decomp, context);
+        simulation sim(recipe,
+                       context,
+                       [&hints](auto& r, auto& c) { return partition_load_balance(r, c, hints); });
 
         // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;

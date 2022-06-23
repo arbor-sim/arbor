@@ -414,7 +414,6 @@ struct implbase {
     static void scatter(tag<ImplIndex>, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index) {
         typename ImplIndex::scalar_type o[width];
         ImplIndex::copy_to(index, o);
-
         store a;
         I::copy_to(s, a);
 

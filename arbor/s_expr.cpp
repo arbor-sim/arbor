@@ -281,7 +281,7 @@ private:
         }
 
         // test if the symbol matches a keyword
-        auto it = keyword_to_tok.find(symbol.c_str());
+        auto it = keyword_to_tok.find(symbol);
         if (it!=keyword_to_tok.end()) {
             return {start, it->second, std::move(symbol)};
         }
@@ -413,7 +413,7 @@ std::ostream& print(std::ostream& o, const s_expr& x, int indent) {
     bool first=true;
     o << "(";
     while (it!=end) {
-        if (!first && !it->is_atom() && length(*it)>=0) {
+        if (!first && !it->is_atom()) {
             o << "\n" << in;
             print(o, *it, indent+1);
             ++it;

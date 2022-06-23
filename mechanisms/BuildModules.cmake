@@ -123,11 +123,17 @@ function("make_catalogue")
       list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
     endif()
   endforeach()
+
   set(${MK_CAT_OUTPUT} ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
   if(${MK_CAT_STANDALONE})
     add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
     target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
+
+    if(ARB_WITH_GPU)
+      target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC ARB_GPU_ENABLED)
+    endif()
+
     target_compile_options(${MK_CAT_NAME}-catalogue PUBLIC ${MK_CAT_CXX_FLAGS_TARGET})
     set_target_properties(${MK_CAT_NAME}-catalogue
       PROPERTIES

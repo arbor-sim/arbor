@@ -36,8 +36,8 @@ using std::end;
 //  * matrices all have same size and structure
 TEST(matrix, assemble)
 {
-    using gpu_state = gpu::backend::matrix_state;
-    using mc_state  = multicore::backend::matrix_state;
+    using gpu_state = gpu::backend::cable_solver;
+    using mc_state  = multicore::backend::cable_solver;
 
     using T = fvm_value_type;
     using I = fvm_index_type;

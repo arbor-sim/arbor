@@ -8,6 +8,8 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy pol
     switch (policy) {
     case lid_selection_policy::round_robin:
         return o << "round_robin";
+	case lid_selection_policy::round_robin_halt:
+        return o << "round_robin_halt";
     case lid_selection_policy::assert_univalent:
         return o << "univalent";
     }

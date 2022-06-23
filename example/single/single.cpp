@@ -84,8 +84,7 @@ int main(int argc, char** argv) {
         options opt = parse_options(argc, argv);
         single_recipe R(opt.swc_file.empty()? default_morphology(): read_swc(opt.swc_file), opt.policy);
 
-        auto context = arb::make_context();
-        arb::simulation sim(R, arb::partition_load_balance(R, context), context);
+        arb::simulation sim(R);
 
         // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
 

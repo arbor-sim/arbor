@@ -9,22 +9,32 @@
 
 namespace arb {
 
+label_dict& label_dict::add_swc_tags() {
+    set("soma", reg::tagged(1));
+    set("axon", reg::tagged(2));
+    set("dend", reg::tagged(3));
+    set("apic", reg::tagged(4));
+    return *this;
+}
+
 size_t label_dict::size() const {
     return locsets_.size() + regions_.size();
 }
 
-void label_dict::set(const std::string& name, arb::locset ls) {
+label_dict& label_dict::set(const std::string& name, arb::locset ls) {
     if (regions_.count(name)) {
         throw label_type_mismatch(name);
     }
     locsets_[name] = std::move(ls);
+    return *this;
 }
 
-void label_dict::set(const std::string& name, arb::region reg) {
+label_dict& label_dict::set(const std::string& name, arb::region reg) {
     if (locsets_.count(name)) {
         throw label_type_mismatch(name);
     }
     regions_[name] = std::move(reg);
+    return *this;
 }
 
 void label_dict::import(const label_dict& other, const std::string& prefix) {

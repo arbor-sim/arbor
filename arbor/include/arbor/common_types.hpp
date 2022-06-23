@@ -70,6 +70,7 @@ struct lid_range {
 
 enum class lid_selection_policy {
     round_robin,
+	round_robin_halt,
     assert_univalent // throw if the range of possible lids is wider than 1
 };
 

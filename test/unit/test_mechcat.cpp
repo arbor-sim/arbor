@@ -289,11 +289,9 @@ TEST(mechcat, loading) {
 #endif
 #else
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);
+    const mechanism_catalogue cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
+    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
 #endif
-    const mechanism_catalogue* cat = nullptr;
-    EXPECT_NO_THROW(cat = &load_catalogue(LIBDIR "/dummy-catalogue.so"));
-    ASSERT_NE(cat, nullptr);
-    EXPECT_EQ(std::vector<std::string>{"dummy"}, cat->mechanism_names());
 }
 #endif
 
