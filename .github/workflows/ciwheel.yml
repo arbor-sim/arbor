@@ -24,8 +24,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Update pip
-        run: python3 -m pip install --upgrade pip
         
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel

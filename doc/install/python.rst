@@ -112,6 +112,7 @@ The following flags can be used to configure the installation:
    mentions that you can also pass the build options with ``--install-option=""``, this will cause ``pip`` to build
    all dependencies, including all build-dependencies, instead of downloading them from PyPI. ``CMAKE_ARGS=""``
    saves you the build time, and also downloading and setting up the dependencies they in turn require to be present.
+   Setting ``CMAKE_ARGS=""`` is addition compatible with build front-ends like `build <https://pypa-build.readthedocs.io>`_.
 
    Detailed instructions on how to install using CMake are in the :ref:`Python
    configuration <install-python>` section of the :ref:`installation guide
