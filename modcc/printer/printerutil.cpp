@@ -141,6 +141,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     v.index_var_kind = index_kind::node;
     v.scale = 1;
     v.accumulate = true;
+    v.additive = false;
     v.readonly = true;
 
     std::string ion_pfx;
@@ -196,6 +197,11 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.scale = 0.1;
         v.readonly = false;
         break;
+    case sourceKind::ion_conductivity:
+        v.data_var = ion_pfx+".conductivity";
+        v.scale = 0.1;
+        v.readonly = false;
+        break;
     case sourceKind::ion_current:
         // unit scale; sourceKind for point processes updating an ionic current variable.
         v.data_var = ion_pfx+".current_density";
@@ -209,6 +215,12 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::ion_iconc:
         v.data_var = ion_pfx+".internal_concentration";
         v.readonly = false;
+        break;
+    case sourceKind::ion_diffusive:
+        v.data_var = ion_pfx+".diffusive_concentration";
+        v.readonly = false;
+        v.accumulate = false;
+        v.additive = true;
         break;
     case sourceKind::ion_econc:
         v.data_var = ion_pfx+".external_concentration";

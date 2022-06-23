@@ -50,7 +50,7 @@ class Recipe(arbor.recipe):
         return [
             arbor.cable_probe_membrane_voltage_cell(),
             arbor.cable_probe_total_current_cell(),
-            arbor.cable_probe_stimulus_current_cell()
+            arbor.cable_probe_stimulus_current_cell(),
         ]
 
 
@@ -66,7 +66,7 @@ filename = sys.argv[1]
 morphology = arbor.load_swc_arbor(filename)
 
 # define a location on morphology for current clamp
-clamp_location = arbor.location(4, 1/6)
+clamp_location = arbor.location(4, 1 / 6)
 
 
 def make_cable_cell(morphology, clamp_location):
@@ -74,8 +74,7 @@ def make_cable_cell(morphology, clamp_location):
     cvs_per_branch = 3
 
     # Label dictionary
-    defs = {}
-    labels = arbor.label_dict(defs)
+    labels = arbor.label_dict()
 
     # decor
     decor = arbor.decor()
@@ -90,20 +89,22 @@ def make_cable_cell(morphology, clamp_location):
 
     # set passive mechanism all over
     # passive mech w. leak reversal potential (mV)
-    pas = arbor.mechanism('pas/e=-65')
-    pas.set('g', 0.0001)  # leak conductivity (S/cm2)
-    decor.paint('(all)', arbor.density(pas))
+    pas = arbor.mechanism("pas/e=-65")
+    pas.set("g", 0.0001)  # leak conductivity (S/cm2)
+    decor.paint("(all)", arbor.density(pas))
 
     # set number of CVs per branch
     policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
     decor.discretization(policy)
 
     # place sinusoid input current
-    iclamp = arbor.iclamp(5,  # stimulation onset (ms)
-                          1E8,  # stimulation duration (ms)
-                          -0.001,  # stimulation amplitude (nA)
-                          frequency=0.1,  # stimulation frequency (kHz)
-                          phase=0)  # stimulation phase)
+    iclamp = arbor.iclamp(
+        5,  # stimulation onset (ms)
+        1e8,  # stimulation duration (ms)
+        -0.001,  # stimulation amplitude (nA)
+        frequency=0.1,  # stimulation frequency (kHz)
+        phase=0,
+    )  # stimulation phase)
     decor.place(str(clamp_location), iclamp, '"iclamp"')
 
     # create ``arbor.place_pwlin`` object
@@ -122,12 +123,10 @@ p, cell = make_cable_cell(morphology, clamp_location)
 recipe = Recipe(cell)
 
 # instantiate simulation
-context = arbor.context()
-domains = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, domains, context)
+sim = arbor.simulation(recipe)
 
 # set up sampling on probes with sampling every 1 ms
-schedule = arbor.regular_schedule(1.)
+schedule = arbor.regular_schedule(1.0)
 v_handle = sim.sample(recipe.vprobe_id, schedule, arbor.sampling_policy.exact)
 i_handle = sim.sample(recipe.iprobe_id, schedule, arbor.sampling_policy.exact)
 c_handle = sim.sample(recipe.cprobe_id, schedule, arbor.sampling_policy.exact)
@@ -169,7 +168,7 @@ I_m = I_c_samples[:, 1:] + I_m_samples[:, 1:]  # (nA)
 # First we define a couple of classes to interface the LFPykit
 # library (https://LFPykit.readthedocs.io, https://github.com/LFPy/LFPykit):
 class ArborCellGeometry(lfpykit.CellGeometry):
-    '''
+    """
     Class inherited from  ``lfpykit.CellGeometry`` for easier forward-model
     predictions in Arbor that keeps track of arbor.segment information
     for each CV.
@@ -185,7 +184,7 @@ class ArborCellGeometry(lfpykit.CellGeometry):
     See also
     --------
     lfpykit.CellGeometry
-    '''
+    """
 
     def __init__(self, p, cables):
         x, y, z, d = [np.array([], dtype=float).reshape((0, 2))] * 4
@@ -196,8 +195,7 @@ class ArborCellGeometry(lfpykit.CellGeometry):
                 x = np.row_stack([x, [seg.prox.x, seg.dist.x]])
                 y = np.row_stack([y, [seg.prox.y, seg.dist.y]])
                 z = np.row_stack([z, [seg.prox.z, seg.dist.z]])
-                d = np.row_stack(
-                    [d, [seg.prox.radius * 2, seg.dist.radius * 2]])
+                d = np.row_stack([d, [seg.prox.radius * 2, seg.dist.radius * 2]])
                 CV_ind = np.r_[CV_ind, i]
 
         super().__init__(x=x, y=y, z=z, d=d)
@@ -205,7 +203,7 @@ class ArborCellGeometry(lfpykit.CellGeometry):
 
 
 class ArborLineSourcePotential(lfpykit.LineSourcePotential):
-    '''subclass of ``lfpykit.LineSourcePotential`` modified for
+    """subclass of ``lfpykit.LineSourcePotential`` modified for
     instances of ``ArborCellGeometry``.
     Each CV may consist of several segments , and this implementation
     accounts for their contributions normalized by surface area, that is,
@@ -229,27 +227,28 @@ class ArborLineSourcePotential(lfpykit.LineSourcePotential):
     See also
     --------
     lfpykit.LineSourcePotential
-    '''
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._get_transformation_matrix = super().get_transformation_matrix
 
     def get_transformation_matrix(self):
-        '''Get linear response matrix
+        """Get linear response matrix
 
         Returns
         -------
         response_matrix: ndarray
             shape (n_coords, n_CVs) ndarray
-        '''
+        """
         M_tmp = self._get_transformation_matrix()
         n_CVs = np.unique(self.cell._CV_ind).size
         M = np.zeros((self.x.size, n_CVs))
         for i in range(n_CVs):
             inds = self.cell._CV_ind == i
-            M[:, i] = M_tmp[:, inds] @ (self.cell.area[inds] /
-                                        self.cell.area[inds].sum())
+            M[:, i] = M_tmp[:, inds] @ (
+                self.cell.area[inds] / self.cell.area[inds].sum()
+            )
 
         return M
 
@@ -263,17 +262,16 @@ cell_geometry = ArborCellGeometry(p, I_m_meta)
 axis = np.array([-110, 370, -80, 70])
 dx = 2  # spatial resolution along x-axis (µm)
 dz = 2  # spatial resolution along y-axis (µm)
-X, Y = np.meshgrid(np.linspace(axis[0], axis[1],
-                               int(np.diff(axis[:2]) // dx) + 1),
-                   np.linspace(axis[2], axis[3],
-                               int(np.diff(axis[2:]) // dz) + 1))
+X, Y = np.meshgrid(
+    np.linspace(axis[0], axis[1], int(np.diff(axis[:2]) // dx) + 1),
+    np.linspace(axis[2], axis[3], int(np.diff(axis[2:]) // dz) + 1),
+)
 Z = np.zeros_like(X)
 
 # ``ArborLineSourcePotential`` instance, get mapping for all segments per CV
-lsp = ArborLineSourcePotential(cell=cell_geometry,
-                               x=X.flatten(),
-                               y=Y.flatten(),
-                               z=Z.flatten())
+lsp = ArborLineSourcePotential(
+    cell=cell_geometry, x=X.flatten(), y=Y.flatten(), z=Z.flatten()
+)
 M = lsp.get_transformation_matrix()
 
 # Extracellular potential in x,y-plane (mV)
@@ -303,17 +301,20 @@ def create_polygon(x, y, d):
     y_grad = np.gradient(y)
     theta = np.arctan2(y_grad, x_grad)
 
-    xp = np.r_[(x + 0.5 * d * np.sin(theta)).ravel(),
-               (x - 0.5 * d * np.sin(theta)).ravel()[::-1]]
-    yp = np.r_[(y - 0.5 * d * np.cos(theta)).ravel(),
-               (y + 0.5 * d * np.cos(theta)).ravel()[::-1]]
+    xp = np.r_[
+        (x + 0.5 * d * np.sin(theta)).ravel(),
+        (x - 0.5 * d * np.sin(theta)).ravel()[::-1],
+    ]
+    yp = np.r_[
+        (y - 0.5 * d * np.cos(theta)).ravel(),
+        (y + 0.5 * d * np.cos(theta)).ravel()[::-1],
+    ]
 
     return list(zip(xp, yp))
 
 
-def get_cv_polycollection(
-        cell_geometry, V_m, vlims=[-66, -64], cmap='viridis'):
-    '''
+def get_cv_polycollection(cell_geometry, V_m, vlims=[-66, -64], cmap="viridis"):
+    """
     Parameters
     ----------
     cell_geometry: ``ArborCellGeometry`` object
@@ -327,24 +328,31 @@ def get_cv_polycollection(
     Returns
     -------
     PolyCollection
-    '''
+    """
     norm = plt.Normalize(vmin=vlims[0], vmax=vlims[1], clip=True)
     colors = [plt.get_cmap(cmap)(norm(v)) for v in V_m]
     zips = []
     for i in range(V_m.size):
         inds = cell_geometry._CV_ind == i
-        zips.append(create_polygon(cell_geometry.x[inds, ].flatten(),
-                                   cell_geometry.y[inds, ].flatten(),
-                                   cell_geometry.d[inds, ].flatten()))
-    polycol = PolyCollection(zips,
-                             edgecolors=colors,
-                             facecolors=colors,
-                             linewidths=0.)
+        zips.append(
+            create_polygon(
+                cell_geometry.x[
+                    inds,
+                ].flatten(),
+                cell_geometry.y[
+                    inds,
+                ].flatten(),
+                cell_geometry.d[
+                    inds,
+                ].flatten(),
+            )
+        )
+    polycol = PolyCollection(zips, edgecolors=colors, facecolors=colors, linewidths=0.0)
     return polycol
 
 
 def get_segment_outlines(cell_geometry):
-    '''
+    """
     Parameters
     ----------
     cell_geometry: ``ArborCellGeometry`` object
@@ -354,26 +362,27 @@ def get_segment_outlines(cell_geometry):
     Returns
     -------
     PolyCollection
-    '''
+    """
     zips = []
     for x_, y_, d_ in zip(cell_geometry.x, cell_geometry.y, cell_geometry.d):
         zips.append(create_polygon(x_, y_, d_))
-    polycol = PolyCollection(zips,
-                             edgecolors='k',
-                             facecolors='none',
-                             linewidths=0.5)
+    polycol = PolyCollection(zips, edgecolors="k", facecolors="none", linewidths=0.5)
     return polycol
 
 
-def colorbar(fig, ax, im,
-             width=0.01,
-             height=1.0,
-             hoffset=0.01,
-             voffset=0.0,
-             orientation='vertical'):
-    '''
+def colorbar(
+    fig,
+    ax,
+    im,
+    width=0.01,
+    height=1.0,
+    hoffset=0.01,
+    voffset=0.0,
+    orientation="vertical",
+):
+    """
     draw matplotlib colorbar without resizing the parent axes object
-    '''
+    """
     rect = np.array(ax.get_position().bounds)
     rect = np.array(ax.get_position().bounds)
     caxrect = [0] * 4
@@ -391,26 +400,25 @@ def colorbar(fig, ax, im,
 time_index = -1
 
 # use seaborn style
-plt.style.use('seaborn')
-plt.rcParams['image.cmap'] = 'viridis'
+plt.style.use("seaborn")
+plt.rcParams["image.cmap"] = "viridis"
 
 # create figure and axis
 fig, ax = plt.subplots(1, 1, figsize=(16, 6), dpi=100)
 
 # plot contours of V_e
-lim = float(f'{abs(V_e).max() / 3:.1e}')
+lim = float(f"{abs(V_e).max() / 3:.1e}")
 levels = np.linspace(-lim, lim, 25)
-im_V_e = ax.contourf(X, Y, V_e[:, time_index].reshape(X.shape),
-                     cmap='RdBu',
-                     levels=levels,
-                     extend='both')
+im_V_e = ax.contourf(
+    X, Y, V_e[:, time_index].reshape(X.shape), cmap="RdBu", levels=levels, extend="both"
+)
 
 # V_e colorbar:
 cb = colorbar(fig, ax, im_V_e, height=0.45, voffset=0.55)
-cb.set_label('$V_e$ (mV)')
+cb.set_label("$V_e$ (mV)")
 
 # add outline of each CV with color coding according to membrane voltage
-vlims = [-66., -64.]
+vlims = [-66.0, -64.0]
 polycol = get_cv_polycollection(cell_geometry, V_m[time_index, :], vlims=vlims)
 im_V_m = ax.add_collection(polycol)
 
@@ -418,25 +426,25 @@ im_V_m = ax.add_collection(polycol)
 cb2 = colorbar(fig, ax, im_V_m, height=0.45)
 cb2.set_ticks([0, 0.5, 1])
 cb2.set_ticklabels([vlims[0], np.mean(vlims), vlims[1]])
-cb2.set_label(r'$V_m$ (mV)')
+cb2.set_label(r"$V_m$ (mV)")
 
 # draw segment outlines
 ax.add_collection(get_segment_outlines(cell_geometry))
 
 # add marker denoting clamp location
 point = p.at(clamp_location)
-ax.plot(point.x, point.y, 'ko', ms=10, label='stimulus')
+ax.plot(point.x, point.y, "ko", ms=10, label="stimulus")
 
 ax.legend()
 
 # axis annotations
 ax.axis(axis)
-ax.set_xlabel(r'$x$ ($\mu$m)', labelpad=0)
-ax.set_ylabel(r'$y$ ($\mu$m)', labelpad=0)
-ax.set_title(f'$V_e$ and $V_m$ at $t$={time[time_index]} ms')
+ax.set_xlabel(r"$x$ ($\mu$m)", labelpad=0)
+ax.set_ylabel(r"$y$ ($\mu$m)", labelpad=0)
+ax.set_title(f"$V_e$ and $V_m$ at $t$={time[time_index]} ms")
 
 # save file
-fig.savefig('single_cell_extracellular_potentials.svg', bbox_inches='tight')
+fig.savefig("single_cell_extracellular_potentials.svg", bbox_inches="tight")
 
 # ## Notes on output:
 # The spatial discretization is here deliberately coarse with only 3 CVs

@@ -50,7 +50,7 @@ namespace impl {
     struct wrap_std_function {
         std::function<R ()> f;
 
-        wrap_std_function() noexcept {}
+        wrap_std_function() noexcept = default;
         wrap_std_function(const std::function<R ()>& f): f(f) {}
         wrap_std_function(std::function<R ()>&& f): f(std::move(f)) {}
         wrap_std_function(wrap_std_function&& other) noexcept {

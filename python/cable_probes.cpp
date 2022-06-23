@@ -195,6 +195,14 @@ arb::probe_info cable_probe_ion_int_concentration_cell(const char* ion) {
     return arb::cable_probe_ion_int_concentration_cell{ion};
 }
 
+arb::probe_info cable_probe_ion_diff_concentration(const char* where, const char* ion) {
+    return arb::cable_probe_ion_diff_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
+}
+
+arb::probe_info cable_probe_ion_diff_concentration_cell(const char* ion) {
+    return arb::cable_probe_ion_diff_concentration_cell{ion};
+}
+
 arb::probe_info cable_probe_ion_ext_concentration(const char* where, const char* ion) {
     return arb::cable_probe_ion_ext_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
 }
@@ -282,6 +290,14 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     m.def("cable_probe_ion_int_concentration_cell", &cable_probe_ion_int_concentration_cell,
         "Probe specification for cable cell internal ionic concentration for each cable in each CV.",
+        "ion"_a);
+
+    m.def("cable_probe_ion_diff_concentration", &cable_probe_ion_diff_concentration,
+        "Probe specification for cable cell diffusive ionic concentration at points in a location set.",
+        "where"_a, "ion"_a);
+
+    m.def("cable_probe_ion_diff_concentration_cell", &cable_probe_ion_diff_concentration_cell,
+        "Probe specification for cable cell diffusive ionic concentration for each cable in each CV.",
         "ion"_a);
 
     m.def("cable_probe_ion_ext_concentration", &cable_probe_ion_ext_concentration,

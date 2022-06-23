@@ -4,13 +4,13 @@ from skbuild import setup
 # Hard coded options, because scikit-build does not do build options.
 # Override by instructing CMAKE, e.g.:
 # pip install . -- -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_MPI=ON -DARB_GPU=cuda
-with_mpi   = False
-with_gpu   = 'none'
-with_vec   = False
-arch       = 'none'
-with_nml   = True
-use_libs   = True
-build_type = 'Release' # this is ok even for debugging, as we always produce info
+with_mpi = False
+with_gpu = "none"
+with_vec = False
+arch = "none"
+with_nml = True
+use_libs = True
+build_type = "Release"  # this is ok even for debugging, as we always produce info
 
 setup(
     #packages=["arbor"],

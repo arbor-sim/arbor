@@ -2,17 +2,17 @@
 
 import subprocess as sp
 import sys
-from tempfile import mkdtemp, TemporaryDirectory
+from tempfile import mkdtemp
 import os
 from pathlib import Path
 import shutil
-import string
 import argparse
 import re
 
+
 def parse_arguments():
     def append_slash(s):
-        return s+'/' if s and not s.endswith('/') else s
+        return s + "/" if s and not s.endswith("/") else s
 
     class ConciseHelpFormatter(argparse.HelpFormatter):
         def __init__(self, **kwargs):
@@ -20,87 +20,92 @@ def parse_arguments():
 
         def _format_action_invocation(self, action):
             if not action.option_strings:
-                return super(ConciseHelpFormatter, self)._format_action_invocation(action)
+                return super(ConciseHelpFormatter, self)._format_action_invocation(
+                    action
+                )
             else:
-                optstr = ', '.join(action.option_strings)
-                if action.nargs==0:
+                optstr = ", ".join(action.option_strings)
+                if action.nargs == 0:
                     return optstr
                 else:
-                    return optstr+' '+self._format_args(action, action.dest.upper())
+                    return optstr + " " + self._format_args(action, action.dest.upper())
 
     parser = argparse.ArgumentParser(
-        description = 'Generate dynamic catalogue and build it into a shared object.',
-        usage = '%(prog)s catalogue_name mod_source_dir',
-        add_help = False,
-        formatter_class = ConciseHelpFormatter)
+        description="Generate dynamic catalogue and build it into a shared object.",
+        usage="%(prog)s catalogue_name mod_source_dir",
+        add_help=False,
+        formatter_class=ConciseHelpFormatter,
+    )
 
-    parser.add_argument('name',
-                        metavar='name',
-                        type=str,
-                        help='Catalogue name.')
+    parser.add_argument("name", metavar="name", type=str, help="Catalogue name.")
 
-    parser.add_argument('--raw',
-                        metavar='raw',
-                        nargs='+',
-                        default=[],
-                        type=str,
-                        help='''Advanced: Raw mechanisms as C++ files. Per <name> the
+    parser.add_argument(
+        "--raw",
+        metavar="raw",
+        nargs="+",
+        default=[],
+        type=str,
+        help="""Advanced: Raw mechanisms as C++ files. Per <name> the
 files <name>.hpp, <name>_cpu.cpp must be present
 in the target directory and with GPU support
-also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).''')
+also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
+    )
 
-    parser.add_argument('modpfx',
-                        metavar='modpfx',
-                        type=str,
-                        help='Directory name where *.mod files live.')
+    parser.add_argument(
+        "modpfx",
+        metavar="modpfx",
+        type=str,
+        help="Directory name where *.mod files live.",
+    )
 
-    parser.add_argument('-v', '--verbose',
-                        action='store_true',
-                        help='Verbose.')
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose.")
 
-    parser.add_argument('-q', '--quiet',
-                        action='store_true',
-                        help='Less output.')
+    parser.add_argument("-q", "--quiet", action="store_true", help="Less output.")
 
-    parser.add_argument('-g', '--gpu',
-                        metavar='gpu',
-                        help='Enable GPU support, valid options: cuda|hip|cuda-clang.')
+    parser.add_argument(
+        "-g",
+        "--gpu",
+        metavar="gpu",
+        help="Enable GPU support, valid options: cuda|hip|cuda-clang.",
+    )
 
-    parser.add_argument('-C', '--no-cpu',
-                        action='store_true',
-                        help='Disable CPU support.')
+    parser.add_argument(
+        "-C", "--no-cpu", action="store_true", help="Disable CPU support."
+    )
 
-    parser.add_argument('-d', '--debug',
-                        nargs="?",
-                        metavar="path",
-                        const=True,
-                        default=False,
-                        help='Don\'t clean up the generated temp cpp code.'
-                        + ' Can be a target path for the generated code.')
+    parser.add_argument(
+        "-d",
+        "--debug",
+        nargs="?",
+        metavar="path",
+        const=True,
+        default=False,
+        help="Don't clean up the generated temp cpp code."
+        + " Can be a target path for the generated code.",
+    )
 
-    parser.add_argument('-h', '--help',
-                        action='help',
-                        help='Display this help and exit.')
+    parser.add_argument(
+        "-h", "--help", action="help", help="Display this help and exit."
+    )
 
     return vars(parser.parse_args())
 
-args    = parse_arguments()
-pwd     = Path.cwd()
-name    = re.sub(r'_+', r'_',
-                 re.sub(r'[^a-zA-Z0-9_]', r'_',
-                        args['name']))
 
-mod_dir = pwd / Path(args['modpfx'])
-mods    = [f[:-4] for f in os.listdir(mod_dir) if f.endswith('.mod')]
-quiet   = args['quiet']
-verbose = args['verbose'] and not quiet
-debug   = args['debug']
-raw     = args['raw']
-gpu     = args['gpu']
-cpu     = not args['no_cpu']
+args = parse_arguments()
+pwd = Path.cwd()
+name = re.sub(r"_+", r"_", re.sub(r"[^a-zA-Z0-9_]", r"_", args["name"]))
+
+mod_dir = pwd / Path(args["modpfx"])
+mods = [f[:-4] for f in os.listdir(mod_dir) if f.endswith(".mod")]
+quiet = args["quiet"]
+verbose = args["verbose"] and not quiet
+debug = args["debug"]
+raw = args["raw"]
+gpu = args["gpu"]
+cpu = not args["no_cpu"]
 
 if gpu:
-    if gpu == 'cuda':
+    if gpu == "cuda":
         gpu_support = """
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
@@ -110,7 +115,9 @@ set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CXX_COMPILER@)
 set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)
 """
     else:
-        print(f"Unsupported GPU target: {gpu}. If you need support for HIP or Clang-CUDA, please check here: https://github.com/arbor-sim/arbor/issues/1783")
+        print(
+            f"Unsupported GPU target: {gpu}. If you need support for HIP or Clang-CUDA, please check here: https://github.com/arbor-sim/arbor/issues/1783"
+        )
         exit(-1)
 else:
     gpu_support = """
@@ -122,12 +129,14 @@ data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
 pack_path = (this_path / "@ARB_REL_PACKAGEDIR@").resolve()
 exec_path = this_path.resolve()
 
-for path in [exec_path / 'modcc',
-             data_path / 'generate_catalogue',
-             data_path / 'BuildModules.cmake',
-             pack_path / 'arbor-config.cmake',]:
+for path in [
+    exec_path / "modcc",
+    data_path / "generate_catalogue",
+    data_path / "BuildModules.cmake",
+    pack_path / "arbor-config.cmake",
+]:
     if not path.exists():
-        print(f'Could not find required tool: {path}. Please check your installation.')
+        print(f"Could not find required tool: {path}. Please check your installation.")
         exit(-1)
 
 cmake = f"""
@@ -182,7 +191,9 @@ if debug:
                 try:
                     os.makedirs(path, exist_ok=False)
                 except FileExistsError:
-                    sys.stderr.write(f"Error: Debug destination '{path}' already exists.\n")
+                    sys.stderr.write(
+                        f"Error: Debug destination '{path}' already exists.\n"
+                    )
                     sys.stderr.flush()
                     exit(1)
             else:
@@ -193,17 +204,20 @@ if debug:
         def __exit__(*args, **kwargs):
             pass
 
+else:
+    from tempfile import TemporaryDirectory
+
 with TemporaryDirectory() as tmp:
     tmp = Path(tmp)
-    shutil.copytree(mod_dir, tmp / 'mod')
-    os.mkdir(tmp / 'build')
-    os.chdir(tmp / 'build')
-    with open(tmp / 'CMakeLists.txt', 'w') as fd:
+    shutil.copytree(mod_dir, tmp / "mod")
+    os.mkdir(tmp / "build")
+    os.chdir(tmp / "build")
+    with open(tmp / "CMakeLists.txt", "w") as fd:
         fd.write(cmake)
-    shutil.copy2(f'{data_path}/BuildModules.cmake', tmp)
-    shutil.copy2(f'{data_path}/generate_catalogue', tmp)
+    shutil.copy2(f"{data_path}/BuildModules.cmake", tmp)
+    shutil.copy2(f"{data_path}/generate_catalogue", tmp)
 
-    out = tmp / 'build' / 'generated' / name
+    out = tmp / "build" / "generated" / name
     os.makedirs(out, exist_ok=True)
     sfx = [".hpp"]
     if cpu:
@@ -214,24 +228,26 @@ with TemporaryDirectory() as tmp:
         for s in sfx:
             fn = mod_dir / (e + s)
             if not fn.exists():
-                print(f'Could not find required file: {fn}. Please check your C++ mechanisms.')
+                print(
+                    f"Could not find required file: {fn}. Please check your C++ mechanisms."
+                )
                 exit(-1)
             else:
                 shutil.copy2(fn, out / (e + s))
 
-    cmake_cmd = 'cmake ..'
-    make_cmd = 'make'
+    cmake_cmd = "cmake .."
+    make_cmd = "make"
     if verbose:
         out, err = (None, None)
-        make_cmd += ' VERBOSE=1'
+        make_cmd += " VERBOSE=1"
     else:
         out, err = (sp.PIPE, sp.PIPE)
     try:
         sp.run(cmake_cmd, shell=True, check=True, stdout=out, stderr=err)
-        sp.run(make_cmd,  shell=True, check=True, stdout=out, stderr=err)
-        shutil.copy2(f'{name}-catalogue.so', pwd)
+        sp.run(make_cmd, shell=True, check=True, stdout=out, stderr=err)
+        shutil.copy2(f"{name}-catalogue.so", pwd)
     except sp.CalledProcessError as e:
-        import sys, traceback as tb
+        import traceback as tb
 
         if not verbose:
             # Not in verbose mode, so we have captured the
@@ -253,4 +269,4 @@ with TemporaryDirectory() as tmp:
         exit(e.returncode)
 
     if not quiet:
-        print(f'Catalogue has been built and copied to {pwd}/{name}-catalogue.so')
+        print(f"Catalogue has been built and copied to {pwd}/{name}-catalogue.so")

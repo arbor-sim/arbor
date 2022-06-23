@@ -23,7 +23,7 @@ namespace arb {
 namespace ls {
 
 // Throw on invalid mlocation.
-void assert_valid(mlocation x) {
+void assert_valid(const mlocation& x) {
     if (!test_invariants(x)) {
         throw invalid_mlocation(x);
     }
@@ -119,7 +119,7 @@ std::ostream& operator<<(std::ostream& o, const terminal_& x) {
 
 // Translate locations in locset distance μm in the proximal direction
 struct proximal_translate_: locset_tag {
-    proximal_translate_(const locset& ls, double distance): start(ls), distance(distance) {}
+    proximal_translate_(locset ls, double distance): start(std::move(ls)), distance(distance) {}
     locset start;
     double distance;
 };
@@ -163,7 +163,7 @@ mlocation_list thingify_(const proximal_translate_& dt, const mprovider& p) {
 }
 
 ARB_ARBOR_API locset proximal_translate(locset ls, double distance) {
-    return locset(proximal_translate_{ls, distance});
+    return locset(proximal_translate_{std::move(ls), distance});
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_translate_& l) {
@@ -172,13 +172,13 @@ std::ostream& operator<<(std::ostream& o, const proximal_translate_& l) {
 
 // Translate locations in locset distance μm in the distal direction
 struct distal_translate_: locset_tag {
-    distal_translate_(const locset& ls, double distance): start(ls), distance(distance) {}
+    distal_translate_(locset ls, double distance): start(std::move(ls)), distance(distance) {}
     locset start;
     double distance;
 };
 
 ARB_ARBOR_API locset distal_translate(locset ls, double distance) {
-    return locset(distal_translate_{ls, distance});
+    return locset(distal_translate_{std::move(ls), distance});
 }
 
 mlocation_list thingify_(const distal_translate_& dt, const mprovider& p) {
@@ -532,8 +532,8 @@ std::ostream& operator<<(std::ostream& o, const on_components_& x) {
 // Uniform locset.
 
 struct uniform_: locset_tag {
-    uniform_(const arb::region& reg_, unsigned left_, unsigned right_, uint64_t seed_):
-        reg{reg_}, left{left_}, right{right_}, seed{seed_}
+    uniform_(arb::region reg_, unsigned left_, unsigned right_, uint64_t seed_):
+        reg{std::move(reg_)}, left{left_}, right{right_}, seed{seed_}
     {}
     region reg;
     unsigned left;
@@ -542,7 +542,7 @@ struct uniform_: locset_tag {
 };
 
 ARB_ARBOR_API locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
-    return locset(uniform_{reg, left, right, seed});
+    return locset(uniform_{std::move(reg), left, right, seed});
 }
 
 mlocation_list thingify_(const uniform_& u, const mprovider& p) {

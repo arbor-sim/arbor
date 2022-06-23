@@ -88,6 +88,12 @@ no_such_parameter::no_such_parameter(const std::string& mech_name, const std::st
     param_name(param_name)
 {}
 
+illegal_diffusive_mechanism::illegal_diffusive_mechanism(const std::string& m, const std::string& i):
+        arbor_exception(pprintf("mechanism '{}' accesses diffusive value of ion '{}', but diffusivity is disabled for it.", m, i)),
+        mech{m},
+        ion{i}
+{}
+
 invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, const std::string& param_name, double value):
     arbor_exception(pprintf("invalid parameter value for mechanism {} parameter {}: {}", mech_name, param_name, value)),
     mech_name(mech_name),

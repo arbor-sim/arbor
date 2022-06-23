@@ -17,12 +17,13 @@
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
-#include "matrix_state.hpp"
 #include "multi_event_stream.hpp"
 #include "threshold_watcher.hpp"
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"
 #include "partition_by_constraint.hpp"
+#include "backends/multicore/cable_solver.hpp"
+#include "backends/multicore/diffusion_solver.hpp"
 
 namespace arb {
 namespace multicore {
@@ -39,6 +40,9 @@ namespace multicore {
  *     Xo_     cao              external calcium concentration
  */
 struct ARB_ARBOR_API ion_state {
+    using solver_type = diffusion_solver;
+    using solver_ptr  = std::unique_ptr<solver_type>;
+
     unsigned alignment = 1; // Alignment and padding multiple.
 
     bool write_eX_;          // is eX written?
@@ -46,10 +50,12 @@ struct ARB_ARBOR_API ion_state {
     bool write_Xi_;          // is Xi written?
 
     iarray node_index_;     // Instance to CV map.
-    array iX_;              // (A/m²) current density
-    array eX_;              // (mV) reversal potential
-    array Xi_;              // (mM) internal concentration
-    array Xo_;              // (mM) external concentration
+    array iX_;              // (A/m²)  current density
+    array eX_;              // (mV)    reversal potential
+    array Xi_;              // (mM)    internal concentration
+    array Xd_;              // (mM)    diffusive internal concentration
+    array Xo_;              // (mM)    external concentration
+    array gX_;              // (kS/m²) per-species conductivity
 
     array init_Xi_;         // (mM) area-weighted initial internal concentration
     array init_Xo_;         // (mM) area-weighted initial external concentration
@@ -59,12 +65,15 @@ struct ARB_ARBOR_API ion_state {
 
     array charge;           // charge of ionic species (global value, length 1)
 
+    solver_ptr solver = nullptr;
+
     ion_state() = default;
 
     ion_state(
         int charge,
         const fvm_ion_config& ion_data,
-        unsigned align
+        unsigned align,
+        solver_ptr ptr
     );
 
     // Set ion concentrations to weighted proportion of default concentrations.
@@ -119,6 +128,8 @@ struct ARB_ARBOR_API shared_state {
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
     };
+
+    cable_solver solver;
 
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
@@ -175,7 +186,8 @@ struct ARB_ARBOR_API shared_state {
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const fvm_ion_config& ion_data);
+        const fvm_ion_config& ion_data,
+        ion_state::solver_ptr solver=nullptr);
 
     void configure_stimulus(const fvm_stimulus_config&);
 
@@ -193,6 +205,10 @@ struct ARB_ARBOR_API shared_state {
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
+
+    // Integrate by matrix solve.
+    void integrate_voltage();
+    void integrate_diffusion();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;
