@@ -43,10 +43,8 @@ jobs:
     steps:
       - name: Set up Python
         uses: actions/setup-python@v2
-      - name: Update pip
-        run: python3 -m pip install --upgrade pip
       - name: Get packages
-        run: python3 -m pip install build #numpy setuptools scikit-build ninja cmake
+        run: python3 -m pip install build
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
