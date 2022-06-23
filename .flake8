@@ -20,5 +20,3 @@ extend-exclude =
                .*,
                # artifacts
                build,
-               # nah, don't care
-               spack/package.py
