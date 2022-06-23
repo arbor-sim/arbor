@@ -10,7 +10,7 @@ Cable cell probing and sampling
     A schematic view of how handles let you access sampled data measured at a probeset.
     When setting a probe on a locset a probeset is created (a locset describes one or more locations).
     When this probeset is set to sampling (at a certain schedule), a handle is returned.
-    This figure demonstrates how sampling data is structured inside the handle.
+    This figure demonstrates how sampling data can be accessed through the handle associated to the probeset.
     See below for a possible result for ``data``.
 
 .. code-block:: python
