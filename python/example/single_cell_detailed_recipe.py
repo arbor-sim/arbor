@@ -28,8 +28,8 @@ labels = arbor.label_dict(
         "all": "(all)",
         # Add a label for the parts of the morphology with radius greater than 1.5 μm.
         "gt_1.5": '(radius-ge (region "all") 1.5)',
-        # Join regions "last" and "gt_1.5"
-        "custom": '(join (region "last") (region "gt_1.5"))',
+        # Join regions "apic" and "gt_1.5"
+        "custom": '(join (region "apic") (region "gt_1.5"))',
         # Locsets:
         # Add a labels for the root of the morphology and all the terminal points
         "root": "(root)",
