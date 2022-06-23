@@ -32,9 +32,7 @@ def make_cable_cell(gid):
     tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
-    labels = arbor.label_dict()
-    labels["soma"] = "(tag 1)"
-    labels["dend"] = "(tag 2)"
+    labels = arbor.label_dict().add_swc_tags()
 
     # Mark location for synapse site at midpoint of dendrite (branch 0 = soma + dendrite)
     labels["synapse_site"] = "(location 0 0.6)"
