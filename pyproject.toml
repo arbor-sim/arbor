@@ -1,9 +1,5 @@
 [project]
 name = "arbor"
-#version = {file = "VERSION"}
-#license = {file = ["LICENSE"]}
-#readme = {file = ["python/readme.md"]}
-#version = "0.6.99"
 dynamic = ["version", "readme"]
 license = {file = "LICENSE"}
 

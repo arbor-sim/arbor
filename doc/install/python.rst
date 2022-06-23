@@ -42,14 +42,10 @@ You are now ready to use Arbor! You can continue reading these documentation pag
     for any other platforms than listed above, ``pip`` will attempt a build from source and thus require these
     packages as well.
 
-    * Ubuntu/Debian: `git cmake gcc python3-dev python3-pip libxml2-dev`
-    * Fedora/CentOS/OpenSuse: `git cmake gcc-c++ python3-devel python3-pip libxml2-devel`
-    * MacOS: get `brew` `here <https://brew.sh>`_ and run `brew install cmake clang python3 libxml2`
+    * Ubuntu/Debian: ``git cmake gcc python3-dev python3-pip libxml2-dev``
+    * Fedora/CentOS/OpenSuse: ``git cmake gcc-c++ python3-devel python3-pip libxml2-devel``
+    * MacOS: get ``brew`` `here <https://brew.sh>`_ and run ``brew install cmake clang python3 libxml2``
     * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
-
-    In addition, you'll need a few Python packages present:
-
-    ``pip3 install ninja scikit-build wheel setuptools numpy``
 
 .. _in_python_custom:
 
@@ -77,21 +73,16 @@ Every time you make changes to the code, you'll have to repeat the second step.
 Advanced options
 ^^^^^^^^^^^^^^^^
 
-By default Arbor is installed with multi-threading enabled. To enable more
-advanced forms of parallelism and other features, Arbor comes with a few
-compilation options. These are of the form ``-D<KEY>=<VALUE>``, must be appended
-to the ``pip`` invocation via ``--install-option="-D<...>" --install-option="-D<...>" ...`` and can
-be used on both local (``pip3 install ./arbor``) and remote (``pip3 install
-arbor``) copies of Arbor. See the examples below.
+Arbor comes with a few compilation options, some of them related to advanced forms of parallelism and other features.
+The options and flags are the same :ref:`as documented for the CMAKE build <quickstart>`, but they are passed differently. To enable more
+They must be placed in the ``CMAKE_ARGS`` environment variable. The simplest way to do this is by prepending the ``pip``
+command with ``CMAKE_ARGS=""``, where you place the arguments separated by space inside the quotes.
 
 .. Note::
 
    If you run into build issues while experimenting with build options, be sure
    to remove the ``_skbuild`` directory. If you had Arbor installed already,
    you may need to remove it first before you can (re)compile it with the flags you need.
-
-   Also, make sure to pass each option individually via
-   ``--install-option="..."``.
 
 The following flags can be used to configure the installation:
 
@@ -117,6 +108,11 @@ The following flags can be used to configure the installation:
    and ``CMake`` under the hood, so all flags and options valid in ``CMake`` can
    be used in this fashion.
 
+   Allthough the `scikit-build documentation <https://scikit-build.readthedocs.io/en/latest/usage.html#environment-variable-configuration>`_
+   mentions that you can also pass the build options with ``--install-option=""``, this will cause ``pip`` to build
+   all dependencies, including all build-dependencies, instead of downloading them from PyPI. ``CMAKE_ARGS=""``
+   saves you the build time, and also downloading and setting up the dependencies they in turn require to be present.
+
    Detailed instructions on how to install using CMake are in the :ref:`Python
    configuration <install-python>` section of the :ref:`installation guide
    <in_build_install>`. CMake is recommended if you need more control over
@@ -136,33 +132,33 @@ In the examples below we assume you are installing from a local copy.
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option="-DARB_WITH_MPI=ON"
+    CMAKE_ARGS="-DARB_WITH_MPI=ON" pip3 install ./arbor
 
 **Compile with** :ref:`vectorization <install-vectorize>` on a system with a SkyLake
 :ref:`architecture <install-architecture>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=skylake"
-
+    CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=skylake" pip3 install ./arbor
+    
 **Enable NVIDIA GPUs (compiled with nvcc)**. This requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option="-DARB_GPU=cuda"
+    CMAKE_ARGS="-DARB_GPU=cuda" pip3 install ./arbor
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option="-DARB_GPU=cuda-clang"
+    CMAKE_ARGS="-DARB_GPU=cuda-clang" pip3 install ./arbor
 
 **Enable AMD GPUs (compiled with hipcc)**. This requires setting the ``CC`` and ``CXX``
-:ref:`environment variables <install-gpu>`
+:ref:`environment variables <install-gpu>`:
 
 .. code-block:: bash
 
-    pip3 install ./arbor --install-option="-DARB_GPU=hip"
+    CC=clang CXX=hipcc CMAKE_ARGS="-DARB_GPU=hip" pip3 install ./arbor
 
 Note on performance
 -------------------
