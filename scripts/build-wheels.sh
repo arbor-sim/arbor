@@ -14,14 +14,13 @@
 set -e -u -x
 
 yum -y install libxml2-devel
-/opt/python/cp310-cp310/bin/pip install ninja cmake
 
 rm -rf /src_dir/arbor/_skbuild
 
 export CIBUILDWHEEL=1 #Set condition for cmake
 
-for PYBIN in /opt/python/cp*/bin; do
-    "${PYBIN}/python" -m pip install wheel scikit-build auditwheel
+for PYBIN in /opt/python/cp3{7..10}*/bin; do
+#     "${PYBIN}/python" -m pip install pip ninja cmake wheel scikit-build auditwheel -U
     export PATH="${PYBIN}":$PATH
     "${PYBIN}/python" -m pip wheel --wheel-dir="/src_dir/builtwheel${PYBIN}/" /src_dir/arbor
     "${PYBIN}/python" -m auditwheel repair /src_dir/builtwheel${PYBIN}/arbor*.whl -w /src_dir/wheelhouse
