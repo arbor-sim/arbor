@@ -302,7 +302,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.6.0)
+set(arb_py_version 3.7.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})

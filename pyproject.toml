@@ -3,7 +3,7 @@ name = "arbor"
 dynamic = ["version", "readme"]
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 keywords = ["simulator", "neuroscience", "morphological detail", "HPC", "GPU", "C++"]
 authors = [
     {name = "Arbor Dev Team", email = "contact@arbor-sim.org"}
@@ -16,7 +16,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -42,9 +41,9 @@ changelog = "https://github.com/arbor-sim/arbor/releases"
 
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools",
     "wheel",
-    "scikit-build>=0.12",
+    "scikit-build",
     "cmake>=3.18",
     "ninja",
 ]
