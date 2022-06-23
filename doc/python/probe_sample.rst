@@ -8,6 +8,20 @@ Cable cell probing and sampling
     :align: center
 
     A schematic view of how handles let you access sampled data measured at a probeset.
+    When setting a probe on a locset a probeset is created (a locset describes one or more locations).
+    When this probeset is set to sampling (at a certain schedule), a handle is returned.
+    This figure demonstrates how sampling data is structured inside the handle.
+    See below for a possible result for ``data``.
+
+.. code-block:: python
+   
+   print(data) # The probe data printed, as found in single_cell_recipe.py
+   [[ 0.00000000e+00 -4.00000000e+01]
+    [ 1.00000000e-01 -5.40211646e+01]
+    [ 2.00000000e-01 -6.19670534e+01]
+    ...
+    [ 2.99000000e+01 -6.44564354e+01]]
+
 
 .. module:: arbor
 
