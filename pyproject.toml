@@ -65,7 +65,7 @@ MACOSX_DEPLOYMENT_TARGET = "10.15"
 archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux2014"
 before-all = "yum -y install libxml2-devel"
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
+#repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
