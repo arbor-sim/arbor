@@ -1,3 +1,47 @@
+[project]
+name = "arbor"
+#version = {file = ["VERSION"]}
+#license = {file = ["LICENSE"]}
+#readme = {file = ["python/readme.md"]}
+version = "0.6.99"
+license = {file = "LICENSE"}
+readme = "python/readme.md"
+
+description = "High performance simulation of networks of multicompartment neurons."
+requires-python = ">=3.6"
+keywords = ["simulator", "neuroscience", "morphological detail", "HPC", "GPU", "C++"]
+authors = [
+    {name = "Arbor Dev Team", email = "contact@arbor-sim.org"}
+]
+maintainers = [
+    {name = "Arbor Dev Team", email = "contact@arbor-sim.org"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: C++"
+]
+
+dependencies = [
+    "numpy"
+]
+
+[tool.setuptools]
+py-modules = ["arbor"]
+
+[project.urls]
+homepage = "https://arbor-sim.org"
+documentation = "https://docs.arbor-sim.org"
+repository = "https://github.com/arbor-sim/arbor"
+changelog = "https://github.com/arbor-sim/arbor/releases"
+
 [build-system]
 requires = [
     "setuptools>=42",
