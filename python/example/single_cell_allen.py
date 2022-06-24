@@ -18,10 +18,10 @@ def load_allen_fit(fit):
     # cable parameters convenience class
     @dataclass
     class parameters:
-        cm:    float = None
+        cm: float = None
         tempK: float = None
-        Vm:    float = None
-        rL:    float = None
+        Vm: float = None
+        rL: float = None
 
     param = defaultdict(parameters)
     mechs = defaultdict(dict)
