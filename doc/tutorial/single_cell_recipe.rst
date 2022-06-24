@@ -40,7 +40,7 @@ It returns `0` by default and models without cells are quite boring!
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 28-63
+   :lines: 29-64
 
 Step **(4)** describes the recipe that will reflect our single cell model.
 
@@ -88,7 +88,7 @@ The details of manual hardware configuration will be left for another tutorial.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 65-75
+   :lines: 67-77
 
 Step **(6)** instantiates the simulation.
 
@@ -107,7 +107,7 @@ If we create the same analysis of the results we therefore expect the same resul
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 77-
+   :lines: 79-
 
 Step **(8)** plots the measured potentials during the runtime of the simulation.
 Retrieving the sampled quantities is a little different, these have to be accessed

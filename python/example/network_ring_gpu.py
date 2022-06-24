@@ -123,9 +123,7 @@ class ring_recipe(arbor.recipe):
 # (11) Set up the hardware context
 # gpu_id set to None will not use a GPU.
 # gpu_id=0 instructs Arbor to the first GPU present in your system
-context = arbor.context(
-    threads="avail_threads", gpu_id=None
-)
+context = arbor.context(threads="avail_threads", gpu_id=None)
 print(context)
 
 # (12) Set up and start the meter manager

@@ -29,6 +29,7 @@ cell = arbor.cable_cell(tree, labels, decor)
 # This constitutes the corresponding generic recipe version of
 # `single_cell_model.py`.
 
+
 class single_recipe(arbor.recipe):
     def __init__(self, cell, probes):
         # (4.1) The base C++ class constructor must be called first, to ensure that
@@ -57,6 +58,7 @@ class single_recipe(arbor.recipe):
     def global_properties(self, kind):
         # (4.6) Override the global_properties method
         return self.the_props
+
 
 # (5) Instantiate recipe with a voltage probe located on "midpoint".
 

@@ -31,7 +31,7 @@ without GPU.
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
-   :lines: 123-129
+   :lines: 123-127
 
 Profiling
 *********
@@ -45,7 +45,7 @@ Step **(13)** instantiates the recipe and sets the first checkpoint on the meter
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
-   :lines: 131-138
+   :lines: 129-136
 
 The domain decomposition
 ************************
@@ -76,7 +76,7 @@ Another checkpoint will help us understand how long creating the load balancer t
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
-   :lines: 140-150
+   :lines: 138-148
 
 
 The simulation
@@ -86,7 +86,7 @@ Step **(16)** creates a :class:`arbor.simulation`, sets the spike recorders to r
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
-   :lines: 152-156
+   :lines: 150-154
 
 The execution
 *************
@@ -95,7 +95,7 @@ Step **(17)** runs the simulation. Since we have more cells this time, which are
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
-   :lines: 158-161
+   :lines: 156-159
 
 The results
 ***********
@@ -105,7 +105,7 @@ so we'll not discuss them here. Let's turn our attention to the :class:`~arbor.m
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
-   :lines: 163-165
+   :lines: 161-163
 
 Step **(18)** shows how :class:`arbor.meter_report` can be used to read out the :class:`~arbor.meter_manager`. It generates a table with the time between checkpoints. For example:
 

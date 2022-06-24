@@ -2,8 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas # You may have to pip install these
-import seaborn # You may have to pip install these
+import pandas  # You may have to pip install these
+import seaborn  # You may have to pip install these
 from math import sqrt
 
 # Construct a cell with the following morphology.
