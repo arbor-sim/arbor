@@ -13,7 +13,6 @@ use_libs = True
 build_type = "Release"  # this is ok even for debugging, as we always produce info
 
 setup(
-    #packages=["arbor"],
     cmake_args=[
         "-DARB_WITH_PYTHON=on",
         f"-DPYTHON_EXECUTABLE={python}",
