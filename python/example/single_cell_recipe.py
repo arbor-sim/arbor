@@ -8,13 +8,16 @@ import seaborn  # You may have to pip install these.
 # The corresponding generic recipe version of `single_cell_model.py`.
 
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
+
 tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
 # (2) Define the soma and its midpoint
+
 labels = arbor.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 # (3) Create cell and set properties
+
 decor = arbor.decor()
 decor.set_property(Vm=-40)
 decor.paint('"soma"', arbor.density("hh"))
@@ -25,7 +28,6 @@ cell = arbor.cable_cell(tree, labels, decor)
 # (4) Define a recipe for a single cell and set of probes upon it.
 # This constitutes the corresponding generic recipe version of
 # `single_cell_model.py`.
-
 
 class single_recipe(arbor.recipe):
     def __init__(self, cell, probes):
@@ -56,15 +58,18 @@ class single_recipe(arbor.recipe):
         # (4.6) Override the global_properties method
         return self.the_props
 
-
 # (5) Instantiate recipe with a voltage probe located on "midpoint".
 
 recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
 
+# (6) Create simulation. When their defaults are sufficient, context and domain decomposition don't
+# have to be manually specified and the simulation can be create with just the recipe as argument.
+
+sim = arbor.simulation(recipe)
+
 # (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
 # The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
 
-sim = arbor.simulation(recipe)
 sim.record(arbor.spike_recording.all)
 handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
 sim.run(tfinal=30)

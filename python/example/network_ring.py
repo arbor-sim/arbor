@@ -2,8 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas
-import seaborn
+import pandas # You may have to pip install these
+import seaborn # You may have to pip install these
 from math import sqrt
 
 # Construct a cell with the following morphology.
@@ -123,9 +123,9 @@ class ring_recipe(arbor.recipe):
 ncells = 4
 recipe = ring_recipe(ncells)
 
-# (12) Create an execution context using all locally available threads, domain decomposition and simulation
+# (12) Create an execution context using all locally available threads and simulation
 ctx = arbor.context("avail_threads")
-sim = arbor.simulation(recipe, context=ctx)
+sim = arbor.simulation(recipe, ctx)
 
 # (13) Set spike generators to record
 sim.record(arbor.spike_recording.all)

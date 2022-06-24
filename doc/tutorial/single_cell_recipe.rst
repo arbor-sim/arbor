@@ -23,7 +23,7 @@ where construction of the cell is explained in detail.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 4,8-23
+   :lines: 4,10-26
 
 The recipe
 ----------
@@ -40,7 +40,7 @@ It returns `0` by default and models without cells are quite boring!
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 25-60
+   :lines: 28-63
 
 Step **(4)** describes the recipe that will reflect our single cell model.
 
@@ -72,35 +72,31 @@ More methods can be overridden if your model requires that, see :class:`arbor.re
 
 Step **(5)** instantiates the recipe with the cable cell described earlier, and a single voltage probe located at "midpoint".
 
-The context and domain decomposition
-------------------------------------
-
-:class:`arbor.single_cell_model` does not only take care of the recipe, it also takes
-care of defining how the simulation will be run. When you create and use your own
-recipe, you'll need to do this manually, in the form of defining a execution context
-and a domain decomposition. Fortunately, the default constructors of
-:class:`arbor.context` and :class:`arbor.partition_load_balance` are sufficient for
-this model, and is what :class:`arbor.single_cell_model` does under the hood! We'll
-leave the details of this subject for another tutorial.
-
-.. literalinclude:: ../../python/example/single_cell_recipe.py
-   :language: python
-   :lines: 62-65
-
-Step **(6)** sets up a default context and domains.
-
 The simulation
 --------------
 
+:class:`arbor.single_cell_model` does not only take care of the recipe, it also takes
+care of defining how the simulation will be run. When you create and use your own
+recipe, you can to do this manually, in the form of defining a execution context
+and a domain decomposition. Fortunately, the default constructors of
+:class:`arbor.context` and :class:`arbor.partition_load_balance` are sufficient for
+this model, and is what :class:`arbor.single_cell_model` does under the hood!
+In addition, if all you need is the default context and domain decomposition, they can be
+left out and the :class:`arbor.simulation` object can be contructed from just the recipe.
+
+The details of manual hardware configuration will be left for another tutorial.
+
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 67-73
+   :lines: 65-75
 
-Step **(7)** instantiates the simulation and sets up the probe added in step 5. In the
+Step **(6)** instantiates the simulation.
+
+Step **(7)** sets up the probe added in step 5. In the
 :class:`arbor.single_cell_model` version of this example, the probe frequency and
 simulation duration are the same. Note that the frequency is set with a :class:`arbor.regular_schedule`,
 which takes a time and not a frequency. Also note that spike recording must be
-switched on. For extraction of the probe traces later on, we store a handle.
+switched on. For :ref:`extraction of the probe traces <pycablecell-probesample>` later on, we store a :term:`handle`.
 
 The results
 ----------------------------------------------------
@@ -111,7 +107,7 @@ If we create the same analysis of the results we therefore expect the same resul
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 75-92
+   :lines: 77-
 
 Step **(8)** plots the measured potentials during the runtime of the simulation.
 Retrieving the sampled quantities is a little different, these have to be accessed

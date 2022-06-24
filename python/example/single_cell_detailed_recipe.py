@@ -80,15 +80,10 @@ decor.discretization(policy)
 
 cell = arbor.cable_cell(morph, labels, decor)
 
-# (5) Declare a probe.
-
-probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
-
-
-# (6) Create a class that inherits from arbor.recipe
+# (5) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
 
-    # (6.1) Define the class constructor
+    # (5.1) Define the class constructor
     def __init__(self, cell, probes):
         # The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
@@ -105,44 +100,44 @@ class single_recipe(arbor.recipe):
         self.the_props.set_ion(ion="ca", int_con=5e-5, ext_con=2, rev_pot=132.5)
         self.the_props.catalogue.extend(arbor.allen_catalogue(), "")
 
-    # (6.2) Override the num_cells method
+    # (5.2) Override the num_cells method
     def num_cells(self):
         return 1
 
-    # (6.3) Override the num_targets method
+    # (5.3) Override the num_targets method
     def cell_kind(self, gid):
         return arbor.cell_kind.cable
 
-    # (6.4) Override the cell_description method
+    # (5.4) Override the cell_description method
     def cell_description(self, gid):
         return self.the_cell
 
-    # (6.5) Override the probes method
+    # (5.5) Override the probes method
     def probes(self, gid):
         return self.the_probes
 
-    # (6.6) Override the connections_on method
+    # (5.6) Override the connections_on method
     def connections_on(self, gid):
         return []
 
-    # (6.7) Override the gap_junction_on method
+    # (5.7) Override the gap_junction_on method
     def gap_junction_on(self, gid):
         return []
 
-    # (6.8) Override the event_generators method
+    # (5.8) Override the event_generators method
     def event_generators(self, gid):
         return []
 
-    # (6.9) Overrode the global_properties method
+    # (5.9) Overrode the global_properties method
     def global_properties(self, gid):
         return self.the_props
 
 
 # Instantiate recipe
 # Pass the probe in a list because that it what single_recipe expects.
-recipe = single_recipe(cell, [probe])
+recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"custom_terminal"')])
 
-# (7) Create a simulation
+# (6) Create a simulation
 sim = arbor.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
@@ -151,10 +146,10 @@ sim.record(arbor.spike_recording.all)
 probe_id = arbor.cell_member(0, 0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
-# (8) Run the simulation
+# (7) Run the simulation
 sim.run(tfinal=100, dt=0.025)
 
-# (9) Print or display the results
+# (8) Print or display the results
 spikes = sim.spikes()
 print(len(spikes), "spikes recorded:")
 for s in spikes:

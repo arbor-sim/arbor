@@ -40,13 +40,10 @@ We will replicate the "Sweep 35" experiment, which applies a current of 150 nA f
 The morphology
 --------------
 
-:ref:`In an earlier tutorial <tutorialsinglecellswc-cell>` we've seen how an ``swc`` file can be loaded **(1)**
-and how the labels can be set **(2)**. Let's being a new function that will build and return the cable cell in Arbor format:
-
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 70-78
+   :lines: 74-80
 
 Step **(1)** loads the ``swc`` file using :func:`arbor.load_swc_neuron`. Since the ``swc`` specification is informal, a few different interpretations exist, and we use the appropriate one. The interpretations are described :ref:`here <formatswc-arbor>`.
 
@@ -74,7 +71,7 @@ region specific properties, reversal potentials, and mechanism parameters. This 
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 12-68
+   :lines: 12-72,82,83
 
 The decor
 ---------
@@ -84,7 +81,7 @@ With the ingredients for the :class:`arbor.decor` extracted, we continue with th
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 80-114
+   :lines: 85-117
 
 Step **(4)** creates an empty :class:`arbor.decor`.
 
@@ -124,7 +121,7 @@ The model
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 116-127
+   :lines: 120-131
 
 Step **(12)** instantiates the :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model`.
 
@@ -144,7 +141,7 @@ Then, we extract Arbor's output, accessible after the simulation ran at
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 129-
+   :lines: 133-
 
 .. figure:: single_cell_allen_result.svg
     :width: 400

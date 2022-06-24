@@ -74,6 +74,8 @@ If you want to work on Arbor's code, you can get a copy of our repo and point `p
 
 Every time you make changes to the code, you'll have to repeat the second step.
 
+.. _in_python_adv:
+
 Advanced options
 ^^^^^^^^^^^^^^^^
 

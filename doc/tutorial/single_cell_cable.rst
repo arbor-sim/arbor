@@ -31,19 +31,19 @@ We set up a recipe for the simulation of a single dendrite with some parameters.
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 11-31
+   :lines: 11-78
 
 Implementing the ``cell_description`` member function constructs the morphology and sets the properties of the dendrite as well as the current stimulus and the discretization policy.
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 63-98
+   :lines: 80-117
 
 We parse the command line arguments, instantiate the recipe, run the simulation, extract results and plot:
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 145-202
+   :lines: 157-233
 
 The output plot below shows how the current pulse is attenuated and
 gets broader the further it travels along the dendrite from the current
@@ -57,9 +57,9 @@ The conduction velocity in simulation is calculated from the time of the maximum
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 204-
+   :lines: 235-
 
-Please have in mind that the calculated (idealized) conduction velocity is only correct for an infinite cable.
+Keep in mind that the calculated (idealized) conduction velocity is only correct for an infinite cable.
 
 ::
 
