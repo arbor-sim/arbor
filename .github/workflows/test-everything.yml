@@ -207,7 +207,7 @@ jobs:
         with:
           submodules: recursive
       - name: Build and install Arbor using pip + build flags
-        run: CMAKE_ARGS="-DARB_VECTORIZE=ON" --install-option="-DARB_ARCH=native" python3 -m pip install .
+        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python3 -m pip install .
       - name: Check that build flags match
         run: |
           python3 -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
