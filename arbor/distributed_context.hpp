@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <iostream>
 
 #include <arbor/export.hpp>
 #include <arbor/spike.hpp>
@@ -70,6 +71,10 @@ public:
         return impl_->gather_cg_cv_map(cg_cv_map);
     }
 
+    std::vector<double> gather_trace(const std::vector<double>& trace) const {
+        return impl_->gather_trace(trace);
+    }
+
     gj_connection_vector gather_gj_connections(const gj_connection_vector& local_connections) const {
         return impl_->gather_gj_connections(local_connections);
     }
@@ -112,6 +117,8 @@ private:
             gather_gids(const gid_vector& local_gids) const = 0;
         virtual std::vector<int> 
             gather_cg_cv_map(const std::vector<int>& cg_cv_map) const = 0;
+        virtual std::vector<double>
+            gather_trace(const std::vector<double>& trace) const = 0;
         virtual gj_connection_vector
             gather_gj_connections(const gj_connection_vector& local_connections) const = 0;
         virtual cell_label_range
@@ -145,10 +152,16 @@ private:
         }
         std::vector<int>
         gather_cg_cv_map(const std::vector<int>& cg_cv_map) const override {
+            //std::cout << wrapped.id() << " Gather CG CV Map\n";
             return wrapped.gather_cg_cv_map(cg_cv_map);
+        }
+        std::vector<double>
+        gather_trace(const std::vector<double>& trace) const override {
+            return wrapped.gather_trace(trace);
         }
         std::vector<std::vector<cell_gid_type>>
         gather_gj_connections(const gj_connection_vector& local_connections) const override {
+            //std::cout << wrapped.id() << " Gather GJ Map\n";
             return wrapped.gather_gj_connections(local_connections);
         }
         cell_label_range
@@ -203,6 +216,10 @@ struct local_context {
     }
     std::vector<int>
     gather_cg_cv_map(const std::vector<int>& cg_cv_map) const {
+        return {};
+    }
+    std::vector<double>
+    gather_trace(const std::vector<double>& cg_cv_map) const {
         return {};
     }
     std::vector<std::vector<cell_gid_type>>

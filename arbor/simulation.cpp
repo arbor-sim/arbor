@@ -192,27 +192,33 @@ simulation_state::simulation_state(
     cell_groups_.resize(decomp.num_groups());
     std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
     std::vector<cell_labels_and_gids> cg_targets(cell_groups_.size());
-    foreach_group_index(
-        [&](cell_group_ptr& group, int cg) {
+
+    std::cout << "Rank=" << ctx.distributed->id() << " will build " << cell_groups_.size() <<  " groups\n";
+
+    for (int ix = 0; ix < cell_groups_.size(); ++ix) {
+        auto fn = [&](cell_group_ptr& group, int cg) {
           const auto& group_info = decomp.group(cg);
           cell_label_range sources, targets;
-
+        
+          std::cout << "Rank=" << ctx.distributed->id() << " seizing the means of production.\n";
           auto factory = cell_kind_implementation(group_info.kind, cg, group_info.backend, ctx);
           group = factory(group_info.gids, rec, sources, targets);
 
           cg_sources[cg] = cell_labels_and_gids(std::move(sources), group_info.gids);
           cg_targets[cg] = cell_labels_and_gids(std::move(targets), group_info.gids);
-        });
-
+        };
+        fn(cell_groups_[ix], ix);
+    }
     cell_labels_and_gids local_sources, local_targets;
     for(const auto& i: util::make_span(cell_groups_.size())) {
         local_sources.append(cg_sources.at(i));
         local_targets.append(cg_targets.at(i));
     }
     auto global_sources = ctx.distributed->gather_cell_labels_and_gids(local_sources);
+    auto global_targets = ctx.distributed->gather_cell_labels_and_gids(local_targets);
 
     auto source_resolution_map = label_resolution_map(std::move(global_sources));
-    auto target_resolution_map = label_resolution_map(std::move(local_targets));
+    auto target_resolution_map = label_resolution_map(std::move(global_targets));
 
     communicator_ = arb::communicator(rec, decomp, source_resolution_map, target_resolution_map, ctx);
 
@@ -515,6 +521,7 @@ simulation::simulation(
     const domain_decomposition& decomp,
     const context& ctx)
 {
+    std::cout << "Rank=" << ctx->distributed->id() << " setting up state.\n";
     impl_.reset(new simulation_state(rec, decomp, *ctx));
 }
 

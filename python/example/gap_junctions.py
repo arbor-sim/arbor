@@ -39,8 +39,7 @@ def make_cable_cell(gid):
 
     # Gap junction site at connection point of soma and dendrite
     labels['gj_site_0'] = '(location 0 0.2)'
-    # TODO delete me
-    labels['gj_site_1'] = '(location 0 0.5)'
+    #labels['gj_site_1'] = '(location 0 0.5)'
 
     # Label root of the tree
     labels['root'] = '(root)'
@@ -50,10 +49,14 @@ def make_cable_cell(gid):
     decor.paint('"soma"', arbor.density("hh"))
     decor.paint('"dend"', arbor.density("pas"))
 
+    #split into multiple cvs
+    #policy = arbor.cv_policy_explicit('(location 0 0.35)')
+    #decor.discretization(policy)
+
     # Attach one synapse and gap junction each on their labeled sites
     decor.place('"synapse_site"', arbor.synapse('expsyn'), 'syn')
     decor.place('"gj_site_0"', arbor.junction('gj'), 'gj_0')
-    decor.place('"gj_site_1"', arbor.junction('gj'), 'gj_1')
+    #decor.place('"gj_site_1"', arbor.junction('gj'), 'gj_1')
 
     # Attach spike detector to cell root
     decor.place('"root"', arbor.spike_detector(-10), 'detector')
@@ -104,9 +107,9 @@ class chain_recipe(arbor.recipe):
             conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
         if prev_cell >= chain_begin:
             conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
-        #if gid == 1:
-        #    conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
         #if gid == 2:
+        #    conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
+        #if gid == 3:
         #    conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
 
         return conns
@@ -149,13 +152,29 @@ recipe = chain_recipe(ncells_per_chain, nchains)
 #sim = arbor.simulation(recipe, decomp, context)
 
 alloc   = arbor.proc_allocation(1, None)
-comm    = arbor.mpi_comm(mpi.COMM_WORLD)
+comm    = mpi.COMM_WORLD
+print(f"rank={comm.rank} size={comm.size}")
+
+xs = [comm.rank]*(comm.rank + 1)
+gxs = comm.allgather(xs)
+print(gxs)
+
 context = arbor.context(alloc, comm)
 print(context)
-groups = [arbor.group_description(arbor.cell_kind.cable, [0], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [1], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [2], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [3], arbor.backend.multicore)]
-#decomp = arbor.partition_by_group(recipe, context, groups)
-decomp = arbor.partition_load_balance(recipe, context)
+
+if comm.rank == 0:
+    gs = [[0,1,2]]
+else:
+    gs = [[3,4,5]]
+
+groups = [arbor.group_description(arbor.cell_kind.cable, g, arbor.backend.multicore) for g in gs]
+decomp = arbor.partition_by_group(recipe, context, groups)
+
 sim = arbor.simulation(recipe, decomp, context)
+
+dt = 0.025
+
+sim.set_binning_policy(arbor.binning.regular, dt)
 
 # Set spike generators to record
 sim.record(arbor.spike_recording.all)
@@ -164,7 +183,7 @@ sim.record(arbor.spike_recording.all)
 #handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 # Run simulation for 100 ms
-sim.run(100)
+sim.run(100, dt=dt)
 print('Simulation finished')
 
 # Print spike times

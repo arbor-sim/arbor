@@ -21,6 +21,7 @@
 
 #include <fstream> //todo
 #include <iostream> //todo
+#include <algorithm> //todo
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -267,14 +268,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     }
 
     //trace vectors for recording voltages
-    std::unordered_map<arb_index_type, std::vector<std::vector<arb_value_type>>> trace, trace_prev;
+    std::vector<std::vector<arb_value_type>> trace;
+    std::vector<std::vector<double>> trace_prev;
 
     threshold_watcher threshold_watcher_reset = threshold_watcher_;
 
     // Save starting times
-    unsigned max_steps = remaining_steps;
     value_type tmin_reset = tmin_;
-    value_type tfinal_reset = tfinal;
     value_type dt_max_reset = dt_max;
 
     std::ofstream file0;
@@ -282,28 +282,39 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     std::vector<arb_index_type> node_ix_group;
     std::vector<arb_index_type> peer_ix_group;
 
+    std::unordered_map<std::size_t, std::vector<arb_index_type>> peer_ix_map;
+    std::unordered_map<std::size_t, arb_index_type*> peer_ix_reset_map;
+
+
+    //List all CVs in current cell group that are part of (any type of) gap junction and sort
+    std::vector<arb_index_type> cvs_local;
+    for (auto& m: mechanisms_) {
+        if (m->kind() == arb_mechanism_kind_gap_junction) {
+            for (auto i = 0; i<m->ppack_.width; ++i) {               
+                cvs_local.push_back(m->ppack_.node_index[i]);
+            }
+        }
+    }
+    std::sort(cvs_local.begin(), cvs_local.end());
+    cvs_local.erase(std::unique(cvs_local.begin(), cvs_local.end()), cvs_local.end());
+    auto cvs_global = context_.distributed->gather_cg_cv_map(cvs_local);
+
     //WR iterations
-    int wr_max = 1;
+    int wr_max = 50;
     auto eps = 1e-7;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
-
-
-        // Reset remaining_steps
-        if (wr_it > 0) {
-            remaining_steps = dt_steps(tmin_reset, tfinal_reset, dt_max_reset);
-        }
+        tmin_ = tmin_reset;
+        dt_max = dt_max_reset;
+        remaining_steps = dt_steps(tmin_, tfinal, dt_max);
 
         // Reset error variables for WR break condition
-        // auto max_err = 0.;
-        std::vector<int> nodes;
-
+        auto max_err = 0.;
 
         // Threshold_watcher reset
         threshold_watcher_ = threshold_watcher_reset;
-
+        int step = 0;
+        //std::cout << "Start of integ t_min=" << tmin_ << " remaining=" << remaining_steps << '\n';
         while (remaining_steps) {
-            auto step = max_steps-remaining_steps;
-            
             // Update any required reversal potentials based on ionic concs.
             for (auto& m: revpot_mechanisms_) {
                 m->update_current();
@@ -327,50 +338,93 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
                 m->deliver_events(events);
 
-
+                // The peer index in the ppack is changed every iteration in the epoch
+                // In every new epoch, the peer_ix that helps access the trace array has to be recalculated
+                // If we don't reset the peer index after the epoch (to what it is according to the layout), 
+                // random values are written at the start of the next epoch
+                std::vector<arb_index_type> pidx_reset; 
+                
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
 
-                    std::vector<arb_index_type> peer_ix(m->ppack_.width, 0);
+                    auto& ppack = m->ppack_;
+                    auto& pidx  = ppack.peer_index;
+                    auto& nidx  = ppack.node_index;
+
+                    //pidx = pidx_reset.data();
+
+                    //std::vector<arb_index_type> peer_ix(ppack.width, 0);
+
+                    auto m_id = m->mechanism_id();
+                    auto& peer_ix = peer_ix_map[m_id];
 
                     if (wr_it == 0 && step == 0) {
+
+                        peer_ix.clear();
+                        peer_ix.resize(ppack.width);
+                        peer_ix_reset_map[m_id] = ppack.peer_index;
+
+                        //std::cerr << "Setting up index mappings #p=" << peer_ix.size() << " #pg=" << peer_ix_group.size() << '\n';
                         
-                        for (int i = 0; i<m->ppack_.width; ++i) {
-                            node_ix_group.push_back(get<2>(index_to_cell[m->ppack_.node_index[i]]));
+                        for (int i = 0; i<ppack.width; ++i) {
+                            node_ix_group.push_back(std::get<2>(index_to_cell[nidx[i]]));
                         }
 
-                        for (int i = 0; i<m->ppack_.width; ++i) {
-                            int cg_node = get<1>(index_to_cell[m->ppack_.node_index[i]]);
-                            int cg_peer = get<1>(index_to_cell[m->ppack_.peer_index[i]]);
-                            std::cout << "cell_group node = " << cg_node << " cell_group peer = " << cg_peer << std::endl;
-                            std::cout << " tmin = " << tmin_ << std::endl;
-                            if (cg_peer == cg_node) {
-                                peer_ix_group.push_back(get<2>(index_to_cell[m->ppack_.peer_index[i]]));
-                            } else {
-                                peer_ix_group.push_back(get<2>(index_to_cell[m->ppack_.node_index[i]]));
+                        for (int i = 0; i<ppack.width; ++i) {
+                            auto cg_node = std::get<1>(index_to_cell[nidx[i]]);
+                            auto cg_peer = std::get<1>(index_to_cell[pidx[i]]);
+                            //std::cout << "cell_group node = " << cg_node << " cell_group peer = " << cg_peer << std::endl;
+                            //std::cout << " node = " << nidx[i] << " peer = " << m->ppack_.peer_index[i] << std::endl;
+                            if (cg_peer == cg_node) { // We are local to local
+                                peer_ix_group.push_back(std::get<2>(index_to_cell[pidx[i]]));
+                            }
+                            else {
+                                peer_ix_group.push_back(std::get<2>(index_to_cell[nidx[i]]));
                             }
                         }
 
-                        //Setup peer_pos map
-                        std::unordered_map<arb_index_type, std::deque<arb_index_type>> peer_pos = {};
-                        for (auto i = 0; i<m->ppack_.width; ++i) {
-                            auto node = node_ix_group[i];
-                            peer_pos[node].push_back(i);
+                        // Setup peer indices
+                        //  * peer_ix:       indices into the trace, to be consumed after the first WR iteration has recorded one
+                        //  * peer_ix_group: indices into the *local* voltage array, s.t. the i'th CV get its own voltage back since
+                        //                   we assume zero differential for the first iteration
+                        
+                        for (int ix = 0; ix < ppack.width; ++ix) {
+                            auto cg_node = std::get<1>(index_to_cell[ppack.node_index[ix]]);
+                            auto cg_peer = std::get<1>(index_to_cell[ppack.peer_index[ix]]);
+                            if (cg_node == cg_peer) {
+                                auto len            = cvs_global.size();
+                                auto peer           = ppack.peer_index[ix];
+                                auto node           = std::find(cvs_global.begin(), cvs_global.end(), peer);
+                                auto offset         = node-cvs_global.begin();
+                                if (offset >= len) throw std::runtime_error("Connection not found.");
+                                peer_ix[ix] = offset;
+                            }
+                            else {
+                                throw std::runtime_error("Non-local connectivity is not implemented yet.");
+                            }
                         }
+                        //for (int ix = 0; ix < ppack.width; ++ix) std::cerr << " * " << peer_ix[ix] << '\n';
 
-                        for (auto i = 0; i<m->ppack_.width; ++i){
-                            auto p = peer_ix_group[i];
-                            peer_ix[i] = peer_pos[p][0];
-                            peer_pos[p].pop_front();
-                        }
                     }
 
-                    if (wr_it == 0 && step == 0) {
-                        m->ppack_.peer_index = peer_ix_group.data();
+                    // in iteration=0 we do not have a trace yet
+                    if (wr_it == 0) {
+                        // Q: Didn't we want to have the identity here, ie i --> i, instead of the peer index?
+                        // A: Yes, indeed peer_ix_group is either the local peer index or the identity, if not local
+                        pidx = peer_ix_group.data();
+                        
+                        std::vector<arb_value_type> v_temp = {};
+                        for(int i = 0; i<cvs_local.size(); ++i) {
+                            v_temp.push_back(state_->voltage[i]);
+                        }
+
+                        ppack.vec_v_peer = v_temp.data();
                     }
-                    if (wr_it > 0 && step == 0) {
-                        auto gj = m->mechanism_id();
-                        m->ppack_.peer_index = peer_ix.data();
-                        m->ppack_.vec_v_peer = trace_prev[gj][step].data();
+                    if (wr_it > 0) {
+                        // Here we expect peer_ix to be the index into the trace structure, regardless of local
+                        // or not. However, the selection of the trace must take locality into account.
+                        // Q: How to select?
+                        pidx = peer_ix.data();
+                        ppack.vec_v_peer = trace_prev[step].data();
                     }
                 }
                 
@@ -378,35 +432,43 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
-
-                    //write trace
-                    auto gj = m->mechanism_id();
-                    std::vector<value_type> v_step(m->ppack_.width, 0.);
-                    for(int ix = 0; ix < m->ppack_.width; ++ix) {
-                        auto node_cv = node_ix_group[ix];
-                        v_step[ix] = state_->voltage[node_cv];
+                    //Write contents from state_->voltage into trace
+                    std::vector<value_type> v_step(state_->voltage.size(), 0.);
+                    for (auto ix = 0; ix<state_->voltage.size(); ++ix) {
+                        v_step[ix] = state_->voltage[ix];
                     }
-                    trace[gj].push_back(v_step);
+                    trace.push_back(v_step);
+                   
+                    //todo eliminate mechanism id
+                    auto gj = m->mechanism_id();
+                    m->ppack_.peer_index = peer_ix_reset_map[gj];
 
                     /*
-                    if (cell_group == 0){
-
-                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/plot/mpi_test.txt", std::ios::app);
-                        if (wr_it == 0 && step == 0) {
-                            file0 << remaining_steps << std::endl;
-                            for (auto cv = 0; cv < m->ppack_.width-1; ++ cv) {
-                                file0 << node_ix_group[cv];
-                            }
-                            file0 << node_ix_group[m->ppack_.width-1] << std::endl;
+                    if (cell_group == 1){
+                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test.txt", std::ios::app);
+    
+                        for (auto v: state_->voltage) {
+                            file0 << v << ", ";
                         }
 
-                        for (auto j = 0; j<m->ppack_.width; ++j) {
-                            file0 << trace[gj][step][j] << ",";// << ", ";
-                        }
+                        //for (auto j = 0; j<state_->voltage.size(); ++j) {
+                        //    file0 << state_->voltage[node_ix_group[j]] << ", ";
+                        //}
                         file0 << std::endl;
                         file0.close();
+                    }*/
+
+                    // Calculate error for break condition
+                    if (wr_it > 1) {
+                        for (auto ix = 0; ix < trace[step].size(); ++ ix){
+                            //auto node_cv = m->ppack_.node_index[ix];
+                            auto err_cv = std::abs(trace[step][ix] - trace_prev[step][ix]);
+                            if (err_cv > max_err) {
+                                max_err = err_cv;
+                            }
+                        }
                     }
-                    */
+                    
                 }
             }
 
@@ -489,18 +551,28 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             if (!--remaining_steps) {
                 tmin_ = state_->time_bounds().first;
                 remaining_steps = dt_steps(tmin_, tfinal, dt_max);
+                //std::cout << "End of integ group " << cell_group << " at t_min=" << tmin_ << " remaining=" << remaining_steps << '\n';
             }
             PL();
-        }
+            step++;
+        } // end of integration
         
         // Break if no CV has an err > eps or maximum WR iterations reached
-        //if ((wr_it > 1 && max_err < eps) or wr_max == 1 || wr_it == wr_max) {
-        //    //std::cout << "break at it = " << wr_it << std::endl;
-        //    break;
-        //}
+        if ((wr_it > 1 && max_err < eps) or wr_max == 1 || wr_it == wr_max) {
+            std::cout << "break at it = " << wr_it << std::endl;
+            break;
+        }
 
         // Reset traces
-        trace_prev = trace;
+
+        //Gather traces from all groups for next iteration
+        trace_prev = {};
+        for (int s = 0; s<trace.size(); ++s) {
+            auto step_gathered = context_.distributed->gather_trace(trace[s]);
+            trace_prev.push_back(step_gathered);
+        }
+
+        //trace_prev = trace;
         trace = {};
 
         // Reset state
@@ -540,10 +612,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             for (auto j = 0; j<store.second.state_vars_.size(); ++j) {
                 *store.second.state_vars_[j] = state_vars_r[store.first][j];
             }
-        } 
-
-        std::cout << "finished iteration " << wr_it << " in cell group " << cell_group << std::endl;
-    }
+        }  
+        //std::cout << "finished iteration " << wr_it << " in cell group " << cell_group << " after step " << step << std::endl;
+    } // end of WR loop
     
     set_tmin(tfinal);
 
@@ -589,6 +660,8 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     using util::make_span;
     using util::value_by_key;
     using util::keys;
+
+    //std::cout << "rank=" << context_.distributed->id() << '\n';
 
     fvm_initialization_data fvm_info;
 
@@ -685,13 +758,12 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // 1) split cg cv map into 4 arrays instead of one unordered map
     std::vector<std::vector<int>> cv_cg_arr = fvm_build_gap_junction_cv_arr(cells, gids, cell_group, D);
-    std::vector<int> gids_gathered, lids_gathered, cgs_gathered, cvs_gathered;
 
     // 2) gather separately
-    gids_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[0]);
-    lids_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[1]);
-    cgs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[2]);
-    cvs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[3]);
+    auto gids_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[0]);
+    auto lids_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[1]);
+    auto cgs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[2]);
+    auto cvs_gathered = context_.distributed->gather_cg_cv_map(cv_cg_arr[3]);
     
     //3) cell to index map {gid, cg, cv} -> ix and ix -> {gid, cg, cv}
     cell_to_index = fvm_cell_to_index(gids_gathered, cgs_gathered, cvs_gathered, lids_gathered);
@@ -701,6 +773,8 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     std::unordered_map<cell_member_type, fvm_size_type> gj_cvs_index = fvm_index_to_cv_map(gids_gathered, lids_gathered, cgs_gathered, cvs_gathered, cell_to_index);
 
     //resolve gap junctions with global index map
+    // TODO: need to add GIDs to the gap_junction_data
+    //auto global_gj_data = context_.distributed->gather_cell_labels_and_gids(fvm_info.gap_junction_data);
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs_index, rec);
 
 

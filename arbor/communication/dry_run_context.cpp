@@ -74,6 +74,12 @@ struct dry_run_context_impl {
     gather_cg_cv_map(const std::vector<int>& local_map) const {
        return {};
     }
+
+    std::vector<double>
+    gather_trace(const std::vector<double>& trace) const {
+       return {};
+    }
+
     std::vector<std::vector<cell_gid_type>>
     gather_gj_connections(const std::vector<std::vector<cell_gid_type>> & local_connections) const {
         auto local_size = local_connections.size();

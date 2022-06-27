@@ -54,7 +54,8 @@ domain_decomposition::domain_decomposition(
             }
             for (const auto& gj: rec.gap_junctions_on(gid)) {
                 if (!gid_set.count(gj.peer.gid)) {
-                    throw invalid_gj_cell_group(gid, gj.peer.gid);
+                    //throw invalid_gj_cell_group(gid, gj.peer.gid);
+                    std::cerr << "Warning: Need to use Waveform Relaxation.\n";
                 }
             }
         }
