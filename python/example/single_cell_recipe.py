@@ -65,7 +65,7 @@ class single_recipe(arbor.recipe):
 recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
 
 # (6) Create simulation. When their defaults are sufficient, context and domain decomposition don't
-# have to be manually specified and the simulation can be create with just the recipe as argument.
+# have to be manually specified and the simulation can be created with just the recipe as argument.
 
 sim = arbor.simulation(recipe)
 

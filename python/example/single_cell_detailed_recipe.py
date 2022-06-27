@@ -80,6 +80,7 @@ decor.discretization(policy)
 
 cell = arbor.cable_cell(morph, labels, decor)
 
+
 # (5) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
 
@@ -104,7 +105,7 @@ class single_recipe(arbor.recipe):
     def num_cells(self):
         return 1
 
-    # (5.3) Override the num_targets method
+    # (5.3) Override the cell_kind method
     def cell_kind(self, gid):
         return arbor.cell_kind.cable
 

@@ -18,7 +18,7 @@ $PREFIX python python/example/gap_junctions.py
 $PREFIX python python/example/single_cell_cable.py
 $PREFIX python python/example/single_cell_detailed_recipe.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_detailed.py python/example/single_cell_detailed.swc
-$PREFIX python python/example/single_cell_extracellular_potentials.py python/example/single_cell_detailed.swc
+$PREFIX python python/example/probe_lfpykit.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/single_cell_model.py
 $PREFIX python python/example/single_cell_nml.py python/example/morph.nml
 $PREFIX python python/example/single_cell_recipe.py
@@ -29,5 +29,4 @@ $PREFIX python python/example/network_ring.py
 # $PREFIX python python/example/network_ring_mpi_plot.py # no need to test
 $PREFIX python python/example/network_ring_gpu.py # by default, gpu_id=None
 $PREFIX python python/example/network_two_cells_gap_junctions.py
-# $PREFIX python python/example/probe_lfpykit.py # maybe a bit heavy
 $PREFIX python python/example/diffusion.py

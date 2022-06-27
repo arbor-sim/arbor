@@ -67,9 +67,12 @@ just say: use GPUs, if available. You only have to change the :class:`~arbor.con
 hardware Arbor will execute on.
 
 Step **(14)** creates a :class:`arbor.partition_hint`, and tells it to put 1000 cells in a groups allocated to GPUs, 
-and to prefer the utilization of the GPU if present. Lastly, a dictionary is created with which hints are assigned 
-to a particular :class:`arbor.cell_kind`. Different kinds may favor different execution, hence the option. In this
-simulation, there are only :class:`arbor.cell_kind.cable`, so we assign the hint to that kind.
+and to prefer the utilisation of the GPU if present. In fact, the default distribution strategy of 
+:class:`arbor.partition_load_balance` already spreads out cells as evenly as possible over CPUs, and groups
+(up to 1000) on GPUs, so strictly speaking it was not necesary to give that part of the hint.
+Lastly, a dictionary is created with which hints are assigned to a particular :class:`arbor.cell_kind`.
+Different kinds may favor different execution, hence the option.
+In this simulation, there are only :class:`arbor.cell_kind.cable`, so we assign the hint to that kind.
 
 Step **(15)** creates a :class:`arbor.partition_load_balance` with the recipe, context and hints created above.
 Another checkpoint will help us understand how long creating the load balancer took.

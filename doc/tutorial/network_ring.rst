@@ -122,7 +122,7 @@ this flag, a context is constructed that will use all locally available threads.
 number of logical cores in your system. Especially with large numbers
 of cells you will notice the speed-up. (You could instantiate the recipe with 5000 cells and observe the difference. Don't
 forget to turn of plotting if you do; it will take more time to generate the image then to run the actual simulation!)
-If no domain decomposition is specified, a default distributing work equally is created. This is sufficient for now.
+If no domain decomposition is specified, a default one distributing work equally is created. This is sufficient for now.
 You can print the objects to see what defaults they produce on your system.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.

@@ -3,7 +3,7 @@
 Ecosystem
 =========
 
-Arbor exists in a wider computational neuroscience software ecosystem. In addition to the Arbor simulator, the Arbor developepment team writes and maintains a set of useful tools to be used in conjuction with Arbor.
+Arbor exists in a wider computational neuroscience software ecosystem. In addition to the Arbor simulator, the Arbor development team writes and maintains a set of useful tools to be used in conjuction with Arbor.
 
 Arbor models
 ------------
