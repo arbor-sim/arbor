@@ -12,6 +12,8 @@
 
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
+#include "backends/gpu/diffusion_state.hpp"
+#include "backends/gpu/matrix_state_fine.hpp"
 
 namespace arb {
 namespace gpu {
@@ -27,7 +29,10 @@ namespace gpu {
  *     Xi_     cai              internal calcium concentration
  *     Xo_     cao              external calcium concentration
  */
- struct ARB_ARBOR_API ion_state {
+struct ARB_ARBOR_API ion_state {
+    using solver_type = arb::gpu::diffusion_state<fvm_value_type, fvm_index_type>;
+    using solver_ptr  = std::unique_ptr<solver_type>;
+
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
     bool write_Xi_;          // is Xi written?
@@ -36,7 +41,9 @@ namespace gpu {
     array iX_;          // (A/m²) current density
     array eX_;          // (mV) reversal potential
     array Xi_;          // (mM) internal concentration
+    array Xd_;          // (mM) diffusive concentration
     array Xo_;          // (mM) external concentration
+    array gX_;             // (kS/m²) per-species conductivity
 
     array init_Xi_;     // (mM) area-weighted initial internal concentration
     array init_Xo_;     // (mM) area-weighted initial external concentration
@@ -46,13 +53,15 @@ namespace gpu {
 
     array charge;       // charge of ionic species (global, length 1)
 
+    solver_ptr solver = nullptr;
+
     ion_state() = default;
 
     ion_state(
         int charge,
         const fvm_ion_config& ion_data,
-        unsigned align
-    );
+        unsigned align,
+        solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();
@@ -103,6 +112,7 @@ struct ARB_ARBOR_API istim_state {
 };
 
 struct ARB_ARBOR_API shared_state {
+
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -114,6 +124,9 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
+
+    using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
+    cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
 
@@ -171,7 +184,8 @@ struct ARB_ARBOR_API shared_state {
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const fvm_ion_config& ion_data);
+        const fvm_ion_config& ion_data,
+        ion_state::solver_ptr solver=nullptr);
 
     void configure_stimulus(const fvm_stimulus_config&);
 
@@ -187,6 +201,10 @@ struct ARB_ARBOR_API shared_state {
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
+
+    // Integrate by matrix solve.
+    void integrate_voltage();
+    void integrate_diffusion();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<fvm_value_type, fvm_value_type> time_bounds() const;

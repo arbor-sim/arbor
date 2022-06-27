@@ -208,12 +208,8 @@ if __name__ == "__main__":
     ]
     recipe = Cable(probes, **vars(args))
 
-    # create a default execution context and a default domain decomposition
-    context = arbor.context()
-    domains = arbor.partition_load_balance(recipe, context)
-
     # configure the simulation and handles for the probes
-    sim = arbor.simulation(recipe, domains, context)
+    sim = arbor.simulation(recipe)
     dt = 0.001
     handles = [
         sim.sample((0, i), arbor.regular_schedule(dt)) for i in range(len(probes))

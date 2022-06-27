@@ -3,7 +3,6 @@
 // AVX/AVX2 SIMD intrinsics implementation.
 
 #ifdef __AVX__
-
 #include <cmath>
 #include <cstdint>
 #include <immintrin.h>

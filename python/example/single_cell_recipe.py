@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas, seaborn  # You may have to pip install these.
+import pandas  # You may have to pip install these.
+import seaborn  # You may have to pip install these.
 
 # The corresponding generic recipe version of `single_cell_model.py`.
 
@@ -60,15 +61,10 @@ class single_recipe(arbor.recipe):
 
 recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
 
-# (6) Create a default execution context and a default domain decomposition.
-
-context = arbor.context()
-domains = arbor.partition_load_balance(recipe, context)
-
 # (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
 # The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
 
-sim = arbor.simulation(recipe, domains, context)
+sim = arbor.simulation(recipe)
 sim.record(arbor.spike_recording.all)
 handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
 sim.run(tfinal=30)

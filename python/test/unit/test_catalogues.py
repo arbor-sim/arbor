@@ -15,7 +15,7 @@ class recipe(arb.recipe):
         self.props = arb.neuron_cable_properties()
         try:
             self.props.catalogue = arb.load_catalogue("dummy-catalogue.so")
-        except:
+        except Exception:
             print("Catalogue not found. Are you running from build directory?")
             raise
         self.props.catalogue = arb.default_catalogue()
@@ -60,7 +60,7 @@ class TestCatalogues(unittest.TestCase):
         rcp = recipe()
         ctx = arb.context()
         dom = arb.partition_load_balance(rcp, ctx)
-        sim = arb.simulation(rcp, dom, ctx)
+        sim = arb.simulation(rcp, ctx, dom)
         sim.run(tfinal=30)
 
     def test_empty(self):

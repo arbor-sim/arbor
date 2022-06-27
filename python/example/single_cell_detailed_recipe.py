@@ -21,21 +21,17 @@ morph = arbor.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
-labels = arbor.label_dict()
+# Label dict, with Pre-defined labels soma, axon, dend, and apic
+labels = arbor.label_dict().add_swc_tags()
 
 # Regions:
 
-# Add labels for tag 1, 2, 3, 4
-labels["soma"] = "(tag 1)"
-labels["axon"] = "(tag 2)"
-labels["dend"] = "(tag 3)"
-labels["last"] = "(tag 4)"
 # Add a label for a region that includes the whole morphology
 labels["all"] = "(all)"
 # Add a label for the parts of the morphology with radius greater than 1.5 μm.
 labels["gt_1.5"] = '(radius-ge (region "all") 1.5)'
-# Join regions "last" and "gt_1.5"
-labels["custom"] = '(join (region "last") (region "gt_1.5"))'
+# Join regions "apic" and "gt_1.5"
+labels["custom"] = '(join (region "apic") (region "gt_1.5"))'
 
 # Locsets:
 
@@ -87,6 +83,7 @@ cell = arbor.cable_cell(morph, labels, decor)
 # (5) Declare a probe.
 
 probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
+
 
 # (6) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
@@ -145,14 +142,8 @@ class single_recipe(arbor.recipe):
 # Pass the probe in a list because that it what single_recipe expects.
 recipe = single_recipe(cell, [probe])
 
-# (4) Create an execution context
-context = arbor.context()
-
-# (5) Create a domain decomposition
-domains = arbor.partition_load_balance(recipe, context)
-
-# (6) Create a simulation
-sim = arbor.simulation(recipe, domains, context)
+# (7) Create a simulation
+sim = arbor.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
@@ -160,10 +151,10 @@ sim.record(arbor.spike_recording.all)
 probe_id = arbor.cell_member(0, 0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
-# (7) Run the simulation
+# (8) Run the simulation
 sim.run(tfinal=100, dt=0.025)
 
-# (8) Print or display the results
+# (9) Print or display the results
 spikes = sim.spikes()
 print(len(spikes), "spikes recorded:")
 for s in spikes:

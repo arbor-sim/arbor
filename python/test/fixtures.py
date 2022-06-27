@@ -1,10 +1,8 @@
 import arbor
 import functools
 from functools import lru_cache as cache
-import unittest
 from pathlib import Path
 import subprocess
-import warnings
 import atexit
 
 _mpi_enabled = arbor.__config__["mpi"]
@@ -246,4 +244,4 @@ def sum_weight_hh_spike_2():
 @art_spiker_recipe
 def art_spiking_sim(context, art_spiker_recipe):
     dd = arbor.partition_load_balance(art_spiker_recipe, context)
-    return arbor.simulation(art_spiker_recipe, dd, context)
+    return arbor.simulation(art_spiker_recipe, context, dd)

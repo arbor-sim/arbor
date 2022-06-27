@@ -5,7 +5,6 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures
 
 # check Arbor's configuration of mpi and gpu
 gpu_enabled = arb.__config__["gpu"]
@@ -13,6 +12,7 @@ gpu_enabled = arb.__config__["gpu"]
 """
 all tests for non-distributed arb.domain_decomposition
 """
+
 
 # Dummy recipe
 class homo_recipe(arb.recipe):
@@ -76,7 +76,7 @@ class TestDomain_Decompositions(unittest.TestCase):
             self.assertEqual(grp.kind, arb.cell_kind.cable)
 
     # 1 cpu core, 1 gpu; assumes all cells will be placed on gpu in a single cell group
-    @unittest.skipIf(gpu_enabled == False, "GPU not enabled")
+    @unittest.skipIf(gpu_enabled is False, "GPU not enabled")
     def test_domain_decomposition_homogenous_GPU(self):
         n_cells = 10
         recipe = homo_recipe(n_cells)
@@ -139,7 +139,7 @@ class TestDomain_Decompositions(unittest.TestCase):
                 self.assertEqual(k, recipe.cell_kind(gid))
 
     # 1 cpu core, 1 gpu; assumes cable cells will be placed on gpu in a single cell group; spike cells are on cpu in cell groups of size 1
-    @unittest.skipIf(gpu_enabled == False, "GPU not enabled")
+    @unittest.skipIf(gpu_enabled is False, "GPU not enabled")
     def test_domain_decomposition_heterogenous_GPU(self):
         n_cells = 10
         recipe = hetero_recipe(n_cells)
@@ -237,7 +237,7 @@ class TestDomain_Decompositions(unittest.TestCase):
             RuntimeError,
             "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0",
         ):
-            decomp = arb.partition_load_balance(recipe, context, hints)
+            arb.partition_load_balance(recipe, context, hints)
 
         cable_hint = arb.partition_hint()
         cable_hint.prefer_gpu = False
@@ -256,4 +256,4 @@ class TestDomain_Decompositions(unittest.TestCase):
             RuntimeError,
             "unable to perform load balancing because cell_kind::spike_source has invalid suggested gpu_cell_group size of 0",
         ):
-            decomp = arb.partition_load_balance(recipe, context, hints)
+            arb.partition_load_balance(recipe, context, hints)

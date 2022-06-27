@@ -2,11 +2,10 @@
 
 import subprocess as sp
 import sys
-from tempfile import mkdtemp, TemporaryDirectory
+from tempfile import mkdtemp
 import os
 from pathlib import Path
 import shutil
-import string
 import argparse
 import re
 
@@ -205,6 +204,8 @@ if debug:
         def __exit__(*args, **kwargs):
             pass
 
+else:
+    from tempfile import TemporaryDirectory
 
 with TemporaryDirectory() as tmp:
     tmp = Path(tmp)
@@ -246,7 +247,7 @@ with TemporaryDirectory() as tmp:
         sp.run(make_cmd, shell=True, check=True, stdout=out, stderr=err)
         shutil.copy2(f"{name}-catalogue.so", pwd)
     except sp.CalledProcessError as e:
-        import sys, traceback as tb
+        import traceback as tb
 
         if not verbose:
             # Not in verbose mode, so we have captured the

@@ -55,8 +55,8 @@ std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, con
 ion_state::ion_state(
     int charge,
     const fvm_ion_config& ion_data,
-    unsigned // alignment/padding ignored.
-):
+    unsigned, // alignment/padding ignored.
+    solver_ptr ptr):
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
@@ -64,30 +64,35 @@ ion_state::ion_state(
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
     Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end()),
+    Xd_(ion_data.cv.size(), NAN),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
+    gX_(ion_data.cv.size(), NAN),
     init_Xi_(make_const_view(ion_data.init_iconc)),
     init_Xo_(make_const_view(ion_data.init_econc)),
     reset_Xi_(make_const_view(ion_data.reset_iconc)),
     reset_Xo_(make_const_view(ion_data.reset_econc)),
     init_eX_(make_const_view(ion_data.init_revpot)),
-    charge(1u, charge)
-{
+    charge(1u, charge),
+    solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
     arb_assert(node_index_.size()==init_eX_.size());
 }
 
 void ion_state::init_concentration() {
+    // NB. not resetting Xd here, it's controlled via the solver.
     if (write_Xi_) memory::copy(init_Xi_, Xi_);
     if (write_Xo_) memory::copy(init_Xo_, Xo_);
 }
 
 void ion_state::zero_current() {
+    memory::fill(gX_, 0);
     memory::fill(iX_, 0);
 }
 
 void ion_state::reset() {
     zero_current();
+    memory::copy(reset_Xi_, Xd_);
     if (write_Xi_) memory::copy(reset_Xi_, Xi_);
     if (write_Xo_) memory::copy(reset_Xo_, Xo_);
     if (write_eX_) memory::copy(init_eX_, eX_);
@@ -315,7 +320,15 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        store.ion_states_[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data(), nullptr };
+        auto& ion_state = store.ion_states_[idx];
+        ion_state = {0};
+        ion_state.current_density         = oion->iX_.data();
+        ion_state.reversal_potential      = oion->eX_.data();
+        ion_state.internal_concentration  = oion->Xi_.data();
+        ion_state.external_concentration  = oion->Xo_.data();
+        ion_state.diffusive_concentration = oion->Xd_.data();
+        ion_state.ionic_charge            = oion->charge.data();
+        ion_state.conductivity            = oion->gX_.data();
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -394,14 +407,33 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     m.ppack_.ion_states = store.ion_states_d_.data();
 }
 
+void shared_state::integrate_voltage() {
+    solver.assemble(dt_intdom, voltage, current_density, conductivity);
+    solver.solve(voltage);
+}
+
+void shared_state::integrate_diffusion() {
+    for (auto& [ion, data]: ion_data) {
+        if (data.solver) {
+            data.solver->assemble(dt_intdom,
+                                  data.Xd_,
+                                  voltage,
+                                  data.iX_,
+                                  data.gX_,
+                                  data.charge[0]);
+            data.solver->solve(data.Xd_);
+        }
+    }
+}
+
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
-    const fvm_ion_config& ion_info)
-{
+    const fvm_ion_config& ion_info,
+    ion_state::solver_ptr ptr) {
     ion_data.emplace(std::piecewise_construct,
         std::forward_as_tuple(ion_name),
-        std::forward_as_tuple(charge, ion_info, 1u));
+                     std::forward_as_tuple(charge, ion_info, 1u, std::move(ptr)));
 }
 
 void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
