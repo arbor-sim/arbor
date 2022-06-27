@@ -11,9 +11,6 @@
 struct cell_parameters {
     cell_parameters() = default;
 
-    // Use complex cell or generic cell
-    bool complex_cell = false;
-
     //  Maximum number of levels in the cell (not including the soma)
     unsigned max_depth = 5;
 
@@ -35,7 +32,7 @@ struct ring_params {
     unsigned num_cells = 1000;
     unsigned ring_size = 10;
     double min_delay = 10;
-    double duration = 500;
+    double duration = 100;
     double dt = 0.025;
     bool record_voltage = false;
     std::string odir = ".";
@@ -78,7 +75,6 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.dt, "dt", json);
     param_from_json(params.min_delay, "min-delay", json);
     param_from_json(params.record_voltage, "record", json);
-    param_from_json(params.cell.complex_cell, "complex", json);
     param_from_json(params.cell.max_depth, "depth", json);
     param_from_json(params.cell.branch_probs, "branch-probs", json);
     param_from_json(params.cell.compartments, "compartments", json);

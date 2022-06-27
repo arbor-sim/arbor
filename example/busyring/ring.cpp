@@ -60,23 +60,17 @@ public:
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.catalogue.import(arb::global_allen_catalogue(), "");
 
-        if (params.cell.complex_cell) {
-            gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
-            gprop.default_parameters.axial_resistivity = 100;
-            gprop.default_parameters.temperature_K = 34 + 273.15;
-            gprop.default_parameters.init_membrane_potential = -90;
-            event_weight_*=5;
-        }
+        gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
+        gprop.default_parameters.axial_resistivity = 100;
+        gprop.default_parameters.temperature_K = 34 + 273.15;
+        gprop.default_parameters.init_membrane_potential = -90;
     }
 
     std::any get_global_properties(cell_kind kind) const override { return gprop; }
     cell_size_type num_cells() const override { return num_cells_; }
     cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        if (params_.cell.complex_cell) {
-            return complex_cell(gid, params_.cell);
-        }
-        return branch_cell(gid, params_.cell);
+    return complex_cell(gid, params_.cell);
     }
 
     // Each cell has one incoming connection, from cell with gid-1,
@@ -130,7 +124,7 @@ private:
     cell_size_type num_cells_;
     double min_delay_;
     ring_params params_;
-    float event_weight_ = 0.1;
+    float event_weight_ = 0.5;
 
     arb::cable_cell_global_properties gprop;
 };
@@ -221,7 +215,7 @@ int main(int argc, char** argv) {
         auto decomp = arb::partition_load_balance(recipe, context);
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, context);
+        arb::simulation sim(recipe, context, decomp);
 
         // Set up the probe that will measure voltage in the cell.
 
@@ -321,7 +315,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell complex_cell (arb::cell_gid_type gid, const cell_parameters& params) {
+arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     using arb::reg::tagged;
     using arb::reg::all;
     using arb::ls::location;
@@ -428,87 +422,3 @@ arb::cable_cell complex_cell (arb::cell_gid_type gid, const cell_parameters& par
     return {arb::morphology(tree), dict, decor};
 }
 
-arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    arb::segment_tree tree;
-
-    // Add soma.
-    double soma_radius = 12.6157/2.0;
-    int soma_tag = 1;
-    tree.append(arb::mnpos, {0, 0,-soma_radius, soma_radius}, {0, 0, soma_radius, soma_radius}, soma_tag); // For area of 500 μm².
-
-    std::vector<std::vector<unsigned>> levels;
-    levels.push_back({0});
-
-    // Standard mersenne_twister_engine seeded with gid.
-    std::mt19937 gen(gid);
-    std::uniform_real_distribution<double> dis(0, 1);
-
-    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
-    int dend_tag = 3;
-
-    double dist_from_soma = soma_radius;
-    for (unsigned i=0; i<params.max_depth; ++i) {
-        // Branch prob at this level.
-        double bp = interp(params.branch_probs, i, params.max_depth);
-        // Length at this level.
-        double l = interp(params.lengths, i, params.max_depth);
-        // Number of compartments at this level.
-        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
-
-        std::vector<unsigned> sec_ids;
-        for (unsigned sec: levels[i]) {
-            for (unsigned j=0; j<2; ++j) {
-                if (dis(gen)<bp) {
-                    auto z = dist_from_soma;
-                    auto dz = l/nc;
-                    auto p = sec;
-                    for (unsigned k=1; k<nc; ++k) {
-                        p = tree.append(p, {0,0,z+(k+1)*dz, dend_radius}, dend_tag);
-                    }
-                    sec_ids.push_back(p);
-                }
-            }
-        }
-        if (sec_ids.empty()) {
-            break;
-        }
-        levels.push_back(sec_ids);
-
-        dist_from_soma += l;
-    }
-
-    arb::label_dict labels;
-
-    auto soma = "soma"_lab;
-    auto dnds = "dendrites"_lab;
-    auto syns = "synapses"_lab;
-
-    using arb::reg::tagged;
-    labels.set("soma",      tagged(1));
-    labels.set("dendrites", join(tagged(3), tagged(4)));
-    if (params.synapses>1) {
-       labels.set("synapses",  arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid));
-    }
-
-    arb::decor decor;
-
-    decor.paint(soma, arb::density{"hh"});
-    decor.paint(dnds, arb::density{"pas"});
-    decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
-
-    // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
-
-    // Add a synapse to proximal end of first dendrite.
-    decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p_syn");
-
-    // Add additional synapses that will not be connected to anything.
-    if (params.synapses>1) {
-        decor.place(syns, arb::synapse{"expsyn"}, "s_syn");
-    }
-
-    // Make a CV between every sample in the sample tree.
-    decor.set_default(arb::cv_policy_every_segment());
-
-    return {arb::morphology(tree), labels, decor};
-}
