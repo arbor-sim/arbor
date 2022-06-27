@@ -21,55 +21,51 @@ morph = arbor.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
-labels = arbor.label_dict()
+# Label dict, with Pre-defined labels soma, axon, dend, and apic
+labels = arbor.label_dict().add_swc_tags()
 
 # Regions:
 
-# Add labels for tag 1, 2, 3, 4
-labels['soma'] = '(tag 1)'
-labels['axon'] = '(tag 2)'
-labels['dend'] = '(tag 3)'
-labels['last'] = '(tag 4)'
 # Add a label for a region that includes the whole morphology
-labels['all'] = '(all)'
+labels["all"] = "(all)"
 # Add a label for the parts of the morphology with radius greater than 1.5 μm.
-labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-# Join regions "last" and "gt_1.5"
-labels['custom'] = '(join (region "last") (region "gt_1.5"))'
+labels["gt_1.5"] = '(radius-ge (region "all") 1.5)'
+# Join regions "apic" and "gt_1.5"
+labels["custom"] = '(join (region "apic") (region "gt_1.5"))'
 
 # Locsets:
 
 # Add a labels for the root of the morphology and all the terminal points
-labels['root']     = '(root)'
-labels['terminal'] = '(terminal)'
+labels["root"] = "(root)"
+labels["terminal"] = "(terminal)"
 # Add a label for the terminal locations in the "custom" region:
-labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
+labels["custom_terminal"] = '(restrict (locset "terminal") (region "custom"))'
 # Add a label for the terminal locations in the "axon" region:
-labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
+labels["axon_terminal"] = '(restrict (locset "terminal") (region "axon"))'
 
 # (3) Create and populate the decor.
 
 decor = arbor.decor()
 
 # Set the default properties of the cell (this overrides the model defaults).
-decor.set_property(Vm =-55)
-decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
+decor.set_property(Vm=-55)
+decor.set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
+decor.set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
 
 # Override the cell defaults.
 decor.paint('"custom"', tempK=270)
-decor.paint('"soma"',   Vm=-50)
+decor.paint('"soma"', Vm=-50)
 
 # Paint density mechanisms.
-decor.paint('"all"', density('pas'))
-decor.paint('"custom"', density('hh'))
-decor.paint('"dend"', density('Ih', {'gbar': 0.001}))
+decor.paint('"all"', density("pas"))
+decor.paint('"custom"', density("hh"))
+decor.paint('"dend"', density("Ih", {"gbar": 0.001}))
 
 # Place stimuli and spike detectors.
-decor.place('"root"', arbor.iclamp(10, 1, current=2), 'iclamp0')
-decor.place('"root"', arbor.iclamp(30, 1, current=2), 'iclamp1')
-decor.place('"root"', arbor.iclamp(50, 1, current=2), 'iclamp2')
-decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
+decor.place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
+decor.place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")
+decor.place('"root"', arbor.iclamp(50, 1, current=2), "iclamp2")
+decor.place('"axon_terminal"', arbor.spike_detector(-10), "detector")
 
 # Single CV for the "soma" region
 soma_policy = arbor.cv_policy_single('"soma"')
@@ -88,8 +84,9 @@ cell = arbor.cable_cell(morph, labels, decor)
 
 probe = arbor.cable_probe_membrane_voltage('"custom_terminal"')
 
+
 # (6) Create a class that inherits from arbor.recipe
-class single_recipe (arbor.recipe):
+class single_recipe(arbor.recipe):
 
     # (6.1) Define the class constructor
     def __init__(self, cell, probes):
@@ -101,9 +98,11 @@ class single_recipe (arbor.recipe):
 
         self.the_props = arbor.cable_global_properties()
         self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
-        self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-        self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-        self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
+        self.the_props.set_ion(
+            ion="na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na"
+        )
+        self.the_props.set_ion(ion="k", int_con=54.4, ext_con=2.5, rev_pot=-77)
+        self.the_props.set_ion(ion="ca", int_con=5e-5, ext_con=2, rev_pot=132.5)
         self.the_props.catalogue.extend(arbor.allen_catalogue(), "")
 
     # (6.2) Override the num_cells method
@@ -138,31 +137,26 @@ class single_recipe (arbor.recipe):
     def global_properties(self, gid):
         return self.the_props
 
+
 # Instantiate recipe
 # Pass the probe in a list because that it what single_recipe expects.
 recipe = single_recipe(cell, [probe])
 
-# (4) Create an execution context
-context = arbor.context()
-
-# (5) Create a domain decomposition
-domains = arbor.partition_load_balance(recipe, context)
-
-# (6) Create a simulation
-sim = arbor.simulation(recipe, domains, context)
+# (7) Create a simulation
+sim = arbor.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
 
-probe_id = arbor.cell_member(0,0)
+probe_id = arbor.cell_member(0, 0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
-# (7) Run the simulation
+# (8) Run the simulation
 sim.run(tfinal=100, dt=0.025)
 
-# (8) Print or display the results
+# (9) Print or display the results
 spikes = sim.spikes()
-print(len(spikes), 'spikes recorded:')
+print(len(spikes), "spikes recorded:")
 for s in spikes:
     print(s)
 
@@ -174,6 +168,17 @@ for d, m in sim.samples(handle):
 
 df_list = []
 for i in range(len(data)):
-    df_list.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
-df = pandas.concat(df_list,ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_recipe_result.svg')
+    df_list.append(
+        pandas.DataFrame(
+            {
+                "t/ms": data[i][:, 0],
+                "U/mV": data[i][:, 1],
+                "Location": str(meta[i]),
+                "Variable": "voltage",
+            }
+        )
+    )
+df = pandas.concat(df_list, ignore_index=True)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", ci=None
+).savefig("single_cell_recipe_result.svg")

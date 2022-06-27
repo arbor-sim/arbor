@@ -22,21 +22,21 @@ class single_recipe(arbor.recipe):
 
     def cell_description(self, gid):
         tree = arbor.segment_tree()
-        tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3),
-                    arbor.mpoint(3, 0, 0, 3), tag=1)
+        tree.append(
+            arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1
+        )
 
-        labels = arbor.label_dict({'soma':   '(tag 1)',
-                                   'center': '(location 0 0.5)'})
+        labels = arbor.label_dict({"soma": "(tag 1)", "center": "(location 0 0.5)"})
 
         decor = arbor.decor()
         decor.set_property(Vm=-40)
-        decor.paint('(all)', arbor.density('hh'))
+        decor.paint("(all)", arbor.density("hh"))
 
         decor.place('"center"', arbor.spike_detector(-10), "detector")
-        decor.place('"center"', arbor.synapse('expsyn'), "synapse")
+        decor.place('"center"', arbor.synapse("expsyn"), "synapse")
 
-        mech = arbor.mechanism('expsyn_stdp')
-        mech.set("max_weight", 1.)
+        mech = arbor.mechanism("expsyn_stdp")
+        mech.set("max_weight", 1.0)
         syn = arbor.synapse(mech)
 
         decor.place('"center"', syn, "stpd_synapse")
@@ -46,27 +46,30 @@ class single_recipe(arbor.recipe):
         return cell
 
     def event_generators(self, gid):
-        """two stimuli: one that makes the cell spike, the other to monitor STDP
-        """
+        """two stimuli: one that makes the cell spike, the other to monitor STDP"""
 
         stimulus_times = numpy.linspace(50, 500, self.n_pairs)
 
         # strong enough stimulus
-        spike = arbor.event_generator("synapse", 1., arbor.explicit_schedule(stimulus_times))
+        spike = arbor.event_generator(
+            "synapse", 1.0, arbor.explicit_schedule(stimulus_times)
+        )
 
         # zero weight -> just modify synaptic weight via stdp
-        stdp = arbor.event_generator("stpd_synapse", 0., arbor.explicit_schedule(stimulus_times - self.dT))
+        stdp = arbor.event_generator(
+            "stpd_synapse", 0.0, arbor.explicit_schedule(stimulus_times - self.dT)
+        )
 
         return [spike, stdp]
 
     def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"center"'),
-                arbor.cable_probe_point_state(1, "expsyn_stdp", "g"),
-                arbor.cable_probe_point_state(1, "expsyn_stdp", "apost"),
-                arbor.cable_probe_point_state(1, "expsyn_stdp", "apre"),
-                arbor.cable_probe_point_state(
-                    1, "expsyn_stdp", "weight_plastic")
-                ]
+        return [
+            arbor.cable_probe_membrane_voltage('"center"'),
+            arbor.cable_probe_point_state(1, "expsyn_stdp", "g"),
+            arbor.cable_probe_point_state(1, "expsyn_stdp", "apost"),
+            arbor.cable_probe_point_state(1, "expsyn_stdp", "apre"),
+            arbor.cable_probe_point_state(1, "expsyn_stdp", "weight_plastic"),
+        ]
 
     def global_properties(self, kind):
         return self.the_props
@@ -75,9 +78,7 @@ class single_recipe(arbor.recipe):
 def run(dT, n_pairs=1, do_plots=False):
     recipe = single_recipe(dT, n_pairs)
 
-    context = arbor.context()
-    domains = arbor.partition_load_balance(recipe, context)
-    sim = arbor.simulation(recipe, domains, context)
+    sim = arbor.simulation(recipe)
 
     sim.record(arbor.spike_recording.all)
 
@@ -93,17 +94,20 @@ def run(dT, n_pairs=1, do_plots=False):
     if do_plots:
         print("Plotting detailed results ...")
 
-        for (handle, var) in [(handle_mem, 'U'),
-                              (handle_g, "g"),
-                              (handle_apost, "apost"),
-                              (handle_apre, "apre"),
-                              (handle_weight_plastic, "weight_plastic")]:
+        for (handle, var) in [
+            (handle_mem, "U"),
+            (handle_g, "g"),
+            (handle_apost, "apost"),
+            (handle_apre, "apre"),
+            (handle_weight_plastic, "weight_plastic"),
+        ]:
 
             data, meta = sim.samples(handle)[0]
 
-            df = pandas.DataFrame({'t/ms': data[:, 0], var: data[:, 1]})
-            seaborn.relplot(data=df, kind="line", x="t/ms", y=var,
-                            ci=None).savefig('single_cell_stdp_result_{}.svg'.format(var))
+            df = pandas.DataFrame({"t/ms": data[:, 0], var: data[:, 1]})
+            seaborn.relplot(data=df, kind="line", x="t/ms", y=var, ci=None).savefig(
+                "single_cell_stdp_result_{}.svg".format(var)
+            )
 
     weight_plastic, meta = sim.samples(handle_weight_plastic)[0]
 
@@ -111,7 +115,8 @@ def run(dT, n_pairs=1, do_plots=False):
 
 
 data = numpy.array([(dT, run(dT)) for dT in numpy.arange(-20, 20, 0.5)])
-df = pandas.DataFrame({'t/ms': data[:, 0], 'dw': data[:, 1]})
+df = pandas.DataFrame({"t/ms": data[:, 0], "dw": data[:, 1]})
 print("Plotting results ...")
-seaborn.relplot(data=df, x="t/ms", y="dw", kind="line",
-                ci=None).savefig('single_cell_stdp.svg')
+seaborn.relplot(data=df, x="t/ms", y="dw", kind="line", ci=None).savefig(
+    "single_cell_stdp.svg"
+)

@@ -49,7 +49,9 @@ enum class sourceKind {
     dt,
     time,
     ion_current,
+    ion_conductivity,
     ion_current_density,
+    ion_diffusive,
     ion_revpot,
     ion_iconc,
     ion_econc,
@@ -95,6 +97,7 @@ inline std::string to_string(sourceKind v) {
     case sourceKind::dt:                  return "dt";
     case sourceKind::ion_current:         return "ion_current";
     case sourceKind::ion_current_density: return "ion_current_density";
+    case sourceKind::ion_diffusive:       return "ion_diffusive";
     case sourceKind::ion_revpot:          return "ion_revpot";
     case sourceKind::ion_iconc:           return "ion_iconc";
     case sourceKind::ion_econc:           return "ion_econc";
@@ -122,6 +125,7 @@ inline sourceKind ion_source(const std::string& ion, const std::string& var, mod
     else if (var=="i"+ion) return mkind==moduleKind::density? sourceKind::ion_current_density: sourceKind::ion_current;
     else if (var=="e"+ion) return sourceKind::ion_revpot;
     else if (var==ion+"i") return sourceKind::ion_iconc;
+    else if (var==ion+"d") return sourceKind::ion_diffusive;
     else if (var==ion+"o") return sourceKind::ion_econc;
     else return sourceKind::no_source;
 }

@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 
 
 class TwoCellsWithGapJunction(arbor.recipe):
-    def __init__(self, probes,
-                 Vms, length, radius, cm, rL, g, gj_g,
-                 cv_policy_max_extent):
+    def __init__(
+        self, probes, Vms, length, radius, cm, rL, g, gj_g, cv_policy_max_extent
+    ):
         """
         probes -- list of probes
 
@@ -73,12 +73,14 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
         tree = arbor.segment_tree()
 
-        tree.append(arbor.mnpos,
-                    arbor.mpoint(0, 0, 0, self.radius),
-                    arbor.mpoint(self.length, 0, 0, self.radius),
-                    tag=1)
+        tree.append(
+            arbor.mnpos,
+            arbor.mpoint(0, 0, 0, self.radius),
+            arbor.mpoint(self.length, 0, 0, self.radius),
+            tag=1,
+        )
 
-        labels = arbor.label_dict({'cell' : '(tag 1)', 'gj_site': '(location 0 0.5)'})
+        labels = arbor.label_dict({"cell": "(tag 1)", "gj_site": "(location 0 0.5)"})
 
         decor = arbor.decor()
         decor.set_property(Vm=self.Vms[gid])
@@ -86,9 +88,9 @@ class TwoCellsWithGapJunction(arbor.recipe):
         decor.set_property(rL=self.rL)
 
         # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
-        junction_mech = arbor.junction('gj', {"g" : self.gj_g})
-        decor.place('"gj_site"', junction_mech, 'gj_label')
-        decor.paint('"cell"', arbor.density(f'pas/e={self.Vms[gid]}', {'g': self.g}))
+        junction_mech = arbor.junction("gj", {"g": self.gj_g})
+        decor.place('"gj_site"', junction_mech, "gj_label")
+        decor.paint('"cell"', arbor.density(f"pas/e={self.Vms[gid]}", {"g": self.g}))
 
         if self.cv_policy_max_extent is not None:
             policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
@@ -102,31 +104,47 @@ class TwoCellsWithGapJunction(arbor.recipe):
         assert gid in [0, 1]
 
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
-        return [arbor.gap_junction_connection((1 if gid == 0 else 0, 'gj_label'), 'gj_label', 1)]
+        return [
+            arbor.gap_junction_connection(
+                (1 if gid == 0 else 0, "gj_label"), "gj_label", 1
+            )
+        ]
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='Two cells connected via a gap junction')
+    parser = argparse.ArgumentParser(
+        description="Two cells connected via a gap junction"
+    )
 
     parser.add_argument(
-        '--Vms', help="membrane leak potentials in mV", type=float, default=[-100, -60], nargs=2)
+        "--Vms",
+        help="membrane leak potentials in mV",
+        type=float,
+        default=[-100, -60],
+        nargs=2,
+    )
+    parser.add_argument("--length", help="cell length in μm", type=float, default=100)
+    parser.add_argument("--radius", help="cell radius in μm", type=float, default=3)
     parser.add_argument(
-        '--length', help="cell length in μm", type=float, default=100)
+        "--cm", help="membrane capacitance in F/m^2", type=float, default=0.005
+    )
     parser.add_argument(
-        '--radius', help="cell radius in μm", type=float, default=3)
+        "--rL", help="axial resistivity in Ω·cm", type=float, default=90
+    )
     parser.add_argument(
-        '--cm', help="membrane capacitance in F/m^2", type=float, default=0.005)
-    parser.add_argument(
-        '--rL', help="axial resistivity in Ω·cm", type=float, default=90)
-    parser.add_argument(
-        '--g', help="membrane conductivity in S/cm^2", type=float, default=0.001)
+        "--g", help="membrane conductivity in S/cm^2", type=float, default=0.001
+    )
 
     parser.add_argument(
-        '--gj_g', help="gap junction conductivity in μS", type=float, default=0.01)
+        "--gj_g", help="gap junction conductivity in μS", type=float, default=0.01
+    )
 
-    parser.add_argument('--cv_policy_max_extent',
-                        help="maximum extent of control volume in μm", type=float)
+    parser.add_argument(
+        "--cv_policy_max_extent",
+        help="maximum extent of control volume in μm",
+        type=float,
+    )
 
     # parse the command line arguments
     args = parser.parse_args()
@@ -135,17 +153,15 @@ if __name__ == "__main__":
     probes = [arbor.cable_probe_membrane_voltage('"gj_site"')]
     recipe = TwoCellsWithGapJunction(probes, **vars(args))
 
-    # create a default execution context and a default domain decomposition
-    context = arbor.context()
-    domains = arbor.partition_load_balance(recipe, context)
-
     # configure the simulation and handles for the probes
-    sim = arbor.simulation(recipe, domains, context)
+    sim = arbor.simulation(recipe)
 
     dt = 0.01
     handles = []
     for gid in [0, 1]:
-        handles += [sim.sample((gid, i), arbor.regular_schedule(dt)) for i in range(len(probes))]
+        handles += [
+            sim.sample((gid, i), arbor.regular_schedule(dt)) for i in range(len(probes))
+        ]
 
     # run the simulation for 5 ms
     sim.run(tfinal=5, dt=dt)
@@ -155,33 +171,39 @@ if __name__ == "__main__":
     df_list = []
     for probe in range(len(handles)):
         samples, meta = sim.samples(handles[probe])[0]
-        df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"{probe}"}))
+        df_list.append(
+            pandas.DataFrame(
+                {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"{probe}"}
+            )
+        )
 
-    df = pandas.concat(df_list,ignore_index=True)
+    df = pandas.concat(df_list, ignore_index=True)
 
     fig, ax = plt.subplots()
 
     # plot the membrane potentials of the two cells as function of time
-    seaborn.lineplot(ax=ax,data=df, x="t/ms", y="U/mV",hue="Cell",ci=None)
+    seaborn.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", ci=None)
 
     # area of cells
-    area = args.length*1e-6 * 2*np.pi*args.radius*1e-6
+    area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6
 
     # total conductance and resistance
-    cell_g = args.g/1e-4 * area
-    cell_R = 1/cell_g
+    cell_g = args.g / 1e-4 * area
+    cell_R = 1 / cell_g
 
     # gap junction conductance and resistance in base units
-    si_gj_g = args.gj_g*1e-6
-    si_gj_R = 1/si_gj_g
+    si_gj_g = args.gj_g * 1e-6
+    si_gj_R = 1 / si_gj_g
 
     # indicate the expected equilibrium potentials
-    for (i, j) in [[0,1], [1,0]]:
-        weighted_potential = args.Vms[i] + ((args.Vms[j] - args.Vms[i])*(si_gj_R + cell_R))/(2*cell_R + si_gj_R)
-        ax.axhline(weighted_potential, linestyle='dashed', color='black', alpha=0.5)
+    for (i, j) in [[0, 1], [1, 0]]:
+        weighted_potential = args.Vms[i] + (
+            (args.Vms[j] - args.Vms[i]) * (si_gj_R + cell_R)
+        ) / (2 * cell_R + si_gj_R)
+        ax.axhline(weighted_potential, linestyle="dashed", color="black", alpha=0.5)
 
     # plot the initial/nominal resting potentials
     for gid, Vm in enumerate(args.Vms):
-        ax.axhline(Vm, linestyle='dashed', color='black', alpha=0.5)
+        ax.axhline(Vm, linestyle="dashed", color="black", alpha=0.5)
 
-    fig.savefig('two_cell_gap_junctions_result.svg')
+    fig.savefig("two_cell_gap_junctions_result.svg")

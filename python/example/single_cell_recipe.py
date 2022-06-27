@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas, seaborn # You may have to pip install these.
+import pandas  # You may have to pip install these.
+import seaborn  # You may have to pip install these.
 
 # The corresponding generic recipe version of `single_cell_model.py`.
 
@@ -11,14 +12,13 @@ tree = arbor.segment_tree()
 tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
 
 # (2) Define the soma and its midpoint
-labels = arbor.label_dict({'soma':   '(tag 1)',
-                           'midpoint': '(location 0 0.5)'})
+labels = arbor.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 # (3) Create cell and set properties
 decor = arbor.decor()
 decor.set_property(Vm=-40)
-decor.paint('"soma"', arbor.density('hh'))
-decor.place('"midpoint"', arbor.iclamp( 10, 2, 0.8), "iclamp")
+decor.paint('"soma"', arbor.density("hh"))
+decor.place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
 decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
 cell = arbor.cable_cell(tree, labels, decor)
 
@@ -26,7 +26,8 @@ cell = arbor.cable_cell(tree, labels, decor)
 # This constitutes the corresponding generic recipe version of
 # `single_cell_model.py`.
 
-class single_recipe (arbor.recipe):
+
+class single_recipe(arbor.recipe):
     def __init__(self, cell, probes):
         # (4.1) The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
@@ -55,19 +56,15 @@ class single_recipe (arbor.recipe):
         # (4.6) Override the global_properties method
         return self.the_props
 
+
 # (5) Instantiate recipe with a voltage probe located on "midpoint".
 
 recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
 
-# (6) Create a default execution context and a default domain decomposition.
-
-context = arbor.context()
-domains = arbor.partition_load_balance(recipe, context)
-
 # (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
 # The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
 
-sim = arbor.simulation(recipe, domains, context)
+sim = arbor.simulation(recipe)
 sim.record(arbor.spike_recording.all)
 handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
 sim.run(tfinal=30)
@@ -77,16 +74,18 @@ sim.run(tfinal=30)
 spikes = sim.spikes()
 data, meta = sim.samples(handle)[0]
 
-if len(spikes)>0:
-    print('{} spikes:'.format(len(spikes)))
-    for t in spikes['time']:
-        print('{:3.3f}'.format(t))
+if len(spikes) > 0:
+    print("{} spikes:".format(len(spikes)))
+    for t in spikes["time"]:
+        print("{:3.3f}".format(t))
 else:
-    print('no spikes')
+    print("no spikes")
 
 print("Plotting results ...")
 
-df = pandas.DataFrame({'t/ms': data[:, 0], 'U/mV': data[:, 1]})
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig('single_cell_recipe_result.svg')
+df = pandas.DataFrame({"t/ms": data[:, 0], "U/mV": data[:, 1]})
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
+    "single_cell_recipe_result.svg"
+)
 
-df.to_csv('single_cell_recipe_result.csv', float_format='%g')
+df.to_csv("single_cell_recipe_result.csv", float_format="%g")

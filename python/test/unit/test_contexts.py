@@ -5,11 +5,11 @@
 import unittest
 
 import arbor as arb
-from .. import fixtures
 
 """
 all tests for non-distributed arb.context
 """
+
 
 class TestContexts(unittest.TestCase):
     def test_default_allocation(self):
@@ -33,22 +33,24 @@ class TestContexts(unittest.TestCase):
         self.assertFalse(alloc.has_gpu)
 
     def test_exceptions_allocation(self):
-        with self.assertRaisesRegex(RuntimeError,
-            "gpu_id must be None, or a non-negative integer"):
-            arb.proc_allocation(gpu_id = 1.)
-        with self.assertRaisesRegex(RuntimeError,
-            "gpu_id must be None, or a non-negative integer"):
-            arb.proc_allocation(gpu_id = -1)
-        with self.assertRaisesRegex(RuntimeError,
-            "gpu_id must be None, or a non-negative integer"):
-            arb.proc_allocation(gpu_id = 'gpu_id')
+        with self.assertRaisesRegex(
+            RuntimeError, "gpu_id must be None, or a non-negative integer"
+        ):
+            arb.proc_allocation(gpu_id=1.0)
+        with self.assertRaisesRegex(
+            RuntimeError, "gpu_id must be None, or a non-negative integer"
+        ):
+            arb.proc_allocation(gpu_id=-1)
+        with self.assertRaisesRegex(
+            RuntimeError, "gpu_id must be None, or a non-negative integer"
+        ):
+            arb.proc_allocation(gpu_id="gpu_id")
         with self.assertRaises(TypeError):
-            arb.proc_allocation(threads = 1.)
-        with self.assertRaisesRegex(ValueError,
-            "threads must be a positive integer"):
-             arb.proc_allocation(threads = 0)
+            arb.proc_allocation(threads=1.0)
+        with self.assertRaisesRegex(ValueError, "threads must be a positive integer"):
+            arb.proc_allocation(threads=0)
         with self.assertRaises(TypeError):
-            arb.proc_allocation(threads = None)
+            arb.proc_allocation(threads=None)
 
     def test_default_context(self):
         ctx = arb.context()
@@ -61,7 +63,7 @@ class TestContexts(unittest.TestCase):
         self.assertEqual(ctx.rank, 0)
 
     def test_context(self):
-        ctx = arb.context(threads = 42, gpu_id = None)
+        ctx = arb.context(threads=42, gpu_id=None)
 
         self.assertFalse(ctx.has_mpi)
         self.assertFalse(ctx.has_gpu)
@@ -71,7 +73,7 @@ class TestContexts(unittest.TestCase):
 
     def test_context_avail_threads(self):
         # test that 'avail_threads' returns at least 1.
-        ctx = arb.context(threads = 'avail_threads', gpu_id = None)
+        ctx = arb.context(threads="avail_threads", gpu_id=None)
 
         self.assertFalse(ctx.has_mpi)
         self.assertFalse(ctx.has_gpu)

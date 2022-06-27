@@ -2,7 +2,6 @@
 
 import unittest
 import arbor as A
-from .. import fixtures
 
 """
 tests for cable probe wrappers
@@ -10,6 +9,7 @@ tests for cable probe wrappers
 
 # Test recipe cc comprises one simple cable cell and mechanisms on it
 # sufficient to test cable cell probe wrappers wrap correctly.
+
 
 class cc_recipe(A.recipe):
     def __init__(self):
@@ -19,10 +19,10 @@ class cc_recipe(A.recipe):
 
         dec = A.decor()
 
-        dec.place('(location 0 0.08)', A.synapse("expsyn"), "syn0")
-        dec.place('(location 0 0.09)', A.synapse("exp2syn"), "syn1")
-        dec.place('(location 0 0.1)', A.iclamp(20.), "iclamp")
-        dec.paint('(all)', A.density("hh"))
+        dec.place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
+        dec.place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
+        dec.place("(location 0 0.1)", A.iclamp(20.0), "iclamp")
+        dec.paint("(all)", A.density("hh"))
 
         self.cell = A.cable_cell(st, A.label_dict(), dec)
 
@@ -44,50 +44,53 @@ class cc_recipe(A.recipe):
         # the returned list.
         return [
             # probe id (0, 0)
-            A.cable_probe_membrane_voltage(where='(location 0 0.00)'),
+            A.cable_probe_membrane_voltage(where="(location 0 0.00)"),
             # probe id (0, 1)
             A.cable_probe_membrane_voltage_cell(),
             # probe id (0, 2)
-            A.cable_probe_axial_current(where='(location 0 0.02)'),
+            A.cable_probe_axial_current(where="(location 0 0.02)"),
             # probe id (0, 3)
-            A.cable_probe_total_ion_current_density(where='(location 0 0.03)'),
+            A.cable_probe_total_ion_current_density(where="(location 0 0.03)"),
             # probe id (0, 4)
             A.cable_probe_total_ion_current_cell(),
             # probe id (0, 5)
             A.cable_probe_total_current_cell(),
             # probe id (0, 6)
-            A.cable_probe_density_state(where='(location 0 0.06)', mechanism='hh', state='m'),
+            A.cable_probe_density_state(
+                where="(location 0 0.06)", mechanism="hh", state="m"
+            ),
             # probe id (0, 7)
-            A.cable_probe_density_state_cell(mechanism='hh', state='n'),
+            A.cable_probe_density_state_cell(mechanism="hh", state="n"),
             # probe id (0, 8)
-            A.cable_probe_point_state(target=0, mechanism='expsyn', state='g'),
+            A.cable_probe_point_state(target=0, mechanism="expsyn", state="g"),
             # probe id (0, 9)
-            A.cable_probe_point_state_cell(mechanism='exp2syn', state='B'),
+            A.cable_probe_point_state_cell(mechanism="exp2syn", state="B"),
             # probe id (0, 10)
-            A.cable_probe_ion_current_density(where='(location 0 0.10)', ion='na'),
+            A.cable_probe_ion_current_density(where="(location 0 0.10)", ion="na"),
             # probe id (0, 11)
-            A.cable_probe_ion_current_cell(ion='na'),
+            A.cable_probe_ion_current_cell(ion="na"),
             # probe id (0, 12)
-            A.cable_probe_ion_int_concentration(where='(location 0 0.12)', ion='na'),
+            A.cable_probe_ion_int_concentration(where="(location 0 0.12)", ion="na"),
             # probe id (0, 13)
-            A.cable_probe_ion_int_concentration_cell(ion='na'),
+            A.cable_probe_ion_int_concentration_cell(ion="na"),
             # probe id (0, 14)
-            A.cable_probe_ion_ext_concentration(where='(location 0 0.14)', ion='na'),
+            A.cable_probe_ion_ext_concentration(where="(location 0 0.14)", ion="na"),
             # probe id (0, 15)
-            A.cable_probe_ion_ext_concentration_cell(ion='na'),
+            A.cable_probe_ion_ext_concentration_cell(ion="na"),
             # probe id (0, 15)
-            A.cable_probe_stimulus_current_cell()
+            A.cable_probe_stimulus_current_cell(),
         ]
 
     def cell_description(self, gid):
         return self.cell
+
 
 class TestCableProbes(unittest.TestCase):
     def test_probe_addr_metadata(self):
         recipe = cc_recipe()
         context = A.context()
         dd = A.partition_load_balance(recipe, context)
-        sim = A.simulation(recipe, dd, context)
+        sim = A.simulation(recipe, context, dd)
 
         all_cv_cables = [A.cable(0, 0, 1)]
 

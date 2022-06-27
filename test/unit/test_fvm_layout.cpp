@@ -1474,7 +1474,7 @@ TEST(fvm_layout, valence_verify) {
     EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), cable_cell_error);
 
     // Adding ion, should be fine now:
-    gprop.default_parameters.ion_data["cl"] = { 1., 1., 0. };
+    gprop.default_parameters.ion_data["cl"] = { 1., 1., 0., 0. };
     gprop.ion_species["cl"] = -1;
     EXPECT_NO_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D));
 
