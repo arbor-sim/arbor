@@ -74,9 +74,10 @@ Advanced options
 ^^^^^^^^^^^^^^^^
 
 Arbor comes with a few compilation options, some of them related to advanced forms of parallelism and other features.
-The options and flags are the same :ref:`as documented for the CMAKE build <quickstart>`, but they are passed differently. To enable more
-They must be placed in the ``CMAKE_ARGS`` environment variable. The simplest way to do this is by prepending the ``pip``
-command with ``CMAKE_ARGS=""``, where you place the arguments separated by space inside the quotes.
+The options and flags are the same :ref:`as documented for the CMAKE build <quickstart>`, but they are passed differently.
+To enable more, they must be placed in the ``CMAKE_ARGS`` environment variable.
+The simplest way to do this is by prepending the ``pip`` command with ``CMAKE_ARGS=""``,
+where you place the arguments separated by space inside the quotes.
 
 .. Note::
 
@@ -108,10 +109,12 @@ The following flags can be used to configure the installation:
    and ``CMake`` under the hood, so all flags and options valid in ``CMake`` can
    be used in this fashion.
 
-   Allthough the `scikit-build documentation <https://scikit-build.readthedocs.io/en/latest/usage.html#environment-variable-configuration>`_
-   mentions that you can also pass the build options with ``--install-option=""``, this will cause ``pip`` to build
-   all dependencies, including all build-dependencies, instead of downloading them from PyPI. ``CMAKE_ARGS=""``
-   saves you the build time, and also downloading and setting up the dependencies they in turn require to be present.
+   Allthough the
+   `scikit-build documentation <https://scikit-build.readthedocs.io/en/latest/usage.html#environment-variable-configuration>`_
+   mentions that you can also pass the build options with ``--install-option=""``,
+   this will cause ``pip`` to build all dependencies, including all build-dependencies,
+   instead of downloading them from PyPI.
+   ``CMAKE_ARGS=""`` saves you the build time, and also downloading and setting up the dependencies they in turn require to be present.
    Setting ``CMAKE_ARGS=""`` is in addition compatible with build front-ends like `build <https://pypa-build.readthedocs.io>`_.
 
    Detailed instructions on how to install using CMake are in the :ref:`Python

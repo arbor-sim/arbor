@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       - name: Make sdist
-        run: python -m build -s
+        run: python3 -m build -s
       - name: Install sdist
         run:  python3 -m pip install dist/arbor*.tar.gz
       - name: Run Python tests
