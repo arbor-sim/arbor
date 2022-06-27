@@ -115,7 +115,8 @@ std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
     return out;
 }
 
-//void arb::util::backtrace::print(bool) const {}
+void arb::util::backtrace::print(bool) const {}
+arb::util::backtrace::backtrace() = default;
 
 } // namespace util
 } // namespace arb

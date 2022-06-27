@@ -12,7 +12,7 @@
 #include <arbor/gpu/gpu_api.hpp>
 
 #define HANDLE_GPU_ERROR(error, msg)\
-arb::util::backtrace bt; std::cout<<bt<<"\n"; throw arbor_exception("GPU memory:: "+std::string(__func__)+" "+std::string((msg))+": "+error.description());
+    throw arbor_exception("GPU memory:: "+std::string(__func__)+" "+std::string((msg))+": "+error.description());
 
 namespace arb {
 namespace memory {

@@ -112,11 +112,9 @@ public:
 private:
     std::vector<event_time_type> ev_time_;
     std::vector<event_data_type> ev_data_;
+
     index_type span_begin_ = 0;
     index_type span_end_ = 0;
-    size_type remaining() const {
-        return ev_time_.size() - span_begin_;
-    };
 };
 
 } // namespace multicore

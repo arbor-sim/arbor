@@ -221,12 +221,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         const auto step_midpoint = state_->time+state_->dt/2.;
         state_->deliverable_events.mark_until_after(step_midpoint);
 
-        std::cout << "----\n";
+        //std::cout << "----\n";
         auto ev_state = state_->deliverable_events.marked_events();
         arb_deliverable_event_stream events{
                 (arb_deliverable_event_data*) ev_state.begin_marked,
                 (arb_deliverable_event_data*) ev_state.end_marked};
-        std::cout << "EVENTS:: " << events.begin << " - " << events.end << std::endl;
+        //std::cout << "EVENTS:: " << events.begin << " - " << events.end << std::endl;
 
         for (auto& m: mechanisms_) {
             if (ev_state.size()) {
@@ -234,7 +234,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             }
             m->update_current();
         }
-        std::cout << "****\n";
+        //std::cout << "****\n";
 
         state_->deliverable_events.drop_marked_events();
         PL();

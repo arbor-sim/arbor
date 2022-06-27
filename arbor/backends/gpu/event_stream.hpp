@@ -14,10 +14,12 @@
 #include "memory/copy.hpp"
 #include "profile/profiler_macro.hpp"
 #include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 namespace gpu {
 
+    /*
 // Base class provides common implementations across event types.
 class ARB_ARBOR_API event_stream_base {
 public:
@@ -31,7 +33,7 @@ public:
     using const_view = array::const_view_type;
     using view = array::view_type;
 
-    bool empty() const { return span_begin_==(index_type)ev_time_.size(); }
+    bool empty() const { return span_begin_==(index_type)ev_data_.size(); }
 
     void clear();
 
@@ -66,6 +68,7 @@ protected:
 
         util::assign_by(host_ev_time_, staged, [](const Event& ev) { return event_time(ev); });
         ev_time_ = array(memory::make_view(host_ev_time_));
+        span_begin_ = span_end_ = 0;
     }
 
     array ev_time_;
@@ -99,7 +102,7 @@ public:
     }
 
     state marked_events() const {
-        std::cout << "RETURNING: " << span_begin_ << "--" << span_end_ << "\n";
+        //std::cout << "RETURNING: " << span_begin_ << "--" << span_end_ << "\n";
         return {ev_data_.data()+span_begin_, ev_data_.data()+span_end_};
     }
 
@@ -108,6 +111,113 @@ private:
 
     // Host-side vector for staging event data in init():
     std::vector<event_data_type> tmp_ev_data_;
+};
+    */
+
+template <typename Event>
+class event_stream {
+public:
+    using size_type = fvm_size_type;
+    using index_type = fvm_index_type;
+    using event_type = Event;
+
+    using event_time_type = ::arb::event_time_type<Event>;
+    using event_data_type = ::arb::event_data_type<Event>;
+
+    using state = event_stream_state<event_data_type>;
+
+    event_stream() {}
+
+    bool empty() const { return span_begin_==(index_type)num_events_; }
+
+    void clear() {
+        num_events_ = 0;
+        span_begin_ = 0;
+        span_end_ = 0;
+    }
+
+    // Initialize event streams from a vector of events, sorted by time.
+    void init(std::vector<Event> staged) {
+        using ::arb::event_time;
+        using ::arb::event_data;
+
+        if (staged.size()>std::numeric_limits<size_type>::max()) {
+            throw arbor_internal_error("multicore/event_stream: too many events for size type");
+        }
+
+        num_events_ = staged.size();
+
+        util::assign_by(host_ev_time_, staged,
+                [](const Event& ev) {return event_time(ev); });
+        util::assign_by(host_ev_data_, staged,
+                [](const Event& ev) {return event_data(ev); });
+        ev_time_ = memory::make_view(host_ev_time_);
+        ev_data_ = memory::make_view(host_ev_data_);
+        span_begin_ = span_end_ = 0;
+    }
+
+    // Designate for processing events `ev` at head of the event stream
+    // until `event_time(ev)` > `t_until`.
+    void mark_until_after(const fvm_value_type& t_until) {
+        using ::arb::event_time;
+
+        const index_type end = ev_time_.size();
+        while (span_end_!=end && !(host_ev_time_[span_end_]>t_until)) {
+            ++span_end_;
+        }
+    }
+
+    // Designate for processing events `ev` at head the stream
+    // while `t_until` > `event_time(ev)`.
+    void mark_until(const arb::fvm_value_type& t_until) {
+        using ::arb::event_time;
+
+        const index_type end = ev_time_.size();
+        while (span_end_!=end && t_until>host_ev_time_[span_end_]) {
+            ++span_end_;
+        }
+    }
+
+    // Remove marked events from front of the event stream.
+    void drop_marked_events() {
+        span_begin_ = span_end_;
+    }
+
+    // Interface for access to marked events by mechanisms/kernels:
+    state marked_events() const {
+        return {ev_data_.data()+span_begin_, ev_data_.data()+span_end_};
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const event_stream<Event>& m) {
+        int n_ev = m.ev_data_.size();
+
+        out << "[";
+
+        for (int ev_i = 0; ev_i<n_ev; ++ev_i) {
+            bool discarded = ev_i<m.span_begin_;
+            bool marked = !discarded && ev_i<m.span_end_;
+
+            if (discarded) {
+                out << "        x";
+            }
+            else {
+                out << util::strprintf(" % 7.3f%c", m.host_ev_time_[ev_i]-1, marked?'*':' ');
+            }
+        }
+        return out << "]";
+    }
+
+private:
+    memory::device_vector<fvm_value_type> ev_time_;
+    memory::device_vector<event_data_type> ev_data_;
+
+    // Host-side vectors for staging values in init():
+    std::vector<fvm_value_type> host_ev_time_;
+    std::vector<event_data_type> host_ev_data_;
+
+    index_type span_begin_ = 0;
+    index_type span_end_ = 0;
+    index_type num_events_ = 0;
 };
 
 } // namespace gpu

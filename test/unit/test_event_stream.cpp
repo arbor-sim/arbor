@@ -9,6 +9,10 @@
 using namespace arb;
 
 namespace {
+    auto evtime = [](deliverable_event e) { return event_time(e); };
+}
+
+namespace {
     constexpr cell_local_size_type mech_1 = 10u;
     constexpr cell_local_size_type mech_2 = 13u;
 
@@ -38,9 +42,10 @@ TEST(event_stream, init) {
 
     event_stream m;
 
-    EXPECT_TRUE(std::is_sorted(common_events.begin(), common_events.end(), [](auto& l, auto& r) {return l.time<r.time;}));
+    auto events = common_events;
+    ASSERT_TRUE(util::is_sorted_by(events, evtime));
 
-    m.init(common_events);
+    m.init(events);
     EXPECT_FALSE(m.empty());
 
     m.clear();
