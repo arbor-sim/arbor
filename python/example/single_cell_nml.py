@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import arbor
 from arbor import mechanism as mech
-from arbor import location as loc
-import pandas, seaborn
+import pandas
+import seaborn
 import sys
 
 # Load a cell morphology from an nml file.

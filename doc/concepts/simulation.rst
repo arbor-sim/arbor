@@ -9,12 +9,16 @@ group are scheduled.
 From recipe to simulation
 -------------------------
 
-To build a simulation the following are needed:
+To build a simulation the following is needed:
 
 * A :ref:`recipe <modelrecipe>` that describes the cells and connections in the model.
-* A :ref:`domain decomposition <modeldomdec>` that describes the distribution of the
-  model over the local and distributed :ref:`hardware resources <modelhardware>`.
-* An :ref:`execution context <modelcontext>` used to execute the simulation.
+* A :ref:`domain decomposition <modeldomdec>` that describes the distribution of
+  the model over the local and distributed :ref:`hardware resources
+  <modelhardware>`. If not given, a default algorithm will be used which assigns
+  cells to groups one to one; each group is assigned to a thread from the context.
+* An :ref:`execution context <modelcontext>` used to execute the simulation. If
+  not given, the default context will be used, which allocates one thread, one
+  process (MPI task), and no GPU.
 
 Simulation execution and interaction
 ------------------------------------

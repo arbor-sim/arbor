@@ -230,7 +230,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
         cable1d_recipe rec({cell});
 
         auto decomp = arb::partition_load_balance(rec, context);
-        arb::simulation sim(rec, decomp, context);
+        arb::simulation sim(rec, context, decomp);
 
         sim.set_global_spike_callback(
                 [&spikes](const std::vector<arb::spike>& recorded_spikes) {

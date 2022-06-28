@@ -5,7 +5,6 @@
 
 #include <arbor/math.hpp>
 
-#include "matrix.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -16,21 +15,26 @@ using namespace arb;
 
 using backend     = multicore::backend;
 using array       = backend::array;
-using matrix_type = matrix<backend>;
-using index_type  = matrix_type::index_type;
-using value_type  = matrix_type::value_type;
+using solver_type = backend::cable_solver;
+using index_type  = arb_index_type;
+using value_type  = arb_value_type;
 
 using vvec = std::vector<value_type>;
 
 TEST(matrix, construct_from_parent_only)
 {
     std::vector<index_type> p = {0,0,1};
-    matrix_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
+    solver_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
+  //cable_solver(const std::vector<index_type>& p,
+  //             const std::vector<index_type>& cell_cv_divs,
+  //             const std::vector<value_type>& cap,
+  //             const std::vector<value_type>& cond,
+  //             const std::vector<value_type>& area):
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
     EXPECT_EQ(p.size(), 3u);
 
-    auto mp = m.p();
+    auto mp = m.parent_index;
     EXPECT_EQ(mp[0], index_type(0));
     EXPECT_EQ(mp[1], index_type(0));
     EXPECT_EQ(mp[2], index_type(1));
@@ -43,11 +47,10 @@ TEST(matrix, solve_host)
 
     // trivial case : 1x1 matrix
     {
-        matrix_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1));
-        auto& state = m.state_;
-        fill(state.d,  2);
-        fill(state.u, -1);
-        fill(state.rhs,1);
+        solver_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1));
+        fill(m.d,  2);
+        fill(m.u, -1);
+        fill(m.rhs,1);
 
         auto x = array({0});
         m.solve(x);
@@ -60,16 +63,14 @@ TEST(matrix, solve_host)
         for(auto n : make_span(2, 1001)) {
             auto p = std::vector<index_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            matrix_type m(p, {0, n}, vvec(n), vvec(n), vvec(n));
+            solver_type m(p, {0, n}, vvec(n), vvec(n), vvec(n));
 
             EXPECT_EQ(m.size(), (unsigned)n);
             EXPECT_EQ(m.num_cells(), 1u);
 
-            auto& A = m.state_;
-
-            fill(A.d,  2);
-            fill(A.u, -1);
-            fill(A.rhs,1);
+            fill(m.d,  2);
+            fill(m.u, -1);
+            fill(m.rhs,1);
 
 
             auto x = array();
@@ -93,7 +94,7 @@ TEST(matrix, solve_multi_matrix)
     // test case from CV data.
 
     using util::assign;
-    using array = matrix_type::array;
+    using array = solver_type::array;
 
     // Combined matrix may have zero-blocks, corresponding to a zero dt.
     // Zero-blocks are indicated by zero value in the diagonal (the off-diagonal
@@ -101,9 +102,12 @@ TEST(matrix, solve_multi_matrix)
     // These submatrices should leave the rhs as-is when solved.
 
     // Three matrices, sizes 3, 3 and 2, with no branching.
+    // parent index:
     std::vector<index_type> p = {0, 0, 1, 3, 3, 5, 5};
+    // cell divisipn index:
     std::vector<index_type> c = {0, 3, 5, 7};
-    std::vector<index_type> s = {0, 1, 2};
+
+    value_type dt = 1e-3;
 
     // Face conductances.
     vvec g = {0, 1, 1, 0, 1, 0, 2};
@@ -127,8 +131,8 @@ TEST(matrix, solve_multi_matrix)
     // Expected solution:
     // x = [ 4 5 6 7 8 9 10 ]
 
-    matrix_type m(p, c, Cm, g, area);
-    m.assemble(1e-3, v, i, mg);
+    solver_type m(p, c, Cm, g, area);
+    m.assemble(dt, v, i, mg);
 
     auto x = array({0, 0, 0, 0, 0, 0, 0});
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
@@ -136,4 +140,3 @@ TEST(matrix, solve_multi_matrix)
     m.solve(x);
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
 }
-

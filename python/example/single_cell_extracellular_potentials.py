@@ -74,8 +74,7 @@ def make_cable_cell(morphology, clamp_location):
     cvs_per_branch = 3
 
     # Label dictionary
-    defs = {}
-    labels = arbor.label_dict(defs)
+    labels = arbor.label_dict()
 
     # decor
     decor = arbor.decor()
@@ -124,9 +123,7 @@ p, cell = make_cable_cell(morphology, clamp_location)
 recipe = Recipe(cell)
 
 # instantiate simulation
-context = arbor.context()
-domains = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, domains, context)
+sim = arbor.simulation(recipe)
 
 # set up sampling on probes with sampling every 1 ms
 schedule = arbor.regular_schedule(1.0)

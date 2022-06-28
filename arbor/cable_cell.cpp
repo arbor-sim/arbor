@@ -146,6 +146,10 @@ struct cable_cell_impl {
         return region_map.get<init_int_concentration>()[init.ion];
     }
 
+    mcable_map<ion_diffusivity>& get_region_map(const ion_diffusivity& init) {
+        return region_map.get<ion_diffusivity>()[init.ion];
+    }
+
     mcable_map<init_ext_concentration>& get_region_map(const init_ext_concentration& init) {
         return region_map.get<init_ext_concentration>()[init.ion];
     }

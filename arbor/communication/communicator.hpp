@@ -81,6 +81,7 @@ private:
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
+    std::uint64_t num_local_events_ = 0u;
 };
 
 } // namespace arb

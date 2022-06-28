@@ -28,3 +28,4 @@ $PREFIX python python/example/single_cell_recipe.py
 $PREFIX python python/example/single_cell_stdp.py
 $PREFIX python python/example/single_cell_swc.py python/example/single_cell_detailed.swc
 $PREFIX python python/example/two_cell_gap_junctions.py
+$PREFIX python python/example/diffusion.py

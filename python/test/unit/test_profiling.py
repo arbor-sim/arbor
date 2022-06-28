@@ -6,7 +6,6 @@ import unittest
 
 import arbor as arb
 import functools
-from .. import fixtures
 
 """
 all tests for profiling
@@ -93,7 +92,7 @@ class TestProfiling(unittest.TestCase):
         arb.profiler_initialize(context)
         recipe = a_recipe()
         dd = arb.partition_load_balance(recipe, context)
-        arb.simulation(recipe, dd, context).run(1)
+        arb.simulation(recipe, context, dd).run(1)
         summary = arb.profiler_summary()
         self.assertEqual(str, type(summary), "profiler summary must be str")
         self.assertTrue(summary, "empty summary")

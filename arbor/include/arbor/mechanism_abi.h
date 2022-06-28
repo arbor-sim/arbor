@@ -9,8 +9,8 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 1
-#define ARB_MECH_ABI_VERSION_PATCH 0
+#define ARB_MECH_ABI_VERSION_MINOR 2
+#define ARB_MECH_ABI_VERSION_PATCH 1
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
@@ -40,9 +40,11 @@ inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
 // Ion state variables; view into shared_state
 typedef struct arb_ion_state {
     arb_value_type* current_density;
+    arb_value_type* conductivity;
     arb_value_type* reversal_potential;
     arb_value_type* internal_concentration;
     arb_value_type* external_concentration;
+    arb_value_type* diffusive_concentration;
     arb_value_type* ionic_charge;
     arb_index_type* index;
 } arb_ion_state;
@@ -176,6 +178,7 @@ typedef struct arb_ion_info {
     const char* name;
     bool write_int_concentration;
     bool write_ext_concentration;
+    bool use_diff_concentration;
     bool write_rev_potential;
     bool read_rev_potential;
     bool read_valence;

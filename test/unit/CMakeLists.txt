@@ -112,6 +112,7 @@ set(unit_sources
     test_forest.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
+    test_diffusion.cpp
     test_index.cpp
     test_kinetic_linear.cpp
     test_lexcmp.cpp

@@ -12,8 +12,8 @@
 
 import arbor
 from arbor import mechanism as mech
-from arbor import location as loc
-import pandas, seaborn
+import pandas
+import seaborn
 import sys
 
 # Load a cell morphology from an swc file.
@@ -26,15 +26,13 @@ filename = sys.argv[1]
 morpho = arbor.load_swc_arbor(filename)
 
 # Define the regions and locsets in the model.
-defs = {
-    "soma": "(tag 1)",  # soma has tag 1 in swc files.
-    "axon": "(tag 2)",  # axon has tag 2 in swc files.
-    "dend": "(tag 3)",  # dendrites have tag 3 in swc files.
-    "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
-    "stim_site": "(location 0 0.5)",  # site for the stimulus, in the middle of branch 0.
-    "axon_end": '(restrict (terminal) (region "axon"))',
-}  # end of the axon.
-labels = arbor.label_dict(defs)
+labels = arbor.label_dict(
+    {
+        "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
+        "stim_site": "(location 0 0.5)",  # site for the stimulus, in the middle of branch 0.
+        "axon_end": '(restrict (terminal) (region "axon"))',  # end of the axon. NB. 'axon' will be added below
+    }
+).add_swc_tags()  # Finally, add the SWC default labels.
 
 decor = arbor.decor()
 

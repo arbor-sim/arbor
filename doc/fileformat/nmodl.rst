@@ -56,6 +56,7 @@ ion X current (point and junction mechanisms)    iX                             
 ion X reversal potential                         eX                                                   mV
 ion X internal concentration                     Xi                                                   mmol/L
 ion X external concentration                     Xo                                                   mmol/L
+ion X diffusive concentration                    Xd                                                   mmol/L
 ===============================================  ===================================================  ==========
 
 Ions
@@ -72,12 +73,22 @@ Ions
   ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
 * ``READ`` and ``WRITE`` permissions of ``Xi``, ``Xo``, ``eX`` and ``iX`` can be set
   in NMODL in the ``NEURON`` block. If a parameter is writable it is automatically
-  readable and doesn't need to be specified as both.
-* If ``Xi``, ``Xo``, ``eX``, ``iX`` are used in a ``PROCEDURE`` or ``FUNCTION``,
+  readable and must not be specified as both.
+* If ``Xi``, ``Xo``, ``eX``, ``iX``, ``Xd`` are used in a ``PROCEDURE`` or ``FUNCTION``,
   they need to be passed as arguments.
 * If ``Xi`` or ``Xo`` (internal and external concentrations) are written in the
-  NMODL mechanism they need to be declared as ``STATE`` variables and their initial
-  values have to be set in the ``INITIAL`` block in the mechanism.
+  NMODL mechanism they need to be declared as ``STATE`` variables and their
+  initial values have to be set in the ``INITIAL`` block in the mechanism. This
+  transfers **all** responsibility for handling ``Xi`` / ``Xo`` to the mechanism
+  and will lead to painted initial values to be ignored. If these quantities are
+  not made ``STATE`` they may be written to, but their values will be reset to
+  their initial values every time step.
+* The diffusive concentration ``Xd`` does not share this semantics. It will not
+  be reset, even if not in ``STATE``, and may freely be written. This comes at the
+  cost of awkward treatment of ODEs for ``Xd``, see the included ``decay.mod`` for
+  an example.
+* ``Xd`` is present on all cables iff its associated diffusivity is set to a
+  non-zero value.
 
 Special variables
 -----------------

@@ -2,7 +2,8 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import glob
-import pandas, seaborn
+import pandas
+import seaborn
 
 results = glob.glob("result_mpi_*.csv")
 

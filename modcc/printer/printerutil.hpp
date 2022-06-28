@@ -149,6 +149,7 @@ struct ARB_LIBMODCC_API indexed_variable_info {
 
     bool accumulate = true; // true => add with weight_ factor on assignment
     bool readonly = false;  // true => can never be assigned to by a mechanism
+    bool additive = false;  // only additive contributions allowed?
 
     // Scale is the conversion factor from the data variable
     // to the NMODL value.

@@ -7,6 +7,7 @@ import seaborn
 import pandas
 import matplotlib.pyplot as plt
 
+
 # (3) A function that parses the Allen parameter fit file into components for an arbor.decor
 # NB. Needs to be adjusted when using a different model
 def load_allen_fit(fit):
@@ -74,15 +75,8 @@ def make_cell(swc, fit):
     morphology = arbor.load_swc_neuron(swc)
     # (2) Label the region tags found in the swc with the names used in the parameter fit file.
     # In addition, label the midpoint of the somarbor.
-    labels = arbor.label_dict(
-        {
-            "soma": "(tag 1)",
-            "axon": "(tag 2)",
-            "dend": "(tag 3)",
-            "apic": "(tag 4)",
-            "midpoint": "(location 0 0.5)",
-        }
-    )
+    labels = arbor.label_dict().add_swc_tags()
+    labels["midpoint"] = "(location 0 0.5)"
 
     # (3) A function that parses the Allen parameter fit file into components for an arbor.decor
     dflt, regions, ions, mechanisms, offset = load_allen_fit(fit)

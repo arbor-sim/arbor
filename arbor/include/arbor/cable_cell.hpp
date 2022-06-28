@@ -162,6 +162,21 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_int_concentration_cell {
     std::string ion;
 };
 
+// Ionic diffusive concentration [mmol/L] of ion `source` at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_diff_concentration {
+    locset locations;
+    std::string ion;
+};
+
+// Ionic diffusiev concentration [mmol/L] of ion `source` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_diff_concentration_cell {
+    std::string ion;
+};
+
 // Ionic external concentration [mmol/L] of ion `source` at `location`.
 // Sample value type: `double`
 // Sample metadata type: `mlocation`
@@ -190,7 +205,8 @@ template <typename T>
 using region_assignment =
     std::conditional_t<
         std::is_same<T, density>::value || std::is_same<T, init_int_concentration>::value ||
-        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value,
+        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
+        std::is_same<T, ion_diffusivity>::value,
         std::unordered_map<std::string, mcable_map<T>>,
         mcable_map<T>>;
 
@@ -215,7 +231,7 @@ using location_assignment =
 using cable_cell_region_map = static_typed_map<region_assignment,
     density, init_membrane_potential, axial_resistivity,
     temperature_K, membrane_capacitance, init_int_concentration,
-    init_ext_concentration, init_reversal_potential>;
+    ion_diffusivity, init_ext_concentration, init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,
     synapse, junction, i_clamp, threshold_detector>;

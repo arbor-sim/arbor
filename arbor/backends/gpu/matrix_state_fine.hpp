@@ -12,64 +12,12 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "tree.hpp"
-
+#include "fine.hpp"
 #include "matrix_fine.hpp"
 #include "forest.hpp"
 
 namespace arb {
 namespace gpu {
-
-// Helper type for branch meta data in setup phase of fine grained
-// matrix storage+solver.
-//
-//      leaf
-//      .
-//      .
-//      .
-//  -   *
-//      |
-//  l   *
-//  e   |
-//  n   *
-//  g   |
-//  t   *
-//  h   |
-//  -   start_idx
-//      |
-//      parent_idx
-//      |
-//      .
-//      .
-//      .
-//      root
-struct branch {
-    unsigned id;         // branch id
-    unsigned parent_id;  // parent branch id
-    unsigned parent_idx; //
-    unsigned start_idx;  // the index of the first node in the input parent index
-    unsigned length;     // the number of nodes in the branch
-};
-
-// order branches by:
-//  - descending length
-//  - ascending id
-inline
-bool operator<(const branch& lhs, const branch& rhs) {
-    if (lhs.length!=rhs.length) {
-        return lhs.length>rhs.length;
-    } else {
-        return lhs.id<rhs.id;
-    }
-}
-
-inline
-std::ostream& operator<<(std::ostream& o, branch b) {
-    return o << "[" << b.id
-        << ", len " << b.length
-        << ", pid " << b.parent_idx
-        << ", sta " << b.start_idx
-        << "]";
-}
 
 template <typename T, typename I>
 struct matrix_state_fine {
@@ -491,11 +439,9 @@ public:
         packed_to_flat(rhs, to);
     }
 
-private:
-    std::size_t size() const {
-        return matrix_size;
-    }
+    std::size_t size() const { return matrix_size; }
 
+private:
     void flat_to_packed(const array& from, array& to ) {
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);
