@@ -63,15 +63,12 @@ class Cable(arbor.recipe):
         return 1
 
     def num_sources(self, gid):
-        assert gid == 0
         return 0
 
     def cell_kind(self, gid):
-        assert gid == 0
         return arbor.cell_kind.cable
 
     def probes(self, gid):
-        assert gid == 0
         return self.the_probes
 
     def global_properties(self, kind):
@@ -83,7 +80,6 @@ class Cable(arbor.recipe):
         For example the morphology, synapses and ion channels required
         to build a multi-compartment neuron.
         """
-        assert gid == 0
 
         tree = arbor.segment_tree()
 

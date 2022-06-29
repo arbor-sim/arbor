@@ -85,7 +85,8 @@ Another checkpoint will help us understand how long creating the load balancer t
 The simulation
 **************
 
-Step **(16)** creates a :class:`arbor.simulation`, sets the spike recorders to record, creates a :term:`handle` to their eventual results and makes another checkpoint.
+Step **(16)** creates a :class:`arbor.simulation`, sets the spike recorders to record, creates a :term:`handle`
+to their eventual results and makes another checkpoint.
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
@@ -94,7 +95,10 @@ Step **(16)** creates a :class:`arbor.simulation`, sets the spike recorders to r
 The execution
 *************
 
-Step **(17)** runs the simulation. Since we have more cells this time, which are connected in series, it will take some time for the action potential to propagate. In the :ref:`ring network <tutorialnetworkring>` we could see it takes about 5 ms for the signal to propagate through one cell, so let's set the runtime to ``5*ncells``. Then, another checkpoint, so that we'll know how long the simulation took.
+Step **(17)** runs the simulation. Since we have more cells this time, which are connected in series,
+it will take some time for the action potential to propagate. In the :ref:`ring network <tutorialnetworkring>`
+we could see it takes about 5 ms for the signal to propagate through one cell, so let's set the runtime to
+``5*ncells``. Then, another checkpoint, so that we'll know how long the simulation took.
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python
@@ -110,7 +114,9 @@ so we'll not discuss them here. Let's turn our attention to the :class:`~arbor.m
    :language: python
    :lines: 161-163
 
-Step **(18)** shows how :class:`arbor.meter_report` can be used to read out the :class:`~arbor.meter_manager`. It generates a table with the time between checkpoints. For example:
+Step **(18)** shows how :class:`arbor.meter_report` can be used to read out the :class:`~arbor.meter_manager`.
+It generates a table with the time between checkpoints. As an example, the following table is the result of a run
+on a 2019 laptop CPU:
 
 ::
 

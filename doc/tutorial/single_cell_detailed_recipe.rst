@@ -49,7 +49,7 @@ examine the recipe in detail: how to create one, and why it is needed.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 84-134
+   :lines: 84-132
 
 Let's go through the recipe point by point.
 
@@ -57,61 +57,67 @@ Step **(5)** creates a ``single_recipe`` class that inherits from :class:`arbor.
 implements all the methods defined above with default values except :meth:`arbor.recipe.num_cells`,
 :meth:`arbor.recipe.cell_kind` and :meth:`arbor.recipe.cell_description` which always have to be implemented
 by the user. The :meth:`arbor.recipe.global_properties` also needs to be implemented for
-:class:`arbor.cell_kind.cable` cells. The inherited recipe can implement any number of additional methods and
-have any number of instance or class variables.
+:class:`arbor.cell_kind.cable` cells.
 
-Step **(5.1)** defines the class constructor. In this case, we pass a ``cell`` and a set of ``probes`` as
-arguments. These will be used to initialize the instance variables ``self.the_cell`` and ``self.the_probes``,
-which will be used in the overloaded ``cell_description`` and ``get_probes`` methods. Before variable
-initialization, we call the base C++ class constructor ``arbor.recipe.__init__(self)``. This ensures correct
-initialization of memory in the C++ class.
+.. note::
+   The inherited recipe can implement any number of additional methods and have any number of instance or class
+   variables. The structure shown in this example is a choice; it's up to you to structure your code the way you
+   see fit. What matters is that the methods required to be present return valid results of the correct type.
+   The only additional hard requirements are that:
 
-We also create the ``self.the_cat`` variable and set it to arbor's default mechanism catalogue. This will expose
-the *hh* and *pas* mechanisms but not the *Ih* mechanism, which is present in the allen catalogue. To be able
-to use *Ih*, we extend ``self.the_cat`` to include the allen catalogue.
+   1. the recipe constructor explicitly calls the base C++ class constructor (at the moment there is no way to
+   instruct Python to do that automatically).
+
+   2. the mechanism catalogue is assigned to an instance variable, such that its lifetime is guaranteed to extend
+   to the entire duration of the simulation.
+   
+
+Step **(5.1)** defines the class constructor. Before variable initialization, we call the base C++ class 
+constructor ``arbor.recipe.__init__(self)``. This ensures correct initialization of memory in the C++ class.
+
+We also create the instance variable for the mechanism catalogue, the ``self.the_cat`` variable. We set it to
+Arbor's default mechanism catalogue. This will expose the *hh* and *pas* mechanisms but not the *Ih* mechanism,
+which is present in the allen catalogue. To be able to use *Ih*, we extend ``self.the_cat`` to include the Allen
+catalogue.
 
 Finally we create the ``self.the_props`` variable. This will hold the global properties of the model, which apply
 to all the cells in the network. Initially it is empty. We set all the properties of the system similar to
 what we did in the :ref:`previous example <tutorialsinglecellswc-gprop>`. One last important step is to register
 ``self.the_cat`` with ``self.the_props``.
 
-.. Note::
-
-   The mechanism catalogue needs to live in the recipe as an instance variable. Its lifetime needs to extend
-   to the entire duration of the simulation.
-
-Step **(5.2)** overrides the :meth:`arbor.recipe.num_cells` method. It takes no arguments. We simply return 1,
+Step **(5.2)** overrides the :meth:`~arbor.recipe.num_cells` method. It takes no arguments. We simply return 1,
 as we are only simulating one cell in this example.
 
-Step **(5.3)** overrides the :meth:`arbor.recipe.cell_kind` method. It takes one argument: ``gid``.
+Step **(5.3)** overrides the :meth:`~arbor.recipe.cell_kind` method. It takes one argument: ``gid``.
 Given the gid, this method returns the kind of the cell. Our defined cell is a
 :class:`arbor.cell_kind.cable`, so we simply return that.
 
-Step **(5.4)** overrides the :meth:`arbor.recipe.cell_description` method. It takes one argument: ``gid``.
+Step **(5.4)** overrides the :meth:`~arbor.recipe.cell_description` method. It takes one argument: ``gid``.
 Given the gid, this method returns the cell description which is the cell object passed to the constructor
-of the recipe. We return ``self.the_cell``.
+of the recipe. We return ``cell``, the cell created just above.
 
-Step **(5.5)** overrides the :meth:`arbor.recipe.get_probes` method. It takes one argument: ``gid``.
+Step **(5.5)** overrides the :meth:`~arbor.recipe.get_probes` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the probes on the cell. The probes can be of many different kinds
-measuring different quantities on different locations of the cell. We pass these probes explicitly to the recipe
-and they are stored in ``self.the_probes``, so we return that variable.
+measuring different quantities on different locations of the cell. Like in the previous example, we will
+create the voltage probe at the ``"custom_terminal"`` locset. This probe was registered directly using the 
+:class:`arbor.single_cell_model` object. Now it has to be explicitly created and registered in the recipe.
 
-Step **(5.6)** overrides the :meth:`arbor.recipe.connections_on` method. It takes one argument: ``gid``.
+Step **(5.6)** overrides the :meth:`~arbor.recipe.connections_on` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the connections ending on that cell. These are typically synapse
 connections from other cell *sources* to specific *targets* on the cell with id ``gid``. Since we are
 simulating a single cell, and self-connections are not possible, we return an empty list.
 
-Step **(5.7)** overrides the :meth:`arbor.recipe.gap_junctions_on` method. It takes one argument: ``gid``.
+Step **(5.7)** overrides the :meth:`~arbor.recipe.gap_junctions_on` method. It takes one argument: ``gid``.
 Given the gid, this method returns all the gap junctions on that cell. Gap junctions require 2 separate cells.
 Since we are simulating a single cell, we return an empty list.
 
-Step **(5.8)** overrides the :meth:`arbor.recipe.event_generators` method. It takes one argument: ``gid``.
+Step **(5.8)** overrides the :meth:`~arbor.recipe.event_generators` method. It takes one argument: ``gid``.
 Given the gid, this method returns *event generators* on that cell. These generators trigger events (or
 spikes) on specific *targets* on the cell. They can be used to simulate spikes from other cells, to kick-start
 a simulation for example. Our cell uses a current clamp as a stimulus, and has no targets, so we return
 an empty list.
 
-Step **(5.9)** overrides the :meth:`arbor.recipe.global_properties` method. It takes one argument: ``kind``.
+Step **(5.9)** overrides the :meth:`~arbor.recipe.global_properties` method. It takes one argument: ``kind``.
 This method returns the default global properties of the model which apply to all cells in the network of
 that kind. We only use ``cable`` cells in this example (but there are more) and thus always return a
 ``cable_cell_properties`` object. We return ``self.the_props`` which we defined in step **(1)**.
@@ -126,14 +132,11 @@ that kind. We only use ``cable`` cells in this example (but there are more) and 
 
    More information on the recipe can be found :ref:`here <modelrecipe>`.
 
-Now we can instantiate a ``single_recipe`` object using the cell and a list of probes.
-Like in the previous example, we will create the voltage probe at the "custom_terminal" locset.
-This probe was registered directly using the :class:`arbor.single_cell_model` object.
-Now it has to be explicitly created and registered in the recipe.
+Now we can instantiate a ``single_recipe`` object.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 137-139
+   :lines: 135-136
 
 The simulation
 **************
@@ -142,7 +145,7 @@ We have all we need to create a :class:`arbor.simulation` object.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 141-142
+   :lines: 138-139
 
 Before we run the simulation, however, we need to register what results we expect once execution is over.
 This was handled by the :class:`arbor.single_cell_model` object in the previous example.
@@ -152,7 +155,7 @@ to plot the voltage registered by the probe on the "custom_terminal" locset.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 145-148
+   :lines: 142-145
 
 The lines handling probe sampling warrant a second look. First, we declared :term:`probe_id` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
@@ -166,7 +169,7 @@ We can now run the simulation we just instantiated for a duration of 100 ms with
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 150-151
+   :lines: 147-148
 
 The results
 ***********
@@ -178,13 +181,13 @@ We can print the times of the spikes:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 153-157
+   :lines: 150-154
 
 The probe results, again, warrant some more explanation:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 159-163
+   :lines: 156-160
 
 ``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
 of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
@@ -197,7 +200,7 @@ We plot the results using pandas and seaborn as we did in the previous example, 
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 165-
+   :lines: 162-
 
 The following plot is generated. Identical to the plot of the previous example.
 

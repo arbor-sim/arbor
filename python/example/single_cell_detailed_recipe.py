@@ -85,12 +85,10 @@ cell = arbor.cable_cell(morph, labels, decor)
 class single_recipe(arbor.recipe):
 
     # (5.1) Define the class constructor
-    def __init__(self, cell, probes):
+    def __init__(self):
         # The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
-        self.the_cell = cell
-        self.the_probes = probes
 
         self.the_props = arbor.cable_global_properties()
         self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
@@ -111,11 +109,11 @@ class single_recipe(arbor.recipe):
 
     # (5.4) Override the cell_description method
     def cell_description(self, gid):
-        return self.the_cell
+        return cell
 
     # (5.5) Override the probes method
     def probes(self, gid):
-        return self.the_probes
+        return [arbor.cable_probe_membrane_voltage('"custom_terminal"')]
 
     # (5.6) Override the connections_on method
     def connections_on(self, gid):
@@ -129,14 +127,13 @@ class single_recipe(arbor.recipe):
     def event_generators(self, gid):
         return []
 
-    # (5.9) Overrode the global_properties method
+    # (5.9) Override the global_properties method
     def global_properties(self, gid):
         return self.the_props
 
 
 # Instantiate recipe
-# Pass the probe in a list because that it what single_recipe expects.
-recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"custom_terminal"')])
+recipe = single_recipe()
 
 # (6) Create a simulation
 sim = arbor.simulation(recipe)
