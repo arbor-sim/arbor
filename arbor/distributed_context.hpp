@@ -164,6 +164,7 @@ private:
             //std::cout << wrapped.id() << " Gather GJ Map\n";
             return wrapped.gather_gj_connections(local_connections);
         }
+        //cell_label_range includes sizes, labels, ranges
         cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const override {
             return wrapped.gather_cell_label_range(local_ranges);

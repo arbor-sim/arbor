@@ -761,7 +761,7 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_
     return gj_cvs;
 }*/
 
-
+//todo make resolution map with gj_data and gids global -> maybe try to gather cell_label_range gj_data 
 ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,

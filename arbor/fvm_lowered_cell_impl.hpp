@@ -248,7 +248,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     multicore::iarray src_to_spike_r = state_->src_to_spike;
     
     multicore::istim_state stim_data_r = state_->stim_data;
-    std::unordered_map<std::string, multicore::ion_state> ion_data_r = state_->ion_data;
+    //std::unordered_map<std::string, multicore::ion_state> ion_data_r = state_->ion_data;
     
     std::unordered_map<unsigned, multicore::shared_state::mech_storage> storage_r;
     std::unordered_map<unsigned, std::vector<arb_value_type>>           parameters_r;
@@ -339,9 +339,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 m->deliver_events(events);
 
                 // The peer index in the ppack is changed every iteration in the epoch
-                // In every new epoch, the peer_ix that helps access the trace array has to be recalculated
-                // If we don't reset the peer index after the epoch (to what it is according to the layout), 
-                // random values are written at the start of the next epoch
+                // In every new epoch, the peer_ix for indexing into the trace array has to be recalculated
                 std::vector<arb_index_type> pidx_reset; 
                 
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
@@ -349,10 +347,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     auto& ppack = m->ppack_;
                     auto& pidx  = ppack.peer_index;
                     auto& nidx  = ppack.node_index;
-
-                    //pidx = pidx_reset.data();
-
-                    //std::vector<arb_index_type> peer_ix(ppack.width, 0);
 
                     auto m_id = m->mechanism_id();
                     auto& peer_ix = peer_ix_map[m_id];
@@ -390,7 +384,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         for (int ix = 0; ix < ppack.width; ++ix) {
                             auto cg_node = std::get<1>(index_to_cell[ppack.node_index[ix]]);
                             auto cg_peer = std::get<1>(index_to_cell[ppack.peer_index[ix]]);
-                            if (cg_node == cg_peer) {
+                            auto len            = cvs_global.size();
+                            auto peer           = ppack.peer_index[ix];
+                            auto node           = std::find(cvs_global.begin(), cvs_global.end(), peer);
+                            auto offset         = node-cvs_global.begin();
+                            if (offset >= len) throw std::runtime_error("Connection not found.");
+                            peer_ix[ix] = offset;
+
+                            /*if (cg_node == cg_peer) {
                                 auto len            = cvs_global.size();
                                 auto peer           = ppack.peer_index[ix];
                                 auto node           = std::find(cvs_global.begin(), cvs_global.end(), peer);
@@ -399,8 +400,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                                 peer_ix[ix] = offset;
                             }
                             else {
-                                throw std::runtime_error("Non-local connectivity is not implemented yet.");
-                            }
+                                //throw std::runtime_error("Non-local connectivity is not implemented yet.");
+                            }*/
                         }
                         //for (int ix = 0; ix < ppack.width; ++ix) std::cerr << " * " << peer_ix[ix] << '\n';
 
@@ -410,11 +411,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     if (wr_it == 0) {
                         // Q: Didn't we want to have the identity here, ie i --> i, instead of the peer index?
                         // A: Yes, indeed peer_ix_group is either the local peer index or the identity, if not local
+
                         pidx = peer_ix_group.data();
                         
                         std::vector<arb_value_type> v_temp = {};
                         for(int i = 0; i<cvs_local.size(); ++i) {
-                            v_temp.push_back(state_->voltage[i]);
+                            v_temp.push_back(state_->voltage[cvs_local[i]]);
+                            //v_temp.push_back(state_->voltage[i]);
                         }
 
                         ppack.vec_v_peer = v_temp.data();
@@ -424,7 +427,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         // or not. However, the selection of the trace must take locality into account.
                         // Q: How to select?
                         pidx = peer_ix.data();
-                        ppack.vec_v_peer = trace_prev[step].data();
+                        m->ppack_.vec_v_peer = trace_prev[step].data();
                     }
                 }
                 
@@ -433,30 +436,38 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
                     //Write contents from state_->voltage into trace
+                    //ToDo Check trace format again, trace = v[cvs_local] or trace = state_->voltage?
+
+                    /*
+                    std::vector<value_type> v_step(cvs_local.size(), 0.);
+                    for (auto ix = 0; ix<cvs_local.size(); ++ix) {
+                        v_step[ix] = state_->voltage[cvs_local[ix]];
+                    }
+                    trace.push_back(v_step);
+                    */
+                                        
                     std::vector<value_type> v_step(state_->voltage.size(), 0.);
                     for (auto ix = 0; ix<state_->voltage.size(); ++ix) {
                         v_step[ix] = state_->voltage[ix];
                     }
                     trace.push_back(v_step);
+                    
                    
                     //todo eliminate mechanism id
                     auto gj = m->mechanism_id();
                     m->ppack_.peer_index = peer_ix_reset_map[gj];
 
-                    /*
-                    if (cell_group == 1){
+                    
+                    if (cell_group == 0){
                         file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test.txt", std::ios::app);
     
                         for (auto v: state_->voltage) {
                             file0 << v << ", ";
                         }
 
-                        //for (auto j = 0; j<state_->voltage.size(); ++j) {
-                        //    file0 << state_->voltage[node_ix_group[j]] << ", ";
-                        //}
                         file0 << std::endl;
                         file0.close();
-                    }*/
+                    }
 
                     // Calculate error for break condition
                     if (wr_it > 1) {
@@ -560,7 +571,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Break if no CV has an err > eps or maximum WR iterations reached
         if ((wr_it > 1 && max_err < eps) or wr_max == 1 || wr_it == wr_max) {
             std::cout << "break at it = " << wr_it << std::endl;
-            break;
+            //break;
         }
 
         // Reset traces
@@ -773,10 +784,80 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     std::unordered_map<cell_member_type, fvm_size_type> gj_cvs_index = fvm_index_to_cv_map(gids_gathered, lids_gathered, cgs_gathered, cvs_gathered, cell_to_index);
 
     //resolve gap junctions with global index map
-    // TODO: need to add GIDs to the gap_junction_data
-    //auto global_gj_data = context_.distributed->gather_cell_labels_and_gids(fvm_info.gap_junction_data);
-    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs_index, rec);
+    //resolution map = combination of cell_label_range and gids -> gather gids and cell_label_ranges before feeding to fvm_resolve_gap_junction_connection
+    //resolution map = cell_labels_and_gids
 
+    //check gids first
+    std::cout << " gids = ";
+    for (auto gid: gids) {std::cout << gid << " ";}
+    std::cout << "\n";
+    //check cell_label_range first
+    std::cout << " cell_label_range.sizes() = ";
+    for (auto s: fvm_info.gap_junction_data.sizes()) {std::cout << s << " ";}
+    std::cout << "\n";
+    std::cout << " cell_label_range.labels() = ";
+    for (auto l: fvm_info.gap_junction_data.labels()) {std::cout << l << " ";}
+    std::cout << "\n";
+    std::cout << " cell_label_range.ranges() = ";
+    for (auto range: fvm_info.gap_junction_data.ranges()) {
+        std::cout << " (" << range.begin << ", " << range.end << ") ";
+    }
+    std::cout << "\n";
+
+    //gather both and check again 
+
+    //gather gids
+    std::vector<cell_gid_type> resolution_gids_gathered = context_.distributed->gather_gids(gids).values();
+    //check gathered gids
+    std::cout << " gathered gids = ";
+    for (auto gid: resolution_gids_gathered) {std::cout << gid << " ";}
+    std::cout << "\n";
+
+    //gather cell_label_ranges
+    cell_label_range gj_data_gathered = context_.distributed->gather_cell_label_range(fvm_info.gap_junction_data);
+    //check gathered cell_label_range
+    std::cout << " gj_range.sizes() = ";
+    for (auto s: gj_data_gathered.sizes()) {std::cout << s << " ";}
+    std::cout << "\n";
+    std::cout << " gj_range.labels() = ";
+    for (auto l: gj_data_gathered.labels()) {std::cout << l << " ";}
+    std::cout << "\n";
+    std::cout << " gj_range.ranges() = ";
+    for (auto range: gj_data_gathered.ranges()) {
+        std::cout << " (" << range.begin << ", " << range.end << ") ";
+    }
+    std::cout << "\n";
+
+    //create resolution map with gathered label_ranges and gids
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(resolution_gids_gathered, gj_data_gathered, gj_cvs_index, rec);
+    //std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs_index, rec);
+
+    //check resulting resolution map
+    std::cout << "resolution map :\n";
+    std::cout << "gids = ";
+    for (auto conn: gj_conns) {std::cout << conn.first << " ";}
+    std::cout << "\n";
+    std::cout << "local_idx = ";
+    for (auto conn: gj_conns) {
+        for(auto gj: conn.second) {
+            std::cout << gj.local_idx << " ";
+        }
+    }
+    std::cout << "\n";
+    std::cout << "local_cv = ";
+     for (auto conn: gj_conns) {
+        for(auto gj: conn.second) {
+            std::cout << gj.local_cv << " ";
+        }
+    }
+    std::cout << "\n";
+    std::cout << "peer_cv = ";
+     for (auto conn: gj_conns) {
+        for(auto gj: conn.second) {
+            std::cout << gj.peer_cv << " ";
+        }
+    }
+    std::cout << "\n";
 
     // Discretize mechanism data.
 
