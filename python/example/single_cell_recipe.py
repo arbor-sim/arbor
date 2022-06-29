@@ -31,12 +31,10 @@ cell = arbor.cable_cell(tree, labels, decor)
 
 
 class single_recipe(arbor.recipe):
-    def __init__(self, cell, probes):
+    def __init__(self):
         # (4.1) The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
-        self.the_cell = cell
-        self.the_probes = probes
         self.the_props = arbor.neuron_cable_properties()
 
     def num_cells(self):
@@ -49,20 +47,20 @@ class single_recipe(arbor.recipe):
 
     def cell_description(self, gid):
         # (4.4) Override the cell_description method
-        return self.the_cell
+        return cell
 
     def probes(self, gid):
-        # (4.5) Override the probes method
-        return self.the_probes
+        # (4.5) Override the probes method with a voltage probe located on "midpoint"
+        return [arbor.cable_probe_membrane_voltage('"midpoint"')]
 
     def global_properties(self, kind):
         # (4.6) Override the global_properties method
         return self.the_props
 
 
-# (5) Instantiate recipe with a voltage probe located on "midpoint".
+# (5) Instantiate recipe.
 
-recipe = single_recipe(cell, [arbor.cable_probe_membrane_voltage('"midpoint"')])
+recipe = single_recipe()
 
 # (6) Create simulation. When their defaults are sufficient, context and domain decomposition don't
 # have to be manually specified and the simulation can be created with just the recipe as argument.

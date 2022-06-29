@@ -21,11 +21,18 @@ Cells
    :maxdepth: 1
 
    single_cell_model
-   single_cell_recipe
    single_cell_detailed
-   single_cell_detailed_recipe
    single_cell_cable
    single_cell_allen
+
+Recipes
+-------
+
+.. toctree::
+   :maxdepth: 1
+   
+   single_cell_recipe
+   single_cell_detailed_recipe
 
 Networks
 --------

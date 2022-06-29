@@ -115,19 +115,7 @@ class single_recipe(arbor.recipe):
     def probes(self, gid):
         return [arbor.cable_probe_membrane_voltage('"custom_terminal"')]
 
-    # (5.6) Override the connections_on method
-    def connections_on(self, gid):
-        return []
-
-    # (5.7) Override the gap_junction_on method
-    def gap_junction_on(self, gid):
-        return []
-
-    # (5.8) Override the event_generators method
-    def event_generators(self, gid):
-        return []
-
-    # (5.9) Override the global_properties method
+    # (5.6) Override the global_properties method
     def global_properties(self, gid):
         return self.the_props
 

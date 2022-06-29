@@ -18,10 +18,22 @@ Recipe
     Describe a model by describing the cells and network, without any information about how the model is to be represented or executed.
 
     All recipes derive from this abstract base class.
-
+    
     Recipes provide a cell-centric interface for describing a model.
     This means that model properties, such as connections, are queried using the global identifier ``gid`` of a cell.
     In the description below, the term ``gid`` is used as shorthand for the cell with global identifier.
+
+    **Required Constructor**
+
+    The constructor must be implemented and call the base class constructor, as at the moment there is no way
+    to instruct Python to do that automatically. This ensures correct initialization of memory in the C++ class.
+    
+    A minimal constructor therefore looks like this:
+
+    .. code-block:: python
+
+        def __init__(self):
+            arbor.recipe.__init__(self)
 
     **Required Member Functions**
 
@@ -87,7 +99,7 @@ Recipe
         This method needs to be implemented for :class:`arbor.cell_kind.cable`, where the
         properties include ion concentrations and reversal potentials; initial membrane voltage;
         temperature; axial resistivity; membrane capacitance; cv_policy; and a pointer
-        to the mechanism catalogue.
+        to the mechanism catalogue. Also see :ref:`mechanisms_builtins`.
 
         By default returns an empty object.
 

@@ -56,7 +56,7 @@ the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/b
 Built-in Catalogues
 '''''''''''''''''''
 
-Arbor provides the *default* catalogue with the following mechanisms:
+Arbor provides the ``default_catalogue`` catalogue with the following mechanisms:
 
 * *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
 * *hh*: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
@@ -74,8 +74,8 @@ With the exception of *nernst*, these mechanisms are the same as those available
 
 Two catalogues are provided that collect mechanisms associated with specific projects and model databases:
 
-* *bbp* For models published by the Blue Brain Project (BBP).
-* *allen* For models published on the Allen Brain Atlas Database.
+* ``bbp_catalogue`` For models published by the Blue Brain Project (BBP).
+* ``allen_catalogue`` For models published on the Allen Brain Atlas Database.
 
 .. _mechanisms_dynamic:
 

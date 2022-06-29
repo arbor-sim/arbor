@@ -3,9 +3,13 @@
 A simple single cell recipe
 ===========================
 
-This example builds the same single cell model as
-:ref:`the previous tutorial <tutorialsinglecell>`, except using a :class:`arbor.recipe`
-and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
+This example builds the same single cell model as :ref:`tutorialsinglecell`,
+except using a :class:`arbor.recipe` and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
+
+Recipes are an important concept in Arbor. They represent the most versatile tool
+for building a complex network of cells. We will go though this example of a model
+of a single cell, before using the recipe to represent more complex networks in
+subsequent examples.
 
 .. Note::
 
@@ -18,7 +22,7 @@ and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
 The cell
 --------
 
-Let's copy the cell description from the :ref:`previous example <tutorialsinglecell-cell>`,
+Let's copy the cell description from the :ref:`original example <tutorialsinglecell-cell>`,
 where construction of the cell is explained in detail.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
@@ -28,7 +32,7 @@ where construction of the cell is explained in detail.
 The recipe
 ----------
 
-In the :ref:`previous example <tutorialsinglecell-cell>`, the :class:`arbor.single_cell_model` creates
+In the :ref:`original example <tutorialsinglecell-cell>`, the :class:`arbor.single_cell_model` creates
 a :class:`arbor.recipe` under the hood, and abstracts away a few details that you may want control over
 in more complex simulations. Let's go into those abstractions and create an analogous :class:`arbor.recipe`
 manually.
@@ -38,9 +42,15 @@ and overrides and implements some of :class:`arbor.recipe` methods. Not all meth
 have to be overridden, but some will always have to be, such as :meth:`arbor.recipe.num_cells`.
 It returns `0` by default and models without cells are quite boring!
 
+.. note::
+   The inherited recipe can implement any number of additional methods and have any number of instance or class
+   variables. The structure shown in this example is a choice; it's up to you to structure your code the way you
+   see fit. What matters is that the methods required to be present return valid results of the correct type.
+   The only hard requirements those mentioned in the :class:`arbor.recipe` documentation.   
+
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 29-64
+   :lines: 28-63
 
 Step **(4)** describes the recipe that will reflect our single cell model.
 
@@ -59,18 +69,18 @@ associated with the cable cell defined above. If you mix multiple cell kinds and
 descriptions in one recipe, make sure a particular ``gid`` returns matching cell kinds
 and descriptions.
 
-Step **(4.4)** returns the cell description passed in on class initialisation. If we
+Step **(4.4)** returns the cell description defined earlier. If we
 were modelling multiple cells of different kinds, we would need to make sure that the
 cell returned by :meth:`arbor.recipe.cell_description` has the same cell kind as
 returned by :meth:`arbor.recipe.cell_kind` for every :gen:`gid`.
 
-Step **(4.5)** returns the probes passed in at class initialisation.
+Step **(4.5)** returns the same probe as in the ``single_cell_model``: a single voltage probe located at "midpoint".
 
 Step **(4.6)** returns the properties that will be applied to all cells of that kind in the model.
 
 More methods can be overridden if your model requires that, see :class:`arbor.recipe` for options.
 
-Step **(5)** instantiates the recipe with the cable cell described earlier, and a single voltage probe located at "midpoint".
+Step **(5)** instantiates the recipe.
 
 The simulation
 --------------
@@ -88,7 +98,7 @@ The details of manual hardware configuration will be left for another tutorial.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 67-77
+   :lines: 65-75
 
 Step **(6)** instantiates the simulation.
 
@@ -102,12 +112,12 @@ The results
 ----------------------------------------------------
 
 Apart from creating :class:`arbor.recipe` ourselves, we have changed nothing
-about this simulation compared to :ref:`the previous tutorial <tutorialsinglecell>`.
+about this simulation compared to :ref:`the original tutorial <tutorialsinglecell>`.
 If we create the same analysis of the results we therefore expect the same results.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
-   :lines: 79-
+   :lines: 77-
 
 Step **(8)** plots the measured potentials during the runtime of the simulation.
 Retrieving the sampled quantities is a little different, these have to be accessed
