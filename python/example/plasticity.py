@@ -1,7 +1,7 @@
 import arbor as A
 
-class recipe(A.recipe):
 
+class recipe(A.recipe):
     def __init__(self):
         super().__init__()
         self.ccp = A.neuron_cable_properties()
@@ -34,7 +34,6 @@ class recipe(A.recipe):
         decor.place("(location 0 0.5)", A.spike_detector(-10.0), "detector")
         return A.cable_cell(tree, A.label_dict(), decor)
 
-
     def connections_on(self, gid):
         if gid in self.connected:
             w, d = self.connected[gid]
@@ -43,6 +42,7 @@ class recipe(A.recipe):
 
     def add_connection(self, to):
         self.connected[to] = (0.75, 0.1)
+
 
 A.mpi_init()
 mpi = A.mpi_comm()
