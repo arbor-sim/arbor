@@ -1,8 +1,10 @@
 #include <cfloat>
 #include <cmath>
+#include <memory>
 #include <numeric>
 #include <vector>
 #include <variant>
+#include <tuple>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>

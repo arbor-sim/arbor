@@ -5,6 +5,8 @@
 #include <arbor/s_expr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/iexpr.hpp>
+#include <arbor/cable_cell_param.hpp>
 
 #include <arborio/label_parse.hpp>
 #include <arborio/cableio.hpp>
@@ -88,6 +90,20 @@ s_expr mksexp(const synapse& j) {
 s_expr mksexp(const density& j) {
     return slist("density"_symbol, mksexp(j.mech));
 }
+s_expr mksexp(const iexpr& j) {
+    std::stringstream s;
+    s << j;
+    return parse_s_expr(s.str());
+}
+template <typename TaggedMech>
+s_expr mksexp(const scaled_mechanism<TaggedMech>& j) {
+    std::vector<s_expr> expressions;
+    std::transform(j.scale_expr.begin(),
+        j.scale_expr.end(),
+        std::back_inserter(expressions),
+        [](const auto& x) { return slist(s_expr(x.first), mksexp(x.second)); });
+    return s_expr{"scaled-mechanism"_symbol, s_expr{mksexp(j.t_mech), slist_range(expressions)}};
+}
 s_expr mksexp(const mpoint& p) {
     return slist("point"_symbol, p.x, p.y, p.z, p.radius);
 }
@@ -133,6 +149,9 @@ s_expr mksexp(const label_dict& dict) {
     }
     for (auto& r: dict.regions()) {
         defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+    }
+    for (auto& r: dict.iexpressions()) {
+        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
     }
     return {"label-dict"_symbol, std::move(defs)};
 }
@@ -262,13 +281,17 @@ decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, default
 // Define maker for locset pairs, region pairs and label_dicts
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
-locset_pair make_locset_pair(const std::string& name, const locset& desc) {
-    return locset_pair{name, desc};
+using iexpr_pair = std::pair<std::string, iexpr>;
+locset_pair make_locset_pair(std::string name, locset desc) {
+    return locset_pair{std::move(name), std::move(desc)};
 }
-region_pair make_region_pair(const std::string name, const region& desc) {
-    return region_pair{name, desc};
+region_pair make_region_pair(std::string name, region desc) {
+    return region_pair{std::move(name), std::move(desc)};
 }
-label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair>>& args) {
+iexpr_pair make_iexpr_pair(std::string name, iexpr e) {
+    return iexpr_pair{std::move(name), std::move(e)};
+}
+label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair, iexpr_pair>>& args) {
     label_dict d;
     for(const auto& a: args) {
         std::visit([&](auto&& x){d.set(x.first, x.second);}, a);
@@ -374,6 +397,48 @@ struct make_mech_call {
     evaluator state;
     make_mech_call(const char* msg="mechanism"):
         state(mech_eval(), mech_match(), msg)
+    {}
+    operator evaluator() const {
+        return state;
+    }
+};
+
+
+// Test whether a list of arguments passed as a std::vector<std::any> can be converted
+// to a string followed by any number of std::pair<std::string, arb::iexpr>
+template <typename TaggedMech>
+struct scaled_mechanism_match {
+    bool operator()(const std::vector<std::any>& args) const {
+        // First argument is the mech name
+        if (args.size() < 1) return false;
+        if (!match<TaggedMech>(args.front().type())) return false;
+
+        // The rest of the arguments should be tuples
+        for (auto it = args.begin()+1; it != args.end(); ++it) {
+            if (!match<std::tuple<std::string, arb::iexpr>>(it->type())) return false;
+        }
+        return true;
+    }
+};
+// Create a mechanism_desc from a std::vector<std::any>.
+template <typename TaggedMech>
+struct scaled_mechanism_eval {
+    arb::scaled_mechanism<TaggedMech> operator()(const std::vector<std::any>& args) {
+        auto d = scaled_mechanism(eval_cast<TaggedMech>(args.front()));
+
+        for (auto it = args.begin() + 1; it != args.end(); ++it) {
+            auto p = eval_cast<std::tuple<std::string, arb::iexpr>>(*it);
+            d.scale(std::move(std::get<0>(p)), std::move(std::get<1>(p)));
+        }
+        return d;
+    }
+};
+// Wrap mech_match and mech_eval in an evaluator
+template <typename TaggedMech>
+struct make_scaled_mechanism_call {
+    evaluator state;
+    make_scaled_mechanism_call(const char* msg="scaled-mechanism"):
+        state(scaled_mechanism_eval<TaggedMech>(), scaled_mechanism_match<TaggedMech>(), msg)
     {}
     operator evaluator() const {
         return state;
@@ -554,6 +619,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         if (auto l = parse_label_expression(e)) {
             if (match<region>(l->type())) return eval_cast<region>(l.value());
             if (match<locset>(l->type())) return eval_cast<locset>(l.value());
+            if (match<iexpr>(l->type())) return eval_cast<iexpr>(l.value());
         }
 
         // Or it could be a cv-policy expression
@@ -608,6 +674,8 @@ eval_map named_evals{
     {"junction", make_call<arb::mechanism_desc>(make_wrapped_mechanism<junction>, "'junction' with 1 argumnet (m: mechanism)")},
     {"synapse",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<synapse>, "'synapse' with 1 argumnet (m: mechanism)")},
     {"density",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<density>, "'density' with 1 argumnet (m: mechanism)")},
+    {"scaled-mechanism", make_scaled_mechanism_call<arb::density>("'scaled_mechanism' with a density argument, and 0 or more parameter scaling expressions"
+        "(d:density (param:string val:iexpr))")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
     {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
     {"place", make_call<locset, junction, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:junction name:string)")},
@@ -622,6 +690,7 @@ eval_map named_evals{
     {"paint", make_call<region, ion_diffusivity>(make_paint, "'paint' with 2 arguments (reg:region v:ion-diffusivity)")},
     {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (reg:region v:ion-reversal-potential)")},
     {"paint", make_call<region, density>(make_paint, "'paint' with 2 arguments (reg:region v:density)")},
+    {"paint", make_call<region, scaled_mechanism<density>>(make_paint, "'paint' with 2 arguments (reg:region v:scaled-mechanism)")},
 
     {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (v:membrane-potential)")},
     {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (v:temperature-kelvin)")},
@@ -638,6 +707,8 @@ eval_map named_evals{
         "'locset-def' with 2 arguments (name:string ls:locset)")},
     {"region-def", make_call<std::string, region>(make_region_pair,
         "'region-def' with 2 arguments (name:string reg:region)")},
+    {"iexpr-def", make_call<std::string, iexpr>(make_iexpr_pair,
+        "'iexpr-def' with 2 arguments (name:string e:iexpr)")},
 
     {"point",   make_call<double, double, double, double>(make_point,
          "'point' with 4 arguments (x:real y:real z:real radius:real)")},
@@ -648,8 +719,8 @@ eval_map named_evals{
 
     {"decor", make_arg_vec_call<place_tuple, paint_pair, defaultable>(make_decor,
         "'decor' with 1 or more `paint`, `place` or `default` arguments")},
-    {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
-        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
+    {"label-dict", make_arg_vec_call<locset_pair, region_pair, iexpr_pair>(make_label_dict,
+        "'label-dict' with 1 or more `locset-def` or `region-def` or `iexpr-def` arguments")},
     {"morphology", make_arg_vec_call<branch_tuple>(make_morphology,
         "'morphology' 1 or more `branch` arguments")},
 
@@ -667,11 +738,12 @@ eval_map named_evals{
 
 eval_vec unnamed_evals{
     make_call<std::string, double>(std::make_tuple<std::string, double>, "tuple<std::string, double>"),
-    make_call<double, double>(std::make_tuple<double, double>, "tuple<double, double>")
+    make_call<double, double>(std::make_tuple<double, double>, "tuple<double, double>"),
+    make_call<std::string, arb::iexpr>(std::make_tuple<std::string, arb::iexpr>, "tuple<std::string, arb::iexpr>"),
 };
 
-inline parse_hopefully<std::any> parse(arb::s_expr s) {
-    return eval(std::move(s), named_evals, unnamed_evals);
+inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
+    return eval(s, named_evals, unnamed_evals);
 }
 
 ARB_ARBORIO_API parse_hopefully<std::any> parse_expression(const std::string& s) {
