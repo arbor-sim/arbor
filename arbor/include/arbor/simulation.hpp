@@ -34,6 +34,10 @@ public:
                const context& ctx=make_context(),
                std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
 
+    void update_connections(const recipe& rec, // TODO this is a placeholder for a different class
+                            const context& ctx,
+                            const domain_decomposition& decomp);
+
     void reset();
 
     time_type run(time_type tfinal, time_type dt);

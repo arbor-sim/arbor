@@ -94,6 +94,10 @@ public:
         sim_->set_binning_policy(policy, bin_interval);
     }
 
+    void update_connections(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp) {
+        sim_->update_connections(py_recipe_shim(rec), ctx.context, decomp);
+    }
+
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
             auto old_size = spike_record_.size();
@@ -215,6 +219,12 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              "recipe"_a,
              pybind11::arg_v("context", pybind11::none(), "Execution context"),
              pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"))
+        .def("update_connections", &simulation_shim::update_connections,
+             "Rebuild the connection table from recipe::connections_on. Context and"
+             "decomposition must be given and match the ones used to construct the simulation",
+             "recipe"_a,
+             "context"_a,
+             "domains"_a)
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
@@ -227,7 +237,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "tfinal"_a, "dt"_a=0.025)
         .def("set_binning_policy", &simulation_shim::set_binning_policy,
             "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
-            "policy"_a, "bin_interval"_a)
+             "policy"_a, "bin_interval"_a)
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

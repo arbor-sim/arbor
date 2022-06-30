@@ -92,6 +92,10 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
 
+    void update_connections(const recipe& rec, // TODO this is a placeholder for a different class
+                            execution_context ctx,
+                            const domain_decomposition& decomp);
+
     void reset();
 
     time_type run(time_type tfinal, time_type dt);
@@ -116,6 +120,8 @@ public:
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
+    label_resolution_map source_resolution_map_;
+    label_resolution_map target_resolution_map_;
 
 private:
     // Record last computed epoch (integration interval).
@@ -211,16 +217,12 @@ simulation_state::simulation_state(
     }
     auto global_sources = ctx.distributed->gather_cell_labels_and_gids(local_sources);
 
-    auto source_resolution_map = label_resolution_map(std::move(global_sources));
-    auto target_resolution_map = label_resolution_map(std::move(local_targets));
+    source_resolution_map_ = label_resolution_map(std::move(global_sources));
+    target_resolution_map_ = label_resolution_map(std::move(local_targets));
 
-    communicator_ = arb::communicator(rec, decomp, source_resolution_map, target_resolution_map, ctx);
+    update_connections(rec, ctx, decomp);
 
     const auto num_local_cells = communicator_.num_local_cells();
-
-    // Use half minimum delay of the network for max integration interval.
-    t_interval_ = communicator_.min_delay()/2;
-
     // Initialize empty buffers for pending events for each local cell
     pending_events_.resize(num_local_cells);
 
@@ -228,7 +230,7 @@ simulation_state::simulation_state(
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
 
-    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(std::move(target_resolution_map));
+    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
     for (const auto& group_info: decomp.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
@@ -260,6 +262,16 @@ simulation_state::simulation_state(
 
     epoch_.reset();
 }
+
+void simulation_state::update_connections(const recipe& rec, // TODO this is a placeholder for a different class
+                                          execution_context ctx,
+                                          const domain_decomposition& decomp) {
+    auto spikes = communicator_.num_spikes(); // TODO(TH) add those to the next communicator
+    communicator_ = arb::communicator(rec, decomp, source_resolution_map_, target_resolution_map_, ctx);
+    // Use half minimum delay of the network for max integration interval.
+    t_interval_ = communicator_.min_delay()/2;
+}
+
 
 void simulation_state::reset() {
     epoch_ = epoch();
@@ -518,6 +530,12 @@ simulation::simulation(
 
 void simulation::reset() {
     impl_->reset();
+}
+
+void simulation::update_connections(const recipe& rec, // TODO this is a placeholder for a different class
+                                    const context& ctx,
+                                    const domain_decomposition& decomp) {
+    impl_->update_connections(rec, *ctx, decomp);
 }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
