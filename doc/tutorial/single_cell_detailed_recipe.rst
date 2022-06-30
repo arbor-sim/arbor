@@ -45,18 +45,12 @@ insert the probe.
 Step **(5.1)** defines the class constructor. As per :class:`arbor.recipe` instructions, we call
 ``arbor.recipe.__init__(self)`` to ensure correct initialization of memory in the C++ class.
 
-We also create an instance variable for the mechanism catalogue, the ``self.the_cat`` variable. This ensures
-its lifetime is guaranteed to extend to the entire duration of the simulation. Setting the mechanism catalogue
-in the constructor is a pattern you'll see return in these tutorials.
-
-We set ``self.the_cat`` to Arbor's default mechanism catalogue. This will expose the *hh* and *pas* mechanisms but not the *Ih* mechanism,
-which is present in the allen catalogue. To be able to use *Ih*, we extend ``self.the_cat`` to include the Allen
-catalogue.
-
-Finally we create the ``self.the_props`` variable. This will hold the global properties of the model, which apply
-to all the cells in the network. Initially it is empty. We set all the properties of the system similar to
-what we did in the :ref:`original example <tutorialsinglecellswc-gprop>`. One last important step is to register
-``self.the_cat`` with ``self.the_props``.
+We then create the ``self.the_props`` variable. This will hold the global properties of the model, which apply
+to all the cells in the network. We initialize it with :class:`arbor.cable_global_properties`, which comes with the 
+``default`` mechanism catalogue built-in. We set all the properties of the system similar to what we did in
+the :ref:`original example <tutorialsinglecellswc-gprop>`. One last important step is to extend ``self.the_props``
+to include the Allen catalogue, because it holds the *Ih* mechanism. The *hh* and *pas* mechanisms came with the
+default catalogue.
 
 Step **(5.2)** overrides the :meth:`~arbor.recipe.num_cells` method. It takes no arguments. We simply return 1,
 as we are only simulating one cell in this example.

@@ -26,7 +26,11 @@ Recipe
     **Required Constructor**
 
     The constructor must be implemented and call the base class constructor, as at the moment there is no way
-    to instruct Python to do that automatically. This ensures correct initialization of memory in the C++ class.
+    to instruct Python to do that automatically.
+    
+    .. note:: 
+        Arbor's Python binding is that: a thin wrappper around the Arbor library which is written in C++.
+        Calling the base class constructor ensures correct initialization of memory in the underlying C++ class.
     
     A minimal constructor therefore looks like this:
 

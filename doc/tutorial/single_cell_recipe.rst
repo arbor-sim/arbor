@@ -37,16 +37,13 @@ a :class:`arbor.recipe` under the hood, and abstracts away a few details that yo
 in more complex simulations. Let's go into those abstractions and create an analogous :class:`arbor.recipe`
 manually.
 
-Creating a recipe starts with creating a class that inherits from :class:`arbor.recipe`
-and overrides and implements some of :class:`arbor.recipe` methods. Not all methods
-have to be overridden, but some will always have to be, such as :meth:`arbor.recipe.num_cells`.
-It returns `0` by default and models without cells are quite boring!
+Creating a recipe starts with creating a class that inherits from :class:`arbor.recipe`. There are a number of
+methods that *must* be overridden, and a number than *can optionally* be overridden, as explained in the
+:class:`arbor.recipe` documentation. Beyond this, it is up to you, the user, to structure your code as you
+find convenient.
 
-.. note::
-   The inherited recipe can implement any number of additional methods and have any number of instance or class
-   variables. The structure shown in this example is a choice; it's up to you to structure your code the way you
-   see fit. What matters is that the methods required to be present return valid results of the correct type.
-   The only hard requirements those mentioned in the :class:`arbor.recipe` documentation.   
+One of the methods that must be overridden is :meth:`arbor.recipe.num_cells`. It returns `0` by default and 
+models without cells are quite boring!
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
