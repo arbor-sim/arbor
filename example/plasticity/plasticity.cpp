@@ -13,8 +13,11 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <mpi.h>
 #include <arborenv/with_mpi.hpp>
+
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
+#endif
 
 using namespace arborio::literals;
 
@@ -28,27 +31,25 @@ struct recipe: public arb::recipe {
     std::any get_global_properties(arb::cell_kind kind) const override { return kind == arb::cell_kind::cable ? ccp : std::any{}; }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
-        if (gid == 0) {
-            return arb::spike_source_cell{"source", arb::regular_schedule(0.0125)};
-        } else {
-            double r = 3;
-            arb::segment_tree tree;
-            tree.append(arb::mnpos, { -r, 0, 0, r}, {r, 0, 0, r}, 1);
-            auto decor = arb::decor{};
-            decor.paint("(all)"_reg, arb::density("pas"));
-            decor.place("(location 0 0.5)"_ls, arb::synapse("expsyn"), "synapse");
-            decor.place("(location 0 0.5)"_ls, arb::threshold_detector{-10.0}, "detector");
-            return arb::cable_cell({tree}, {}, decor);
-        }
+        // source at gid 0
+        if (gid == 0) return arb::spike_source_cell{"source", arb::regular_schedule(0.0125)};
+        // all other
+        double r = 3;
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, { -r, 0, 0, r}, {r, 0, 0, r}, 1);
+        auto decor = arb::decor{};
+        decor.paint("(all)"_reg, arb::density("pas"));
+        decor.place("(location 0 0.5)"_ls, arb::synapse("expsyn"), "synapse");
+        decor.place("(location 0 0.5)"_ls, arb::threshold_detector{-10.0}, "detector");
+        return arb::cable_cell({tree}, {}, decor);
     }
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
         if (connected.count(gid)) {
             const auto& [w, d] = connected.at(gid);
             return {arb::cell_connection({0, "source"}, {"synapse"}, w, d)};
-        } else {
-            return {};
         }
+        return {};
     }
 
     void add_connection(arb::cell_gid_type to) { connected[to] = {0.75, 0.1}; }
