@@ -129,9 +129,9 @@ std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_s
 }
 
 time_type communicator::min_delay() {
-    auto local_min = std::reduce(connections_.begin(), connections_.end(),
-                                 std::numeric_limits<time_type>::max(),
-                                 [](auto&& acc, auto&& el) { return std::min(acc, time_type(el.delay)); });
+    auto local_min = std::accumulate(connections_.begin(), connections_.end(),
+                                     std::numeric_limits<time_type>::max(),
+                                     [](auto&& acc, auto&& el) { return std::min(acc, time_type(el.delay)); });
     return distributed_->min(local_min);
 }
 
