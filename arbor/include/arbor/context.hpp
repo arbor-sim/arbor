@@ -47,14 +47,8 @@ struct proc_allocation {
 struct execution_context;
 
 // arb::context is an opaque handle for the execution context for use
-// in the public API, implemented as a unique pointer.
-//
-// As execution_context is an incomplete type, an explicit deleter must be
-// provided.
-struct ARB_ARBOR_API execution_context_deleter {
-    void operator()(execution_context*) const;
-};
-using context = std::unique_ptr<execution_context, execution_context_deleter>;
+// in the public API, implemented as a shared pointer.
+using context = std::shared_ptr<execution_context>;
 
 // Helpers for creating contexts. These are implemented in the back end.
 

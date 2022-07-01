@@ -57,6 +57,8 @@ struct recipe: public arb::recipe {
     arb::cable_cell_global_properties ccp;
 };
 
+
+
 void show_spikes(std::vector<arb::spike>& spikes, int rnk, int csz) {
     MPI_Barrier(MPI_COMM_WORLD);
     if (!rnk) std::cout << "Epoch\n";
@@ -73,26 +75,38 @@ void show_spikes(std::vector<arb::spike>& spikes, int rnk, int csz) {
 }
 
 int main(int argc, char** argv) {
+#ifdef ARB_MPI_ENABLED
     arbenv::with_mpi guard(argc, argv, false);
-
     auto ctx = arb::make_context({}, MPI_COMM_WORLD);
+#else
+    auto ctx = arb::make_context();
+#endif
+
     auto rnk = arb::rank(ctx);
     auto csz = arb::num_ranks(ctx);
-    assert(csz == 3);
 
     auto rec = recipe();
+    // Start with a single connection
     rec.add_connection(1);
+
+#ifdef ARB_MPI_ENABLED
+    // Must be run in this weird config: one cell per rank.
+    assert(csz == 3);
     auto dec = arb::domain_decomposition(rec, ctx, {{rnk == 0 ? arb::cell_kind::spike_source : arb::cell_kind::cable, {rnk}, arb::backend_kind::multicore}});
     auto sim = arb::simulation(rec, ctx, dec);
+#else
+    auto sim = arb::simulation(rec, ctx);
+#endif
 
+    // Record spikes
     std::vector<arb::spike> spikes;
-    if (rnk) sim.set_local_spike_callback([&spikes](const auto& s) { spikes.insert(spikes.end(), s.begin(), s.end()); });
+    sim.set_local_spike_callback([&spikes](const auto& s) { spikes.insert(spikes.end(), s.begin(), s.end()); });
 
     sim.run(0.25, 0.025);
     show_spikes(spikes, rnk, csz);
 
     rec.add_connection(2);
-    sim.update_connections(rec, ctx, dec);
+    sim.update_connections(rec);
 
     sim.run(0.5, 0.025);
     show_spikes(spikes, rnk, csz);

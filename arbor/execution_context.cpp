@@ -14,10 +14,6 @@
 
 namespace arb {
 
-void execution_context_deleter::operator()(execution_context* p) const {
-    delete p;
-}
-
 execution_context::execution_context(const proc_allocation& resources):
     distributed(make_local_context()),
     thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
@@ -26,7 +22,7 @@ execution_context::execution_context(const proc_allocation& resources):
 {}
 
 ARB_ARBOR_API context make_context(const proc_allocation& p) {
-    return context(new execution_context(p));
+    return std::make_shared<execution_context>(p);
 }
 
 #ifdef ARB_HAVE_MPI
@@ -40,7 +36,7 @@ execution_context::execution_context(const proc_allocation& resources, MPI_Comm 
 
 template <>
 ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
-    return context(new execution_context(p, comm));
+    return std::make_shared<execution_context>(p, comm);
 }
 #endif
 template <>
@@ -55,7 +51,7 @@ execution_context::execution_context(
 
 template <>
 ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d) {
-    return context(new execution_context(p, d));
+    return std::make_shared<execution_context>(p, d);
 }
 
 ARB_ARBOR_API std::string distribution_type(const context& ctx) {

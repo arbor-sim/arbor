@@ -90,11 +90,9 @@ ARB_ARBOR_API void merge_cell_events(
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx);
 
-    void update_connections(const recipe& rec, // TODO this is a placeholder for a different class
-                            execution_context ctx,
-                            const domain_decomposition& decomp);
+    void update_connections(const recipe& rec);
 
     void reset();
 
@@ -143,6 +141,8 @@ private:
     std::unordered_map<cell_gid_type, gid_local_info> gid_to_local_;
 
     communicator communicator_;
+    context ctx_;
+    domain_decomposition ddc_;
 
     task_system_handle task_system_;
 
@@ -189,10 +189,12 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        execution_context ctx
+        context ctx
     ):
-    task_system_(ctx.thread_pool),
-    local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
+    ctx_{ctx},
+    ddc_{decomp},
+    task_system_(ctx->thread_pool),
+    local_spikes_({thread_private_spike_store(ctx->thread_pool), thread_private_spike_store(ctx->thread_pool)})
 {
     // Generate the cell groups in parallel, with one task per cell group.
     auto num_groups = decomp.num_groups();
@@ -203,7 +205,7 @@ simulation_state::simulation_state(
         [&](cell_group_ptr& group, int i) {
           const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
-          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
+          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_);
           group = factory(group_info.gids, rec, sources, targets);
 
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
@@ -215,12 +217,12 @@ simulation_state::simulation_state(
         local_sources.append(cg_sources.at(i));
         local_targets.append(cg_targets.at(i));
     }
-    auto global_sources = ctx.distributed->gather_cell_labels_and_gids(local_sources);
+    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
 
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
 
-    update_connections(rec, ctx, decomp);
+    update_connections(rec);
 
     const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
@@ -263,11 +265,9 @@ simulation_state::simulation_state(
     epoch_.reset();
 }
 
-void simulation_state::update_connections(const recipe& rec, // TODO this is a placeholder for a different class
-                                          execution_context ctx,
-                                          const domain_decomposition& decomp) {
+void simulation_state::update_connections(const recipe& rec) {
     auto spikes = communicator_.num_spikes(); // TODO(TH) add those to the next communicator
-    communicator_ = arb::communicator(rec, decomp, source_resolution_map_, target_resolution_map_, ctx);
+    communicator_ = arb::communicator(rec, ddc_, source_resolution_map_, target_resolution_map_, *ctx_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = communicator_.min_delay()/2;
 }
@@ -525,18 +525,14 @@ simulation::simulation(
     const context& ctx,
     const domain_decomposition& decomp)
 {
-    impl_.reset(new simulation_state(rec, decomp, *ctx));
+    impl_.reset(new simulation_state(rec, decomp, ctx));
 }
 
 void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update_connections(const recipe& rec, // TODO this is a placeholder for a different class
-                                    const context& ctx,
-                                    const domain_decomposition& decomp) {
-    impl_->update_connections(rec, *ctx, decomp);
-}
+void simulation::update_connections(const recipe& rec) { impl_->update_connections(rec); }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {

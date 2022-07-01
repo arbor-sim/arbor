@@ -72,18 +72,12 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     **Updating Model State:**
 
-    .. function:: update_connections(recipe, context, domain_decomposition)
+    .. function:: update_connections(recipe)
 
-        Rebuild the connection table as described by :py:class:`arbor.recipe`,
-        with cells and network distributed according to
-        :py:class:`arbor.domain_decomposition`, and computational resources
-        described by :py:class:`arbor.context`.
-
-        The recipe must differ **only** in the return value of its
-        :py:func:`connections_on` when compared to the original recipe used to
-        construct the simulation object. Likewise, `context`` and
-        `domain_decomposition` must be identical to the arguments of the orignal
-        constructor.
+        Rebuild the connection table as described by
+        :py:class:`arbor.recipe::connections_on` The recipe must differ **only**
+        in the return value of its :py:func:`connections_on` when compared to
+        the original recipe used to construct the simulation object.
 
     .. function:: reset()
 

@@ -94,8 +94,8 @@ public:
         sim_->set_binning_policy(policy, bin_interval);
     }
 
-    void update_connections(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp) {
-        sim_->update_connections(py_recipe_shim(rec), ctx.context, decomp);
+    void update_connections(std::shared_ptr<py_recipe>& rec) {
+        sim_->update_connections(py_recipe_shim(rec));
     }
 
     void record(spike_recording policy) {
@@ -220,11 +220,8 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              pybind11::arg_v("context", pybind11::none(), "Execution context"),
              pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"))
         .def("update_connections", &simulation_shim::update_connections,
-             "Rebuild the connection table from recipe::connections_on. Context and"
-             "decomposition must be given and match the ones used to construct the simulation",
-             "recipe"_a,
-             "context"_a,
-             "domains"_a)
+             "Rebuild the connection table from recipe::connections_on.",
+             "recipe"_a)
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")

@@ -33,7 +33,7 @@ connection table outside calls to `run`, for example
     # extend the recipe to more connections
     rec.add_connections()
     #  use `connections_on` to build a new connection table
-    sim.update_connections(rec, ctx, dec)
+    sim.update_connections(rec)
 
     # run simulation for 0.25ms with the extended connectivity
     sim.run(0.5, 0.025)
@@ -41,7 +41,8 @@ connection table outside calls to `run`, for example
 This will completely replace the old table, previous connections to be retained
 must be explicitly included in the updated callback. This can also be used to
 update connection weights and delays. Note, however, that there is currently no
-way to introduce new sites to the simulation.
+way to introduce new sites to the simulation, nor any changes to the connected
+generators or gap junctions.
 
 .. _modelconnections:
 

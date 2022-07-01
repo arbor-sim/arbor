@@ -38,6 +38,9 @@ public:
     domain_decomposition() = delete;
     domain_decomposition(const recipe& rec, const context& ctx, const std::vector<group_description>& groups);
 
+    domain_decomposition(const domain_decomposition&) = default;
+    domain_decomposition& operator=(const domain_decomposition&) = default;
+
     int gid_domain(cell_gid_type gid) const;
     int num_domains() const;
     int domain_id() const;
