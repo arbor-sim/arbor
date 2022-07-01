@@ -70,6 +70,7 @@ generators or gap junctions.
                      return [arbor.connection((gid + 1, "spike-source"), "synapse", weight, delay)]
                  else:
                      return []
+
    spike
    action potential
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
