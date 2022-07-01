@@ -403,10 +403,10 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
             }
-            util::sort(staged_events_);
             ++lid;
         }
     }
+    util::sort(staged_events_);
     PL();
 
     // Create sample events and delivery information.
@@ -488,7 +488,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Sample events must be ordered by time for the lowered cell.
     util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
-    //util::stable_sort_by(sample_events, [](const sample_event& ev) { return event_index(ev); });
     PL();
 
     // Run integration and collect samples, spikes.

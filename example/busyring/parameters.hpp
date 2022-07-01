@@ -22,7 +22,7 @@ struct cell_parameters {
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
-    unsigned synapses = 10000;
+    unsigned synapses = 2000;
 };
 
 struct ring_params {
@@ -31,8 +31,8 @@ struct ring_params {
     std::string name = "default";
     unsigned num_cells = 1000;
     unsigned ring_size = 10;
-    double min_delay = 1;
-    double duration = 3;
+    double min_delay = 5;
+    double duration = 50;
     double dt = 0.025;
     bool record_voltage = false;
     std::string odir = ".";

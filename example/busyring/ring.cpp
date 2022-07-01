@@ -281,7 +281,11 @@ int main(int argc, char** argv) {
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
-        if (root) std::cout << report;
+        if (root) std::cout << report << "\n";
+
+        auto profile = arb::profile::profiler_summary();
+        if (root) std::cout << profile << "\n";
+
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";

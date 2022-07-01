@@ -214,7 +214,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->zero_currents();
         PL();
 
-        PE(advance:integrate:events);
+        //PE(advance:integrate:events);
         // Mark all events due before the mid point of this time step for delivery
         const auto step_midpoint = state_->time+state_->dt/2.;
         state_->deliverable_events.mark_until_after(step_midpoint);
@@ -232,7 +232,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         state_->deliverable_events.drop_marked_events();
-        PL();
+        //PL();
 
         // Add stimulus current contributions.
         // (Note: performed after dt, time_to calculation, in case we want to
