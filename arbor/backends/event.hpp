@@ -29,6 +29,8 @@ struct deliverable_event {
         time(time), weight(weight), handle(handle) {}
 };
 
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(deliverable_event, (a.handle.mech_id, a.handle.mech_index, a.time), (b.handle.mech_id, b.handle.mech_index, b.time));
+
 // Subset of event information required for mechanism delivery.
 struct deliverable_event_data {
     cell_local_size_type mech_id;    // same as target_handle::mech_id

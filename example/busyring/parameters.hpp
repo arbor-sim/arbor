@@ -29,7 +29,7 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 1000;
+    unsigned num_cells = 10000;
     unsigned ring_size = 10;
     double min_delay = 5;
     double duration = 50;

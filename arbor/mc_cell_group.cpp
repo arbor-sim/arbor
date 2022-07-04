@@ -406,7 +406,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             ++lid;
         }
     }
-    util::sort(staged_events_);
+    //util::sort(staged_events_);
+    util::sort_by(staged_events_, [](auto& l, auto& r) {return });
     PL();
 
     // Create sample events and delivery information.
