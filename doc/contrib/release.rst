@@ -117,7 +117,8 @@ Release
    - first, update ``spack/package.py``. The checksum of the targz is the sha256sum.
    - Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
    - Make an MR `here <https://gitlab.ebrains.eu/technical-coordination/project-internal/devops/platform/ebrains-spack-builds/>`_
-   - Make a PR to the OSB `dockerfile <https://github.com/OpenSourceBrain/OSBv2/blob/master/applications/jupyterlab/Dockerfile>`_
+   - Make a PR to the OSB `dockerfile <https://github.com/OpenSourceBrain/OSBv2/blob/master/applications/jupyterlab/Dockerfile>`_ if needed.
+      - Make sure that `Notebooks <https://www.v2.opensourcebrain.org/repositories/38>`_ work on the version that their image is built with.
 
 8. In the same PR with the update to `spack/package.py`, bump `VERSION` file.
 
