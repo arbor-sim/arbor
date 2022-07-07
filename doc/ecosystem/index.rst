@@ -31,7 +31,7 @@ nmlcc
 Wider ecosystem
 ---------------
 
-An list of tools in the computational neuroscience ecosystem is being maintained at `compneuroweb <https://compneuroweb.com/sftwr.html>`_. We've made a slighly more hierarchircal overview of some of the simulators below, as well as an overview of some commonly used frameworks.
+A list of tools in the computational neuroscience ecosystem is being maintained at `compneuroweb <https://compneuroweb.com/sftwr.html>`_. We've made a slightly more hierarchical overview of some of the simulators below, as well as an overview of some commonly used frameworks.
 
 Simulators
 ~~~~~~~~~~
