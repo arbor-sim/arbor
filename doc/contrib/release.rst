@@ -41,9 +41,13 @@ Update tags/versions and test
 0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md, RELEASE_NOTES.md
 1. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
 2. Bump the ``VERSION`` file:
-   https://github.com/arbor-sim/arbor/blob/master/VERSION
-   Don't append ``-rc`` here, but if you do, remove it before releasing.
+
+   - See also :ref:`dev-version`
+   - https://github.com/arbor-sim/arbor/blob/master/VERSION
+   - Don't append ``-rc`` here, but if you do, remove it before releasing.
+
 3. Run all tests.
+
    - ``ciwheel.yml`` triggers when you push a branch called ``v*rc``, ON YOUR OWN REPO (so check ``github.com/$yourname/arbor/actions``). Make sure the tests pass.
    - This should catch many problems. For a manual check:
    - Verify MANIFEST.in (required for PyPI sdist)

@@ -24,6 +24,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+      - name: Create unique VERSION
+        run: sed "1 s/$/`date +"%Y%m%d%H%I%S"`/" VERSION -i
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
@@ -59,19 +61,18 @@ jobs:
           name: dist
           path: dist/*.tar.gz
 
-# TODO
-  # upload_test_pypi:
-  #   name: upload to test pypi
-  #   runs-on: ubuntu-latest
-  #   needs: [build_binary_wheels, build_sdist]
-  #   steps:
-  #     - uses: actions/download-artifact@v2
-  #       with:
-  #         name: dist
-  #     - name: Publish distribution 📦 to Test PyPI
-  #       run: |
-  #         pip install twine
-  #         twine upload -r testpypi dist/*
-  #       env:
-  #         TWINE_USERNAME: __token__
-  #         TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
+  upload_test_pypi:
+    name: upload to test pypi
+    runs-on: ubuntu-latest
+    needs: [build_binary_wheels, build_sdist]
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: dist
+      - name: Publish distribution 📦 to Test PyPI
+        run: |
+          pip install twine
+          twine upload -r testpypi dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_SECRET }}
