@@ -280,8 +280,6 @@ protected:
     std::vector<std::vector<expression_ptr>> L_;
     
     std::string wscale_;
-    //std::vector<std::string> dvar_temp_;
-    //std::vector<std::vector<std::string>> wvar_temp_;
 
     // Expanded local assignments that need to be substituted in for derivative
     // calculations.
@@ -299,8 +297,6 @@ public:
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
-    //virtual void visit(IdentifierExpression *e) override;
-    //virtual void visit(LocalDeclaration *e) override;
     virtual void reset() override {
         dvars_.clear();
         f_.clear();

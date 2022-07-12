@@ -555,13 +555,11 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
             else {
                 // Need to read 1 index: outer[index]
                 index_prop outer_index_prop = {d.outer_index_var(), index, d.index_var_kind};
-                if (source_index_i_name(outer_index_prop) != "i_") {
-                    auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
+                auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
 
-                    // Check that the index hasn't already been added to the list
-                    if (it == indices.end()) {
-                        indices.push_front(outer_index_prop);
-                    }
+                // Check that the index hasn't already been added to the list
+                if (it == indices.end()) {
+                    indices.push_front(outer_index_prop);
                 }
             }
         }
