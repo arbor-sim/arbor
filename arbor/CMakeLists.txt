@@ -61,7 +61,6 @@ set(arbor_sources
     util/dylib.cpp
     util/hostname.cpp
     util/unwind.cpp
-    normal_rand.cpp
     version.cpp
 )
 

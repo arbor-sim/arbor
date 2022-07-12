@@ -113,13 +113,16 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
-        sarray sindices_;
         constraint_partition constraints_;
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
-        std::vector<arb_size_type*>  prng_states_;
+
+        std::vector<std::vector<arb_value_type*>> random_numbers_;
+        std::vector<arb_size_type> gid_;
+        std::vector<arb_size_type> idx_;
+        std::size_t random_number_update_counter_ = 0u;
     };
 
     unsigned alignment = 1;   // Alignment and padding multiple.
@@ -145,6 +148,8 @@ struct ARB_ARBOR_API shared_state {
 
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
+
+    arb_size_type random_number_cache_size; // number of random numbers generated
 
     arb_value_type* time_ptr;
 
@@ -172,7 +177,7 @@ struct ARB_ARBOR_API shared_state {
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
 
-    void set_prng_states(mechanism&, const std::vector<arb_size_type>&);
+    void update_prng_state(mechanism&);
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 

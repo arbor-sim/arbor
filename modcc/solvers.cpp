@@ -570,30 +570,12 @@ void EulerMaruyamaSolverVisitor::visit(BlockExpression* e) {
             error({"couldn't find symbol", e->location()});
             return;
         }
-        auto wn_symbol = w_symbol->is_white_noise();
-
-        // make arguments list for call to random number generator
-        std::vector<expression_ptr> args;
-        args.push_back(make_expression<IdentifierExpression>(Location{}, "prng_seed"));
-        args.push_back(make_expression<IdentifierExpression>(Location{}, "gid"));
-        args.push_back(make_expression<IdentifierExpression>(Location{}, "t"));
-        args.push_back(make_expression<IdentifierExpression>(Location{}, "mechanism_id"));
-        args.push_back(make_expression<IdentifierExpression>(Location{}, "mech_inst"));
-        args.push_back(make_expression<IntegerExpression>(Location{}, wn_symbol->index()));
-
-        // create call to gaussian random number generator
-        auto call = make_expression<APIFunctionCallExpression>("normal_rand", std::move(args));
-
-        // assign random number to white noise: w = normal_rand(...)
-        auto decl = make_expression<LocalDeclaration>(Location{}, w);
-        auto id = make_expression<IdentifierExpression>(Location{}, w);
-        auto ass = binary_expression(Location{}, tok::eq, id->clone(), call->clone());
-        statements_.push_back(std::move(decl));
-        statements_.push_back(std::move(ass));
+        //auto wn_symbol = w_symbol->is_white_noise();
 
         // scaled white noise w_i = s * w
         auto wscale = make_expression<IdentifierExpression>(Location{}, wscale_);
         auto ww = make_expression<IdentifierExpression>(Location{}, w);
+        ww->is_identifier()->symbol(w_symbol);
         auto w_ = binary_expression(Location{}, tok::times, std::move(wscale), std::move(ww));
         auto temp_wvar_term = make_unique_local_assign(e->scope(), w_, "w_");
         auto temp_wvar = temp_wvar_term.id->is_identifier()->spelling();

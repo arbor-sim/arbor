@@ -27,6 +27,7 @@
 #include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
+#include "rand.hpp"
 
 namespace arb {
 namespace multicore {
@@ -220,6 +221,7 @@ shared_state::shared_state(
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
+    random_number_cache_size(cbprng_batch_size),
     deliverable_events(n_intdom)
 {
     time_ptr = time.data();
@@ -443,11 +445,32 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
-void shared_state::set_prng_states(mechanism& m, const std::vector<arb_size_type>& values) {
-    if (!m.ppack_.width) return;
-    arb_size_type* data = m.ppack_.prng_states[0];
-    auto width_padded = extend_width<arb_size_type>(m, m.ppack_.width);
-    copy_extend(values, util::range_n(data, width_padded), values.back());
+void shared_state::update_prng_state(mechanism& m) {
+    if (!m.mech_.is_stochastic) return;
+    // TODO check number of random variables
+    auto const mech_id = m.mechanism_id();
+    auto& store = storage[mech_id];
+    auto const counter = store.random_number_update_counter_++;
+    //TODO make sure overflow is handled gracefully
+    auto const cache_idx = counter % random_number_cache_size;
+
+    m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
+
+    if (cache_idx == 0) {
+        // recompute
+        auto const seed = m.ppack_.prng_seed;
+        auto const num_rv = store.random_numbers_[cache_idx].size();
+        auto const width = store.gid_.size();
+
+        for (std::size_t n=0; n<num_rv; ++n) {
+            for (std::size_t i=0; i<width; ++i) {
+                auto const r =  generate_normal_random_values( seed, mech_id, n, store.gid_[i],
+                    store.idx_[i], counter);
+                for (std::size_t c=0; c<random_number_cache_size; ++c)
+                    store.random_numbers_[c][n][i] = r[c];
+            }
+        }
+    }
 }
 
 // The derived class (typically generated code from modcc) holds pointers that need
@@ -513,12 +536,14 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
+    // store indices for random number generation
+    store.gid_ = pos_data.gid;
+    store.idx_ = pos_data.idx;
+
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
     store.parameters_.resize(m.mech_.n_parameters); m.ppack_.parameters = store.parameters_.data();
     store.ion_states_.resize(m.mech_.n_ions);       m.ppack_.ion_states = store.ion_states_.data();
-
-    store.prng_states_.resize(3); m.ppack_.prng_states = store.prng_states_.data();
 
     // Set ion views
     for (auto idx: make_span(m.mech_.n_ions)) {
@@ -531,9 +556,17 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     // Initialize state and parameter vectors with default values.
     {
+        std::size_t num_random_numbers_per_cv = m.mech_.is_stochastic ?
+            m.mech_.n_random_variables : 0;
+        std::size_t random_number_storage = num_random_numbers_per_cv*random_number_cache_size;
+        store.random_numbers_.resize(random_number_cache_size);
+        for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+        m.ppack_.random_numbers = store.random_numbers_[0].data();
+
         // Allocate bulk storage
         std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*value_width_padded + m.mech_.n_globals;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
+            random_number_storage)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
         chunk_writer writer(store.data_.data(), value_width_padded);
 
@@ -546,6 +579,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
+        // Set random numbers
+        for (auto idx_v: make_span(num_random_numbers_per_cv))
+            for (auto idx_c: make_span(random_number_cache_size))
+                store.random_numbers_[idx_c][idx_v] = writer.fill(0);
 
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
@@ -608,17 +645,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
-    }
-
-    // make bulk size index storage for PRNG
-    {
-        // Allocate bulk storage
-        std::size_t index_width_padded = extend_width<arb_size_type>(m, pos_data.cv.size());
-        std::size_t count = 2;
-        store.sindices_ = sarray(count*index_width_padded, 0, pad);
-        chunk_writer writer(store.sindices_.data(), index_width_padded);
-        m.ppack_.prng_states[0] = writer.append(pos_data.gids, 0);
-        m.ppack_.prng_states[1] = writer.append(pos_data.inst_ids, 0);
     }
 }
 

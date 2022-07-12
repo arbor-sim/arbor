@@ -82,13 +82,6 @@ public:
         if (!found()) e->false_branch()->accept(this);
     }
 
-    void visit(APIFunctionCallExpression* e) override {
-        for (auto& arg : e->arguments()) {
-            if (found()) return;
-            arg->accept(this);
-        }
-    }
-
 private:
     const identifier_set& ids_;
     bool found_ = false;

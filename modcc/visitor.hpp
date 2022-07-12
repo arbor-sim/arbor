@@ -31,7 +31,6 @@ public:
     virtual void visit(CompartmentExpression *e)      { visit((Expression*) e); }
     virtual void visit(VariableExpression *e)         { visit((Expression*) e); }
     virtual void visit(IndexedVariable *e)            { visit((Expression*) e); }
-    virtual void visit(APIFunctionCallExpression *e)  { visit((Expression*) e); }
     virtual void visit(FunctionExpression *e)         { visit((Expression*) e); }
     virtual void visit(IfExpression *e)               { visit((Expression*) e); }
     virtual void visit(SolveExpression *e)            { visit((Expression*) e); }

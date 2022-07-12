@@ -105,6 +105,9 @@ struct mechanism_layout {
 
     std::vector<arb_size_type> gids;
     std::vector<arb_size_type> inst_ids;
+
+    std::vector<arb_size_type> gid;
+    std::vector<arb_size_type> idx;
 };
 
 struct mechanism_overrides {

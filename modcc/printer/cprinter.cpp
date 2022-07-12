@@ -153,8 +153,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         "#include <cstddef>\n"
         "#include <memory>\n"
         "#include <"  << arb_header_prefix() << "mechanism_abi.h>\n"
-        "#include <" << arb_header_prefix() << "math.hpp>\n"
-        "#include <" << arb_header_prefix() << "normal_rand.hpp>\n";
+        "#include <" << arb_header_prefix() << "math.hpp>\n";
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
@@ -168,7 +167,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         << "\n"
         "using ::arb::math::exprelr;\n"
         "using ::arb::math::safeinv;\n"
-        "using ::arb::math::normal_rand;\n"
         "using ::std::abs;\n"
         "using ::std::cos;\n"
         "using ::std::exp;\n"
@@ -269,8 +267,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
-    out << fmt::format("[[maybe_unused]] auto const * {}gid = pp->prng_states[0];\\\n", pp_var_pfx);
-    out << fmt::format("[[maybe_unused]] auto const * {}mech_inst = pp->prng_states[1];\\\n", pp_var_pfx);
+    out << fmt::format("[[maybe_unused]] auto const * const * {}random_numbers = pp->random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
         out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
@@ -450,23 +447,7 @@ void CPrinter::visit(LocalVariable* sym) {
 }
 
 void CPrinter::visit(WhiteNoise* sym) {
-    out_ << sym->name();
-}
-
-void CPrinter::visit(APIFunctionCallExpression* e) {
-    out_ << e->name() << "( ";
-    auto& args = e->is_api_function_call()->arguments();
-    for (unsigned i = 0; i < args.size(); ++i) {
-        auto& expr = args[i];
-        if (expr->is_integer())
-            out_ << expr->is_integer()->integer_value();
-        else
-            expr->accept(this);
-        if (i == (args.size() - 1))
-            out_ << " )";
-        else
-            out_ << ", ";
-    }
+    out_ << fmt::format("{}random_numbers[{}][i_]", pp_var_pfx, sym->index());
 }
 
 void CPrinter::visit(VariableExpression *sym) {
@@ -499,7 +480,7 @@ void CPrinter::visit(BlockExpression* block) {
     }
 
     for (auto& stmt: block->statements()) {
-        if (!stmt->is_local_declaration() && !stmt->is_api_function_call()) {
+        if (!stmt->is_local_declaration()) {
             stmt->accept(this);
             out_ << (stmt->is_if()? "": ";\n");
         }

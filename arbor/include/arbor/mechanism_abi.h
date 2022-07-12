@@ -106,7 +106,7 @@ typedef struct arb_mechanism_ppack {
     arb_ion_state*   ion_states;                    // Array of views into shared state.
 
     arb_size_type prng_seed;
-    arb_size_type** prng_states;
+    arb_value_type const * const * random_numbers;
 } arb_mechanism_ppack;
 
 
@@ -210,6 +210,7 @@ typedef struct arb_mechanism_type {
     arb_ion_info*             ions;             // Ion properties
     arb_size_type             n_ions;
     bool                      is_stochastic;
+    arb_size_type             n_random_variables;
     arb_index_type            user_seed;
 } arb_mechanism_type;
 

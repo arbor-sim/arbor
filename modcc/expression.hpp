@@ -23,7 +23,6 @@ class ARB_LIBMODCC_API BlockExpression;
 class ARB_LIBMODCC_API IfExpression;
 class ARB_LIBMODCC_API LocalDeclaration;
 class ARB_LIBMODCC_API ArgumentExpression;
-class ARB_LIBMODCC_API APIFunctionCallExpression;
 class ARB_LIBMODCC_API FunctionExpression;
 class ARB_LIBMODCC_API DerivativeExpression;
 class ARB_LIBMODCC_API PrototypeExpression;
@@ -172,7 +171,7 @@ public:
     virtual IfExpression*              is_if()                {return nullptr;}
     virtual LocalDeclaration*          is_local_declaration() {return nullptr;}
     virtual ArgumentExpression*        is_argument()          {return nullptr;}
-    virtual APIFunctionCallExpression* is_api_function_call() {return nullptr;}
+    //virtual APIFunctionCallExpression* is_api_function_call() {return nullptr;}
     virtual FunctionExpression*        is_function()          {return nullptr;}
     virtual DerivativeExpression*      is_derivative()        {return nullptr;}
     virtual PrototypeExpression*       is_prototype()         {return nullptr;}
@@ -1232,31 +1231,6 @@ private:
 
     std::vector<expression_ptr> args_;
     expression_ptr body_;
-};
-
-class ARB_LIBMODCC_API APIFunctionCallExpression: public Expression {
-protected:
-    std::string name_;
-    std::vector<expression_ptr> args_;
-
-public:
-    APIFunctionCallExpression(std::string const& name, std::vector<expression_ptr>&& args):
-        Expression(Location{}),
-        name_{name},
-        args_{std::move(args)} {
-    }
-
-    std::string const& name() const {
-        return name_;
-    }
-    std::vector<expression_ptr>& arguments() { return args_; }
-    std::vector<expression_ptr> const& arguments() const { return args_; }
-
-    APIFunctionCallExpression* is_api_function_call() override { return this; }
-    std::string to_string() const override;
-    void accept(Visitor* v) override;
-    expression_ptr clone() const override;
-    void semantic(scope_ptr scp) override;
 };
 
 ////////////////////////////////////////////////////////////
