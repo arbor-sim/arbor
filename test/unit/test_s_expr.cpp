@@ -206,6 +206,15 @@ std::string round_trip_locset(const char* in) {
     }
 }
 
+std::string round_trip_iexpr(const char* in) {
+    if (auto x = parse_iexpr_expression(in)) {
+        return util::pprintf("{}", std::any_cast<arb::iexpr>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
 
 TEST(cv_policies, round_tripping) {
     auto literals = {"(every-segment (tag 42))",
@@ -242,6 +251,88 @@ TEST(cv_policies, bad) {
     EXPECT_THROW(check("(every-segment (terminal))"), cv_policy_parse_error); // locset instead of region
     EXPECT_THROW(check("(every-segment"), cv_policy_parse_error);             // missing paren
     EXPECT_THROW(check("(tag 42)"), cv_policy_parse_error);                   // not a cv_policy
+}
+
+TEST(iexpr, round_tripping) {
+    EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));
+    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))", round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
+    auto iexpr_literals = {
+        "(scalar 2.1)",
+        "(distance 3.2 (region \"foo\"))",
+        "(distance 3.2 (location 3 0.2))",
+        "(proximal-distance 3.2 (region \"foo\"))",
+        "(proximal-distance 3.2 (location 3 0.2))",
+        "(distal-distance 3.2 (region \"foo\"))",
+        "(distal-distance 3.2 (location 3 0.2))",
+        "(interpolation 3.2 (region \"foo\") 4.3 (radius-gt (tag 3) 1))",
+        "(interpolation 3.2 (location 3 0.2) 4.3 (distal (tag 2)))",
+        "(radius 2.1)",
+        "(diameter 2.1)",
+        "(exp (scalar 2.1))",
+        "(log (scalar 2.1))",
+        "(add (scalar 2.1) (radius 3.2))",
+        "(sub (scalar 2.1) (radius 3.2))",
+        "(mul (scalar 2.1) (radius 3.2))",
+        "(div (scalar 2.1) (radius 3.2))",
+    };
+    for (auto l: iexpr_literals) {
+        EXPECT_EQ(l, round_trip_label<arb::iexpr>(l));
+        EXPECT_EQ(l, round_trip_iexpr(l));
+    }
+
+    // check double values for input instead of explicit scalar iexpr
+    auto mono_iexpr = {std::string("exp"), std::string("log")};
+    auto duo_iexpr = {std::string("add"), std::string("sub"), std::string("mul"), std::string("div")};
+    constexpr auto v1 = "1.2";
+    constexpr auto v2 = "1.2";
+    for(const auto& l : mono_iexpr) {
+        auto l_input = "(" + l + " " + v1 + ")";
+        auto l_output = "(" + l + " (scalar " + v1 + "))";
+        EXPECT_EQ(l_output.c_str(), round_trip_label<arb::iexpr>(l_input.c_str()));
+        EXPECT_EQ(l_output.c_str(), round_trip_iexpr(l_input.c_str()));
+    }
+    for(const auto& l : duo_iexpr) {
+        auto l_input_dd = "(" + l + " " + v1 + + " " + v2 +")";
+        auto l_input_sd = "(" + l + " (scalar " + v1 + + ") " + v2 +")";
+        auto l_input_ds = "(" + l + " " + v1 + + " (scalar " + v2 +"))";
+        auto l_output = "(" + l + " (scalar " + v1 + ") (scalar " + v2 +"))";
+        EXPECT_EQ(l_output.c_str(), round_trip_label<arb::iexpr>(l_input_dd.c_str()));
+        EXPECT_EQ(l_output.c_str(), round_trip_iexpr(l_input_dd.c_str()));
+        EXPECT_EQ(l_output.c_str(), round_trip_label<arb::iexpr>(l_input_sd.c_str()));
+        EXPECT_EQ(l_output.c_str(), round_trip_iexpr(l_input_sd.c_str()));
+        EXPECT_EQ(l_output.c_str(), round_trip_label<arb::iexpr>(l_input_ds.c_str()));
+        EXPECT_EQ(l_output.c_str(), round_trip_iexpr(l_input_ds.c_str()));
+    }
+
+    // test order for more than two arguments
+    EXPECT_EQ("(add (add (add (scalar 1.1) (scalar 2.2)) (scalar 3.3)) (scalar 4.4))",
+        round_trip_label<arb::iexpr>("(add 1.1 2.2 3.3 4.4)"));
+    EXPECT_EQ("(sub (sub (sub (scalar 1.1) (scalar 2.2)) (scalar 3.3)) (scalar 4.4))",
+        round_trip_label<arb::iexpr>("(sub 1.1 2.2 3.3 4.4)"));
+    EXPECT_EQ("(mul (mul (mul (scalar 1.1) (scalar 2.2)) (scalar 3.3)) (scalar 4.4))",
+        round_trip_label<arb::iexpr>("(mul 1.1 2.2 3.3 4.4)"));
+    EXPECT_EQ("(div (div (div (scalar 1.1) (scalar 2.2)) (scalar 3.3)) (scalar 4.4))",
+        round_trip_label<arb::iexpr>("(div 1.1 2.2 3.3 4.4)"));
+
+    // test default constructors
+    EXPECT_EQ("(distance 1 (location 3 0.2))",
+        round_trip_label<arb::iexpr>("(distance (location 3 0.2))"));
+    EXPECT_EQ("(distance 1 (region \"foo\"))",
+        round_trip_label<arb::iexpr>("(distance (region \"foo\"))"));
+    EXPECT_EQ("(distal-distance 1 (location 3 0.2))",
+        round_trip_label<arb::iexpr>("(distal-distance (location 3 0.2))"));
+    EXPECT_EQ("(distal-distance 1 (region \"foo\"))",
+        round_trip_label<arb::iexpr>("(distal-distance (region \"foo\"))"));
+    EXPECT_EQ("(proximal-distance 1 (location 3 0.2))",
+        round_trip_label<arb::iexpr>("(proximal-distance (location 3 0.2))"));
+    EXPECT_EQ("(proximal-distance 1 (region \"foo\"))",
+        round_trip_label<arb::iexpr>("(proximal-distance (region \"foo\"))"));
+    EXPECT_EQ("(radius 1)",
+        round_trip_label<arb::iexpr>("(radius)"));
+    EXPECT_EQ("(diameter 1)",
+        round_trip_label<arb::iexpr>("(diameter)"));
+    EXPECT_EQ("(scalar 3.14159)",
+        round_trip_label<arb::iexpr>("(pi)"));
 }
 
 TEST(regloc, round_tripping) {
@@ -453,6 +544,7 @@ using place_tuple = std::tuple<arb::locset, arb::placeable, std::string>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
+using iexpr_pair = std::pair<std::string, iexpr>;
 
 std::ostream& operator<<(std::ostream& o, const i_clamp& c) {
     o << "(current-clamp (envelope";
@@ -479,6 +571,9 @@ std::ostream& operator<<(std::ostream& o, const membrane_capacitance& p) {
 std::ostream& operator<<(std::ostream& o, const init_int_concentration& p) {
     return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << ')';
 }
+std::ostream& operator<<(std::ostream& o, const ion_diffusivity& p) {
+    return o << "(ion-diffusivity \"" << p.ion << "\" " << p.value << ')';
+}
 std::ostream& operator<<(std::ostream& o, const init_ext_concentration& p) {
     return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << ')';
 }
@@ -500,6 +595,15 @@ std::ostream& operator<<(std::ostream& o, const synapse& p) {
 }
 std::ostream& operator<<(std::ostream& o, const density& p) {
     return o << "(density " << p.mech << ')';
+}
+template <typename TaggedMech>
+std::ostream& operator<<(std::ostream& o, const scaled_mechanism<TaggedMech>& p) {
+    o << "(scaled-mechanism " << p.t_mech;
+    for (const auto& it: p.scale_expr) {
+        o << " (\"" << it.first << "\" " << it.second << ')';
+    }
+    o << ")";
+    return o;
 }
 std::ostream& operator<<(std::ostream& o, const ion_reversal_potential_method& p) {
     return o << "(ion-reversal-potential-method \"" << p.ion << "\" " << p.method << ')';
@@ -534,6 +638,9 @@ std::ostream& operator<<(std::ostream& o, const locset_pair& p) {
 }
 std::ostream& operator<<(std::ostream& o, const region_pair& p) {
     return o << "(region-def \"" << p.first << "\" " << p.second << ")";
+}
+std::ostream& operator<<(std::ostream& o, const iexpr_pair& p) {
+    return o << "(iexpr-def \"" << p.first << "\" " << p.second << ")";
 }
 
 template <typename T>
@@ -612,6 +719,8 @@ TEST(decor_literals, round_tripping) {
     auto paint_literals = {
         "(density (mechanism \"hh\"))",
         "(density (mechanism \"pas\" (\"g\" 0.02)))",
+        "(scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))))",
+        "(scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))) (\"g\" (exp (add (radius 2.1) (scalar 3.2)))))",
     };
     auto default_literals = {
         "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
@@ -666,6 +775,7 @@ TEST(decor_expressions, round_tripping) {
         "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" -50.1))",
         "(paint (region \"my_region\") (ion-reversal-potential \"na\" 30))",
         "(paint (cable 2 0.1 0.4) (density (mechanism \"hh\")))",
+        "(paint (cable 2 0.1 0.4) (scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))) (\"g\" (exp (add (distance 2.1 (region \"my_region\")) (scalar 3.2))))))",
         "(paint (all) (density (mechanism \"pas\" (\"g\" 0.02))))"
     };
     auto decorate_default_literals = {
@@ -706,11 +816,19 @@ TEST(label_dict_expressions, round_tripping) {
         "(region-def \"my region\" (all))",
         "(region-def \"reg42\" (cable 0 0.1 0.9))"
     };
+    auto iexpr_def_literals = {
+        "(iexpr-def \"my_iexpr\" (radius 1.2))",
+        "(iexpr-def \"my_iexpr_2\" (iexpr \"my_iexpr\"))",
+    };
+
     for (auto l: locset_def_literals) {
         EXPECT_EQ(l, round_trip<locset_pair>(l));
     }
     for (auto l: region_def_literals) {
         EXPECT_EQ(l, round_trip<region_pair>(l));
+    }
+    for (auto l: iexpr_def_literals) {
+        EXPECT_EQ(l, round_trip<iexpr_pair>(l));
     }
 }
 
@@ -753,6 +871,18 @@ TEST(decor, round_tripping) {
                                 "      (density \n"
                                 "        (mechanism \"pas\")))\n"
                                 "    (paint \n"
+                                "      (region \"dend\")\n"
+                                "      (scaled-mechanism \n"
+                                "        (density \n"
+                                "          (mechanism \"pas\"))))\n"
+                                "    (paint \n"
+                                "      (region \"soma\")\n"
+                                "      (scaled-mechanism \n"
+                                "        (density \n"
+                                "          (mechanism \"pas\"))\n"
+                                "        (\"g\" \n"
+                                "          (radius 2.1))))\n"
+                                "    (paint \n"
                                 "      (region \"soma\")\n"
                                 "      (density \n"
                                 "        (mechanism \"hh\")))\n"
@@ -785,6 +915,11 @@ TEST(label_dict, round_tripping) {
                                 "  (meta-data \n"
                                 "    (version \"" + arborio::acc_version() + "\"))\n"
                                 "  (label-dict \n"
+                                "    (iexpr-def \"my_iexpr\" \n"
+                                "      (log \n"
+                                "        (mul \n"
+                                "          (scalar 3.5)\n"
+                                "          (diameter 4.3))))\n"
                                 "    (region-def \"soma\" \n"
                                 "      (tag 1))\n"
                                 "    (region-def \"dend\" \n"
@@ -960,6 +1095,8 @@ TEST(cable_cell, round_tripping) {
                                 "          (point 206.300000 0.000000 0.000000 0.200000)\n"
                                 "          3)))\n"
                                 "    (label-dict \n"
+                                "      (iexpr-def \"my_iexpr\" \n"
+                                "        (radius 2.1))\n"
                                 "      (region-def \"soma\" \n"
                                 "        (tag 1))\n"
                                 "      (region-def \"dend\" \n"
@@ -978,6 +1115,13 @@ TEST(cable_cell, round_tripping) {
                                 "        (density \n"
                                 "          (mechanism \"hh\" \n"
                                 "            (\"el\" 0.500000))))\n"
+                                "      (paint \n"
+                                "        (region \"soma\")\n"
+                                "        (scaled-mechanism \n"
+                                "          (density \n"
+                                "            (mechanism \"pas\"))\n"
+                                "          (\"g\" \n"
+                                "            (iexpr \"my_iexpr\"))))\n"
                                 "      (place \n"
                                 "        (location 0 1)\n"
                                 "        (current-clamp \n"

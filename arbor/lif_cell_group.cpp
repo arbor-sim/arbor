@@ -18,7 +18,7 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
         }
     }
     // Default to no binning of events
-    set_binning_policy(binning_kind::none, 0);
+    lif_cell_group::set_binning_policy(binning_kind::none, 0);
 
     cells_.reserve(gids_.size());
     last_time_updated_.resize(gids_.size());

@@ -27,8 +27,8 @@ make_catalogue(
   NAME default
   SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/default"
   OUTPUT "CAT_DEFAULT_SOURCES"
-  MOD exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas gj
-  #MOD exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas gj my_exp2syn my_expsyn my_hh my_pas
+  MOD exp2syn expsyn expsyn_curr expsyn_stdp hh kamt kdrmt nax nernst pas gj decay inject
+  #MOD exp2syn expsyn expsyn_curr expsyn_stdp hh kamt kdrmt nax nernst pas gj decay inject my_exp2syn my_expsyn my_hh my_pas
   CXX
   PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
   CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"

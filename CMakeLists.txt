@@ -174,11 +174,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Data and internal scripts go here
-set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
 # Derived paths for arbor-build-catalogue
-get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_FULL_BINDIR} REALPATH)
-get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_FULL_DATAROOTDIR} REALPATH)
-get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_FULL_LIBDIR} REALPATH)
+get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_BINDIR} REALPATH)
+get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_DATAROOTDIR} REALPATH)
+get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_LIBDIR} REALPATH)
 file(RELATIVE_PATH ARB_REL_DATADIR ${absolute_full_bindir} ${absolute_full_datarootdir}/arbor)
 file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${absolute_full_bindir} ${absolute_full_libdir}/cmake/arbor)
 
@@ -226,11 +226,13 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 # Add scripts and supporting CMake for setting up external catalogues
 
 configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
+
+cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
@@ -239,9 +241,17 @@ if(NOT ARB_USE_BUNDLED_JSON)
 else()
   unset(nlohmann_json_DIR CACHE)
 endif()
+
+cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+add_library(ext-random123 INTERFACE)
+if(NOT ARB_USE_BUNDLED_RANDOM123)
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
+
 add_subdirectory(ext)
 
-cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -292,7 +302,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.6.0)
+set(arb_py_version 3.7.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
@@ -301,7 +311,7 @@ endif()
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
 
-    if(DEFINED ENV{CIBUILDWHEEL})
+    if(DEFINED ENV{CIBUILDWHEEL} AND (UNIX AND NOT APPLE))
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
     else()
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
@@ -355,8 +365,6 @@ endif()
 #--------------
 
 if(ARB_WITH_GPU)
-    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
-
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
         add_compile_options(

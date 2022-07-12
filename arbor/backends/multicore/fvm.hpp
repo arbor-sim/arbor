@@ -6,10 +6,11 @@
 #include <arbor/mechanism.hpp>
 
 #include "backends/event.hpp"
-#include "backends/multicore/matrix_state.hpp"
 #include "backends/multicore/multi_event_stream.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/shared_state.hpp"
+#include "backends/multicore/diffusion_solver.hpp"
+#include "backends/multicore/cable_solver.hpp"
 #include "backends/multicore/threshold_watcher.hpp"
 #include "execution_context.hpp"
 #include "util/padded_alloc.hpp"
@@ -40,14 +41,13 @@ struct backend {
         return util::range_pointer_view(v);
     }
 
-    using matrix_state = arb::multicore::matrix_state<value_type, index_type>;
-    using threshold_watcher = arb::multicore::threshold_watcher;
-
+    using cable_solver             = arb::multicore::cable_solver;
+    using diffusion_solver         = arb::multicore::diffusion_solver;
+    using threshold_watcher        = arb::multicore::threshold_watcher;
     using deliverable_event_stream = arb::multicore::deliverable_event_stream;
-    using sample_event_stream = arb::multicore::sample_event_stream;
-
-    using shared_state = arb::multicore::shared_state;
-    using ion_state = arb::multicore::ion_state;
+    using sample_event_stream      = arb::multicore::sample_event_stream;
+    using shared_state             = arb::multicore::shared_state;
+    using ion_state                = arb::multicore::ion_state;
 
     static threshold_watcher voltage_watcher(
         shared_state& state,

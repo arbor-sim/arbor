@@ -62,6 +62,7 @@ The types of dynamics, and where they can be defined, are
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
    density mechanism,       ✓, --, --
+   scaled-mechanism (density),  ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -166,7 +167,28 @@ Take for example the built-in mechanism for passive leaky dynamics:
 
 .. _cablecell-ions:
 
-4. Ion species
+.. _cablecell-scaled-mechs:
+
+4. Scaled mechanisms
+~~~~~~~~~~~~~~~~~~~~~
+Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
+:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
+The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
+Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
+Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.
+Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>` can be scaled.
+
+
+.. code-block:: Python
+
+    # Create mechanism with custom conductance (range)
+    m = arbor.mechanism('pas', {'g': 0.1})
+
+    decor = arbor.decor()
+    # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
+    decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
+
+5. Ion species
 ~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
@@ -188,6 +210,7 @@ Each ion species has the following properties:
 2. *external concentration*: concentration on exterior of the membrane [mM].
 3. *reversal potential*: reversal potential [mV].
 4. *reversal potential mechanism*:  method for calculating reversal potential.
+5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero [m^2/s].
 
 Properties 1, 2 and 3 must be defined, and are used as the initial values for
 each quantity at the start of the simulation. They are specified globally,
@@ -255,6 +278,29 @@ using the *paint* interface:
 
     # Alternatively, one can selectively overwrite the global defaults.
     decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+
+To enable diffusion of ion species along the morphology (axial diffusion) one
+sets the per-species diffusivity to a positive value. It can be changed per
+region and defaults to zero. This is strictly passive transport according to the
+diffusion equation ``X' = ß ∆X`` where ``X`` is the species' diffusive
+concentration and ``ß`` the diffusivity constant.
+
+.. code-block:: Python
+
+    decor = arbor.decor()
+    decor.set_ion('ca', diff=23.0)
+    decor.paint('"region"', 'ca', diff=42.0)
+
+Be aware of the consequences of setting ``ß > 0`` only in some places, namely
+pile-up effects similar to reflective bounds.
+
+The diffusive concentration is *separate* from the internal concentration for
+reasons innate to the cable model, which require resetting it to its starting
+point at every timestep. It can be accessed from NMODL density and point
+mechanisms as an independent quantity, see :ref:`NMODL mechanism <nmodl>`. It is
+present on the full morphology if its associated diffusivity is set to a
+non-zero value on any subset of the morphology, ie ``region``. It is initialised
+to the value of the internal concentration at time zero.
 
 .. _cablecell-place:
 

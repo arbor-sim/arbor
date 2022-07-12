@@ -1,0 +1,203 @@
+% Created 2022-05-04 Wed 13:36
+% Intended LaTeX compiler: pdflatex
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Thorsten Hater}
+\date{\today}
+\title{Axial Diffusion of Ionic Species in Arbor}
+\hypersetup{
+ pdfauthor={Thorsten Hater},
+ pdftitle={Axial Diffusion of Ionic Species in Arbor},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 28.1.50 (Org mode 9.6)}, 
+ pdflang={English}}
+\usepackage{biblatex}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+
+\section{Introduction}
+\label{sec:org8cd0584}
+
+Arbor's model of the neurite -- and similarly that of cable theory in general --
+is valid in a narrow region around the membrane, ie \(r_{m} - \epsilon \leq r
+\leq r_{m} - \epsilon\). Therefore, the state variables of the model -- in
+particular ionic concentrations and currents -- are defined only in said small
+region.
+
+For treating diffusion of ionic species along the axial direction of the neuron,
+however, we will either need to assume a radially homogeneous distribution of
+ions inside the cell plasma or resort to a more detailed model of the general
+dynamics.
+
+Therefore, in the axial diffusion model adopted by Arbor, we are going to assume
+that the concentration \(M_s\) of an ionic species \(s\) behaves like \(M_s(x, r,
+\theta) = M_s(x)\) and is defined on the full inside of the neuron \(0 \leq r <
+r_m\). Furthermore, in contrast to traditional cable theory, we will take into
+account the effect trans-membrane currents on the internal concentration when
+modelling diffusion, ie
+
+\begin{align*}
+\partial_{t} M_{s} = \nabla \cdot (D_{s} \nabla M_{s}) + I_{m,s}
+\end{align*}
+
+This makes the axial diffusion model richer than the plain cable theory approach
+as implemented in Arbor so far. In particular the cable model assumes internal
+(and external) concentrations to be defined in a thin shell around the membrane
+and to be buffered by a far larger volume away from that shell. Thus, these
+values are reset to the buffer value infinitely fast, ie every time step in
+Arbor, unless managed by a concentration model density mechanism. However, this
+makes diffusion impossible as mechanisms cannot not exchange data across CVs.
+Therefore, finally!, we chose to add a new quantity \texttt{Xd} that is not buffered
+and serves as a diffusing proxy concentration that can be coupled by a mechanism
+to the internal concentration if needed. This begets an awkward, but workable,
+interface with ODE models of \texttt{Xd} in NMODL, see the relevant documentation.
+
+This proxy will be initialised as \texttt{Xd = Xi} and present on the full morphology
+iff \(\D_{s} > 0\) on any non-vanishing subset of the morphology.
+
+\section{Derivation and FVM}
+\label{sec:org06e2271}
+
+The cable equation is the foundation of Arbor's model of the neuron
+\begin{align*}
+    c_{m} \partial_{t} V = \frac{1}{2 \pi a} \partial_{x} \left(\frac{\pi a^{2}}{R_{L}} \partial_{x} V\right) + i_{m}
+\end{align*}
+We want to solve the diffusion equation, excluding currents for now,
+\begin{align*}
+\partial_{t} M = \nabla \cdot (D \nabla M)
+\end{align*}
+by application of the finite volume method (as for the cable equation). That is,
+we average over the control volume (CV) \(V\) to rewrite in terms of the average
+concentration \(\bar{M}\) and apply Stoke's theorem on the right hand side. Note
+that we suppress the species subscript \(s\) for clarity where obvious from
+context or not relevant to the discussion. Thus
+\begin{align*}
+\partial_{t} \bar M_{i} = \frac{1}{\Delta V_{i}}\int\limits_{\partial V} \mathrm{d}a \cdot D \nabla M
+\end{align*}
+For linking to NMODL, note that \(M\) is identified with \texttt{Xd} in this discussion.
+Note that \(\nabla \sim \partial_{x}\) in our 1.5d model.
+
+Next, we define the fluxes
+\begin{align*}
+F_{ij} = \sigma_{ij}(\bar M_{i} - \bar M_{j})
+\end{align*}
+where \(\sigma_{ij}\) is the contact area of segments \(i\) and \(j\).
+
+Then we apply an implicit Euler time-step
+\begin{align*}
+\frac{1}{\Delta t} \left(M^{k+1} - M^{k}\right) = \sum_{j}\frac{\sigma_{ij}}{P_{L}\Delta x_{ij}}\eta_{ij} \left(M_{i}^{k+1} - M_{j}^{k+1}\right)
+\end{align*}
+where \(\eta_{ij} = 1\) if \(i\) and \(j\) are neighbours and zero otherwise. We introduced
+\(P_L = P \cdot A/l\) where \(P = 1/D\) in analogy with \(R_{L}\) ('\emph{specific diffusive
+resistivity}').
+
+This can be rewritten to expose the structure of the linear system more clearly
+\begin{align*}
+\frac{1}{\Delta t}M_{i}^{k}= \frac{1}{\Delta t}M_{i}^{k+1} + \sum\limits_{j}\beta_{ij} \left(M_{i}^{k+1} - M_{j}^{k+1} \right)
+\end{align*}
+where
+\begin{align*}
+\beta_{ij} = \frac{\sigma_{ij}}{P_{L} \Delta x_{ij}}\eta_{ij}
+\end{align*}
+
+\section{Treatment of Trans-Membrane Ion Flux}
+\label{sec:org0eeed52}
+
+Finally, we add back the ionic currents to the concentration changes to arrive at
+\begin{align*}
+\frac{1}{\Delta t}M_{i}^{k} = \left(\frac{1}{\Delta t}
+ + \sum\limits_{j}\beta_{ij}\right) M_{i}^{k+1} - \sum\limits_{j}\beta_{ij}M_{j}^{k+1} + \frac{\sigma_{i}}{q I_m(V^{k+1
+})
+\end{align*}
+where we used the CV surface \(\sigma_{i}\), the ion species' current \(I_m\) through
+\(\sigma_{i}\) and its charge \(q\).
+
+We follow Arbor's model and write Ohm's law
+\begin{align*}
+g = \frac{\partial I_m(V)}{\partial V} = \frac{\partial t}{\partial V}\frac{\partial I_m}{\partial t}
+\end{align*}
+where \(g\) is the \emph{per species conductivity} and approximately we have
+\begin{align*}
+I_m^{k+1} - I_m^{k} = g\left(V^{k+1} - V^{k}\right)
+\end{align*}
+Inserting this into the diffusion equation and rearranging to separate
+\(\cdot^{k}\) and \(\cdot^{k+1}\) terms
+\begin{align*}
+\frac{1}{\Delta t}M_{i}^{k} - \frac{\sigma_{i}}{q}\left(I_m^k - gV^k\right)= \left(\frac{1}{\Delta t}
+ + \sum\limits_{j}\beta_{ij}\right) M_{i}^{k+1} - \sum\limits_{j}\beta_{ij}M_{j}^{k+1} + \frac{\sigma_{i}g}{q} V^{k+1}
+\end{align*}
+
+In \texttt{fvm\_discretize} we compute \(\alpha_{ij}\) -- the analogue for \(\beta_{ij}\) in the cable
+equation -- called \texttt{face\_conductance} in code
+\begin{verbatim}
+mcable span{bid, parent_refpt, cv_refpt};
+double resistance =
+    embedding.integrate_ixa(span,
+                            D.axial_resistivity[0].at(bid));
+D.face_conductance[i] = 100/resistance; // 100 scales to µS.
+\end{verbatim}
+
+\section{Units}
+\label{sec:org4ff2b42}
+
+We have the following units preset for us
+
+\begin{center}
+\begin{tabular}{llll}
+\hline
+Quantity & Symbol & Unit & SI\\
+\hline
+Concentration & \(M\) & \(m\mathrm{mol}/l\) & \(10^{-6} \mathrm{mol}/m^{3}\)\\
+Length & \(x\) & \(\mu m\) & \(10^{-6} m\)\\
+Area & \(A\) & \((\mu m)^{2}\) & \(10^{-12} m^{2}\)\\
+Time & \(t\) & \(ms\) & \(10^{-3} s\)\\
+\hline
+\end{tabular}
+\end{center}
+
+From this we need to fix units for
+\begin{itemize}
+\item fluxes \(F\)
+\item diffusivity \(D\) and \(D_{L}\)
+\item diffusive resistivity \(P\) and \(P_{L}\)
+\end{itemize}
+
+We start with \(D\) and apply dimensional analysis to the diffusion equation to note
+\begin{align*}
+[M]/[T] &= [M][D]/[L^{2}]\\
+\end{align*}
+which results in
+\begin{align*}
+[D] &= [L^{2}][T]^{-1}\\
+&= (\mu m)^{2}/ms = 10^{-9} m^{2}/ s
+\end{align*}
+in Arbor's internal units.
+Similarly, we rewrite the diffusion equation in its abstract form
+\begin{align*}
+\partial_{t} M = \nabla \cdot F
+\end{align*}
+to arrive at
+\begin{align*}
+[M]/[T] &= [F]/[L]\\
+\Leftrightarrow [F] &= [L][M][T]^{-1}\\
+\Rightarrow [F] &= 10^{-9} \mathrm{mol}/(m^{2} s)
+\end{align*}
+
+From Yasuda et al we have \([D_{eff}] = 10^{-12}m^{2}/s\) which fits our derivation
+for \(D\), expect for their use of \([T] = s\) as opposed to \([T]=ms\).
+\end{document}

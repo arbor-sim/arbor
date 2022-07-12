@@ -116,6 +116,6 @@ ARB_ARBOR_API const mechanism_catalogue& global_allen_catalogue();
 ARB_ARBOR_API const mechanism_catalogue& global_bbp_catalogue();
 
 // Load catalogue from disk.
-ARB_ARBOR_API const mechanism_catalogue& load_catalogue(const std::string&);
+ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::string&);
 
 } // namespace arb

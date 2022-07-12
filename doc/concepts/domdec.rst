@@ -3,6 +3,11 @@
 Domain decomposition
 ====================
 
+An Arbor simulation requires a :ref:`modelrecipe`, a :ref:`(hardware) context <modelhardware>`, and a domain decomposition. The Recipe contains the neuroscientific model, the hardware context describes the computational resources you are going to execute the simulation on, and the domain decomposition describes how Arbor will use the hardware. Since the context and domain decomposition may seem closely related at first, it might be instructive to see how recipes are used by Arbor: 
+
+.. raw:: html
+   :file: domdec-diag-1.html
+
 A *domain decomposition* describes the distribution of the model over the available computational resources.
 The description partitions the cells in the model as follows:
 

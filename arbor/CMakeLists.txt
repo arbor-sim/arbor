@@ -21,6 +21,7 @@ set(arbor_sources
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
     hardware/power.cpp
+    iexpr.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     label_resolution.cpp
@@ -71,6 +72,8 @@ if(ARB_WITH_GPU)
         backends/gpu/threshold_watcher.cu
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_fine.cu
+        backends/gpu/diffusion.cu
+        backends/gpu/fine.cu
         backends/gpu/matrix_solve.cu
         backends/gpu/multi_event_stream.cpp
         backends/gpu/multi_event_stream.cu

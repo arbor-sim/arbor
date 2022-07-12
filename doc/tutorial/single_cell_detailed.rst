@@ -121,16 +121,44 @@ can be stored in a :class:`arbor.label_dict`.
 
    More information on region and location expressions is available :ref:`here <labels>`.
 
-First, we can define some **regions**, These are continuous parts of the morphology,
-They can correspond to full segments or parts of segments. Our morphology already has some
-pre-established regions determined by the ``tag`` parameter of the segments. They are
-defined as follows:
+The SWC file format allows association of ``tags`` with parts of the morphology
+and reserves tag values 1-4 for commonly used sections (see `here
+<http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`__
+for the SWC file format). In Arbor, these tags can be added to a :class:`arbor.label_dict` using
+the :meth:`~arbor.label_dict.add_swc_tags` method, which will define
 
-.. literalinclude:: ../../python/example/single_cell_detailed.py
-   :language: python
-   :lines: 22-32
+.. list-table:: Default SWC Tags
+   :widths: 25 25 50
+   :header-rows: 1
 
-This will generate the following regions when applied to the previously defined morphology:
+   * - Tag
+     - Label
+     - Section
+   * - 1
+     - ``"soma"``
+     - Soma
+   * - 2
+     - ``"axon"``
+     - Axon
+   * - 3
+     - ``"dend"``
+     - Basal dendrite
+   * - 4
+     - ``"apic"``
+     - Apical dendrite
+
+You can alternatively define these regions by hand, using
+
+.. code-block:: python
+
+  labels = arbor.label_dict({
+    "soma": "(tag 1)",
+    "axon": "(tag 2)",
+    "dend": "(tag 3)",
+    "apic": "(tag 4)",
+  })
+
+Both ways will generate the following regions when applied to the previously defined morphology:
 
 .. figure:: ../gen-images/tutorial_tag.svg
   :width: 800
@@ -144,7 +172,7 @@ in the following way:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 33-36
+   :lines: 29-32
 
 This will generate the following regions when applied to the previously defined morphology:
 
@@ -162,7 +190,7 @@ be done as follows:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 37-38
+   :lines: 33-34
 
 This will generate the following region when applied to the previously defined morphology:
 
@@ -176,7 +204,7 @@ terminal points of the morphology.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 42-44
+   :lines: 38-40
 
 This will generate the following **locsets** (sets of one or more locations) when applied to the
 previously defined morphology:
@@ -193,7 +221,7 @@ previously defined "custom" region; and, separately, the terminal points which b
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 45-48
+   :lines: 41-44
 
 This will generate the following 2 locsets when applied to the previously defined morphology:
 
@@ -226,7 +254,7 @@ step:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 50-57
+   :lines: 46-53
 
 We have set the default initial membrane voltage to -55 mV; the default initial
 temperature to 300 K; the default axial resistivity to 35.4 Ω·cm; and the default membrane
@@ -246,7 +274,7 @@ We can override the default properties by *painting* new values on the relevant 
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 59-61
+   :lines: 55-57
 
 With the default and initial values taken care of, we now add some density mechanisms. Let's *paint*
 a *pas* density mechanism everywhere on the cell using the previously defined "all" region; an *hh*
@@ -255,7 +283,7 @@ mechanism has a custom 'gbar' parameter.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 8,62-66
+   :lines: 8,59-62
 
 The decor object is also used to *place* stimuli and spike detectors on the cell using :meth:`arbor.decor.place`.
 We place 3 current clamps of 2 nA on the "root" locset defined earlier, starting at time = 10, 30, 50 ms and
@@ -265,7 +293,7 @@ in the recipe.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 68-72
+   :lines: 64-68
 
 .. Note::
 
@@ -285,13 +313,13 @@ to be a single CV, and the rest of the morphology to be comprised of CVs with a 
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 74-81
+   :lines: 70-77
 
 Finally, we create the cell.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 83-85
+   :lines: 79-81
 
 The model
 *********
@@ -300,7 +328,7 @@ Having created the cell, we construct an :class:`arbor.single_cell_model`.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 87-89
+   :lines: 83-85
 
 The global properties
 ^^^^^^^^^^^^^^^^^^^^^
@@ -342,7 +370,7 @@ model:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 91-95
+   :lines: 87-91
 
 We set the same properties as we did earlier when we were creating the *decor* of the cell, except
 for the initial membrane voltage, which is -65 mV as opposed to -55 mV.
@@ -353,7 +381,7 @@ the "allen" catalogue. We can extend the default catalogue as follow:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 97-101
+   :lines: 93-97
 
 Now all three mechanisms in the *decor* object have been made available to the model.
 
@@ -368,7 +396,7 @@ We can indicate the location we would like to probe using labels from the :class
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 103-107
+   :lines: 99-103
 
 The simulation
 ^^^^^^^^^^^^^^
@@ -377,7 +405,7 @@ The cell and model descriptions are now complete and we can run the simulation:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 109-111
+   :lines: 105-107
 
 The results
 ^^^^^^^^^^^
@@ -388,7 +416,7 @@ spikes on the cell from all spike detectors on the cell and saves the times at w
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 113-117
+   :lines: 109-113
 
 A more interesting result of the simulation is perhaps the output of the voltage probe previously
 placed on the "custom_terminal" locset. The model saves the output of the probes as [time, value]
@@ -397,7 +425,7 @@ choose the any other library:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 5,6,118-125
+   :lines: 5,6,114-
 
 The following plot is generated. The orange line is slightly delayed from the blue line, which is
 what we'd expect because branch 4 is longer than branch 3 of the morphology. We also see 3 spikes,

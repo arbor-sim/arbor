@@ -214,6 +214,7 @@ struct ARB_ARBOR_API s_expr {
     s_expr(s_expr l, s_expr r):
         state(pair_type(std::move(l), std::move(r)))
     {}
+    s_expr& operator=(const s_expr& s) { state = s.state; return *this; }
 
     explicit s_expr(std::string s):
         s_expr(token{{0,0}, tok::string, std::move(s)}) {}

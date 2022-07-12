@@ -54,11 +54,23 @@ The components of the label dictionary are the following:
 
    This expression identifies the midpoint of the branch with id 3 as "my_locset".
 
-Any number of locset and region definitions can be grouped in a label dictionary as follows:
+.. label:: (iexpr-def label:string e:iexpr)
 
-.. label:: (label-dict [...def:region-def/locset-def])
+   This defines a ``label`` which can be used to refer to the iexpr ``e``.
+   For example:
 
-   This describes a label dictionary of zero or more region and locset definitons.
+   .. code:: lisp
+
+      (iexpr-def "my_iexpr" (radius 0.5))
+
+   This expression identifies the radius iexpr with a scaling factor 0.5.
+
+
+Any number of locset, region an iexpr definitions can be grouped in a label dictionary as follows:
+
+.. label:: (label-dict [...def:region-def/locset-def/iexpr-def])
+
+   This describes a label dictionary of zero or more region, locset and iexpr definitons.
    For example:
 
    .. code:: lisp
@@ -68,7 +80,8 @@ Any number of locset and region definitions can be grouped in a label dictionary
         (locset-def "root" (root))
         (region-def "all" (all))
         (region-def "my_region" (radius-ge (region "my_soma") 1.5))
-        (locset-def "terminal" (terminal)))
+        (locset-def "terminal" (terminal))
+        (iexpr-def "my_iexpr" (radius 0.5)))
 
 Decor
 -----
@@ -84,20 +97,21 @@ of the cell):
 .. csv-table:: Property applicability.
    :widths: 20, 10, 10, 10
 
-                             ,         **placeable**, **paintable**, **defaultable**
-   initial membrane potential,         --,             ✓,             ✓
-   axial resistivity,                  --,             ✓,             ✓
-   temperature,                        --,             ✓,             ✓
-   membrane capacitance,               --,             ✓,             ✓
-   ion initial internal concentration, --,             ✓,             ✓
-   ion initial external concentration, --,             ✓,             ✓
-   ion initial reversal potential,     --,             ✓,             ✓
-   ion reversal potential method,      --,            --,             ✓
-   density mechanism,                  --,             ✓,            --
-   point mechanism,                    ✓,             --,            --
-   junction mechanism,                 ✓,             --,            --
-   current clamp,                      ✓,             --,            --
-   threshold detector,                 ✓,             --,            --
+                             ,           **placeable**, **paintable**, **defaultable**
+   initial membrane potential,           --,             ✓,             ✓
+   axial resistivity,                    --,             ✓,             ✓
+   temperature,                          --,             ✓,             ✓
+   membrane capacitance,                 --,             ✓,             ✓
+   ion initial internal concentration,   --,             ✓,             ✓
+   ion initial external concentration,   --,             ✓,             ✓
+   ion initial reversal potential,       --,             ✓,             ✓
+   ion reversal potential method,        --,            --,             ✓
+   density mechanism,                    --,             ✓,            --
+   scaled-mechanism (density),           --,             ✓,            --
+   point mechanism,                      ✓,             --,            --
+   junction mechanism,                   ✓,             --,            --
+   current clamp,                        ✓,             --,            --
+   threshold detector,                   ✓,             --,            --
 
 The various properties and dynamics of the decor are described as follows:
 
@@ -155,15 +169,20 @@ The various properties and dynamics of the decor are described as follows:
 
 .. label:: (density method:mechanism)
 
-   This describes a *density* mechanism whose behavior is is defined by ``mechanism``.
+   This describes a *density* mechanism whose behavior is defined by ``mechanism``.
+
+.. label:: (scaled-mechanism p:density [...(param:string e:iexpr)])
+
+   This describes a *density* mechanism, which is modified by scaling of individual parameters with
+   inhomogeneous scaling expressions.
 
 .. label:: (synapse method:mechanism)
 
-   This describes a *synapse* (point) mechanism whose behavior is is defined by ``mechanism``.
+   This describes a *synapse* (point) mechanism whose behavior is defined by ``mechanism``.
 
 .. label:: (junction method:mechanism)
 
-   This describes a *gap-junction* mechanism whose behavior is is defined by ``mechanism``.
+   This describes a *gap-junction* mechanism whose behavior is defined by ``mechanism``.
 
 .. label:: (current-clamp (envelope-pulse delay:real duration:real amplitude:real) freq:real phase:real)
 

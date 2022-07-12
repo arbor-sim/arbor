@@ -9,7 +9,7 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 0
+#define ARB_MECH_ABI_VERSION_MINOR 2
 #define ARB_MECH_ABI_VERSION_PATCH 1
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
@@ -28,7 +28,7 @@ typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_cpu 1
 #define arb_backend_kind_gpu 2
 
-inline const char* arb_mechsnism_kind_str(const arb_mechanism_kind& mech) {
+inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
     switch (mech) {
         case arb_mechanism_kind_density: return "density mechanism kind";
         case arb_mechanism_kind_point:   return "point mechanism kind";
@@ -40,9 +40,11 @@ inline const char* arb_mechsnism_kind_str(const arb_mechanism_kind& mech) {
 // Ion state variables; view into shared_state
 typedef struct arb_ion_state {
     arb_value_type* current_density;
+    arb_value_type* conductivity;
     arb_value_type* reversal_potential;
     arb_value_type* internal_concentration;
     arb_value_type* external_concentration;
+    arb_value_type* diffusive_concentration;
     arb_value_type* ionic_charge;
     arb_index_type* index;
 } arb_ion_state;
@@ -184,6 +186,7 @@ typedef struct arb_ion_info {
     const char* name;
     bool write_int_concentration;
     bool write_ext_concentration;
+    bool use_diff_concentration;
     bool write_rev_potential;
     bool read_rev_potential;
     bool read_valence;
@@ -213,6 +216,16 @@ typedef struct arb_mechanism_type {
     arb_size_type             n_random_variables;
     arb_index_type            user_seed;
 } arb_mechanism_type;
+
+// Bundle a type and its interfaces
+typedef arb_mechanism_type (*arb_get_mechanism_type)();
+typedef arb_mechanism_interface* (*arb_get_mechanism_interface)();
+
+typedef struct arb_mechanism {
+    arb_get_mechanism_type type;
+    arb_get_mechanism_interface i_cpu;
+    arb_get_mechanism_interface i_gpu;
+} arb_mechanism;
 
 #ifdef __cplusplus
 }

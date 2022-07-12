@@ -1,8 +1,10 @@
 #include <cfloat>
 #include <cmath>
+#include <memory>
 #include <numeric>
 #include <vector>
 #include <variant>
+#include <tuple>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
@@ -37,14 +39,15 @@ ARB_ARBOR_API void check_global_properties(const cable_cell_global_properties& G
         }
     }
 
-    for (const auto& kv: param.ion_data) {
-        auto& ion = kv.first;
-        const cable_cell_ion_data& data = kv.second;
+    for (const auto& [ion, data]: param.ion_data) {
         if (!data.init_int_concentration) {
             throw cable_cell_error("missing init_int_concentration for ion "+ion);
         }
         if (!data.init_ext_concentration) {
             throw cable_cell_error("missing init_ext_concentration for ion "+ion);
+        }
+        if (data.diffusivity && *data.diffusivity < 0.0) {
+            throw cable_cell_error("negative diffusivity for ion "+ion);
         }
         if (!data.init_reversal_potential && !param.reversal_potential_method.count(ion)) {
             throw cable_cell_error("missing init_reversal_potential or reversal_potential_method for ion "+ion);
@@ -62,11 +65,10 @@ cable_cell_parameter_set neuron_parameter_defaults = {
     // membrane capacitance [F/m²]
     0.01,
     // ion defaults:
-    // internal concentration [mM], external concentration [mM], reversal potential [mV]
-    {
-        {"na", {10.0,  140.0,  115 - 65.}},
-        {"k",  {54.4,    2.5,  -12 - 65.}},
-        {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5)}}
+    // internal concentration [mM], external concentration [mM], reversal potential [mV], diffusivity [m^2/s]
+    {{"na", {10.0,  140.0,  115 - 65.,               0.0}},
+     {"k",  {54.4,    2.5,  -12 - 65.,               0.0}},
+     {"ca", {5e-5,    2.0,  12.5*std::log(2.0/5e-5), 0.0}}
     },
 };
 
@@ -95,6 +97,9 @@ std::vector<defaultable> cable_cell_parameter_set::serialize() const {
         }
         if (data.init_reversal_potential) {
             D.push_back(init_reversal_potential{name, *data.init_reversal_potential});
+        }
+        if (data.init_reversal_potential) {
+            D.push_back(ion_diffusivity{name, *data.diffusivity});
         }
     }
 
@@ -147,6 +152,9 @@ void decor::set_default(defaultable what) {
                 }
                 else if constexpr (std::is_same_v<cv_policy, T>) {
                     defaults_.discretization = std::forward<cv_policy>(p);
+                }
+                else if constexpr (std::is_same_v<ion_diffusivity, T>) {
+                    defaults_.ion_data[p.ion].diffusivity = p.value;
                 }
             },
             what);

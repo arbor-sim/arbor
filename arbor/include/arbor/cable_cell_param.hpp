@@ -6,12 +6,15 @@
 #include <unordered_map>
 #include <string>
 #include <variant>
+#include <any>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/cv_policy.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/primitives.hpp>
 
 namespace arb {
 
@@ -32,6 +35,7 @@ struct cable_cell_ion_data {
     std::optional<double> init_int_concentration;
     std::optional<double> init_ext_concentration;
     std::optional<double> init_reversal_potential;
+    std::optional<double> diffusivity;
 };
 
 // Clamp current is described by a sine wave with amplitude governed by a
@@ -112,6 +116,12 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
     double value = NAN; // [mM]
 };
 
+
+struct ARB_SYMBOL_VISIBLE ion_diffusivity {
+    std::string ion = "";
+    double value = NAN; // [m^2/s]
+};
+
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     std::string ion = "";
     double value = NAN; // [mM]
@@ -185,6 +195,7 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
+
 // Tagged mechanism types for dispatching decor::place() and decor::paint() calls
 struct ARB_SYMBOL_VISIBLE junction {
     mechanism_desc mech;
@@ -221,15 +232,30 @@ struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
     mechanism_desc method;
 };
 
+template <typename TaggedMech>
+struct ARB_SYMBOL_VISIBLE scaled_mechanism {
+    TaggedMech t_mech;
+    std::unordered_map<std::string, iexpr> scale_expr;
+
+    explicit scaled_mechanism(TaggedMech m) : t_mech(std::move(m)) {}
+
+    scaled_mechanism& scale(std::string name, iexpr expr) {
+        scale_expr.insert_or_assign(name, expr);
+        return *this;
+    }
+};
+
 using paintable =
     std::variant<init_membrane_potential,
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
+                 ion_diffusivity,
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
-                 density>;
+                 density,
+                 scaled_mechanism<density>>;
 
 using placeable =
     std::variant<i_clamp,
@@ -242,6 +268,7 @@ using defaultable =
                  axial_resistivity,
                  temperature_K,
                  membrane_capacitance,
+                 ion_diffusivity,
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
@@ -313,17 +340,18 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     cable_cell_parameter_set default_parameters;
 
     // Convenience methods for adding a new ion together with default ion values.
-    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot) {
+    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot, double diffusivity=0.0) {
         ion_species[ion_name] = charge;
 
         auto &ion_data = default_parameters.ion_data[ion_name];
-        ion_data.init_int_concentration = init_iconc;
-        ion_data.init_ext_concentration = init_econc;
+        ion_data.init_int_concentration  = init_iconc;
+        ion_data.init_ext_concentration  = init_econc;
         ion_data.init_reversal_potential = init_revpot;
+        ion_data.diffusivity             = diffusivity;
     }
 
-    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, mechanism_desc revpot_mechanism) {
-        add_ion(ion_name, charge, init_iconc, init_econc, 0);
+    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, mechanism_desc revpot_mechanism, double diffusivity=0.0) {
+        add_ion(ion_name, charge, init_iconc, init_econc, 0, diffusivity);
         default_parameters.reversal_potential_method[ion_name] = std::move(revpot_mechanism);
     }
 };

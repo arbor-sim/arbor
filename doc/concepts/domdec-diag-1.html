@@ -1,0 +1,95 @@
+<div class="diag-cont">
+    <div id="recipe_src">Recipe
+        <div>Cell descriptions
+            <div>gid 1
+                <div>type <code>lif_cell_0</code>
+                    <div>...</div>
+                </div>
+            </div>
+            <div>...</div>
+            <div> gid 37
+                <div>type <code>cable_cell_A</code>
+                    <div>Morphology</div>
+                    <div>Decor
+                        <div>Mechanisms</div>
+                        <div>Connection sites</div>
+                    </div>
+                    <div>Label dictionary</div>
+                </div>
+            </div>
+        </div>
+        <div>Cell kinds
+            <div>gid 1
+                <div>type <code>arbor.lif_cell</code>
+                </div>
+            </div>
+            <div>...</div>
+            <div>gid 37
+                <div>type <code>arbor.cable_cell</code></div>
+            </div>
+        </div>
+        <div>...
+        </div>
+    </div>
+    <div class="diag-col">
+        <div class="diag-right">
+            Simulator: requests cell description of <code>gid=37</code>
+        </div>
+        <div class="diag-left">
+            Recipe: <code>type=cable_cell_A</code>.
+        </div>
+        <div class="diag-right">
+            Simulator: requests cell kind of <code>gid=37</code>
+        </div>
+        <div class="diag-left">
+            Recipe: <code>kind=arbor.cable_cell</code>.
+        </div>
+        <div class="diag-right">
+            Simulator: look up cell group implementation for kind <code>arbor.cable_cell</code>.
+        </div>
+        <div class="diag-right2">
+            Domain decomposition: <code>cable_cell_group_gpu</code>
+        </div>
+        <div class="diag-right">
+            Simulator: <code>cable_cell_group_gpu</code> construct <code>cable_cell_A</code> object.
+        </div>
+        <div class="diag-right3">
+            <code>cable_cell_group_gpu</code>: Construction complete.
+        </div>
+        <div class="diag-right">
+            Simulator: <code>cable_cell_group_gpu</code> simulate for <code>t .. t + dt</code>
+        </div>
+    </div>
+    <div>Simulation
+        <div id="recipe_dst">Recipe</div>
+        <div id="conc_src">Context
+            <div>
+                12 threads
+            </div>
+            <div>
+                1 GPU
+            </div>
+        </div>
+        <div id="domdec_src">Domain decomposition
+            <div>
+                cable_cell_group_gpu
+                <div>1 GPU</div>
+            </div>
+            <div>
+                ...
+            </div>
+        </div>
+    </div>
+</div>
+<div class="diag-caption">
+    An illustration of the cell-specific portion of the recipe, and how it is
+    used during the lifetime of the simulation: the simulation object will,
+    depending on its configuration, query the recipe for the neuroscientific
+    components it describes. This demonstration also show why the recipe separates
+    cell descriptions from cell types. The latter is, as you might expect,
+    shorthand, and is used in the allocation of the cell to a particular cell group.
+    A cell group implementation is a handler for a certain kind of cell, and Arbor
+    comes with these for all it's included cell kinds. However, users can develop
+    their own specialized cell group implementations. More on that in the internal
+    developer documentation.
+</div>

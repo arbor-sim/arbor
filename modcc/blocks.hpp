@@ -32,6 +32,9 @@ struct IonDep {
     bool uses_concentration_int() const {
         return has_variable(name + "i");
     };
+    bool uses_concentration_diff() const {
+        return has_variable(name + "d");
+    };
     bool uses_concentration_ext() const {
         return has_variable(name + "o");
     };
