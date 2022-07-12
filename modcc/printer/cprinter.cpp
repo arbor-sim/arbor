@@ -661,6 +661,12 @@ void SimdPrinter::visit(VariableExpression *sym) {
     EXITM(out_, "variable");
 }
 
+void SimdPrinter::visit(WhiteNoise* sym) {
+    auto index = is_indirect_? "index_": "i_";
+    out_ << fmt::format("simd_cast<simd_value>(indirect({}random_numbers[{}]+{}, simd_width_))",
+        pp_var_pfx, sym->index(), index);
+}
+
 void SimdPrinter::visit(AssignmentExpression* e) {
     ENTERM(out_, "assign");
     if (!e->lhs() || !e->lhs()->is_identifier() || !e->lhs()->is_identifier()->symbol()) {
