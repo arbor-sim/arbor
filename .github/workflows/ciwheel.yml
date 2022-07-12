@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       - name: Create unique VERSION
-        run: sed "1 s/$/`date +"%Y%m%d%H%I%S"`/" -i VERSION
+        run: python3 -c 'import time;f=open("VERSION");content = f.readlines();print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' > VERSION
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
