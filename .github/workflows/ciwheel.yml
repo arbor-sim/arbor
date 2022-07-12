@@ -26,10 +26,8 @@ jobs:
           submodules: recursive
       - name: Sitrep
         run: ls
-      - name: Sitrep deep
-        run: find . -print
       - name: Create unique VERSION
-        if: contains('ciwheel rc', github.ref)
+        if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
         run: python3 -c 'import time;f=open("VERSION");content = f.readlines();print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' > VERSION
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
@@ -76,8 +74,6 @@ jobs:
           name: dist
       - name: Sitrep
         run: ls
-      - name: Sitrep deep
-        run: find . -print
         working-directory: path/to/artifact
       - name: Publish distribution 📦 to Test PyPI
         run: |
