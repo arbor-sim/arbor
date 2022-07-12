@@ -111,6 +111,8 @@ void backtrace::print(bool stop_at_main) const {
 namespace arb {
 namespace util {
 
+backtrace::backtrace() {}
+
 std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
     return out;
 }
