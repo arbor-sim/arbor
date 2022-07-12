@@ -43,31 +43,25 @@ Update tags/versions and test
 2. Bump the ``VERSION`` file:
 
    - See also :ref:`dev-version`
-   - https://github.com/arbor-sim/arbor/blob/master/VERSION
    - Don't append ``-rc`` here, but if you do, remove it before releasing.
 
 3. Run all tests.
 
    - ``ciwheel.yml`` triggers when you push a branch called ``v*rc``, ON YOUR OWN REPO (so check ``github.com/$yourname/arbor/actions``). Make sure the tests pass.
-   - This should catch many problems. For a manual check:
+   - ``ciwheel.yml`` pushes automatically to Test.PyPI.org. Test (consider asking other OS-users):
+
+     .. code-block:: bash
+
+        python -m venv env && source env/bin/activate
+        pip install numpy
+        pip install -i https://test.pypi.org/simple/ arbor #should select the latest build, but doublecheck
+        python -c 'import arbor; print(arbor.__config__)'
+
+   - Use build flags to test the source package: :ref:`in_python_adv`
    - Verify MANIFEST.in (required for PyPI sdist)
-   - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``
    - Double check that all examples/tutorials/etc are covered by CI
-
-Test the RC
-~~~~~~~~~~~
-
-4. Collect artifact from the above GA run.
-   In case you want to manually want to trigger ``ciwheel.yml`` GA, overwrite the ``ciwheel`` branch with the commit of your choosing and force push to Github.
-5. ``twine upload -r testpypi dist/*``
-6. Ask users to test the above, e.g.:
-
-.. code-block:: bash
-
-   python -m venv env && source env/bin/activate
-   pip install numpy
-   pip install -i https://test.pypi.org/simple/ arbor==0.6-rc
-   python -c 'import arbor; print(arbor.__config__)'
+   - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``, ``pyproject.toml``
+   - In case you want to manually want to trigger ``ciwheel.yml`` GA, overwrite the ``ciwheel`` branch with the commit of your choosing and force push to Github.
 
 Release
 -------
