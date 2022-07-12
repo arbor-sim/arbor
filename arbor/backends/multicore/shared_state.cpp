@@ -2,11 +2,11 @@
 #include <cfloat>
 #include <cmath>
 #include <iostream>
-#include <random>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <random>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>

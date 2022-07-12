@@ -171,7 +171,6 @@ public:
     virtual IfExpression*              is_if()                {return nullptr;}
     virtual LocalDeclaration*          is_local_declaration() {return nullptr;}
     virtual ArgumentExpression*        is_argument()          {return nullptr;}
-    //virtual APIFunctionCallExpression* is_api_function_call() {return nullptr;}
     virtual FunctionExpression*        is_function()          {return nullptr;}
     virtual DerivativeExpression*      is_derivative()        {return nullptr;}
     virtual PrototypeExpression*       is_prototype()         {return nullptr;}

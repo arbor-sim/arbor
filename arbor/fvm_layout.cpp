@@ -725,9 +725,6 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
                 arb_assert(L.param_values[j].first==R.param_values[j].first);
                 append(L.param_values[j].second, R.param_values[j].second);
             }
-
-            append(L.gids, R.gids);
-            append(L.inst_ids, R.inst_ids);
         }
     }
 
@@ -955,7 +952,6 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         std::vector<double> param_on_cv(n_param);
 
-        arb_size_type inst_id = 0;
         for (auto cv: D.geometry.cell_cvs(cell_idx)) {
             double area = 0;
             util::fill(param_on_cv, 0.);
@@ -983,10 +979,6 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 for (auto i: count_along(param_on_cv)) {
                     config.param_values[i].second.push_back(param_on_cv[i]*oo_area);
                 }
-                // tuple (gid, mech_id, inst_id) gives unique identifier for any mechanism and can
-                // be used to prime the RNG for multistreaming
-                config.gids.push_back(gid);
-                config.inst_ids.push_back(inst_id++);
             }
         }
 
@@ -1147,11 +1139,6 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 }
             }
             config.target.push_back(in.target_index);
-
-            // tuple (gid, mech_id, i) gives unique identifier for any mechanism and can
-            // be used to prime the RNG for multistreaming (i is intance id per cell)
-            config.gids.push_back(gid);
-            config.inst_ids.push_back(i);
 
             prev = &in;
         }
