@@ -251,10 +251,6 @@ private :
     symbolKind kind_;
 };
 
-enum class variableType {
-    value, size
-};
-
 enum class localVariableKind {
     local, argument
 };
@@ -543,13 +539,11 @@ public:
                     std::string lookup_name,
                     sourceKind data_source,
                     accessKind acc,
-                    std::string channel="",
-                    variableType type=variableType::value)
+                    std::string channel="")
     :   Symbol(std::move(loc), std::move(lookup_name), symbolKind::indexed_variable),
         access_(acc),
         ion_channel_(std::move(channel)),
-        data_source_(data_source),
-        type_(type)
+        data_source_(data_source)
     {
         // external symbols are either read or write only
         if(access()==accessKind::readwrite) {
@@ -565,8 +559,6 @@ public:
     std::string ion_channel() const { return ion_channel_; }
     sourceKind data_source() const { return data_source_; }
     void data_source(sourceKind k) { data_source_ = k; }
-    variableType type() const { return type_; }
-    void type(variableType t) { type_ = t; }
 
     bool is_ion()   const { return !ion_channel_.empty(); }
     bool is_read()  const { return access_ == accessKind::read;   }
@@ -580,18 +572,15 @@ protected:
     accessKind  access_;
     std::string ion_channel_;
     sourceKind  data_source_;
-    variableType type_;
 };
 
 class ARB_LIBMODCC_API LocalVariable : public Symbol {
 public :
     LocalVariable(Location loc,
                   std::string name,
-                  localVariableKind kind=localVariableKind::local,
-                  variableType type=variableType::value)
+                  localVariableKind kind=localVariableKind::local)
     :   Symbol(std::move(loc), std::move(name), symbolKind::local_variable),
-        kind_(kind),
-        type_(type)
+        kind_(kind)
     {}
 
     LocalVariable* is_local_variable() override {
@@ -601,9 +590,6 @@ public :
     localVariableKind kind() const {
         return kind_;
     }
-
-    variableType type() const { return type_; }
-    void type(variableType t) { type_ = t; }
 
     bool is_indexed() const {
         return external_!=nullptr && external_->data_source()!=sourceKind::no_source;
@@ -637,7 +623,6 @@ public :
 
     void external_variable(IndexedVariable *i) {
         external_ = i;
-        type_ = i->type();
     }
 
     std::string to_string() const override;
@@ -646,7 +631,6 @@ public :
 private :
     IndexedVariable *external_=nullptr;
     localVariableKind kind_;
-    variableType type_;
 };
 
 class ARB_LIBMODCC_API WhiteNoise : public Symbol {

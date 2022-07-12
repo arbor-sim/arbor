@@ -794,8 +794,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx,
-    cell_gid_type gid);
+    fvm_size_type cell_idx);
 
 ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
@@ -807,7 +806,7 @@ ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
 {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
-        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i, gids[i]);
+        cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i);
     });
 
     fvm_mechanism_data combined;
@@ -824,8 +823,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx,
-    cell_gid_type gid)
+    fvm_size_type cell_idx)
 {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;

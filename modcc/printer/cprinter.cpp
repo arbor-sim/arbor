@@ -569,13 +569,7 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
-    switch(local->type()){
-        case variableType::size:
-            out << "arb_size_type " << cprint(local) << " = ";
-            break;
-        default:
-            out << "arb_value_type " << cprint(local) << " = ";
-    }
+    out << "arb_value_type " << cprint(local) << " = ";
 
     if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
         auto d = decode_indexed_variable(local->external_variable());

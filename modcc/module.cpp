@@ -612,14 +612,13 @@ void Module::add_variables_to_symbols() {
     // add indexed variables to the table
     auto create_indexed_variable =
         [this](std::string const& name, sourceKind data_source,
-               accessKind acc, std::string ch, Location loc,
-               variableType type = variableType::value) -> symbol_ptr& {
+               accessKind acc, std::string ch, Location loc) -> symbol_ptr& {
         if (symbols_.count(name)) {
             throw compiler_exception(
                 pprintf("the symbol % already exists", yellow(name)), loc);
         }
         return symbols_[name] =
-            make_symbol<IndexedVariable>(loc, name, data_source, acc, ch, type);
+            make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
     };
 
     auto create_white_noise = [this](Token const & token) -> symbol_ptr& {
