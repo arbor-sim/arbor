@@ -447,7 +447,6 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
 
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.is_stochastic) return;
-    // TODO check number of random variables
     auto const mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
     auto const counter = store.random_number_update_counter_++;
