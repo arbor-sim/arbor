@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 namespace util {
 
@@ -16,7 +18,7 @@ struct source_location {
 /// Builds a stack trace when constructed.
 /// The trace can then be printed, or accessed via the stack() member function.
 /// NOTE: if WITH_UNWIND is not defined, the methods are empty
-class backtrace {
+class ARB_SYMBOL_VISIBLE backtrace {
 public:
     /// the default constructor will build and store the strack trace.
     backtrace();
