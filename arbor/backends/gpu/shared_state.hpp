@@ -116,6 +116,7 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
+        sarray sindices_;
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
@@ -123,6 +124,13 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> parameters_d_;
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
+        
+        std::vector<std::vector<arb_value_type*>> random_numbers_;
+        std::vector<memory::device_vector<arb_value_type*>> random_numbers_d_;
+
+        std::vector<arb_size_type*> prng_indices_;
+        memory::device_vector<arb_size_type*> prng_indices_d_;
+        std::size_t random_number_update_counter_ = 0u;
     };
 
     using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
@@ -151,6 +159,8 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
+    arb_size_type random_number_cache_size; // number of random numbers generated
+
     arb_value_type* time_ptr;
 
     istim_state stim_data;
@@ -177,6 +187,8 @@ struct ARB_ARBOR_API shared_state {
     void instantiate(arb::mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+
+    void update_prng_state(mechanism&);
 
     // Note: returned pointer points to device memory.
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);

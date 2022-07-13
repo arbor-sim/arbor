@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <vector>
+#include <random>
 
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
@@ -207,6 +208,7 @@ shared_state::shared_state(
     diam_um(make_const_view(diam)),
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
+    random_number_cache_size(cbprng_batch_size),
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);
@@ -263,6 +265,10 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
     memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(data, m.ppack_.width));
 }
 
+void shared_state::update_prng_state(mechanism& m) {
+
+}
+
 const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
     const auto& store = storage.at(m.mechanism_id());
 
@@ -305,6 +311,17 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
+    // generate random seed if not provided
+    if (overrides.user_seed >= 0) m.mech_.user_seed = overrides.user_seed;
+    if (m.mech_.user_seed >= 0) {
+        m.ppack_.prng_seed = m.mech_.user_seed;
+    }
+    else {
+        std::random_device rd;
+        std::uniform_int_distribution<int> dist(0);
+        m.ppack_.prng_seed = dist(rd);
+    }
+
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
@@ -336,8 +353,17 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
 
     // Allocate and initialize state and parameter vectors with default values.
     {
+        // Allocate view pointers for random nubers
+        std::size_t num_random_numbers_per_cv = m.mech_.is_stochastic ?
+            m.mech_.n_random_variables : 0;
+        std::size_t random_number_storage = num_random_numbers_per_cv*random_number_cache_size;
+        store.random_numbers_.resize(random_number_cache_size);
+        for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+        store.random_numbers_d_.resize(random_number_cache_size);
+
         // Allocate bulk storage
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
+            random_number_storage)*width_padded + m.mech_.n_globals;
         store.data_   = array(count, NAN);
         chunk_writer writer(store.data_.data(), width);
 
@@ -350,6 +376,11 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
+        // Set random numbers
+        for (auto idx_v: make_span(num_random_numbers_per_cv))
+            for (auto idx_c: make_span(random_number_cache_size))
+                store.random_numbers_[idx_c][idx_v] = writer.fill(0);
+
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
         for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
@@ -396,6 +427,19 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
     }
 
+    // Allocate and initialize index vectors for prng
+    {
+        // Allocate bulk storage
+        std::size_t count = 2;
+        store.sindices = sarray(count*width_padded);
+        chunk_writer writer(store.prng_indices_data(), width_padded);
+
+        store.prng_indices_.resize(2);
+        
+        store.prng_indices_[0] = writer.append(pos_data.gid);
+        store.prng_indices_[1] = writer.append(pos_data.idx);
+    }
+    
     // Shift data to GPU, set up pointers
     store.parameters_d_ = memory::on_gpu(store.parameters_);
     m.ppack_.parameters = store.parameters_d_.data();
@@ -405,6 +449,11 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
 
     store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
+
+    for (auto idx_c: make_span(random_number_cache_size))
+        store.random_numbers_d_[idx_c] = memory::on_gpu(store.random_numbers_[idx_c]);
+
+    store.prng_indices_d_ = memory::on_gpu(store.prng_indices_);
 }
 
 void shared_state::integrate_voltage() {

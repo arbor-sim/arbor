@@ -589,6 +589,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     // Initialize state and parameter vectors with default values.
     {
+        // Allocate view pointers for random nubers
         std::size_t num_random_numbers_per_cv = m.mech_.is_stochastic ?
             m.mech_.n_random_variables : 0;
         std::size_t random_number_storage = num_random_numbers_per_cv*random_number_cache_size;
