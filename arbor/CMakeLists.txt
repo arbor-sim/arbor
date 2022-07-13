@@ -81,6 +81,7 @@ if(ARB_WITH_GPU)
         backends/gpu/forest.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
+        backends/gpu/rand.cu
         memory/fill.cu
     )
 endif()

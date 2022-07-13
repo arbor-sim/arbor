@@ -9,6 +9,7 @@
 #include "backends/event.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
+#include "backends/gpu/rand.hpp"
 #include "backends/multi_event_stream_state.hpp"
 #include "memory/copy.hpp"
 #include "memory/gpu_wrappers.hpp"
@@ -266,7 +267,26 @@ void shared_state::set_parameter(mechanism& m, const std::string& key, const std
 }
 
 void shared_state::update_prng_state(mechanism& m) {
+    if (!m.mech_.is_stochastic) return;
+    auto const mech_id = m.mechanism_id();
+    auto& store = storage[mech_id];
+    auto const counter = store.random_number_update_counter_++;
+    //TODO make sure overflow is handled gracefully
+    auto const cache_idx = counter % random_number_cache_size;
 
+    m.ppack_.random_numbers = store.random_numbers_d_[cache_idx].data();
+
+    if (cache_idx == 0) {
+        // recompute
+        generate_normal_random_values(
+            m.ppack_.width,                          // number of values per variable
+            m.ppack_.prng_seed,                      // seed
+            mech_id,                                 // mechansim id
+            counter,                                 // counter
+            store.prng_indices_d_,                   // additional indices for prng
+            store.random_numbers_d_                  // destination
+        ); 
+    }
 }
 
 const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
@@ -431,8 +451,8 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     {
         // Allocate bulk storage
         std::size_t count = 2;
-        store.sindices = sarray(count*width_padded);
-        chunk_writer writer(store.prng_indices_data(), width_padded);
+        store.sindices_ = sarray(count*width_padded);
+        chunk_writer writer(store.sindices_.data(), width_padded);
 
         store.prng_indices_.resize(2);
         
