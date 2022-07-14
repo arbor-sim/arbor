@@ -74,7 +74,6 @@ jobs:
           name: dist
       - name: Sitrep
         run: ls
-        working-directory: path/to/artifact
       - name: Publish distribution 📦 to Test PyPI
         run: |
           pip install twine
