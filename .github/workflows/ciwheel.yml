@@ -26,9 +26,7 @@ jobs:
           submodules: recursive
       - name: Create unique VERSION
         if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
-        run: |
-            pwd
-            python3 -c 'import time;f=open("VERSION");content = f.readlines();print(content);print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' | tee VERSION
+        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
