@@ -73,8 +73,6 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: dist
-      - name: Sitrep
-        run: ls
       - name: Publish distribution 📦 to Test PyPI
         run: |
           pip install twine
