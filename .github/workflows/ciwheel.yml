@@ -24,14 +24,11 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Sitrep
-        run: ls
-      - name: Sitrep
-        run: pwd
       - name: Create unique VERSION
         if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
-        working-directory: github.workspace
-        run: python3 -c 'import time;f=open("VERSION");content = f.readlines();print(content);print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' > VERSION
+        run: |
+            pwd
+            python3 -c 'import time;f=open("VERSION");content = f.readlines();print(content);print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' > VERSION
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
