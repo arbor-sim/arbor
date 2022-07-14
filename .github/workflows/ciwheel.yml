@@ -28,7 +28,7 @@ jobs:
         if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
         run: |
             pwd
-            python3 -c 'import time;f=open("VERSION");content = f.readlines();print(content);print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' > VERSION
+            python3 -c 'import time;f=open("VERSION");content = f.readlines();print(content);print (content[0].strip()+time.strftime("%Y%m%d%H%I%S"))' | tee VERSION
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
