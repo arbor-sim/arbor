@@ -397,9 +397,11 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
         // Set random numbers
-        for (auto idx_v: make_span(num_random_numbers_per_cv))
-            for (auto idx_c: make_span(random_number_cache_size))
+        for (auto idx_v: make_span(num_random_numbers_per_cv)) {
+            for (auto idx_c: make_span(random_number_cache_size)) {
                 store.random_numbers_[idx_c][idx_v] = writer.fill(0);
+            }
+        }
 
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
         for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;

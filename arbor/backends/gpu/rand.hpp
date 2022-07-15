@@ -2,21 +2,18 @@
 #include <cstring>
 #include <array>
 
+#include "../rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 
 namespace arb {
 namespace gpu {
 
-namespace {
-constexpr std::size_t cbprng_batch_size = 4;
-}
-        
 void generate_normal_random_values(
     std::size_t   width,
     std::size_t   num_variables,
-    std::uint64_t seed, 
-    std::uint64_t mech_id,
-    std::uint64_t counter,
+    cbprng_value_type seed, 
+    cbprng_value_type mech_id,
+    cbprng_value_type counter,
     arb_size_type** prng_indices,
     std::array<arb_value_type**, cbprng_batch_size> dst
 );

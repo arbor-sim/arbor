@@ -570,7 +570,6 @@ void EulerMaruyamaSolverVisitor::visit(BlockExpression* e) {
             error({"couldn't find symbol", e->location()});
             return;
         }
-        //auto wn_symbol = w_symbol->is_white_noise();
 
         // scaled white noise w_i = s * w
         auto wscale = make_expression<IdentifierExpression>(Location{}, wscale_);
@@ -621,15 +620,6 @@ void EulerMaruyamaSolverVisitor::finalize() {
     wvars_id_ = std::move(wvars_id_new);
     L_ = std::move(L_new);
 
-    // print SDEs
-    for (unsigned i=0; i<f_.size(); ++i) {
-        std::cout << "    d" << dvars_[i] << " = " << f_[i]->to_string() << " dt ";
-        for (unsigned k=0; k<wvars_.size(); ++k) {
-            std::cout << " + " << L_[k][i]->to_string() << " d" << wvars_[k];
-        }
-        std::cout << std::endl;
-    }
-    
     // update the state variables
     for (unsigned i = 0; i < dvars_.size(); ++i) {
         // find placeholder expression
