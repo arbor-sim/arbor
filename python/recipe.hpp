@@ -48,6 +48,10 @@ public:
     virtual pybind11::object global_properties(arb::cell_kind kind) const {
         return pybind11::none();
     };
+
+    virtual std::uint64_t prng_seed() const {
+        return 0u;
+    }
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -82,6 +86,10 @@ public:
 
     pybind11::object global_properties(arb::cell_kind kind) const override {
         PYBIND11_OVERLOAD(pybind11::object, py_recipe, global_properties, kind);
+    }
+
+    std::uint64_t prng_seed() const override {
+        PYBIND11_OVERLOAD(std::uint64_t, py_recipe, prng_seed);
     }
 };
 
@@ -129,6 +137,11 @@ public:
     }
 
     std::any get_global_properties(arb::cell_kind kind) const override;
+
+    std::uint64_t prng_seed() const override {
+        return try_catch_pyexception([&](){ return impl_->prng_seed(); }, msg);
+    }
+
 };
 
 } // namespace pyarb

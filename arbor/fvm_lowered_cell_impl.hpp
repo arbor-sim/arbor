@@ -501,7 +501,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     state_ = std::make_unique<shared_state>(
                 nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
-                data_alignment? data_alignment: 1u);
+                data_alignment? data_alignment: 1u, rec.prng_seed());
 
     state_->solver =
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};

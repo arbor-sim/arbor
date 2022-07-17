@@ -86,6 +86,10 @@ public:
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
 
+    virtual std::uint64_t prng_seed() const {
+        return 0u;
+    }
+
     virtual ~recipe() {}
 };
 

@@ -70,8 +70,7 @@ public:
     // and a set of ion renamings.
     void derive(const std::string& name, const std::string& parent,
                 const std::vector<std::pair<std::string, double>>& global_params,
-                const std::vector<std::pair<std::string, std::string>>& ion_remap = {},
-                arb_index_type user_seed=-1);
+                const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
 
     void derive(const std::string& name, const std::string& parent);
 

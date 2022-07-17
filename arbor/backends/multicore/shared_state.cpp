@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <random>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -205,7 +204,8 @@ shared_state::shared_state(
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
     const std::vector<fvm_index_type>& src_to_spike,
-    unsigned align
+    unsigned align,
+    std::uint64_t cbprng_seed_
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
@@ -226,6 +226,7 @@ shared_state::shared_state(
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
+    cbprng_seed(cbprng_seed_),
     random_number_cache_size(cbprng_batch_size),
     deliverable_events(n_intdom)
 {
@@ -482,14 +483,13 @@ void shared_state::update_prng_state(mechanism& m) {
 
     if (cache_idx == 0) {
         // recompute
-        auto const seed = m.ppack_.prng_seed;
         auto const num_rv = store.random_numbers_[cache_idx].size();
         auto const width = store.gid_.size();
 
         for (std::size_t n=0; n<num_rv; ++n) {
             for (std::size_t i=0; i<width; ++i) {
-                auto const r =  generate_normal_random_values( seed, mech_id, n, store.gid_[i],
-                    store.idx_[i], counter);
+                auto const r =  generate_normal_random_values(cbprng_seed, mech_id, n,
+                    store.gid_[i], store.idx_[i], counter);
                 for (std::size_t c=0; c<random_number_cache_size; ++c)
                     store.random_numbers_[c][n][i] = r[c];
             }
@@ -542,17 +542,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
     m.ppack_.vec_t            = nullptr;
-
-    // generate random seed if not provided
-    if (overrides.user_seed >= 0) m.mech_.user_seed = overrides.user_seed;
-    if (m.mech_.user_seed >= 0) {
-        m.ppack_.prng_seed = m.mech_.user_seed;
-    }
-    else {
-        std::random_device rd;
-        std::uniform_int_distribution<int> dist(0);
-        m.ppack_.prng_seed = dist(rd);
-    }
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();

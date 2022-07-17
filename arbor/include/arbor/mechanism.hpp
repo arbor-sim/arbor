@@ -115,8 +115,6 @@ struct mechanism_overrides {
     // Ion renaming: keys are ion dependency names as
     // reported by the mechanism info.
     std::unordered_map<std::string, std::string> ion_rebind;
-
-    arb_index_type user_seed = -1;
 };
 
 } // namespace arb

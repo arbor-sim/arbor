@@ -1,6 +1,5 @@
 #include <cstddef>
 #include <vector>
-#include <random>
 
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
@@ -190,8 +189,9 @@ shared_state::shared_state(
     const std::vector<fvm_value_type>& temperature_K,
     const std::vector<fvm_value_type>& diam,
     const std::vector<fvm_index_type>& src_to_spike,
-    unsigned // alignment parameter ignored.
-    ):
+    unsigned, // alignment parameter ignored.
+    std::uint64_t cbprng_seed_
+):
     n_intdom(n_intdom),
     n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
@@ -209,6 +209,7 @@ shared_state::shared_state(
     diam_um(make_const_view(diam)),
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
+    cbprng_seed(cbprng_seed_),
     random_number_cache_size(cbprng_batch_size),
     deliverable_events(n_intdom)
 {
@@ -280,7 +281,7 @@ void shared_state::update_prng_state(mechanism& m) {
         // recompute
         generate_normal_random_values(
             m.ppack_.width,                          // number of values per variable
-            m.ppack_.prng_seed,                      // seed
+            cbprng_seed,                             // seed
             mech_id,                                 // mechansim id
             counter,                                 // counter
             store.prng_indices_d_,                   // additional indices for prng
@@ -330,17 +331,6 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     m.ppack_.diam_um          = diam_um.data();
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
-
-    // generate random seed if not provided
-    if (overrides.user_seed >= 0) m.mech_.user_seed = overrides.user_seed;
-    if (m.mech_.user_seed >= 0) {
-        m.ppack_.prng_seed = m.mech_.user_seed;
-    }
-    else {
-        std::random_device rd;
-        std::uniform_int_distribution<int> dist(0);
-        m.ppack_.prng_seed = dist(rd);
-    }
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];

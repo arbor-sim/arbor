@@ -87,7 +87,6 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
     print_array("arb_field_info", "parameters", fmt_id, param_ids);
     print_array("arb_ion_info", "ions", fmt_ion, m.ion_deps());
     out << "    static arb_size_type n_random_variables = " << white_noise_ids.size() << ";\n";
-    out << "    static arb_index_type user_seed = " << m.white_noise_block().seed << ";\n";
 
     out << fmt::format(FMT_COMPILE("\n"
                                    "    arb_mechanism_type result;\n"
@@ -106,7 +105,6 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
                                    "    result.parameters=parameters;\n"
                                    "    result.n_parameters=n_parameters;\n"
                                    "    result.n_random_variables=n_random_variables;\n"
-                                   "    result.user_seed=user_seed;\n"
                                    "    return result;\n"
                                    "  }}\n"
                                    "\n"),

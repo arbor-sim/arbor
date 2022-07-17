@@ -166,7 +166,6 @@ struct AssignedBlock {
 struct WhiteNoiseBlock {
     std::vector<Id> parameters;
     std::set<std::string> used;
-    int seed = -1;
 
     auto begin() -> decltype(parameters.begin()) {
         return parameters.begin();

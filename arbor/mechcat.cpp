@@ -104,7 +104,6 @@ struct derivation {
     std::string parent;
     string_map<double> globals;        // global overrides relative to parent
     string_map<std::string> ion_remap; // ion name remap overrides relative to parent
-    arb_index_type user_seed;
     mechanism_info_ptr derived_info;
 };
 
@@ -152,7 +151,7 @@ struct catalogue_state {
         for (const auto& kv: other.derived_map_) {
             auto key = prefix + kv.first;
             const derivation& v = kv.second;
-            derived_map_[key] = {prefix + v.parent, v.globals, v.ion_remap, v.user_seed, make_unique<mechanism_info>(*v.derived_info)};
+            derived_map_[key] = {prefix + v.parent, v.globals, v.ion_remap, make_unique<mechanism_info>(*v.derived_info)};
         }
 
         for (const auto& name_impls: other.impl_map_) {
@@ -271,8 +270,7 @@ struct catalogue_state {
     hopefully<derivation> derive(
         const std::string& name, const std::string& parent,
         const std::vector<std::pair<std::string, double>>& global_params,
-        const std::vector<std::pair<std::string, std::string>>& ion_remap_vec,
-        arb_index_type user_seed) const
+        const std::vector<std::pair<std::string, std::string>>& ion_remap_vec) const
     {
         if (defined(name)) {
             return unexpected_exception_ptr(duplicate_mechanism(name));
@@ -282,7 +280,7 @@ struct catalogue_state {
         }
 
         string_map<std::string> ion_remap_map(ion_remap_vec.begin(), ion_remap_vec.end());
-        derivation deriv = {parent, {}, ion_remap_map, user_seed, nullptr};
+        derivation deriv = {parent, {}, ion_remap_map, nullptr};
 
         mechanism_info_ptr new_info;
         if (auto parent_info = info(parent)) {
@@ -369,7 +367,6 @@ struct catalogue_state {
         std::vector<std::pair<std::string, double>> global_params;
         std::vector<std::pair<std::string, std::string>> ion_remap;
 
-        long user_seed = -1;
         while (!suffix.empty()) {
             std::string assign;
 
@@ -401,14 +398,6 @@ struct catalogue_state {
             if (is_ion(k)) {
                 ion_remap.push_back({k, v});
             }
-            else if (k == "seed") {
-                char* end = 0;
-                long user_seed_ = std::strtol(v.c_str(), &end, 10);
-                if (!end || *end || (user_seed_ < 0)) {
-                    return unexpected_exception_ptr(invalid_parameter_value(name, k, v));
-                }
-                user_seed = user_seed_;
-            }
             else {
                 char* end = 0;
                 double v_value = std::strtod(v.c_str(), &end);
@@ -419,7 +408,7 @@ struct catalogue_state {
             }
         }
 
-        return derive(name, base, global_params, ion_remap, user_seed);
+        return derive(name, base, global_params, ion_remap);
     }
 
     // Retrieve implementation for this mechanism name or closest ancestor.
@@ -476,7 +465,6 @@ struct catalogue_state {
                 }
                 std::swap(new_rebind, over.ion_rebind);
             }
-            if (deriv.user_seed >= 0) over.user_seed = deriv.user_seed;
         };
 
         // Recurse up the derivation tree to find the most distant ancestor;
@@ -577,10 +565,9 @@ const mechanism_fingerprint& mechanism_catalogue::fingerprint(const std::string&
 
 void mechanism_catalogue::derive(const std::string& name, const std::string& parent,
     const std::vector<std::pair<std::string, double>>& global_params,
-    const std::vector<std::pair<std::string, std::string>>& ion_remap_vec,
-    arb_index_type user_seed)
+    const std::vector<std::pair<std::string, std::string>>& ion_remap_vec)
 {
-    state_->bind(name, value(state_->derive(name, parent, global_params, ion_remap_vec, user_seed)));
+    state_->bind(name, value(state_->derive(name, parent, global_params, ion_remap_vec)));
 }
 
 void mechanism_catalogue::derive(const std::string& name, const std::string& parent) {

@@ -171,18 +171,15 @@ equations. The *white noise* sources can be defined in the model files using a `
 .. code:: none
 
    WHITE_NOISE {
-       SEED = 42
        a b 
        c
    }
 
-The ``SEED`` keyword defines an optional seed value which must be a positive integer.
-This value is useful for testing if one would like to prevent varying results from run to run.
-The seed  value can also be set using the mechansim parameter ``seed``, e.g. ``"my_mech/seed=42"``.
-If the seed value remains unset, the random number generator will be initialized from a
-stochastic system resource at runtime.
-Arbitrary white noise variables can be declared afterwards (``a, b, c`` in the example above). The
-noise is already appropriately scaled with the numerical time step and can be considered unitless.
+Arbitrary white noise variables can be declared (``a, b, c`` in the example above). The
+noise will be appropriately scaled with the numerical time step and can be considered unitless. In
+order to influence the white noise generation, a seed value can be set at the level of the recipe
+through the optional member function ``prng_seed()``
+(see :ref:`here <pyrecipe>` or :ref:`here <cpprecipe>`).
 
 If the state is updated by involving at least one of the declared white noise variables
 the system is considered to be stochastic:

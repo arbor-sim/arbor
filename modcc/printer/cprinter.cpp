@@ -261,8 +261,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
                                    "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
                                    "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\\\n"
-                                   "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"
-                                   "[[maybe_unused]] auto  {0}prng_seed         = pp->prng_seed;\\\n"),
+                                   "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"),
                        pp_var_pfx);
     auto global = 0;
     for (const auto& scalar: global_ids) {
