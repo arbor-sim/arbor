@@ -86,7 +86,6 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
     print_arrays("arb_field_info", "state_vars", fmt_id, state_ids, assigned_ids);
     print_array("arb_field_info", "parameters", fmt_id, param_ids);
     print_array("arb_ion_info", "ions", fmt_ion, m.ion_deps());
-    out << "    static bool is_stochastic = " << (white_noise_ids.empty()?"false":"true") << ";\n";
     out << "    static arb_size_type n_random_variables = " << white_noise_ids.size() << ";\n";
     out << "    static arb_index_type user_seed = " << m.white_noise_block().seed << ";\n";
 
@@ -106,7 +105,6 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
                                    "    result.n_state_vars=n_state_vars;\n"
                                    "    result.parameters=parameters;\n"
                                    "    result.n_parameters=n_parameters;\n"
-                                   "    result.is_stochastic=is_stochastic;\n"
                                    "    result.n_random_variables=n_random_variables;\n"
                                    "    result.user_seed=user_seed;\n"
                                    "    return result;\n"

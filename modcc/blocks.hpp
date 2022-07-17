@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "identifier.hpp"
 #include "location.hpp"
@@ -164,6 +165,7 @@ struct AssignedBlock {
 // information stored in a WHITE_NOISE {} block in mod file
 struct WhiteNoiseBlock {
     std::vector<Id> parameters;
+    std::set<std::string> used;
     int seed = -1;
 
     auto begin() -> decltype(parameters.begin()) {

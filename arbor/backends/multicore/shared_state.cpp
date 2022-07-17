@@ -471,7 +471,7 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
 }
 
 void shared_state::update_prng_state(mechanism& m) {
-    if (!m.mech_.is_stochastic) return;
+    if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
     auto const counter = store.random_number_update_counter_++;
@@ -590,8 +590,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // Initialize state and parameter vectors with default values.
     {
         // Allocate view pointers for random nubers
-        std::size_t num_random_numbers_per_cv = m.mech_.is_stochastic ?
-            m.mech_.n_random_variables : 0;
+        std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
         std::size_t random_number_storage = num_random_numbers_per_cv*random_number_cache_size;
         store.random_numbers_.resize(random_number_cache_size);
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);

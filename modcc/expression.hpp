@@ -636,8 +636,7 @@ private :
 class ARB_LIBMODCC_API WhiteNoise : public Symbol {
 public:
     WhiteNoise(Location loc, std::string name)
-    :   Symbol(std::move(loc), std::move(name), symbolKind::white_noise),
-        index_(get_index())
+    :   Symbol(std::move(loc), std::move(name), symbolKind::white_noise)
     {}
     
     ~WhiteNoise() {}
@@ -649,12 +648,14 @@ public:
 
     unsigned int index() const noexcept { return index_; }
 
+    void set_index() noexcept { index_ = get_index(); }
+
 private:
-    static unsigned int get_index()
-    {
+    static unsigned int get_index() {
         static unsigned int idx_ = 0;
         return idx_++;
     }
+
     unsigned int index_ = 0;
 };
 

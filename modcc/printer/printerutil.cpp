@@ -76,7 +76,11 @@ ARB_LIBMODCC_API public_variable_ids_t public_variable_ids(const Module& m) {
         }
     }
 
-    ids.white_noise_ids = m.white_noise_block().parameters;
+    for (auto const & id : m.white_noise_block().parameters) {
+        if (m.white_noise_block().used.count(id.name())) {
+            ids.white_noise_ids.push_back(id);
+        }
+    }
 
     return ids;
 }

@@ -658,11 +658,6 @@ void EulerMaruyamaSolverVisitor::finalize() {
         // replace placeholder expression
         *placeholder_expr_iter = std::move(expr);
     }
-
-    //std::cout << "print all statements" << std::endl;
-    //for (auto& stmt: statements_) {
-    //    std::cout << stmt->to_string() << std::endl;
-    //}
 }
 
 

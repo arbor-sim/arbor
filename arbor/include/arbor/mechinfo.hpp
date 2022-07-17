@@ -84,7 +84,7 @@ struct ARB_ARBOR_API mechanism_info {
 
     bool post_events = false;
 
-    bool stochastic = false;
+    arb_size_type n_random_variables = 0u;
 };
 
 } // namespace arb

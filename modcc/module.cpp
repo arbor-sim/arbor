@@ -422,14 +422,25 @@ bool Module::semantic() {
             solve_body = linear_rewrite(deriv->body(), state_vars);
         }
 
-        // Calculate linearity and homogeneity of the statements in the derivative block.
+        // Calculate linearity, homogeneity and stochasticity of the statements in the derivative block.
         bool linear = true;
         bool homogeneous = true;
-        bool stochastic = false;
         bool needs_substitution = false;
         for (auto& s: solve_body->is_block()->statements()) {
-            if (!white_noise_vars.empty() && involves_identifier(s, white_noise_vars))
-                stochastic = true;
+            // loop over declared white noise variables
+            if (!white_noise_vars.empty()) {
+                for (auto const & w : white_noise_vars) {
+                    // check whether a statement contains an expression involving white noise
+                    if (involves_identifier(s, w)) {
+                        // mark the white noise variable as used, and set its index if we see this
+                        // variable for the first time
+                        if (white_noise_block_.used.insert(w).second) {
+                            // set white noise lookup index
+                            symbols_.find(w)->second->is_white_noise()->set_index();
+                        }
+                    }
+                }
+            }
             if(s->is_assignment() && !state_vars.empty()) {
                 linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
                 if (!s->is_assignment()->lhs()->is_derivative() && !r.is_constant)
@@ -439,6 +450,13 @@ bool Module::semantic() {
             }
         }
         linear_homogeneous &= (linear & homogeneous);
+
+        // filter out unused white noise variables from the white noise vector
+        white_noise_vars.clear();
+        for (auto const & w : white_noise_block_.used) {
+            white_noise_vars.push_back(w);
+        }
+        bool stochastic = (white_noise_vars.size() > 0u);
 
         if (stochastic && (solve_expression->method() != solverMethod::stochastic)) {
             error("SOLVE expression '" + solve_expression->name() + "' involves white noise and can "

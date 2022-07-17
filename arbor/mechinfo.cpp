@@ -4,11 +4,11 @@
 
 namespace arb {
 mechanism_info::mechanism_info(const arb_mechanism_type& m) {
-    kind        = m.kind;
-    post_events = m.has_post_events;
-    linear      = m.is_linear;
-    fingerprint = m.fingerprint;
-    stochastic  = m.is_stochastic;
+    kind               = m.kind;
+    post_events        = m.has_post_events;
+    linear             = m.is_linear;
+    fingerprint        = m.fingerprint;
+    n_random_variables = m.n_random_variables;
     for (auto idx: util::make_span(m.n_globals)) {
         const auto& v = m.globals[idx];
         globals[v.name] = { mechanism_field_spec::field_kind::global, v.unit, v.default_value, v.range_low, v.range_high };
