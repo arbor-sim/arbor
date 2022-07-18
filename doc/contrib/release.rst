@@ -53,9 +53,9 @@ Update tags/versions and test
 
 #. Run all tests.
 
-   - ``ciwheel.yml`` triggers when you push a branch called ``v*rc``, ON YOUR OWN REPO (so check ``github.com/$yourname/arbor/actions``). Make sure the tests pass.
+   - ``ciwheel.yml`` triggers when you push a branch called ``ciwheel``, and on new Git tags. Since we've not tagged the release yet, run ``git push origin HEAD:ciwheel``. Make sure the tests pass.
    
-      - ``ciwheel.yml`` pushes automatically to `Test.PyPI.org <https://test.pypi.org/project/arbor/>`_. This only passes if ran as branch of the main ``arbor-sim`` repo (as that's where the PyPI secret lives). On your own repo, the upload will fail (the rest should pass). If you want to test uploading, then force push to the upstream ``ciwheel`` branch, e.g. ``git push upstream HEAD:ciwheel --force``. Alternatively, make a PR for the RC and remember to NOT MERGE it, since a PR pushing a ``VERSION`` ending in ``-rc`` should not be merged. You can reuse the PR to work towards the final (non-rc) release.
+      - ``ciwheel.yml`` pushes automatically to `Test.PyPI.org <https://test.pypi.org/project/arbor/>`_. This only passes if ran as branch of the main ``arbor-sim`` repo (as that's where the PyPI secret lives). On your own repo, the upload will fail (the rest should pass). If you want to test uploading, then force push to the _upstream_ ``ciwheel`` branch, e.g. ``git push upstream HEAD:ciwheel --force``.
    
    - If you want to test the PyPI submission (consider asking other OS-users):
 
@@ -67,7 +67,6 @@ Update tags/versions and test
         python -c 'import arbor; print(arbor.__config__)'
 
    - Use build flags to test the source package: :ref:`in_python_adv`
-   - In case you want to manually want to trigger ``ciwheel.yml`` GA, overwrite the ``ciwheel`` branch with the commit of your choosing and force push to Github.
 
 Release
 -------
@@ -78,9 +77,9 @@ Release
 
 #. Tag
 
-   - commit and push the above changes.
-   - on cmdline: git tag -a TAGNAME
-   - git push upstream TAGNAME
+   - commit and open a PR for the above changes.
+   - on cmdline: ``git tag -a TAGNAME``
+   - ``git push upstream TAGNAME``
 
 #. Create tarball with
    ``scripts/create_tarball ~/loc/of/arbor tagname outputfile``
