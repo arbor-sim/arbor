@@ -1,3 +1,4 @@
+
 name: Arbor on Wheels
 
 on:
@@ -12,8 +13,23 @@ on:
     - cron: '0 2 * * 0' # run at 2 AM every sunday
 
 jobs:
+  get_timestamp:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get Arbor
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Get Timestamp
+      uses: mathiasvr/command-output@v1
+      id: the_timestamp
+      with:
+        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();print(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+
   build_binary_wheels:
     name: Build wheels on ${{ matrix.os }}
+    needs: get_timestamp
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -26,7 +42,8 @@ jobs:
           submodules: recursive
       - name: Create unique VERSION
         if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
-        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+        # run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+        run: echo ${{needs.get_timestamp.outputs.the_timestamp}} > VERSION
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
@@ -38,6 +55,7 @@ jobs:
 
   build_sdist:
     name: Build sdist
+    needs: get_timestamp
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +69,8 @@ jobs:
           submodules: recursive
       - name: Create unique VERSION
         if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
-        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+        # run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+        run: echo ${{needs.get_timestamp.outputs.the_timestamp}} > VERSION
       - name: Make sdist
         run: python3 -m build -s
       - name: Install sdist
