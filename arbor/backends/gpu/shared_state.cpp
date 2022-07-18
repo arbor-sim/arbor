@@ -278,7 +278,12 @@ void shared_state::update_prng_state(mechanism& m) {
     m.ppack_.random_numbers = store.random_numbers_d_[cache_idx].data();
 
     if (cache_idx == 0) {
-        // recompute
+        // Generate random numbers every random_number_cache_size iterations:
+        // For each random variable we will generate random_number_cache_size values per site
+        // and there are width sites.
+        // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
+        // current site's global cell, the site index within its cell and a counter representing
+        // time.
         generate_normal_random_values(
             m.ppack_.width,                          // number of values per variable
             cbprng_seed,                             // seed
