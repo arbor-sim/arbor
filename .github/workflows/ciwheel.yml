@@ -24,11 +24,14 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+      - name: Create unique VERSION
+        if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
+        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
         run: python3 -m cibuildwheel --output-dir dist
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: dist
           path: dist/*.whl
@@ -46,6 +49,9 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+      - name: Create unique VERSION
+        if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
+        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
       - name: Make sdist
         run: python3 -m build -s
       - name: Install sdist
@@ -54,24 +60,23 @@ jobs:
         run: python3 -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: dist
           path: dist/*.tar.gz
 
-# TODO
-  # upload_test_pypi:
-  #   name: upload to test pypi
-  #   runs-on: ubuntu-latest
-  #   needs: [build_binary_wheels, build_sdist]
-  #   steps:
-  #     - uses: actions/download-artifact@v2
-  #       with:
-  #         name: dist
-  #     - name: Publish distribution 📦 to Test PyPI
-  #       run: |
-  #         pip install twine
-  #         twine upload -r testpypi dist/*
-  #       env:
-  #         TWINE_USERNAME: __token__
-  #         TWINE_PASSWORD: ${{ secrets.ciwheeltest }}
+  upload_test_pypi:
+    name: upload to test pypi
+    runs-on: ubuntu-latest
+    needs: [build_binary_wheels, build_sdist]
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
+      - name: Publish distribution 📦 to Test PyPI
+        run: |
+          pip install twine
+          twine upload -r testpypi ./*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_SECRET }}
