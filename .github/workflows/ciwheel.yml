@@ -1,10 +1,10 @@
+
 name: Arbor on Wheels
 
 on:
   push:
     branches: 
       - ciwheel
-      - v*rc
     tags:
       - v*
 
@@ -12,21 +12,46 @@ on:
     - cron: '0 2 * * 0' # run at 2 AM every sunday
 
 jobs:
+  get_timestamp:
+    name: Prep VERSION
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Arbor
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Create unique VERSION
+        if: endsWith(github.ref,'ciwheel')
+        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+      - uses: actions/upload-artifact@v3
+        with:
+            name: arbver
+            path: ${{ github.workspace }}/VERSION
+
   build_binary_wheels:
     name: Build wheels on ${{ matrix.os }}
+    needs: get_timestamp
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Get Arbor
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Create unique VERSION
-        if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
-        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+      - name: Delete VERSION
+        run: rm -f VERSION
+      - name: Get VERSION
+        uses: actions/download-artifact@v3
+        with:
+          name: arbver
+      - name: Check VERSION
+        run: cat VERSION
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
@@ -38,6 +63,7 @@ jobs:
 
   build_sdist:
     name: Build sdist
+    needs: get_timestamp
     runs-on: ubuntu-latest
 
     steps:
@@ -45,13 +71,19 @@ jobs:
         uses: actions/setup-python@v2
       - name: Get packages
         run: python3 -m pip install build
-      - uses: actions/checkout@v2
+      - name: Get Arbor
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Create unique VERSION
-        if: endsWith(github.ref,'ciwheel') || endsWith(github.ref,'rc') # https://docs.github.com/en/actions/learn-github-actions/expressions
-        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+      - name: Delete VERSION
+        run: rm -f VERSION
+      - name: Get VERSION
+        uses: actions/download-artifact@v3
+        with:
+          name: arbver
+      - name: Check VERSION
+        run: cat VERSION
       - name: Make sdist
         run: python3 -m build -s
       - name: Install sdist
