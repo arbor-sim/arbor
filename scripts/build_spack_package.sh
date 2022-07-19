@@ -48,7 +48,7 @@ case $SPACK_VERSION in
 esac
 
 mkdir ~/.spack
-cp $ARBOR_DIR/spack/config.yaml ~/.spack
+#cp $ARBOR_DIR/spack/config.yaml ~/.spack
 
 source $SPACK_DIR/share/spack/setup-env.sh
 spack repo create $SPACK_CUSTOM_REPO
@@ -57,7 +57,7 @@ mkdir -p $SPACK_CUSTOM_REPO/packages/arbor
 spack repo add $SPACK_CUSTOM_REPO
 
 # to make use of the cached installations
-spack reindex
+#spack reindex
 
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
