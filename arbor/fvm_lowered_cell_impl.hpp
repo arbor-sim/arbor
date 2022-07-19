@@ -46,7 +46,11 @@ public:
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
-    fvm_lowered_cell_impl(execution_context ctx): context_(ctx), threshold_watcher_(ctx) {};
+    fvm_lowered_cell_impl(execution_context ctx, std::uint64_t seed = 0):
+        context_(ctx),
+        threshold_watcher_(ctx),
+        seed_{seed}
+    {};
 
     void reset() override;
 
@@ -97,6 +101,9 @@ private:
 
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV_ = 0;
+
+    // random number generator seed value
+    std::uint64_t seed_;
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
@@ -501,7 +508,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     state_ = std::make_unique<shared_state>(
                 nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
-                data_alignment? data_alignment: 1u, rec.prng_seed());
+                data_alignment? data_alignment: 1u, seed_);
 
     state_->solver =
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};

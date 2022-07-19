@@ -206,7 +206,6 @@ void register_recipe(pybind11::module& m) {
         .def("global_properties", &py_recipe::global_properties,
             "kind"_a,
             "The default properties applied to all cells of type 'kind' in the model.")
-        .def("prng_seed", &py_recipe::prng_seed, "Seed value for random number generator.")
         // TODO: py_recipe::global_properties
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});

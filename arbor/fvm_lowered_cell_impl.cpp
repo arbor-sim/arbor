@@ -13,13 +13,14 @@
 
 namespace arb {
 
-fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx) {
+fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx,
+                                           std::uint64_t seed) {
     switch (p) {
     case backend_kind::multicore:
-        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<multicore::backend>(ctx));
+        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<multicore::backend>(ctx, seed));
     case backend_kind::gpu:
 #ifdef ARB_GPU_ENABLED
-        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<gpu::backend>(ctx));
+        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<gpu::backend>(ctx, seed));
 #endif
         ; // fall through
     default:

@@ -25,14 +25,22 @@ using epoch_function = std::function<void(double time, double tfinal)>;
 // simulation_state comprises private implementation for simulation class.
 class simulation_state;
 
+class simulation_builder;
+
 class ARB_ARBOR_API simulation {
 public:
-
-    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp);
+    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp,
+               std::uint64_t seed = 0);
 
     simulation(const recipe& rec,
                const context& ctx=make_context(),
-               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
+               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }, std::uint64_t seed = 0):
+        simulation(rec, ctx, balancer(rec, ctx), seed) {}
+
+    simulation(simulation const&) = delete;
+    simulation(simulation&&);
+
+    static simulation_builder create(recipe const &);
 
     void reset();
 
@@ -78,6 +86,83 @@ public:
 
 private:
     std::unique_ptr<simulation_state> impl_;
+};
+
+// Builder pattern for simulation class to help with construction.
+// Simulation constructor arguments can be added through setter functions in any order or left out
+// entirely, in which case a sane default is chosen. The build member function instantiates the
+// simulation with the current arguments and returns it.
+class ARB_ARBOR_API simulation_builder {
+public:
+
+    simulation_builder(recipe const& rec) noexcept : rec_{rec} {}
+
+    // movable
+    simulation_builder(simulation_builder&&) = default;
+
+    // non-copyable
+    simulation_builder(simulation_builder const&) = delete;
+
+    // not assignable
+    simulation_builder& operator=(simulation_builder const&) = delete;
+    simulation_builder& operator=(simulation_builder &&) = delete;
+
+    simulation_builder& set_context(context const& ctx) noexcept {
+        ctx_ = &ctx;
+        return *this;
+    }
+
+    simulation_builder& set_decomposition(domain_decomposition const& decomp) noexcept {
+        decomp_ = &decomp;
+        return *this;
+    }
+
+    simulation_builder& set_balancer(
+        std::function<domain_decomposition(const recipe&, const context&)> balancer) noexcept {
+        balancer_ = std::move(balancer);
+        return *this;
+    }
+
+    simulation_builder& set_seed(std::uint64_t seed) noexcept {
+        seed_ = seed;
+        return *this;
+    }
+
+    operator simulation() const { return build(); }
+
+    std::unique_ptr<simulation> make_unique() const {
+        return std::make_unique<simulation>(build());
+    }
+
+private:
+    simulation build() const {
+        return ctx_ ?
+            build(*ctx_):
+            build(make_context());
+    }
+
+    simulation build(context const& ctx) const {
+        return decomp_ ?
+            build(ctx, *decomp_):
+            build_from_balancer(ctx);
+    }
+
+    simulation build_from_balancer(context const& ctx) const {
+        return balancer_ ?
+            build(ctx, balancer_(rec_, ctx)):
+            build(ctx, partition_load_balance(rec_, ctx));
+    }
+
+    simulation build(context const& ctx, domain_decomposition const& decomp) const {
+        return simulation(rec_, ctx, decomp, seed_);
+    }
+
+private:
+    recipe const & rec_;
+    context const * ctx_ = nullptr;
+    domain_decomposition const * decomp_ = nullptr;
+    std::function<domain_decomposition(const recipe&, const context&)> balancer_;
+    std::uint64_t seed_ = 0u;
 };
 
 // An epoch callback function that prints out a text progress bar.

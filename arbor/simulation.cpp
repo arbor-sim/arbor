@@ -90,7 +90,8 @@ ARB_ARBOR_API void merge_cell_events(
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx,
+                     std::uint64_t seed);
 
     void reset();
 
@@ -183,7 +184,8 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        execution_context ctx
+        execution_context ctx,
+        std::uint64_t seed
     ):
     task_system_(ctx.thread_pool),
     local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
@@ -197,7 +199,7 @@ simulation_state::simulation_state(
         [&](cell_group_ptr& group, int i) {
           const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
-          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
+          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx, seed);
           group = factory(group_info.gids, rec, sources, targets);
 
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
@@ -508,12 +510,15 @@ void simulation_state::inject_events(const cse_vector& events) {
 
 // Simulation class implementations forward to implementation class.
 
+simulation_builder simulation::create(recipe const & rec) { return {rec}; };
+
 simulation::simulation(
     const recipe& rec,
     const context& ctx,
-    const domain_decomposition& decomp)
+    const domain_decomposition& decomp,
+    std::uint64_t seed)
 {
-    impl_.reset(new simulation_state(rec, decomp, *ctx));
+    impl_.reset(new simulation_state(rec, decomp, *ctx, seed));
 }
 
 void simulation::reset() {
@@ -571,6 +576,8 @@ void simulation::set_epoch_callback(epoch_function epoch_callback) {
 void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
+
+simulation::simulation(simulation&&) = default;
 
 simulation::~simulation() = default;
 
