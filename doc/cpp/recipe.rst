@@ -111,10 +111,6 @@ Recipe
 
         By default returns an empty container.
 
-    .. cpp:function:: virtual std::uint64_t prng_seed() const
-
-        Seed value for the pseudo random number generator (default value: ``0``).
-
 
 Cells
 --------

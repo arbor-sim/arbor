@@ -177,9 +177,9 @@ equations. The *white noise* sources can be defined in the model files using a `
 
 Arbitrary white noise variables can be declared (``a, b, c`` in the example above). The
 noise will be appropriately scaled with the numerical time step and can be considered unitless. In
-order to influence the white noise generation, a seed value can be set at the level of the recipe
-through the optional member function ``prng_seed()``
-(see :ref:`here <pyrecipe>` or :ref:`here <cpprecipe>`).
+order to influence the white noise generation, a seed value can be set at the level of the
+simulation through the optional constructor argument ``seed``
+(see :ref:`here <pysimulation>` or :ref:`here <cppsimulation>`).
 
 If the state is updated by involving at least one of the declared white noise variables
 the system is considered to be stochastic:

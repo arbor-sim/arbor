@@ -53,6 +53,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
     * an :py:class:`arbor.recipe` that describes the model;
     * an :py:class:`arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
     * an :py:class:`arbor.context` which is used to execute the simulation.
+    * a non-negative :py:class:`int` in order to seed the pseudo pandom number generator (optional)
 
     Simulations provide an interface for executing and interacting with the model:
 
@@ -63,9 +64,9 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     **Constructor:**
 
-    .. function:: simulation(recipe, domain_decomposition, context)
+    .. function:: simulation(recipe, domain_decomposition, context, seed)
 
-        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network distributed according to :py:class:`arbor.domain_decomposition`, and computational resources described by :py:class:`arbor.context`.
+        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network distributed according to :py:class:`arbor.domain_decomposition`, computational resources described by :py:class:`arbor.context` and with a seed value for generating reproducible random numbers (optional, default value: `0`).
 
     **Updating Model State:**
 

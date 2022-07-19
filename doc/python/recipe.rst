@@ -107,9 +107,6 @@ Recipe
 
         By default returns an empty object.
 
-    .. function:: prng_seed()
-
-        Non-negative seed value for the pseudo random number generator (default value: ``0``).
 
 Cells
 ------
