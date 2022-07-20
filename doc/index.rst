@@ -48,6 +48,9 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
+Version 0.7
+    |z07|
+
 Version 0.6
     |z06|
 
