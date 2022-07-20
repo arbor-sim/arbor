@@ -118,7 +118,7 @@ Post Release
 
 #. Make a new PR setting ``VERSION`` to the next with a trailing ``-dev``. E.g. if you just release ``3.14``, change ``VERSION`` to ``3.15-dev``
     
-    - Include changes such as to ``spack/package.py``, ``CITATIONS``, ``doc/index.rst`` in postrel PR. Copy Zenodo BibTex export to ``CITATIONS``.
+   - Include changes such as to ``spack/package.py``, ``CITATIONS``, ``doc/index.rst`` in postrel PR. Copy Zenodo BibTex export to ``CITATIONS``.
 
 #. Update spack package / Ebrains Lab / Opensourcebrain
 
