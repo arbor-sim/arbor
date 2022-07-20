@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack import *
+from spack.package import *
 
 
 class Arbor(CMakePackage, CudaPackage):
@@ -12,10 +12,15 @@ class Arbor(CMakePackage, CudaPackage):
 
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
-    url = "https://github.com/arbor-sim/arbor/releases/download/v0.6/arbor-v0.6-full.tar.gz"
+    url = "https://github.com/arbor-sim/arbor/releases/download/v0.7/arbor-v0.7-full.tar.gz"
     maintainers = ["bcumming", "brenthuisman", "haampie", "schmitts"]
 
     version("master", branch="master", submodules=True)
+    version(
+        "0.7",
+        sha256="c3a6b7193946aee882bb85f9c38beac74209842ee94e80840968997ba3b84543",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.7/arbor-v0.7-full.tar.gz",
+    )
     version(
         "0.6",
         sha256="4cd333b18effc8833428ddc0b99e7dc976804771bc85da90034c272c7019e1e8",
