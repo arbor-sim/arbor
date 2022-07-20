@@ -107,7 +107,6 @@ Recipe
 
         By default returns an empty object.
 
-
 Cells
 ------
 
