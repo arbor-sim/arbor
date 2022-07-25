@@ -112,7 +112,7 @@ jobs:
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.config.py }}
       - name: Update pip
