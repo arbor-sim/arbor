@@ -38,6 +38,14 @@ Communication of spikes is facilitated through the
    };
 
    using spike_vec = std::vector<spike>;
+
+   // From gathered_vector
+   template <typename T>
+   struct gathered_vector {
+       std::vector<T> values_;
+       std::vector<int> partition_;
+   };
+
    using g_spike_vec = gathered_vector<spike>;
 
    g_spike_vec communicator::exchange(spike_vec local_spikes) { // Take by value, since we modify (sort) anyhow.
@@ -74,13 +82,6 @@ Communication of spikes is facilitated through the
        for (auto& d: displs) d /= traits::count();
        return {std::move(buffer), std::move(displs)};
    }
-
-   // From gathered_vector
-   template <typename T>
-   struct gathered_vector {
-       std::vector<T> values_;
-       std::vector<int> partition_;
-   };
 
 Note that these snippets have been simplified and shortened from the
 actual code, they are intended for education only.
@@ -217,8 +218,8 @@ domain (as in domain decomposition) of their source's ``gid``, while
 Building the Connection Table
 =============================
 
-The table of connections on the local rank is built during the
-connection of the ``communicator`` object
+The table of connections on the local rank is built during the construction of
+the ``communicator`` object
 
 .. code-block:: c++
 
@@ -246,6 +247,19 @@ respective partitions are pointed to by the indices in
 The algorithm for building is slightly obscured by caching and the use
 of labels and resolving them via ``target_/source_resolution_map`` to
 local ids on the respective source and target cells.
+
+.. note::
+
+   The ``label_resolution_map`` class is used to translate from labels at the
+   user facing API layers to Arbor's internal mappings in the vein of
+   ``(cell_gid, item_offset)``, where ``item_offset`` is an automatically
+   assigned integer ID. Textual labels are created by calls to ``place``
+   as in this example
+
+   .. code-block:: c++
+
+      auto d = arb::decor{};
+      d.place("..."_ls, arb::synapse{"..."}, "synapse-label");
 
 Next, each *partition* is sorted independently according to their
 source's ``gid``.

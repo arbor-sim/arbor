@@ -19,3 +19,4 @@ $PREFIX build/bin/lfp
 $PREFIX build/bin/probe-demo v
 $PREFIX build/bin/ring
 $PREFIX build/bin/single-cell
+$PREFIX build/bin/plasticity

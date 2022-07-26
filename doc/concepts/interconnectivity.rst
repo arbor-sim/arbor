@@ -44,6 +44,11 @@ update connection weights and delays. Note, however, that there is currently no
 way to introduce new sites to the simulation, nor any changes to the connected
 generators or gap junctions.
 
+The ``update_connections`` method accepts either a full ``recipe`` (but will
+**only** use the ``connections_on`` and ``events_generators`` callbacks) or a
+``topping``, which is a reduced recipe exposing only the relevant callbacks.
+Currently ``topping`` is only available in C++.
+
 .. _modelconnections:
 
 .. glossary::

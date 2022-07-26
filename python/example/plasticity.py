@@ -1,14 +1,14 @@
 import arbor as A
 
-
 class recipe(A.recipe):
-    def __init__(self):
+    def __init__(self, n):
         super().__init__()
         self.ccp = A.neuron_cable_properties()
         self.connected = {}
+        self.n =n
 
     def num_cells(self):
-        return 3
+        return self.n
 
     def cell_kind(self, gid):
         if gid == 0:
@@ -44,31 +44,18 @@ class recipe(A.recipe):
         self.connected[to] = (0.75, 0.1)
 
 
-A.mpi_init()
-mpi = A.mpi_comm()
-ctx = A.context(mpi=mpi)
-rnk = ctx.rank
-csz = ctx.ranks
-assert csz == 3
-rec = recipe()
+rec = recipe(3)
 rec.add_connection(1)
-if rnk == 0:
-    knd = A.cell_kind.spike_source
-else:
-    knd = A.cell_kind.cable
-grp = [A.group_description(knd, [rnk], A.backend.multicore)]
-dec = A.partition_by_group(rec, ctx, grp)
-sim = A.simulation(rec, ctx, dec)
+sim = A.simulation(rec)
 sim.record(A.spike_recording.all)
 
 sim.run(0.25, 0.025)
 
 rec.add_connection(2)
-sim.update_connections(rec, ctx, dec)
+sim.update_connections(rec)
 
 sim.run(0.5, 0.025)
 
-if rnk == 0:
-    print("spikes:")
-    for sp in sim.spikes():
-        print(" ", sp)
+print("spikes:")
+for sp in sim.spikes():
+    print(" ", sp)
