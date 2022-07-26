@@ -34,7 +34,18 @@ communicator::communicator(const recipe& rec,
     num_domains_ = distributed_->size();
     num_local_groups_ = dom_dec.num_groups();
     num_local_cells_ = dom_dec.num_local_cells();
-    auto num_total_cells = rec.num_cells();
+    num_total_cells_ = rec.num_cells();
+}
+
+void communicator::update_connections(const topping& rec,
+                                      const domain_decomposition& dom_dec,
+                                      const label_resolution_map& source_resolution_map,
+                                      const label_resolution_map& target_resolution_map) {
+    // Forget all lingering information
+    connections_ = {};
+    connection_part_ = {};
+    index_divisions_ = {};
+    index_part_ = {};
 
     // For caching information about each cell
     struct gid_info {
@@ -81,8 +92,8 @@ communicator::communicator(const recipe& rec,
 
     for (const auto& cell: gid_infos) {
         for (auto c: cell.conns) {
-            if (c.source.gid >= num_total_cells) {
-                throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells);
+            if (c.source.gid >= num_total_cells_) {
+                throw arb::bad_connection_source_gid(cell.gid, c.source.gid, num_total_cells_);
             }
             const auto src = dom_dec.gid_domain(c.source.gid);
             src_domains.push_back(src);
@@ -198,6 +209,11 @@ void communicator::make_event_queues(const gathered_vector<spike>& global_spikes
 std::uint64_t communicator::num_spikes() const {
     return num_spikes_;
 }
+
+void communicator::set_num_spikes(std::uint64_t n) {
+    num_spikes_ = n;
+}
+
 
 cell_size_type communicator::num_local_cells() const {
     return num_local_cells_;

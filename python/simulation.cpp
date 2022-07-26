@@ -95,7 +95,7 @@ public:
     }
 
     void update_connections(std::shared_ptr<py_recipe>& rec) {
-        sim_->update_connections(py_recipe_shim(rec));
+        sim_->update(py_recipe_shim(rec));
     }
 
     void record(spike_recording policy) {

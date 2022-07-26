@@ -92,7 +92,7 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx);
 
-    void update_connections(const recipe& rec);
+    void update(const topping& rec);
 
     void reset();
 
@@ -194,8 +194,8 @@ simulation_state::simulation_state(
     ctx_{ctx},
     ddc_{decomp},
     task_system_(ctx->thread_pool),
-    local_spikes_({thread_private_spike_store(ctx->thread_pool), thread_private_spike_store(ctx->thread_pool)})
-{
+    local_spikes_({thread_private_spike_store(ctx->thread_pool),
+                  thread_private_spike_store(ctx->thread_pool)}) {
     // Generate the cell groups in parallel, with one task per cell group.
     auto num_groups = decomp.num_groups();
     cell_groups_.resize(num_groups);
@@ -221,36 +221,40 @@ simulation_state::simulation_state(
 
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
+    communicator_ = communicator(rec, ddc_, source_resolution_map_, target_resolution_map_, *ctx_);
+    update(rec);
+    epoch_.reset();
+}
 
-    update_connections(rec);
+void simulation_state::update(const topping& rec) {
+    communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
+    // Use half minimum delay of the network for max integration interval.
+    t_interval_ = communicator_.min_delay()/2;
 
     const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
     pending_events_.resize(num_local_cells);
-
+    // Forget old generators, if present
+    event_generators_.clear();
     event_generators_.resize(num_local_cells);
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
-
     auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
-    for (const auto& group_info: decomp.groups()) {
+    for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = gid_local_info{lidx, grpidx};
-
-            // Resolve event_generator targets.
-            // Each event generator gets their own resolver state.
+            gid_to_local_[gid] = {lidx, grpidx};
+            // Resolve event_generator targets; each event generator gets their own resolver state.
             auto event_gens = rec.event_generators(gid);
             for (auto& g: event_gens) {
-                g.resolve_label([target_resolution_map_ptr, event_resolver=resolver(target_resolution_map_ptr.get()), gid]
-                    (const cell_local_label_type& label) mutable {
+                g.resolve_label([target_resolution_map_ptr,
+                                 event_resolver=resolver(target_resolution_map_ptr.get()),
+                                 gid] (const cell_local_label_type& label) mutable {
                         return event_resolver.resolve({gid, label});
                     });
             }
-
             // Set up the event generators for cell gid.
             event_generators_[lidx] = event_gens;
-
             ++lidx;
         }
         ++grpidx;
@@ -261,15 +265,6 @@ simulation_state::simulation_state(
     // the following epoch. In each buffer there is one lane for each local cell.
     event_lanes_[0].resize(num_local_cells);
     event_lanes_[1].resize(num_local_cells);
-
-    epoch_.reset();
-}
-
-void simulation_state::update_connections(const recipe& rec) {
-    auto spikes = communicator_.num_spikes(); // TODO(TH) add those to the next communicator
-    communicator_ = arb::communicator(rec, ddc_, source_resolution_map_, target_resolution_map_, *ctx_);
-    // Use half minimum delay of the network for max integration interval.
-    t_interval_ = communicator_.min_delay()/2;
 }
 
 
@@ -532,7 +527,7 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update_connections(const recipe& rec) { impl_->update_connections(rec); }
+void simulation::update(const topping& rec) { impl_->update(rec); }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {

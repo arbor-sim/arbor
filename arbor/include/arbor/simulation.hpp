@@ -34,7 +34,7 @@ public:
                const context& ctx=make_context(),
                std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
 
-    void update_connections(const recipe& rec);
+    void update(const topping& rec);
 
     void reset();
 

@@ -62,6 +62,7 @@ public:
 
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
+    void set_num_spikes(std::uint64_t n);
 
     cell_size_type num_local_cells() const;
 
@@ -69,10 +70,16 @@ public:
 
     void reset();
 
+    void update_connections(const topping& rec,
+                            const domain_decomposition& dom_dec,
+                            const label_resolution_map& source_resolution_map,
+                            const label_resolution_map& target_resolution_map);
+
 private:
-    cell_size_type num_local_cells_;
-    cell_size_type num_local_groups_;
-    cell_size_type num_domains_;
+    cell_size_type num_total_cells_ = 0;
+    cell_size_type num_local_cells_ = 0;
+    cell_size_type num_local_groups_ = 0;
+    cell_size_type num_domains_ = 0;
     std::vector<connection> connections_;
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
