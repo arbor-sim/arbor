@@ -49,6 +49,21 @@ The ``update_connections`` method accepts either a full ``recipe`` (but will
 ``topping``, which is a reduced recipe exposing only the relevant callbacks.
 Currently ``topping`` is only available in C++.
 
+.. warn::
+
+   The semantics of connection updates are subtle and might produce surprising
+   results if handled carelessly. In particular, spikes in-flight over a
+   connection will *always* be delivered, even if the connection has been
+   deleted before the time of delivery has passed (`= t_emitted +
+   connection_delay`). As Arbor's connection model joins processes on the axon,
+   the synaptic cleft, and the receiving synapse into a simple pair `(weight,
+   delay)` it is unclear 'where' the action potential is located at the time of
+   deletion relative to the locus of disconnection. Thus, it was decided to
+   deliver spike events regardless. This is will not cause issues when the
+   transition is slow and smooth, ie weights decays over time towards a small
+   value and then the connection is removed. However, drastic and/or frequent
+   changes across busy synapses might cause unexpected behaviour.
+
 .. _modelconnections:
 
 .. glossary::
