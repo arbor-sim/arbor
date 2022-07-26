@@ -261,5 +261,39 @@ local ids on the respective source and target cells.
       auto d = arb::decor{};
       d.place("..."_ls, arb::synapse{"..."}, "synapse-label");
 
+The construction is performed in-place
+
+.. code-block:: c++
+
+    // Allocate space for our connections
+    connections_.resize(n_cons);
+    // We have pre-computed `src_counts`, connection_part_ will now hold the starting indices
+    // of each `domain`.
+    util::make_partition(connection_part_, src_counts);
+    // Copy, as we use this as the list of the currently available next free target slots in
+    // `connections_`
+    auto offsets = connection_part_;
+    auto target_resolver = resolver(&target_resolution_map);
+    auto src_domain = src_domains.begin();
+    for (const auto& cell: gid_infos) {
+        auto index = cell.index_on_domain;
+        auto source_resolver = resolver(&source_resolution_map);
+        for (const auto& c: cell.conns) {
+            // Compute index representation of labels
+            auto src_lid = source_resolver.resolve(c.source);
+            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+            // Get offset of current source and bump to next free slot
+            auto offset  = offsets[*src_domain]++;
+            // Write connection info into slot
+            connections_[offset] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, index};
+            // Next source domain
+            ++src_domain;
+        }
+    }
+    // Now
+    // * all slots in `connections_` are filled.
+    // * `offsets` points at the ends of each partition.
+
+
 Next, each *partition* is sorted independently according to their
 source's ``gid``.

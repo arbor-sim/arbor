@@ -104,7 +104,7 @@ void communicator::update_connections(const topping& rec,
     // the connections as partitioned by the domain of their source gid.
     connections_.resize(n_cons);
     util::make_partition(connection_part_, src_counts);
-    auto offsets = connection_part_;
+    auto offsets = connection_part_; // Copy, as we use this as the list of current target indices to write into
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
