@@ -1,11 +1,12 @@
 import arbor as A
 
+
 class recipe(A.recipe):
     def __init__(self, n):
         super().__init__()
         self.ccp = A.neuron_cable_properties()
         self.connected = {}
-        self.n =n
+        self.n = n
 
     def num_cells(self):
         return self.n
