@@ -144,7 +144,7 @@ handles = [sim.sample((gid, 0), arbor.regular_schedule(1)) for gid in range(ncel
 sim.run(ncells * 5)
 print("Simulation finished")
 
-# (17) Plot the recorded voltages over time.
+# (17) Store the recorded voltages
 print("Storing results ...")
 df_list = []
 for gid in range(ncells):

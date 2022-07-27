@@ -1,6 +1,6 @@
 NEURON {
   POINT_PROCESS inject
-  USEION x WRITE xd, ix
+  USEION x WRITE xd
   RANGE alpha, beta
 }
 

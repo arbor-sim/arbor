@@ -4,7 +4,7 @@ import arbor
 import argparse
 import numpy as np
 
-import pandas
+import pandas  # You may have to pip install these.
 import seaborn  # You may have to pip install these.
 import matplotlib.pyplot as plt
 

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 25.2.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns:ev="http://www.w3.org/2001/xml-events"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 1920 1080"
+	 style="enable-background:new 0 0 1920 1080;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#D3D3D3;stroke:#D3D3D3;stroke-width:9.697;stroke-miterlimit:9.697;}
+	.st1{fill:#FFFFFF;stroke:#FF0000;stroke-width:9.697;stroke-miterlimit:9.697;}
+	.st2{fill:#FFFFFF;stroke:#000000;stroke-width:9.697;stroke-miterlimit:9.697;}
+	.st3{fill:none;stroke:#000000;stroke-width:4;stroke-miterlimit:10;}
+</style>
+<g id="lines">
+	<polygon class="st0" points="577,612.7 770.9,612.7 770.9,554.5 964.8,554.5 960,554.2 1154,578.5 1163.6,501.5 969.7,477.3 
+		964.8,477 770.9,477 770.9,418.8 577,418.8 	"/>
+	<polygon class="st0" points="1177.8,573.8 1556.2,338.7 1552.8,340.2 1840.6,234 1834.5,215.6 1540.5,303.4 1537.2,304.9 
+		1139.8,506.2 	"/>
+	<polygon class="st0" points="1150.6,562.8 1490,684 1506.3,638.4 1166.9,517.2 	"/>
+	<polygon class="st0" points="1483,680.1 1734.5,862.7 1746.7,847.6 1513.3,642.3 	"/>
+	<polygon class="st0" points="1509,682.9 1696.5,572.9 1689.1,573.4 1834.5,621.9 1840.6,603.5 1695.2,555 1687.8,555.6 
+		1487.3,639.5 	"/>
+	<polygon class="st0" points="577,418.8 237.6,496.4 237.6,496.4 92.1,496.4 92.1,535.2 237.6,535.2 237.6,535.2 577,612.7 	"/>
+</g>
+<g id="points">
+	<circle class="st1" cx="577" cy="515.8" r="38.8"/>
+	<circle class="st2" cx="1486.4" cy="355.7" r="32.3"/>
+	<circle class="st2" cx="1663.7" cy="578.4" r="32.3"/>
+</g>
+<g>
+	<g>
+		<line class="st3" x1="1420.2" y1="392.4" x2="1171.9" y2="532.5"/>
+		<g>
+			<polygon points="1444.8,378.5 1402.2,383.9 1418.4,393.4 1418.2,412.2 			"/>
+		</g>
+	</g>
+</g>
+<line class="st3" x1="1506.3" y1="661.5" x2="1171.9" y2="532.5"/>
+<g>
+	<g>
+		<line class="st3" x1="1597.3" y1="613.7" x2="1506.3" y2="661.5"/>
+		<g>
+			<polygon points="1622.3,600.6 1579.5,604.7 1595.4,614.7 1594.6,633.5 			"/>
+		</g>
+	</g>
+</g>
+</svg>

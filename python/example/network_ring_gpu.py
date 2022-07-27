@@ -26,19 +26,20 @@ def make_cable_cell(gid):
         arbor.mnpos, arbor.mpoint(-12, 0, 0, 6), arbor.mpoint(0, 0, 0, 6), tag=1
     )
 
-    # (b0) Single dendrite (tag=3) of length 50 μm and radius 2 μm attached to soma.
+    # Single dendrite (tag=3) of length 50 μm and radius 2 μm attached to soma.
     b0 = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(50, 0, 0, 2), tag=3)
 
     # Attach two dendrites (tag=3) of length 50 μm to the end of the first dendrite.
+    # As there's no further use for them, we discard the returned handles.
     # (b1) Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    tree.append(
+    _ = tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 2),
         arbor.mpoint(50 + 50 / sqrt(2), 50 / sqrt(2), 0, 0.5),
         tag=3,
     )
     # (b2) Constant radius of 1 μm over the length of the dendrite.
-    tree.append(
+    _ = tree.append(
         b0,
         arbor.mpoint(50, 0, 0, 1),
         arbor.mpoint(50 + 50 / sqrt(2), -50 / sqrt(2), 0, 1),
@@ -46,29 +47,31 @@ def make_cable_cell(gid):
     )
 
     # Associate labels to tags
-    labels = arbor.label_dict(
-        {
-            "soma": "(tag 1)",
-            "dend": "(tag 3)",
-            # (2) Mark location for synapse at the midpoint of branch 1 (the first dendrite).
-            "synapse_site": "(location 1 0.5)",
-            # Mark the root of the tree.
-            "root": "(root)",
-        }
-    )
+    labels = arbor.label_dict()
+    labels["soma"] = "(tag 1)"
+    labels["dend"] = "(tag 3)"
+
+    # (2) Mark location for synapse at the midpoint of branch 1 (the first dendrite).
+    labels["synapse_site"] = "(location 1 0.5)"
+    # Mark the root of the tree.
+    labels["root"] = "(root)"
 
     # (3) Create a decor and a cable_cell
-    decor = (
-        arbor.decor()
-        # Put hh dynamics on soma, and passive properties on the dendrites.
-        .paint('"soma"', arbor.density("hh")).paint('"dend"', arbor.density("pas"))
-        # (4) Attach a single synapse.
-        .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
-        # Attach a spike detector with threshold of -10 mV.
-        .place('"root"', arbor.spike_detector(-10), "detector")
-    )
+    decor = arbor.decor()
 
-    return arbor.cable_cell(tree, labels, decor)
+    # Put hh dynamics on soma, and passive properties on the dendrites.
+    decor.paint('"soma"', arbor.density("hh"))
+    decor.paint('"dend"', arbor.density("pas"))
+
+    # (4) Attach a single synapse.
+    decor.place('"synapse_site"', arbor.synapse("expsyn"), "syn")
+
+    # Attach a spike detector with threshold of -10 mV.
+    decor.place('"root"', arbor.spike_detector(-10), "detector")
+
+    cell = arbor.cable_cell(tree, labels, decor)
+
+    return cell
 
 
 # (5) Create a recipe that generates a network of connected cells.
@@ -117,30 +120,54 @@ class ring_recipe(arbor.recipe):
         return self.props
 
 
-# (11) Instantiate recipe
-ncells = 4
+# (11) Set up the hardware context
+# gpu_id set to None will not use a GPU.
+# gpu_id=0 instructs Arbor to the first GPU present in your system
+context = arbor.context(threads="avail_threads", gpu_id=None)
+print(context)
+
+# (12) Set up and start the meter manager
+meters = arbor.meter_manager()
+meters.start(context)
+
+# (13) Instantiate recipe
+ncells = 50
 recipe = ring_recipe(ncells)
+meters.checkpoint("recipe-create", context)
 
-# (12) Create an execution context using all locally available threads and simulation
-ctx = arbor.context("avail_threads")
-sim = arbor.simulation(recipe, ctx)
+# (14) Define a hint at to the execution.
+hint = arbor.partition_hint()
+hint.prefer_gpu = True
+hint.gpu_group_size = 1000
+print(hint)
+hints = {arbor.cell_kind.cable: hint}
 
-# (13) Set spike generators to record
+# (15) Domain decomp
+decomp = arbor.partition_load_balance(recipe, context, hints)
+print(decomp)
+meters.checkpoint("load-balance", context)
+
+# (16) Simulation init and set spike generators to record
+sim = arbor.simulation(recipe, context, decomp)
 sim.record(arbor.spike_recording.all)
+handles = [sim.sample((gid, 0), arbor.regular_schedule(1)) for gid in range(ncells)]
+meters.checkpoint("simulation-init", context)
 
-# (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
-handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
-
-# (15) Run simulation for 100 ms
-sim.run(100)
+# (17) Run simulation
+sim.run(ncells * 5)
 print("Simulation finished")
+meters.checkpoint("simulation-run", context)
 
-# (16) Print spike times
+# (18) Results
+# Print profiling information
+print(f"{arbor.meter_report(meters, context)}")
+
+# Print spike times
 print("spikes:")
 for sp in sim.spikes():
     print(" ", sp)
 
-# (17) Plot the recorded voltages over time.
+# Plot the recorded voltages over time.
 print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
@@ -153,5 +180,5 @@ for gid in range(ncells):
 
 df = pandas.concat(df_list, ignore_index=True)
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", ci=None).savefig(
-    "network_ring_result.svg"
+    "network_ring_gpu_result.svg"
 )
