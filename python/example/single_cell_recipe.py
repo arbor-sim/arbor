@@ -17,7 +17,7 @@ tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), ta
 labels = arbor.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 # (3) Create cell and set properties
-#
+
 decor = (
     arbor.decor()
     .set_property(Vm=-40)
@@ -34,30 +34,30 @@ cell = arbor.cable_cell(tree, labels, decor)
 
 
 class single_recipe(arbor.recipe):
+    # (4.1) The base class constructor must be called first, to ensure that
+    # all memory in the wrapped C++ class is initialized correctly.
     def __init__(self):
-        # (4.1) The base C++ class constructor must be called first, to ensure that
-        # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
         self.the_props = arbor.neuron_cable_properties()
 
+    # (4.2) Override the num_cells method
     def num_cells(self):
-        # (4.2) Override the num_cells method
         return 1
 
+    # (4.3) Override the cell_kind method
     def cell_kind(self, gid):
-        # (4.3) Override the cell_kind method
         return arbor.cell_kind.cable
 
+    # (4.4) Override the cell_description method
     def cell_description(self, gid):
-        # (4.4) Override the cell_description method
         return cell
 
+    # (4.5) Override the probes method with a voltage probe located on "midpoint"
     def probes(self, gid):
-        # (4.5) Override the probes method with a voltage probe located on "midpoint"
         return [arbor.cable_probe_membrane_voltage('"midpoint"')]
 
+    # (4.6) Override the global_properties method
     def global_properties(self, kind):
-        # (4.6) Override the global_properties method
         return self.the_props
 
 
