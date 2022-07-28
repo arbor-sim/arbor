@@ -54,6 +54,17 @@ public:
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
 };
 
+// Utilities.
+
+// Prune segment tree w.r.t. particular tag
+ARB_ARBOR_API segment_tree prune_tag(const segment_tree& in, int tag);
+
+// Roots of regions of specific tag in segment tree
+ARB_ARBOR_API std::vector<msize_t> prune_tag_roots(const segment_tree& in, int tag);
+
+// Radii at specific distance from tag region roots
+ARB_ARBOR_API std::vector<double> median_distal_radii(const segment_tree& in, int tag, double dist);
+
 } // namesapce arb
 
 

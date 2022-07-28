@@ -173,6 +173,29 @@ msize_t morphology::num_branches() const {
     return impl_->branches_.size();
 }
 
+segment_tree morphology::to_segment_tree() const {
+    segment_tree st;
+    const auto& branches = impl_->branches_;
+
+    for (auto bi: make_span(branches.size()) ) {
+        const auto& branch = branches[bi];
+        for (auto si: make_span(branch.size())) {
+            const auto& seg = branch[si];
+            auto p = mnpos;
+            if (si == 0) {
+                auto bp = impl_->branch_parents_[bi];
+                p = bp == mnpos ? mnpos : branches[bp].back().id;
+            } else {
+                p = branch[si-1].id;
+            }
+            st.append(p, seg.prox, seg.dist, seg.tag);
+        }
+    }
+
+    return st;
+}
+
+
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const morphology& m) {
     return o << *m.impl_;
 }

@@ -44,6 +44,13 @@ invalid_segment_parent::invalid_segment_parent(msize_t parent, msize_t tree_size
     tree_size(tree_size)
 {}
 
+unpruned_child::unpruned_child(msize_t pruned_parent, msize_t child, int tag):
+    morphology_error(pprintf("Unpruned child {} for pruned parent {} with tag {}", msize_string(child), msize_string(pruned_parent), tag)),
+    pruned_parent(pruned_parent),
+    child(child),
+    tag(tag)
+{}
+
 duplicate_stitch_id::duplicate_stitch_id(const std::string& id):
     morphology_error(pprintf("duplicate stitch id {}", id)),
     id(id)

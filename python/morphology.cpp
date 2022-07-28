@@ -236,6 +236,12 @@ void register_morphology(py::module& m) {
                 },
                 "parent"_a, "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
                 "Append a segment to the tree, using the distal location of the parent segment as the proximal end.")
+        .def("is_fork", &arb::segment_tree::is_fork,
+                "i"_a, "True if segment has more than one child.")
+        .def("is_terminal", &arb::segment_tree::is_terminal,
+                "i"_a, "True if segment has no children.")
+        .def("is_root", &arb::segment_tree::is_root,
+                "i"_a, "True if segment has no parent.")
         // properties
         .def_property_readonly("empty", [](const arb::segment_tree& st){return st.empty();},
                 "Indicates whether the tree is empty (i.e. whether it has size 0)")
@@ -299,6 +305,27 @@ void register_morphology(py::module& m) {
         "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
         "for a detailed description of the interpretation.");
 
+    m.def("prune_tag",
+        &arb::prune_tag,
+        "segment_tree"_a, "tag"_a,
+        "Prune a segment_tree w.r.t. tag.\n"
+        "Useful for modeling axon replacement in BluePyOpt cell models.");
+
+
+    m.def("prune_tag_roots",
+        &arb::prune_tag_roots,
+        "segment_tree"_a, "tag"_a,
+        "Get roots of pruned region of segment_tree.\n"
+        "Useful for modeling axon replacement in BluePyOpt cell models.");
+
+
+    m.def("median_distal_radii",
+        &arb::median_distal_radii,
+        "segment_tree"_a, "tag"_a, "dist"_a,
+        "Get radius at given distance from roots of tag-region of segment_tree.\n"
+        "Useful for modeling axon replacement in BluePyOpt cell models.");
+
+
     // arb::morphology
 
     py::class_<arb::morphology> morph(m, "morphology");
@@ -325,6 +352,8 @@ void register_morphology(py::module& m) {
                     return m.branch_segments(i);
                 },
                 "i"_a, "A list of the segments in branch i, ordered from proximal to distal ends of the branch.")
+        .def("to_segment_tree", &arb::morphology::to_segment_tree,
+                "Convert this morphology to a segment_tree.")
         .def("__str__",
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
