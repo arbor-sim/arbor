@@ -511,6 +511,19 @@ def generate(path=""):
     label_image(inputs.label_morph, [inputs.reg_radgt5], path + "/radiusgt_label.svg")
     label_image(inputs.label_morph, [inputs.reg_radge5], path + "/radiusge_label.svg")
 
+    ####################### iexpr
+
+    label_image(
+        inputs.label_morph,
+        [inputs.iexpr_directional_loc, inputs.iexpr_prox_dis],
+        path + "/iexpr_prox_dis.svg",
+    )
+    label_image(
+        inputs.label_morph,
+        [inputs.iexpr_directional_loc, inputs.iexpr_dist_dis],
+        path + "/iexpr_dist_dis.svg",
+    )
+
     ####################### Tutorial examples
 
     morph_image([inputs.tutorial_morph], ["segments"], path + "/tutorial_morph.svg")

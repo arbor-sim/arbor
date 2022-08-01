@@ -24,4 +24,5 @@ Here we document internal components of Arbor. These pages can be useful if you'
    extending_catalogues
    mechanism_abi
    util
+   version
 .. numerics

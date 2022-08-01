@@ -302,7 +302,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.6.0)
+set(arb_py_version 3.7.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
@@ -311,7 +311,7 @@ endif()
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
 
-    if(DEFINED ENV{CIBUILDWHEEL})
+    if(DEFINED ENV{CIBUILDWHEEL} AND (UNIX AND NOT APPLE))
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
     else()
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)

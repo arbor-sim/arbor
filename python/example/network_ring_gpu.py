@@ -2,10 +2,9 @@
 # This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
-import pandas
+import pandas  # You may have to pip install these
+import seaborn  # You may have to pip install these
 from math import sqrt
-
-# Run with srun -n NJOBS python network_ring_mpi.py
 
 # Construct a cell with the following morphology.
 # The soma (at the root of the tree) is marked 's', and
@@ -121,43 +120,65 @@ class ring_recipe(arbor.recipe):
         return self.props
 
 
-# (11) Instantiate recipe
-ncells = 500
-recipe = ring_recipe(ncells)
-
-# (12) Create an MPI communicator, and use it to create a hardware context
-arbor.mpi_init()
-comm = arbor.mpi_comm()
-print(comm)
-context = arbor.context(mpi=comm)
+# (11) Set up the hardware context
+# gpu_id set to None will not use a GPU.
+# gpu_id=0 instructs Arbor to the first GPU present in your system
+context = arbor.context(threads="avail_threads", gpu_id=None)
 print(context)
 
-# (13) Create a default domain decomposition and simulation
-sim = arbor.simulation(recipe, context)
+# (12) Set up and start the meter manager
+meters = arbor.meter_manager()
+meters.start(context)
 
-# (14) Set spike generators to record
+# (13) Instantiate recipe
+ncells = 50
+recipe = ring_recipe(ncells)
+meters.checkpoint("recipe-create", context)
+
+# (14) Define a hint at to the execution.
+hint = arbor.partition_hint()
+hint.prefer_gpu = True
+hint.gpu_group_size = 1000
+print(hint)
+hints = {arbor.cell_kind.cable: hint}
+
+# (15) Domain decomp
+decomp = arbor.partition_load_balance(recipe, context, hints)
+print(decomp)
+meters.checkpoint("load-balance", context)
+
+# (16) Simulation init and set spike generators to record
+sim = arbor.simulation(recipe, context, decomp)
 sim.record(arbor.spike_recording.all)
-
-# (15) Attach a sampler to the voltage probe on cell 0. Sample rate of 1 sample every ms.
-# Sampling period increased w.r.t network_ring.py to reduce amount of data
 handles = [sim.sample((gid, 0), arbor.regular_schedule(1)) for gid in range(ncells)]
+meters.checkpoint("simulation-init", context)
 
-# (16) Run simulation
+# (17) Run simulation
 sim.run(ncells * 5)
 print("Simulation finished")
+meters.checkpoint("simulation-run", context)
 
-# (17) Store the recorded voltages
-print("Storing results ...")
+# (18) Results
+# Print profiling information
+print(f"{arbor.meter_report(meters, context)}")
+
+# Print spike times
+print("spikes:")
+for sp in sim.spikes():
+    print(" ", sp)
+
+# Plot the recorded voltages over time.
+print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
-    if len(sim.samples(handles[gid])):
-        samples, meta = sim.samples(handles[gid])[0]
-        df_list.append(
-            pandas.DataFrame(
-                {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"cell {gid}"}
-            )
+    samples, meta = sim.samples(handles[gid])[0]
+    df_list.append(
+        pandas.DataFrame(
+            {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"cell {gid}"}
         )
+    )
 
-if len(df_list):
-    df = pandas.concat(df_list, ignore_index=True)
-    df.to_csv(f"result_mpi_{context.rank}.csv", float_format="%g")
+df = pandas.concat(df_list, ignore_index=True)
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", ci=None).savefig(
+    "network_ring_gpu_result.svg"
+)
