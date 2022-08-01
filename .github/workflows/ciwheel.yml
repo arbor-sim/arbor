@@ -67,8 +67,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v2
       - name: Get packages
         run: python3 -m pip install build
       - name: Get Arbor
