@@ -5,6 +5,8 @@ extend-ignore =
               E203,
               # zealous line lengths
               E501,
+              # inconsistent ruling on newlines before bin op
+              W503,
               # ambiguous varnames I ./. l etc
               E741,
 select = C,E,F,W,B,B950
