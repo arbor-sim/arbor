@@ -313,7 +313,7 @@ each connection end point (point mechanism) or control volume (density mechanism
 generate independent noise, as well. The system of stochastic equations is interpreted in the Itô
 sense and numerically solved using the Euler-Maruyama method.
 For specifics about the notation to define stochastic processes, please consult the
-:ref:`arbor-specific NMODL extension <format-sde>`.
+:ref:`Arbor-specific NMODL extension <format-sde>`.
 
 
 API
