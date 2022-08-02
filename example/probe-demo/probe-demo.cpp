@@ -32,7 +32,7 @@ const char* help_msg =
     " --until=TIME        simulate until TIME [ms]\n"
     " -n, --n-cv=N        discretize with N CVs\n"
     " -t, --sample=TIME   take a sample every TIME [ms]\n"
-    " -x, --at=X          take sample at relative position X along cable\n"
+    " -x, --at=X          take sample at relative position X along cable or index of synapse\n"
     " --exact             use exact time sampling\n"
     " -h, --help          print extended usage information and exit\n"
     "\n"
@@ -56,6 +56,7 @@ const char* help_msg =
     "    hh_m        HH state variable m at X\n"
     "    hh_h        HH state variable h at X\n"
     "    hh_n        HH state variable n at X\n"
+    "    expsyn_g    expsyn state variable g at X"
     "\n"
     "where X is the relative position along the cable as described above, or else:\n"
     "\n"
@@ -68,7 +69,8 @@ const char* help_msg =
     "    all_c_k     internal potassium concentration [mmol/L] in each CV\n"
     "    all_hh_m    HH state variable m in each CV\n"
     "    all_hh_h    HH state variable h in each CV\n"
-    "    all_hh_n    HH state variable n in each CV\n";
+    "    all_hh_n    HH state variable n in each CV\n"
+    "    all_expsyn_g expsyn state variable g for all synapses\n";
 
 struct options {
     double sim_end = 100.0;   // [ms]
@@ -118,12 +120,19 @@ struct cable_recipe: public arb::recipe {
         arb::segment_tree tree;
         tree.append(arb::mnpos, {0, 0, 0, 0.5*diam}, {length, 0, 0, 0.5*diam}, 1);
 
-        arb::decor decor;
-        decor.paint(arb::reg::all(), arb::density("hh")); // HH mechanism over whole cell.
-        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp"); // Inject a 1 nA current indefinitely.
-
+        auto decor = arb::decor{}
+            .paint(arb::reg::all(), arb::density("hh"))                         // HH mechanism over whole cell.
+            .place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp")           // Inject a 1 nA current indefinitely.
+            .place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1")   // a synapse
+            .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
         return arb::cable_cell(tree, {}, decor);
     }
+
+    virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
+        return {arb::poisson_generator({"synapse1"}, .005, 0., 0.1, std::minstd_rand{}),
+                arb::poisson_generator({"synapse2"}, .1, 0., 0.1, std::minstd_rand{})};
+    }
+
 };
 
 int main(int argc, char** argv) {
@@ -135,8 +144,7 @@ int main(int argc, char** argv) {
 
         cable_recipe R(opt.probe_addr, opt.n_cv);
 
-        auto context = arb::make_context();
-        arb::simulation sim(R, arb::partition_load_balance(R, context), context);
+        arb::simulation sim(R);
 
         sim.add_sampler(arb::all_probes,
                 arb::regular_schedule(opt.sample_dt),
@@ -160,7 +168,10 @@ int main(int argc, char** argv) {
 
 void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
     auto* loc = any_cast<const arb::mlocation*>(pm.meta);
-    assert(loc);
+    auto* point_info = any_cast<const arb::cable_probe_point_info*>(pm.meta);
+	assert((loc != nullptr) || (point_info != nullptr));
+
+	loc = loc ? loc : &(point_info->loc);
 
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
@@ -173,21 +184,29 @@ void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
 
 void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
     auto* cables_ptr = any_cast<const arb::mcable_list*>(pm.meta);
-    assert(cables_ptr);
-    unsigned n_cable = cables_ptr->size();
+    auto* point_info_ptr = any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
+
+	assert((cables_ptr != nullptr) || (point_info_ptr != nullptr));
+
+    unsigned n_entities = cables_ptr ? cables_ptr->size() : point_info_ptr->size();
 
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
         auto* value_range = any_cast<const arb::cable_sample_range*>(samples[i].data);
         assert(value_range);
-        assert(n_cable==value_range->second-value_range->first);
+        const auto& [lo, hi] = *value_range;
+        assert(n_entities==hi-lo);
 
-        for (unsigned j = 0; j<n_cable; ++j) {
-            arb::mcable where = (*cables_ptr)[j];
-            std::cout << samples[i].time << ", "
-                      << where.prox_pos << ", "
-                      << where.dist_pos << ", "
-                      << value_range->first[j] << '\n';
+        for (unsigned j = 0; j<n_entities; ++j) {
+            std::cout << samples[i].time << ", ";
+			if (cables_ptr) {
+				arb::mcable where = (*cables_ptr)[j];
+				std::cout << where.prox_pos << ", " << where.dist_pos << ", ";
+			} else {
+				arb::mlocation loc = (*point_info_ptr)[j].loc;
+				std::cout << loc.pos << ", ";
+			}
+			std::cout << lo[j] << '\n';
         }
     }
 }
@@ -213,6 +232,7 @@ bool parse_options(options& opt, int& argc, char** argv) {
         {"hh_m",      {"hh_m",    true,  [](double x) { return arb::cable_probe_density_state{L{0, x}, "hh", "m"}; }}},
         {"hh_h",      {"hh_h",    true,  [](double x) { return arb::cable_probe_density_state{L{0, x}, "hh", "h"}; }}},
         {"hh_n",      {"hh_n",    true,  [](double x) { return arb::cable_probe_density_state{L{0, x}, "hh", "n"}; }}},
+        {"expsyn_g", {"expsyn_ g", true, [](arb::cell_lid_type i) { return arb::cable_probe_point_state{i, "expsyn", "g"}; }}},
         // all-of-cell probes
         {"all_v",     {"v",       false, [](double)   { return arb::cable_probe_membrane_voltage_cell{}; }}},
         {"all_i_ion", {"i_ion",   false, [](double)   { return arb::cable_probe_total_ion_current_cell{}; }}},
@@ -223,7 +243,8 @@ bool parse_options(options& opt, int& argc, char** argv) {
         {"all_c_k",   {"c_k",     false, [](double)   { return arb::cable_probe_ion_int_concentration_cell{"k"}; }}},
         {"all_hh_m",  {"hh_m",    false, [](double)   { return arb::cable_probe_density_state_cell{"hh", "m"}; }}},
         {"all_hh_h",  {"hh_h",    false, [](double)   { return arb::cable_probe_density_state_cell{"hh", "h"}; }}},
-        {"all_hh_n",  {"hh_n",    false, [](double)   { return arb::cable_probe_density_state_cell{"hh", "n"}; }}}
+        {"all_hh_n",  {"hh_n",    false, [](double)   { return arb::cable_probe_density_state_cell{"hh", "n"}; }}},
+        {"all_expsyn_g", {"expsyn_ g", false, [](arb::cell_lid_type) { return arb::cable_probe_point_state_cell{"expsyn", "g"}; }}},
     };
 
     std::tuple<const char*, bool, std::function<any (double)>> probe_spec;

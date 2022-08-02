@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include <arbor/version.hpp>
 
 #ifdef __linux__
 extern "C" {
@@ -6,7 +7,7 @@ extern "C" {
 }
 #endif
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
     #include <arbor/gpu/gpu_api.hpp>
 #endif
 

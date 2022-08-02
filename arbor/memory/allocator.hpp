@@ -173,9 +173,9 @@ public:
     using rebind = allocator<U, Policy>;
 
 public:
-    allocator() {}
-    ~allocator() {}
-    allocator(allocator const&) {}
+    allocator() = default;
+    ~allocator() = default;
+    allocator(allocator const&) = default;
 
     pointer address(reference r) {
         return &r;

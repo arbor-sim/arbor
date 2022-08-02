@@ -121,14 +121,14 @@ multi_node_release:
     SLURM_NTASKS: 2
     ALLOCATION_NAME: arbor-ci-release-$CI_PIPELINE_ID
 
-test_ault_fujitsu:
-    needs: []
-    tags:
-        - arm-a64fx
-    stage: test
-    script:
-        - chmod +x ci/test-ault-fujitsu.sh
-        - srun --partition=a64fx -c48 ci/test-ault-fujitsu.sh "$(pwd)"
+#test_ault_fujitsu:
+#   needs: []
+#   tags:
+#       - arm-a64fx
+#   stage: test
+#   script:
+#       - chmod +x ci/test-ault-fujitsu.sh
+#       - srun --partition=a64fx -c48 ci/test-ault-fujitsu.sh "$(pwd)"
 
 deallocate_release:
   only: ['master', 'staging', 'trying']

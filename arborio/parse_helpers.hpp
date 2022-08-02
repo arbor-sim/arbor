@@ -4,12 +4,14 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <typeinfo>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/util/expected.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
+#include <arbor/iexpr.hpp>
 
 namespace arborio {
 using namespace arb;
@@ -23,16 +25,31 @@ template <> inline
 bool match<arb::locset>(const std::type_info& info) { return info == typeid(arb::locset); }
 template <> inline
 bool match<arb::region>(const std::type_info& info) { return info == typeid(arb::region); }
+template <> inline
+bool match<arb::iexpr>(const std::type_info& info) { return info == typeid(arb::iexpr); }
 
 // Convert a value wrapped in a std::any to target type.
 template <typename T>
 T eval_cast(std::any arg) {
     return std::move(std::any_cast<T&>(arg));
 }
+
 template <> inline
 double eval_cast<double>(std::any arg) {
     if (arg.type()==typeid(int)) return std::any_cast<int>(arg);
     return std::any_cast<double>(arg);
+}
+
+template <typename T>
+T conversion_cast(std::any arg) {
+    return eval_cast<T>(std::move(arg));
+}
+
+template <typename T, typename Q, typename... Types>
+T conversion_cast(std::any arg) {
+    if (match<Q>(arg.type())) return T(eval_cast<Q>(arg));
+
+    return conversion_cast<T, Types...>(arg);
 }
 
 // Test whether a list of arguments passed as a std::vector<std::any> can be converted
@@ -99,6 +116,47 @@ struct fold_match {
     }
 };
 
+
+// Fold with first converting from any of the "Types" to type T.
+template <typename T, typename... Types>
+struct fold_conversion_eval {
+    using fold_fn = std::function<T(T, T)>;
+    fold_fn f;
+
+    using anyvec = std::vector<std::any>;
+    using iterator = anyvec::iterator;
+
+    fold_conversion_eval(fold_fn f): f(std::move(f)) {}
+
+    T fold_impl(iterator left, iterator right) {
+        if (std::distance(left,right)==1u) {
+            return conversion_cast<T, Types...>(std::move(*left));
+        }
+        // Compute fold. Order is important for left-associative operations like division and
+        // subtraction
+        auto back = right - 1;
+        return f(fold_impl(left, back), conversion_cast<T, Types...>(std::move(*back)));
+    }
+
+    std::any operator()(anyvec args) {
+        return fold_impl(args.begin(), args.end());
+    }
+};
+
+// Test if all args match at least one of the "Types" types
+template <typename... Types>
+struct fold_conversion_match {
+    bool operator()(const std::vector<std::any>& args) const {
+        if (args.size() < 2) return false;
+
+        bool m = true;
+        for (const auto& a : args) {
+            m = m && (match<Types>(a.type()) || ...);
+        }
+        return m;
+    }
+};
+
 // Evaluator: member of make_call, make_arg_vec_call, make_mech_call, make_branch_call, make_unordered_call
 struct evaluator {
     using any_vec = std::vector<std::any>;
@@ -157,6 +215,22 @@ struct make_fold {
     make_fold(F&& f, const char* msg="fold"):
         state(fold_eval<T>(std::forward<F>(f)), fold_match<T>(), msg)
     {}
+
+    operator evaluator() const {
+        return state;
+    }
+};
+
+// Fold with first converting from any of the "Types" to type T.
+template <typename T, typename... Types>
+struct make_conversion_fold {
+    evaluator state;
+
+    template <typename F>
+    make_conversion_fold(F&& f, const char* msg = "fold_conversion"):
+        state(fold_conversion_eval<T, Types...>(std::forward<F>(f)),
+            fold_conversion_match<T, Types...>(),
+            msg) {}
 
     operator evaluator() const {
         return state;

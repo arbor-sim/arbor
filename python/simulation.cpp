@@ -55,11 +55,11 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
-            sim_.reset(new arb::simulation(py_recipe_shim(rec), decomp, ctx.context));
+            sim_.reset(new arb::simulation(py_recipe_shim(rec), ctx.context, decomp));
         }
         catch (...) {
             py_reset_and_throw();
@@ -169,6 +169,10 @@ public:
             return py::list{};
         }
     }
+
+    void progress_banner() {
+        sim_->set_epoch_callback(arb::epoch_progress_bar());
+    }
 };
 
 void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
@@ -191,9 +195,13 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         // A custom constructor that wraps a python recipe with arb::py_recipe_shim
         // before forwarding it to the arb::recipe constructor.
         .def(pybind11::init(
-            [global_ptr](std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx) {
+                 [global_ptr](std::shared_ptr<py_recipe>& rec,
+                              const std::shared_ptr<context_shim>& ctx_,
+                              const std::optional<arb::domain_decomposition>& decomp) {
                 try {
-                    return new simulation_shim(rec, decomp, ctx, global_ptr);
+                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(arb::make_context());
+                    auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
+                    return new simulation_shim(rec, *ctx, dec, global_ptr);
                 }
                 catch (...) {
                     py_reset_and_throw();
@@ -204,7 +212,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Initialize the model described by a recipe, with cells and network distributed\n"
             "according to the domain decomposition and computational resources described by a context.",
-            "recipe"_a, "domain_decomposition"_a, "context"_a)
+             "recipe"_a,
+             pybind11::arg_v("context", pybind11::none(), "Execution context"),
+             pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"))
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
@@ -236,7 +246,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "Remove sampling associated with the given handle.",
             "handle"_a)
         .def("remove_all_samplers", &simulation_shim::remove_sampler,
-            "Remove all sampling on the simulatr.");
+            "Remove all sampling on the simulatr.")
+        .def("progress_banner", &simulation_shim::progress_banner,
+            "Show a text progress bar during simulation.");
 
 }
 

@@ -112,6 +112,8 @@ set(unit_sources
     test_forest.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
+    test_diffusion.cpp
+    test_iexpr.cpp
     test_index.cpp
     test_kinetic_linear.cpp
     test_lexcmp.cpp
@@ -239,6 +241,10 @@ if(${CMAKE_POSITION_INDEPENDENT_CODE})
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
   endif()
   add_dependencies(unit dummy-catalogue)
+endif()
+
+if(ARB_WITH_GPU)
+  target_compile_definitions(unit PRIVATE ARB_GPU_ENABLED)
 endif()
 
 if(ARB_WITH_NVCC)

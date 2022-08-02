@@ -32,7 +32,7 @@ public:
     typedef typename streambuf_type::off_type off_type;
     typedef typename streambuf_type::traits_type traits_type;
 
-    virtual ~basic_null_streambuf() {}
+    virtual ~basic_null_streambuf() = default;
 
 protected:
     std::streamsize xsputn(const char_type* s, std::streamsize count) override {

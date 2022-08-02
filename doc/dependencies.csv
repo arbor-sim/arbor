@@ -1,0 +1,30 @@
+Build option/target,Tool name,Minimum version,Notes,Update criteria
+--,CMake,3.18,,"* Is available as a module on HPC systems
+* When arbitrary changes in more recently released versions make supported"
+--,C++ compiler,,C++17 support. See below,
+--,GCC,8.4.0,"Use of ``std::fs`` is prohibited, despite being included in major compilers with C++17, on account of MacOS 10.14 not having the required syscall. We might lift this.","* it is supported by the minimum version of CUDA.
+* it is available either by default or can be installed using standard package manager on the supported Linux versions."
+--,Clang,8.0,Needs GCC 8 or later for standard library.,
+--,Apple Clang,9,Apple LLVM version 9.0.0 (clang-900.0.39.2),
+ARB_GPU,Hip Clang,ROCm 3.9,HIP support is currently experimental.,
+ARB_GPU,CUDA,10.0,,"* It is available on all of the target HPC systems (Piz Daint, Juwels Booster)"
+ARB_WITH_NEUROML,libxml2,,,
+ARB_WITH_MPI,MPI,,Many MPI implementations are supported.,
+"ARB_WITH_MPI, ARB_WITH_PYTHON ",mpi4py,3.1.0,Minimum version depends on compatiblity with your Python and MPI versions. 3.1.0 is the first release to support Python > 3.8.,
+html,     .. literalinclude:: ../requirements.txt,,See ``doc/requirements.txt``,
+unit,googletest,,source copy ``test/gtest.*``,
+bench,Google-benchmark,,submodule ``ext/google-benchmark``,
+--,json,,source copy ``ext/json``,
+--,random123,,source copy ``ext/random123``,
+--,fmt,,submodule ``ext/fmt``,
+--,tinyopt,,source copy ``ext/tinyopt``,
+ARB_WITH_PYTHON,pybind11,,submodule ``python/pybind11``,
+ARB_WITH_PYTHON,Python,3.7,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29.
+* it is available as a cray-python version on Piz Daint
+* it is available on labs.ebrains.eu
+
+  * ``python3`` = Python 3.8.10
+* Our (eventual) tutorial Jupyter Notebook env
+
+  * Google Colab has Python 3.7
+* it is available in the supported Linuxen"

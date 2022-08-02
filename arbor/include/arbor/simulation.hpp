@@ -4,11 +4,13 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
@@ -18,13 +20,19 @@
 namespace arb {
 
 using spike_export_function = std::function<void(const std::vector<spike>&)>;
+using epoch_function = std::function<void(double time, double tfinal)>;
 
 // simulation_state comprises private implementation for simulation class.
 class simulation_state;
 
 class ARB_ARBOR_API simulation {
 public:
-    simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx);
+
+    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp);
+
+    simulation(const recipe& rec,
+               const context& ctx=make_context(),
+               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
 
     void reset();
 
@@ -57,6 +65,10 @@ public:
     // spike vector.
     void set_local_spike_callback(spike_export_function = spike_export_function{});
 
+    // Register a callback that will be called at the end of each epoch, and at the
+    // start of the simulation.
+    void set_epoch_callback(epoch_function = epoch_function{});
+
     // Add events directly to targets.
     // Must be called before calling simulation::run, and must contain events that
     // are to be delivered at or after the current simulation time.
@@ -67,5 +79,8 @@ public:
 private:
     std::unique_ptr<simulation_state> impl_;
 };
+
+// An epoch callback function that prints out a text progress bar.
+ARB_ARBOR_API epoch_function epoch_progress_bar();
 
 } // namespace arb

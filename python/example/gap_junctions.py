@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import arbor
-import pandas, seaborn
+import pandas
+import seaborn
 import matplotlib.pyplot as plt
 
 # Construct chains of cells linked with gap junctions,
@@ -18,49 +19,47 @@ import matplotlib.pyplot as plt
 
 
 def make_cable_cell(gid):
-    
+
     # Build a segment tree
     tree = arbor.segment_tree()
 
     # Soma with radius 5 μm and length 2 * radius = 10 μm, (tag = 1)
-    s = tree.append(arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(0, 0, 0, 5), tag=1)
+    s = tree.append(
+        arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(0, 0, 0, 5), tag=1
+    )
 
     # Single dendrite with radius 2 μm and length 40 μm, (tag = 2)
-    b = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
+    tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
-    labels = arbor.label_dict()
-    labels['soma'] = '(tag 1)'
-    labels['dend'] = '(tag 2)'
-
-    # Mark location for synapse site at midpoint of dendrite (branch 0 = soma + dendrite)
-    labels['synapse_site'] = '(location 0 0.6)'
-
-    # Gap junction site at connection point of soma and dendrite
-    labels['gj_site'] = '(location 0 0.2)'
-
-    # Label root of the tree
-    labels['root'] = '(root)'
+    labels = arbor.label_dict(
+        {
+            # Mark location for synapse site at midpoint of dendrite (branch 0  soma + dendrite)
+            "synapse_site": "(location 0 0.6)",
+            # Gap junction site at connection point of soma and dendrite
+            "gj_site": "(location 0 0.2)",
+            # Label root of the tree
+            "root": "(root)",
+        }
+    ).add_swc_tags()
 
     # Paint dynamics onto the cell, hh on soma and passive properties on dendrite
-    decor = arbor.decor()
-    decor.paint('"soma"', arbor.density("hh"))
-    decor.paint('"dend"', arbor.density("pas"))
+    decor = (
+        arbor.decor()
+        .paint('"soma"', arbor.density("hh"))
+        .paint('"dend"', arbor.density("pas"))
+        # Attach one synapse and gap junction each on their labeled sites
+        .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
+        .place('"gj_site"', arbor.junction("gj"), "gj")
+        # Attach spike detector to cell root
+        .place('"root"', arbor.spike_detector(-10), "detector")
+    )
 
-    # Attach one synapse and gap junction each on their labeled sites
-    decor.place('"synapse_site"', arbor.synapse('expsyn'), 'syn')
-    decor.place('"gj_site"', arbor.junction('gj'), 'gj')
+    return arbor.cable_cell(tree, labels, decor)
 
-    # Attach spike detector to cell root
-    decor.place('"root"', arbor.spike_detector(-10), 'detector')
-
-    cell = arbor.cable_cell(tree, labels, decor)
-
-    return cell
 
 # Create a recipe that generates connected chains of cells
 class chain_recipe(arbor.recipe):
-
     def __init__(self, ncells_per_chain, nchains):
         arbor.recipe.__init__(self)
         self.nchains = nchains
@@ -81,34 +80,34 @@ class chain_recipe(arbor.recipe):
         if (gid == 0) or (gid % self.ncells_per_chain > 0):
             return []
         else:
-            src = gid-1
-            w   = 0.05
-            d   = 10
-            return [arbor.connection((src,'detector'), 'syn', w, d)]
-    
+            src = gid - 1
+            w = 0.05
+            d = 10
+            return [arbor.connection((src, "detector"), "syn", w, d)]
+
     # Create gap junction connections between a cell within a chain and its neighbor(s)
     def gap_junctions_on(self, gid):
         conns = []
 
-        chain_begin = int(gid/self.ncells_per_chain) * self.ncells_per_chain
-        chain_end   = chain_begin + self.ncells_per_chain
+        chain_begin = int(gid / self.ncells_per_chain) * self.ncells_per_chain
+        chain_end = chain_begin + self.ncells_per_chain
 
         next_cell = gid + 1
         prev_cell = gid - 1
 
         if next_cell < chain_end:
-            conns.append(arbor.gap_junction_connection((gid+1, 'gj'), 'gj', 0.015))
+            conns.append(arbor.gap_junction_connection((gid + 1, "gj"), "gj", 0.015))
         if prev_cell >= chain_begin:
-            conns.append(arbor.gap_junction_connection((gid-1, 'gj'), 'gj', 0.015))
-        
+            conns.append(arbor.gap_junction_connection((gid - 1, "gj"), "gj", 0.015))
+
         return conns
 
     # Event generator at first cell
     def event_generators(self, gid):
-        if gid==0:
+        if gid == 0:
             sched = arbor.explicit_schedule([1])
             weight = 0.1
-            return [arbor.event_generator('syn', weight, sched)]
+            return [arbor.event_generator("syn", weight, sched)]
         return []
 
     # Place a probe at the root of each cell
@@ -117,6 +116,7 @@ class chain_recipe(arbor.recipe):
 
     def global_properties(self, kind):
         return self.props
+
 
 # Number of cells per chain
 ncells_per_chain = 5
@@ -127,13 +127,11 @@ nchains = 3
 # Total number of cells
 ncells = nchains * ncells_per_chain
 
-#Instantiate recipe
+# Instantiate recipe
 recipe = chain_recipe(ncells_per_chain, nchains)
 
-# Create a default execution context, domain decomposition and simulation
-context = arbor.context()
-decomp = arbor.partition_load_balance(recipe, context)
-sim = arbor.simulation(recipe, decomp, context)
+# Create a default simulation
+sim = arbor.simulation(recipe)
 
 # Set spike generators to record
 sim.record(arbor.spike_recording.all)
@@ -143,20 +141,24 @@ handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(nc
 
 # Run simulation for 100 ms
 sim.run(100)
-print('Simulation finished')
+print("Simulation finished")
 
 # Print spike times
-print('spikes:')
+print("spikes:")
 for sp in sim.spikes():
-    print(' ', sp)
+    print(" ", sp)
 
 # Plot the results
 print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
     samples, meta = sim.samples(handles[gid])[0]
-    df_list.append(pandas.DataFrame({'t/ms': samples[:, 0], 'U/mV': samples[:, 1], 'Cell': f"cell {gid}"}))
+    df_list.append(
+        pandas.DataFrame(
+            {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"cell {gid}"}
+        )
+    )
 
-df = pandas.concat(df_list,ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Cell",ci=None)
+df = pandas.concat(df_list, ignore_index=True)
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", ci=None)
 plt.show()

@@ -59,13 +59,12 @@ public:
         arb::label_dict labels;
         labels.set("soma", arb::reg::tagged(1));
 
-        arb::decor decor;
-        decor.paint("soma"_lab, arb::density("pas"));
-
-        // Add one synapse at the soma.
-        // This synapse will be the target for all events, from both
-        // event_generators.
-        decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
+        auto decor = arb::decor{}
+            .paint("soma"_lab, arb::density("pas"))
+            // Add one synapse at the soma.
+            // This synapse will be the target for all events, from both
+            // event_generators.
+        .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
 
         return arb::cable_cell(tree, labels, decor);
     }
@@ -132,11 +131,8 @@ int main() {
     // Create an instance of our recipe.
     generator_recipe recipe;
 
-    // Make the domain decomposition for the model
-    auto decomp = arb::partition_load_balance(recipe, context);
-
     // Construct the model.
-    arb::simulation sim(recipe, decomp, context);
+    arb::simulation sim(recipe, context);
 
     // Set up the probe that will measure voltage in the cell.
 

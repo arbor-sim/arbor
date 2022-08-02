@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("domain-decomp", context);
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, context);
+        arb::simulation sim(recipe, context, decomp);
         meters.checkpoint("model-build", context);
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.

@@ -113,7 +113,7 @@ struct ARB_ARBOR_API cv_geometry: public cell_cv_data_impl {
         return branch_cv_map.at(cell_idx).size();
     }
 
-    size_type location_cv(size_type cell_idx, mlocation loc, cv_prefer::type prefer) const;
+    size_type location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const;
 
     cv_geometry(const cable_cell& cell, const locset& ls);
 };
@@ -137,6 +137,12 @@ ARB_ARBOR_API cv_geometry& append(cv_geometry&, const cv_geometry&);
 // to the CV, or in the absence of any internal forks, is exact at the
 // midpoint of an unbranched CV.
 
+struct fvm_diffusion_info {
+    using value_type = fvm_value_type;
+    std::vector<value_type> face_diffusivity;
+    std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
+};
+    
 struct fvm_cv_discretization {
     using size_type = fvm_size_type;
     using index_type = fvm_index_type;
@@ -158,6 +164,9 @@ struct fvm_cv_discretization {
 
     // For each cell, one piece-wise constant value per branch.
     std::vector<std::vector<pw_constant_fn>> axial_resistivity; // [Ω·cm]
+
+    // For each diffusive ion species, their properties
+    std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 };
 
 // Combine two fvm_cv_geometry groups in-place.
@@ -180,10 +189,10 @@ struct fvm_voltage_interpolant {
 };
 
 // Interpolated membrane voltage.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site);
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site);
 
 // Axial current as linear combiantion of voltages.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, mlocation site);
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site);
 
 
 // Post-discretization data for point and density mechanism instantiation.
@@ -224,6 +233,11 @@ struct fvm_ion_config {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
 
+    // Keep track whether eX, Xi, Xo are actually to be reset.
+    bool revpot_written = false;
+    bool iconc_written = false;
+    bool econc_written = false;
+
     // Ordered CV indices where ion must be present.
     std::vector<index_type> cv;
 
@@ -237,6 +251,10 @@ struct fvm_ion_config {
 
     // Ion-specific (initial) reversal potential per CV.
     std::vector<value_type> init_revpot;
+
+    // diffusivity
+    bool is_diffusive = false;
+    std::vector<value_type> face_diffusivity;
 };
 
 struct fvm_stimulus_config {

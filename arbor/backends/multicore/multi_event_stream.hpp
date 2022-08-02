@@ -33,7 +33,7 @@ public:
 
     using state = multi_event_stream_state<event_data_type>;
 
-    multi_event_stream() {}
+    multi_event_stream() = default;
 
     explicit multi_event_stream(size_type n_stream):
        span_begin_(n_stream), span_end_(n_stream), mark_(n_stream) {}

@@ -36,6 +36,14 @@ its parent and inherits the tag of the sample; and if more than 1 sample have th
 is interpreted as a fork point in the morphology, and acts as the proximal point to a new branch for each of its
 "child" samples. There a couple of exceptions to these rules which are listed below.
 
+.. Note::
+
+   The SWC file format allows association of ``tags`` with parts of the
+   morphology and reserves tag values 1-4 for soma, axon, basal dendrite, and
+   apical dendrite. In Arbor, these tags can be added to a
+   :class:`arbor.label_dict` using the :meth:`~arbor.label_dict.add_swc_tags` method.
+
+
 .. _formatswc-arbor:
 
 Arbor interpretation

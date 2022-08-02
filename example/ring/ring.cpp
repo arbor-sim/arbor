@@ -13,6 +13,7 @@
 
 #include <arborio/label_parse.hpp>
 
+#include <arbor/load_balance.hpp>
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -44,9 +45,9 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10;
+    unsigned num_cells = 100;
     double min_delay = 10;
-    double duration = 200;
+    double duration = 1000;
     cell_parameters cell;
 };
 
@@ -160,10 +161,9 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
 
-        auto decomp = arb::partition_load_balance(recipe, context);
-
         // Construct the model.
-        arb::simulation sim(recipe, decomp, context);
+        auto decomposition = arb::partition_load_balance(recipe, context);
+        arb::simulation sim(recipe, context, decomposition);
 
         // Set up the probe that will measure voltage in the cell.
 
@@ -187,7 +187,10 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        std::cout << "running simulation" << std::endl;
+        if (root) {
+            sim.set_epoch_callback(arb::epoch_progress_bar());
+        }
+        std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 

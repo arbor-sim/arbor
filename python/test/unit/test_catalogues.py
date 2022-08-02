@@ -6,6 +6,7 @@ import arbor as arb
 tests for (dynamically loaded) catalogues
 """
 
+
 class recipe(arb.recipe):
     def __init__(self):
         arb.recipe.__init__(self)
@@ -13,14 +14,14 @@ class recipe(arb.recipe):
         self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         self.props = arb.neuron_cable_properties()
         try:
-            self.props.catalogue = arb.load_catalogue('dummy-catalogue.so')
-        except:
+            self.props.catalogue = arb.load_catalogue("dummy-catalogue.so")
+        except Exception:
             print("Catalogue not found. Are you running from build directory?")
             raise
         self.props.catalogue = arb.default_catalogue()
 
         d = arb.decor()
-        d.paint('(all)', arb.density('pas'))
+        d.paint("(all)", arb.density("pas"))
         d.set_property(Vm=0.0)
         self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
 
@@ -46,16 +47,20 @@ class TestCatalogues(unittest.TestCase):
     def test_shared_catalogue(self, dummy_catalogue):
         cat = dummy_catalogue
         nms = [m for m in cat]
-        self.assertEqual(nms, ['dummy'], "Expected equal names.")
+        self.assertEqual(nms, ["dummy"], "Expected equal names.")
         for nm in nms:
             prm = list(cat[nm].parameters.keys())
-            self.assertEqual(prm, ['gImbar'], "Expected equal parameters on mechanism '{}'.".format(nm))
+            self.assertEqual(
+                prm,
+                ["gImbar"],
+                "Expected equal parameters on mechanism '{}'.".format(nm),
+            )
 
     def test_simulation(self):
         rcp = recipe()
         ctx = arb.context()
         dom = arb.partition_load_balance(rcp, ctx)
-        sim = arb.simulation(rcp, dom, ctx)
+        sim = arb.simulation(rcp, ctx, dom)
         sim.run(tfinal=30)
 
     def test_empty(self):
@@ -72,13 +77,31 @@ class TestCatalogues(unittest.TestCase):
         self.assertEqual(0, len(cat), "Expected no mechanisms in `arbor.catalogue()`.")
         # Test empty extend
         other.extend(cat, "")
-        self.assertEqual(hash_(ref), hash_(other), "Extending cat with empty should not change cat.")
-        self.assertEqual(0, len(cat), "Extending cat with empty should not change empty.")
+        self.assertEqual(
+            hash_(ref), hash_(other), "Extending cat with empty should not change cat."
+        )
+        self.assertEqual(
+            0, len(cat), "Extending cat with empty should not change empty."
+        )
         other.extend(cat, "prefix/")
-        self.assertEqual(hash_(ref), hash_(other), "Extending cat with prefixed empty should not change cat.")
-        self.assertEqual(0, len(cat), "Extending cat with prefixed empty should not change empty.")
+        self.assertEqual(
+            hash_(ref),
+            hash_(other),
+            "Extending cat with prefixed empty should not change cat.",
+        )
+        self.assertEqual(
+            0, len(cat), "Extending cat with prefixed empty should not change empty."
+        )
         cat.extend(other, "")
-        self.assertEqual(hash_(other), hash_(cat), "Extending empty with cat should turn empty into cat.")
+        self.assertEqual(
+            hash_(other),
+            hash_(cat),
+            "Extending empty with cat should turn empty into cat.",
+        )
         cat = arb.catalogue()
         cat.extend(other, "prefix/")
-        self.assertNotEqual(hash_(other), hash_(cat), "Extending empty with prefixed cat should not yield cat")
+        self.assertNotEqual(
+            hash_(other),
+            hash_(cat),
+            "Extending empty with prefixed cat should not yield cat",
+        )

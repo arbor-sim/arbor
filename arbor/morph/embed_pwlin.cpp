@@ -176,15 +176,15 @@ double embed_pwlin::integrate_ixa(msize_t bid, const pw_constant_fn& g) const {
 
 // Integrate over cable:
 
-double embed_pwlin::integrate_length(mcable c) const {
+double embed_pwlin::integrate_length(const mcable& c) const {
     return integrate_length(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-double embed_pwlin::integrate_area(mcable c) const {
+double embed_pwlin::integrate_area(const mcable& c) const {
     return integrate_area(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
-double embed_pwlin::integrate_ixa(mcable c) const {
+double embed_pwlin::integrate_ixa(const mcable& c) const {
     return integrate_ixa(c.branch, pw_constant_fn{{c.prox_pos, c.dist_pos}, {1.}});
 }
 
@@ -194,15 +194,15 @@ static pw_constant_fn restrict(const pw_constant_fn& g, double left, double righ
     return pw_zip_with(g, pw_elements<void>{{left, right}});
 }
 
-double embed_pwlin::integrate_length(mcable c, const pw_constant_fn& g) const {
+double embed_pwlin::integrate_length(const mcable& c, const pw_constant_fn& g) const {
     return integrate_length(c.branch, restrict(g, c.prox_pos, c.dist_pos));
 }
 
-double embed_pwlin::integrate_area(mcable c, const pw_constant_fn& g) const {
+double embed_pwlin::integrate_area(const mcable& c, const pw_constant_fn& g) const {
     return integrate_area(c.branch, restrict(g, c.prox_pos, c.dist_pos));
 }
 
-double embed_pwlin::integrate_ixa(mcable c, const pw_constant_fn& g) const {
+double embed_pwlin::integrate_ixa(const mcable& c, const pw_constant_fn& g) const {
     return integrate_ixa(c.branch, restrict(g, c.prox_pos, c.dist_pos));
 }
 
