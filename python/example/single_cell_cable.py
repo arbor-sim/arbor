@@ -92,19 +92,17 @@ class Cable(arbor.recipe):
 
         labels = arbor.label_dict({"cable": "(tag 1)", "start": "(location 0 0)"})
 
-        decor = arbor.decor()
-        decor.set_property(Vm=self.Vm)
-        decor.set_property(cm=self.cm)
-        decor.set_property(rL=self.rL)
-
-        decor.paint('"cable"', arbor.density(f"pas/e={self.Vm}", {"g": self.g}))
-
-        decor.place(
-            '"start"',
-            arbor.iclamp(
-                self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
-            ),
-            "iclamp",
+        decor = (
+            arbor.decor()
+            .set_property(Vm=self.Vm, cm=self.cm, rL=self.rL)
+            .paint('"cable"', arbor.density(f"pas/e={self.Vm}", {"g": self.g}))
+            .place(
+                '"start"',
+                arbor.iclamp(
+                    self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
+                ),
+                "iclamp",
+            )
         )
 
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)

@@ -40,7 +40,7 @@ These locations will form the endpoints of the connections between the cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 48-51
+   :lines: 48-58
 
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
 The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
@@ -63,7 +63,7 @@ Step **(4)** places a spike detector at the ``'root'``. The detector is given th
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 53-73
+   :lines: 60-69
 
 The recipe
 **********
@@ -107,7 +107,7 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 76-124
+   :lines: 74-122
 
 The execution
 *************
@@ -143,7 +143,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 126-138
+   :lines: 124-136
 
 The results
 ***********
@@ -152,7 +152,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 140-143
+   :lines: 138-141
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -164,7 +164,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 145-
+   :lines: 143-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 
