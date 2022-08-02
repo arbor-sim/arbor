@@ -271,7 +271,7 @@ Stochastic Processes
 Arbor offers support for stochastic processes at the level of
 :ref:`point mechanisms <mechanisms-point>` and :ref:`density mechanisms <mechanisms-density>`.
 These processes can be modelled as systems of stochastic differential equations (SDEs). In general,
-such equations have the differential form
+such equations have the differential form:
 
 .. math::
 
