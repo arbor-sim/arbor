@@ -310,10 +310,10 @@ Without loss of generality one may assume that the white noises :math:`W_i(t)` a
 
 In Arbor, the white noises :math:`W_i` are assumed to be independent of each other. Furthermore,
 each connection end point (point mechanism) or control volume (density mechanism) are assumed to
-generate independent noise, as well. The system of stochastic equations is interpreted in the Itô
-sense and numerically solved using the Euler-Maruyama method.
-For specifics about the notation to define stochastic processes, please consult the
-:ref:`Arbor-specific NMODL extension <format-sde>`.
+generate independent noise, as well. The system of stochastic equations is interpreted in the `Itô
+sense <https://en.wikipedia.org/wiki/It%C3%B4_calculus>`_ and numerically solved using the
+Euler-Maruyama method.  For specifics about the notation to define stochastic processes, please
+consult the :ref:`Arbor-specific NMODL extension <format-sde>`.
 
 
 API
