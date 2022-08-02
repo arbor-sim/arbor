@@ -166,7 +166,7 @@ Stochastic Processes
 --------------------
 
 Arbor supports :ref:`stochastic processes <mechanisms-sde>` in the form of stochastic differential
-equations. The *white noise* sources can be defined in the model files using a `WHITE_NOISE` block:
+equations. The *white noise* sources can be defined in the model files using a ``WHITE_NOISE`` block:
 
 .. code:: none
 
