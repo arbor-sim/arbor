@@ -38,7 +38,7 @@ then build the simulation.
         // Instantiate the simulation.
         arb::simulation sim(recipe, decomp, context);
 
-All the simulation's constructor arguments apart from the recipe are optional, and will assume
+All the simulation's constructor arguments are optional, except the recipe, and assume
 default values if not specified. In order to simplify construction of a simulation, the helper class
 :cpp:class:`arb::simulation_builder` can be used to better control constrution arguments:
 
