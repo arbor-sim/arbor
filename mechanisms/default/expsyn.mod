@@ -21,7 +21,7 @@ STATE {
 }
 
 INITIAL {
-    g=0
+    g = 0
 }
 
 BREAKPOINT {

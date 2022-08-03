@@ -6,32 +6,28 @@ TITLE K-A
 : ik has units  (mA/cm2)
 
 NEURON {
-    THREADSAFE
     SUFFIX kamt
     USEION k READ ek WRITE ik
-    RANGE  gbar, q10
-    GLOBAL minf, mtau, hinf, htau
+    RANGE gbar
 }
 
 PARAMETER {
-    gbar = 0.002    (mho/cm2)
+    gbar   =  0.002    (mho/cm2)
 
     celsius
-    a0m=0.04
-    vhalfm=-45
-    zetam=0.1
-    gmm=0.75
+    a0m    =  0.04
+    vhalfm = -45
+    zetam  =  0.1
+    gmm    =  0.75
 
-    a0h=0.018
-    vhalfh=-70
-    zetah=0.2
-    gmh=0.99
+    a0h    =  0.018
+    vhalfh = -70
+    zetah  =  0.2
+    gmh    =  0.99
 
-    sha=9.9
-    shi=5.7
-    q10=3
+    sha    =  9.9
+    shi    =  5.7
 }
-
 
 UNITS {
     (mA) = (milliamp)
@@ -40,18 +36,9 @@ UNITS {
     (um) = (micron)
 }
 
-ASSIGNED {
-    v    (mV)
-    minf
-    mtau (ms)
-    hinf
-    htau (ms)
-}
+ASSIGNED { v (mV) }
 
-STATE {
-    m
-    h
-}
+STATE { m h }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
@@ -59,40 +46,21 @@ BREAKPOINT {
 }
 
 INITIAL {
-    trates(v,celsius)
-    m=minf
-    h=hinf
+    m = minf(v)
+    h = hinf(v)
 }
 
 DERIVATIVE states {
-    trates(v,celsius)
-    m' = (minf-m)/mtau
-    h' = (hinf-h)/htau
-}
-
-PROCEDURE trates(v,celsius) {
     LOCAL qt
-    qt=q10^((celsius-24)/10)
-
-    minf = 1/(1 + exp(-(v-sha-7.6)/14))
-    mtau = betm(v)/(qt*a0m*(1+alpm(v)))
-
-    hinf = 1/(1 + exp((v-shi+47.4)/6))
-    htau = beth(v)/(qt*a0h*(1+alph(v)))
+    qt = 3^((celsius-24)/10)
+    m' = (minf(v) - m)*qt*a0m*(1 + alpm(v))/betm(v)
+    h' = (hinf(v) - h)*qt*a0h*(1 + alph(v))/beth(v)
 }
 
-FUNCTION alpm(v) {
-    alpm = exp(zetam*(v-vhalfm))
-}
+FUNCTION minf(v) { minf = 1/(1 + exp(-(v-sha-7.6)/14)) }
+FUNCTION hinf(v) { hinf = 1/(1 + exp((v-shi+47.4)/6)) }
 
-FUNCTION betm(v) {
-    betm = exp(zetam*gmm*(v-vhalfm))
-}
-
-FUNCTION alph(v) {
-    alph = exp(zetah*(v-vhalfh))
-}
-
-FUNCTION beth(v) {
-    beth = exp(zetah*gmh*(v-vhalfh))
-}
+FUNCTION alpm(v) { alpm = exp(zetam*(v - vhalfm)) }
+FUNCTION betm(v) { betm = exp(zetam*gmm*(v - vhalfm)) }
+FUNCTION alph(v) { alph = exp(zetah*(v - vhalfh)) }
+FUNCTION beth(v) { beth = exp(zetah*gmh*(v - vhalfh)) }
