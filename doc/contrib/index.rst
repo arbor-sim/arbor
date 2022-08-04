@@ -13,7 +13,7 @@ on something.
 Types of contributions
 ----------------------
 
-There are many ways to contribute: writing tutorials or blog posts,
+There are many ways to contribute: sharing models, writing tutorials or blog posts,
 improving the documentation, helping other users, submitting bug reports
 and feature requests or writing code which can be incorporated into
 Arbor itself.
@@ -114,6 +114,10 @@ See :ref:`contribpr`.
 
 Other contributions
 -------------------
+
+We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
+In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
+and find get in contact with other Arbor users.
 
 We're always happy to hear about Arbor being used! Have you used Arbor to create a model?
 Have you used Arbor in a publication? Do you have a workflow or tool that involves Arbor?

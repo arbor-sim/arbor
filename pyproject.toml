@@ -1,0 +1,72 @@
+[project]
+name = "arbor"
+dynamic = ["version", "readme"]
+license = {file = "LICENSE"}
+description = "High performance simulation of networks of multicompartment neurons."
+requires-python = ">=3.7"
+keywords = ["simulator", "neuroscience", "morphological detail", "HPC", "GPU", "C++"]
+authors = [
+    {name = "Arbor Dev Team", email = "contact@arbor-sim.org"}
+]
+maintainers = [
+    {name = "Arbor Dev Team", email = "contact@arbor-sim.org"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: C++"
+]
+dependencies = [
+    "numpy"
+]
+
+[tool.setuptools]
+py-modules = ["arbor"]
+
+[tool.setuptools.dynamic]
+version = {file = ["VERSION"]}
+readme = {file = ["python/readme.rst"]}
+
+[project.urls]
+homepage = "https://arbor-sim.org"
+documentation = "https://docs.arbor-sim.org"
+repository = "https://github.com/arbor-sim/arbor"
+changelog = "https://github.com/arbor-sim/arbor/releases"
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "scikit-build",
+    "cmake>=3.18",
+    "ninja",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+build-frontend = "build"
+build = ["cp3*-manylinux_x86_64","cp3*-macosx_universal2"]#,"cp3*-musllinux_x86_64","cp3*-musllinux_aarch64"]
+skip = "cp36-*"
+test-command = "python3 -m unittest discover -v -s {project}/python"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "10.15"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+manylinux-x86_64-image = "manylinux2014"
+before-all = "yum -y install libxml2-devel"
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = "apk add libxml2-dev"

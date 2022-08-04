@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
     if (!out.good()) throw std::runtime_error("Could not open output file for writing.");
     auto C = make_context({1, O.gpu});
     auto R = linear{O.L, O.dx, O.Xi, O.dX};
-    simulation S(R, partition_load_balance(R, C), C);
+    simulation S(R, C, partition_load_balance(R, C));
     S.add_sampler(all_probes, regular_schedule(O.ds), sampler);
     S.run(O.T, O.dt);
     out.close();

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 25.2.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns:ev="http://www.w3.org/2001/xml-events"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 1920 1080"
+	 style="enable-background:new 0 0 1920 1080;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#D3D3D3;stroke:#D3D3D3;stroke-width:9.697;stroke-miterlimit:9.697;}
+	.st1{stroke:#D3D3D3;stroke-width:9.697;stroke-miterlimit:9.697;}
+	.st2{fill:#FFFFFF;stroke:#FF0000;stroke-width:9.697;stroke-miterlimit:9.697;}
+	.st3{fill:none;stroke:#00BF0A;stroke-width:12;stroke-miterlimit:10;}
+	.st4{fill:none;stroke:#006FE9;stroke-width:12;stroke-miterlimit:10;}
+	.st5{fill:none;}
+	.st6{font-family:'MyriadPro-Regular';}
+	.st7{font-size:60px;}
+</style>
+<g id="lines">
+	<polygon class="st0" points="577,612.7 770.9,612.7 770.9,554.5 964.8,554.5 960,554.2 1154,578.5 1163.6,501.5 969.7,477.3 
+		964.8,477 770.9,477 770.9,418.8 577,418.8 	"/>
+	<polygon class="st0" points="1177.8,573.8 1556.2,338.7 1552.8,340.2 1840.6,234 1834.5,215.6 1540.5,303.4 1537.2,304.9 
+		1139.8,506.2 	"/>
+	<polygon class="st0" points="1150.6,562.8 1490,684 1506.3,638.4 1166.9,517.2 	"/>
+	<polygon class="st0" points="1483,680.1 1734.5,862.7 1746.7,847.6 1513.3,642.3 	"/>
+	<polygon class="st0" points="1509,682.9 1696.5,572.9 1689.1,573.4 1834.5,621.9 1840.6,603.5 1695.2,555 1687.8,555.6 
+		1487.3,639.5 	"/>
+	<polygon class="st0" points="577,418.8 237.6,496.4 237.6,496.4 92.1,496.4 92.1,535.2 237.6,535.2 237.6,535.2 577,612.7 	"/>
+	<polygon class="st1" points="1320.3,623.4 1490,684 1506.3,638.4 1336.6,577.8 	"/>
+	<polygon class="st1" points="1483,680.1 1734.5,862.7 1746.7,847.6 1513.3,642.3 	"/>
+	<polygon class="st1" points="1509,682.9 1696.5,572.9 1689.1,573.4 1834.5,621.9 1840.6,603.5 1695.2,555 1687.8,555.6 
+		1487.3,639.5 	"/>
+</g>
+<g id="points">
+	<circle class="st2" cx="577" cy="515.8" r="38.8"/>
+</g>
+<circle class="st3" cx="1840.6" cy="612.7" r="24.8"/>
+<circle class="st4" cx="1336.2" cy="600.6" r="24.8"/>
+<circle class="st3" cx="92.1" cy="517.2" r="24.8"/>
+<circle class="st3" cx="1739.7" cy="855.1" r="24.8"/>
+<circle class="st3" cx="1840.6" cy="224.1" r="24.8"/>
+<rect x="1692.5" y="884.4" class="st5" width="72" height="82"/>
+<text transform="matrix(1 0 0 1 1692.4697 927.0187)" class="st6 st7">1</text>
+<rect x="1793.4" y="643" class="st5" width="72" height="82"/>
+<text transform="matrix(1 0 0 1 1793.4165 685.6184)" class="st6 st7">2</text>
+<rect x="1804.6" y="267.2" class="st5" width="72" height="82"/>
+<text transform="matrix(1 0 0 1 1804.6423 309.8443)" class="st6 st7">3</text>
+<rect x="44.9" y="559.6" class="st5" width="72" height="82"/>
+<text transform="matrix(1 0 0 1 44.8954 602.1823)" class="st6 st7">4</text>
+</svg>

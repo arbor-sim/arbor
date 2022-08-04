@@ -131,6 +131,11 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
             md.name(), util::dictionary_csv(md.values()));
 }
 
+std::string scaled_density_desc_str(const arb::scaled_mechanism<arb::density>& p) {
+    return util::pprintf("({}, {})",
+            mechanism_desc_str(p.t_mech.mech), util::dictionary_csv(p.scale_expr));
+}
+
 void register_cells(pybind11::module& m) {
     using namespace pybind11::literals;
     using std::optional;
@@ -231,7 +236,8 @@ void register_cells(pybind11::module& m) {
         "A dictionary of labelled region and locset definitions, with a\n"
         "unique label assigned to each definition.");
     label_dict
-        .def(pybind11::init<>(), "Create an empty label dictionary.")
+        .def(pybind11::init<>(),
+             "Create an empty label dictionary.")
         .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
             "Initialize a label dictionary from a dictionary with string labels as keys,"
             " and corresponding definitions as strings.")
@@ -248,6 +254,13 @@ void register_cells(pybind11::module& m) {
                 return ld;
             }),
             "Initialize a label dictionary from an iterable of key, definition pairs")
+        .def("add_swc_tags",
+             [](label_dict_proxy& l) { return l.add_swc_tags(); },
+             "Add standard SWC tagged regions.\n"
+             " - soma: (tag 1)\n"
+             " - axon: (tag 2)\n"
+             " - dend: (tag 3)\n"
+             " - apic: (tag 4)")
         .def("__setitem__",
             [](label_dict_proxy& l, const char* name, const char* desc) {
                 l.set(name, desc);})
@@ -415,6 +428,38 @@ void register_cells(pybind11::module& m) {
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
+
+    // arb::scaled_mechanism<arb::density>
+
+    pybind11::class_<arb::scaled_mechanism<arb::density>> scaled_mechanism(
+        m, "scaled_mechanism", "For painting a scaled density mechanism on a region.");
+    scaled_mechanism
+        .def(pybind11::init(
+            [](arb::density dens) { return arb::scaled_mechanism<arb::density>(std::move(dens)); }))
+        .def(pybind11::init(
+            [](arb::density dens, const std::unordered_map<std::string, std::string>& scales) {
+                auto s = arb::scaled_mechanism<arb::density>(std::move(dens));
+                for (const auto& it: scales) {
+                    s.scale(it.first, arborio::parse_iexpr_expression(it.second).unwrap());
+                }
+                return s;
+            }))
+        .def(
+            "scale",
+            [](arb::scaled_mechanism<arb::density>& s, std::string name, const std::string& ex) {
+                s.scale(std::move(name), arborio::parse_iexpr_expression(ex).unwrap());
+                return s;
+            },
+            pybind11::arg_v("name", "name of parameter to scale."),
+            pybind11::arg_v("ex", "iexpr for scaling"),
+            "Add a scaling expression to a parameter.")
+        .def("__repr__",
+            [](const arb::scaled_mechanism<arb::density>& d) {
+                return "<arbor.scaled_mechanism<density> " + scaled_density_desc_str(d) + ">";
+            })
+        .def("__str__", [](const arb::scaled_mechanism<arb::density>& d) {
+            return "<arbor.scaled_mechanism<density> " + scaled_density_desc_str(d) + ">";
+        });
 
     // arb::synapse
 
@@ -612,6 +657,7 @@ void register_cells(pybind11::module& m) {
                 if (cm) d.set_default(arb::membrane_capacitance{*cm});
                 if (rL) d.set_default(arb::axial_resistivity{*rL});
                 if (tempK) d.set_default(arb::temperature_K{*tempK});
+                return d;
             },
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
             pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
@@ -629,9 +675,8 @@ void register_cells(pybind11::module& m) {
                 if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
                 if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
                 if (diff)    d.set_default(arb::ion_diffusivity{ion, *diff});
-                if (auto m = maybe_method(method)) {
-                    d.set_default(arb::ion_reversal_potential_method{ion, *m});
-                }
+                if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
+                return d;
             },
             pybind11::arg_v("ion", "name of the ion species."),
             pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
@@ -647,14 +692,20 @@ void register_cells(pybind11::module& m) {
         // Paint mechanisms.
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::density& mechanism) {
-                dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
             },
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
+        .def("paint",
+            [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) {
+                dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a scaled density mechanism with a region.")
         // Paint membrane/static properties.
         .def("paint",
             [](arb::decor& dec,
-                const char* region,
+               const char* region,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK)
             {
@@ -663,6 +714,7 @@ void register_cells(pybind11::module& m) {
                 if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
                 if (rL) dec.paint(r, arb::axial_resistivity{*rL});
                 if (tempK) dec.paint(r, arb::temperature_K{*tempK});
+                return dec;
             },
             pybind11::arg_v("region", "the region label or description."),
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
@@ -680,6 +732,7 @@ void register_cells(pybind11::module& m) {
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
                 if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
                 if (diff)    dec.paint(r, arb::ion_diffusivity{name, *diff});
+                return dec;
             },
             "region"_a, pybind11::kw_only(), "ion_name"_a,
             pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
@@ -720,11 +773,11 @@ void register_cells(pybind11::module& m) {
             "Add a voltage spike detector at each location in locations."
             "The group of spike detectors has the label 'label', used for forming connections between cells.")
         .def("discretization",
-            [](arb::decor& dec, const arb::cv_policy& p) { dec.set_default(p); },
+            [](arb::decor& dec, const arb::cv_policy& p) { return dec.set_default(p); },
             pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"))
         .def("discretization",
             [](arb::decor& dec, const std::string& p) {
-                dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
+                return dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
             },
             pybind11::arg_v("policy", "An s-expression string representing a cv_policy used to discretise the "
                                       "cell into compartments for simulation"));

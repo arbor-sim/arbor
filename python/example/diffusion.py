@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import arbor as A
-import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -29,14 +28,18 @@ class recipe(A.recipe):
     def global_properties(self, kind):
         return self.the_props
 
+    def event_generators(self, gid):
+        return [A.event_generator("Zap", 0.005, A.explicit_schedule([0.0]))]
+
 
 tree = A.segment_tree()
 s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
 _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
 
 dec = A.decor()
-dec.set_property(Vm=-40)
-# dec.paint('(tag 1)', A.density('hh'))
+dec.set_ion("na", int_con=0.0, diff=0.005)
+dec.place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
+dec.paint("(all)", A.density("decay/x=na"))
 dec.discretization(A.cv_policy("(max-extent 5)"))
 
 # Set up ion diffusion
@@ -48,9 +51,7 @@ prb = [
 ]
 cel = A.cable_cell(tree, A.label_dict(), dec)
 rec = recipe(cel, prb)
-ctx = A.context()
-dom = A.partition_load_balance(rec, ctx)
-sim = A.simulation(rec, dom, ctx)
+sim = A.simulation(rec)
 hdl = (sim.sample((0, 0), A.regular_schedule(0.1)),)
 
 sim.run(tfinal=0.5)
@@ -59,10 +60,18 @@ sns.set_theme()
 fg, ax = plt.subplots()
 for h in hdl:
     for d, m in sim.samples(h):
-        xs = d[:, 0]
+        # Plot
         for lbl, ix in zip(m, range(1, d.shape[1])):
-            ys = d[:, ix]
-            print(lbl, ys.min(), ys.max())
-            ax.plot(xs, ys, label=lbl)
+            ax.plot(d[:, 0], d[:, ix], label=lbl)
+        # Table
+        print("Sodium concentration (NaD/mM)")
+        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+        print(
+            "| Time (ms)            | " + " | ".join(f"{str(l):<20}" for l in m) + " |"
+        )
+        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+        for ix in range(d.shape[0]):
+            print("| " + " | ".join(f"{v:>20.3f}" for v in d[ix, :]) + " |")
+        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
 ax.legend()
 fg.savefig("results.pdf")

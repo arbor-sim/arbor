@@ -74,25 +74,22 @@ def make_cable_cell(morphology, clamp_location):
     cvs_per_branch = 3
 
     # Label dictionary
-    defs = {}
-    labels = arbor.label_dict(defs)
+    labels = arbor.label_dict()
 
     # decor
-    decor = arbor.decor()
-
-    # set initial voltage, temperature, axial resistivity, membrane capacitance
-    decor.set_property(
-        Vm=-65,  # Initial membrane voltage (mV)
-        tempK=300,  # Temperature (Kelvin)
-        rL=10000,  # Axial resistivity (Ω cm)
-        cm=0.01,  # Membrane capacitance (F/m**2)
+    decor = (
+        arbor.decor()
+        # set initial voltage, temperature, axial resistivity, membrane capacitance
+        .set_property(
+            Vm=-65,  # Initial membrane voltage (mV)
+            tempK=300,  # Temperature (Kelvin)
+            rL=10000,  # Axial resistivity (Ω cm)
+            cm=0.01,  # Membrane capacitance (F/m**2)
+        )
+        # set passive mechanism all over
+        # passive mech w. leak reversal potential (mV)
+        .paint("(all)", arbor.density("pas/e=-65", {"g": 0.0001}))
     )
-
-    # set passive mechanism all over
-    # passive mech w. leak reversal potential (mV)
-    pas = arbor.mechanism("pas/e=-65")
-    pas.set("g", 0.0001)  # leak conductivity (S/cm2)
-    decor.paint("(all)", arbor.density(pas))
 
     # set number of CVs per branch
     policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)

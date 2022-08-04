@@ -27,7 +27,7 @@ We construct the following :term:`morphology` and label the soma and dendrite:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 18-37
+   :lines: 20-46
 
 In step **(2)** we create a :term:`label` for both the root and the site of the synapse.
 These locations will form the endpoints of the connections between the cells.
@@ -40,7 +40,7 @@ These locations will form the endpoints of the connections between the cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 39-42
+   :lines: 48-58
 
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
 The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
@@ -63,7 +63,7 @@ Step **(4)** places a spike detector at the ``'root'``. The detector is given th
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 44-59
+   :lines: 60-69
 
 The recipe
 **********
@@ -107,21 +107,23 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 61-109
+   :lines: 74-122
 
 The execution
 *************
 
-To create a simulation, we must create an :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
+To create a simulation, we need at minimum to supply the recipe, and in addition can supply a :class:`arbor.context`
+and :py:class:`arbor.domain_decomposition`. The first lets Arbor know what hardware it should use, the second how to
+destribute the work over that hardware. By default, contexts are configured to use 1 thread and domain decompositons to
+divide work equally over all threads.
 
 Step **(12)** initalizes the ``threads`` parameter of :class:`arbor.context` with the ``avail_threads`` flag. By supplying
 this flag, a context is constructed that will use all locally available threads. On your local machine this will match the
 number of logical cores in your system. Especially with large numbers
 of cells you will notice the speed-up. (You could instantiate the recipe with 5000 cells and observe the difference. Don't
 forget to turn of plotting if you do; it will take more time to generate the image then to run the actual simulation!)
-:func:`arbor.partition_load_balance` creates a default domain decomposition, which 
-for contexts initialized with ``threads=avail_threads`` distributes cells evenly over the available cores. You can print the
-objects to see what defaults they produce on your system.
+If no domain decomposition is specified, a default one distributing work equally is created. This is sufficient for now.
+You can print the objects to see what defaults they produce on your system.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
 This means the timestamps of the generated events will be kept in memory. Be default, these are discarded.
@@ -141,7 +143,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 111-124
+   :lines: 124-136
 
 The results
 ***********
@@ -150,7 +152,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 126-129
+   :lines: 138-141
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -162,7 +164,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 131-
+   :lines: 143-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 

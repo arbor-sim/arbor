@@ -31,6 +31,14 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
 * setting properties defined over the whole cell;
 * descriptions of dynamics applied to regions and locsets.
 
+.. note::
+
+   All methods on decor objects (``paint``, ``place``, and ``set_default``)
+   return a reference to the objects so you can chain them together. This saves
+   some repetition. You can break long statements over multiple lines, but in
+   Python this requires use of continuation lines ``\`` or wrapping the whole
+   expression into parentheses.
+
 .. _cablecell-paint:
 
 Painted dynamics
@@ -62,6 +70,7 @@ The types of dynamics, and where they can be defined, are
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
    density mechanism,       ✓, --, --
+   scaled-mechanism (density),  ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -166,7 +175,28 @@ Take for example the built-in mechanism for passive leaky dynamics:
 
 .. _cablecell-ions:
 
-4. Ion species
+.. _cablecell-scaled-mechs:
+
+4. Scaled mechanisms
+~~~~~~~~~~~~~~~~~~~~~
+Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
+:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
+The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
+Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
+Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.
+Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>` can be scaled.
+
+
+.. code-block:: Python
+
+    # Create mechanism with custom conductance (range)
+    m = arbor.mechanism('pas', {'g': 0.1})
+
+    decor = arbor.decor()
+    # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
+    decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
+
+5. Ion species
 ~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
