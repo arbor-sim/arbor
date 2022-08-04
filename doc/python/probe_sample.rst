@@ -33,7 +33,7 @@ one, or more probes, one per site. They are evaluated in the context of
 the cell on which the probe is attached.
 
 :term:`Vector probes <vector probe>` are a kind of probes that samples over a region, rather than a :term:`locset`.
-This means that the may output more than a single data point per timestamp. The layout of the outputs as returned
+This means that they may output more than a single data point per timestamp. The layout of the outputs as returned
 by :func:`~arbor.simulation.samples` is slightly different, but contains the same sort of information as regular
 :term:`probesets <probeset>`.
 
@@ -58,6 +58,83 @@ in the documentation for the class :class:`simulation`.
    the C++ API (see :ref:`cablecell-probes` for details). Some details 
    like `probe_tag` are not exposed in Python, as having Python probe callbacks
    has proven to be too slow.
+
+Example
+-------
+
+
+.. code-block:: python
+   
+   import arbor
+
+   tree = arbor.segment_tree()
+   p = tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
+   tree.append(p, arbor.mpoint(3, 0, 0, 3), arbor.mpoint(-3, 0, 0, 3), tag=2)
+   tree.append(p, arbor.mpoint(3, 0, 0, 3), arbor.mpoint(-3, 0, 0, 3), tag=2)
+
+   decor = (
+      arbor.decor()
+      .set_property(Vm=-40)
+      .paint('"soma"', arbor.density("hh"))
+      .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp"))
+
+   cell = arbor.cable_cell(tree, labels, decor)
+
+   class single_recipe(arbor.recipe):
+      def __init__(self):
+         arbor.recipe.__init__(self)
+
+      def num_cells(self):
+         return 1
+
+      def cell_kind(self, gid):
+         return arbor.cell_kind.cable
+
+      def cell_description(self, gid):
+         return cell
+
+      def probes(self, gid):
+         return [arbor.cable_probe_membrane_voltage('(location 0 0.5)'),
+                  arbor.cable_probe_membrane_voltage_cell(),
+                  arbor.cable_probe_membrane_voltage('(join (location 0 0) (location 0 1))'),
+                  ]
+
+      # (4.6) Override the global_properties method
+      def global_properties(self, kind):
+         return arbor.neuron_cable_properties()
+
+   recipe = single_recipe()
+   sim = arbor.simulation(recipe)
+   handles = [sim.sample((0, n), arbor.regular_schedule(0.1))
+            for n in range(3) ]
+   sim.run(tfinal=1)
+
+   for hd in handles:
+      print("Handle", hd)
+      for d, m in sim.samples(hd):
+         print(" * Meta:", m)
+         print(" * Payload:", d.shape)
+
+This script, has a single (scalar) probe, a single vector probe, and a probeset involving two scalar probes.
+The script is complete and can be run with Arbor installed, and will output:
+
+.. code-block::
+
+   Handle 0
+   * Meta: (location 0 0.5)
+   * Payload: (10, 2)
+   Handle 1
+   * Meta: [(cable 0 0 1), (cable 0 1 1), (cable 1 0 0), (cable 2 0 0), (cable 1 0 1), (cable 2 0 1)]
+   * Payload: (10, 7)
+   Handle 2
+   * Meta: (location 0 0)
+   * Payload: (10, 2)
+   * Meta: (location 0 1)
+   * Payload: (10, 2)
+
+
+API
+---
 
 .. class:: probe
 
