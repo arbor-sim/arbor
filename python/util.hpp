@@ -28,8 +28,8 @@ std::string to_path(py::object fn) {
 
 inline
 std::string read_file_or_buffer(py::object fn) {
-    if (auto rd = fn.attr("read"); !rd.is_none()) {
-        return py::str(rd(-1));
+    if (py::hasattr(fn, "read")) {
+        return py::str(fn.attr("read")(-1));
     } else {
         const auto fname = util::to_path(fn);
         std::ifstream fid{fname};
