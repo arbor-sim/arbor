@@ -19,14 +19,10 @@ namespace pyarb {
 namespace py = pybind11;
 
 arborio::cable_cell_component load_component(py::object fn) {
-    const auto fname = util::to_path(fn);
-    std::ifstream fid{fname};
-    if (!fid.good()) {
-        throw arb::file_not_found_error(fname);
-    }
-    auto component = arborio::parse_component(fid);
+    auto contents  = util::read_file_or_buffer(fn);
+    auto component = arborio::parse_component(contents);
     if (!component) {
-        throw pyarb_error("Error while trying to load component from \"" + fname + "\": " + component.error().what());
+        throw pyarb_error(std::string{"Error while trying to load component: "} + component.error().what());
     }
     return component.value();
 };
