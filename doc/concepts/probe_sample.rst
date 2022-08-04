@@ -13,6 +13,11 @@ Definitions
         Cable cells (:py:attr:`arbor.cable_probe`) allow the monitoring of membrane voltage, total membrane
         current, mechanism state, and a number of other quantities, measured either over the whole cell,
         or at specific sites (see :ref:`pycablecell-probesample`).
+
+    vector probe
+        Certain probes work over a :term:`region` rather than a :term:`locset`. This means that, depending
+        settings such as :term:`cv policy`, data is sampled as a function of distance, yielding multiple data points.
+        Such probes are distinguished from regular probes as "vector probes".
         
     probeset
         A set of probes. Probes are placed on locsets, and therefore may describe more than one probe.

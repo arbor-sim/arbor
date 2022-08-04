@@ -3,11 +3,13 @@
 Cable cell probing and sampling
 ===============================
 
+.. module:: arbor
+
 .. figure:: probe_sample-diag.svg
     :width: 800
     :align: center
 
-    A schematic view of how handles let you access sampled data measured at a probeset.
+    A schematic view of how :term:`handles <handle>` let you access sampled data measured at a :term:`probeset`.
     When setting a probe on a locset a probeset is created (a locset describes one or more locations).
     When this probeset is set to sampling (at a certain schedule), a handle is returned.
     This figure demonstrates how sampling data can be accessed through the handle associated to the probeset.
@@ -22,9 +24,6 @@ Cable cell probing and sampling
     ...
     [ 2.99000000e+01 -6.44564354e+01]]
 
-
-.. module:: arbor
-
 Sample data recorded by the Arbor simulation object is returned in the form 
 of a NumPy array, with the first column holding sample times, and subsequent 
 columns holding the corresponding scalar- or vector-valued sample.
@@ -32,6 +31,20 @@ columns holding the corresponding scalar- or vector-valued sample.
 Probesets are defined over a location expression and will describe zero,
 one, or more probes, one per site. They are evaluated in the context of
 the cell on which the probe is attached.
+
+:term:`Vector probes <vector probe>` are a kind of probes that samples over a region, rather than a :term:`locset`.
+This means that the may output more than a single data point per timestamp. The layout of the outputs as returned
+by :func:`~arbor.simulation.samples` is slightly different, but contains the same sort of information as regular
+:term:`probesets <probeset>`.
+
+.. figure:: probe_sample_vector-diag.svg
+    :width: 800
+    :align: center
+
+    The structure of the data returned is slightly different when a :term:`vector probe` is sampled.
+    The same kind of information is included however. Instead of returning a list per :term:`probe` in a :term:`probeset`,
+    the data and metadata now have an extra dimension to cover for the multitude of subregions.
+
 
 Each of the functions described below generates an opaque :class:`probe`
 object for use in the recipe :py:func:`recipe.probes` method.
@@ -67,6 +80,8 @@ Membrane voltage
 
    Metadata: the list of corresponding :class:`cable` objects.
 
+   Kind: :term:`vector probe`.
+
 Axial current
    .. py:function:: cable_probe_axial_current(where)
 
@@ -90,6 +105,8 @@ Ionic current
 
    Metadata: the list of corresponding :class:`cable` objects.
 
+   Kind: :term:`vector probe`.
+
 Total ionic current
    .. py:function:: cable_probe_total_ion_current_density(where)
 
@@ -105,6 +122,8 @@ Total ionic current
 
    Metadata: the list of corresponding :class:`cable` objects.
 
+   Kind: :term:`vector probe`.
+
 Total transmembrane current
    .. py:function:: cable_probe_total_current_cell()
 
@@ -113,12 +132,16 @@ Total transmembrane current
 
    Metadata: the list of corresponding :class:`cable` objects.
 
+   Kind: :term:`vector probe`.
+
 Total stimulus current
    .. py:function:: cable_probe_stimulus_current_cell()
 
    Total stimulus current (nA) across each cable in each CV of the cell discretization.
 
    Metadata: the list of corresponding :class:`cable` objects.
+
+   Kind: :term:`vector probe`.
 
 Density mechanism state variable
    .. py:function:: cable_probe_density_state(where, mechanism, state)
@@ -134,6 +157,8 @@ Density mechanism state variable
    on each cable in each CV of the cell discretization.
 
    Metadata: the list of corresponding :class:`cable` objects.
+
+   Kind: :term:`vector probe`.
 
 Point process state variable
    .. py:function:: cable_probe_point_state(target, mechanism, state)
@@ -158,6 +183,8 @@ Point process state variable
    Metadata: a list of :class:`cable_point_probe_info` values, one for each matching
    target.
 
+   Kind: :term:`vector probe`.
+
 Ionic internal concentration
    .. py:function:: cable_probe_ion_int_concentration(where, ion)
 
@@ -173,6 +200,8 @@ Ionic internal concentration
 
    Metadata: the list of corresponding :class:`cable` objects.
 
+   Kind: :term:`vector probe`.
+
 Ionic external concentration
    .. py:function:: cable_probe_ion_ext_concentration(where, ion)
 
@@ -187,4 +216,6 @@ Ionic external concentration
    CV of the cell discretization.
 
    Metadata: the list of corresponding :class:`cable` objects.
+
+   Kind: :term:`vector probe`.
 
