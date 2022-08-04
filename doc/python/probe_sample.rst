@@ -10,8 +10,9 @@ Cable cell probing and sampling
     :align: center
 
     A schematic view of how :term:`handles <handle>` let you access sampled data measured at a :term:`probeset`.
-    When setting a probe on a locset a probeset is created (a locset describes one or more locations).
-    When this probeset is set to sampling (at a certain schedule), a handle is returned.
+    A probeset is a probe placed on a locset (which may describe more than one point). 
+    When setting a probe on a locset a :term:`sampler` is created.
+    When this sampler is set to sampling (at a certain schedule), a handle is returned.
     This figure demonstrates how sampling data can be accessed through the handle associated to the probeset.
     See below for a possible result for ``data``.
 

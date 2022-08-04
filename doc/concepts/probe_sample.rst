@@ -42,6 +42,7 @@ Definitions
         along with any recorded samples.
 
     sampler
+    sample_recorder
         A sampler is something that receives :term:`probeset` data. It amounts to setting a particular probeset to a
         particular measuring schedule, and then having a :term:`handle` with which to access the recorded probeset data later on.
 
