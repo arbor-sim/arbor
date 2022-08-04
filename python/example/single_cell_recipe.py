@@ -10,7 +10,9 @@ import seaborn  # You may have to pip install these.
 # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
 
 tree = arbor.segment_tree()
-tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
+p = tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
+tree.append(p, arbor.mpoint(3, 0, 0, 3), arbor.mpoint(-3, 0, 0, 3), tag=2)
+tree.append(p, arbor.mpoint(3, 0, 0, 3), arbor.mpoint(-3, 0, 0, 3), tag=2)
 
 # (2) Define the soma and its midpoint
 
@@ -54,46 +56,22 @@ class single_recipe(arbor.recipe):
 
     # (4.5) Override the probes method with a voltage probe located on "midpoint"
     def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"midpoint"')]
+        return [arbor.cable_probe_membrane_voltage('(location 0 0.5)'),
+                arbor.cable_probe_membrane_voltage_cell(),
+                arbor.cable_probe_membrane_voltage('(join (location 0 0) (location 0 1))'),
+                ]
 
     # (4.6) Override the global_properties method
     def global_properties(self, kind):
         return self.the_props
-
-
-# (5) Instantiate recipe.
-
 recipe = single_recipe()
-
-# (6) Create simulation. When their defaults are sufficient, context and domain decomposition don't
-# have to be manually specified and the simulation can be created with just the recipe as argument.
-
 sim = arbor.simulation(recipe)
+handles = [sim.sample((0, n), arbor.regular_schedule(0.1))
+           for n in range(3) ]
+sim.run(tfinal=1)
 
-# (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the probe.
-# The probe is located on cell 0, and is the 0th probe on that cell, thus has probe_id (0, 0).
-
-sim.record(arbor.spike_recording.all)
-handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
-sim.run(tfinal=30)
-
-# (8) Collect results.
-
-spikes = sim.spikes()
-data, meta = sim.samples(handle)[0]
-
-if len(spikes) > 0:
-    print("{} spikes:".format(len(spikes)))
-    for t in spikes["time"]:
-        print("{:3.3f}".format(t))
-else:
-    print("no spikes")
-
-print("Plotting results ...")
-
-df = pandas.DataFrame({"t/ms": data[:, 0], "U/mV": data[:, 1]})
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
-    "single_cell_recipe_result.svg"
-)
-
-df.to_csv("single_cell_recipe_result.csv", float_format="%g")
+for hd in handles:
+    print("Handle", hd)
+    for d, m in sim.samples(hd):
+        print(" * Meta:", m)
+        print(" * Payload:", d.shape)

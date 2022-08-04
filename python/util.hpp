@@ -41,7 +41,7 @@ std::string read_file_or_buffer(py::object fn) {
         auto sz = fid.tellg();
         fid.seekg(0, fid.beg);
         result.resize(sz);
-        fid.read(result.data(), -1);
+        fid.read(result.data(), sz);
         return result;
     }
 }
