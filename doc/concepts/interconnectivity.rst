@@ -39,6 +39,17 @@ A recipe lets you define which sites are connected to which.
    action potential
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
 
+   spike detector
+   Placed on a cell. Possible source of a connection. Detects crossing of a fixed threshold and generates
+   corresponding events.
+
+   spike source cell
+   Artificial cell to generate spikes on a given schedule.
+
+   recording
+   By default, spikes are used for communication, but not stored for analysis, however, simulation objects can be
+   instructed to record spikes.
+
    event
       In a synapse :term:`spikes <spike>` generate events, which constitute stimulation of the synapse
       mechanism and the transmission of a signal. A synapse may receive events directly from an
