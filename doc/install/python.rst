@@ -91,8 +91,9 @@ The following flags can be used to configure the installation:
 
 * ``ARB_WITH_NEUROML=<ON|OFF>``: Enable support for NeuroML2 morphologies,
   requires ``libxml2`` library. Default ``OFF``
-* ``ARB_WITH_MPI=<ON|OFF>``: Enable MPI support, requires MPI library.
-  Default ``OFF``.
+* ``ARB_WITH_MPI=<ON|OFF>``: Enable MPI support, requires MPI library. Default
+  ``OFF``. If you intend to use ``mpi4py``, you need to install the package before
+  building Arbor, as binding it requires access to its headers.
 * ``ARB_GPU=<none|cuda|cuda-clang|hip>``: Enable GPU support for NVIDIA GPUs
   with nvcc using ``cuda``, or with clang using ``cuda-clang`` (both require
   cudaruntime). Enable GPU support for AMD GPUs with hipcc using ``hip``. By
