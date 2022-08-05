@@ -48,7 +48,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     const std::vector<value_type> thresh{1., 2., 3.};
 
     std::vector<int> src_to_spike_vec = {0, 1, 5};
-    std::vector<fvm_value_type> time_since_spike_vec(10);
+    std::vector<arb_value_type> time_since_spike_vec(10);
     memory::fill(time_since_spike_vec, -1.0);
 
     // all values are initially 0, except for values[5] which we set

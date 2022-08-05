@@ -41,14 +41,14 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
     // proximal 'head' points, and recursing down branches in the morphology
     // within each CV.
 
-    constexpr fvm_index_type no_parent = -1;
-    std::vector<std::pair<mlocation, fvm_index_type>> next_cv_head; // head loc, parent cv index
+    constexpr arb_index_type no_parent = -1;
+    std::vector<std::pair<mlocation, arb_index_type>> next_cv_head; // head loc, parent cv index
     next_cv_head.emplace_back(mlocation{mnpos, 0}, no_parent);
 
     mcable_list cables;
     std::vector<msize_t> branches;
     cv_cables_divs.push_back(0);
-    fvm_index_type cv_index = 0;
+    arb_index_type cv_index = 0;
 
     while (!next_cv_head.empty()) {
         auto next = pop(next_cv_head);
@@ -110,30 +110,30 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
     auto e = cv_children.end();
     auto from = b;
 
-    for (fvm_index_type cv = 0; cv<n_cv; ++cv) {
+    for (arb_index_type cv = 0; cv<n_cv; ++cv) {
         from = std::partition_point(from, e,
                                     [cv, this](auto i) { return cv_parent[i]<=cv; });
         cv_children_divs.push_back(from-b);
     }
 }
 
-mcable_list cell_cv_data::cables(fvm_size_type cv_index) const {
+mcable_list cell_cv_data::cables(arb_size_type cv_index) const {
     auto partn = util::partition_view(impl_->cv_cables_divs);
     auto view = util::subrange_view(impl_->cv_cables, partn[cv_index]);
     return mcable_list{view.begin(), view.end()};
 }
 
-std::vector<fvm_index_type> cell_cv_data::children(fvm_size_type cv_index) const {
+std::vector<arb_index_type> cell_cv_data::children(arb_size_type cv_index) const {
     auto partn = util::partition_view(impl_->cv_children_divs);
     auto view = util::subrange_view(impl_->cv_children, partn[cv_index]);
-    return std::vector<fvm_index_type>{view.begin(), view.end()};
+    return std::vector<arb_index_type>{view.begin(), view.end()};
 }
 
-fvm_index_type cell_cv_data::parent(fvm_size_type cv_index) const {
+arb_index_type cell_cv_data::parent(arb_size_type cv_index) const {
     return impl_->cv_parent[cv_index];
 }
 
-fvm_size_type cell_cv_data::size() const {
+arb_size_type cell_cv_data::size() const {
     return impl_->cv_parent.size();
 }
 

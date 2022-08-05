@@ -5,10 +5,19 @@
 
 #ifdef __cplusplus
 #include <cstdint>
+using std::uint32_t;
 #else
 #include <stdint.h>
 #endif
 
+#ifdef __cplusplus
+namespace arb {
+#endif
+
 #include <arbor/arb_types.inc>
 
-#endif // ndef ARB_TYPES_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif // ARB_TYPES_H

@@ -5,6 +5,9 @@
 
 #ifdef __cplusplus
 extern "C" {
+
+using namespace arb;
+
 #endif
 
 // Version

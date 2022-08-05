@@ -7,7 +7,7 @@
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
-#include <arbor/arb_types.hpp>
+#include <arbor/arb_types.h>
 
 namespace arb {
 

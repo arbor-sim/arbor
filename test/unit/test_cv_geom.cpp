@@ -29,7 +29,7 @@ using util::make_span;
         }
 
         for (auto cv: g.children(i)) {
-            if ((fvm_index_type)i != g.cv_parent.at(cv)) {
+            if ((arb_index_type)i != g.cv_parent.at(cv)) {
                 return ::testing::AssertionFailure() << "CV " << i
                     << " has child CV " << cv << " which has parent " << g.cv_parent.at(cv);
             }
