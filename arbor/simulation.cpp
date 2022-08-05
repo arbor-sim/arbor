@@ -193,14 +193,14 @@ simulation_state::simulation_state(
     std::vector<cell_labels_and_gids> cg_sources(cell_groups_.size());
     std::vector<cell_labels_and_gids> cg_targets(cell_groups_.size());
 
-    std::cout << "Rank=" << ctx.distributed->id() << " will build " << cell_groups_.size() <<  " groups\n";
+    //std::cout << "Rank=" << ctx.distributed->id() << " will build " << cell_groups_.size() <<  " groups\n";
 
     for (int ix = 0; ix < cell_groups_.size(); ++ix) {
         auto fn = [&](cell_group_ptr& group, int cg) {
           const auto& group_info = decomp.group(cg);
           cell_label_range sources, targets;
         
-          std::cout << "Rank=" << ctx.distributed->id() << " seizing the means of production.\n";
+          //std::cout << "Rank=" << ctx.distributed->id() << " seizing the means of production.\n";
           auto factory = cell_kind_implementation(group_info.kind, cg, group_info.backend, ctx);
           group = factory(group_info.gids, rec, sources, targets);
 
@@ -521,7 +521,7 @@ simulation::simulation(
     const domain_decomposition& decomp,
     const context& ctx)
 {
-    std::cout << "Rank=" << ctx->distributed->id() << " setting up state.\n";
+    //std::cout << "Rank=" << ctx->distributed->id() << " setting up state.\n";
     impl_.reset(new simulation_state(rec, decomp, *ctx));
 }
 

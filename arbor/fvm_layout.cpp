@@ -672,7 +672,7 @@ ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
     unsigned cg,
     const fvm_cv_discretization& D)
 {
-    std::cout << "building CV array start\n";
+    //std::cout << "building CV array start\n";
     std::vector<int> gid, lids, cgs, cvs;
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, cell_member_type> gj_cg_cvs;
@@ -686,7 +686,7 @@ ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
             }
         }
     }
-    std::cout << "building CV array end\n";
+    //std::cout << "building CV array end\n";
     return {gid, lids, cgs, cvs};
 }
 

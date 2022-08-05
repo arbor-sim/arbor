@@ -38,7 +38,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
-    std::cout << "MC Cell Group in da House\n";
+    //std::cout << "MC Cell Group in da House\n";
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
