@@ -755,12 +755,12 @@ void run_partial_density_probe_test(const context& ctx) {
     cell_lid_type probe_lid = 0;
     for (auto tp: test_probes) {
         for (cell_gid_type gid: {0, 1}) {
-            cell_member_type probe_id{gid, probe_lid};
+            cell_member_type probeset_id{gid, probe_lid};
             if (std::isnan(tp.expected[gid])) {
-                EXPECT_EQ(0u, probe_map.data.count(probe_id));
+                EXPECT_EQ(0u, probe_map.data.count(probeset_id));
             }
             else {
-                probe_handle h = get_probe_raw_handle(probe_id);
+                probe_handle h = get_probe_raw_handle(probeset_id);
                 EXPECT_DOUBLE_EQ(tp.expected[gid], deref(h));
             }
         }
