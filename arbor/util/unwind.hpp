@@ -21,14 +21,11 @@ public:
     /// the default constructor will build and store the strack trace.
     backtrace() = default;
 
-    /// Creates a new file named backtrace_# where # is a number chosen
-    /// The back trace is printed to the file, and a message printed to
-    /// std::cerr with the backtrace file name and instructions for how
-    /// to post-process it.
-    void print(bool stop_at_main=true) const;
     const std::vector<source_location>& frames() const { return frames_; }
 
     friend std::ostream& operator<<(std::ostream&, const backtrace&);
+
+    std::string to_string();
 
 private:
     std::vector<source_location> frames_;

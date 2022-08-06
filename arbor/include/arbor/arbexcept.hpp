@@ -15,18 +15,15 @@ namespace arb {
 // there is a bug in the library.)
 
 struct ARB_SYMBOL_VISIBLE arbor_internal_error: std::logic_error {
-    arbor_internal_error(const std::string& what_arg):
-        std::logic_error(what_arg)
-    {}
+    arbor_internal_error(const std::string&);
+    std::string where;
 };
-
 
 // Common base-class for arbor run-time errors.
 
 struct ARB_SYMBOL_VISIBLE arbor_exception: std::runtime_error {
-    arbor_exception(const std::string& what_arg):
-        std::runtime_error(what_arg)
-    {}
+    arbor_exception(const std::string&);
+    std::string where;
 };
 
 // Logic errors

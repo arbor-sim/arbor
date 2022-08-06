@@ -1,5 +1,7 @@
 #include <util/unwind.hpp>
 
+#include <sstream>
+
 #ifdef WITH_UNWIND
 
 #define UNW_LOCAL_ONLY
@@ -76,33 +78,6 @@ std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
     return out;
 }
 
-#if 0
-// Temporarily deprecated: automatic writing to disk of strack traces
-// needs to be run-time configurable.
-
-void backtrace::print(bool stop_at_main) const {
-    using namespace arb::memory::util;
-
-    auto i = 0;
-    while (file_exists("backtrace_" + std::to_string(i))) {
-        ++i;
-    }
-    auto fname = "backtrace_" + std::to_string(i);
-    auto fid = std::ofstream(fname);
-    for (auto& f: frames_) {
-        char loc_str[64];
-        snprintf(loc_str, sizeof(loc_str),"0x%lx", f.position);
-        fid << loc_str << " " << f.name << "\n";
-        if (stop_at_main && f.name=="main") {
-            break;
-        }
-    }
-    std::cerr << "BACKTRACE: A backtrace was generated and stored in the file " << fname << ".\n";
-    std::cerr << "           View a brief summary of the backtrace by running \"scripts/print_backtrace " << fname << " -b\".\n";
-    std::cerr << "           Run \"scripts/print_backtrace -h\" for more options.\n";
-}
-#endif
-
 } // namespace util
 } // namespace arb
 
@@ -111,7 +86,8 @@ void backtrace::print(bool stop_at_main) const {
 namespace arb {
 namespace util {
 
-std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
+std::ostream& operator<<(std::ostream& out, const backtrace&) {
+    out << "(nil:libunwind not enabled)";
     return out;
 }
 
@@ -122,3 +98,12 @@ std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
 
 #endif
 
+namespace arb {
+namespace util {
+std::string backtrace::to_string() {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
+}
+}
+}

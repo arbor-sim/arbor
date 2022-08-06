@@ -4,11 +4,18 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 
+#include "util/unwind.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
 
 using arb::util::pprintf;
+
+arbor_exception::arbor_exception(const std::string& what):
+    std::runtime_error{what}, where{util::backtrace{}.to_string()} {}
+
+arbor_internal_error::arbor_internal_error(const std::string& what):
+        std::logic_error(what), where{util::backtrace{}.to_string()} {}
 
 domain_error::domain_error(const std::string& w): arbor_exception(w) {}
 
