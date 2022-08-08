@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arbor/arb_types.h>
+#include <arbor/arb_types.hpp>
 #include <arbor/common_types.hpp>
 
 namespace arb {

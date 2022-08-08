@@ -10,14 +10,6 @@ using std::uint32_t;
 #include <stdint.h>
 #endif
 
-#ifdef __cplusplus
-namespace arb {
-#endif
-
 #include <arbor/arb_types.inc>
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // ARB_TYPES_H

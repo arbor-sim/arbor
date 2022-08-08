@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <arbor/arb_types.h>
+#include <arbor/arb_types.hpp>
 #include <arbor/mechanism.hpp>
 
 // Get a copy of the data within a mechanisms's named field.
