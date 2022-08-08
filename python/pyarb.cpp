@@ -62,6 +62,8 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_single_cell(m);
 
+    // This is the fallback. All specific translators take precedence by being
+    // registered *later*.
     pybind11::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) std::rethrow_exception(p);
