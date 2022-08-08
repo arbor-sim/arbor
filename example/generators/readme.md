@@ -165,19 +165,19 @@ We must attach a sampler to this probe to get sample values.
 The sampling interface is rich, and can be extended in many ways.
 For our simple use case there are three bits of information that need to be provided when creating a sampler
 
-1. The `probe_id` that identifies the probe (generated in the recipe).
+1. The `probeset_id` that identifies the probe (generated in the recipe).
 2. The schedule to use for sampling (in our case 10 samples every ms).
 3. The location where we want to save the samples for outputing later.
 
 ```C++
     // The id of the only probe (cell 0, probe 0)
-    auto probe_id = cell_member_type{0, 0};
+    auto probeset_id = cell_member_type{0, 0};
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1);
     // Where the voltage samples will be stored as (time, value) pairs
     arb::trace_data<double> voltage;
     // Now attach the sampler:
-    sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+    sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 ```
 
 When the simulation is run, the `simple_sampler` that we attached to the probe will store the sample values as (time, voltage) pairs in the `voltage` vector.

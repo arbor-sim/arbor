@@ -88,10 +88,10 @@ Recipe
 
     .. function:: probes(gid)
 
-        Returns a list specifying the probe addresses describing probes on the cell ``gid``.
-        Each address in the list is an opaque object of type :class:`probe` produced by
-        cell kind-specific probe address functions. Each probe address in the list
-        has a corresponding probe id of type :class:`cell_member`: an id ``(gid, i)``
+        Returns a list specifying the probesets describing probes on the cell ``gid``.
+        Each element in the list is an opaque object of type :class:`probe` produced by
+        cell kind-specific probeset functions. Each probeset in the list
+        has a corresponding probeset id of type :class:`cell_member`: an id ``(gid, i)``
         refers to the probes described by the ith entry in the list returned by ``get_probes(gid)``.
 
         By default returns an empty list.
