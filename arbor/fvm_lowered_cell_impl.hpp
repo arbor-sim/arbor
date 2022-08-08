@@ -282,8 +282,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     // todo what is this ? check reset and eliminate mechanism_id?
     std::vector<arb_index_type> peer_ix_group;
+    std::vector<arb_index_type> node_ix_group;
     std::unordered_map<std::size_t, std::vector<arb_index_type>> peer_ix_map;
     std::unordered_map<std::size_t, arb_index_type*> peer_ix_reset_map;
+    std::unordered_map<std::size_t, arb_index_type*> node_ix_reset_map;
 
     // List all CVs in current cell group that are part of a gap junction and sort
     // CVs are numbered as their globally unique index
@@ -311,17 +313,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     }
     std::cout << "\n";
 
-    //WR iterations
-    int nancount = 0;
-
-    int wr_max = 5;
+    int wr_max = 1;
     auto eps = 1e-7;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
         tmin_ = tmin_reset;
         dt_max = dt_max_reset;
         remaining_steps = dt_steps(tmin_, tfinal, dt_max);
         
-
         // Reset error variables for WR break condition
         auto max_err = 0.;
 
@@ -329,7 +327,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         threshold_watcher_ = threshold_watcher_reset;
         int step = 0;
         if (step == 0) {
-            std::cout << "remaining steps  =  " << remaining_steps << std::endl;
+            std::cout << "iteration = " << wr_it << " remaining steps  =  " << remaining_steps << std::endl;
         }
         while (remaining_steps) {
             // Update any required reversal potentials based on ionic concs.
@@ -369,9 +367,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         peer_ix.clear();
                         peer_ix.resize(ppack.width);
                         peer_ix_reset_map[m_id] = ppack.peer_index;
+                        node_ix_reset_map[m_id] = ppack.node_index;
+                        
 
                         //std::cerr << "Setting up index mappings #p=" << peer_ix.size() << " #pg=" << peer_ix_group.size() << '\n';
-
+                        
                         for (int i = 0; i<ppack.width; ++i) {
                             auto cg_node = std::get<1>(index_to_cell[nidx[i]]);
                             auto cg_peer = std::get<1>(index_to_cell[pidx[i]]);
@@ -381,6 +381,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                             else {
                                 peer_ix_group.push_back(std::get<2>(index_to_cell[nidx[i]]));
                             }
+
+                            node_ix_group.push_back(std::get<2>(index_to_cell[nidx[i]]));
                         }
 
                         // Setup peer indices
@@ -406,29 +408,29 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         // A: Yes, indeed peer_ix_group is either the local peer index or the identity, if not local
 
                         pidx = peer_ix_group.data();
-                        /*
-                        if (step == 0) {
-                            std::cout << "pidx (it = " << wr_it << " group " << cell_group << ") = ";
-                            for (auto p = 0; p<m->ppack_.width; ++p) {
-                                std::cout << m->ppack_.peer_index[p] << " ";
+                        nidx = node_ix_group.data();
+                        if (step == 0 && cell_group == 1) {
+                            std::cout << "node index = ";
+                            for (auto w = 0; w<m->ppack_.width; ++w){
+                                std::cout << m->ppack_.node_index[w] << " ";
+
                             }
                             std::cout << "\n";
-                        }*/
+                            std::cout << "peer index = ";
+                            for (auto w = 0; w<m->ppack_.width; ++w){
+                                std::cout << m->ppack_.peer_index[w] << " ";
+
+                            }
+                            std::cout << "\n";
+                        }
                     }
                     if (wr_it > 0) {
                         // Here we expect peer_ix to be the index into the trace structure, regardless of local
                         // or not. However, the selection of the trace must take locality into account.
                         // Q: How to select?
-                        pidx = peer_ix.data();
+                        m->ppack_.peer_index = peer_ix.data();
                         m->ppack_.vec_v_peer = trace_prev[step].data();
-                        /*
-                        if (step == 0) {
-                            std::cout << "pidx (it = " << wr_it << " group " << cell_group << ") = ";
-                            for (auto p = 0; p<m->ppack_.width; ++p) {
-                                std::cout << m->ppack_.peer_index[p] << " ";
-                            }
-                            std::cout << "\n";
-                        }*/
+  
                     }
                 }
 
@@ -440,40 +442,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     //Write contents from state_->voltage into trace
                     //ToDo Check trace format again, trace = v[cvs_local] or trace = state_->voltage?
 
-                    std::vector<value_type> v_step(cvs_local.size(), 0.);
+                    //std::vector<value_type> v_step(cvs_local.size(), 0.);
+                    std::vector<value_type> v_step;
 
                     for (auto ix = 0; ix<cvs_local.size(); ++ix) {
                         auto cv = std::get<2>(index_to_cell[cvs_local[ix]]);
-                        v_step[ix] = state_->voltage[cv];
-                        if (std::isnan(v_step[ix])) { 
-                            if (nancount == 0) {
-                                std::cout << "WARNING: trying to write NAN into trace in group " << cell_group << "\n"; 
-                                std::cout << "Fatal iteration = " << wr_it << " at step " << step << "\n";
-
-                                std::cout << "check state_->voltage at breaking point \n";
-                                std::cout << "voltage = ";
-                                for (auto w = 0; w<m->ppack_.width; ++w){
-                                    std::cout << state_->voltage[w] << " ";
-                                }
-                                std::cout << std::endl;
-
-                                std::cout << "check trace at step-1 before break \n";
-                                std::cout << "voltage = ";
-                                for (auto w = 0; w<m->ppack_.width; ++w){
-                                    std::cout << trace[step-1][w] << " ";
-                                }
-                                std::cout << std::endl;
-                                std::cout << "check trace at step-2 before break \n";
-                                std::cout << "voltage = ";
-                                for (auto w = 0; w<m->ppack_.width; ++w){
-                                    std::cout << trace[step-2][w] << " ";
-                                }
-                                std::cout << std::endl;
-
-                                //break;
-                                nancount = 1;
-                            }
-                        }
+                        v_step.push_back(state_->voltage[cv]);
                     }  
                     
                     trace.push_back(v_step);
@@ -481,20 +455,21 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     //todo eliminate mechanism id
                     auto gj = m->mechanism_id();
                     m->ppack_.peer_index = peer_ix_reset_map[gj];
+                    m->ppack_.node_index = node_ix_reset_map[gj];
 
-
-                    
+                    /*
                     if (cell_group == 0){
-                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test.txt", std::ios::app);
-    
-                        for (int i = 0; i<cvs_local.size(); ++i) {
-                            file0 << v_step[i] << ", ";
-                        }
 
+                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test.txt", std::ios::app);
+
+                        for (int i = 0; i<trace[step].size(); ++i) {
+                            //file0 << m->ppack_.vec_v[i] << ", ";
+                            file0 << state_->voltage[i] << ", ";
+                        }
+                        
                         file0 << std::endl;
                         file0.close();
-                    }
-                    
+                    }*/
 
                     // Calculate error for break condition
                     /*
@@ -606,6 +581,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         //Gather traces from all groups for next iteration
         trace_prev = {};
+
         for (int s = 0; s<trace.size(); ++s) {
             auto step_gathered = context_.distributed->gather_trace(trace[s]);
             trace_prev.push_back(step_gathered);

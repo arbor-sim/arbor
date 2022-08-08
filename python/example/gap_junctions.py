@@ -108,10 +108,6 @@ class chain_recipe(arbor.recipe):
             conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
         if prev_cell >= chain_begin:
             conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
-        #if gid == 1:
-        #    conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
-        #if gid == 2:
-        #    conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
 
         return conns
 
@@ -119,7 +115,7 @@ class chain_recipe(arbor.recipe):
     def event_generators(self, gid):
         if (gid == 0):
             sched = arbor.explicit_schedule([1])
-            weight = 0.1
+            weight = 0.5
             return [arbor.event_generator('syn', weight, sched)]
         return []
 
@@ -132,10 +128,10 @@ class chain_recipe(arbor.recipe):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 2
+ncells_per_chain = 4
 
 # Number of chains
-nchains = 2
+nchains = 1
 
 # Total number of cells
 ncells = nchains * ncells_per_chain
@@ -164,10 +160,8 @@ context = arbor.context(alloc, comm)
 print(context)
 
 if comm.rank == 0:
-    #gs = [[0,1,2]]
     gs = [[0,1]]
 else:
-    #gs = [[3,4,5]]
     gs = [[2,3]]
 
 groups = [arbor.group_description(arbor.cell_kind.cable, g, arbor.backend.multicore) for g in gs]
