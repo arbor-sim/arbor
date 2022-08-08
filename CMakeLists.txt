@@ -40,7 +40,7 @@ set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
 # Use libunwind to generate stack traces on errors?
 
-option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
+option(ARB_BACKTRACE "Use stack trace printing if available" OFF)
 
 # Specify GPU build type
 
@@ -386,17 +386,15 @@ if(ARB_WITH_GPU)
     endif()
 endif()
 
-# Use libunwind if requested for pretty printing stack traces
+# Use libbacktrace if requested for pretty printing stack traces
 #-------------------------------------------------------------
 
-if (ARB_UNWIND)
-    find_package(Unwind REQUIRED)
-    if(Unwind_FOUND)
-        target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
-        target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
-
-        list(APPEND arbor_export_dependencies "Unwind")
-    endif()
+if (ARB_BACKTRACE)
+    find_package(Boost REQUIRED
+                 COMPONENTS stacktrace_basic
+                            stacktrace_addr2line)
+    target_link_libraries(arbor-private-deps INTERFACE Boost::stacktrace_basic Boost::stacktrace_addr2line ${CMAKE_DL_LIBS})
+    target_compile_definitions(arbor-private-deps INTERFACE WITH_BACKTRACE)
 endif()
 
 # Build and use modcc unless explicit path given
@@ -547,7 +545,6 @@ install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
-        cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
 add_subdirectory(lmorpho)

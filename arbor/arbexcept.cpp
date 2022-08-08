@@ -12,10 +12,24 @@ namespace arb {
 using arb::util::pprintf;
 
 arbor_exception::arbor_exception(const std::string& what):
-    std::runtime_error{what}, where{util::backtrace{}.to_string()} {}
+    std::runtime_error{what} {
+    auto bt = util::backtrace{};
+    auto& fs = bt.frames();
+    // remove this c'tor and that of backtrace.
+    auto len = std::min(2ul, fs.size());
+    fs.erase(fs.begin(), fs.begin() + len);
+    where = bt.to_string();
+}
 
 arbor_internal_error::arbor_internal_error(const std::string& what):
-        std::logic_error(what), where{util::backtrace{}.to_string()} {}
+        std::logic_error(what) {
+    auto bt = util::backtrace{};
+    auto& fs = bt.frames();
+    // remove this c'tor and that of backtrace.
+    auto len = std::min(2ul, fs.size());
+    fs.erase(fs.begin(), fs.begin() + len);
+    where = bt.to_string();
+}
 
 domain_error::domain_error(const std::string& w): arbor_exception(w) {}
 

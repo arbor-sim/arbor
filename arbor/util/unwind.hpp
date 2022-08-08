@@ -1,27 +1,29 @@
 #pragma once
 
+#include <iostream>
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace arb {
 namespace util {
 
 /// Represents a source code location as a function name and address
 struct source_location {
-    std::string name;
-    std::uintptr_t position; // assume that unw_word_t is a unit64_t
+    std::string func;
+    std::string file;
+    std::size_t line;
 };
 
 /// Builds a stack trace when constructed.
-/// The trace can then be printed, or accessed via the stack() member function.
-/// NOTE: if WITH_UNWIND is not defined, the methods are empty
+/// NOTE: if WITH_BACKTRACE is not defined, the methods are empty
 class backtrace {
 public:
     /// the default constructor will build and store the strack trace.
-    backtrace() = default;
+    backtrace();
 
-    const std::vector<source_location>& frames() const { return frames_; }
+    std::vector<source_location>& frames() { return frames_; }
 
     friend std::ostream& operator<<(std::ostream&, const backtrace&);
 

@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <sstream>
+
 #include <arbor/spike.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/arbexcept.hpp>
@@ -63,6 +65,18 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_schedules(m);
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_single_cell(m);
+
+    pybind11::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        } catch (const arb::arbor_exception& e) {
+            std::stringstream msg;
+            msg << e.what()
+                << "\n"
+                << e.where;
+            PyErr_SetString(PyExc_RuntimeError, msg.str().c_str());
+        }
+});
 
     #ifdef ARB_MPI_ENABLED
     pyarb::register_mpi(m);

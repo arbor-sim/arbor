@@ -12,7 +12,7 @@ void ARB_ARBOR_API abort_on_failed_assertion(
     int line,
     const char* func)
 {
-    // Emit stack trace If libunwind is being used.
+    // Emit stack trace if enable.
     std::cerr << util::backtrace();
 
     // Explicit flush, as we can't assume default buffering semantics on stderr/cerr,
