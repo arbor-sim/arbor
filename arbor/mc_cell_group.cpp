@@ -125,8 +125,8 @@ void reserve_scratch(fvm_probe_scratch& scratch, std::size_t n) {
 void run_samples(
     const missing_probe_info&,
     const sampler_call_info&,
-    const fvm_value_type*,
-    const fvm_value_type*,
+    const arb_value_type*,
+    const arb_value_type*,
     std::vector<sample_record>&,
     fvm_probe_scratch&)
 {
@@ -136,14 +136,14 @@ void run_samples(
 void run_samples(
     const fvm_probe_scalar& p,
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch&)
 {
     // Scalar probes do not need scratch space — provided that the user-presented
-    // sample type (double) matches the raw type (fvm_value_type).
-    static_assert(std::is_same<double, fvm_value_type>::value, "require sample value translation");
+    // sample type (double) matches the raw type (arb_value_type).
+    static_assert(std::is_same<double, arb_value_type>::value, "require sample value translation");
 
     sample_size_type n_sample = sc.end_offset-sc.begin_offset;
     sample_records.clear();
@@ -157,8 +157,8 @@ void run_samples(
 void run_samples(
     const fvm_probe_interpolated& p,
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
@@ -187,8 +187,8 @@ void run_samples(
 void run_samples(
     const fvm_probe_multi& p,
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
@@ -217,8 +217,8 @@ void run_samples(
 void run_samples(
     const fvm_probe_weighted_multi& p,
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
@@ -260,8 +260,8 @@ void run_samples(
 void run_samples(
     const fvm_probe_interpolated_multi& p,
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
@@ -307,8 +307,8 @@ void run_samples(
 void run_samples(
     const fvm_probe_membrane_currents& p,
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
@@ -339,7 +339,7 @@ void run_samples(
 
         const double* v = raw_samples+offset;
         for (auto cv: util::make_span(n_cv)) {
-            fvm_index_type parent_cv = p.cv_parent[cv];
+            arb_index_type parent_cv = p.cv_parent[cv];
             if (parent_cv+1==0) continue;
 
             double cond = p.cv_parent_cond[cv];
@@ -381,8 +381,8 @@ void run_samples(
 // Generic run_samples dispatches on probe info variant type.
 void run_samples(
     const sampler_call_info& sc,
-    const fvm_value_type* raw_times,
-    const fvm_value_type* raw_samples,
+    const arb_value_type* raw_times,
+    const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
@@ -404,8 +404,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
 
         /// Event merging on integration domain could benefit from the use of the logic from `tree_merge_events`
-        fvm_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
-        fvm_index_type prev_intdom = -1;
+        arb_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
+        arb_index_type prev_intdom = -1;
         for (auto i: util::count_along(gids_)) {
             unsigned count_staged = 0;
 

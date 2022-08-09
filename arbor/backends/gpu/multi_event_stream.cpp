@@ -9,25 +9,25 @@ namespace gpu {
 // These wrappers are implemented in the multi_event_stream.cu file, which
 // is spearately compiled by nvcc, to protect nvcc from having to parse C++17.
 void mark_until_after_w(unsigned n,
-        fvm_index_type* mark,
-        fvm_index_type* span_end,
-        fvm_value_type* ev_time,
-        const fvm_value_type* t_until);
+        arb_index_type* mark,
+        arb_index_type* span_end,
+        arb_value_type* ev_time,
+        const arb_value_type* t_until);
 void mark_until_w(unsigned n,
-        fvm_index_type* mark,
-        fvm_index_type* span_end,
-        fvm_value_type* ev_time,
-        const fvm_value_type* t_until);
+        arb_index_type* mark,
+        arb_index_type* span_end,
+        arb_value_type* ev_time,
+        const arb_value_type* t_until);
 void drop_marked_events_w(unsigned n,
-        fvm_index_type* n_nonempty_stream,
-        fvm_index_type* span_begin,
-        fvm_index_type* span_end,
-        fvm_index_type* mark);
+        arb_index_type* n_nonempty_stream,
+        arb_index_type* span_begin,
+        arb_index_type* span_end,
+        arb_index_type* mark);
 void event_time_if_before_w(unsigned n,
-        fvm_index_type* span_begin,
-        fvm_index_type* span_end,
-        fvm_value_type* ev_time,
-        fvm_value_type* t_until);
+        arb_index_type* span_begin,
+        arb_index_type* span_end,
+        arb_value_type* ev_time,
+        arb_value_type* t_until);
 
 void multi_event_stream_base::clear() {
     memory::fill(span_begin_, 0u);

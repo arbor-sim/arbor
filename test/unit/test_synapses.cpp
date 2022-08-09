@@ -70,8 +70,8 @@ auto unique_cast(std::unique_ptr<B> p) {
 
 TEST(synapses, syn_basic_state) {
     using util::fill;
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
 
     int num_syn = 4;
     int num_comp = 4;
@@ -168,16 +168,16 @@ TEST(synapses, syn_basic_state) {
     expsyn->deliver_events(evts);
     exp2syn->deliver_events(evts);
 
-    using fvec = std::vector<fvm_value_type>;
+    using fvec = std::vector<arb_value_type>;
 
-    EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(
+    EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(
         fvec({0, 3.14f, 0, 1.41f}), mechanism_field(expsyn, "g")));
 
     double factor = mechanism_field(exp2syn, "factor")[0];
     EXPECT_TRUE(factor>1.);
     fvec expected = {2.71f*factor, 0, 0.07f*factor, 0};
 
-    EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected, mechanism_field(exp2syn, "A")));
-    EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected, mechanism_field(exp2syn, "B")));
+    EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(expected, mechanism_field(exp2syn, "A")));
+    EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(expected, mechanism_field(exp2syn, "B")));
 }
 

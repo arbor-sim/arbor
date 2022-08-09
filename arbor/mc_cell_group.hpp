@@ -66,7 +66,7 @@ private:
     std::vector<cell_gid_type> gids_;
 
     // Map from gid to integration domain id
-    std::vector<fvm_index_type> cell_to_intdom_;
+    std::vector<arb_index_type> cell_to_intdom_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;

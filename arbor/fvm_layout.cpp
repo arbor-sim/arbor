@@ -97,7 +97,7 @@ cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
     // Build location query map.
     auto n_cv = cv_parent.size();
     branch_cv_map.resize(1);
-    std::vector<util::pw_elements<fvm_size_type>>& bmap = branch_cv_map.back();
+    std::vector<util::pw_elements<arb_size_type>>& bmap = branch_cv_map.back();
     for (auto cv: util::make_span(n_cv)) {
         for (auto cable: cables(cv)) {
             if (cable.branch>=bmap.size()) {
@@ -109,10 +109,10 @@ cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
         }
     }
     cv_to_cell.assign(n_cv, 0);
-    cell_cv_divs = {0, (fvm_index_type)n_cv};
+    cell_cv_divs = {0, (arb_index_type)n_cv};
 }
 
-fvm_size_type cv_geometry::location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const {
+arb_size_type cv_geometry::location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const {
     auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
     auto zero_extent = [&pw_cv_offset](auto j) {
         return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
@@ -358,7 +358,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             info.face_diffusivity[i] = 0.0;
         }
 
-        fvm_index_type p = D.geometry.cv_parent[i];
+        arb_index_type p = D.geometry.cv_parent[i];
         if (p!=-1) {
             auto parent_cables = D.geometry.cables(p);
             msize_t bid = cv_cables.front().branch;
@@ -465,7 +465,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_ce
 // site.
 
 struct voltage_reference {
-    fvm_index_type cv = -1;
+    arb_index_type cv = -1;
     mlocation loc;
 };
 
@@ -512,7 +512,7 @@ bool cables_intersect_location(Seq&& cables, const mlocation& x) {
         [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
 }
 
-voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, fvm_size_type cell_idx, const mlocation& site) {
+voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, arb_size_type cell_idx, const mlocation& site) {
     voltage_reference site_ref, parent_ref, child_ref;
     bool check_parent = true, check_child = true;
     msize_t bid = site.branch;
@@ -602,7 +602,7 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
 
 // Interpolate membrane voltage from reference points in adjacent CVs.
 
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -643,7 +643,7 @@ ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& 
 
 // Axial current as linear combination of membrane voltages at reference points in adjacent CVs.
 
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -680,7 +680,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     using impl::append_offset;
     using impl::append_divs;
 
-    fvm_size_type target_offset = left.n_target;
+    arb_size_type target_offset = left.n_target;
 
     for (const auto& [k, R]: right.ions) {
         fvm_ion_config& L = left.ions[k];
@@ -744,13 +744,13 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D)
 {
     arb_assert(cells.size() == gids.size());
-    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs;
+    std::unordered_map<cell_member_type, arb_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
         for (const auto& mech : cells[cell_idx].junctions()) {
             for (const auto& gj: mech.second) {
@@ -764,7 +764,7 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_
 ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
+    const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
     const recipe& rec)
 {
     // Construct and resolve all gj_connections.
@@ -794,7 +794,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx);
+    arb_size_type cell_idx);
 
 ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
@@ -823,11 +823,11 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx)
+    arb_size_type cell_idx)
 {
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
-    using value_type = fvm_value_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
+    using value_type = arb_value_type;
 
     const mechanism_catalogue& catalogue = gprop.catalogue;
     const auto& embedding = cell.embedding();
