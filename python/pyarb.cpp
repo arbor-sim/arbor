@@ -75,6 +75,13 @@ PYBIND11_MODULE(_arbor, m) {
                 << e.where;
             PyErr_SetString(PyExc_RuntimeError, msg.str().c_str());
         }
+        catch (const arb::arbor_internal_error& e) {
+            std::stringstream msg;
+            msg << e.what()
+                << "\n"
+                << e.where;
+            PyErr_SetString(PyExc_RuntimeError, msg.str().c_str());
+        }
     });
 
     // Translate Arbor errors -> Python exceptions.

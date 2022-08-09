@@ -27,6 +27,9 @@ public:
 
     friend std::ostream& operator<<(std::ostream&, const backtrace&);
 
+    // remove the top N=1 frames
+    backtrace& pop(std::size_t n=1);
+
     std::string to_string();
 
 private:

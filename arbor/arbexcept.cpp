@@ -13,22 +13,14 @@ using arb::util::pprintf;
 
 arbor_exception::arbor_exception(const std::string& what):
     std::runtime_error{what} {
-    auto bt = util::backtrace{};
-    auto& fs = bt.frames();
-    // remove this c'tor and that of backtrace.
-    auto len = std::min(2ul, fs.size());
-    fs.erase(fs.begin(), fs.begin() + len);
-    where = bt.to_string();
+    // Backtrace w/o this c'tor and that of backtrace.
+    where = util::backtrace{}.pop(2).to_string();
 }
 
 arbor_internal_error::arbor_internal_error(const std::string& what):
         std::logic_error(what) {
-    auto bt = util::backtrace{};
-    auto& fs = bt.frames();
-    // remove this c'tor and that of backtrace.
-    auto len = std::min(2ul, fs.size());
-    fs.erase(fs.begin(), fs.begin() + len);
-    where = bt.to_string();
+    // Backtrace w/o this c'tor and that of backtrace.
+    where = util::backtrace{}.pop(2).to_string();
 }
 
 domain_error::domain_error(const std::string& w): arbor_exception(w) {}

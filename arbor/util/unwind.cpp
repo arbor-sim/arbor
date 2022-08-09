@@ -36,6 +36,15 @@ std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
     return out;
 }
 
+backtrace& backtrace::pop(std::size_t n) {
+    auto end = frames_.begin();
+    for(std::size_t ix = 0;
+        ix < n && end != frames_.end();
+        ++ix, ++end) {}
+    frames_.erase(frames_.begin(), end);
+    return *this;
+}
+
 std::string backtrace::to_string() {
     std::stringstream ss;
     ss << *this;

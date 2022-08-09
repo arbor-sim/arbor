@@ -40,7 +40,7 @@ set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
 # Use libunwind to generate stack traces on errors?
 
-option(ARB_BACKTRACE "Use stack trace printing if available" OFF)
+option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
 
 # Specify GPU build type
 
@@ -386,8 +386,8 @@ if(ARB_WITH_GPU)
     endif()
 endif()
 
-# Use libbacktrace if requested for pretty printing stack traces
-#-------------------------------------------------------------
+# Use boost::stacktrace if requested for pretty printing stack traces
+#--------------------------------------------------------------------
 
 if (ARB_BACKTRACE)
     find_package(Boost REQUIRED

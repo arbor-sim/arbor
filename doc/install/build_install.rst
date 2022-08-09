@@ -153,9 +153,10 @@ See :ref:`install-neuroml` for more information.
 Boost
 ~~~~~
 
-We use -- iff requested by setting ``ARB_BACKTRACE`` -- ``Boost::stacktrace`` to
-print stacktraces upon failed assertions and attach them to the base exception
-``arbor_exception`` as ``where``.
+When ``ARB_BACKTRACE`` is set to ``ON`` during configure we use
+``Boost::stacktrace`` to print stacktraces upon failed assertions and attach
+them to the base exception types ``arbor_exception`` and
+``arbor_internal_error`` as ``where``.
 
 Documentation
 ~~~~~~~~~~~~~~
