@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <mutex>
 
 namespace arb {
 namespace util {
