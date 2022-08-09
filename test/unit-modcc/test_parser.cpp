@@ -279,6 +279,10 @@ TEST(Parser, parse_conductance) {
     }
 }
 
+TEST(Parser, parse_watch) {
+    EXPECT_TRUE(check_parse_fail(&Parser::parse_watch, "WATCH( 0 < 1) 42"));
+}
+
 TEST(Parser, parse_if) {
     std::unique_ptr<IfExpression> s;
 
