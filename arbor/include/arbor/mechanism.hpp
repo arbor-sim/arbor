@@ -18,18 +18,18 @@ class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
 struct ion_state_view {
-    fvm_value_type* current_density;
-    fvm_value_type* reversal_potential;
-    fvm_value_type* internal_concentration;
-    fvm_value_type* external_concentration;
-    fvm_value_type* ionic_charge;
+    arb_value_type* current_density;
+    arb_value_type* reversal_potential;
+    arb_value_type* internal_concentration;
+    arb_value_type* external_concentration;
+    arb_value_type* ionic_charge;
 };
 
 class mechanism {
 public:
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-    using size_type  = fvm_size_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
+    using size_type  = arb_size_type;
 
     mechanism(const arb_mechanism_type& m,
               const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
@@ -91,24 +91,24 @@ private:
 
 struct mechanism_layout {
     // Maps in-instance index to CV index.
-    std::vector<fvm_index_type> cv;
+    std::vector<arb_index_type> cv;
 
     // Maps in-instance index to peer CV index (only for gap-junctions).
-    std::vector<fvm_index_type> peer_cv;
+    std::vector<arb_index_type> peer_cv;
 
     // Maps in-instance index to compartment contribution.
-    std::vector<fvm_value_type> weight;
+    std::vector<arb_value_type> weight;
 
     // Number of logical point processes at in-instance index;
     // if empty, point processes are not coalesced and all multipliers are 1.
-    std::vector<fvm_index_type> multiplicity;
+    std::vector<arb_index_type> multiplicity;
 
     std::vector<arb_size_type> gid;
     std::vector<arb_size_type> idx;
 };
 
 struct mechanism_overrides {
-    // Global scalar parameters (any value down-conversion to fvm_value_type is the
+    // Global scalar parameters (any value down-conversion to arb_value_type is the
     // responsibility of the mechanism).
     std::unordered_map<std::string, double> globals;
 

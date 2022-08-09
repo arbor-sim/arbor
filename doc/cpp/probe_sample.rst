@@ -8,11 +8,10 @@ Cable cell probing and sampling
 Cable cell probes
 -----------------
 
-Various properties of a a cable cell can be sampled via one of the cable cell
-specific probe address described below. They fall into two classes: scalar
+Various properties of a cable cell can be sampled. They fall into two classes: scalar
 probes are associated with a single real value, such as a membrane voltage
 or mechanism state value at a particular location; vector probes return
-multiple values corresponding to a quantity sampled over a whole cell.
+multiple values corresponding to a quantity sampled at a set of points on the cell.
 
 The sample data associated with a cable cell probe will either be a ``double``
 for scalar probes, or a ``cable_sample_range`` describing a half-open range
@@ -56,7 +55,7 @@ Mechanism state queries however will throw a ``cable_cell_error`` exception
 at simulation initialization if the requested state variable does not exist
 on the mechanism.
 
-Cable cell probe addresses that are described by a ``locset`` may generate more
+Cable cell probeset addresses that are described by a ``locset`` may generate more
 than one concrete probe: there will be one per location in the locset that is
 satisfiable. Sampler callback functions can distinguish between different
 probes with the same address and id by examining their index and/or
@@ -277,7 +276,7 @@ If the mechanism is not defined at a particular site, that site is ignored.
 
 *  Sample value: ``double``. State variable value.
 
-*  Metadata: ``mlocation``. Location as given in the probe address.
+*  Metadata: ``mlocation``. Location as given in the probeset address.
 
 
 .. code::
@@ -387,16 +386,17 @@ as a way of passing additional metadata about a probe to any sampler
 that polls it, with a view to samplers that handle multiple probes,
 possibly with different value types.
 
-Probe addresses are decoupled from the cell descriptions themselves —
+Probeset addresses are decoupled from the cell descriptions themselves —
 this allows a recipe implementation to construct probes independently
 of the cells themselves. It is the responsibility of a cell group implementation
-to parse the probe address objects wrapped in the ``any address`` field.
+to parse the probeset address objects wrapped in the ``any address`` field,
+thus the order of probes returned is important.
 
 The _k_th element of the vector returned by ``get_probes(gid)`` is
 identified with a probe-id: ``cell_member_type{gid, k}``.
 
-One probe address may describe more than one concrete probe, depending
-upon the interpretation of the probe address by the cell group. In this
+One probeset address may describe more than one concrete probe, depending
+upon the interpretation of the probeset address by the cell group. In this
 instance, each of the concrete probes will be associated with the
 same probe-id. Samplers can distinguish between different probes with
 the same id by their probe index (see below).
@@ -413,9 +413,9 @@ will be passed to a sampler function or function object:
     .. code-block:: cpp
 
             struct probe_metadata {
-                cell_member_type id; // probe id
+                cell_member_type id; // probeset id
                 probe_tag tag;       // probe tag associated with id
-                unsigned index;      // index of probe source within those supplied by probe id
+                unsigned index;      // index of probe source within those supplied by probeset id
                 util::any_ptr meta;  // probe-specific metadata
             };
 
@@ -425,7 +425,7 @@ will be passed to a sampler function or function object:
 where the parameters are respectively the probe metadata, the number of
 samples, and finally a pointer to the sequence of sample records.
 
-The ``probe_id``, identifies the probe by its probe-id (see above).
+The ``probeset_id``, identifies the probe by its probe-id (see above).
 
 The ``probe_tag`` in the metadata is the key given in the ``probe_info``
 returned by the recipe.
@@ -433,8 +433,8 @@ returned by the recipe.
 The ``index`` identifies which of the possibly multiple probes associated
 with the probe-id is the source of the samples.
 
-The ``any_ptr`` value iin the metadata points to const probe-specific metadata;
-the type of the metadata will depend upon the probe address specified in the
+The ``any_ptr`` value in the metadata points to const probe-specific metadata;
+the type of the metadata will depend upon the probeset address specified in the
 ``probe_info`` provided by the recipe.
 
 One ``sample_record`` struct contains one sample of the probe data at a
@@ -452,12 +452,12 @@ given simulation time point:
 The ``data`` field points to the sample data, wrapped in ``any_ptr`` for
 type-checked access. The exact representation will depend on the nature of
 the object that is being probed, but it should depend only on the cell type and
-probe address.
+probeset address.
 
 The data pointed to by ``data``, and the sample records themselves, are
 only guaranteed to be valid for the duration of the call to the sampler
 function. A simple sampler implementation for ``double`` data, assuming
-one probe per probe id, might be as follows:
+one probe per probeset id, might be as follows:
 
 .. container:: example-code
 
@@ -499,7 +499,7 @@ Polling rates, policies and sampler functions are set through the
             using cell_member_predicate = std::function<bool (cell_member_type)>;
 
             sampler_association_handle simulation::add_sampler(
-                cell_member_predicate probe_ids,
+                cell_member_predicate probeset_ids,
                 schedule sched,
                 sampler_function fn,
                 sampling_policy policy = sampling_policy::lax);
@@ -511,7 +511,7 @@ Polling rates, policies and sampler functions are set through the
 Multiple samplers can then be associated with the same probe locations.
 The handle returned is only used for managing the lifetime of the
 association. The ``cell_member_predicate`` parameter defines the
-set of probe ids in terms of a membership test.
+set of probeset ids in terms of a membership test.
 
 Two helper functions are provided for making ``cell_member_predicate`` objects:
 
@@ -519,10 +519,10 @@ Two helper functions are provided for making ``cell_member_predicate`` objects:
 
    .. code-block:: cpp
 
-           // Match all probe ids.
+           // Match all probeset ids.
            cell_member_predicate all_probes = [](cell_member_type pid) { return true; };
 
-           // Match just one probe id.
+           // Match just one probeset id.
            cell_member_predicate one_probe(cell_member_type pid) {
                return [pid](cell_member_type x) { return pid==x; };
            }
@@ -538,21 +538,21 @@ implemented in the future, but cell groups are in general not required
 to support any policy other than ``lax``.
 
 The simulation object will pass on the sampler setting request to the cell
-group that owns the given probe id. The ``cell_group`` interface will be
+group that owns the given probeset id. The ``cell_group`` interface will be
 correspondingly extended:
 
 .. container:: api-code
 
    .. code-block:: cpp
 
-           void cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, sample_schedule sched, sampler_function fn, sampling_policy policy);
+           void cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, sample_schedule sched, sampler_function fn, sampling_policy policy);
 
            void cell_group::remove_sampler(sampler_association_handle);
 
            void cell_group::remove_all_samplers();
 
 Cell groups will invoke the corresponding sampler function directly, and
-may aggregate multiple samples with the same probe id in one call to the
+may aggregate multiple samples with the same probeset id in one call to the
 sampler. Calls to the sampler are synchronous, in the sense that
 processing of the cell group state does not proceed while the sampler
 function is being executed, but the times of the samples given to the

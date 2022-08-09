@@ -161,7 +161,12 @@ void register_contexts(pybind11::module& m) {
                     throw pyarb_error("Attempt to set an MPI communicator but Arbor is not configured with MPI support.");
                 }
 #else
-                const char* mpi_err_str = "mpi must be None, or an MPI communicator";
+                const char* mpi_err_str = "mpi must be None, or a known MPI communicator type. Supported MPI implementations = native"
+#ifdef ARB_WITH_MPI4PY
+                    ", mpi4py.";
+#else
+                    ". Consider installing mpi4py and rebuilding Arbor.";
+#endif
                 if (can_convert_to_mpi_comm(mpi)) {
                     return context_shim(arb::make_context(a, convert_to_mpi_comm(mpi)));
                 }

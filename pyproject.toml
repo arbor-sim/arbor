@@ -31,7 +31,7 @@ py-modules = ["arbor"]
 
 [tool.setuptools.dynamic]
 version = {file = ["VERSION"]}
-readme = {file = ["python/readme.md"]}
+readme = {file = ["python/readme.rst"]}
 
 [project.urls]
 homepage = "https://arbor-sim.org"

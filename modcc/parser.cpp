@@ -1071,6 +1071,8 @@ expression_ptr Parser::parse_statement() {
         return parse_solve();
     case tok::local:
         return parse_local();
+    case tok::watch:
+        return parse_watch();
     case tok::identifier:
         return parse_line_expression();
     case tok::conserve:
@@ -1462,6 +1464,7 @@ expression_ptr Parser::parse_unaryop() {
 /// expects one of :
 ///  ::  number
 ///  ::  identifier
+///  ::  watch
 ///  ::  call
 ///  ::  parenthesis expression (parsed recursively)
 ///  ::  prefix binary operators
@@ -1721,6 +1724,19 @@ conductance_statement_error:
         loc);
     return nullptr;
 }
+
+// WATCH (cond) flag
+expression_ptr Parser::parse_watch() {
+    Location loc = location_; // solve location for expression
+    get_token();              // consume keyword
+
+    parse_parenthesis_expression();
+    parse_expression();
+
+    error("WATCH statements are not supported in modcc.", loc);
+    return nullptr;
+}
+
 
 expression_ptr Parser::parse_if() {
     Token if_token = token_;

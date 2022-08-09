@@ -126,7 +126,7 @@ Class documentation
     **I/O:**
 
     .. cpp:function:: sampler_association_handle add_sampler(\
-                        cell_member_predicate probe_ids,\
+                        cell_member_predicate probeset_ids,\
                         schedule sched,\
                         sampler_function f,\
                         sampling_policy policy = sampling_policy::lax)

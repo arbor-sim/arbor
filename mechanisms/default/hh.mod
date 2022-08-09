@@ -53,6 +53,7 @@ INITIAL {
     : potassium activation system
     alpha = n_alpha(v)
     beta  = n_beta(v)
+
     n     = alpha/(alpha + beta)
 }
 

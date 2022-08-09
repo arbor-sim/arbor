@@ -40,7 +40,7 @@ These locations will form the endpoints of the connections between the cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 48-51
+   :lines: 48-58
 
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
 The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
@@ -63,7 +63,7 @@ Step **(4)** places a spike detector at the ``'root'``. The detector is given th
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 53-73
+   :lines: 60-69
 
 The recipe
 **********
@@ -107,7 +107,7 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 76-124
+   :lines: 74-122
 
 The execution
 *************
@@ -131,9 +131,9 @@ This means the timestamps of the generated events will be kept in memory. Be def
 In addition to having the timestamps of spikes, we want to extract the voltage as a function of time.
 
 Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as
-attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the
-desired schedule (here: a recording frequency of 10 kHz, or a ``dt`` of 0.1 ms). Note that the probe id is a separate index from those of
-:term:`connection` endpoints; probe ids correspond to the index of the list produced by
+attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probeset id` and the
+desired schedule (here: a recording frequency of 10 kHz, or a ``dt`` of 0.1 ms). Note that the probeset id is a separate index from those of
+:term:`connection` endpoints; probeset ids correspond to the index of the list produced by
 :py:func:`arbor.recipe.probes` on cell ``gid``.
 
 :py:func:`arbor.simulation.sample` returns a handle to the :term:`samples <sample>` that will be recorded. We store
@@ -143,7 +143,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 126-138
+   :lines: 124-136
 
 The results
 ***********
@@ -152,7 +152,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 140-143
+   :lines: 138-141
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -164,7 +164,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 145-
+   :lines: 143-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 

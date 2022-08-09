@@ -311,9 +311,9 @@ public:
     const auto& placements() const {return placements_; }
     const auto& defaults()   const {return defaults_;   }
 
-    void paint(region, paintable);
-    void place(locset, placeable, cell_tag_type);
-    void set_default(defaultable);
+    decor& paint(region, paintable);
+    decor& place(locset, placeable, cell_tag_type);
+    decor& set_default(defaultable);
 };
 
 ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;

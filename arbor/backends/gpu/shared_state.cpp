@@ -28,26 +28,26 @@ namespace gpu {
 // CUDA implementation entry points:
 
 void update_time_to_impl(
-    std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
-    fvm_value_type dt, fvm_value_type tmax);
+    std::size_t n, arb_value_type* time_to, const arb_value_type* time,
+    arb_value_type dt, arb_value_type tmax);
 
 void update_time_to_impl(
-    std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
-    fvm_value_type dt, fvm_value_type tmax);
+    std::size_t n, arb_value_type* time_to, const arb_value_type* time,
+    arb_value_type dt, arb_value_type tmax);
 
 void set_dt_impl(
-    fvm_size_type nintdom, fvm_size_type ncomp, fvm_value_type* dt_intdom, fvm_value_type* dt_comp,
-    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom);
+    arb_size_type nintdom, arb_size_type ncomp, arb_value_type* dt_intdom, arb_value_type* dt_comp,
+    const arb_value_type* time_to, const arb_value_type* time, const arb_index_type* cv_to_intdom);
 
 void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
-    const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value);
+    const arb_value_type* time, arb_value_type* sample_time, arb_value_type* sample_value);
 
-void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v);
+void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
 // GPU-side minmax: consider CUDA kernel replacement.
-std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, const fvm_value_type* v) {
-    auto v_copy = memory::on_host(memory::const_device_view<fvm_value_type>(v, n));
+std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
+    auto v_copy = memory::on_host(memory::const_device_view<arb_value_type>(v, n));
     return util::minmax_value(v_copy);
 }
 
@@ -105,12 +105,12 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     using util::assign;
 
     // Translate instance-to-CV index from stim to istim_state index vectors.
-    std::vector<fvm_index_type> accu_index_stage;
+    std::vector<arb_index_type> accu_index_stage;
     assign(accu_index_stage, util::index_into(stim.cv, stim.cv_unique));
 
     std::size_t n = accu_index_stage.size();
-    std::vector<fvm_value_type> envl_a, envl_t;
-    std::vector<fvm_index_type> edivs;
+    std::vector<arb_value_type> envl_a, envl_t;
+    std::vector<arb_index_type> edivs;
 
     frequency_ = make_const_view(stim.frequency);
     phase_ = make_const_view(stim.phase);
@@ -128,7 +128,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
 
         util::append(envl_a, stim.envelope_amplitude[i]);
         util::append(envl_t, stim.envelope_time[i]);
-        edivs.push_back(fvm_index_type(envl_t.size()));
+        edivs.push_back(arb_index_type(envl_t.size()));
     }
 
     accu_index_ = make_const_view(accu_index_stage);
@@ -180,18 +180,18 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 // Shared state methods:
 
 shared_state::shared_state(
-    fvm_size_type n_intdom,
-    fvm_size_type n_cell,
-    fvm_size_type n_detector,
-    const std::vector<fvm_index_type>& cv_to_intdom_vec,
-    const std::vector<fvm_index_type>& cv_to_cell_vec,
-    const std::vector<fvm_value_type>& init_membrane_potential,
-    const std::vector<fvm_value_type>& temperature_K,
-    const std::vector<fvm_value_type>& diam,
-    const std::vector<fvm_index_type>& src_to_spike,
+    arb_size_type n_intdom,
+    arb_size_type n_cell,
+    arb_size_type n_detector,
+    const std::vector<arb_index_type>& cv_to_intdom_vec,
+    const std::vector<arb_index_type>& cv_to_cell_vec,
+    const std::vector<arb_value_type>& init_membrane_potential,
+    const std::vector<arb_value_type>& temperature_K,
+    const std::vector<arb_value_type>& diam,
+    const std::vector<arb_index_type>& src_to_spike,
     unsigned, // alignment parameter ignored.
     std::uint64_t cbprng_seed_
-):
+    ):
     n_intdom(n_intdom),
     n_detector(n_detector),
     n_cv(cv_to_intdom_vec.size()),
@@ -534,7 +534,7 @@ void shared_state::ions_init_concentration() {
     }
 }
 
-void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
+void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     update_time_to_impl(n_intdom, time_to.data(), time.data(), dt_step, tmax);
 }
 
@@ -546,11 +546,11 @@ void shared_state::add_stimulus_current() {
     stim_data.add_current(time, cv_to_intdom, current_density);
 }
 
-std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
+std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
     return minmax_value_impl(n_intdom, time.data());
 }
 
-std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
+std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 

@@ -1,4 +1,4 @@
-.. _cppversion:
+.. _dev-version:
 
 Version and build information
 =============================

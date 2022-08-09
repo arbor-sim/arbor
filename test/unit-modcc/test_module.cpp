@@ -113,3 +113,12 @@ TEST(Module, breakpoint) {
 
     EXPECT_TRUE(m.semantic());
 }
+
+TEST(Module, read_write_ion) {
+    Module m(io::read_all(DATADIR "/mod_files/test-rw-ion.mod"), "test-rw-ion.mod");
+    EXPECT_NE(m.buffer().size(), 0);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+    EXPECT_TRUE(m.semantic());
+}
