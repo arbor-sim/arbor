@@ -37,15 +37,12 @@ std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
 }
 
 backtrace& backtrace::pop(std::size_t n) {
-    auto end = frames_.begin();
-    for(std::size_t ix = 0;
-        ix < n && end != frames_.end();
-        ++ix, ++end) {}
-    frames_.erase(frames_.begin(), end);
+    frames_.erase(frames_.begin(),
+                  frames_.begin() + std::min(n, frames_.size()));
     return *this;
 }
 
-std::string backtrace::to_string() {
+std::string backtrace::to_string() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();

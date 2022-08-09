@@ -29,7 +29,7 @@ public:
     // remove the top N=1 frames
     backtrace& pop(std::size_t n=1);
 
-    std::string to_string();
+    std::string to_string() const;
 
 private:
     std::vector<source_location> frames_;
