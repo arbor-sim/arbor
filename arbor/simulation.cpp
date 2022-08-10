@@ -517,7 +517,7 @@ void simulation_state::inject_events(const cse_vector& events) {
 
 simulation::simulation(
     const recipe& rec,
-    const context& ctx,
+    context ctx,
     const domain_decomposition& decomp)
 {
     impl_.reset(new simulation_state(rec, decomp, ctx));

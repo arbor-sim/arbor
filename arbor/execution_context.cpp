@@ -54,27 +54,27 @@ ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d) {
     return std::make_shared<execution_context>(p, d);
 }
 
-ARB_ARBOR_API std::string distribution_type(const context& ctx) {
+ARB_ARBOR_API std::string distribution_type(context ctx) {
     return ctx->distributed->name();
 }
 
-ARB_ARBOR_API bool has_gpu(const context& ctx) {
+ARB_ARBOR_API bool has_gpu(context ctx) {
     return ctx->gpu->has_gpu();
 }
 
-ARB_ARBOR_API unsigned num_threads(const context& ctx) {
+ARB_ARBOR_API unsigned num_threads(context ctx) {
     return ctx->thread_pool->get_num_threads();
 }
 
-ARB_ARBOR_API unsigned num_ranks(const context& ctx) {
+ARB_ARBOR_API unsigned num_ranks(context ctx) {
     return ctx->distributed->size();
 }
 
-ARB_ARBOR_API unsigned rank(const context& ctx) {
+ARB_ARBOR_API unsigned rank(context ctx) {
     return ctx->distributed->id();
 }
 
-ARB_ARBOR_API bool has_mpi(const context& ctx) {
+ARB_ARBOR_API bool has_mpi(context ctx) {
     return ctx->distributed->name() == "MPI";
 }
 
