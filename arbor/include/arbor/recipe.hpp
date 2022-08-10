@@ -52,6 +52,20 @@ struct cell_connection {
         source(std::move(src)), dest(std::move(dst)), weight(w), delay(d) {}
 };
 
+struct external_cell_connection {
+    // Connection end-points are represented by pairs
+    // (cell index, source/target index on cell).
+
+    ext_guid_type source;
+    cell_local_label_type dest;
+
+    float weight;
+    float delay;
+
+    external_cell_connection(ext_guid_type src, cell_local_label_type dst, float w, float d):
+        source(std::move(src)), dest(std::move(dst)), weight(w), delay(d) {}
+};
+
 struct gap_junction_connection {
     cell_global_label_type peer;
     cell_local_label_type local;
@@ -75,10 +89,12 @@ public:
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
         return {};
     }
+    virtual std::vector<external_cell_connection> external_connections_on(cell_gid_type) const {
+        return {};
+    }
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
-
     virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
         return {};
     }

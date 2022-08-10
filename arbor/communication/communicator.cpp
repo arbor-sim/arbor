@@ -36,17 +36,6 @@ communicator::communicator(const recipe& rec,
     num_local_cells_ = dom_dec.num_local_cells();
     auto num_total_cells = rec.num_cells();
 
-    // For caching information about each cell
-    struct gid_info {
-        using connection_list = decltype(std::declval<recipe>().connections_on(0));
-        cell_gid_type gid;              // global identifier of cell
-        cell_size_type index_on_domain; // index of cell in this domain
-        connection_list conns;          // list of connections terminating at this cell
-        gid_info() = default;           // so we can in a std::vector
-        gid_info(cell_gid_type g, cell_size_type di, connection_list c):
-            gid(g), index_on_domain(di), conns(std::move(c)) {}
-    };
-
     // Make a list of local gid with their group index and connections
     //   -> gid_infos
     // Count the number of local connections (i.e. connections terminating on this domain)
@@ -64,17 +53,25 @@ communicator::communicator(const recipe& rec,
     for (auto g: dom_dec.groups()) {
         util::append(gids, g.gids);
     }
-    // Build the connection information for local cells in parallel.
-    std::vector<gid_info> gid_infos;
-    gid_infos.resize(num_local_cells_);
+
+// For caching information about each cell
+    struct gid_info {
+        cell_gid_type gid;              // global identifier of cell
+        cell_size_type index_on_domain; // index of cell in this domain
+        std::vector<cell_connection> conns;           // list of connections terminating at this cell
+        std::vector<external_cell_connection> ext_conns;           // list of connections terminating at this cell                                    //
+    };
+
+
+    std::vector<gid_info> gid_infos(num_local_cells_, gid_info{});
     threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
         [&](cell_size_type i) {
             auto gid = gids[i];
-            gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
+            gid_infos[i] = {gid, i, rec.connections_on(gid), rec.external_connections_on(gid)};
         });
 
     cell_local_size_type n_cons =
-        util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
+        util::sum_by(gid_infos, [](const auto& g){ return g.conns.size(); });
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
@@ -191,7 +188,7 @@ void communicator::make_event_queues(
             while (cn!=cons.end() && sp!=spks.end()) {
                 auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                 for (auto s: make_range(sources)) {
-                    queues[cn->index_on_domain()].push_back(cn->make_event(s));
+                    queues[cn->index_on_domain()].push_back(make_event(*cn, s));
                 }
 
                 sp = sources.first;
@@ -204,7 +201,7 @@ void communicator::make_event_queues(
             while (cn!=cons.end() && sp!=spks.end()) {
                 auto targets = std::equal_range(cn, cons.end(), sp->source);
                 for (auto c: make_range(targets)) {
-                    queues[c.index_on_domain()].push_back(c.make_event(*sp));
+                    queues[c.index_on_domain()].push_back(make_event(c, *sp));
                 }
 
                 cn = targets.first;
