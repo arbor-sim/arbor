@@ -36,6 +36,7 @@ public:
     expression_ptr parse_local();
     expression_ptr parse_solve();
     expression_ptr parse_conductance();
+    expression_ptr parse_watch();
     expression_ptr parse_block(bool);
     expression_ptr parse_initial();
     expression_ptr parse_compartment_statement();

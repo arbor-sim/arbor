@@ -83,6 +83,9 @@ enum class tok {
 
     conductance,
 
+    // trap unsupported keywords
+    watch,
+
     reserved, // placeholder for generating keyword lookup
 };
 

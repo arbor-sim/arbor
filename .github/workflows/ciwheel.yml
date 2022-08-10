@@ -18,12 +18,11 @@ jobs:
 
     steps:
       - name: Get Arbor
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           submodules: recursive
       - name: Create unique VERSION
-        if: endsWith(github.ref,'ciwheel')
+        if: startsWith(github.ref, 'refs/tags/v') == false
         run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
       - uses: actions/upload-artifact@v3
         with:
@@ -40,9 +39,8 @@ jobs:
 
     steps:
       - name: Get Arbor
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           submodules: recursive
       - name: Delete VERSION
         run: rm -f VERSION
@@ -70,9 +68,8 @@ jobs:
       - name: Get packages
         run: python3 -m pip install build
       - name: Get Arbor
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           submodules: recursive
       - name: Delete VERSION
         run: rm -f VERSION

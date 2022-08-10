@@ -15,18 +15,15 @@ namespace arb {
 // there is a bug in the library.)
 
 struct ARB_SYMBOL_VISIBLE arbor_internal_error: std::logic_error {
-    arbor_internal_error(const std::string& what_arg):
-        std::logic_error(what_arg)
-    {}
+    arbor_internal_error(const std::string&);
+    std::string where;
 };
-
 
 // Common base-class for arbor run-time errors.
 
 struct ARB_SYMBOL_VISIBLE arbor_exception: std::runtime_error {
-    arbor_exception(const std::string& what_arg):
-        std::runtime_error(what_arg)
-    {}
+    arbor_exception(const std::string&);
+    std::string where;
 };
 
 // Logic errors
@@ -67,9 +64,9 @@ struct ARB_SYMBOL_VISIBLE bad_global_property: arbor_exception {
     cell_kind kind;
 };
 
-struct ARB_SYMBOL_VISIBLE bad_probe_id: arbor_exception {
-    explicit bad_probe_id(cell_member_type id);
-    cell_member_type probe_id;
+struct ARB_SYMBOL_VISIBLE bad_probeset_id: arbor_exception {
+    explicit bad_probeset_id(cell_member_type id);
+    cell_member_type probeset_id;
 };
 
 struct ARB_SYMBOL_VISIBLE gj_kind_mismatch: arbor_exception {

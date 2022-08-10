@@ -50,7 +50,7 @@ inline deliverable_event_data event_data(const deliverable_event& ev) {
 
 // Sample events (raw values from back-end state).
 
-using probe_handle = const fvm_value_type*;
+using probe_handle = const arb_value_type*;
 
 struct raw_probe_info {
     probe_handle handle;      // where the to-be-probed value sits
