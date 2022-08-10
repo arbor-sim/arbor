@@ -130,18 +130,18 @@ public:
         return py::array_t<arb::spike>(py::ssize_t(spike_record_.size()), spike_record_.data());
     }
 
-    py::list get_probe_metadata(arb::cell_member_type probe_id) const {
+    py::list get_probe_metadata(arb::cell_member_type probeset_id) const {
         py::list result;
-        for (auto&& pm: sim_->get_probe_metadata(probe_id)) {
+        for (auto&& pm: sim_->get_probe_metadata(probeset_id)) {
              result.append(global_ptr_->probe_meta_converters.convert(pm.meta));
         }
         return result;
     }
 
-    arb::sampler_association_handle sample(arb::cell_member_type probe_id, const pyarb::schedule_shim_base& sched, arb::sampling_policy policy) {
+    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched, arb::sampling_policy policy) {
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
-        for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probe_id)) {
+        for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
             recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta));
         }
 
@@ -149,7 +149,7 @@ public:
         // is kept in sampler_map_; the two copies share the same recorder data.
 
         sampler_callback cb{std::move(recorders)};
-        auto sah = sim_->add_sampler(arb::one_probe(probe_id), sched.schedule(), cb, policy);
+        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb, policy);
         sampler_map_.insert({sah, cb});
 
         return sah;
@@ -241,11 +241,11 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "Retrieve recorded spikes as numpy array.")
         .def("probe_metadata", &simulation_shim::get_probe_metadata,
             "Retrieve metadata associated with given probe id.",
-            "probe_id"_a)
+            "probeset_id"_a)
         .def("sample", &simulation_shim::sample,
-            "Record data from probes with given probe_id according to supplied schedule.\n"
+            "Record data from probes with given probeset_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
-            "probe_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
+            "probeset_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
         .def("samples", &simulation_shim::samples,
             "Retrieve sample data as a list, one element per probe associated with the query.",
             "handle"_a)

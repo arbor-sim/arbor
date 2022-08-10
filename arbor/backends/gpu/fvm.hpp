@@ -23,9 +23,9 @@ struct backend {
     static bool is_supported() { return true; }
     static std::string name() { return "gpu"; }
 
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-    using size_type  = fvm_size_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
+    using size_type  = arb_size_type;
 
     using array  = arb::gpu::array;
     using iarray = arb::gpu::iarray;
@@ -41,8 +41,8 @@ struct backend {
     }
 
     using threshold_watcher        = arb::gpu::threshold_watcher;
-    using cable_solver             = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
-    using diffusion_solver         = arb::gpu::diffusion_state<fvm_value_type, fvm_index_type>;
+    using cable_solver             = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
+    using diffusion_solver         = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using deliverable_event_stream = arb::gpu::deliverable_event_stream;
     using sample_event_stream      = arb::gpu::sample_event_stream;
 

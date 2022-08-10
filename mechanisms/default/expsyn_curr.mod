@@ -27,7 +27,6 @@ INITIAL {
 }
 
 BREAKPOINT {
-	:SOLVE state METHOD cnexp
 	SOLVE state METHOD sparse : to match with expsyn_curr_calcium_plasticity
 
 	I = -g / R_mem

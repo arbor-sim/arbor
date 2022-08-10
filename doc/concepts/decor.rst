@@ -31,6 +31,14 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
 * setting properties defined over the whole cell;
 * descriptions of dynamics applied to regions and locsets.
 
+.. note::
+
+   All methods on decor objects (``paint``, ``place``, and ``set_default``)
+   return a reference to the objects so you can chain them together. This saves
+   some repetition. You can break long statements over multiple lines, but in
+   Python this requires use of continuation lines ``\`` or wrapping the whole
+   expression into parentheses.
+
 .. _cablecell-paint:
 
 Painted dynamics

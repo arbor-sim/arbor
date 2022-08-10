@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <sstream>
+
 #include <arbor/spike.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/arbexcept.hpp>
@@ -44,10 +46,6 @@ PYBIND11_MODULE(_arbor, m) {
     m.doc() = "arbor: multicompartment neural network models.";
     m.attr("__version__") = ARB_VERSION;
 
-    // Translate Arbor errors -> Python exceptions.
-    pybind11::register_exception<arb::file_not_found_error>(m, "FileNotFoundError", PyExc_FileNotFoundError);
-    pybind11::register_exception<arb::zero_thread_requested_error>(m, "ValueError", PyExc_ValueError);
-
     pyarb::register_cable_loader(m);
     pyarb::register_cable_probes(m, global_ptr);
     pyarb::register_cells(m);
@@ -63,6 +61,33 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_schedules(m);
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_single_cell(m);
+
+    // This is the fallback. All specific translators take precedence by being
+    // registered *later*.
+    pybind11::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        }
+        catch (const arb::arbor_exception& e) {
+            std::stringstream msg;
+            msg << e.what()
+                << "\n"
+                << e.where;
+            PyErr_SetString(PyExc_RuntimeError, msg.str().c_str());
+        }
+        catch (const arb::arbor_internal_error& e) {
+            std::stringstream msg;
+            msg << e.what()
+                << "\n"
+                << e.where;
+            PyErr_SetString(PyExc_RuntimeError, msg.str().c_str());
+        }
+    });
+
+    // Translate Arbor errors -> Python exceptions.
+    pybind11::register_exception<arb::file_not_found_error>(m, "FileNotFoundError", PyExc_FileNotFoundError);
+    pybind11::register_exception<arb::zero_thread_requested_error>(m, "ValueError", PyExc_ValueError);
+
 
     #ifdef ARB_MPI_ENABLED
     pyarb::register_mpi(m);

@@ -32,32 +32,30 @@ def make_cable_cell(gid):
     tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
-    labels = arbor.label_dict().add_swc_tags()
-
-    # Mark location for synapse site at midpoint of dendrite (branch 0 = soma + dendrite)
-    labels["synapse_site"] = "(location 0 0.6)"
-
-    # Gap junction site at connection point of soma and dendrite
-    labels["gj_site"] = "(location 0 0.2)"
-
-    # Label root of the tree
-    labels["root"] = "(root)"
+    labels = arbor.label_dict(
+        {
+            # Mark location for synapse site at midpoint of dendrite (branch 0  soma + dendrite)
+            "synapse_site": "(location 0 0.6)",
+            # Gap junction site at connection point of soma and dendrite
+            "gj_site": "(location 0 0.2)",
+            # Label root of the tree
+            "root": "(root)",
+        }
+    ).add_swc_tags()
 
     # Paint dynamics onto the cell, hh on soma and passive properties on dendrite
-    decor = arbor.decor()
-    decor.paint('"soma"', arbor.density("hh"))
-    decor.paint('"dend"', arbor.density("pas"))
+    decor = (
+        arbor.decor()
+        .paint('"soma"', arbor.density("hh"))
+        .paint('"dend"', arbor.density("pas"))
+        # Attach one synapse and gap junction each on their labeled sites
+        .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
+        .place('"gj_site"', arbor.junction("gj"), "gj")
+        # Attach spike detector to cell root
+        .place('"root"', arbor.spike_detector(-10), "detector")
+    )
 
-    # Attach one synapse and gap junction each on their labeled sites
-    decor.place('"synapse_site"', arbor.synapse("expsyn"), "syn")
-    decor.place('"gj_site"', arbor.junction("gj"), "gj")
-
-    # Attach spike detector to cell root
-    decor.place('"root"', arbor.spike_detector(-10), "detector")
-
-    cell = arbor.cable_cell(tree, labels, decor)
-
-    return cell
+    return arbor.cable_cell(tree, labels, decor)
 
 
 # Create a recipe that generates connected chains of cells

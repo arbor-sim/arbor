@@ -18,7 +18,7 @@ namespace arb {
 struct sampler_association {
     schedule sched;
     sampler_function sampler;
-    std::vector<cell_member_type> probe_ids;
+    std::vector<cell_member_type> probeset_ids;
     sampling_policy policy;
 };
 

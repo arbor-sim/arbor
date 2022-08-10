@@ -30,7 +30,7 @@ __global__ void update_time_to_impl(unsigned n,
 template <typename T>
 __global__ void add_scalar(unsigned n,
                            T* __restrict__ const x,
-                           fvm_value_type v) {
+                           arb_value_type v) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         x[i] += v;
@@ -55,9 +55,9 @@ __global__ void set_dt_impl(      T* __restrict__ dt_intdom,
 
 __global__ void take_samples_impl(
     multi_event_stream_state<raw_probe_info> s,
-    const fvm_value_type* __restrict__ const time,
-    fvm_value_type* __restrict__ const sample_time,
-    fvm_value_type* __restrict__ const sample_value)
+    const arb_value_type* __restrict__ const time,
+    arb_value_type* __restrict__ const sample_time,
+    arb_value_type* __restrict__ const sample_value)
 {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<s.n) {
@@ -74,7 +74,7 @@ __global__ void take_samples_impl(
 
 using impl::block_count;
 
-void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v) {
+void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v) {
     if (!n) return;
 
     constexpr int block_dim = 128;
@@ -83,8 +83,8 @@ void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v) {
 }
 
 void update_time_to_impl(
-    std::size_t n, fvm_value_type* time_to, const fvm_value_type* time,
-    fvm_value_type dt, fvm_value_type tmax)
+    std::size_t n, arb_value_type* time_to, const arb_value_type* time,
+    arb_value_type dt, arb_value_type tmax)
 {
     if (!n) return;
 
@@ -94,8 +94,8 @@ void update_time_to_impl(
 }
 
 void set_dt_impl(
-    fvm_size_type nintdom, fvm_size_type ncomp, fvm_value_type* dt_intdom, fvm_value_type* dt_comp,
-    const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_intdom)
+    arb_size_type nintdom, arb_size_type ncomp, arb_value_type* dt_intdom, arb_value_type* dt_comp,
+    const arb_value_type* time_to, const arb_value_type* time, const arb_index_type* cv_to_intdom)
 {
     if (!nintdom || !ncomp) return;
 
@@ -106,7 +106,7 @@ void set_dt_impl(
 
 void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
-    const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value)
+    const arb_value_type* time, arb_value_type* sample_time, arb_value_type* sample_value)
 {
     if (!s.n_streams()) return;
 
