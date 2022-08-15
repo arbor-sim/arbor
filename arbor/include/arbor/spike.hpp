@@ -27,6 +27,7 @@ struct basic_spike {
 
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
+using ext_spike = basic_spike<ext_guid_type>;
 
 } // namespace arb
 

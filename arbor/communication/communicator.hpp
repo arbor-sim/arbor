@@ -58,6 +58,7 @@ public:
     /// in the list.
     void make_event_queues(
             const gathered_vector<spike>& global_spikes,
+            const std::vector<spike>& external_spikes,
             std::vector<pse_vector>& queues);
 
     /// Returns the total number of global spikes over the duration of the simulation
@@ -66,6 +67,7 @@ public:
     cell_size_type num_local_cells() const;
 
     const std::vector<connection>& connections() const;
+    const std::vector<ext_connection>& external_connections() const;
 
     void reset();
 
@@ -73,13 +75,16 @@ private:
     cell_size_type num_local_cells_;
     cell_size_type num_local_groups_;
     cell_size_type num_domains_;
+    // Arbor connections
     std::vector<connection> connections_;
+    // partition of connections over the domains of the sources' ids.
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    std::vector<connection> ext_connections_;
-
+    // Connections from external simulators into Arbor.
+    // Currently we have no partitions/indices/acceleration structures
+    std::vector<ext_connection> ext_connections_;
 
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;

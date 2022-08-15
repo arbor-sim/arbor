@@ -56,12 +56,11 @@ communicator::communicator(const recipe& rec,
 
 // For caching information about each cell
     struct gid_info {
-        cell_gid_type gid;              // global identifier of cell
-        cell_size_type index_on_domain; // index of cell in this domain
-        std::vector<cell_connection> conns;           // list of connections terminating at this cell
-        std::vector<external_cell_connection> ext_conns;           // list of connections terminating at this cell                                    //
+        cell_gid_type gid;                               // global identifier of cell
+        cell_size_type index_on_domain;                  // index of cell in this domain
+        std::vector<cell_connection> conns;              // list of connections terminating at this cell
+        std::vector<external_cell_connection> ext_conns; // list of connections terminating at this cell                                    //
     };
-
 
     std::vector<gid_info> gid_infos(num_local_cells_, gid_info{});
     threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
@@ -70,8 +69,9 @@ communicator::communicator(const recipe& rec,
             gid_infos[i] = {gid, i, rec.connections_on(gid), rec.external_connections_on(gid)};
         });
 
-    cell_local_size_type n_cons =
-        util::sum_by(gid_infos, [](const auto& g){ return g.conns.size(); });
+    cell_local_size_type
+        n_cons = util::sum_by(gid_infos, [](const auto& g){ return g.conns.size(); }),
+        n_ext_cons = util::sum_by(gid_infos, [](const auto& g){ return g.ext_conns.size(); });
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
@@ -85,15 +85,19 @@ communicator::communicator(const recipe& rec,
             src_domains.push_back(src);
             src_counts[src]++;
         }
+        // TODO Do we want/need to do something here for external connections?
     }
 
     // Construct the connections.
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
     connections_.resize(n_cons);
+    ext_connections_.resize(n_ext_cons);
     util::make_partition(connection_part_, src_counts);
     auto offsets = connection_part_;
-    std::size_t pos = 0;
+    std::size_t
+        pos = 0,
+        ext_pos = 0;
     auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
         auto source_resolver = resolver(&source_resolution_map);
@@ -103,6 +107,11 @@ communicator::communicator(const recipe& rec,
             auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
             connections_[i] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, cell.index_on_domain};
             ++pos;
+        }
+        for (const auto& c: cell.ext_conns) {
+            const auto i = ext_pos++;
+            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+            ext_connections_[i] = {c.source, tgt_lid, c.weight, c.delay, cell.index_on_domain};
         }
     }
 
@@ -119,6 +128,7 @@ communicator::communicator(const recipe& rec,
         [&](cell_size_type i) {
             util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
         });
+    // Sort
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -152,6 +162,7 @@ gathered_vector<spike> communicator::exchange(std::vector<spike> local_spikes) {
 
 void communicator::make_event_queues(
         const gathered_vector<spike>& global_spikes,
+        const std::vector<ext_spike>& external_spikes,
         std::vector<pse_vector>& queues)
 {
     arb_assert(queues.size()==num_local_cells_);
@@ -221,6 +232,10 @@ cell_size_type communicator::num_local_cells() const {
 
 const std::vector<connection>& communicator::connections() const {
     return connections_;
+}
+
+const std::vector<ext_connection>& communicator::external_connections() const {
+    return ext_connections_;
 }
 
 void communicator::reset() {
