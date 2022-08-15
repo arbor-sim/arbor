@@ -23,7 +23,6 @@
 #include "util/transform.hpp"
 #include "util/unique.hpp"
 
-//TODO
 #include <iostream>
 
 namespace arb {
@@ -769,9 +768,7 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_index_t
 {
     std::unordered_map<cell_member_type, cell_member_type> gj_cvs_index;    
     for (int i = 0; i<gids.size(); ++i){
-
         cell_id cell = {gids[i], cgs[i], cvs[i], lids[i]};
-        int index = cell_to_index.at(cell);
         gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, cell_member_type{unsigned(cvs[i]), unsigned(cgs[i])}});
     }
     

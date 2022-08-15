@@ -552,7 +552,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     {
         // Allocate bulk storage
         std::size_t index_width_padded = extend_width<arb_index_type>(m, pos_data.cv.size());
-        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
+        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 2;
         store.indices_ = iarray(count*index_width_padded, 0, pad);
         chunk_writer writer(store.indices_.data(), index_width_padded);
         // Setup node indices
@@ -590,8 +590,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
-        // todo
-        if (peer_indices)  m.ppack_.peer_cg   = writer.append(pos_data.peer_cg, pos_data.peer_cg.back());
+        if (peer_indices)  m.ppack_.peer_cg   = writer.append(pos_data.peer_cg, 0);
     }
 }
 

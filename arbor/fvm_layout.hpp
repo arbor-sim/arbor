@@ -198,7 +198,7 @@ struct fvm_mechanism_config {
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
 
-    // todo added cg
+    // Cell group for peer index
     std::vector<index_type> peer_cg;
 
     // Coalesced synapse multiplier (point mechanisms only).
@@ -280,7 +280,6 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
     const recipe& rec);
     */
 
-//todo these are copies
 // Maps gj {gid, lid} locations on a cell to their CV indices.
 ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,

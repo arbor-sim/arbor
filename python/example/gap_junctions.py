@@ -50,8 +50,8 @@ def make_cable_cell(gid):
     decor.paint('"dend"', arbor.density("pas"))
 
     #split into multiple cvs
-    policy = arbor.cv_policy_explicit('(location 0 0.35)')
-    #policy = arbor.cv_policy_single()
+    #policy = arbor.cv_policy_explicit('(location 0 0.35)')
+    policy = arbor.cv_policy_single()
     decor.discretization(policy)
     #decor.discretization("(max-extent 9)")
 
@@ -112,6 +112,12 @@ class chain_recipe(arbor.recipe):
         if prev_cell >= chain_begin:
             conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.2))
             #conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.1*(gid+1)))
+        #if gid == 0:
+        #    conns.append(arbor.gap_junction_connection((3, 'gj_0'), 'gj_0', 0.2))
+        #if gid == 3:
+        #    conns.append(arbor.gap_junction_connection((0, 'gj_0'), 'gj_0', 0.2))
+
+
 
         return conns
 
@@ -132,7 +138,7 @@ class chain_recipe(arbor.recipe):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 5
+ncells_per_chain = 4
 
 # Number of chains
 nchains = 1
@@ -166,9 +172,9 @@ print(context)
 if comm.rank == 0:
     gs = [[0,1]]
 elif comm.rank == 1:
-    gs = [[2,3,4]]
-#elif comm.rank == 3:
-#    gs = [[3]]
+    gs = [[2,3]]
+#elif comm.rank == 2:
+#    gs = [[6,7]]
 
 
 groups = [arbor.group_description(arbor.cell_kind.cable, g, arbor.backend.multicore) for g in gs]
