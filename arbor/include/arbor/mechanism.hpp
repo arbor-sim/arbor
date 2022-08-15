@@ -96,6 +96,9 @@ struct mechanism_layout {
     // Maps in-instance index to peer CV index (only for gap-junctions).
     std::vector<fvm_index_type> peer_cv;
 
+    // Cell group of peer index
+    std::vector<fvm_index_type> peer_cg;
+
     // Maps in-instance index to compartment contribution.
     std::vector<fvm_value_type> weight;
 

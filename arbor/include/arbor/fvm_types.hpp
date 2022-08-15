@@ -14,7 +14,8 @@ struct fvm_gap_junction {
     fvm_size_type local_cv;  // CV index of the local gap junction site.
     fvm_size_type peer_cv;   // CV index of the peer gap junction site.
     fvm_value_type weight;   // unit-less local weight of the connection.
+    fvm_size_type peer_cg;   // Cell group of peer idx
 };
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(fvm_gap_junction, (a.local_cv, a.peer_cv, a.local_idx, a.weight), (b.local_cv, b.peer_cv, b.local_idx, b.weight))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(fvm_gap_junction, (a.local_cv, a.peer_cv, a.local_idx, a.weight, a.peer_cg), (b.local_cv, b.peer_cv, b.local_idx, b.weight, b.peer_cg))
 
 } // namespace arb

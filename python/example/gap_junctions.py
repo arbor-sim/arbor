@@ -39,7 +39,7 @@ def make_cable_cell(gid):
 
     # Gap junction site at connection point of soma and dendrite
     labels['gj_site_0'] = '(location 0 0.2)'
-    #labels['gj_site_1'] = '(location 0 0.5)'
+    labels['gj_site_1'] = '(location 0 0.5)'
 
     # Label root of the tree
     labels['root'] = '(root)'
@@ -50,13 +50,15 @@ def make_cable_cell(gid):
     decor.paint('"dend"', arbor.density("pas"))
 
     #split into multiple cvs
-    #policy = arbor.cv_policy_explicit('(location 0 0.35)')
-    #decor.discretization(policy)
+    policy = arbor.cv_policy_explicit('(location 0 0.35)')
+    #policy = arbor.cv_policy_single()
+    decor.discretization(policy)
+    #decor.discretization("(max-extent 9)")
 
     # Attach one synapse and gap junction each on their labeled sites
     decor.place('"synapse_site"', arbor.synapse('expsyn'), 'syn')
     decor.place('"gj_site_0"', arbor.junction('gj'), 'gj_0')
-    #decor.place('"gj_site_1"', arbor.junction('gj'), 'gj_1')
+    decor.place('"gj_site_1"', arbor.junction('gj'), 'gj_1')
 
     # Attach spike detector to cell root
     decor.place('"root"', arbor.spike_detector(-10), 'detector')
@@ -105,9 +107,11 @@ class chain_recipe(arbor.recipe):
         prev_cell = gid - 1
 
         if next_cell < chain_end:
-            conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.015))
+            conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.2))
+            #conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.1*(gid+1)))
         if prev_cell >= chain_begin:
-            conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.015))
+            conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.2))
+            #conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.1*(gid+1)))
 
         return conns
 
@@ -115,7 +119,7 @@ class chain_recipe(arbor.recipe):
     def event_generators(self, gid):
         if (gid == 0):
             sched = arbor.explicit_schedule([1])
-            weight = 0.5
+            weight = 0.1
             return [arbor.event_generator('syn', weight, sched)]
         return []
 
@@ -128,7 +132,7 @@ class chain_recipe(arbor.recipe):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 4
+ncells_per_chain = 5
 
 # Number of chains
 nchains = 1
@@ -161,8 +165,11 @@ print(context)
 
 if comm.rank == 0:
     gs = [[0,1]]
-else:
-    gs = [[2,3]]
+elif comm.rank == 1:
+    gs = [[2,3,4]]
+#elif comm.rank == 3:
+#    gs = [[3]]
+
 
 groups = [arbor.group_description(arbor.cell_kind.cable, g, arbor.backend.multicore) for g in gs]
 decomp = arbor.partition_by_group(recipe, context, groups)
@@ -180,7 +187,7 @@ sim.record(arbor.spike_recording.all)
 #handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 # Run simulation for 100 ms
-sim.run(100, dt=dt)
+sim.run(10, dt=dt)
 print('Simulation finished')
 
 # Print spike times

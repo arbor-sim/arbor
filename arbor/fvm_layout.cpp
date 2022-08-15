@@ -629,6 +629,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             append(L.multiplicity, R.multiplicity);
             append(L.norm_area, R.norm_area);
             append(L.local_weight, R.local_weight);
+            append(L.peer_cg, R.peer_cg);
             append_offset(L.target, target_offset, R.target);
 
             arb_assert(util::equal(L.param_values, R.param_values,
@@ -665,6 +666,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 //      3) update index map function { {gid, cg, cv} ->index } with gathered gids, cgs, cvs
 //      4) use index map as gj_cvs map equivalent
 
+
 // 1) split cg_cv_map into 4 arrays instead of unordered_map
 ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
     const std::vector<cable_cell>& cells,
@@ -672,7 +674,6 @@ ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
     unsigned cg,
     const fvm_cv_discretization& D)
 {
-    //std::cout << "building CV array start\n";
     std::vector<int> gid, lids, cgs, cvs;
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, cell_member_type> gj_cg_cvs;
@@ -686,13 +687,26 @@ ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(
             }
         }
     }
-    //std::cout << "building CV array end\n";
     return {gid, lids, cgs, cvs};
 }
 
 //3) index map function 
-
 using cell_id = std::tuple<int, int, int, int>;
+
+ARB_ARBOR_API std::map<std::tuple<int, int>, int> fvm_cell_to_index_lowered(
+    const std::vector<int>& cgs,
+    const std::vector<int>& cvs
+)
+{
+    std::map<std::tuple<int, int>, int> cell_to_index;
+
+    for (int i = 0; i<cgs.size(); ++i) {
+        std::tuple<int, int> element{cvs[i], cgs[i]};
+        cell_to_index[element] = i;
+    }
+
+    return cell_to_index;
+}
 
 ARB_ARBOR_API std::map<cell_id, int> fvm_cell_to_index(
     const std::vector<int>& gids,
@@ -724,6 +738,7 @@ ARB_ARBOR_API std::map<int, cell_id> fvm_index_to_cell(
     return index_to_cell;
 }
 
+/*
 ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_cv_map(
     const std::vector<int>& gids, 
     const std::vector<int>& lids, 
@@ -737,7 +752,27 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_c
 
         cell_id cell = {gids[i], cgs[i], cvs[i], lids[i]};
         int index = cell_to_index.at(cell);
-        gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, unsigned(index)});
+        //gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, unsigned(index)});
+        gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, unsigned(cvs[i])});
+    }
+    
+    return gj_cvs_index;
+}*/
+
+ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_index_to_cv_map(
+    const std::vector<int>& gids, 
+    const std::vector<int>& lids, 
+    const std::vector<int>& cgs, 
+    const std::vector<int>& cvs,
+    const std::map<cell_id, int>& cell_to_index
+)
+{
+    std::unordered_map<cell_member_type, cell_member_type> gj_cvs_index;    
+    for (int i = 0; i<gids.size(); ++i){
+
+        cell_id cell = {gids[i], cgs[i], cvs[i], lids[i]};
+        int index = cell_to_index.at(cell);
+        gj_cvs_index.insert({cell_member_type{unsigned(gids[i]), unsigned(lids[i])}, cell_member_type{unsigned(cvs[i]), unsigned(cgs[i])}});
     }
     
     return gj_cvs_index;
@@ -761,7 +796,8 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_
     return gj_cvs;
 }*/
 
-//todo make resolution map with gj_data and gids global -> maybe try to gather cell_label_range gj_data 
+//make resolution map with gj_data and gids global -> maybe try to gather cell_label_range gj_data 
+/*
 ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,
@@ -782,10 +818,44 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
             auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx});
 
             local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
+            //std::cout <<"local_idx = " << local_idx <<  " local_cv = " << local_cv << " peer_cv = " << peer_cv << " conn.weight = " << conn.weight << std::endl;
         }
         // Sort local_conns by local_cv.
         util::sort(local_conns);
         gj_conns[gid] = std::move(local_conns);
+    }
+    return gj_conns;
+}*/
+
+
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, cell_member_type>& gj_cvs,
+    const recipe& rec)
+{
+    // Construct and resolve all gj_connections.
+    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
+    label_resolution_map resolution_map({gj_data, gids});
+    auto gj_resolver = resolver(&resolution_map);
+    for (const auto& gid: gids) {
+        std::vector<fvm_gap_junction> local_conns;
+        for (const auto& conn: rec.gap_junctions_on(gid)) {
+            auto local_idx = gj_resolver.resolve({gid, conn.local});
+            auto peer_idx  = gj_resolver.resolve(conn.peer);
+
+            auto local_cv = gj_cvs.at({gid, local_idx}).gid;
+            auto peer_cv  = gj_cvs.at({conn.peer.gid, peer_idx}).gid;
+
+            auto peer_cg  = gj_cvs.at({conn.peer.gid, peer_idx}).index;
+
+            local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight, peer_cg});
+            //std::cout <<"local_idx = " << local_idx <<  " local_cv = " << local_cv << " peer_cv = " << peer_cv << " peer_cg = " << peer_cg << " conn.weight = " << conn.weight << std::endl;
+        }
+        // Sort local_conns by local_cv.
+        util::sort(local_conns);
+        gj_conns[gid] = std::move(local_conns);
+
     }
     return gj_conns;
 }
@@ -1219,10 +1289,13 @@ fvm_mechanism_data fvm_build_mechanism_data(
         config.cv.push_back(conn.local_cv);
         config.peer_cv.push_back(conn.peer_cv);
         config.local_weight.push_back(conn.weight);
+        config.peer_cg.push_back(conn.peer_cg);
+        //std::cout << "node cv = " << conn.local_cv <<"peer cv = " << conn.peer_cv <<"peer cg = " << config.peer_cg.back() << std::endl;
         for (unsigned i = 0; i < local_junction_desc.param_values.size(); ++i) {
             config.param_values[i].second.push_back(local_junction_desc.param_values[i]);
         }
     }
+    
 
     // Add non-empty fvm_mechanism_config to the fvm_mechanism_data
     for (auto [name, config]: junction_configs) {

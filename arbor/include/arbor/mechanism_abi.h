@@ -94,6 +94,7 @@ typedef struct arb_mechanism_ppack {
     arb_value_type* time_since_spike;
     arb_index_type* node_index;
     arb_index_type* peer_index;
+    arb_index_type* peer_cg;                        // todo added the peer cell group 
     arb_index_type* multiplicity;
     arb_value_type* weight;
     arb_size_type   mechanism_id;

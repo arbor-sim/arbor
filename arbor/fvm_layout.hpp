@@ -198,6 +198,9 @@ struct fvm_mechanism_config {
     // duplicates for point mechanisms.
     std::vector<index_type> cv;
 
+    // todo added cg
+    std::vector<index_type> peer_cg;
+
     // Coalesced synapse multiplier (point mechanisms only).
     std::vector<index_type> multiplicity;
 
@@ -262,6 +265,7 @@ struct fvm_stimulus_config {
     std::vector<std::vector<double>> envelope_amplitude; // [A/m²]
 };
 
+/*
 // Maps gj {gid, lid} locations on a cell to their CV indices.
 ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
@@ -273,6 +277,21 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,
     const std::unordered_map<cell_member_type, fvm_size_type>& gj_cv,
+    const recipe& rec);
+    */
+
+//todo these are copies
+// Maps gj {gid, lid} locations on a cell to their CV indices.
+ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_build_gap_junction_cv_map(
+    const std::vector<cable_cell>& cells,
+    const std::vector<cell_gid_type>& gids,
+    const fvm_cv_discretization& D);
+
+// Resolves gj_connections into {gid, lid} pairs, then to CV indices and a weight.
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
+    const std::vector<cell_gid_type>& gids,
+    const cell_label_range& gj_data,
+    const std::unordered_map<cell_member_type, cell_member_type>& gj_cv,
     const recipe& rec);
 
 using cell_id = std::tuple<int, int, int, int>;
@@ -286,12 +305,24 @@ ARB_ARBOR_API std::map<cell_id, int> fvm_cell_to_index(
 ARB_ARBOR_API std::map<int, cell_id> fvm_index_to_cell(
     std::map<cell_id, int>& cell_to_index);
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_cv_map(
+ARB_ARBOR_API std::unordered_map<cell_member_type, cell_member_type> fvm_index_to_cv_map(
     const std::vector<int>& gids, 
     const std::vector<int>& lids, 
     const std::vector<int>& cgs, 
     const std::vector<int>& cvs,
     const std::map<cell_id, int>& cell_to_index);
+
+ARB_ARBOR_API std::map<std::tuple<int, int>, int> fvm_cell_to_index_lowered(
+    const std::vector<int>& cgs,
+    const std::vector<int>& cvs
+);
+/*
+ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_index_to_cv_map(
+    const std::vector<int>& gids, 
+    const std::vector<int>& lids, 
+    const std::vector<int>& cgs, 
+    const std::vector<int>& cvs,
+    const std::map<cell_id, int>& cell_to_index);*/
 
 // 1) split cg cv map into 4 arrays
 ARB_ARBOR_API std::vector<std::vector<int>> fvm_build_gap_junction_cv_arr(

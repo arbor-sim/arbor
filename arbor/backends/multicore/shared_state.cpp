@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <iostream>
+
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
@@ -588,6 +590,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
+        // todo
+        if (peer_indices)  m.ppack_.peer_cg   = writer.append(pos_data.peer_cg, pos_data.peer_cg.back());
     }
 }
 
