@@ -250,4 +250,56 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
     return {loc, mind};
 }
 
+std::pair<std::vector<mlocation>, double> place_pwlin::all_closest(double x, double y, double z) const {
+    double mind = std::numeric_limits<double>::max();
+    p3d p(x,y,z);
+    std::vector<mlocation> locs;
+
+    // loop over each branch
+    for (msize_t bid: util::count_along(data_->segment_index)) {
+        const auto b = data_->segment_index[bid];
+        // loop over the segments in the branch
+        for (auto s: b) {
+            const auto& seg = data_->segments[s.value];
+
+            // v and w are the proximal and distal ends of the segment.
+            const p3d v = seg.prox;
+            const p3d w = seg.dist;
+            const p3d vw = w-v;
+            const double wvs = dot(vw, vw);
+            if (wvs==0.) { // zero length segment is a special case
+                const double distance = norm(p-v);
+                mlocation loc{bid, s.lower_bound()};
+                if (distance<mind) {
+                    mind = distance;
+                    locs = {loc};
+                }
+                else if (distance == mind) {
+                    locs.push_back(loc);
+                }
+            }
+            else {
+                // Find the relative position of the orthogonal projection onto the line segment
+                // that along the axis of the segment:
+                //   t=0 -> proximal end of the segment
+                //   t=1 -> distal end of the segment
+                // values are clamped to the range [0, 1]
+                const double t = std::max(0., std::min(1., dot(vw, p-v) / wvs));
+                const double distance =
+                    t<=0.? norm(p-v):
+                    t>=1.? norm(p-w):
+                           norm(p-(v + t*vw));
+                mlocation loc{bid, math::lerp(s.lower_bound(), s.upper_bound(), t)};
+                if (distance<mind) {
+                    locs = {loc};
+                    mind = distance;
+                }
+                else if (distance == mind) {
+                    locs.push_back(loc);
+                }
+            }
+        }
+    }
+    return {locs, mind};
+}
 } // namespace arb
