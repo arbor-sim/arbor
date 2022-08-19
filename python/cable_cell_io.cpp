@@ -45,7 +45,7 @@ void write_component(const arborio::cable_cell_component& component, py::object 
 void register_cable_loader(pybind11::module& m) {
     m.def("load_component",
           &load_component,
-          pybind11::arg("filename"),
+          pybind11::arg("filename_or_descriptor"),
           "Load arbor-component (decor, morphology, label_dict, cable_cell) from file.");
 
     m.def("write_component",
@@ -53,7 +53,7 @@ void register_cable_loader(pybind11::module& m) {
             return write_component(d, fn);
           },
           pybind11::arg("object"),
-          pybind11::arg("filename"),
+          pybind11::arg("filename_or_descriptor"),
           "Write cable_component to file.");
 
     m.def("write_component",
@@ -61,7 +61,7 @@ void register_cable_loader(pybind11::module& m) {
             return write_component<arb::decor>(d, fn);
           },
           pybind11::arg("object"),
-          pybind11::arg("filename"),
+          pybind11::arg("filename_or_descriptor"),
           "Write decor to file.");
 
     m.def("write_component",
@@ -69,7 +69,7 @@ void register_cable_loader(pybind11::module& m) {
             return write_component<arb::label_dict>(d, fn);
           },
           pybind11::arg("object"),
-          pybind11::arg("filename"),
+          pybind11::arg("filename_or_descriptor"),
           "Write label_dict to file.");
 
     m.def("write_component",
@@ -77,7 +77,7 @@ void register_cable_loader(pybind11::module& m) {
             return write_component<arb::morphology>(d, fn);
           },
           pybind11::arg("object"),
-          pybind11::arg("filename"),
+          pybind11::arg("filename_or_descriptor"),
           "Write morphology to file.");
 
     m.def("write_component",
@@ -85,7 +85,7 @@ void register_cable_loader(pybind11::module& m) {
             return write_component<arb::cable_cell>(d, fn);
           },
           pybind11::arg("object"),
-          pybind11::arg("filename"),
+          pybind11::arg("filename_or_descriptor"),
           "Write cable_cell to file.");
 
     // arborio::meta_data
