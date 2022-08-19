@@ -325,7 +325,7 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
 
     // If >0, check membrane voltage magnitude is less than limit
     // during integration.
-    double membrane_voltage_limit_mV = 0;
+    std::optional<double> membrane_voltage_limit_mV;
 
     // True => combine linear synapses for performance.
     bool coalesce_synapses = true;

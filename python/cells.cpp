@@ -609,6 +609,9 @@ void register_cells(pybind11::module& m) {
         .def_property("membrane_potential",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.init_membrane_potential; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.init_membrane_potential = u; })
+        .def_property("membrane_voltage_limit",
+                      [](const arb::cable_cell_global_properties& props) { return props.membrane_voltage_limit_mV; },
+                      [](arb::cable_cell_global_properties& props, std::optional<double> u) { props.membrane_voltage_limit_mV = u; })
         .def_property("membrane_capacitance",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.membrane_capacitance; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.membrane_capacitance = u; })
