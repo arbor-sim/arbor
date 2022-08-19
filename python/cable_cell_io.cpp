@@ -45,47 +45,47 @@ void write_component(const arborio::cable_cell_component& component, py::object 
 void register_cable_loader(pybind11::module& m) {
     m.def("load_component",
           &load_component,
-          pybind11::arg_v("filename", "the name of the file."),
+          pybind11::arg("filename"),
           "Load arbor-component (decor, morphology, label_dict, cable_cell) from file.");
 
     m.def("write_component",
           [](const arborio::cable_cell_component& d, py::object fn) {
             return write_component(d, fn);
           },
-          pybind11::arg_v("object", "the cable_component object."),
-          pybind11::arg_v("filename", "the path of the file."),
+          pybind11::arg("object"),
+          pybind11::arg("filename"),
           "Write cable_component to file.");
 
     m.def("write_component",
           [](const arb::decor& d, py::object fn) {
             return write_component<arb::decor>(d, fn);
           },
-          pybind11::arg_v("object", "the decor object."),
-          pybind11::arg_v("filename", "the name of the file."),
+          pybind11::arg("object"),
+          pybind11::arg("filename"),
           "Write decor to file.");
 
     m.def("write_component",
           [](const arb::label_dict& d, py::object fn) {
             return write_component<arb::label_dict>(d, fn);
           },
-          pybind11::arg_v("object", "the label_dict object."),
-          pybind11::arg_v("filename", "the name of the file."),
+          pybind11::arg("object"),
+          pybind11::arg("filename"),
           "Write label_dict to file.");
 
     m.def("write_component",
           [](const arb::morphology& d, py::object fn) {
             return write_component<arb::morphology>(d, fn);
           },
-          pybind11::arg_v("object", "the morphology object."),
-          pybind11::arg_v("filename", "the name of the file."),
+          pybind11::arg("object"),
+          pybind11::arg("filename"),
           "Write morphology to file.");
 
     m.def("write_component",
           [](const arb::cable_cell& d, py::object fn) {
             return write_component<arb::cable_cell>(d, fn);
           },
-          pybind11::arg_v("object", "the cable_cell object."),
-          pybind11::arg_v("filename", "the name of the file."),
+          pybind11::arg("object"),
+          pybind11::arg("filename"),
           "Write cable_cell to file.");
 
     // arborio::meta_data
