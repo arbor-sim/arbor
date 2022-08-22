@@ -112,6 +112,17 @@ jobs:
         uses: Vampire/setup-wsl@v1.3.1
         with:
           distribution: Ubuntu-22.04
+          update: 'true'
+          additional-packages:
+            sudo
+            git
+            git-lfs
+            nodejs
+            curl
+            wget
+            ca-certificates
+            file
+            tar
       - name: "Linux-Min: get clang/gcc 8"
         if: startsWith(matrix.config.os, 'ubuntu-20')
         run: |
