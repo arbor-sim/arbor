@@ -110,7 +110,8 @@ jobs:
       - if: startsWith(matrix.config.os, 'windows')
         name: Setup WSL
         uses: Vampire/setup-wsl@v1.3.1
-        distribution: ubuntu-22.04
+        with:
+          distribution: ubuntu-22.04
       - name: "Linux: get libxml2"
         if: startsWith(matrix.config.os, 'macos') == false
         run: |
