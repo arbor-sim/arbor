@@ -11,7 +11,7 @@ jobs:
     name: "Tests across OSes, versions, compilers, and build configs."
     defaults:
       run:
-        shell: ${{ matrix.shell || 'sh {0}' }}
+        shell: ${{ matrix.config.shell || 'sh {0}' }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
