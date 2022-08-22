@@ -111,7 +111,7 @@ jobs:
         name: Setup WSL
         uses: Vampire/setup-wsl@v1.3.1
         with:
-          distribution: ubuntu-22.04
+          distribution: Ubuntu-22.04
       - name: "Linux: get libxml2"
         if: startsWith(matrix.config.os, 'macos') == false
         run: |
