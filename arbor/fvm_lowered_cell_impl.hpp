@@ -95,7 +95,7 @@ private:
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
 
-    // Non-physical voltage check threshold, 0 => no check.
+    // Optional non-physical voltage check threshold
     std::optional<double> check_voltage_mV_;
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
