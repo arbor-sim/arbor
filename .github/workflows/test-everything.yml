@@ -9,6 +9,9 @@ on:
 jobs:
   testallconfigs:
     name: "Tests across OSes, versions, compilers, and build configs."
+    defaults:
+      run:
+        shell: ${{ matrix.shell || 'sh {0}' }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
@@ -83,6 +86,17 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
+        - {
+            name:  "Windows Subsystem for Linux",
+            os:    "windows-latest",
+            cc:    "gcc-11",
+            cxx:   "g++-11",
+            py:    "3.10",
+            cmake: "3.22.x",
+            mpi:   "OFF",
+            simd:  "OFF",
+            shell: "wsl-sh {0}"
+          }
         variant: [static, shared]
     env:
         CC:         ${{ matrix.config.cc }}
@@ -93,18 +107,22 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
     steps:
+      - if: startsWith(matrix.config.os, 'windows')
+        name: Setup WSL
+        uses: Vampire/setup-wsl@v1.3.1
+        distribution: ubuntu-22.04
       - name: "Linux: get libxml2"
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+        if: startsWith(matrix.config.os, 'macos') == false
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-dev
       - name: "Linux-Min: get clang/gcc 8"
-        if: ${{ startsWith(matrix.config.os, 'ubuntu-18') }}
+        if: startsWith(matrix.config.os, 'ubuntu-18')
         run: |
           sudo apt-get update
           sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
       - name: "MacOS: get libxml2"
-        if: ${{ startsWith(matrix.config.os, 'macos') }}
+        if: startsWith(matrix.config.os, 'macos')
         run: |
           brew install libxml2 
       - name: Set up cmake
@@ -124,7 +142,7 @@ jobs:
           path: ~/openmpi-4.0.2
           key:  ${{ matrix.config.os }}-openmpi-4.0.2-${{ matrix.config.cxx }}
       - name: Build OpenMPI
-        if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
+        if: steps.cache-ompi.outputs.cache-hit != 'true'
         run: |
            echo cache-hit='${{ steps.cache-ompi.outputs.cache-hit }}'
            cd ~
@@ -141,7 +159,7 @@ jobs:
            sudo make install
            cd -
       - name: Update shared library cache
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+        if: startsWith(matrix.config.os, 'macos') == false
         run: sudo ldconfig
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
@@ -157,7 +175,7 @@ jobs:
           mpic++ --show
           mpicc --show
           echo $PYTHONPATH
-      - if:   ${{ matrix.variant == 'static' }}
+      - if: matrix.variant == 'static'
         name: Build arbor
         run: |
           mkdir build
@@ -165,7 +183,7 @@ jobs:
           cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
           make -j4 tests examples pyarb html
           cd -
-      - if:   ${{ matrix.variant == 'shared' }}
+      - if: matrix.variant == 'shared'
         name: Build arbor
         run: |
           mkdir build
@@ -182,19 +200,19 @@ jobs:
         run: |
           build/bin/unit
           build/bin/unit-modcc
-      - if:   ${{ matrix.config.mpi == 'ON' }}
+      - if: matrix.config.mpi == 'ON'
         name: Run MPI tests
         run:  mpirun -n 4 -oversubscribe build/bin/unit-mpi
-      - if:   ${{ matrix.config.mpi == 'OFF' }}
+      - if: matrix.config.mpi == 'OFF'
         name: Run examples
         run: scripts/run_cpp_examples.sh
-      - if:   ${{ matrix.config.mpi == 'ON' }}
+      - if: matrix.config.mpi == 'ON'
         name: Run examples with MPI
         run: scripts/run_cpp_examples.sh "mpirun -n 4 -oversubscribe"
-      - name: Run python tests
-        run: |
-          python3 -m unittest discover -v -s python
-      - if:   ${{ matrix.config.mpi == 'ON' }}
+      - if: matrix.config.mpi == 'OFF'
+        name: Run python tests
+        run: python3 -m unittest discover -v -s python
+      - if: matrix.config.mpi == 'ON'
         name: Run python+MPI tests
         run:  mpirun -n 4 -oversubscribe python3 -m unittest discover -v -s python
       # - name: Run Python examples (plotting leads to time outs on macos, the step under testpip is enough)
@@ -203,6 +221,7 @@ jobs:
         run: |
           arbor-build-catalogue -v default mechanisms/default
           ./scripts/test-catalogue.py ./default-catalogue.so
+
   testpip:
     name: "Pip build test + Python examples test"
     runs-on: ubuntu-latest
