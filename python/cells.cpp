@@ -690,6 +690,9 @@ void register_cells(pybind11::module& m) {
             "while the method for calculating reversal potential is global for all\n"
             "compartments in the cell, and can't be overriden locally.")
         // Paint mechanisms.
+        .def("paintings",
+            [](arb::decor& dec) { return dec.paintings(); },
+            "Return a view of all painted items.")
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::density& mechanism) {
                 return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);

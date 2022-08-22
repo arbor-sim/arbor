@@ -159,8 +159,11 @@ function(export_visibility target)
 
     # generate config file
     get_target_property(target_binary_dir ${target} BINARY_DIR)
+    message("current src: ${CMAKE_CURRENT_SOURCE_DIR}")
+    message("project src: ${PROJECT_SOURCE_DIR}")
+    message("target  bin: ${target_binary_dir}")
     configure_file(
         ${PROJECT_SOURCE_DIR}/cmake/export.hpp.in
-        ${CMAKE_CURRENT_BINARY_DIR}/include/${target_short_name}/export.hpp
+        ${target_binary_dir}/include/${target_short_name}/export.hpp
         @ONLY)
 endfunction()
