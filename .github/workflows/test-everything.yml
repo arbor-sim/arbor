@@ -18,7 +18,7 @@ jobs:
         config:
         - {
             name:  "Linux Min GCC",
-            os:    "ubuntu-18.04",
+            os:    "ubuntu-20.04",
             cc:    "gcc-8",
             cxx:   "g++-8",
             py:    "3.7",
@@ -28,7 +28,7 @@ jobs:
           }
         - {
             name:  "Linux Min Clang",
-            os:    "ubuntu-18.04",
+            os:    "ubuntu-20.04",
             cc:    "clang-8",
             cxx:   "clang++-8",
             py:    "3.7",
@@ -112,16 +112,16 @@ jobs:
         uses: Vampire/setup-wsl@v1.3.1
         with:
           distribution: Ubuntu-22.04
+      - name: "Linux-Min: get clang/gcc 8"
+        if: startsWith(matrix.config.os, 'ubuntu-20')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-8" g++-8
       - name: "Linux: get libxml2"
         if: startsWith(matrix.config.os, 'macos') == false
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-dev
-      - name: "Linux-Min: get clang/gcc 8"
-        if: startsWith(matrix.config.os, 'ubuntu-18')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
       - name: "MacOS: get libxml2"
         if: startsWith(matrix.config.os, 'macos')
         run: |
