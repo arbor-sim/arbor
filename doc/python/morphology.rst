@@ -578,7 +578,7 @@ region.
 SWC
 ---
 
-.. py:function:: load_swc_arbor(filename)
+.. py:function:: load_swc_arbor(filename, raw=False)
 
     Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
     (See the morphology concepts :ref:`page <morph-formats>` for more details).
@@ -606,16 +606,18 @@ SWC
 
 
     :param str filename: the name of the SWC file.
-    :rtype: morphology
+    :param bool raw: return segment_tree instead of morphology?
+    :rtype: morphology or segment_tree
 
-.. py:function:: load_swc_neuron(filename)
+.. py:function:: load_swc_neuron(filename, raw=False)
 
     Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
     interpretation of the SWC specification.
     See :ref:`the SWC file documention <formatswc-neuron>` for more details.
 
     :param str filename: the name of the SWC file.
-    :rtype: morphology
+    :param bool raw: return segment_tree instead of morphology?
+    :rtype: morphology or segment_tree
 
 .. _pyneuroml:
 
@@ -726,6 +728,10 @@ Neurolucida
    .. py:attribute:: morphology
 
        The cable cell morphology.
+
+   .. py:attribute:: segment_tree
+
+       The raw segment tree.
 
    .. py:attribute:: labels
 
