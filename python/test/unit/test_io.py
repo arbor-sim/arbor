@@ -61,32 +61,33 @@ acc = """(arbor-component
         "I Clamp 0"))))
 """
 
+
 class TestAccIo(unittest.TestCase):
     def test_stringio(self):
         sio = StringIO(acc)
         A.load_component(sio)
 
     def test_fileio(self):
-        fn = 'test.acc'
+        fn = "test.acc"
         with TD() as tmp:
             tmp = Path(tmp)
-            with open(tmp / fn, 'w') as fd:
+            with open(tmp / fn, "w") as fd:
                 fd.write(acc)
             with open(tmp / fn) as fd:
                 A.load_component(fd)
 
     def test_nameio(self):
-        fn = 'test.acc'
+        fn = "test.acc"
         with TD() as tmp:
             tmp = Path(tmp)
-            with open(tmp / fn, 'w') as fd:
+            with open(tmp / fn, "w") as fd:
                 fd.write(acc)
             A.load_component(str(tmp / fn))
 
     def test_pathio(self):
-        fn = 'test.acc'
+        fn = "test.acc"
         with TD() as tmp:
             tmp = Path(tmp)
-            with open(tmp / fn, 'w') as fd:
+            with open(tmp / fn, "w") as fd:
                 fd.write(acc)
             A.load_component(tmp / fn)
