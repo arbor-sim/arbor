@@ -96,7 +96,7 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
-    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
+    sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
         schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
 
     void remove_sampler(sampler_association_handle);
@@ -449,7 +449,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 }
 
 sampler_association_handle simulation_state::add_sampler(
-        cell_member_predicate probe_ids,
+        cell_member_predicate probeset_ids,
         schedule sched,
         sampler_function f,
         sampling_policy policy)
@@ -457,7 +457,7 @@ sampler_association_handle simulation_state::add_sampler(
     sampler_association_handle h = sassoc_handles_.acquire();
 
     foreach_group(
-        [&](cell_group_ptr& group) { group->add_sampler(h, probe_ids, sched, f, policy); });
+        [&](cell_group_ptr& group) { group->add_sampler(h, probeset_ids, sched, f, policy); });
 
     return h;
 }
@@ -476,9 +476,9 @@ void simulation_state::remove_all_samplers() {
     sassoc_handles_.clear();
 }
 
-std::vector<probe_metadata> simulation_state::get_probe_metadata(cell_member_type probe_id) const {
-    if (auto linfo = util::value_by_key(gid_to_local_, probe_id.gid)) {
-        return cell_groups_.at(linfo->group_index)->get_probe_metadata(probe_id);
+std::vector<probe_metadata> simulation_state::get_probe_metadata(cell_member_type probeset_id) const {
+    if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
+        return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
     }
     else {
         return {};
@@ -528,12 +528,12 @@ time_type simulation::run(time_type tfinal, time_type dt) {
 }
 
 sampler_association_handle simulation::add_sampler(
-    cell_member_predicate probe_ids,
+    cell_member_predicate probeset_ids,
     schedule sched,
     sampler_function f,
     sampling_policy policy)
 {
-    return impl_->add_sampler(std::move(probe_ids), std::move(sched), std::move(f), policy);
+    return impl_->add_sampler(std::move(probeset_ids), std::move(sched), std::move(f), policy);
 }
 
 void simulation::remove_sampler(sampler_association_handle h) {
@@ -544,8 +544,8 @@ void simulation::remove_all_samplers() {
     impl_->remove_all_samplers();
 }
 
-std::vector<probe_metadata> simulation::get_probe_metadata(cell_member_type probe_id) const {
-    return impl_->get_probe_metadata(probe_id);
+std::vector<probe_metadata> simulation::get_probe_metadata(cell_member_type probeset_id) const {
+    return impl_->get_probe_metadata(probeset_id);
 }
 
 std::size_t simulation::num_spikes() const {

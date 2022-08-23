@@ -150,12 +150,19 @@ an additional support library ``arborio``. This library requires
 with NeuroML support enabled.
 See :ref:`install-neuroml` for more information.
 
+Boost
+~~~~~
+
+When ``ARB_BACKTRACE`` is set to ``ON`` during configure we use
+``Boost::stacktrace`` to print stacktraces upon failed assertions and attach
+them to the base exception types ``arbor_exception`` and
+``arbor_internal_error`` as ``where``.
 
 Documentation
 ~~~~~~~~~~~~~~
 
 To build a local copy of the html documentation that you are reading now, you will need to
-install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 

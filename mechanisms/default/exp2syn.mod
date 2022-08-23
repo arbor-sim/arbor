@@ -14,13 +14,9 @@ PARAMETER {
     e    = 0   (mV)
 }
 
-ASSIGNED {
-    factor
-}
+ASSIGNED { factor }
 
-STATE {
-    A B
-}
+STATE { A B }
 
 INITIAL {
     LOCAL tp
@@ -32,6 +28,8 @@ INITIAL {
 
 BREAKPOINT {
     SOLVE state METHOD cnexp
+    LOCAL g
+    g = B - A
     i = (B - A)*(v - e)
 }
 

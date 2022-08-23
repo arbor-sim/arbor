@@ -18,13 +18,13 @@ public:
     threshold_watcher(const execution_context& ctx) {}
 
     threshold_watcher(
-        const fvm_index_type* cv_to_intdom,
-        const fvm_index_type* src_to_spike,
+        const arb_index_type* cv_to_intdom,
+        const arb_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
-        const fvm_size_type num_cv,
-        const std::vector<fvm_index_type>& cv_index,
-        const std::vector<fvm_value_type>& thresholds,
+        const arb_size_type num_cv,
+        const std::vector<arb_index_type>& cv_index,
+        const std::vector<arb_value_type>& thresholds,
         const execution_context& context
     ):
         cv_to_intdom_(cv_to_intdom),
@@ -54,7 +54,7 @@ public:
         values_ = values.data();
         std::copy(values.begin(), values.end(), v_prev_.begin());
         clear_crossings();
-        for (fvm_size_type i = 0; i<n_cv_; ++i) {
+        for (arb_size_type i = 0; i<n_cv_; ++i) {
             is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
         }
     }
@@ -70,15 +70,15 @@ public:
         arb_assert(values_);
 
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
-        const fvm_value_type* t_before = t_before_ptr_->data();
-        const fvm_value_type* t_after  = t_after_ptr_->data();
-        for (fvm_size_type i = 0; i<n_cv_; ++i) {
+        const arb_value_type* t_before = t_before_ptr_->data();
+        const arb_value_type* t_after  = t_after_ptr_->data();
+        for (arb_size_type i = 0; i<n_cv_; ++i) {
             auto cv     = cv_index_[i];
             auto intdom = cv_to_intdom_[cv];
             auto v_prev = v_prev_[cv];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
-            fvm_index_type spike_idx = 0;
+            arb_index_type spike_idx = 0;
 
             if (!time_since_spike->empty()) {
                 spike_idx = src_to_spike_[i];
@@ -110,7 +110,7 @@ public:
         }
     }
 
-    bool is_crossed(fvm_size_type i) const {
+    bool is_crossed(arb_size_type i) const {
         return is_crossed_[i];
     }
 
@@ -123,18 +123,18 @@ private:
     /// Non-owning pointers to cv-to-intdom map,
     /// the values for to test against thresholds,
     /// and pointers to the time arrays
-    const fvm_index_type* cv_to_intdom_ = nullptr;
-    const fvm_value_type* values_ = nullptr;
-    const fvm_index_type* src_to_spike_ = nullptr;
+    const arb_index_type* cv_to_intdom_ = nullptr;
+    const arb_value_type* values_ = nullptr;
+    const arb_index_type* src_to_spike_ = nullptr;
     const array* t_before_ptr_ = nullptr;
     const array* t_after_ptr_ = nullptr;
 
     /// Threshold watcher state.
-    fvm_size_type n_cv_ = 0;
-    std::vector<fvm_index_type> cv_index_;
-    std::vector<fvm_size_type> is_crossed_;
-    std::vector<fvm_value_type> thresholds_;
-    std::vector<fvm_value_type> v_prev_;
+    arb_size_type n_cv_ = 0;
+    std::vector<arb_index_type> cv_index_;
+    std::vector<arb_size_type> is_crossed_;
+    std::vector<arb_value_type> thresholds_;
+    std::vector<arb_value_type> v_prev_;
     std::vector<threshold_crossing> crossings_;
 };
 

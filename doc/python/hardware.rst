@@ -68,6 +68,20 @@ Helper functions for checking cmake or environment variables, as well as configu
 
     Check if MPI is finalized.
 
+Env: Helper functions
+---------------------
+
+The ``arbor.env`` module collects helper functions for interacting with the environment.
+
+.. function:: find_private_gpu(comm)
+
+   Requires GPU and MPI. Will return an integer id of a GPU such that each GPU
+   is mapped to at most one MPI task (on the same node as the GPU). Raises an
+   exception if
+   - not built with GPU or MPI support
+   - unable to satisfy the constraints above
+   - handed an invalid or unknown MPI communicator object
+
 Prescribed resources
 ---------------------
 

@@ -22,8 +22,8 @@ namespace gpu {
 class ARB_ARBOR_API multi_event_stream_base {
 public:
     using size_type = cell_size_type;
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
 
     using array = memory::device_vector<value_type>;
     using iarray = memory::device_vector<index_type>;
