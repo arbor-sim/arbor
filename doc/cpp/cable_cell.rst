@@ -216,7 +216,7 @@ Global properties
 
    .. cpp:member:: optional<double> membrane_voltage_limit_mv
 
-   if non-zero, check to see if the membrane voltage ever exceeds this value
+   if set, check to see if the membrane voltage ever exceeds this value
    in magnitude during the course of a simulation. if so, throw an exception
    and abort the simulation.
 

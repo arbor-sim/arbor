@@ -323,7 +323,7 @@ ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
 struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     mechanism_catalogue catalogue = global_default_catalogue();
 
-    // If >0, check membrane voltage magnitude is less than limit
+    // Optional check if membrane voltage magnitude is less than limit
     // during integration.
     std::optional<double> membrane_voltage_limit_mV;
 
