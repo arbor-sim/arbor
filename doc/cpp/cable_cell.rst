@@ -214,9 +214,9 @@ Global properties
    by default, this is set to point to `global_default_catalogue()`, the catalogue
    that contains all mechanisms bundled with arbor.
 
-   .. cpp:member:: double membrane_voltage_limit_mv
+   .. cpp:member:: optional<double> membrane_voltage_limit_mv
 
-   if non-zero, check to see if the membrane voltage ever exceeds this value
+   if set, check to see if the membrane voltage ever exceeds this value
    in magnitude during the course of a simulation. if so, throw an exception
    and abort the simulation.
 
