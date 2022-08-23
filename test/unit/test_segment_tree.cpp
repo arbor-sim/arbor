@@ -111,6 +111,15 @@ TEST(segment_tree, fuzz) {
     }
 }
 
+::testing::AssertionResult trees_equivalent(const arb::segment_tree& a,
+                                            const arb::segment_tree& b) {
+    if (!arb::equivalent(a, b)) return ::testing::AssertionFailure() << "Trees are not equivalent:\n"
+                                                                     << a
+                                                                     << "\nand:\n"
+                                                                     << b;
+    return ::testing::AssertionSuccess();
+}
+
 TEST(segment_tree, split) {
     // linear chain
     {
@@ -128,8 +137,8 @@ TEST(segment_tree, split) {
             q.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
             q.append(3,          {0, 0, 4}, {0, 0, 5}, 0);
             const auto& [l, r] = arb::split_at(tree, 0);
-            EXPECT_EQ(p, l);
-            EXPECT_EQ(q, r);
+            EXPECT_TRUE(trees_equivalent(p, l));
+            EXPECT_TRUE(trees_equivalent(q, r));
         }
         {
             arb::segment_tree p, q;
@@ -139,8 +148,8 @@ TEST(segment_tree, split) {
             q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
             q.append(1,          {0, 0, 4}, {0, 0, 5}, 0);
             const auto& [l, r] = arb::split_at(tree, 2);
-            EXPECT_EQ(p, l);
-            EXPECT_EQ(q, r);
+            EXPECT_TRUE(trees_equivalent(p, l));
+            EXPECT_TRUE(trees_equivalent(q, r));
         }
         {
             arb::segment_tree p, q;
@@ -150,8 +159,8 @@ TEST(segment_tree, split) {
             p.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
             q.append(arb::mnpos, {0, 0, 4}, {0, 0, 5}, 0);
             const auto& [l, r] = arb::split_at(tree, 4);
-            EXPECT_EQ(p, l);
-            EXPECT_EQ(q, r);
+            EXPECT_TRUE(trees_equivalent(p, l));
+            EXPECT_TRUE(trees_equivalent(q, r));
         }
     }
     // Error cases
@@ -187,8 +196,9 @@ TEST(segment_tree, split) {
             q.append(4,          {0, 0, 4}, {0, 0, 5}, 0);
 
             const auto& [l, r] = arb::split_at(tree, 0);
-            EXPECT_EQ(p, l);
-            EXPECT_EQ(q, r);
+
+            EXPECT_TRUE(trees_equivalent(p, l));
+            EXPECT_TRUE(trees_equivalent(q, r));
         }
         {
             arb::segment_tree p, q;
@@ -202,8 +212,8 @@ TEST(segment_tree, split) {
             q.append(0,          {0, 0, 4}, {0, 0, 5}, 0);
 
             const auto& [l, r] = arb::split_at(tree, 1);
-            EXPECT_EQ(p, l);
-            EXPECT_EQ(q, r);
+            EXPECT_TRUE(trees_equivalent(p, l));
+            EXPECT_TRUE(trees_equivalent(q, r));
         }
         {
             arb::segment_tree p, q;
@@ -217,8 +227,8 @@ TEST(segment_tree, split) {
             q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
 
             const auto& [l, r] = arb::split_at(tree, 2);
-            EXPECT_EQ(p, l);
-            EXPECT_EQ(q, r);
+            EXPECT_TRUE(trees_equivalent(p, l));
+            EXPECT_TRUE(trees_equivalent(q, r));
         }
     }
 }
@@ -242,7 +252,7 @@ TEST(segment_tree, join) {
             q.append(3,          {0, 0, 4}, {0, 0, 5}, 0);
 
             const auto& t = arb::join_at(p, arb::mnpos, q);
-            EXPECT_EQ(tree, t);
+            EXPECT_TRUE(trees_equivalent(tree, t));
         }
         {
             arb::segment_tree p, q;
@@ -255,7 +265,7 @@ TEST(segment_tree, join) {
             q.append(1,          {0, 0, 4}, {0, 0, 5}, 0);
 
             const auto& t = arb::join_at(p, 1, q);
-            EXPECT_EQ(tree, t);
+            EXPECT_TRUE(trees_equivalent(tree, t));
         }
     }
 
@@ -292,7 +302,7 @@ TEST(segment_tree, join) {
             q.append(4,          {0, 0, 4}, {0, 0, 5}, 0);
 
             const auto& t = arb::join_at(p, arb::mnpos, q);
-            EXPECT_EQ(tree, t);
+            EXPECT_TRUE(trees_equivalent(tree, t));
         }
         {
             arb::segment_tree p, q;
@@ -305,9 +315,8 @@ TEST(segment_tree, join) {
             q.append(arb::mnpos, {0, 0, 1}, {0, 0, 2}, 0);
             q.append(0,          {0, 0, 4}, {0, 0, 5}, 0);
 
-            // const auto& [l, r] = arb::split_at(tree, 1);
-            // EXPECT_EQ(p, l);
-            // EXPECT_EQ(q, r);
+            const auto& t = arb::join_at(p, 0, q);
+            EXPECT_TRUE(trees_equivalent(tree, t));
         }
         {
             arb::segment_tree p, q;
@@ -320,9 +329,8 @@ TEST(segment_tree, join) {
             q.append(0,          {0, 0, 5}, {0, 0, 6}, 0);
             q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
 
-            // const auto& [l, r] = arb::split_at(tree, 2);
-            // EXPECT_EQ(p, l);
-            // EXPECT_EQ(q, r);
+            const auto& t = arb::join_at(p, 0, q);
+            EXPECT_TRUE(trees_equivalent(tree, t));
         }
     }
 }

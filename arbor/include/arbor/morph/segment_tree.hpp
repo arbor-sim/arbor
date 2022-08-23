@@ -65,8 +65,16 @@ std::pair<segment_tree, segment_tree>
 split_at(const segment_tree&, msize_t);
 
 // Join two subtrees L and R at a given id in L, such that `join_at` is inverse
-// to `split_at` for a particular choice of id.
+// to `split_at` for a proper choice of id.
 segment_tree
 join_at(const segment_tree&, msize_t, const segment_tree&);
+
+// Trees are equivalent if
+// 1. the current segments' prox and dist points and their tags are identical.
+// 2. all sub-trees starting at the current segment are equivalent.
+// Note that orderdoes *not* matter in opposition to ==.
+bool
+equivalent(const segment_tree& a,
+           const segment_tree& b);
 
 } // namesapce arb

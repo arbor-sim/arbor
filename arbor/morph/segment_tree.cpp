@@ -63,11 +63,55 @@ split_at(const segment_tree& tree, msize_t at) {
 
 segment_tree
 join_at(const segment_tree& lhs, msize_t at, const segment_tree& rhs) {
-    if (at > lhs.size() && at != mnpos) throw invalid_segment_parent(at, lhs.size());
+    if (at >= lhs.size() && at != mnpos) throw invalid_segment_parent(at, lhs.size());
     return fold(rhs,
                 [](auto) { return true; },
                 {at, 0},
                 lhs);
+}
+
+bool
+equivalent(const segment_tree& a,
+           const segment_tree& b) {
+    if(a.size() != b.size()) return false;
+
+    // invert parent <*> child relation
+    std::map<arb::msize_t, std::vector<arb::msize_t>>
+        a_children_of,
+        b_children_of;
+    for (auto ix = 0; ix < a.size(); ++ix) {
+        a_children_of[a.parents()[ix]].push_back(ix);
+        b_children_of[b.parents()[ix]].push_back(ix);
+    }
+
+    auto fetch_children = [&](auto cursor, const auto& segments, const auto& children_of) {
+        std::vector<arb::msegment> segs;
+        if (children_of.count(cursor)) {
+            for (auto ix: children_of.at(cursor)) segs.push_back(segments[ix]);
+            std::sort(segs.begin(), segs.end(),
+                      [](auto l, auto r) {
+                          l.id = r.id = 0;
+                          return l < r;
+                      });
+        }
+        return segs;
+    };
+
+    std::vector<std::pair<arb::msize_t, arb::msize_t>> todo{{arb::mnpos, arb::mnpos}};
+    while (!todo.empty()) {
+        const auto& [a_cursor, b_cursor] = todo.back();
+        auto as = fetch_children(a_cursor, a.segments(), a_children_of);
+        auto bs = fetch_children(b_cursor, b.segments(), b_children_of);
+        todo.pop_back();
+        if (as.size() != bs.size()) return false;
+        for (auto ix = 0; ix < as.size(); ++ix) {
+            if ((as[ix].prox != bs[ix].prox) ||
+                (as[ix].dist != bs[ix].dist) ||
+                (as[ix].tag != bs[ix].tag)) return false;
+            todo.emplace_back(as[ix].id, bs[ix].id);
+        }
+    }
+    return true;
 }
 
 void segment_tree::reserve(msize_t n) {

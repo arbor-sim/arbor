@@ -245,6 +245,9 @@ void register_morphology(py::module& m) {
                 "A list with the parent index of each segment.")
         .def_property_readonly("segments", [](const arb::segment_tree& st){return st.segments();},
                 "A list of the segments.")
+        .def("split_at", [](const arb::segment_tree& t, arb::msize_t id) { return arb::split_at(t, id); })
+        .def("join_at", [](const arb::segment_tree& t, arb::msize_t id, const arb::segment_tree& o) { return arb::join_at(t, id, o); })
+        .def("equivalent", [](const arb::segment_tree& t, const arb::segment_tree& o) { return arb::equivalent(t, o); })
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 

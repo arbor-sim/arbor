@@ -242,6 +242,26 @@ Cable cell morphology
         :param float radius: distal radius (μm)
         :param int tag: tag meta data of segment
 
+    .. method:: split_at(id)
+
+        Split a segment_tree ``T`` into a pair of subtrees ``(L, R)`` such that
+        ``R`` is the subtree of ``T`` that starts at the given id and L is ``T``
+        without ``R``. Splitting above the root ``mnpos`` returns ``(T, {})``.
+
+    .. method:: join_at(id, other)
+
+        Join two subtrees ``L`` and ``R`` at a given ``id`` in ``L``, such that
+        ``join_at`` is inverse to ``split_at`` for a proper choice of ``id``.
+        The join point ``id`` must be in ``L``.
+
+    .. method:: equivalent(other)
+
+        Two trees are equivalent if
+        1. the root segments' ``prox`` and ``dist`` points and their ``tags``
+           are identical.
+        2. recursively: all sub-trees starting at the current segment are
+           equivalent.
+
     .. attribute:: empty
         :type: bool
 
