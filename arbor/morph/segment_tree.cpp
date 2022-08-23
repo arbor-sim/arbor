@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdexcept>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 #include <arbor/morph/morphexcept.hpp>
@@ -11,6 +11,64 @@
 #include "util/transform.hpp"
 
 namespace arb {
+
+template<typename P>
+segment_tree fold(const segment_tree& tree,
+                  P predicate,
+                  std::pair<msize_t, msize_t> start,
+                  const segment_tree& acc={}) {
+    // pre-fetch views
+    const auto& parents = tree.parents();
+    const auto& segments = tree.segments();
+
+    // invert parent <*> child relation
+    std::map<msize_t, std::vector<msize_t>> children_of;
+    for (auto ix = 0; ix < tree.size(); ++ix) {
+        children_of[parents[ix]].push_back(ix);
+    }
+    for (auto& [k, v]: children_of) std::sort(v.begin(), v.end());
+
+    segment_tree result = acc;
+    auto todo = std::vector<std::pair<msize_t, msize_t>>{start};
+    while (!todo.empty()) {
+        auto node = todo.back();
+        todo.pop_back();
+
+        if (!predicate(node)) continue;
+
+        const auto& [parent, id] = node;
+        const auto& segment = segments[id];
+        auto current = result.append(parent, segment.prox, segment.dist, segment.tag);
+
+        for (auto child: children_of[id]) {
+            todo.push_back({current, child});
+        }
+    }
+    return result;
+}
+
+std::pair<segment_tree, segment_tree>
+split_at(const segment_tree& tree, msize_t at) {
+    if (at >= tree.size() || at == mnpos) throw invalid_segment_parent(at, tree.size());
+    // span the sub-tree starting at the splitting node
+    segment_tree post = fold(tree,
+                             [](auto) { return true; },
+                             {mnpos, at});
+    // copy the original tree, but skip all nodes in the `post` tree
+    segment_tree pre = fold(tree,
+                            [=](auto& node) { return node.second != at; },
+                            {mnpos, 0});
+    return {pre, post};
+}
+
+segment_tree
+join_at(const segment_tree& lhs, msize_t at, const segment_tree& rhs) {
+    if (at > lhs.size() && at != mnpos) throw invalid_segment_parent(at, lhs.size());
+    return fold(rhs,
+                [](auto) { return true; },
+                {at, 0},
+                lhs);
+}
 
 void segment_tree::reserve(msize_t n) {
     segments_.reserve(n);

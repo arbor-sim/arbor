@@ -52,8 +52,21 @@ public:
     bool is_root(msize_t i) const;
 
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
+
+    // compare two trees for _identity_, not _equivalence_
+    friend bool operator==(const segment_tree& l, const segment_tree& r) {
+        return (l.size() == r.size()) && (l.parents() == r.parents()) && (l.segments() == r.segments());
+    }
 };
 
+// Split a segment_tree T into two subtrees <L, R> such that R is the subtree
+// of T that starts at the given id and L is T without R.
+std::pair<segment_tree, segment_tree>
+split_at(const segment_tree&, msize_t);
+
+// Join two subtrees L and R at a given id in L, such that `join_at` is inverse
+// to `split_at` for a particular choice of id.
+segment_tree
+join_at(const segment_tree&, msize_t, const segment_tree&);
+
 } // namesapce arb
-
-

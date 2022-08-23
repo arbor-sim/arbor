@@ -128,6 +128,7 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string&);
 // parent record.
 
 ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data);
+ARB_ARBORIO_API arb::segment_tree load_swc_arbor_raw(const swc_data& data);
 
 // As above, will convert a valid, ordered sequence of SWC records into a morphology
 //
@@ -136,5 +137,15 @@ ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data);
 // Complies inferred SWC rules from NEURON, explicitly listed in the docs.
 
 ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data);
+ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data);
+
+// Convert a valid, ordered sequence of SWC records into a morphology.
+//
+// Note that 'one-point soma' SWC files are explicitly not supported.
+//
+// The segments of the generated morphology  will be contiguous. There will be
+// one segment for each SWC record after the first: this record defines the tag
+// and distal point of the segment, while the proximal point is taken from the
+// parent record.
 
 } // namespace arborio

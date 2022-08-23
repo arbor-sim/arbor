@@ -22,16 +22,10 @@ constexpr msize_t mnpos = msize_t(-1);
 struct ARB_SYMBOL_VISIBLE mpoint {
     double x, y, z;  // [µm]
     double radius;   // [μm]
-
-    friend bool operator==(const mpoint& l, const mpoint& r);
     friend std::ostream& operator<<(std::ostream&, const mpoint&);
-    friend bool operator==(const mpoint& a, const mpoint& b) {
-        return a.x==b.x && a.y==b.y && a.z==b.z && a.radius==b.radius;
-    }
-    friend bool operator!=(const mpoint& a, const mpoint& b) {
-        return !(a==b);
-    }
 };
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(mpoint, (a.x,a.y,a.z,a.radius), (b.x,b.y,b.z,b.radius));
 
 ARB_ARBOR_API mpoint lerp(const mpoint& a, const mpoint& b, double u);
 ARB_ARBOR_API bool is_collocated(const mpoint& a, const mpoint& b);
@@ -55,6 +49,7 @@ struct ARB_SYMBOL_VISIBLE msegment {
     friend std::ostream& operator<<(std::ostream&, const msegment&);
 };
 
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(msegment, (a.id,a.prox,a.dist,a.tag),  (b.id,b.prox,b.dist,b.tag));
 
 // Describe a specific location on a morpholology.
 struct ARB_SYMBOL_VISIBLE mlocation {

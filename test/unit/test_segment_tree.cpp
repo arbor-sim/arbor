@@ -111,3 +111,218 @@ TEST(segment_tree, fuzz) {
     }
 }
 
+TEST(segment_tree, split) {
+    // linear chain
+    {
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+        tree.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+        tree.append(1,          {0, 0, 2}, {0, 0, 3}, 0);
+        tree.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
+        tree.append(3,          {0, 0, 4}, {0, 0, 5}, 0);
+        {
+            arb::segment_tree p, q;
+            q.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            q.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(1,          {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(3,          {0, 0, 4}, {0, 0, 5}, 0);
+            const auto& [l, r] = arb::split_at(tree, 0);
+            EXPECT_EQ(p, l);
+            EXPECT_EQ(q, r);
+        }
+        {
+            arb::segment_tree p, q;
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(arb::mnpos, {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(1,          {0, 0, 4}, {0, 0, 5}, 0);
+            const auto& [l, r] = arb::split_at(tree, 2);
+            EXPECT_EQ(p, l);
+            EXPECT_EQ(q, r);
+        }
+        {
+            arb::segment_tree p, q;
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            p.append(1,          {0, 0, 2}, {0, 0, 3}, 0);
+            p.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(arb::mnpos, {0, 0, 4}, {0, 0, 5}, 0);
+            const auto& [l, r] = arb::split_at(tree, 4);
+            EXPECT_EQ(p, l);
+            EXPECT_EQ(q, r);
+        }
+    }
+    // Error cases
+    {
+        arb::segment_tree t;
+        EXPECT_THROW(arb::split_at(t, arb::mnpos), arb::arbor_exception);
+        EXPECT_THROW(arb::split_at(t, 1),          arb::arbor_exception);
+    }
+    // gnarly tree
+    // (npos) - 0 - 1 - 4
+    //            \
+    //              2 - 3
+    //                \
+    //                  5
+    // NB: Splitting _will_ re-order segments. So we have to be careful when
+    //     building values to compare against.
+    {
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0); // 0
+        tree.append(0,          {0, 0, 1}, {0, 0, 2}, 0); // 1
+        tree.append(0,          {0, 0, 2}, {0, 0, 3}, 0); // 2
+        tree.append(2,          {0, 0, 3}, {0, 0, 4}, 0); // 3
+        tree.append(1,          {0, 0, 4}, {0, 0, 5}, 0); // 4
+        tree.append(2,          {0, 0, 5}, {0, 0, 6}, 0); // 5
+        {
+            arb::segment_tree p, q;
+
+            q.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            q.append(0,          {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(1,          {0, 0, 5}, {0, 0, 6}, 0);
+            q.append(1,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(4,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            const auto& [l, r] = arb::split_at(tree, 0);
+            EXPECT_EQ(p, l);
+            EXPECT_EQ(q, r);
+        }
+        {
+            arb::segment_tree p, q;
+
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 2}, {0, 0, 3}, 0);
+            p.append(1,          {0, 0, 5}, {0, 0, 6}, 0);
+            p.append(1,          {0, 0, 3}, {0, 0, 4}, 0);
+
+            q.append(arb::mnpos, {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(0,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            const auto& [l, r] = arb::split_at(tree, 1);
+            EXPECT_EQ(p, l);
+            EXPECT_EQ(q, r);
+        }
+        {
+            arb::segment_tree p, q;
+
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            p.append(1,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            q.append(arb::mnpos, {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(0,          {0, 0, 5}, {0, 0, 6}, 0);
+            q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
+
+            const auto& [l, r] = arb::split_at(tree, 2);
+            EXPECT_EQ(p, l);
+            EXPECT_EQ(q, r);
+        }
+    }
+}
+
+TEST(segment_tree, join) {
+    // linear chain
+    {
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+        tree.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+        tree.append(1,          {0, 0, 2}, {0, 0, 3}, 0);
+        tree.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
+        tree.append(3,          {0, 0, 4}, {0, 0, 5}, 0);
+        {
+            arb::segment_tree p, q;
+
+            q.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            q.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(1,          {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(2,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(3,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            const auto& t = arb::join_at(p, arb::mnpos, q);
+            EXPECT_EQ(tree, t);
+        }
+        {
+            arb::segment_tree p, q;
+
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+
+            q.append(arb::mnpos, {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(1,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            const auto& t = arb::join_at(p, 1, q);
+            EXPECT_EQ(tree, t);
+        }
+    }
+
+    // Error cases
+    {
+        arb::segment_tree t;
+        EXPECT_THROW(arb::split_at(t, arb::mnpos), arb::arbor_exception);
+        EXPECT_THROW(arb::split_at(t, 1),          arb::arbor_exception);
+    }
+    // gnarly tree
+    // (npos) - 0 - 1 - 4
+    //            \
+    //              2 - 3
+    //                \
+    //                  5
+    // NB: Joining _will_ re-order segments. So we have to be careful when
+    //     building values to compare against.
+    {
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0); // 0
+        tree.append(0,          {0, 0, 1}, {0, 0, 2}, 0); // 1
+        tree.append(0,          {0, 0, 2}, {0, 0, 3}, 0); // 2
+        tree.append(2,          {0, 0, 3}, {0, 0, 4}, 0); // 3
+        tree.append(1,          {0, 0, 4}, {0, 0, 5}, 0); // 4
+        tree.append(2,          {0, 0, 5}, {0, 0, 6}, 0); // 5
+        {
+            arb::segment_tree p, q;
+
+            q.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            q.append(0,          {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(1,          {0, 0, 5}, {0, 0, 6}, 0);
+            q.append(1,          {0, 0, 3}, {0, 0, 4}, 0);
+            q.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(4,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            const auto& t = arb::join_at(p, arb::mnpos, q);
+            EXPECT_EQ(tree, t);
+        }
+        {
+            arb::segment_tree p, q;
+
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 2}, {0, 0, 3}, 0);
+            p.append(1,          {0, 0, 5}, {0, 0, 6}, 0);
+            p.append(1,          {0, 0, 3}, {0, 0, 4}, 0);
+
+            q.append(arb::mnpos, {0, 0, 1}, {0, 0, 2}, 0);
+            q.append(0,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            // const auto& [l, r] = arb::split_at(tree, 1);
+            // EXPECT_EQ(p, l);
+            // EXPECT_EQ(q, r);
+        }
+        {
+            arb::segment_tree p, q;
+
+            p.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 0);
+            p.append(0,          {0, 0, 1}, {0, 0, 2}, 0);
+            p.append(1,          {0, 0, 4}, {0, 0, 5}, 0);
+
+            q.append(arb::mnpos, {0, 0, 2}, {0, 0, 3}, 0);
+            q.append(0,          {0, 0, 5}, {0, 0, 6}, 0);
+            q.append(0,          {0, 0, 3}, {0, 0, 4}, 0);
+
+            // const auto& [l, r] = arb::split_at(tree, 2);
+            // EXPECT_EQ(p, l);
+            // EXPECT_EQ(q, r);
+        }
+    }
+}
