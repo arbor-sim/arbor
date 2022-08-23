@@ -609,12 +609,12 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<ion_settings> py_ion_data(m, "ion_settings");
     ion_data
-        .def_readonly("charge",                    &ion_settings::charge,                    "Valence.")
-        .def_readonly("internal_concentration",    &ion_settings::internal_concentration,    "Internal concentration.")
-        .def_readonly("external_concentration",    &ion_settings::external_concentration,    "External concentration.")
-        .def_readonly("diffusivity",               &ion_settings::diffusivity,               "Diffusivity.")
-        .def_readonly("reversal_potential",        &ion_settings::reversal_potential,        "Reversal potential.")
-        .def_readonly("reversal_potential_method", &ion_settings::reversal_potential_method, "Reversal potential method.");
+        .def_property_readonly("charge",                    [](const ion_settings& s) { return s.charge; },                    "Valence.")
+        .def_property_readonly("internal_concentration",    [](const ion_settings& s) { return s.internal_concentration; },    "Internal concentration.")
+        .def_property_readonly("external_concentration",    [](const ion_settings& s) { return s.external_concentration; },    "External concentration.")
+        .def_property_readonly("diffusivity",               [](const ion_settings& s) { return s.diffusivity; },               "Diffusivity.")
+        .def_property_readonly("reversal_potential",        [](const ion_settings& s) { return s.reversal_potential; },        "Reversal potential.")
+        .def_property_readonly("reversal_potential_method", [](const ion_settings& s) { return s.reversal_potential_method; }, "Reversal potential method.");
 
     pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     gprop
