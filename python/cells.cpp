@@ -598,6 +598,24 @@ void register_cells(pybind11::module& m) {
         .def_readonly("diffusivity",            &arb::cable_cell_ion_data::diffusivity,             "Diffusivity.")
         .def_readonly("reversal_concentration", &arb::cable_cell_ion_data::init_reversal_potential, "Reversal potential.");
 
+    struct ion_settings {
+        int charge = 0;
+        std::optional<double> internal_concentration;
+        std::optional<double> external_concentration;
+        std::optional<double> diffusivity;
+        std::optional<double> reversal_potential;
+        std::string reversal_potential_method = "const";
+    };
+
+    pybind11::class_<ion_settings> py_ion_data(m, "ion_settings");
+    ion_data
+        .def_readonly("charge",                    &ion_settings::charge,                    "Valence.")
+        .def_readonly("internal_concentration",    &ion_settings::internal_concentration,    "Internal concentration.")
+        .def_readonly("external_concentration",    &ion_settings::external_concentration,    "External concentration.")
+        .def_readonly("diffusivity",               &ion_settings::diffusivity,               "Diffusivity.")
+        .def_readonly("reversal_potential",        &ion_settings::reversal_potential,        "Reversal potential.")
+        .def_readonly("reversal_potential_method", &ion_settings::reversal_potential_method, "Reversal potential method.");
+
     pybind11::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     gprop
         .def(pybind11::init<>())
@@ -621,12 +639,6 @@ void register_cells(pybind11::module& m) {
         .def_property("axial_resisitivity",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
-        .def_property_readonly("ion_data",
-                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.ion_data; })
-        .def_property_readonly("ion_valence",
-                      [](const arb::cable_cell_global_properties& props) { return props.ion_species; })
-        .def_property_readonly("ion_reversal_potential",
-                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.reversal_potential_method; })
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
@@ -687,9 +699,34 @@ void register_cells(pybind11::module& m) {
             "specific regions using the paint interface, while the method for calculating\n"
             "reversal potential is global for all compartments in the cell, and can't be\n"
              "overriden locally.")
+        .def_property_readonly("ion_data",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.ion_data; })
+        .def_property_readonly("ion_valence",
+                      [](const arb::cable_cell_global_properties& props) { return props.ion_species; })
+        .def_property_readonly("ion_reversal_potential",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.reversal_potential_method; })
         .def_property_readonly("ions",
-                               [](arb::cable_cell_global_properties& g) { return g.default_parameters.ion_data; },
-                               "Return a view of the ion settings.")
+                               [](arb::cable_cell_global_properties& g) {
+                                   std::unordered_map<std::string, ion_settings> result;
+                                   for (const auto& [k, v]: g.ion_species) {
+                                       auto& ion = result[k];
+                                       ion.charge = v;
+                                       auto& data = g.default_parameters.ion_data;
+                                       if (data.count(k)) {
+                                           auto& i = data.at(k);
+                                           ion.diffusivity = i.diffusivity;
+                                           ion.external_concentration = i.init_ext_concentration;
+                                           ion.internal_concentration = i.init_int_concentration;
+                                           ion.reversal_potential     = i.init_reversal_potential;
+                                       }
+                                       auto& revpot = g.default_parameters.reversal_potential_method;
+                                       if (revpot.count(k)) {
+                                           ion.reversal_potential_method = revpot.at(k).name();
+                                       }
+                                   }
+                                   return result;
+                               },
+                               "Return a view of all ion settings.")
         .def_readwrite("catalogue",
                        &arb::cable_cell_global_properties::catalogue,
                        "The mechanism catalogue.")
