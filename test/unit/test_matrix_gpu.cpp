@@ -39,8 +39,8 @@ using std::end;
 // test that the flat and interleaved storage back ends produce identical results
 TEST(matrix, backends)
 {
-    using T = fvm_value_type;
-    using I = fvm_index_type;
+    using T = arb_value_type;
+    using I = arb_index_type;
 
     using state_flat = gpu::matrix_state_flat<T, I>;
     using state_fine = gpu::matrix_state_fine<T, I>;

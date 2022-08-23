@@ -38,6 +38,7 @@ set(pyarb_source
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
+    env.cpp
 )
 
 # compile the pyarb sources into an object library that will be

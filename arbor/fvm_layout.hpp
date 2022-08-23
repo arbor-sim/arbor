@@ -59,8 +59,8 @@ namespace cv_prefer {
 struct ARB_ARBOR_API cv_geometry: public cell_cv_data_impl {
     using base = cell_cv_data_impl;
 
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
 
     std::vector<index_type> cv_to_cell;      // Maps CV index to cell index.
     std::vector<index_type> cell_cv_divs;    // Partitions CV indices by cell.
@@ -138,15 +138,15 @@ ARB_ARBOR_API cv_geometry& append(cv_geometry&, const cv_geometry&);
 // midpoint of an unbranched CV.
 
 struct fvm_diffusion_info {
-    using value_type = fvm_value_type;
+    using value_type = arb_value_type;
     std::vector<value_type> face_diffusivity;
     std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
 };
     
 struct fvm_cv_discretization {
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
-    using value_type = fvm_value_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
+    using value_type = arb_value_type;
 
     cv_geometry geometry;
 
@@ -184,22 +184,22 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_ce
 // interpolation) or the parent of the distal CV.
 
 struct fvm_voltage_interpolant {
-    fvm_index_type proximal_cv, distal_cv;
-    fvm_value_type proximal_coef, distal_coef;
+    arb_index_type proximal_cv, distal_cv;
+    arb_value_type proximal_coef, distal_coef;
 };
 
 // Interpolated membrane voltage.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site);
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site);
 
 // Axial current as linear combiantion of voltages.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site);
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site);
 
 
 // Post-discretization data for point and density mechanism instantiation.
 
 struct fvm_mechanism_config {
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
 
     arb_mechanism_kind kind;
 
@@ -230,8 +230,8 @@ struct fvm_mechanism_config {
 // Post-discretization data for ion channel state.
 
 struct fvm_ion_config {
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
 
     // Keep track whether eX, Xi, Xo are actually to be reset.
     bool revpot_written = false;
@@ -258,8 +258,8 @@ struct fvm_ion_config {
 };
 
 struct fvm_stimulus_config {
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
 
     // CV index for each stimulus instance; monotonically increasing.
     std::vector<index_type> cv;
@@ -276,7 +276,7 @@ struct fvm_stimulus_config {
 };
 
 // Maps gj {gid, lid} locations on a cell to their CV indices.
-ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D);
@@ -285,7 +285,7 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_
 ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cv,
+    const std::unordered_map<cell_member_type, arb_size_type>& gj_cv,
     const recipe& rec);
 
 struct fvm_mechanism_data {

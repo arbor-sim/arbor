@@ -86,10 +86,10 @@ namespace kernels {
 } // namespace kernels
 
 void mark_until_after_w(unsigned n,
-        fvm_index_type* mark,
-        fvm_index_type* span_end,
-        fvm_value_type* ev_time,
-        const fvm_value_type* t_until)
+        arb_index_type* mark,
+        arb_index_type* span_end,
+        arb_value_type* ev_time,
+        const arb_value_type* t_until)
 {
     const int nblock = impl::block_count(n, 128);
     kernels::mark_until_after
@@ -98,10 +98,10 @@ void mark_until_after_w(unsigned n,
 }
 
 void mark_until_w(unsigned n,
-        fvm_index_type* mark,
-        fvm_index_type* span_end,
-        fvm_value_type* ev_time,
-        const fvm_value_type* t_until)
+        arb_index_type* mark,
+        arb_index_type* span_end,
+        arb_value_type* ev_time,
+        const arb_value_type* t_until)
 {
     const int nblock = impl::block_count(n, 128);
     kernels::mark_until
@@ -110,10 +110,10 @@ void mark_until_w(unsigned n,
 }
 
 void drop_marked_events_w(unsigned n,
-        fvm_index_type* n_nonempty_stream,
-        fvm_index_type* span_begin,
-        fvm_index_type* span_end,
-        fvm_index_type* mark)
+        arb_index_type* n_nonempty_stream,
+        arb_index_type* span_begin,
+        arb_index_type* span_end,
+        arb_index_type* mark)
 {
     const int nblock = impl::block_count(n, 128);
     kernels::drop_marked_events
@@ -123,10 +123,10 @@ void drop_marked_events_w(unsigned n,
 }
 
 void event_time_if_before_w(unsigned n,
-        fvm_index_type* span_begin,
-        fvm_index_type* span_end,
-        fvm_value_type* ev_time,
-        fvm_value_type* t_until)
+        arb_index_type* span_begin,
+        arb_index_type* span_end,
+        arb_value_type* ev_time,
+        arb_value_type* t_until)
 {
     const int nblock = impl::block_count(n, 128);
     kernels::event_time_if_before
