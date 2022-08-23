@@ -24,10 +24,10 @@ def make_cable_cell(gid):
     tree = arbor.segment_tree()
 
     # Soma with radius 5 μm and length 2 * radius = 10 m, (tag = 1)
-    s = tree.append(arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(0, 0, 0, 5), tag=1)
+    s = tree.append(arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(10, 0, 0, 5), tag=1)
 
     # Single dendrite with radius 2 μm and length 40 μm, (tag = 2)
-    b = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
+    b = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(200, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
     labels = arbor.label_dict()
@@ -38,8 +38,8 @@ def make_cable_cell(gid):
     labels['synapse_site'] = '(location 0 0.6)'
 
     # Gap junction site at connection point of soma and dendrite
-    labels['gj_site_0'] = '(location 0 0.2)'
-    labels['gj_site_1'] = '(location 0 0.5)'
+    labels['gj_site_0'] = '(location 0 0.1)'
+    labels['gj_site_1'] = '(location 0 0.99)'
 
     # Label root of the tree
     labels['root'] = '(root)'
@@ -50,9 +50,9 @@ def make_cable_cell(gid):
     decor.paint('"dend"', arbor.density("pas"))
 
     #split into multiple cvs
-    #policy = arbor.cv_policy_explicit('(location 0 0.35)')
+    policy = arbor.cv_policy_explicit('(location 0 0.35)')
     policy = arbor.cv_policy_single()
-    decor.discretization(policy)
+    #decor.discretization(policy)
     #decor.discretization("(max-extent 9)")
 
     # Attach one synapse and gap junction each on their labeled sites
@@ -87,12 +87,19 @@ class chain_recipe(arbor.recipe):
 
     # Create synapse connection between last cell of one chain and first cell of following chain
     def connections_on(self, gid):
-        if (gid == 0) or (gid % self.ncells_per_chain > 0):
+        # if (gid == 0) or (gid % self.ncells_per_chain > 0):
+        #     return []
+        if (gid == 0):
+            src = gid+1
+            w = 0.0 # 0.01 μS on expsyn
+            d = 20 # ms delay
+            return [arbor.connection((src,'detector'), 'syn', w, d)]
+        elif (gid % self.ncells_per_chain > 0):
             return []
         else:
             src = gid-1
             w   = 0.05
-            d   = 10
+            d   = 5
             return [arbor.connection((src,'detector'), 'syn', w, d)]
         return []
     
@@ -106,26 +113,33 @@ class chain_recipe(arbor.recipe):
         next_cell = gid + 1
         prev_cell = gid - 1
 
-        if next_cell < chain_end:
-            conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.2))
-            #conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.1*(gid+1)))
-        if prev_cell >= chain_begin:
-            conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.2))
-            #conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.1*(gid+1)))
-        #if gid == 0:
-        #    conns.append(arbor.gap_junction_connection((3, 'gj_0'), 'gj_0', 0.2))
-        #if gid == 3:
-        #    conns.append(arbor.gap_junction_connection((0, 'gj_0'), 'gj_0', 0.2))
+        if (gid < self.ncells_per_chain - 1):
+           conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_1', 1.5))
+        if (gid > 0):
+           conns.append(arbor.gap_junction_connection((gid-1, 'gj_1'), 'gj_0', 1.5))
+        
+        if gid == 0:
+            conns.append(arbor.gap_junction_connection((9, 'gj_1'), 'gj_0', 1.5))
+        if gid == 9:
+            conns.append(arbor.gap_junction_connection((0, 'gj_0'), 'gj_1', 1.5))
 
+            
 
+        # if next_cell < chain_end:
+        #     conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_0', 0.15))
+        # if prev_cell >= chain_begin:
+        #     conns.append(arbor.gap_junction_connection((gid-1, 'gj_0'), 'gj_0', 0.15))
 
+       
         return conns
 
     # Event generator at first cell
     def event_generators(self, gid):
-        if (gid == 0):
-            sched = arbor.explicit_schedule([1])
-            weight = 0.1
+        if (gid == 9):
+            #sched = arbor.explicit_schedule([0, 40, 80, 110, 160, 200])
+            sched = arbor.explicit_schedule([0])
+            #sched = arbor.regular_schedule(0, 10, 71)
+            weight = 0.5
             return [arbor.event_generator('syn', weight, sched)]
         return []
 
@@ -138,7 +152,7 @@ class chain_recipe(arbor.recipe):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 4
+ncells_per_chain = 10
 
 # Number of chains
 nchains = 1
@@ -148,15 +162,6 @@ ncells = nchains * ncells_per_chain
 
 #Instantiate recipe
 recipe = chain_recipe(ncells_per_chain, nchains)
-
-#context = arbor.context()
-#decomp = arbor.partition_load_balance(recipe, context)
-#sim = arbor.simulation(recipe, decomp, context)
-
-#context = arbor.context(gpu_id = None)
-#groups = [arbor.group_description(arbor.cell_kind.cable, [0, 1], arbor.backend.multicore), arbor.group_description(arbor.cell_kind.cable, [2, 3], arbor.backend.multicore)]
-#decomp = arbor.partition_by_group(recipe, context, groups)
-#sim = arbor.simulation(recipe, decomp, context)
 
 alloc   = arbor.proc_allocation(1, None)
 comm    = mpi.COMM_WORLD
@@ -169,12 +174,15 @@ print(gxs)
 context = arbor.context(alloc, comm)
 print(context)
 
+g = []
+for i in range(ncells_per_chain) :
+    g.append(i)
+
 if comm.rank == 0:
-    gs = [[0,1]]
-elif comm.rank == 1:
-    gs = [[2,3]]
-#elif comm.rank == 2:
-#    gs = [[6,7]]
+    #gs = [[0,1,2,3]]
+    gs = [g]
+#elif comm.rank == 1:
+#    gs = [[2,3]]
 
 
 groups = [arbor.group_description(arbor.cell_kind.cable, g, arbor.backend.multicore) for g in gs]
@@ -187,14 +195,18 @@ dt = 0.025
 sim.set_binning_policy(arbor.binning.regular, dt)
 
 # Set spike generators to record
-sim.record(arbor.spike_recording.all)
+#sim.record(arbor.spike_recording.all)
 
 # Sampler
 #handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 # Run simulation for 100 ms
-sim.run(10, dt=dt)
-print('Simulation finished')
+sim.run(100, dt=dt)
+if comm.rank == 0:
+    print('Simulation finished rank 0')
+else:
+    print('Simulation finished rank 1')
+    
 
 # Print spike times
 #print('spikes:')
