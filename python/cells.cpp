@@ -499,8 +499,8 @@ void register_cells(pybind11::module& m) {
                 s.scale(std::move(name), arborio::parse_iexpr_expression(ex).unwrap());
                 return s;
             },
-            pybind11::arg_v("name", "name of parameter to scale."),
-            pybind11::arg_v("ex", "iexpr for scaling"),
+            pybind11::arg("name"),
+            pybind11::arg("ex"),
             "Add a scaling expression to a parameter.")
         .def("__repr__",
             [](const arb::scaled_mechanism<arb::density>& d) {
@@ -683,7 +683,7 @@ void register_cells(pybind11::module& m) {
                     props.default_parameters.reversal_potential_method[ion] = *m;
                 }
             },
-            pybind11::arg_v("ion", "name of the ion species."),
+            pybind11::arg("ion"),
             pybind11::arg_v("valence", pybind11::none(), "valence of the ion species."),
             pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
@@ -778,7 +778,7 @@ void register_cells(pybind11::module& m) {
                 if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
                 return d;
             },
-            pybind11::arg_v("ion", "name of the ion species."),
+            pybind11::arg("ion"),
             pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
             pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
             pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
@@ -839,7 +839,7 @@ void register_cells(pybind11::module& m) {
                 if (tempK) dec.paint(r, arb::temperature_K{*tempK});
                 return dec;
             },
-            pybind11::arg_v("region", "the region label or description."),
+            pybind11::arg("region"),
             pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
             pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
             pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
@@ -897,13 +897,15 @@ void register_cells(pybind11::module& m) {
             "The group of spike detectors has the label 'label', used for forming connections between cells.")
         .def("discretization",
             [](arb::decor& dec, const arb::cv_policy& p) { return dec.set_default(p); },
-            pybind11::arg_v("policy", "A cv_policy used to discretise the cell into compartments for simulation"))
+            pybind11::arg("policy"),
+             "A cv_policy used to discretise the cell into compartments for simulation")
         .def("discretization",
             [](arb::decor& dec, const std::string& p) {
                 return dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
             },
-            pybind11::arg_v("policy", "An s-expression string representing a cv_policy used to discretise the "
-                                      "cell into compartments for simulation"));
+            pybind11::arg("policy"),
+            "An s-expression string representing a cv_policy used to discretise the "
+            "cell into compartments for simulation");
 
     // arb::cable_cell
 
