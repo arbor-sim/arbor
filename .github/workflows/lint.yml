@@ -27,7 +27,7 @@ jobs:
         uses: psf/black@stable
         with:
           options: --check --extend-exclude '/(ext|python/pybind11|doc/scripts/.*_theme|doc/scripts/inputs.py)'
-          src: scripts/build-catalogue.in .
+          src: .
       - name: Python analysis
         run: |
-          flake8 scripts/build-catalogue.in .
+          flake8 .

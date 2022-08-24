@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import arbor as A
 import subprocess as sp
 import sys
 from tempfile import mkdtemp
@@ -8,6 +9,9 @@ from pathlib import Path
 import shutil
 import argparse
 import re
+
+
+config = A.config()
 
 
 def parse_arguments():
@@ -62,19 +66,9 @@ also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
 
     parser.add_argument("-q", "--quiet", action="store_true", help="Less output.")
 
-    parser.add_argument(
-        "-g",
-        "--gpu",
-        metavar="gpu",
-        help="Enable GPU support, valid options: cuda|hip|cuda-clang.",
-    )
+    parser.add_argument("--cpu", default=True, help="Enable CPU support.")
 
     parser.add_argument(
-        "-C", "--no-cpu", action="store_true", help="Disable CPU support."
-    )
-
-    parser.add_argument(
-        "-d",
         "--debug",
         nargs="?",
         metavar="path",
@@ -82,6 +76,57 @@ also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
         default=False,
         help="Don't clean up the generated temp cpp code."
         + " Can be a target path for the generated code.",
+    )
+
+    parser.add_argument(
+        "--gpu",
+        metavar="gpu",
+        default=config["gpu"] if config["gpu"] else "none",
+        choices=["none", "cuda", "hip", "cuda-clang"],
+        help="Enable GPU support",
+    )
+
+    parser.add_argument(
+        "--gpu-arch",
+        metavar="gpu_arch",
+        default=config.get("gpu_arch", ""),
+        choices=["none", "cuda", "hip", "cuda-clang"],
+        help="Enable GPU support",
+    )
+
+    parser.add_argument(
+        "--cxx",
+        metavar="cxx",
+        default=config["CXX"],
+        help="Use this C++ compiler.",
+    )
+
+    parser.add_argument(
+        "--prefix",
+        metavar="prefix",
+        default=config["prefix"],
+        help="Arbor's install prefix.",
+    )
+
+    parser.add_argument(
+        "--bin",
+        metavar="bin",
+        default=config["binary_path"],
+        help="Look here for Arbor utils like modcc; relative to prefix.",
+    )
+
+    parser.add_argument(
+        "--lib",
+        metavar="lib",
+        default=config["lib_path"],
+        help="Look here for Arbor's CMake config; relative to prefix.",
+    )
+
+    parser.add_argument(
+        "--data",
+        metavar="data",
+        default=config["data_path"],
+        help="Look here for Arbor supplementals like generate_catalogue; relative to prefix.",
     )
 
     parser.add_argument(
@@ -101,18 +146,18 @@ quiet = args["quiet"]
 verbose = args["verbose"] and not quiet
 debug = args["debug"]
 raw = args["raw"]
-gpu = args["gpu"]
-cpu = not args["no_cpu"]
+gpu = args["gpu"].lower()
+cpu = args["cpu"]
 
-if gpu:
+if gpu != "none":
     if gpu == "cuda":
-        gpu_support = """
+        gpu_support = f"""
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
 
 enable_language(CUDA)
-set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CXX_COMPILER@)
-set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)
+set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
+set(CMAKE_CUDA_ARCHITECTURES {args["gpu_arch"]})
 """
     else:
         print(
@@ -124,16 +169,15 @@ else:
 # GPU: Disabled
 """
 
-this_path = Path(__file__).parent
-data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
-pack_path = (this_path / "@ARB_REL_PACKAGEDIR@").resolve()
-exec_path = this_path.resolve()
+bindir = Path(args["prefix"]) / args["bin"]
+datdir = Path(args["prefix"]) / args["data"] / "arbor"
+pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
 
 for path in [
-    exec_path / "modcc",
-    data_path / "generate_catalogue",
-    data_path / "BuildModules.cmake",
-    pack_path / "arbor-config.cmake",
+    bindir / "modcc",
+    datdir / "generate_catalogue",
+    datdir / "BuildModules.cmake",
+    pakdir / "arbor-config.cmake",
 ]:
     if not path.exists():
         print(f"Could not find required tool: {path}. Please check your installation.")
@@ -143,7 +187,7 @@ cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
 
-set(arbor_DIR {pack_path})
+set(arbor_DIR {pakdir})
 find_package(arbor REQUIRED)
 {gpu_support}
 set(CMAKE_BUILD_TYPE release)
@@ -153,7 +197,7 @@ set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 include(BuildModules.cmake)
 
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS {exec_path})
+find_program(modcc NAMES modcc PATHS {bindir})
 
 make_catalogue(
   NAME {name}
@@ -161,7 +205,7 @@ make_catalogue(
   OUTPUT "CAT_{name.upper()}_SOURCES"
   MOD {' '.join(mods)}
   CXX {' '.join(raw)}
-  PREFIX {data_path}
+  PREFIX {datdir}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   STANDALONE ON
   VERBOSE {"ON" if verbose else "OFF"})
@@ -214,8 +258,8 @@ with TemporaryDirectory() as tmp:
     os.chdir(tmp / "build")
     with open(tmp / "CMakeLists.txt", "w") as fd:
         fd.write(cmake)
-    shutil.copy2(f"{data_path}/BuildModules.cmake", tmp)
-    shutil.copy2(f"{data_path}/generate_catalogue", tmp)
+    shutil.copy2(f"{datdir}/BuildModules.cmake", tmp)
+    shutil.copy2(f"{datdir}/generate_catalogue", tmp)
 
     out = tmp / "build" / "generated" / name
     os.makedirs(out, exist_ok=True)
