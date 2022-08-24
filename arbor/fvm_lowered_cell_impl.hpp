@@ -277,7 +277,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     //trace vectors for recording voltages: voltages for corresponding CVs in cvs_local in same order
     //                          step = 0                                    step = 1              ...
     //trace = [ [v[cvs_local[0]], v[cvs_local[1]], ...], [v[cvs_local[0]], v[cvs_local[1]], ...], ... ]
-    std::vector<std::vector<arb_value_type>> trace, trace_prev;
+    std::vector<std::vector<arb_value_type>> trace, trace_clean, trace_prev;
+    std::vector<double> trace_t, trace_t_clean;
 
     threshold_watcher threshold_watcher_reset = threshold_watcher_;
 
@@ -295,7 +296,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // Global, sorted list of all CVs that are part of a gap junction
     auto cvs_global = context_.distributed->gather_cg_cv_map(cvs_local);
 
-
     int wr_max = 1;
     auto eps = 1e-4;
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
@@ -304,7 +304,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         tfinal = tfinal_reset;
         remaining_steps = dt_steps(tmin_, tfinal, dt_max);
         int max_remaining_steps = remaining_steps;
-        //std::cout << "max rem steps = " << max_remaining_steps << std::endl;
+        int doubles_count = 0.;
+        std::cout << "max rem steps = " << max_remaining_steps << std::endl;
+        std::cout << "len(trace) = " << trace.size() << std::endl;
     
         
         // Reset error variables for WR break condition
@@ -314,6 +316,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         threshold_watcher_ = threshold_watcher_reset;
         int step = 0;
         auto tmin_prev = state_->time_bounds().first;
+
+        std::cout << "group " << cell_group << " start it " << wr_it << std::endl;
         
         while (remaining_steps) {
 
@@ -349,6 +353,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     auto m_id = m->mechanism_id();
                     auto& peer_ix = peer_ix_map[m_id];
 
+                    if (step > 0 && (state_->time_bounds().first - tmin_prev) < 0.1*dt_max) {
+                        // std::cout << "double found in step = " << step << std::endl
+                        //           << " tmin_prev= " << tmin_prev
+                        //           << " tmin = " << state_->time_bounds().first << std::endl;
+                        doubles_count += 1;
+                        // std::cout << "doubles count = " << doubles_count << std::endl;
+                    }
+
                     if (wr_it == 0 && step == 0) {
 
                         peer_ix.clear();
@@ -383,16 +395,18 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         // Here we expect peer_ix to be the index into the trace structure, regardless of local
                         // or not. However, the selection of the trace must take locality into account.
                         // Q: How to select?
-
+                        auto trace_prev_step = trace_prev[step - doubles_count];
                         for (auto i = 0; i<m->ppack_.width; ++i) {
                             if ( m->ppack_.peer_cg[i] == cell_group ) {
                                 //std::cout << "peer ix[" << i << "] = " << peer_ix[i] << " -> " << std::get<2>(index_to_cell[m->ppack_.peer_index[i]]) << std::endl;
-                                trace_prev[step][peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[m->ppack_.peer_index[i]])];
+                                //trace_prev[step][peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[m->ppack_.peer_index[i]])];
+                                trace_prev_step[peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[m->ppack_.peer_index[i]])];
                             }
                         }
 
                         m->ppack_.peer_index = peer_ix.data();
-                        m->ppack_.vec_v_peer = trace_prev[step].data();
+                        //m->ppack_.vec_v_peer = trace_prev[step].data();
+                        m->ppack_.vec_v_peer = trace_prev_step.data();
 
                     }
                 }
@@ -403,8 +417,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
 
                     //if(max_remaining_steps-step > 0){
-
                     std::vector<value_type> v_step;
+                    
+                    // Only record trace if time step of dt has been made
 
                     for (auto ix = 0; ix<cvs_local.size(); ++ix) {
                         auto cv = cvs_local[ix];
@@ -412,42 +427,19 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     } 
                     
                     trace.push_back(v_step);
+                    trace_t.push_back(state_->time_bounds().first);
 
-                    if (cell_group == 0 && (step > 0 && ((state_->time_bounds().first - tmin_prev) < 0.1*dt_max))){
-                        std::cout << " step = " << step
-                                  << " tmin = " << state_->time_bounds().first
-                                  << " tprev= " << tmin_prev
-                                  << " dtmax = "<< dt_max
-                                  << " diff = " << state_->time_bounds().first - tmin_prev << std::endl;
-                    }
-    
-                    if (cell_group == 0){
-                        file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_0.txt", std::ios::app);
-
-
-                        for (int i = 0; i<v_step.size(); ++i){
-                            file0 << v_step[i] << ", ";
-                        }
-                        file0 << std::endl;
-                        file0.close();
-
-                        file2.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_t.txt", std::ios::app);
-                        file2 << state_->time_bounds().first << std::endl;
-                        file2.close();
-                
-                    }
-
-                    if (cell_group == 1){
-                        file1.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_1.txt", std::ios::app);
-
-                        for (int i = 0; i<trace[step].size(); ++i){
-                            file1 << v_step[i] << ", ";
-                        }
-                        file1 << std::endl;
-                        file1.close();
-                    }
-
-                    
+                    // if (cell_group == 0 && (step > 0 && ((state_->time_bounds().first - tmin_prev) < 0.1*dt_max))){
+                    //     std::cout << " step = " << step
+                    //               << " tmin_prev= " << tmin_prev
+                    //               << " tmin = " << state_->time_bounds().first
+                    //               << " tfinal = " << tfinal
+                    //               << " remaining steps = " << remaining_steps
+                    //               << " tmin real = " << state_->time_bounds().first + dt_max
+                    //               << " new remaining steps = " << dt_steps(state_->time_bounds().first+dt_max, tfinal, dt_max)
+                    //               << " dtmax = "<< dt_max
+                    //               << " diff = " << state_->time_bounds().first - tmin_prev << std::endl;
+                    // }                
                     //}
 
                     //todo eliminate mechanism id
@@ -457,7 +449,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 }
             }
             tmin_prev = state_->time_bounds().first;
-
 
             PE(advance_integrate_events);
             state_->deliverable_events.drop_marked_events();
@@ -531,43 +522,119 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 assert_voltage_bounded(check_voltage_mV_);
                 PL();
             }
-
-            // if (cell_group == 0) {
-            //     const auto& [low,high] = state_->time_bounds();
-            //     std::cout << "remaining steps=" << remaining_steps << " [" << low << "," << high << "]"<< std::endl;
-            //     if (high != low) {
-            //         std::cout << "[low,high] don't match !" << std::endl;
-            //     }
-            // }
-
+            
             // Check for end of integration.
             PE(advance_integrate_stepsupdate);
             if (!--remaining_steps) {
                 auto tmin_old = tmin_;
                 tmin_ = state_->time_bounds().first;
                 remaining_steps = dt_steps(tmin_, tfinal, dt_max);
-                // std::cout << " id=" << context_.distributed->id()
-                //           << " tmin_=" << tmin_
-                //           << " tmin_old=" << tmin_old
-                //           << " remaining steps=" << remaining_steps
-                //           << " tfinal=" << tfinal
-                //           << " dt_max=" << dt_max << std::endl;     
+                // if (cell_group == 0) {
+                //     std::cout << " id=" << context_.distributed->id()
+                //             << " tmin_=" << tmin_
+                //             << " tmin_old=" << tmin_old
+                //             << " remaining steps=" << remaining_steps
+                //             << " step=" << step
+                //             << " tfinal=" << tfinal
+                //             << " dt_max=" << dt_max << std::endl;  
+                // }   
+            }
+            if (cell_group == 0 && remaining_steps == 0) {
+                // std::cout << " tmin_ = " << tmin_ << std::endl;
+                // std::cout << " tmin_prev = " << tmin_prev << std::endl;
+                // std::cout << " state_->time_bounds() = " << state_->time_bounds().first << std::endl;
+                if (tmin_prev != tfinal) {
+                    std::cout << "tmin != tfinal -> need another step" << std::endl;
+                    remaining_steps = 1;
+                }
             }
             PL();
             step++;
         } // end of integration
+        std::cout << "group " << cell_group << " end of it " << wr_it << std::endl;
 
         //Gather traces from all groups for next iteration
         trace_prev = {};
-        for (int st = 0; st<trace.size(); ++st) {
+        auto count_clean = 1;
+        auto count_total = 1;
+        std::cout << "CHECKPOINT" << std::endl;
+        std::cout << " len trace = " << trace.size() << std::endl;
+        std::cout << " len trace t = " << trace_t.size() << std::endl;
+
+
+        trace_clean.push_back(trace[0]);
+        trace_t_clean.push_back(trace_t[0]);
+
+        for (int t=1; t<trace.size(); ++t){
+            if ((trace_t[t]-trace_t[t-1]) > 0.1*dt_max){
+                trace_clean.push_back(trace[t]);
+                trace_t_clean.push_back(trace_t[t]);
+                count_clean += 1;
+            }
+            count_total +=1;
+        }
+        if (cell_group == 0){
+            std::cout << "group = " << cell_group << " trace.size() = " << trace.size() << std::endl;
+            std::cout << "group = " << cell_group << " trace_clean.size() = " << trace_clean.size() << std::endl;
+            std::cout << "group = " << cell_group << " trace_t.size() = " << trace_t.size() << std::endl;
+            std::cout << "group = " << cell_group << " trace_t_clean.size() = " << trace_t_clean.size() << std::endl;
+        }
+        // if (cell_group == 0) {
+        //     std::cout << "trace_t_clean = " << trace_t_clean[0] << ", " << trace_t_clean[1] << ",..." << std::endl;
+        // }
+        
+        for (int i = 1; i<trace_t_clean.size(); ++i){
+            if ((trace_t_clean[i]-trace_t_clean[i-1]) < 0.1*dt_max){
+                std::cout << "BIG MISTAKES HAVE BEEN MADE HERE" << std::endl;
+            }
+        }
+
+        if (cell_group == 0) {std::cout << "finished cleaning trace" << std::endl;}
+
+        for (int st = 0; st<trace_clean.size(); ++st) {
             //if (st == 0) { std::cout << "len trace = " << trace.size() << std::endl;}
-            auto step_gathered = context_.distributed->gather_trace(trace[st]);
+            auto step_gathered = context_.distributed->gather_trace(trace_clean[st]);
             trace_prev.push_back(step_gathered);
         }
+        if (cell_group == 0){
+            std::cout << "group = " << cell_group << " trace_prev.size() = " << trace_prev.size() << std::endl;
+            std::cout << "group = " << cell_group << " trace_prev[0].size() = " << trace_prev[0].size() << std::endl;
+        }
+        std::cout << "group " << cell_group << " has finished gathering traces !" << std::endl;
        
+        if (cell_group == 0){
+            file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_0.txt", std::ios::app);
+            for (int i = 0; i<trace_clean.size(); ++i){
+                for (int j = 0; j<trace_clean[i].size(); ++j){
+                    file0 << trace_clean[i][j] << ", ";
+                }
+                file0 << std::endl;
+            }
+            file0.close();
+
+            file2.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_t.txt", std::ios::app);
+            for (int t = 0; t<trace_t_clean.size(); ++t) {
+                file2 << trace_t_clean[t] << std::endl;
+            }
+            file2.close();
+        }
+
+        if (cell_group == 1){
+            file1.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_1.txt", std::ios::app);
+            for (int i = 0; i<trace_clean.size(); ++i){
+                for (int j = 0; j<trace_clean[i].size(); ++j){
+                    file1 << trace_clean[i][j] << ", ";
+                }
+                file1 << std::endl;
+            }
+            file1.close();
+        }
+ 
         // Reset trace
         trace = {};
-
+        trace_clean = {};
+        trace_t = {};
+        trace_t_clean = {};
 
         // Reset state
         std::copy(dt_intdom_r.begin(), dt_intdom_r.end(), state_->dt_intdom.begin());
@@ -607,6 +674,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                 *store.second.state_vars_[j] = state_vars_r[store.first][j];
             }
         }  
+        if (cell_group == 0) {
+            std::cout << "group " << cell_group << " finished state resets it it = " << wr_it << std::endl;
+        }
   
     } // end of WR loop
 

@@ -27,7 +27,7 @@ def make_cable_cell(gid):
     s = tree.append(arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(10, 0, 0, 5), tag=1)
 
     # Single dendrite with radius 2 μm and length 40 μm, (tag = 2)
-    b = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(200, 0, 0, 2), tag=2)
+    b = tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(2000, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
     labels = arbor.label_dict()
@@ -87,21 +87,14 @@ class chain_recipe(arbor.recipe):
 
     # Create synapse connection between last cell of one chain and first cell of following chain
     def connections_on(self, gid):
-        # if (gid == 0) or (gid % self.ncells_per_chain > 0):
-        #     return []
+        #return []
         if (gid == 0):
             src = gid+1
             w = 0.0 # 0.01 μS on expsyn
-            d = 20 # ms delay
+            d = 50 # ms delay
             return [arbor.connection((src,'detector'), 'syn', w, d)]
-        elif (gid % self.ncells_per_chain > 0):
-            return []
         else:
-            src = gid-1
-            w   = 0.05
-            d   = 5
-            return [arbor.connection((src,'detector'), 'syn', w, d)]
-        return []
+            return []
     
     # Create gap junction connections between a cell within a chain and its neighbor(s)
     def gap_junctions_on(self, gid):
@@ -114,14 +107,14 @@ class chain_recipe(arbor.recipe):
         prev_cell = gid - 1
 
         if (gid < self.ncells_per_chain - 1):
-           conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_1', 1.5))
+           conns.append(arbor.gap_junction_connection((gid+1, 'gj_0'), 'gj_1', 0.7))
         if (gid > 0):
-           conns.append(arbor.gap_junction_connection((gid-1, 'gj_1'), 'gj_0', 1.5))
+           conns.append(arbor.gap_junction_connection((gid-1, 'gj_1'), 'gj_0', 0.7))
         
         if gid == 0:
-            conns.append(arbor.gap_junction_connection((9, 'gj_1'), 'gj_0', 1.5))
-        if gid == 9:
-            conns.append(arbor.gap_junction_connection((0, 'gj_0'), 'gj_1', 1.5))
+            conns.append(arbor.gap_junction_connection((ncells_per_chain-1, 'gj_1'), 'gj_0', 0.7))
+        if gid == ncells_per_chain-1:
+            conns.append(arbor.gap_junction_connection((0, 'gj_0'), 'gj_1', 0.7))
 
             
 
@@ -135,7 +128,7 @@ class chain_recipe(arbor.recipe):
 
     # Event generator at first cell
     def event_generators(self, gid):
-        if (gid == 9):
+        if (gid == 0):
             #sched = arbor.explicit_schedule([0, 40, 80, 110, 160, 200])
             sched = arbor.explicit_schedule([0])
             #sched = arbor.regular_schedule(0, 10, 71)
@@ -152,7 +145,7 @@ class chain_recipe(arbor.recipe):
         return self.props
 
 # Number of cells per chain
-ncells_per_chain = 10
+ncells_per_chain = 400
 
 # Number of chains
 nchains = 1
@@ -179,10 +172,10 @@ for i in range(ncells_per_chain) :
     g.append(i)
 
 if comm.rank == 0:
-    #gs = [[0,1,2,3]]
+    # gs = [[0,1]]
     gs = [g]
-#elif comm.rank == 1:
-#    gs = [[2,3]]
+# elif comm.rank == 1:
+#     gs = [[2,3]]
 
 
 groups = [arbor.group_description(arbor.cell_kind.cable, g, arbor.backend.multicore) for g in gs]
