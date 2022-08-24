@@ -54,6 +54,7 @@ cell = arbor.cable_cell(morpho, labels, decor)
 
 probe = arbor.cable_probe_membrane_voltage('"axon_terminal"')
 
+
 # (6) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import arbor
-import pandas, seaborn
+import pandas
+import seaborn
 import sys
 
 try:
