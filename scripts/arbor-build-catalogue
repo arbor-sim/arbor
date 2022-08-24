@@ -12,7 +12,16 @@ import re
 
 
 config = A.config()
-
+prefix = Path(config['prefix'])
+if not prefix.exists():
+    try:
+        # Example <>/lib/python3.10/site-packages/arbor
+        altern = Path(A.__path__[0]).parent.parent.parent.parent
+        print(f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.", file=sys.stderr)
+        prefix = altern
+    except:
+        print(f"Error: Neither prefix '{prefix}' nor fallback '{altern}' exist; giving up.", file=sys.stderr)
+        exit(-1)
 
 def parse_arguments():
     def append_slash(s):
@@ -50,9 +59,9 @@ def parse_arguments():
         default=[],
         type=str,
         help="""Advanced: Raw mechanisms as C++ files. Per <name> the
-files <name>.hpp, <name>_cpu.cpp must be present
+files <name>.hpp, <name>_cpu.cpp (if CPU is enabled) must be present
 in the target directory and with GPU support
-also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
+also <name>_gpu.cpp and <name>_gpu.cu.""",
     )
 
     parser.add_argument(
@@ -91,42 +100,42 @@ also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
         metavar="gpu_arch",
         default=config.get("gpu_arch", ""),
         choices=["none", "cuda", "hip", "cuda-clang"],
-        help="Enable GPU support",
+        help=f'Enable GPU support; default={config.get("gpu_arch", "-")}',
     )
 
     parser.add_argument(
         "--cxx",
         metavar="cxx",
         default=config["CXX"],
-        help="Use this C++ compiler.",
+        help=f'Use this C++ compiler; default={config["CXX"]}.',
     )
 
     parser.add_argument(
         "--prefix",
         metavar="prefix",
-        default=config["prefix"],
-        help="Arbor's install prefix.",
+        default=prefix,
+        help=f"Arbor's install prefix; default={prefix}.",
     )
 
     parser.add_argument(
         "--bin",
         metavar="bin",
         default=config["binary_path"],
-        help="Look here for Arbor utils like modcc; relative to prefix.",
+        help=f"Look here for Arbor utils like modcc; relative to prefix, default={config['binary_path']}.",
     )
 
     parser.add_argument(
         "--lib",
         metavar="lib",
         default=config["lib_path"],
-        help="Look here for Arbor's CMake config; relative to prefix.",
+        help=f"Look here for Arbor's CMake config; relative to prefix, default={config['lib_path']}.",
     )
 
     parser.add_argument(
         "--data",
         metavar="data",
         default=config["data_path"],
-        help="Look here for Arbor supplementals like generate_catalogue; relative to prefix.",
+        help=f"Look here for Arbor supplementals like generate_catalogue; relative to prefix, default={config['lib_path']}",
     )
 
     parser.add_argument(
