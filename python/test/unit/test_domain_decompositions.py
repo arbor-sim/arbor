@@ -7,7 +7,7 @@ import unittest
 import arbor as arb
 
 # check Arbor's configuration of mpi and gpu
-gpu_enabled = arb.__config__["gpu"]
+gpu_enabled = arb.__config__["gpu"] != "none"
 
 """
 all tests for non-distributed arb.domain_decomposition
