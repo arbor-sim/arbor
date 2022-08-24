@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-# This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
 import pandas
 import seaborn
 import sys
-from arbor import density
 
-import single_cell_bpo
+try:
+    from bluepyopt import ephys
+except ImportError:
+    raise ImportError("Please install bluepyopt to run this example.")
 
 # (1) Read the cell JSON description referencing morphology, label dictionary and decor.
 
@@ -16,51 +17,19 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 cell_json_filename = sys.argv[1]
-cell_json, morpho, labels, decor = single_cell_bpo.read_cell(cell_json_filename)
+cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
 
 # (2) Create and populate the label dictionary.
-
-# Regions:
-
-if False:
-    # Add labels for tag 1, 2, 3, 4
-    labels['soma'] = '(tag 1)'
-    labels['axon'] = '(tag 2)'
-    labels['dend'] = '(tag 3)'
-    labels['last'] = '(tag 4)'
-    # Add a label for a region that includes the whole morphology
-    labels['all'] = '(all)'
-# Add a label for the parts of the morphology with radius greater than 1.5 μm.
-labels['gt_1.5'] = '(radius-ge (region "all") 1.5)'
-# Join regions "last" and "gt_1.5"
-labels['custom'] = '(join (region "dend") (region "gt_1.5"))'
 
 # Locsets:
 
 # Add a labels for the root of the morphology and all the terminal points
 labels['root']     = '(root)'
 labels['terminal'] = '(terminal)'
-# Add a label for the terminal locations in the "custom" region:
-labels['custom_terminal'] = '(restrict (locset "terminal") (region "custom"))'
 # Add a label for the terminal locations in the "axon" region:
 labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
 
 # (3) Create and populate the decor.
-
-if False:
-    # Set the default properties of the cell (this overrides the model defaults).
-    decor.set_property(Vm =-55)
-    decor.set_ion('na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-    decor.set_ion('k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-
-    # Override the cell defaults.
-    decor.paint('"custom"', tempK=270)
-    decor.paint('"soma"',   Vm=-50)
-
-    # Paint density mechanisms.
-    decor.paint('"all"', density('pas'))
-    decor.paint('"custom"', density('hh'))
-    decor.paint('"dend"', density('Ih', {'gbar': 0.001}))
 
 # Place stimuli and spike detectors.
 decor.place('"root"', arbor.iclamp(10, 10, current=50), 'iclamp0')
@@ -79,7 +48,7 @@ decor.discretization(policy)
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morpho.morphology, labels, decor)
+cell = arbor.cable_cell(morpho, labels, decor)
 
 # (5) Declare a probe.
 
@@ -97,12 +66,13 @@ class single_recipe (arbor.recipe):
         self.the_probes = probes
 
         self.the_props = arbor.neuron_cable_properties()
-        if False:
-            self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
-            self.the_props.set_ion(ion='na', int_con=10,   ext_con=140, rev_pot=50, method='nernst/na')
-            self.the_props.set_ion(ion='k',  int_con=54.4, ext_con=2.5, rev_pot=-77)
-            self.the_props.set_ion(ion='ca', int_con=5e-5, ext_con=2, rev_pot=132.5)
-        self.the_props.catalogue.extend(arbor.bbp_catalogue(), "")
+
+        # Add catalogues with qualifiers
+        self.the_props.catalogue = arbor.catalogue()
+        self.the_props.catalogue.extend(
+            arbor.default_catalogue(), "default::")
+        self.the_props.catalogue.extend(
+            arbor.bbp_catalogue(), "BBP::")
 
     # (6.2) Override the num_cells method
     def num_cells(self):
@@ -147,7 +117,7 @@ context = arbor.context()
 domains = arbor.partition_load_balance(recipe, context)
 
 # (6) Create a simulation
-sim = arbor.simulation(recipe, domains, context)
+sim = arbor.simulation(recipe, context, domains)
 
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
@@ -174,4 +144,4 @@ df_list = []
 for i in range(len(data)):
     df_list.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
 df = pandas.concat(df_list,ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_bpo_l5pc_recipe_result.svg')
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_bpo_l5pc.svg')

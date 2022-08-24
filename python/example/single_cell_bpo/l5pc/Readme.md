@@ -1,13 +1,13 @@
-# BluePyOpt layer-5 pyramidal cell output
+# BluePyOpt layer-5 pyramidal cell with axon-replacement
 
 This example was created in an environment with the `bluepyopt` package installed, running
 
 ```shell
-python /path/to/BluePyOpt/examples/l5pc/generate_acc.py -o <output-dir>
+python /path/to/BluePyOpt/examples/l5pc/generate_acc.py --output <output-dir> --replace-axon
 ```
 
 We use the Arbor BBP mechanism catalogue as a substitute for the one in BluePyOpt and an Arbor simulation can be launched using
 
 ```shell
-python ../../single_cell_bpo_l5pc_detailed_recipe.py l5pc.json
+python ../../single_cell_bpo_l5pc.py l5pc.json
 ```
