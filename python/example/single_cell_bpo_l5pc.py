@@ -24,18 +24,18 @@ cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
 # Locsets:
 
 # Add a labels for the root of the morphology and all the terminal points
-labels['root']     = '(root)'
-labels['terminal'] = '(terminal)'
+labels["root"] = "(root)"
+labels["terminal"] = "(terminal)"
 # Add a label for the terminal locations in the "axon" region:
-labels['axon_terminal'] = '(restrict (locset "terminal") (region "axon"))'
+labels["axon_terminal"] = '(restrict (locset "terminal") (region "axon"))'
 
 # (3) Create and populate the decor.
 
 # Place stimuli and spike detectors.
-decor.place('"root"', arbor.iclamp(10, 10, current=50), 'iclamp0')
-decor.place('"root"', arbor.iclamp(30, 1, current=20), 'iclamp1')
-decor.place('"root"', arbor.iclamp(50, 1, current=20), 'iclamp2')
-decor.place('"axon_terminal"', arbor.spike_detector(-10), 'detector')
+decor.place('"root"', arbor.iclamp(10, 10, current=50), "iclamp0")
+decor.place('"root"', arbor.iclamp(30, 1, current=20), "iclamp1")
+decor.place('"root"', arbor.iclamp(50, 1, current=20), "iclamp2")
+decor.place('"axon_terminal"', arbor.spike_detector(-10), "detector")
 
 # Single CV for the "soma" region
 soma_policy = arbor.cv_policy_single('"soma"')
@@ -55,7 +55,7 @@ cell = arbor.cable_cell(morpho, labels, decor)
 probe = arbor.cable_probe_membrane_voltage('"axon_terminal"')
 
 # (6) Create a class that inherits from arbor.recipe
-class single_recipe (arbor.recipe):
+class single_recipe(arbor.recipe):
 
     # (6.1) Define the class constructor
     def __init__(self, cell, probes):
@@ -69,10 +69,8 @@ class single_recipe (arbor.recipe):
 
         # Add catalogues with qualifiers
         self.the_props.catalogue = arbor.catalogue()
-        self.the_props.catalogue.extend(
-            arbor.default_catalogue(), "default::")
-        self.the_props.catalogue.extend(
-            arbor.bbp_catalogue(), "BBP::")
+        self.the_props.catalogue.extend(arbor.default_catalogue(), "default::")
+        self.the_props.catalogue.extend(arbor.bbp_catalogue(), "BBP::")
 
     # (6.2) Override the num_cells method
     def num_cells(self):
@@ -106,6 +104,7 @@ class single_recipe (arbor.recipe):
     def global_properties(self, gid):
         return self.the_props
 
+
 # Instantiate recipe
 # Pass the probe in a list because that it what single_recipe expects.
 recipe = single_recipe(cell, [probe])
@@ -122,7 +121,7 @@ sim = arbor.simulation(recipe, context, domains)
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
 
-probe_id = arbor.cell_member(0,0)
+probe_id = arbor.cell_member(0, 0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
 # (7) Run the simulation
@@ -130,7 +129,7 @@ sim.run(tfinal=100, dt=0.025)
 
 # (8) Print or display the results
 spikes = sim.spikes()
-print(len(spikes), 'spikes recorded:')
+print(len(spikes), "spikes recorded:")
 for s in spikes:
     print(s)
 
@@ -142,6 +141,17 @@ for d, m in sim.samples(handle):
 
 df_list = []
 for i in range(len(data)):
-    df_list.append(pandas.DataFrame({'t/ms': data[i][:, 0], 'U/mV': data[i][:, 1], 'Location': str(meta[i]), 'Variable':'voltage'}))
-df = pandas.concat(df_list,ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_bpo_l5pc.svg')
+    df_list.append(
+        pandas.DataFrame(
+            {
+                "t/ms": data[i][:, 0],
+                "U/mV": data[i][:, 1],
+                "Location": str(meta[i]),
+                "Variable": "voltage",
+            }
+        )
+    )
+df = pandas.concat(df_list, ignore_index=True)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", ci=None
+).savefig("single_cell_bpo_l5pc.svg")

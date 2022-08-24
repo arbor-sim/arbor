@@ -17,9 +17,11 @@ cell_json_filename = sys.argv[1]
 cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
 
 # Define the regions and locsets in the model.
-defs = {'root': '(root)',   # the start of the soma in this morphology is at the root of the cell.
-        'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
-        'det_site': '(location 0 0.8)'} # end of the axon.
+defs = {
+    "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
+    "stim_site": "(location 0 0.5)",  # site for the stimulus, in the middle of branch 0.
+    "det_site": "(location 0 0.8)",
+}  # end of the axon.
 labels.append(arbor.label_dict(defs))
 
 # Set initial membrane potential to -55 mV
@@ -47,35 +49,44 @@ m = arbor.single_cell_model(cell)
 
 # Add catalogues with qualifiers
 m.properties.catalogue = arbor.catalogue()
-m.properties.catalogue.extend(
-    arbor.default_catalogue(), "default::")
-m.properties.catalogue.extend(
-    arbor.bbp_catalogue(), "BBP::")
+m.properties.catalogue.extend(arbor.default_catalogue(), "default::")
+m.properties.catalogue.extend(arbor.bbp_catalogue(), "BBP::")
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe('voltage', where='"root"',  frequency=50)
-m.probe('voltage', where='"stim_site"',  frequency=50)
-m.probe('voltage', where='"det_site"', frequency=50)
+m.probe("voltage", where='"root"', frequency=50)
+m.probe("voltage", where='"stim_site"', frequency=50)
+m.probe("voltage", where='"det_site"', frequency=50)
 
 # Simulate the cell for 15 ms.
-tfinal=15
+tfinal = 15
 m.run(tfinal)
 print("Simulation done.")
 
 # Print spike times.
-if len(m.spikes)>0:
-    print('{} spikes:'.format(len(m.spikes)))
+if len(m.spikes) > 0:
+    print("{} spikes:".format(len(m.spikes)))
     for s in m.spikes:
-        print('  {:7.4f}'.format(s))
+        print("  {:7.4f}".format(s))
 else:
-    print('no spikes')
+    print("no spikes")
 
 # Plot the recorded voltages over time.
 print("Plotting results ...")
 df_list = []
 for t in m.traces:
-    df_list.append(pandas.DataFrame({'t/ms': t.time, 'U/mV': t.value, 'Location': str(t.location), "Variable": t.variable}))
+    df_list.append(
+        pandas.DataFrame(
+            {
+                "t/ms": t.time,
+                "U/mV": t.value,
+                "Location": str(t.location),
+                "Variable": t.variable,
+            }
+        )
+    )
 
-df = pandas.concat(df_list,ignore_index=True)
+df = pandas.concat(df_list, ignore_index=True)
 
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV",hue="Location",col="Variable",ci=None).savefig('single_cell_bpo_simple.svg')
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", ci=None
+).savefig("single_cell_bpo_simple.svg")
