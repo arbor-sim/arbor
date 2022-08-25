@@ -563,43 +563,10 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
 
 void emit_state_read(std::ostream& out, LocalVariable* local) {
     ENTER(out);
-    out << "arb_value_type " << cprint(local) << " = ";
-
-    if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
-        auto d = decode_indexed_variable(local->external_variable());
-        out << scaled(d.scale) << deref(d) << ";\n";
-    }
-    else {
-        out << "0;\n";
-    }
     EXIT(out);
 }
 
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, bool use_additive) {
-    if (!external->is_write()) return;
-    ENTER(out);
-    auto d = decode_indexed_variable(external);
-    if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
-    std::string var, weight = pp_var_pfx + "weight[i_]", scale = scaled(1.0/d.scale), name = from->name();
-    double coeff = 1.0/d.scale;
-    {
-        std::stringstream v, s, w;
-        v << deref(d); var = v.str();
-    }
-    if (d.additive && use_additive) {
-            out << fmt::format("{3} -= {0};\n"
-                               "{0} = fma({1}{2}, {3}, {0});\n",
-                               var, scale, weight, name);
-    }
-    else if (d.accumulate) {
-        out << deref(d) << " = fma("
-            << scaled(coeff) << pp_var_pfx << "weight[i_], "
-            << from->name() << ", " << deref(d) << ");\n";
-    }
-    else {
-        out << deref(d) << " = " << scaled(coeff) << from->name() << ";\n";
-    }
-    EXIT(out);
 }
 
 void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppack_iface, bool use_additive) {
@@ -613,16 +580,50 @@ void emit_api_body(std::ostream& out, APIMethod* method, bool cv_loop, bool ppac
         cv_loop && out << fmt::format("for (arb_size_type i_ = 0; i_ < {}width; ++i_) {{\n", pp_var_pfx)
                         << indent;
         for (auto index: indices) {
-            out << "auto " << source_index_i_name(index) << " = " << source_var(index) << "[" << index.index_name << "];\n";
+            out << fmt::format("auto {} = {}[{}];\n",
+                               source_index_i_name(index),
+                               source_var(index),
+                               index.index_name);
         }
 
         for (auto& sym: indexed_vars) {
-            emit_state_read(out, sym);
+            auto d = decode_indexed_variable(sym->external_variable());
+            out << "arb_value_type " << cprint(sym) << " = ";
+            if (sym->is_read() || (sym->is_write() && d.additive)) {
+                out << scaled(d.scale) << deref(d) << ";\n";
+            }
+            else {
+                out << "0;\n";
+            }
         }
         out << cprint(body);
 
         for (auto& sym: indexed_vars) {
-            emit_state_update(out, sym, sym->external_variable(), use_additive);
+            if (!sym->external_variable()->is_write()) continue;
+            auto d = decode_indexed_variable(sym->external_variable());
+            bool always_use_weight = true;
+            bool use_weight = d.always_use_weight || always_use_weight;
+            if (d.readonly) throw compiler_exception("Cannot assign to read-only external state: "+sym->to_string());
+            std::string
+                var,
+                weight = use_weight ? pp_var_pfx + "weight[i_]" : "1.0",
+                scale  = scaled(1.0/d.scale),
+                name   = sym->name();
+            {
+                std::stringstream v; v << deref(d); var = v.str();
+            }
+            if (d.additive && use_additive) {
+                out << fmt::format("{3} -= {0};\n"
+                                   "{0} = fma({1}{2}, {3}, {0});\n",
+                                   var, scale, weight, name);
+            }
+            else if (d.accumulate) {
+                out << fmt::format("{} = fma({}{}, {}, {});\n",
+                                   var, scale, weight, name, var);
+            }
+            else {
+                out << var << " = " << scale << name << ";\n";
+            }
         }
         cv_loop && out << popindent << "}\n";
     }

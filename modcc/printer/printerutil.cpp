@@ -143,6 +143,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     v.accumulate = true;
     v.additive = false;
     v.readonly = true;
+    v.always_use_weight = true;
 
     std::string ion_pfx;
     if (sym->is_ion()) {
@@ -215,6 +216,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::ion_iconc:
         v.data_var = ion_pfx+".internal_concentration";
         v.readonly = false;
+        v.always_use_weight = false;
         break;
     case sourceKind::ion_diffusive:
         v.data_var = ion_pfx+".diffusive_concentration";
@@ -225,6 +227,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::ion_econc:
         v.data_var = ion_pfx+".external_concentration";
         v.readonly = false;
+        v.always_use_weight = false;
         break;
     case sourceKind::ion_valence:
         v.data_var = ion_pfx+".ionic_charge";
