@@ -866,4 +866,4 @@ API
 ---
 
 * :ref:`Python <pylabels>`
-* *TODO*: C++ documentation.
+* :ref:`C++ <cpplabels>`
