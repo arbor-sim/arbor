@@ -28,9 +28,7 @@ INITIAL {
 
 BREAKPOINT {
     SOLVE state METHOD cnexp
-    LOCAL g
-    g = B - A
-    i = g*(v - e)
+    i = (B - A)*(v - e)
 }
 
 DERIVATIVE state {
