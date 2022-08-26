@@ -115,3 +115,66 @@ TEST(spike_source, exhaust)
     test_seq(regular_schedule(0, 1, 5));
     test_seq(explicit_schedule({0.3, 2.3, 4.7}));
 }
+
+TEST(spike_source, multiple)
+{
+    // This test assumes that seq will exhaust itself before t=10 ms.
+    auto test_seq = [](std::vector<schedule> seq) {
+        ss_recipe rec(1u, spike_source_cell("src", seq));
+        cell_label_range srcs, tgts;
+        spike_source_cell_group group({0}, rec, srcs, tgts);
+
+        // epoch ending at 10ms
+        epoch ep(0, 0., 10.);
+        group.advance(ep, 1, {});
+
+        auto expected = spike_times(group.spikes());
+        std::sort(expected.begin(), expected.end());
+
+        auto actual = std::vector<time_type>{};
+        for (auto& seq: seq) {
+            auto ts = as_vector(seq.events(0, 10));
+            actual.insert(actual.end(),
+                          ts.begin(), ts.end());
+        }
+        std::sort(actual.begin(), actual.end());
+        EXPECT_EQ(expected, actual);
+
+        // Check that the last spike was before the end of the epoch.
+        EXPECT_LT(group.spikes().back().time, time_type(10));
+    };
+
+    test_seq({regular_schedule(0, 1, 5),
+              explicit_schedule({0.3, 2.3, 4.7})});
+}
+
+TEST(spike_source, multiple_vargs)
+{
+    // This test assumes that seq will exhaust itself before t=10 ms.
+    auto test_seq = [](auto a, auto b) {
+        ss_recipe rec(1u, spike_source_cell("src", a, b));
+        cell_label_range srcs, tgts;
+        spike_source_cell_group group({0}, rec, srcs, tgts);
+
+        // epoch ending at 10ms
+        epoch ep(0, 0., 10.);
+        group.advance(ep, 1, {});
+
+        auto expected = spike_times(group.spikes());
+        std::sort(expected.begin(), expected.end());
+
+        auto actual = std::vector<time_type>{};
+        auto as = as_vector(a.events(0, 10));
+        actual.insert(actual.end(), as.begin(), as.end());
+        auto bs = as_vector(b.events(0, 10));
+        actual.insert(actual.end(), bs.begin(), bs.end());
+        std::sort(actual.begin(), actual.end());
+        EXPECT_EQ(expected, actual);
+
+        // Check that the last spike was before the end of the epoch.
+        EXPECT_LT(group.spikes().back().time, time_type(10));
+    };
+
+    test_seq(regular_schedule(0, 1, 5),
+             explicit_schedule({0.3, 2.3, 4.7}));
+}
