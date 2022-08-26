@@ -562,7 +562,17 @@ ARB_LIBMODCC_API expression_ptr symbolic_pdiff(Expression* e, const std::string&
     SymPDiffVisitor pdiff_visitor(id);
     e->accept(&pdiff_visitor);
 
-    if (pdiff_visitor.has_error()) return nullptr;
+    if (pdiff_visitor.has_error()) {
+        std::string errors, sep = "";
+
+        for (const auto& error: pdiff_visitor.errors()) {
+            errors += sep + error.message;
+            sep = "\n";
+        }
+        auto res = std::make_unique<ErrorExpression>(e->location());
+        res->error(errors);
+        return res;
+    }
 
     return constant_simplify(pdiff_visitor.result());
 }
@@ -666,17 +676,20 @@ ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector
     result.constant = e->clone();
     for (const auto& id: vars) {
         auto coef = symbolic_pdiff(e, id);
-        if (!coef) {
-            return linear_test_result{};
+        if (coef->has_error()) {
+            auto res = linear_test_result{};
+            res.error({coef->error_message(), loc});
+            return res;
         }
+        if (!coef) return linear_test_result{};
         if (!is_zero(coef)) result.coef[id] = std::move(coef);
-
         result.constant = substitute(result.constant, id, zero());
     }
 
     ConstantSimplifyVisitor csimp_visitor;
     result.constant->accept(&csimp_visitor);
     result.constant = csimp_visitor.result();
+    if (result.constant.get() == nullptr) throw compiler_exception{"Simplify: linear has no constant term.", loc};
 
     // linearity test: take second order derivatives, test against zero.
     result.is_linear = true;
