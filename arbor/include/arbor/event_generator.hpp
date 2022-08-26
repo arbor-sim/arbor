@@ -5,6 +5,7 @@
 #include <memory>
 #include <random>
 #include <type_traits>
+#include <optional>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -49,116 +50,22 @@ namespace arb {
 // and `events(t2, t3)` to the same event generator must satisfy
 // 0 ≤ t0 ≤ t1 ≤ t2 ≤ t3.
 //
-// `event_generator` objects have value semantics, and use type erasure
-// to wrap implementation details. An `event_generator` can be constructed
-// from an object of an implementation class Impl that is copy-constructable
-// and otherwise provides `reset` and `events` methods following the
-// API described above.
-//
-// Some pre-defined event generators are included:
-//  - `empty_generator`: produces no events
-//  - `schedule_generator`: produces events according to a time schedule.
-//    A target is selected using a label resolution function for every generated
-//    event.
-//  - `explicit_generator`: is constructed from a vector of {label, time, weight}
-//    objects. Explicit targets are generated from the labels using a resolution
-//    function before the first call to the `events` method.
+// `event_generator` objects have value semantics.
 
 using event_seq = std::pair<const spike_event*, const spike_event*>;
 using resolution_function = std::function<cell_lid_type(const cell_local_label_type&)>;
 
-// The simplest possible generator that generates no events.
-// Declared ahead of event_generator so that it can be used as the default
-// generator.
-struct empty_generator {
-    void reset() {}
-    event_seq events(time_type, time_type) {
-        return {nullptr, nullptr};
-    }
-    void resolve_label(resolution_function) {}
-};
-
-class event_generator {
-public:
-    event_generator(): event_generator(empty_generator()) {}
-
-    template <typename Impl, std::enable_if_t<!std::is_same<std::decay_t<Impl>, event_generator>::value, int> = 0>
-    event_generator(Impl&& impl):
-        impl_(new wrap<Impl>(std::forward<Impl>(impl)))
-    {}
-
-    event_generator(event_generator&& other) = default;
-    event_generator& operator=(event_generator&& other) = default;
-
-    event_generator(const event_generator& other):
-        impl_(other.impl_->clone())
-    {}
-
-    event_generator& operator=(const event_generator& other) {
-        impl_ = other.impl_->clone();
-        return *this;
-    }
-
-    void reset() {
-        impl_->reset();
-    }
-
-    event_seq events(time_type t0, time_type t1) {
-        return impl_->events(t0, t1);
-    }
-
-    void resolve_label(resolution_function label_resolver) {
-        impl_->resolve_label(std::move(label_resolver));
-    }
-
-private:
-    struct interface {
-        virtual void reset() = 0;
-        virtual void resolve_label(resolution_function) = 0;
-        virtual event_seq events(time_type, time_type) = 0;
-        virtual std::unique_ptr<interface> clone() = 0;
-        virtual ~interface() {}
-    };
-
-    std::unique_ptr<interface> impl_;
-
-    template <typename Impl>
-    struct wrap: interface {
-        explicit wrap(const Impl& impl): wrapped(impl) {}
-        explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
-
-        event_seq events(time_type t0, time_type t1) override {
-            return wrapped.events(t0, t1);
-        }
-
-        void reset() override {
-            wrapped.reset();
-        }
-
-        void resolve_label(resolution_function label_resolver) override {
-            wrapped.resolve_label(std::move(label_resolver));
-        }
-
-        std::unique_ptr<interface> clone() override {
-            return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
-        }
-
-        Impl wrapped;
-    };
-};
-
-// Convenience routines for making schedule_generator:
 
 // Generate events with a fixed target and weight according to
 // a provided time schedule.
 
-struct schedule_generator {
-    schedule_generator(cell_local_label_type target, float weight, schedule sched):
+struct event_generator {
+    event_generator(cell_local_label_type target, float weight, schedule sched):
         target_(std::move(target)), weight_(weight), sched_(std::move(sched))
     {}
 
     void resolve_label(resolution_function label_resolver) {
-        label_resolver_ = std::move(label_resolver);
+        resolved_ = label_resolver(target_);
     }
 
     void reset() {
@@ -166,13 +73,15 @@ struct schedule_generator {
     }
 
     event_seq events(time_type t0, time_type t1) {
+        if (!resolved_) throw ;
+        auto tgt = *resolved_;
         auto ts = sched_.events(t0, t1);
 
         events_.clear();
         events_.reserve(ts.second-ts.first);
 
         for (auto i = ts.first; i!=ts.second; ++i) {
-            events_.push_back(spike_event{label_resolver_(target_), *i, weight_});
+            events_.push_back(spike_event{tgt, *i, weight_});
         }
 
         return {events_.data(), events_.data()+events_.size()};
@@ -182,9 +91,20 @@ private:
     pse_vector events_;
     cell_local_label_type target_;
     resolution_function label_resolver_;
+    std::optional<cell_lid_type> resolved_;
     float weight_;
     schedule sched_;
 };
+
+// Simplest generator: just do nothing
+inline
+event_generator empty_generator(
+    cell_local_label_type target,
+    float weight)
+{
+    return event_generator(std::move(target), weight, schedule());
+}
+
 
 // Generate events at integer multiples of dt that lie between tstart and tstop.
 
@@ -195,7 +115,7 @@ inline event_generator regular_generator(
     time_type dt,
     time_type tstop=terminal_time)
 {
-    return schedule_generator(std::move(target), weight, regular_schedule(tstart, dt, tstop));
+    return event_generator(std::move(target), weight, regular_schedule(tstart, dt, tstop));
 }
 
 template <typename RNG>
@@ -207,7 +127,7 @@ inline event_generator poisson_generator(
     const RNG& rng,
     time_type tstop=terminal_time)
 {
-    return schedule_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, rng, tstop));
+    return event_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, rng, tstop));
 }
 
 
@@ -218,7 +138,7 @@ event_generator explicit_generator(cell_local_label_type target,
                                    float weight,
                                    const S& s)
 {
-    return schedule_generator(std::move(target), weight, explicit_schedule(s));
+    return event_generator(std::move(target), weight, explicit_schedule(s));
 }
 
 } // namespace arb

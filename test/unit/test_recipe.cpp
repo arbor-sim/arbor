@@ -210,8 +210,7 @@ TEST(recipe, event_generators) {
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        auto sim = simulation(recipe_0, context, decomp_0);
-        EXPECT_NO_THROW(sim.run(1, 0.1));
+        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0).run(1, 0.1));
     }
     {
         std::vector<arb::event_generator>
@@ -221,7 +220,6 @@ TEST(recipe, event_generators) {
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        auto sim = simulation(recipe_0, context, decomp_0);
-        EXPECT_THROW(sim.run(1, 0.1), arb::bad_connection_label);
+        EXPECT_THROW(simulation(recipe_0, context, decomp_0), arb::bad_connection_label);
     }
 }

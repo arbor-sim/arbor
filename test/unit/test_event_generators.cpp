@@ -33,8 +33,7 @@ TEST(event_generators, assign_and_copy) {
     event_generator g1(gen);
     EXPECT_EQ(expected, first(g1.events(0., 1.)));
 
-    event_generator g2;
-    g2 = gen;
+    event_generator g2 = gen;
     EXPECT_EQ(expected, first(g2.events(0., 1.)));
 
     const auto& const_gen = gen;
@@ -42,8 +41,7 @@ TEST(event_generators, assign_and_copy) {
     event_generator g3(const_gen);
     EXPECT_EQ(expected, first(g3.events(0., 1.)));
 
-    event_generator g4;
-    g4 = gen;
+    event_generator g4 = gen;
     EXPECT_EQ(expected, first(g4.events(0., 1.)));
 
     event_generator g5(std::move(gen));
