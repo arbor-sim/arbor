@@ -207,7 +207,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
             self.assertEqual(grp.kind, arb.cell_kind.cable)
 
     # 1 node with 1 cpu core, 1 gpu; assumes all cells will be placed on gpu in a single cell group
-    @unittest.skipIf(gpu_enabled is False, "GPU not enabled")
+    @unittest.skipIf(not gpu_enabled, "GPU not enabled")
     def test_domain_decomposition_homogenous_GPU(self):
 
         if mpi_enabled:
