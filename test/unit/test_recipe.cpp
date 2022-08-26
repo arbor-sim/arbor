@@ -201,24 +201,27 @@ TEST(recipe, event_generators) {
 
     auto cell_0 = custom_cell(1, 2, 0);
     auto cell_1 = custom_cell(2, 1, 0);
-    std::vector<arb::event_generator> gens_0, gens_1;
     {
-        gens_0 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}, {{"synapse1"}, 2.0, 0.1}})};
-
-        gens_1 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}})};
+        std::vector<arb::event_generator>
+            gens_0 = {arb::explicit_generator({"synapse0"}, 0.1, std::vector<arb::time_type>{1.0}),
+                      arb::explicit_generator({"synapse1"}, 0.1, std::vector<arb::time_type>{2.0})},
+            gens_1 = {arb::explicit_generator({"synapse0"}, 0.1, std::vector<arb::time_type>{1.0})};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0));
+        auto sim = simulation(recipe_0, context, decomp_0);
+        EXPECT_NO_THROW(sim.run(1, 0.1));
     }
     {
-        gens_0 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}, {{"synapse3"}, 2.0, 0.1}})};
-        gens_1.clear();
+        std::vector<arb::event_generator>
+            gens_0 = {arb::regular_generator({"totally-not-a-synapse-42"}, 0.1, 0, 0.001)},
+            gens_1 = {};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_THROW(simulation(recipe_0, context, decomp_0), arb::bad_connection_label);
+        auto sim = simulation(recipe_0, context, decomp_0);
+        EXPECT_THROW(sim.run(1, 0.1), arb::bad_connection_label);
     }
 }

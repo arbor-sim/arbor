@@ -1249,8 +1249,7 @@ void run_exact_sampling_probe_test(const context& ctx) {
 
         std::vector<event_generator> event_generators(cell_gid_type gid) const override {
             // Send a single event to cell i at 0.1*i milliseconds.
-            explicit_generator::lse_vector spikes = {{{"syn"}, 0.1*gid, 1.f}};
-            return {explicit_generator(spikes)};
+            return {explicit_generator({"syn"}, 1.0f, std::vector<float>{0.1f*gid})};
         }
 
         std::any get_global_properties(cell_kind k) const override {

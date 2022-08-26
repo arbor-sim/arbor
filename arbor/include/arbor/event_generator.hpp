@@ -213,50 +213,13 @@ inline event_generator poisson_generator(
 
 // Generate events from a predefined sorted event sequence.
 
-struct explicit_generator {
-    struct labeled_synapse_event {
-        cell_local_label_type label;
-        time_type time;
-        float weight;
-    };
-
-    using lse_vector = std::vector<labeled_synapse_event>;
-
-    explicit_generator() = default;
-    explicit_generator(const explicit_generator&) = default;
-    explicit_generator(explicit_generator&&) = default;
-
-    explicit_generator(const lse_vector& events):
-        input_events_(events), start_index_(0) {}
-
-    void resolve_label(resolution_function label_resolver) {
-        for (const auto& e: input_events_) {
-            events_.push_back({label_resolver(e.label), e.time, e.weight});
-        }
-        std::sort(events_.begin(), events_.end());
-    }
-
-    void reset() {
-        start_index_ = 0;
-    }
-
-    event_seq events(time_type t0, time_type t1) {
-        const spike_event* lb = events_.data()+start_index_;
-        const spike_event* ub = events_.data()+events_.size();
-
-        lb = std::lower_bound(lb, ub, t0, event_time_less{});
-        ub = std::lower_bound(lb, ub, t1, event_time_less{});
-
-        start_index_ = ub-events_.data();
-        return {lb, ub};
-    }
-
-private:
-    lse_vector input_events_;
-    pse_vector events_;
-    std::size_t start_index_ = 0;
-};
-
+template<typename S> inline
+event_generator explicit_generator(cell_local_label_type target,
+                                   float weight,
+                                   const S& s)
+{
+    return schedule_generator(std::move(target), weight, explicit_schedule(s));
+}
 
 } // namespace arb
 
