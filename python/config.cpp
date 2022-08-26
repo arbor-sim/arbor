@@ -37,7 +37,7 @@ pybind11::dict config() {
     dict[pybind11::str("gpu")]     = pybind11::str("cuda");
 #endif
 #else
-    dict[pybind11::str("gpu")]     = pybind11::str("none");
+    dict[pybind11::str("gpu")]     = pybind11::none();
 #endif
 #ifdef ARB_VECTORIZE_ENABLED
     dict[pybind11::str("vectorize")] = pybind11::bool_(true);

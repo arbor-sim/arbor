@@ -9,7 +9,7 @@ from .. import cases
 
 # check Arbor's configuration of mpi and gpu
 mpi_enabled = arb.__config__["mpi"]
-gpu_enabled = arb.__config__["gpu"] != "none"
+gpu_enabled = arb.__config__["gpu"]
 
 """
 all tests for distributed arb.domain_decomposition
