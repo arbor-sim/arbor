@@ -52,6 +52,13 @@ pybind11::dict config() {
     dict[pybind11::str("version")] = pybind11::str(ARB_VERSION);
     dict[pybind11::str("source")]  = pybind11::str(ARB_SOURCE_ID);
     dict[pybind11::str("arch")]    = pybind11::str(ARB_ARCH);
+    {
+        std::stringstream ss;
+        ss << PYBIND11_VERSION_MAJOR << "."
+           << PYBIND11_VERSION_MINOR << "."
+           << PYBIND11_VERSION_PATCH;
+        dict[pybind11::str("pybind-version")] = pybind11::str(ss.str());
+    }
     return dict;
 }
 
