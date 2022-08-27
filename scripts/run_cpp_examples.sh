@@ -8,14 +8,15 @@ if [[ "$#" -gt 1 ]]; then
 	exit 1
 fi
 
-PREFIX=${1:-}
+PREFIX="${1:-} `pwd`/build/bin"
+out=results/`git rev-parse HEAD`/cpp
 
-$PREFIX build/bin/bench
-$PREFIX build/bin/brunel
-$PREFIX build/bin/dryrun
-$PREFIX build/bin/gap_junctions
-$PREFIX build/bin/generators
-$PREFIX build/bin/lfp
-$PREFIX build/bin/probe-demo v
-$PREFIX build/bin/ring
-$PREFIX build/bin/single-cell
+for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v"
+do
+    echo "Running: $ex"
+    dir=`echo $ex | tr ' ' '_'`
+    mkdir -p $out/$dir
+    cd $out/$dir
+    $PREFIX/$ex > stdout.txt 2> stderr.txt
+    cd -
+done
