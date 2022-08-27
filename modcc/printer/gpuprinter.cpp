@@ -471,9 +471,8 @@ namespace {
 
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
     out << "arb_value_type " << cuprint(local) << " = ";
-
-    if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
-        auto d = decode_indexed_variable(local->external_variable());
+    auto d = decode_indexed_variable(local->external_variable());
+    if (local->is_read() || (local->is_write() && d.additive)) {
         if (d.scale != 1) {
             out << as_c_double(d.scale) << "*";
         }
