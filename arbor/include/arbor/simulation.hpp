@@ -97,15 +97,8 @@ public:
 
     simulation_builder(recipe const& rec) noexcept : rec_{rec} {}
 
-    // movable
     simulation_builder(simulation_builder&&) = default;
-
-    // non-copyable
-    simulation_builder(simulation_builder const&) = delete;
-
-    // not assignable
-    simulation_builder& operator=(simulation_builder const&) = delete;
-    simulation_builder& operator=(simulation_builder &&) = delete;
+    simulation_builder(simulation_builder const&) = default;
 
     simulation_builder& set_context(context const& ctx) noexcept {
         ctx_ = &ctx;
