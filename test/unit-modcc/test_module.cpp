@@ -116,9 +116,46 @@ TEST(Module, breakpoint) {
 
 TEST(Module, read_write_ion) {
     Module m(io::read_all(DATADIR "/mod_files/test-rw-ion.mod"), "test-rw-ion.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
     EXPECT_TRUE(m.semantic());
+}
+
+
+TEST(Module, stochastic_point) {
+    Module m(io::read_all(DATADIR "/mod_files/test9.mod"), "test9.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    auto const & wnb = m.white_noise_block();
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+
+    EXPECT_TRUE(m.semantic());
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 1u);
+}
+
+TEST(Module, stochastic_density) {
+    Module m(io::read_all(DATADIR "/mod_files/test10.mod"), "test10.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    auto const & wnb = m.white_noise_block();
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+
+    EXPECT_TRUE(m.semantic());
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 2u);
 }
