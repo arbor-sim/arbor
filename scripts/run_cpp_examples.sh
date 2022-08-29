@@ -29,7 +29,6 @@ check () {
 for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v"
 do
     echo "   - $ex"
-    "results/$tag/cpp/$prog"
     dir=`echo $ex | tr ' ' '_'`
     mkdir -p $out/$dir
     cd $out/$dir
