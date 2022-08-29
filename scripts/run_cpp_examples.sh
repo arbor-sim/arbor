@@ -18,6 +18,7 @@ check () {
     expected="$2 spikes"
     pwd
     ls $out/$prog/stdout.txt
+    which grep
     grep -Eo '\d+ spikes' $out/$prog/stdout.txt
     actual=$(grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
     if [ "$expected" == "$actual" ]
