@@ -17,10 +17,8 @@ check () {
     prog=$1
     expected="$2 spikes"
     pwd
-    ls
-    ls $out
-    ls $out/$prog
-
+    ls $out/$prog/stdout.txt
+    grep -Eo '\d+ spikes' $out/$prog/stdout.txt
     actual=$(grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
     if [ "$expected" == "$actual" ]
     then
