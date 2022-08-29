@@ -62,7 +62,12 @@ do
         echo " * SIMD=$simd"
         check brunel 6998
         check bench 972
-        check ring 19
+        if [[ "$tag" < "v0.7" ]]
+        then
+            check ring 19
+        else
+            check ring 94
+        fi
         check gap_junctions 30
     done
 done
