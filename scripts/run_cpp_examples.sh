@@ -9,14 +9,14 @@ if [[ "$#" -gt 1 ]]; then
 fi
 
 PREFIX="${1:-} `pwd`/build/bin"
-
 tag=dev-`git rev-parse --short HEAD`
+out="results/$tag/cpp/"
 
 ok=0
 check () {
     prog=$1
     expected="$2 spikes"
-    actual=$(/usr/bin/grep -Eo '\d+ spikes' results/$tag/cpp/SIMD=$simd/$prog/stdout.txt || echo "N/A")
+    actual=$(/usr/bin/grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
     if [ "$expected" == "$actual" ]
     then
         echo "   - $prog: OK"
@@ -29,6 +29,7 @@ check () {
 for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v"
 do
     echo "   - $ex"
+    "results/$tag/cpp/$prog"
     dir=`echo $ex | tr ' ' '_'`
     mkdir -p $out/$dir
     cd $out/$dir
