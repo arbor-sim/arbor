@@ -16,7 +16,7 @@ ok=0
 check () {
     prog=$1
     expected="$2 spikes"
-    actual=$(/usr/bin/grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
+    actual=$(grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
     if [ "$expected" == "$actual" ]
     then
         echo "   - $prog: OK"
