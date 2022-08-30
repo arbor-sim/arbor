@@ -19,8 +19,9 @@ check () {
     pwd
     ls $out/$prog/stdout.txt
     cat $out/$prog/stdout.txt
-    /usr/bin/grep -Eo '\d+ spikes' $out/$prog/stdout.txt
-    actual=$(/usr/bin/grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
+    which grep
+    grep -Eo '\d+ spikes' $out/$prog/stdout.txt
+    actual=$(grep -Eo '\d+ spikes' $out/$prog/stdout.txt || echo "N/A")
     if [ "$expected" == "$actual" ]
     then
         echo "   - $prog: OK"
