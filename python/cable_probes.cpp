@@ -211,6 +211,22 @@ arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion) {
     return arb::cable_probe_ion_ext_concentration_cell{ion};
 }
 
+arb::probe_info cable_probe_density_prng_state(const char* where, const char* mechanism, const char* rv) {
+    return arb::cable_probe_density_prng_state{arborio::parse_locset_expression(where).unwrap(), mechanism, rv};
+};
+
+arb::probe_info cable_probe_density_prng_state_cell(const char* mechanism, const char* rv) {
+    return arb::cable_probe_density_prng_state_cell{mechanism, rv};
+};
+
+arb::probe_info cable_probe_point_prng_state(arb::cell_lid_type target, const char* mechanism, const char* rv) {
+    return arb::cable_probe_point_prng_state{target, mechanism, rv};
+}
+
+arb::probe_info cable_probe_point_prng_state_cell(const char* mechanism, const char* rv) {
+    return arb::cable_probe_point_prng_state_cell{mechanism, rv};
+}
+
 // Add wrappers to module, recorder factories to global data.
 
 void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
@@ -307,6 +323,22 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     m.def("cable_probe_ion_ext_concentration_cell", &cable_probe_ion_ext_concentration_cell,
         "Probe specification for cable cell external ionic concentration for each cable in each CV.",
         "ion"_a);
+
+    m.def("cable_probe_density_prng_state", &cable_probe_density_prng_state,
+        "Probe specification for a cable cell density mechanism random variable at points in a location set.",
+        "where"_a, "mechanism"_a, "rv"_a);
+
+    m.def("cable_probe_density_prng_state_cell", &cable_probe_density_prng_state_cell,
+        "Probe specification for a cable cell density mechanism random variable on each cable in each CV where defined.",
+        "mechanism"_a, "rv"_a);
+
+    m.def("cable_probe_point_prng_state", &cable_probe_point_prng_state,
+        "Probe specification for a cable cell point mechanism random variable value at a given target index.",
+        "target"_a, "mechanism"_a, "rv"_a);
+
+    m.def("cable_probe_point_prng_state_cell", &cable_probe_point_prng_state_cell,
+        "Probe specification for a cable cell point mechanism random variable value at every corresponding target.",
+        "mechanism"_a, "rv"_a);
 
     // Add probe metadata to maps for converters and recorders.
 
