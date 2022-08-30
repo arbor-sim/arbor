@@ -20,7 +20,7 @@ check () {
     ls $out/$prog/stdout.txt
     cat $out/$prog/stdout.txt
     which grep
-    grep -Eo '\d+ spikes' $out/$prog/stdout.txt
+    grep -Eo '[0-9]+ spikes' $out/$prog/stdout.txt
     actual=$(grep -Eo '[0-9]+ spikes' $out/$prog/stdout.txt || echo "N/A")
     if [ "$expected" == "$actual" ]
     then
