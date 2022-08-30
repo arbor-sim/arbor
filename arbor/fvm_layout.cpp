@@ -1108,7 +1108,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             return a.target_index<b.target_index;
         });
 
-        bool coalesce = (info.n_random_variables == 0) && info.linear && gprop.coalesce_synapses;
+        bool coalesce = !info.random_variables.size() && info.linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
         config.kind = arb_mechanism_kind_point;

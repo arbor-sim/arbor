@@ -471,6 +471,15 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
+const arb_value_type* shared_state::mechanism_prng_state_data(const mechanism& m, const std::string& key) {
+    for (arb_size_type i = 0; i<m.mech_.n_random_variables; ++i) {
+        if (key==m.mech_.random_variables[i].name) {
+            return m.ppack_.random_numbers[m.mech_.random_variables[i].index];
+        }
+    }
+    return nullptr;
+}
+
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();

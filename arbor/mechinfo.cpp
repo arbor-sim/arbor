@@ -8,7 +8,6 @@ mechanism_info::mechanism_info(const arb_mechanism_type& m) {
     post_events        = m.has_post_events;
     linear             = m.is_linear;
     fingerprint        = m.fingerprint;
-    n_random_variables = m.n_random_variables;
     for (auto idx: util::make_span(m.n_globals)) {
         const auto& v = m.globals[idx];
         globals[v.name] = { mechanism_field_spec::field_kind::global, v.unit, v.default_value, v.range_low, v.range_high };
@@ -31,6 +30,10 @@ mechanism_info::mechanism_info(const arb_mechanism_type& m) {
         v.read_valence,
         v.verify_valence,
         v.expected_valence };
+    }
+    for (auto idx: util::make_span(m.n_random_variables)) {
+        const auto& rv = m.random_variables[idx];
+        random_variables[rv.name] = rv.index;
     }
 }
 

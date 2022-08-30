@@ -306,6 +306,17 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
+const arb_value_type* shared_state::mechanism_prng_state_data(const mechanism& m, const std::string& key) {
+    const auto& store = storage.at(m.mechanism_id());
+
+    for (arb_size_type i = 0; i<m.mech_.n_random_variables; ++i) {
+        if (key==m.mech_.random_variables[i].name) {
+            return m.ppack_.random_numbers[m.mech_.random_variables[i].index];
+        }
+    }
+    return nullptr;
+}
+
 void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;

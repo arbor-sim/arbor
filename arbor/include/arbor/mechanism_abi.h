@@ -193,6 +193,11 @@ typedef struct arb_ion_info {
     int  expected_valence;
 } arb_ion_info;
 
+typedef struct arb_random_variable_info {
+    const char* name;
+    arb_size_type index;
+} arb_random_variable_info;
+
 // Backend independent data
 typedef struct arb_mechanism_type {
     // Metadata
@@ -211,6 +216,7 @@ typedef struct arb_mechanism_type {
     arb_size_type             n_parameters;
     arb_ion_info*             ions;             // Ion properties
     arb_size_type             n_ions;
+    arb_random_variable_info* random_variables; // Random variable properties
     arb_size_type             n_random_variables;
 } arb_mechanism_type;
 

@@ -48,6 +48,10 @@ struct ion_dependency {
     int expected_ion_charge = 0;
 };
 
+struct random_variable {
+    arb_index_type index = 0;
+};
+
 // A hash of the mechanism dynamics description is used to ensure that offline-compiled
 // mechanism implementations are correctly associated with their corresponding generated
 // mechanism information.
@@ -78,13 +82,14 @@ struct ARB_ARBOR_API mechanism_info {
     // Ion dependencies.
     std::unordered_map<std::string, ion_dependency> ions;
 
+    // Random variables
+    std::unordered_map<std::string, arb_size_type> random_variables;
+
     mechanism_fingerprint fingerprint;
 
     bool linear = false;
 
     bool post_events = false;
-
-    arb_size_type n_random_variables = 0u;
 };
 
 } // namespace arb

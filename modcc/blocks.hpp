@@ -165,7 +165,7 @@ struct AssignedBlock {
 // information stored in a WHITE_NOISE {} block in mod file
 struct WhiteNoiseBlock {
     std::vector<Id> parameters;
-    std::set<std::string> used;
+    std::map<std::string, unsigned int> used;
 
     auto begin() -> decltype(parameters.begin()) {
         return parameters.begin();

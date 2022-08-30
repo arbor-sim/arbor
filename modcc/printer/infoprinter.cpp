@@ -59,6 +59,9 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
            ion.writes_rev_potential(), ion.uses_rev_potential(),
            ion.uses_valence(), ion.verifies_valence(), ion.expected_valence);
     };
+    auto fmt_random_variable = [&](const auto& rv_id) {
+        return fmt::format(FMT_COMPILE("{{ \"{}\", {} }}"), rv_id.first.name(), rv_id.second);
+    };
     auto print_array_head = [&](char const * type, char const * name, auto size) {
         out << "    static " << type;
         if (size) out << " " << name << "[] = {";
@@ -86,7 +89,7 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
     print_arrays("arb_field_info", "state_vars", fmt_id, state_ids, assigned_ids);
     print_array("arb_field_info", "parameters", fmt_id, param_ids);
     print_array("arb_ion_info", "ions", fmt_ion, m.ion_deps());
-    out << "    static arb_size_type n_random_variables = " << white_noise_ids.size() << ";\n";
+    print_array("arb_random_variable_info", "random_variables", fmt_random_variable, white_noise_ids);
 
     out << fmt::format(FMT_COMPILE("\n"
                                    "    arb_mechanism_type result;\n"
@@ -104,6 +107,7 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
                                    "    result.n_state_vars=n_state_vars;\n"
                                    "    result.parameters=parameters;\n"
                                    "    result.n_parameters=n_parameters;\n"
+                                   "    result.random_variables=random_variables;\n"
                                    "    result.n_random_variables=n_random_variables;\n"
                                    "    return result;\n"
                                    "  }}\n"

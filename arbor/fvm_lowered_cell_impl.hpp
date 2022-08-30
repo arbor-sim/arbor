@@ -759,6 +759,17 @@ struct probe_resolution_data {
         }
         return std::nullopt;
     }
+
+    // Backend state data for a given mechanism and random variable.
+    const arb_value_type* mechanism_prng_state(const std::string& name, const std::string& rv) const {
+        mechanism* m = util::value_by_key(mech_instance_by_name, name).value_or(nullptr);
+        if (!m) return nullptr;
+
+        const arb_value_type* data = state->mechanism_prng_state_data(*m, rv);
+        if (!data) throw cable_cell_error("no random variable '"+rv+"' in mechanism '"+name+"'");
+
+        return data;
+    }
 };
 
 template <typename Backend>
@@ -795,7 +806,11 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
         cable_probe_ion_diff_concentration,
         cable_probe_ion_diff_concentration_cell,
         cable_probe_ion_ext_concentration,
-        cable_probe_ion_ext_concentration_cell>;
+        cable_probe_ion_ext_concentration_cell,
+        cable_probe_density_prng_state,
+        cable_probe_density_prng_state_cell,
+        cable_probe_point_prng_state,
+        cable_probe_point_prng_state_cell>;
 
     auto visitor = util::overload(
         [&prd](auto& probe_addr) { resolve_probe(probe_addr, prd); },
@@ -960,16 +975,15 @@ void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+void resolve_probe(arb_value_type const * data, std::string const & mechanism, locset const& locations, probe_resolution_data<B>& R) {
     if (!data) return;
 
-    auto support = R.mechanism_support(p.mechanism);
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+    auto support = R.mechanism_support(mechanism);
+    for (mlocation loc: thingify(locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
 
         arb_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
-        auto opt_i = util::binary_search_index(R.M.mechanisms.at(p.mechanism).cv, cv);
+        auto opt_i = util::binary_search_index(R.M.mechanisms.at(mechanism).cv, cv);
         if (!opt_i) continue;
 
         R.result.push_back(fvm_probe_scalar{{data+*opt_i}, loc});
@@ -977,14 +991,22 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_data<B>& R) {
-    fvm_probe_multi r;
+void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {
+    resolve_probe(R.mechanism_state(p.mechanism, p.state), p.mechanism, p.locations, R);
+}
 
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+template <typename B>
+void resolve_probe(const cable_probe_density_prng_state& p, probe_resolution_data<B>& R) {
+    resolve_probe(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, p.locations, R);
+}
+
+template <typename B>
+void resolve_probe(arb_value_type const * data, std::string const & mechanism, probe_resolution_data<B>& R) {
     if (!data) return;
 
-    mextent support = R.mechanism_support(p.mechanism);
-    auto& mech_cvs = R.M.mechanisms.at(p.mechanism).cv;
+    fvm_probe_multi r;
+    mextent support = R.mechanism_support(mechanism);
+    auto& mech_cvs = R.M.mechanisms.at(mechanism).cv;
     mcable_list cables;
 
     for (auto i: util::count_along(mech_cvs)) {
@@ -1004,40 +1026,57 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R) {
+void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_data<B>& R) {
+    resolve_probe(R.mechanism_state(p.mechanism, p.state), p.mechanism, R);
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_density_prng_state_cell& p, probe_resolution_data<B>& R) {
+    resolve_probe(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, R);
+}
+
+template <typename B>
+void resolve_probe_point(arb_value_type const * data, std::string const & mechanism, cell_lid_type const& target, probe_resolution_data<B>& R) {
     arb_assert(R.handles.size()==R.M.target_divs.back());
     arb_assert(R.handles.size()==R.M.n_target);
-
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
     if (!data) return;
 
     // Convert cell-local target number to cellgroup target number.
-    auto cg_target = p.target + R.M.target_divs[R.cell_idx];
+    auto cg_target = target + R.M.target_divs[R.cell_idx];
     if (cg_target>=R.M.target_divs.at(R.cell_idx+1)) return;
 
-    if (R.handles[cg_target].mech_id!=R.mech_instance_by_name.at(p.mechanism)->mechanism_id()) return;
+    if (R.handles[cg_target].mech_id!=R.mech_instance_by_name.at(mechanism)->mechanism_id()) return;
     auto mech_index = R.handles[cg_target].mech_index;
 
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
+    auto& multiplicity = R.M.mechanisms.at(mechanism).multiplicity;
+    auto& placed_instances = R.cell.synapses().at(mechanism);
 
-    auto opt_i = util::binary_search_index(placed_instances, p.target, [](auto& item) { return item.lid; });
+    auto opt_i = util::binary_search_index(placed_instances, target, [](auto& item) { return item.lid; });
     if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
     mlocation loc = placed_instances[*opt_i].loc;
 
-    cable_probe_point_info metadata{p.target, multiplicity.empty()? 1u: multiplicity.at(mech_index), loc};
+    cable_probe_point_info metadata{target, multiplicity.empty()? 1u: multiplicity.at(mech_index), loc};
 
     R.result.push_back(fvm_probe_scalar{{data+mech_index}, metadata});
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R) {
+    resolve_probe_point(R.mechanism_state(p.mechanism, p.state), p.mechanism, p.target, R);
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_point_prng_state& p, probe_resolution_data<B>& R) {
+    resolve_probe_point(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, p.target, R);
+}
+
+template <typename B>
+void resolve_probe_point(arb_value_type const * data, std::string const & mechanism, probe_resolution_data<B>& R) {
     if (!data) return;
 
-    unsigned id = R.mech_instance_by_name.at(p.mechanism)->mechanism_id();
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
+    unsigned id = R.mech_instance_by_name.at(mechanism)->mechanism_id();
+    auto& multiplicity = R.M.mechanisms.at(mechanism).multiplicity;
+    auto& placed_instances = R.cell.synapses().at(mechanism);
 
     std::size_t cell_targets_base = R.M.target_divs[R.cell_idx];
     std::size_t cell_targets_end = R.M.target_divs[R.cell_idx+1];
@@ -1064,6 +1103,16 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
     r.metadata = std::move(metadata);
     r.shrink_to_fit();
     R.result.push_back(std::move(r));
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<B>& R) {
+    resolve_probe_point(R.mechanism_state(p.mechanism, p.state), p.mechanism, R);
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_point_prng_state_cell& p, probe_resolution_data<B>& R) {
+    resolve_probe_point(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, R);
 }
 
 template <typename B>

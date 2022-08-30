@@ -194,6 +194,41 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration_cell {
     std::string ion;
 };
 
+// Value of random variable `rv` in density mechanism `mechanism` in CV at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct ARB_SYMBOL_VISIBLE cable_probe_density_prng_state {
+    locset locations;
+    std::string mechanism;
+    std::string rv;
+};
+
+// Value of random variable `rv` in density mechanism `mechanism` across components of the cell.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct ARB_SYMBOL_VISIBLE cable_probe_density_prng_state_cell {
+    std::string mechanism;
+    std::string rv;
+};
+
+// Value of random variable `rv` in point mechanism `mechanism` at target `target`.
+// Sample value type: `double`
+// Sample metadata type: `cable_probe_point_info`
+struct ARB_SYMBOL_VISIBLE cable_probe_point_prng_state {
+    cell_lid_type target;
+    std::string mechanism;
+    std::string rv;
+};
+
+// Value of state variable `rv` in point mechanism `mechanism` at every target with this mechanism.
+// Metadata has one entry of type cable_probe_point_info for each matched (possibly coalesced) instance.
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `std::vector<cable_probe_point_info>`
+struct ARB_SYMBOL_VISIBLE cable_probe_point_prng_state_cell {
+    std::string mechanism;
+    std::string rv;
+};
+
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 

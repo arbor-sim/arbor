@@ -434,9 +434,12 @@ bool Module::semantic() {
                     if (involves_identifier(s, w)) {
                         // mark the white noise variable as used, and set its index if we see this
                         // variable for the first time
-                        if (white_noise_block_.used.insert(w).second) {
+                        auto it = white_noise_block_.used.insert(std::make_pair(w,0u));
+                        if (it.second)
+                        {
                             // set white noise lookup index
-                            symbols_.find(w)->second->is_white_noise()->set_index();
+                            auto const idx = symbols_.find(w)->second->is_white_noise()->set_index();
+                            it.first->second = idx;
                         }
                     }
                 }
@@ -454,7 +457,7 @@ bool Module::semantic() {
         // filter out unused white noise variables from the white noise vector
         white_noise_vars.clear();
         for (auto const & w : white_noise_block_.used) {
-            white_noise_vars.push_back(w);
+            white_noise_vars.push_back(w.first);
         }
         bool stochastic = (white_noise_vars.size() > 0u);
 

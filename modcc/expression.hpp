@@ -648,7 +648,10 @@ public:
 
     unsigned int index() const noexcept { return index_; }
 
-    void set_index() noexcept { index_ = get_index(); }
+    unsigned int set_index() noexcept {
+        index_ = get_index();
+        return index_;
+    }
 
 private:
     static unsigned int get_index() {
