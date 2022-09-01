@@ -47,7 +47,8 @@ generators or gap junctions.
 The ``update_connections`` method accepts either a full ``recipe`` (but will
 **only** use the ``connections_on`` and ``events_generators`` callbacks) or a
 ``topping``, which is a reduced recipe exposing only the relevant callbacks.
-Currently ``topping`` is only available in C++.
+Currently ``topping`` is only available in C++; Python users have to pass the
+full recipe.
 
 .. warn::
 
@@ -63,6 +64,16 @@ Currently ``topping`` is only available in C++.
    transition is slow and smooth, ie weights decays over time towards a small
    value and then the connection is removed. However, drastic and/or frequent
    changes across busy synapses might cause unexpected behaviour.
+
+.. note::
+
+   Arbor uses a lazily constructed network (from the ``recipe`` callbacks) for
+   good reason; storing the full connectivity (for all ``gids``) in the
+   ``recipe`` can lead to probitivively large memory footprints. Keep this in
+   mind when designing your connectivity and heed the consequences of doing I/O
+   in these callbacks. This is doubly important when using models with dynamic
+   connectivity where the temptation to store all connections is even larger and
+   each call to ``update`` will re-evaluate the corresponding callbacks.
 
 .. _modelconnections:
 

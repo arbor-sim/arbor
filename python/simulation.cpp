@@ -94,7 +94,7 @@ public:
         sim_->set_binning_policy(policy, bin_interval);
     }
 
-    void update_connections(std::shared_ptr<py_recipe>& rec) {
+    void update(std::shared_ptr<py_recipe>& rec) {
         sim_->update(py_recipe_shim(rec));
     }
 
@@ -219,8 +219,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              "recipe"_a,
              pybind11::arg_v("context", pybind11::none(), "Execution context"),
              pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"))
-        .def("update_connections", &simulation_shim::update_connections,
-             "Rebuild the connection table from recipe::connections_on.",
+        .def("update", &simulation_shim::update,
+             "Rebuild the connection table from recipe::connections_on and the event"
+             "generators based on recipe::event_generators.",
              "recipe"_a)
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
