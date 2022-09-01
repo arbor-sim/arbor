@@ -22,6 +22,7 @@
 #include <fstream> 
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -244,6 +245,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     array dt_cv_r           = state_->dt_cv;
     array voltage_r         = state_->voltage;
     array current_density_r = state_->current_density;
+
+    std::cout << "state_->current_density at reset = ";
+    for (auto i = 0; i< state_->current_density.size(); ++i) {
+        std::cout << state_->current_density[i] << " ";
+    }
+    std::cout << std::endl;
+
     array conductivity_r    = state_->conductivity;
 
     array time_since_spike_r = state_->time_since_spike;
@@ -279,11 +287,16 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     //trace = [ [v[cvs_local[0]], v[cvs_local[1]], ...], [v[cvs_local[0]], v[cvs_local[1]], ...], ... ]
     std::vector<std::vector<arb_value_type>> trace, trace_clean, trace_prev;
     std::vector<double> trace_t, trace_t_clean;
+    std::vector<int> trace_wr_it_clean;
 
     threshold_watcher threshold_watcher_reset = threshold_watcher_;
 
     // Save starting times
     value_type tmin_reset = tmin_;
+    std::cout << "tmin_reset = " << tmin_reset << std::endl;
+    std::cout << "state_->time_bounds().first = " << state_->time_bounds().first << std::endl;
+    std::cout << "len(trace) = " << trace.size() << std::endl;
+    
     value_type dt_max_reset = dt_max;
     value_type tfinal_reset = tfinal;
 
@@ -296,8 +309,22 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // Global, sorted list of all CVs that are part of a gap junction
     auto cvs_global = context_.distributed->gather_cg_cv_map(cvs_local);
 
-    int wr_max = 1;
+    int exp_nr;
+    std::cin >> exp_nr;
+
+    std::cout << "cvs local: ";
+    for (int i = 0; i<cvs_local.size(); ++i) {
+        std::cout << cvs_local[i] << " ";
+    }
+    std::cout << std::endl;
+
+    int wr_max = 40;
     auto eps = 1e-4;
+
+    auto err_count = 0;
+    auto density_counter = 0;
+    auto junction_counter = 0;
+
     for (int wr_it = 0; wr_it < wr_max; wr_it++){
         tmin_ = tmin_reset;
         dt_max = dt_max_reset;
@@ -318,8 +345,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         auto tmin_prev = state_->time_bounds().first;
 
         std::cout << "group " << cell_group << " start it " << wr_it << std::endl;
-        
+
+
         while (remaining_steps) {
+            if (cell_group == 0 && step > max_remaining_steps) {
+                std::cout << "ERROR TOO MANY STEPS" << std::endl;
+                std::cout << "step = " << step << " remaining steps = " << remaining_steps << std::endl;
+            } 
+
 
             // Update any required reversal potentials based on ionic concs.
             for (auto& m: revpot_mechanisms_) {
@@ -389,29 +422,249 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                         // Q: Didn't we want to have the identity here, ie i --> i, instead of the peer index?
                         // A: Yes, indeed peer_ix_group is either the local peer index or the identity, if not local
 
+                        // if (step == 0) {
+                        //     std::cout << std::endl;
+                        //     std::cout << "----------- before -----------" << std::endl;
+                        //     std::cout << "cell group = " << cell_group << std::endl;
+                        //     std::cout << "node index = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.node_index[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "peer index = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.peer_index[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "peer cg = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.peer_cg[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        //     std::cout << std::endl;
+
+                        // }
+
                         pidx = peer_ix_group.data();
+
+                        // if (step == 0) {
+                        //     std::cout << std::endl;
+                        //     std::cout << "----------- it 0 -----------" << std::endl;
+                        //     std::cout << "cell group = " << cell_group << std::endl;
+                        //     std::cout << "node index = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.node_index[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "peer index = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.peer_index[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "peer cg = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.peer_cg[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        //     std::cout << std::endl;
+                        // }
                     }
                     if (wr_it > 0) {
                         // Here we expect peer_ix to be the index into the trace structure, regardless of local
                         // or not. However, the selection of the trace must take locality into account.
                         // Q: How to select?
+                        
                         auto trace_prev_step = trace_prev[step - doubles_count];
+                        if (cell_group == 0 && err_count == 0) {
+                            // std::cout << "state_->voltage at it " << wr_it << " step " << step << " = ";
+                            // for(int i = 0; i<state_->voltage.size(); ++i){
+                            //     std::cout << state_->voltage[i]<< " ";
+                            // }
+                            // std::cout << std::endl;
+                            // std::cout << " index to cell : " << std::endl;
+                            // i -> {gid, cg, cv, lid}
+                            // for (auto item : index_to_cell) {
+                            //     std::cout << item.first << " -> {" << std::get<0>(item.second) << ", " << std::get<1>(item.second) << ", "<< std::get<2>(item.second) << ", "<< std::get<3>(item.second) << "}"<< std::endl;
+                            // }
+                        }
+
+                        if (step == 0) {
+                            std::cout << "peer ix = ";
+                            for (auto i = 0; i< peer_ix.size(); ++i) {
+                                std::cout << peer_ix[i] << " ";
+                            }
+                            std::cout << std::endl;
+                            std::cout << std::endl;
+
+                            for (auto item : index_to_cell) {
+                                std::cout << item.first << " -> {" << std::get<0>(item.second) << ", " << std::get<1>(item.second) << ", "<< std::get<2>(item.second) << ", "<< std::get<3>(item.second) << "}"<< std::endl;
+                            }
+                        }
+
                         for (auto i = 0; i<m->ppack_.width; ++i) {
                             if ( m->ppack_.peer_cg[i] == cell_group ) {
                                 //std::cout << "peer ix[" << i << "] = " << peer_ix[i] << " -> " << std::get<2>(index_to_cell[m->ppack_.peer_index[i]]) << std::endl;
                                 //trace_prev[step][peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[m->ppack_.peer_index[i]])];
-                                trace_prev_step[peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[m->ppack_.peer_index[i]])];
+                                trace_prev_step[peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[peer_ix[i]])];
+                                //trace_prev_step[peer_ix[i]] = state_->voltage[std::get<2>(index_to_cell[m->ppack_.peer_index[i]])];
+
+                                if (cell_group == 0 && step == 0) {
+                                    std::cout << "peer_ix = " << peer_ix[i] << " volt index = " << std::get<2>(index_to_cell[peer_ix[i]]) << std::endl;
+                                }
+                                
                             }
                         }
 
                         m->ppack_.peer_index = peer_ix.data();
-                        //m->ppack_.vec_v_peer = trace_prev[step].data();
                         m->ppack_.vec_v_peer = trace_prev_step.data();
+
+                        if (step < 3) {
+                            std::cout << std::endl;
+                            std::cout << "----------- it "<< wr_it << " -----------" << std::endl;
+                            std::cout << "step = " << step << std::endl;
+                            std::cout << "cell group = " << cell_group << std::endl;
+                            std::cout << "wr_it = " << wr_it << std::endl;
+                        //     std::cout << "node index = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.node_index[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "peer index = ";
+                        //     for (auto i = 0; i< m->ppack_.width; ++i) {
+                        //         std::cout << m->ppack_.peer_index[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "state_->voltage = ";
+                        //     for (auto i = 0; i< state_->voltage.size(); ++i) {
+                        //         std::cout << state_->voltage[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "state_->current_density = ";
+                        //     for (auto i = 0; i< state_->current_density.size(); ++i) {
+                        //         std::cout << state_->current_density[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                            // std::cout << "vec_v_peer[peer_index] = ";
+                            // for (auto i = 0; i<m->ppack_.width; ++i) {
+                            //     std::cout << m->ppack_.vec_v_peer[m->ppack_.peer_index[i]] << " ";
+                            // }
+                            // std::cout << std::endl;
+
+                            // std::cout << "vec_v[node_index] = ";
+                            // for (auto i = 0; i<m->ppack_.width; ++i) {
+                            //     std::cout << m->ppack_.vec_v[m->ppack_.node_index[i]] << " ";
+                            // }
+                            // std::cout << std::endl;
+
+                            // std::cout << "vec_g[i] = ";
+                            // for (auto i = 0; i<m->ppack_.width; ++i) {
+                            //     std::cout << m->ppack_.parameters[0][i] << " ";
+                            // }
+                            // std::cout << std::endl;
+                        //     std::cout << "DELTA V = ";
+                        //     for (int i = 0; i<m->ppack_.width; ++i) {
+                        //         auto dv = m->ppack_.vec_v[m->ppack_.node_index[i]] - m->ppack_.vec_v_peer[m->ppack_.peer_index[i]];
+                        //         std::cout << dv << " ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << std::endl;
+                        // }
+
+                        // if (err_count == 0 && (cell_group == 0 && wr_it > 0)) {
+                        //     std::cout << "wr_it = " << wr_it << " step = " << step << " voltage = [";
+                        //     for (int i = 0; i < state_->voltage.size(); ++i) {
+                        //         std::cout << state_->voltage[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        // }
+
+
+                        // if (err_count == 0 && (cell_group == 0 && wr_it > 0)) {
+                        //     std::cout << std::endl;
+                        //     std::cout << " ------- " << std::endl;
+                        //     std::cout << "wr_it = " << wr_it << " step = " << step << " trace_prev_step before mod = [";
+                        //     for (int i = 0; i < trace_prev_step.size(); ++i) {
+                        //         std::cout << trace_prev[step - doubles_count][i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        //     std::cout << std::endl;
+                        //     std::cout << "wr_it = " << wr_it << " step = " << step << " vec_v_peer = [";
+                        //     for (int i = 0; i < trace_prev_step.size(); ++i) {
+                        //         std::cout << m->ppack_.vec_v_peer[i] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        //     std::cout << " ------- " << std::endl;
+                        //     std::cout << std::endl;
+
+                        // }
+
+
+                        // if (wr_it == 1 && (step == 60 && cell_group == 0)) {
+                        //     std::cout << "cell group = " << cell_group << std::endl;
+                        //     std::cout << "peer index = ";
+                        //     for (int i = 0; i<m->ppack_.width; ++i){
+                        //         std::cout << m->ppack_.peer_index[i] << ", ";
+                        //     }
+                        //     std::cout << std::endl;
+
+                        //     std::cout << "vec_v_peer = ";
+                        //     for (int i = 0; i<trace_prev_step.size(); ++i){
+                        //         std::cout << m->ppack_.vec_v_peer[i] << ", ";
+                        //     }
+                        //     std::cout << std::endl; 
+                        }
 
                     }
                 }
-        
+
+                
+                
+
                 m->update_current();
+
+                // if (cell_group == 0 && wr_it == 1 && (m->kind() == arb_mechanism_kind_density && density_counter == 0)) {
+                //     std::cout << "density step " << step << " state_->current_density = ";
+                //     for (auto i = 0; i< state_->current_density.size(); ++i) {
+                //         std::cout << state_->current_density[i] << " ";
+                //     }
+                //     std::cout << std::endl;
+                // }
+                // if (cell_group == 0 && wr_it == 1 && (m->kind() == arb_mechanism_kind_gap_junction && junction_counter == 0)) {
+                //     std::cout << "junction step " << step << " state_->current_density = ";
+                //     for (auto i = 0; i< state_->current_density.size(); ++i) {
+                //         std::cout << state_->current_density[i] << " ";
+                //     }
+                //     std::cout << std::endl;
+                // }
+
+                // if ( wr_it > 0 && (step < 3 && cell_group == 0 )){
+                //     std::cout << "state_->voltage after current update of step" << step  << " = ";
+                //     for (auto i = 0; i< state_->voltage.size(); ++i) {
+                //         std::cout << state_->voltage[i] << " ";
+                //     }
+                //     std::cout << std::endl;
+
+                //     std::cout << "state_->current_density after current update of step" << step  << " = ";
+                //     for (auto i = 0; i< state_->current_density.size(); ++i) {
+                //         std::cout << state_->current_density[i] << " ";
+                //     }
+                //     std::cout << std::endl;
+
+                //     std::cout << "weight = ";
+                //     for (auto i = 0; i<m->ppack_.width; ++i) {
+                //         std::cout << m->ppack_.weight[i] << " ";
+                //     }
+                //     std::cout << std::endl;
+                // }                
 
                 //update traces
                 if (m->kind() == arb_mechanism_kind_gap_junction) {
@@ -424,7 +677,23 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
                     for (auto ix = 0; ix<cvs_local.size(); ++ix) {
                         auto cv = cvs_local[ix];
                         v_step.push_back(state_->voltage[cv]);
-                    } 
+                        if (err_count == 0 && (cell_group == 0 && (state_->voltage[cv] > 100 or isnan(state_->voltage[cv])))) {
+                            std::cout << std::endl;
+                            std::cout << " ------- " << std::endl;
+                            std::cout << "voltage too large at it " << wr_it << " step " << step << std::endl;
+                            std::cout << "peer voltages: ";
+                            for (auto i = 0; i < m->ppack_.width; ++i) {
+                                auto n_temp = m->ppack_.node_index[i];
+                                auto p_temp = m->ppack_.peer_index[i];
+                                auto peer_v_temp = m->ppack_.vec_v_peer[p_temp];
+                                std::cout << "n = " << n_temp << " p = " << p_temp << " vec_v_peer[p_temp] = " << peer_v_temp << std::endl;
+                            }
+                            std::cout << " ------- " << std::endl;
+                            std::cout << std::endl;
+
+                            err_count +=1;
+                        }
+                    }
                     
                     trace.push_back(v_step);
                     trace_t.push_back(state_->time_bounds().first);
@@ -479,12 +748,50 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
             // Integrate voltage by matrix solve.
 
+            if (step < 3 && cell_group == 0) {
+                std::cout << "dt_intdom = ";
+                for (auto i = 0; i<state_->dt_intdom.size(); ++i) {
+                    std::cout << state_->dt_intdom[i] << " ";
+                }
+                std::cout << std::endl;
+
+                std::cout << "voltage = ";
+                for (auto i = 0; i<state_->voltage.size(); ++i) {
+                    std::cout << state_->voltage[i] << " ";
+                }
+                std::cout << std::endl;
+
+                std::cout << "current_density = ";
+                for (auto i = 0; i<state_->current_density.size(); ++i) {
+                    std::cout << state_->current_density[i] << " ";
+                }
+                std::cout << std::endl;
+
+                std::cout << "conductivity = ";
+                for (auto i = 0; i<state_->conductivity.size(); ++i) {
+                    std::cout << state_->conductivity[i] << " ";
+                }
+                std::cout << std::endl;
+
+
+
+            }
+
             PE(advance_integrate_matrix_build);
             matrix_.assemble(state_->dt_intdom, state_->voltage, state_->current_density, state_->conductivity);
             PL();
             PE(advance_integrate_matrix_solve);
             matrix_.solve(state_->voltage);
             PL();
+
+            if (step <3 && cell_group == 0 ){
+                std::cout << std::endl;
+                std::cout << "state_->voltage after matrix solve of step" << step  << " = ";
+                for (auto i = 0; i< state_->voltage.size(); ++i) {
+                    std::cout << state_->voltage[i] << " ";
+                }
+                std::cout << std::endl;
+            } 
 
             // Integrate mechanism state.
 
@@ -557,18 +864,21 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         trace_prev = {};
         auto count_clean = 1;
         auto count_total = 1;
-        std::cout << "CHECKPOINT" << std::endl;
         std::cout << " len trace = " << trace.size() << std::endl;
         std::cout << " len trace t = " << trace_t.size() << std::endl;
 
 
         trace_clean.push_back(trace[0]);
         trace_t_clean.push_back(trace_t[0]);
+        trace_wr_it_clean.push_back(wr_it);
+
+        std::cout << "wr it = " << wr_it << std::endl;
 
         for (int t=1; t<trace.size(); ++t){
             if ((trace_t[t]-trace_t[t-1]) > 0.1*dt_max){
                 trace_clean.push_back(trace[t]);
                 trace_t_clean.push_back(trace_t[t]);
+                trace_wr_it_clean.push_back(wr_it);
                 count_clean += 1;
             }
             count_total +=1;
@@ -601,7 +911,22 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             std::cout << "group = " << cell_group << " trace_prev[0].size() = " << trace_prev[0].size() << std::endl;
         }
         std::cout << "group " << cell_group << " has finished gathering traces !" << std::endl;
-       
+        
+        if (cell_group == 0) {
+            //file0.open("../../../work/m-thesis/gj_wfr/examples_cell_group/var_n_neurons_2.txt", std::ios::app);
+            file0.open("../../../work/m-thesis/gj_wfr/examples_cell_group/var_n_cg_" + std::to_string(exp_nr) + ".txt", std::ios::app);
+            for (auto i = 0; i<trace_prev.size();++i) {
+                file0 << trace_wr_it_clean[i] << " ";
+                file0 << trace_t_clean[i] << " ";
+                for (auto j = 0; j<trace_prev[i].size(); ++j) {
+                    file0 << trace_prev[i][j] << " ";
+                }
+                file0 << std::endl;
+            }
+            file0.close();
+        }
+
+
         if (cell_group == 0){
             file0.open ("../../../work/m-thesis/gj_wfr/examples_cell_group/mpi_test_0.txt", std::ios::app);
             for (int i = 0; i<trace_clean.size(); ++i){
@@ -635,6 +960,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         trace_clean = {};
         trace_t = {};
         trace_t_clean = {};
+        trace_wr_it_clean = {};
 
         // Reset state
         std::copy(dt_intdom_r.begin(), dt_intdom_r.end(), state_->dt_intdom.begin());
