@@ -86,8 +86,11 @@ struct ARB_ARBOR_API place_pwlin {
     // Maximal set of segments or part segments whose union is coterminous with extent.
     std::vector<msegment> all_segments(const mextent& extent) const;
 
-    // The closest location to p. Returns the location and its distance from the input coordinates.
+    // The closest location to p. Returns the location and its distance from the input coordinates. Ties are broken in favour of the most proximal point
     std::pair<mlocation, double> closest(double x, double y, double z) const;
+
+    // The closest location to p. Returns all possible locations and their shared distance from the input coordinates.
+    std::pair<std::vector<mlocation>, double> all_closest(double x, double y, double z) const;
 
 private:
     std::shared_ptr<place_pwlin_data> data_;

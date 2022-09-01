@@ -95,6 +95,19 @@ Currently ``topping`` is only available in C++.
    action potential
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
 
+   spike detector
+      :ref:`Placed <cablecell-place>` on a cell. Possible source of a connection.
+      Detects crossing of a fixed threshold and generates corresponding events.
+      Also used to :ref:`record spikes <>` for analysis. See :ref:`here
+      <cablecell-threshold-detectors>` for more information.
+
+   spike source cell
+      Artificial cell to generate spikes on a given schedule, see :ref:`spike cell <spikecell>`.
+
+   recording
+      By default, spikes are used for communication, but not stored for analysis,
+      however, :ref:`simulation <modelsimulation>` objects can be instructed to record spikes.
+
    event
       In a synapse :term:`spikes <spike>` generate events, which constitute stimulation of the synapse
       mechanism and the transmission of a signal. A synapse may receive events directly from an
