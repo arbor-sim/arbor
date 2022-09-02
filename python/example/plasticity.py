@@ -4,7 +4,7 @@ import arbor as A
 class recipe(A.recipe):
     def __init__(self, n):
         # Call our parent; needed for proper initialization.
-        A.recipe.__init__()
+        A.recipe.__init__(self)
         # Cell count; should be at least 3 for the example to work.
         assert n >= 3
         self.cells = n
