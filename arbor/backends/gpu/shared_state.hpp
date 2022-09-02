@@ -196,7 +196,7 @@ struct ARB_ARBOR_API shared_state {
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
 
     // Note: returned pointer points to device memory.
-    const arb_value_type* mechanism_prng_state_data(const mechanism&, const std::string&);
+    const arb_value_type* mechanism_prng_state_data(const mechanism&, const std::string&, unsigned cache_index);
 
     void add_ion(
         const std::string& ion_name,

@@ -201,6 +201,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_prng_state {
     locset locations;
     std::string mechanism;
     std::string rv;
+    unsigned cache_index = 0u;
 };
 
 // Value of random variable `rv` in density mechanism `mechanism` across components of the cell.
@@ -209,6 +210,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_prng_state {
 struct ARB_SYMBOL_VISIBLE cable_probe_density_prng_state_cell {
     std::string mechanism;
     std::string rv;
+    unsigned cache_index = 0u;
 };
 
 // Value of random variable `rv` in point mechanism `mechanism` at target `target`.
@@ -218,6 +220,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_point_prng_state {
     cell_lid_type target;
     std::string mechanism;
     std::string rv;
+    unsigned cache_index = 0u;
 };
 
 // Value of state variable `rv` in point mechanism `mechanism` at every target with this mechanism.
@@ -227,6 +230,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_point_prng_state {
 struct ARB_SYMBOL_VISIBLE cable_probe_point_prng_state_cell {
     std::string mechanism;
     std::string rv;
+    unsigned cache_index = 0u;
 };
 
 // Forward declare the implementation, for PIMPL.

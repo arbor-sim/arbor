@@ -761,11 +761,11 @@ struct probe_resolution_data {
     }
 
     // Backend state data for a given mechanism and random variable.
-    const arb_value_type* mechanism_prng_state(const std::string& name, const std::string& rv) const {
+    const arb_value_type* mechanism_prng_state(const std::string& name, const std::string& rv, unsigned cache_index) const {
         mechanism* m = util::value_by_key(mech_instance_by_name, name).value_or(nullptr);
         if (!m) return nullptr;
 
-        const arb_value_type* data = state->mechanism_prng_state_data(*m, rv);
+        const arb_value_type* data = state->mechanism_prng_state_data(*m, rv, cache_index);
         if (!data) throw cable_cell_error("no random variable '"+rv+"' in mechanism '"+name+"'");
 
         return data;
@@ -997,7 +997,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
 
 template <typename B>
 void resolve_probe(const cable_probe_density_prng_state& p, probe_resolution_data<B>& R) {
-    resolve_probe(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, p.locations, R);
+    resolve_probe(R.mechanism_prng_state(p.mechanism, p.rv, p.cache_index), p.mechanism, p.locations, R);
 }
 
 template <typename B>
@@ -1032,7 +1032,7 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
 
 template <typename B>
 void resolve_probe(const cable_probe_density_prng_state_cell& p, probe_resolution_data<B>& R) {
-    resolve_probe(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, R);
+    resolve_probe(R.mechanism_prng_state(p.mechanism, p.rv, p.cache_index), p.mechanism, R);
 }
 
 template <typename B>
@@ -1067,7 +1067,7 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
 
 template <typename B>
 void resolve_probe(const cable_probe_point_prng_state& p, probe_resolution_data<B>& R) {
-    resolve_probe_point(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, p.target, R);
+    resolve_probe_point(R.mechanism_prng_state(p.mechanism, p.rv, p.cache_index), p.mechanism, p.target, R);
 }
 
 template <typename B>
@@ -1112,7 +1112,7 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
 
 template <typename B>
 void resolve_probe(const cable_probe_point_prng_state_cell& p, probe_resolution_data<B>& R) {
-    resolve_probe_point(R.mechanism_prng_state(p.mechanism, p.rv), p.mechanism, R);
+    resolve_probe_point(R.mechanism_prng_state(p.mechanism, p.rv, p.cache_index), p.mechanism, R);
 }
 
 template <typename B>
