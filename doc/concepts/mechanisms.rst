@@ -279,7 +279,7 @@ such equations have the differential form:
 
 where :math:`\textbf{X}` is the vector of state variables, while the vector valued function
 :math:`\textbf{f}` represents the deterministic differential. The *M* functions :math:`\textbf{l}_i`
-are each associcated with the Brownian Motion :math:`B_i` (Wiener process). The Brownian motions are
+are each associated with the Brownian Motion :math:`B_i` (Wiener process). The Brownian motions are
 assumed to be standard: 
 
 .. math::
