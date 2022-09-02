@@ -100,7 +100,7 @@ sim.run(0.25, 0.025)
 #                        \
 #                         ----> cable_cell <gid=2>
 rec.add_connection_to_spike_source(2)
-sim.update_connections(rec)
+sim.update(rec)
 
 # and run the simulation for another bit.
 sim.run(0.5, 0.025)
