@@ -58,6 +58,12 @@ Definitions
         An object representing a series of monotonically increasing points in time, used for determining
         sample times (see :ref:`pyrecipe`).
 
+Spiking
+*******
+
+Spike detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
+between cells. See also :term:`spike detector` and :ref:`cablecell-threshold-detectors`.
+
 
 API
 ---

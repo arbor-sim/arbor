@@ -117,3 +117,4 @@ ARB_ARBOR_API bool test_invariants(const mcable_list&);
 
 ARB_DEFINE_HASH(arb::mcable, a.branch, a.prox_pos, a.dist_pos);
 ARB_DEFINE_HASH(arb::mlocation, a.branch, a.pos);
+ARB_DEFINE_HASH(arb::mpoint, a.x, a.y, a.z, a.radius);

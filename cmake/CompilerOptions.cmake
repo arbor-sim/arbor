@@ -160,7 +160,7 @@ function(export_visibility target)
     # generate config file
     get_target_property(target_binary_dir ${target} BINARY_DIR)
     configure_file(
-        ${CMAKE_SOURCE_DIR}/cmake/export.hpp.in
+        ${PROJECT_SOURCE_DIR}/cmake/export.hpp.in
         ${target_binary_dir}/include/${target_short_name}/export.hpp
         @ONLY)
 endfunction()

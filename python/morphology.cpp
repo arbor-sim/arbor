@@ -258,14 +258,9 @@ void register_morphology(py::module& m) {
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc_arbor",
         [](py::object fn, bool raw) -> morph_or_tree {
-            const auto fname = util::to_path(fn);
-            std::ifstream fid{fname};
-            if (!fid.good()) {
-                throw arb::file_not_found_error(fname);
-            }
             try {
-                auto data = arborio::parse_swc(fid);
-                check_trailing(fid, fname);
+                auto contents = util::read_file_or_buffer(fn);
+                auto data = arborio::parse_swc(contents);
                 if (raw) {
                     return arborio::load_swc_arbor_raw(data);
                 }
@@ -273,39 +268,34 @@ void register_morphology(py::module& m) {
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("error parsing {}: {}", fname, e.what()));
+                throw pyarb_error(util::pprintf("Arbor SWC: parse error: {}", e.what()));
             }
         },
-        "filename"_a,
+        "filename_or_stream"_a,
         pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
         "Generate a morphology/segment_tree from an SWC file following the rules prescribed by Arbor.\n"
         "Specifically:\n"
-        "* Single-segment somas are disallowed.\n"
-        "* There are no special rules related to somata. They can be one or multiple branches\n"
-        "  and other segments can connect anywhere along them.\n"
-        "* A segment is always created between a sample and its parent, meaning there\n"
-        "  are no gaps in the resulting morphology.");
-
+        " * Single-segment somas are disallowed.\n"
+        " * There are no special rules related to somata. They can be one or multiple branches\n"
+        "   and other segments can connect anywhere along them.\n"
+        " * A segment is always created between a sample and its parent, meaning there\n"
+        "   are no gaps in the resulting morphology.");
     m.def("load_swc_neuron",
         [](py::object fn, bool raw) -> morph_or_tree {
-            const auto fname = util::to_path(fn);
-            std::ifstream fid{fname};
-            if (!fid.good()) {
-                throw arb::file_not_found_error(fname);
-            }
             try {
-                auto data = arborio::parse_swc(fid);
-                check_trailing(fid, fname);
-                if (raw) arborio::load_swc_neuron_raw(data);
+                auto contents = util::read_file_or_buffer(fn);
+                auto data = arborio::parse_swc(contents);
+                if (raw) {
+                    return arborio::load_swc_neuron_raw(data);
+                }
                 return arborio::load_swc_neuron(data);
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(
-                    util::pprintf("NEURON SWC: error parsing {}: {}", fname, e.what()));
+                throw pyarb_error(util::pprintf("NEURON SWC: parse error: {}", e.what()));
             }
         },
-        "filename"_a,
+        "filename_or_stream"_a,
         pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
         "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
         "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
@@ -358,9 +348,10 @@ void register_morphology(py::module& m) {
             "The four canonical regions are labeled 'soma', 'axon', 'dend' and 'apic'.");
 
     m.def("load_asc",
-        [](std::string fname) {
+        [](py::object fn) {
             try {
-                return arborio::load_asc(fname);
+                auto contents = util::read_file_or_buffer(fn);
+                return arborio::load_asc(contents);
             }
             catch (std::exception& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
@@ -402,21 +393,16 @@ void register_morphology(py::module& m) {
         // constructors
         .def(py::init(
             [](py::object fn) {
-                const auto fname = util::to_path(fn);
-                std::ifstream fid{fname};
-                if (!fid.good()) {
-                    throw arb::file_not_found_error(fname);
-                }
                 try {
-                    std::string string_data((std::istreambuf_iterator<char>(fid)),
-                                             std::istreambuf_iterator<char>());
-                    return arborio::neuroml(string_data);
+                    auto contents = util::read_file_or_buffer(fn);
+                    return arborio::neuroml(contents);
                 }
                 catch (arborio::neuroml_exception& e) {
                     // Try to produce helpful error messages for NeuroML parsing errors.
-                    throw pyarb_error(util::pprintf("NeuroML error processing file {}: {}", fname, e.what()));
+                    throw pyarb_error(util::pprintf("NeuroML error: {}", e.what()));
                 }
-            }))
+            }),
+            "Construct NML morphology from filename or stream.")
         .def("cell_ids",
             [](const arborio::neuroml& nml) {
                 try {
