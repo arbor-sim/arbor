@@ -6,7 +6,7 @@ class recipe(A.recipe):
         # Call our parent; needed for proper initialization.
         A.recipe.__init__()
         # Cell count; should be at least 3 for the example to work.
-        assert(n >= 3)
+        assert n >= 3
         self.cells = n
         # Uniform weights and delays for the connectivity.
         self.weight = 0.75
@@ -71,8 +71,9 @@ class recipe(A.recipe):
         which is important with large networks. Also we cannot connect the
         source back to itself.
         """
-        assert(to != 0)
+        assert to != 0
         self.connected.insert(to)
+
 
 # Make an unconnected network with 2 cable cells and one spike source,
 rec = recipe(3)
