@@ -72,7 +72,7 @@ class recipe(A.recipe):
         source back to itself.
         """
         assert to != 0
-        self.connected.insert(to)
+        self.connected.add(to)
 
 
 # Make an unconnected network with 2 cable cells and one spike source,
