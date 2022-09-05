@@ -284,9 +284,6 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
 
-    // Set internal variables
-    m.time_ptr_ptr   = &time_ptr;
-
     auto width        = pos_data.cv.size();
     auto width_padded = math::round_up(pos_data.cv.size(), alignment);
 

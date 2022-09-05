@@ -187,10 +187,6 @@ fully formed to the interface. At this point:
 
     [Array] Map
 
-  .. c:member:: const arb_value_type* vec_t
-
-    [Array] time value
-
   .. c:member:: arb_value_type* vec_dt
 
     [Array] time step
