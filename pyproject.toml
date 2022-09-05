@@ -26,6 +26,12 @@ dependencies = [
     "numpy"
 ]
 
+[tool.black]
+line-length = 88
+target-version = ['py37', 'py38', 'py39', 'py310']
+include = '\.pyi?$'
+extend-exclude='^/(ext|python/pybind11|doc/scripts/.*_theme|doc/scripts/inputs.py)'
+
 [tool.setuptools]
 py-modules = ["arbor"]
 
