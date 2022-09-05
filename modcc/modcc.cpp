@@ -25,12 +25,12 @@ using std::cerr;
 // Options and option parsing:
 
 int report_error(const std::string& message) {
-    cerr << red("error: ") << message << "\n";
+    cerr << red("error trace:\n") << message << "\n";
     return 1;
 }
 
 int report_ice(const std::string& message) {
-    cerr << red("internal compiler error: ") << message << "\n"
+    cerr << red("internal compiler error:\n") << message << "\n"
          << "\nPlease report this error to the modcc developers.\n";
     return 1;
 }
@@ -223,6 +223,7 @@ int main(int argc, char **argv) {
         emit_header("semantic analysis");
         m.semantic();
         if (m.has_warning()) {
+            cerr << yellow("Warnings:\n");
             cerr << m.warning_string() << "\n";
         }
         if (m.has_error()) {

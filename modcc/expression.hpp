@@ -18,6 +18,7 @@
 class Visitor;
 
 class ARB_LIBMODCC_API Expression;
+struct ARB_LIBMODCC_API ErrorExpression;
 class ARB_LIBMODCC_API CallExpression;
 class ARB_LIBMODCC_API BlockExpression;
 class ARB_LIBMODCC_API IfExpression;
@@ -208,6 +209,20 @@ protected:
     Location location_;
     scope_ptr scope_;
 };
+
+struct ARB_LIBMODCC_API ErrorExpression : public Expression {
+    explicit ErrorExpression(Location location): Expression(location)
+    {}
+
+    std::string to_string() const override {
+        return "Error" + error_string_;
+    }
+
+    void accept(Visitor *) override {
+        throw compiler_exception{"Attempted to visit error expression.", location()};
+    }
+};
+
 
 class ARB_LIBMODCC_API Symbol : public Expression {
 public :
