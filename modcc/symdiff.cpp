@@ -689,7 +689,7 @@ ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector
     ConstantSimplifyVisitor csimp_visitor;
     result.constant->accept(&csimp_visitor);
     result.constant = csimp_visitor.result();
-    if (result.constant.get() == nullptr) throw compiler_exception{"Simplify: linear has no constant term.", loc};
+    if (result.constant.get() == nullptr) throw compiler_exception{"Linear test: simplification of the constant term failed.", loc};
 
     // linearity test: take second order derivatives, test against zero.
     result.is_linear = true;
