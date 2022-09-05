@@ -159,10 +159,8 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
-    std::uint64_t      cbprng_seed;         // random number generator seed
+    std::uint64_t cbprng_seed;              // random number generator seed
     arb_size_type random_number_cache_size; // number of random numbers generated
-
-    arb_value_type* time_ptr;
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;

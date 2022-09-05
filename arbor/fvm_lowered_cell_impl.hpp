@@ -314,7 +314,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         std::swap(state_->time_to, state_->time);
-        state_->time_ptr = state_->time.data();
 
         // Check for non-physical solutions:
 

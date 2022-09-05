@@ -163,8 +163,6 @@ struct ARB_ARBOR_API shared_state {
     std::uint64_t cbprng_seed;              // random number generator seed
     arb_size_type random_number_cache_size; // number of random numbers generated per random variable
 
-    arb_value_type* time_ptr;
-
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;

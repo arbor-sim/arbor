@@ -58,12 +58,12 @@ public:
     mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
     // Forward to interface methods
-    void initialize()     { ppack_.vec_t = *time_ptr_ptr; iface_.init_mechanism(&ppack_); }
-    void update_current() { prof_enter(current_prof_id); ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); prof_exit(); }
-    void update_state()   { prof_enter(state_prof_id);   ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_);    prof_exit(); }
-    void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
-    void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
-    void deliver_events(arb_deliverable_event_stream& stream) { ppack_.vec_t  = *time_ptr_ptr; iface_.apply_events(&ppack_, &stream); }
+    void initialize()     { iface_.init_mechanism(&ppack_); }
+    void update_current() { prof_enter(current_prof_id); iface_.compute_currents(&ppack_); prof_exit(); }
+    void update_state()   { prof_enter(state_prof_id);   iface_.advance_state(&ppack_);    prof_exit(); }
+    void update_ions()    { iface_.write_ions(&ppack_); }
+    void post_event()     { iface_.post_event(&ppack_); }
+    void deliver_events(arb_deliverable_event_stream& stream) { iface_.apply_events(&ppack_, &stream); }
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
@@ -71,7 +71,6 @@ public:
     arb_mechanism_type  mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
-    arb_value_type** time_ptr_ptr = nullptr;
 
 private:
 #ifdef ARB_PROFILE_ENABLED

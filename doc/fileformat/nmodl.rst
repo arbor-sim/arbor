@@ -39,7 +39,6 @@ quantities and their expected units.
 quantity                                         identifier                                           unit
 ===============================================  ===================================================  ==========
 voltage                                          v / v_peer                                           mV
-time                                             t                                                    ms
 temperature                                      celsius                                              °C
 diameter (cross-sectional)                       diam                                                 µm
 
@@ -94,15 +93,14 @@ Special variables
 -----------------
 
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
-  These include ``v``, ``diam``, ``celsius`` and ``t`` in addition to the previously
+  These include ``v``, ``diam``, and ``celsius`` in addition to the previously
   mentioned ion parameters.
 * These special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
   ``PARAMETER``. This is different from NEURON where a built-in variable is
   declared ``ASSIGNED`` to make it accessible.
 * ``diam`` and ``celsius`` are set from the simulation side.
 * ``v`` is a reserved variable name and can be read but not written in NMODL.
-* ``dt`` is not exposed to NMODL mechanisms.
-* ``area`` is not exposed to NMODL mechanisms.
+* ``dt``, ``time``, and ``area`` are not exposed to NMODL mechanisms.
 * ``NONSPECIFIC_CURRENTS`` should not be ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
   They just need to be declared in the NEURON block.
 
@@ -122,7 +120,8 @@ Unsupported features
   units, which are just ignored).
 * Unit declaration is not supported (ex: ``FARADAY = (faraday)  (10000 coulomb)``).
   They can be replaced by declaring them and setting their values in ``CONSTANT``.
-* ``FROM`` - ``TO`` clamping of variables is not supported. The tokens are parsed and ignored.
+* ``FROM`` - ``TO`` clamping of variables is not supported. The tokens are
+  parsed, and reported through the ``mechanism_info``, but otherwise ignored.
   However, ``CONSERVE`` statements are supported.
 * ``TABLE`` is not supported, calculations are exact.
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
