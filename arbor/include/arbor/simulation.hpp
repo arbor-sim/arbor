@@ -29,18 +29,22 @@ class simulation_builder;
 
 class ARB_ARBOR_API simulation {
 public:
-    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp,
+    simulation(const recipe& rec, context ctx, const domain_decomposition& decomp,
                std::uint64_t seed = 0);
 
     simulation(const recipe& rec,
-               const context& ctx=make_context(),
-               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }, std::uint64_t seed = 0):
-        simulation(rec, ctx, balancer(rec, ctx), seed) {}
+               context ctx = make_context(),
+               std::function<domain_decomposition(const recipe&, context)> balancer = 
+                   [](auto& r, auto c) { return partition_load_balance(r, c); },
+               std::uint64_t seed = 0):
+        simulation(rec, ctx, balancer(rec, ctx)) {}
 
     simulation(simulation const&) = delete;
     simulation(simulation&&);
 
     static simulation_builder create(recipe const &);
+
+    void update(const connectivity& rec);
 
     void reset();
 
@@ -100,8 +104,8 @@ public:
     simulation_builder(simulation_builder&&) = default;
     simulation_builder(simulation_builder const&) = default;
 
-    simulation_builder& set_context(context const& ctx) noexcept {
-        ctx_ = &ctx;
+    simulation_builder& set_context(context ctx) noexcept {
+        ctx_ = ctx;
         return *this;
     }
 
@@ -111,7 +115,7 @@ public:
     }
 
     simulation_builder& set_balancer(
-        std::function<domain_decomposition(const recipe&, const context&)> balancer) noexcept {
+        std::function<domain_decomposition(const recipe&, context)> balancer) noexcept {
         balancer_ = std::move(balancer);
         return *this;
     }
@@ -130,31 +134,31 @@ public:
 private:
     simulation build() const {
         return ctx_ ?
-            build(*ctx_):
+            build(ctx_):
             build(make_context());
     }
 
-    simulation build(context const& ctx) const {
+    simulation build(context ctx) const {
         return decomp_ ?
             build(ctx, *decomp_):
             build_from_balancer(ctx);
     }
 
-    simulation build_from_balancer(context const& ctx) const {
+    simulation build_from_balancer(context ctx) const {
         return balancer_ ?
             build(ctx, balancer_(rec_, ctx)):
             build(ctx, partition_load_balance(rec_, ctx));
     }
 
-    simulation build(context const& ctx, domain_decomposition const& decomp) const {
+    simulation build(context ctx, domain_decomposition const& decomp) const {
         return simulation(rec_, ctx, decomp, seed_);
     }
 
 private:
     recipe const & rec_;
-    context const * ctx_ = nullptr;
+    context ctx_;
     domain_decomposition const * decomp_ = nullptr;
-    std::function<domain_decomposition(const recipe&, const context&)> balancer_;
+    std::function<domain_decomposition(const recipe&, context)> balancer_;
     std::uint64_t seed_ = 0u;
 };
 

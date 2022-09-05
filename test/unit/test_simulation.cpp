@@ -148,7 +148,7 @@ struct lif_chain: public recipe {
             return {};
         }
         else {
-            return {schedule_generator({"tgt"}, weight_, triggers_)};
+            return {event_generator({"tgt"}, weight_, triggers_)};
         }
     }
 
