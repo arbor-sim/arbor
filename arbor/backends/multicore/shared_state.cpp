@@ -226,8 +226,6 @@ shared_state::shared_state(
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     deliverable_events(n_intdom)
 {
-    time_ptr = time.data();
-
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
@@ -493,9 +491,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    // Set internal variables
-    m.time_ptr_ptr   = &time_ptr;
-
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
     m.ppack_.width            = pos_data.cv.size();
@@ -511,7 +506,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
-    m.ppack_.vec_t            = nullptr;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
