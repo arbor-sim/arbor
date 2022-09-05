@@ -41,13 +41,12 @@ connection table outside calls to `run`, for example
 This will completely replace the old table, previous connections to be retained
 must be explicitly included in the updated callback. This can also be used to
 update connection weights and delays. Note, however, that there is currently no
-way to introduce new sites to the simulation, nor any changes to the connected
-generators or gap junctions.
+way to introduce new sites to the simulation, nor any changes to gap junctions.
 
 The ``update_connections`` method accepts either a full ``recipe`` (but will
 **only** use the ``connections_on`` and ``events_generators`` callbacks) or a
-``topping``, which is a reduced recipe exposing only the relevant callbacks.
-Currently ``topping`` is only available in C++; Python users have to pass the
+``connectivity``, which is a reduced recipe exposing only the relevant callbacks.
+Currently ``connectivity`` is only available in C++; Python users have to pass a
 full recipe.
 
 .. warn::

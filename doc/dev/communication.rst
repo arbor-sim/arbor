@@ -21,8 +21,9 @@ sorted array.
 Exchange of Spikes
 ==================
 
-Communication of spikes is facilitated through the
-``communicator::exchange`` method, which is
+We will start by discussing the exchange of spikes, an extended summary of the
+full communicator class can be found in the next section. Communication of
+spikes is facilitated through the ``communicator::exchange`` method. which is
 
 .. code-block:: c++
 

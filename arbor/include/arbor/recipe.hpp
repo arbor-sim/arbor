@@ -86,12 +86,12 @@ struct ARB_ARBOR_API has_generators {
 };
 
 // Toppings allow updating a simulation
-struct ARB_ARBOR_API topping: public has_synapses, has_generators {
-    virtual ~topping() {}
+struct ARB_ARBOR_API connectivity: public has_synapses, has_generators {
+    virtual ~connectivity() {}
 };
 
 // Recipes allow building a simulation by lazy queries
-struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, topping {
+struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity {
     // number of cells to build
     virtual cell_size_type num_cells() const = 0;
     // Cell description type will be specific to cell kind of cell with given gid.

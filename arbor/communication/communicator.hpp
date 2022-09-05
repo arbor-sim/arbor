@@ -70,7 +70,7 @@ public:
 
     void reset();
 
-    void update_connections(const topping& rec,
+    void update_connections(const connectivity& rec,
                             const domain_decomposition& dom_dec,
                             const label_resolution_map& source_resolution_map,
                             const label_resolution_map& target_resolution_map);

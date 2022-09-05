@@ -35,7 +35,7 @@ communicator::communicator(const recipe& rec,
     update_connections(rec, dom_dec, source_resolution_map, target_resolution_map);
 }
 
-void communicator::update_connections(const topping& rec,
+void communicator::update_connections(const connectivity& rec,
                                       const domain_decomposition& dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {

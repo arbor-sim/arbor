@@ -92,7 +92,7 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx);
 
-    void update(const topping& rec);
+    void update(const connectivity& rec);
 
     void reset();
 
@@ -226,7 +226,7 @@ simulation_state::simulation_state(
     epoch_.reset();
 }
 
-void simulation_state::update(const topping& rec) {
+void simulation_state::update(const connectivity& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = communicator_.min_delay()/2;
@@ -527,7 +527,7 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update(const topping& rec) { impl_->update(rec); }
+void simulation::update(const connectivity& rec) { impl_->update(rec); }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {
