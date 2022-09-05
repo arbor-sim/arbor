@@ -2,7 +2,7 @@
 	path = ext/google-benchmark
 	url = https://github.com/google/benchmark
 	branch = main
-[submodule "ext/pybind11"]
+[submodule "python/pybind11"]
 	path = ext/pybind11
 	url = https://github.com/pybind/pybind11.git
 	branch = master
