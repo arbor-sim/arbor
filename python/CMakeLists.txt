@@ -14,7 +14,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # Set up pybind11, which is used to generate Python bindings.
   # Pybind11 has good cmake support, so just add the pybind11 directory,
   # instead of using find_package.
-  add_subdirectory(pybind11)
+  add_subdirectory(${pb11_src_dir} pybind11)
 else()
   find_package(pybind11 REQUIRED)
 endif()
