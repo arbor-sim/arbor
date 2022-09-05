@@ -429,8 +429,8 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
                 out << "unsigned lane_mask_ = arb::gpu::ballot(0xffffffff, tid_<n_);\n";
             }
         }
-        flags.ppack_iface && out << "PPACK_IFACE_BLOCK;\n";
-        flags.cv_loop && out << "if (tid_<n_) {\n" << indent;
+        if (flags.ppack_iface) out << "PPACK_IFACE_BLOCK;\n";
+        if (flags.cv_loop) out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
             out << "auto " << index_i_name(index.source_var)
@@ -446,7 +446,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
         for (auto& sym: indexed_vars) {
             emit_state_update_cu(out, sym, sym->external_variable(), flags);
         }
-        flags.cv_loop && out << popindent << "}\n";
+        if (flags.cv_loop) out << popindent << "}\n";
     }
 }
 
