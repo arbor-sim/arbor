@@ -81,7 +81,7 @@ inline expression_ptr substitute(const expression_ptr& e, const substitute_map& 
 
 // Linearity testing
 
-struct linear_test_result {
+struct linear_test_result: public error_stack {
     bool is_linear = false;
     bool is_homogeneous = false;
     bool is_constant = true;

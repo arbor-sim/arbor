@@ -41,7 +41,13 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
     }
 
     auto s = deriv->name();
+
     linear_test_result r = linear_test(rhs, dvars_);
+    if (r.has_error()) {
+        append_errors(r.errors());
+        error({"CNExp: Could not determine linearity, maybe use a different solver?", loc});
+        return;
+    }
 
     if (!r.monolinear(s)) {
         error({"System not diagonal linear for cnexp", loc});
@@ -52,7 +58,6 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
     if (!coef || is_zero(coef)) {
         // s' = b becomes s = s + b*dt; use b_ as a local variable for
         // the constant term b.
-
         auto local_b_term = make_unique_local_assign(scope, r.constant.get(), "b_");
         statements_.push_back(std::move(local_b_term.local_decl));
         statements_.push_back(std::move(local_b_term.assignment));

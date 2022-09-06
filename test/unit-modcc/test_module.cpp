@@ -123,6 +123,26 @@ TEST(Module, read_write_ion) {
     EXPECT_TRUE(m.semantic());
 }
 
+// Regression test in #1893 we found that the solver segfaults when handed a
+// naked comparison statement.
+TEST(Module, solver_bug_1893) {
+    {
+        Module m(io::read_all(DATADIR "/mod_files/bug-1893.mod"), "bug-1893.mod");
+        EXPECT_NE(m.buffer().size(), 0);
+
+        Parser p(m, false);
+        EXPECT_TRUE(p.parse());
+        EXPECT_TRUE(m.semantic());
+    }
+    {
+        Module m(io::read_all(DATADIR "/mod_files/bug-1893-bad.mod"), "bug-1893.mod");
+        EXPECT_NE(m.buffer().size(), 0);
+
+        Parser p(m, false);
+        EXPECT_TRUE(p.parse());
+        EXPECT_FALSE(m.semantic());
+    }
+}
 
 TEST(Module, stochastic_point) {
     Module m(io::read_all(DATADIR "/mod_files/test9.mod"), "test9.mod");

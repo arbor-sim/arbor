@@ -119,7 +119,7 @@ std::string Module::error_string() const {
     std::string str;
     for (const error_entry& entry: errors()) {
         if (!str.empty()) str += '\n';
-        str += red("error   ");
+        str += red("  * ");
         str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
@@ -130,7 +130,7 @@ std::string Module::warning_string() const {
     std::string str;
     for (auto& entry: warnings()) {
         if (!str.empty()) str += '\n';
-        str += purple("warning   ");
+        str += purple("  * ");
         str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
