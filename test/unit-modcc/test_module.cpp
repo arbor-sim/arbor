@@ -128,7 +128,7 @@ TEST(Module, read_write_ion) {
 TEST(Module, solver_bug_1893) {
     {
         Module m(io::read_all(DATADIR "/mod_files/bug-1893.mod"), "bug-1893.mod");
-        EXPECT_NE(m.buffer().size(), 0);
+        EXPECT_NE(m.buffer().size(), 0u);
 
         Parser p(m, false);
         EXPECT_TRUE(p.parse());
@@ -136,7 +136,7 @@ TEST(Module, solver_bug_1893) {
     }
     {
         Module m(io::read_all(DATADIR "/mod_files/bug-1893-bad.mod"), "bug-1893.mod");
-        EXPECT_NE(m.buffer().size(), 0);
+        EXPECT_NE(m.buffer().size(), 0u);
 
         Parser p(m, false);
         EXPECT_TRUE(p.parse());
