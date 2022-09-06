@@ -46,6 +46,21 @@ enum class simd_expr_constraint{
     other
 };
 
+struct ApiFlags {
+    bool cv_loop = true;
+    bool ppack_iface=true;
+    bool use_additive=false;
+    bool is_point=false;
+
+    ApiFlags& loop(bool v) { cv_loop = v; return *this; }
+    ApiFlags& iface(bool v) { ppack_iface = v; return *this; }
+    ApiFlags& additive(bool v) { use_additive = v; return *this; }
+    ApiFlags& point(bool v) { is_point = v; return *this; }
+};
+
+const ApiFlags net_recv_flags = {false, false, true, false};
+const ApiFlags post_evt_flags = {false, false, false, false};
+
 class ARB_LIBMODCC_API SimdPrinter: public Visitor {
 public:
     SimdPrinter(std::ostream& out): out_(out) {}

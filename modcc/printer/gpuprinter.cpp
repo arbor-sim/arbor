@@ -28,10 +28,10 @@ static std::string scaled(double coeff) {
 }
 
 
-void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc, bool cv_loop = true, bool ppack=true, bool additive=false);
+void emit_api_body_cu(std::ostream& out, APIMethod* method, const ApiFlags&);
 void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* proc);
 void emit_state_read_cu(std::ostream& out, LocalVariable* local);
-void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, bool is_point_proc, bool use_additive);
+void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, const ApiFlags&);
 
 const char* index_id(Symbol *s);
 
@@ -227,7 +227,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, is_point_proc, true, true, additive);
+            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive));
             out << popindent << "}\n\n";
         }
     };
@@ -265,7 +265,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name(),
                            pp_var_pfx);
         out << indent << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, is_point_proc, false, false, false);
+        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     }
 
@@ -286,7 +286,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                            time_arg,
                            pp_var_pfx);
         out << indent << indent << indent << indent;
-        emit_api_body_cu(out, post_event_api, is_point_proc, false, false);
+        emit_api_body_cu(out, post_event_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     }
 
@@ -366,7 +366,7 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool cv_loop, bool ppack, bool additive) {
+void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
     auto body = e->body();
     auto indexed_vars = indexed_locals(e->scope());
 
@@ -419,7 +419,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
     }
 
     if (!body->statements().empty()) {
-        if (is_point_proc) {
+        if (flags.is_point) {
             // The run length information is only required if this method will
             // update an indexed variable, like current or conductance.
             // This is the case if one of the external variables "is_write".
@@ -429,8 +429,8 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
                 out << "unsigned lane_mask_ = arb::gpu::ballot(0xffffffff, tid_<n_);\n";
             }
         }
-        ppack && out << "PPACK_IFACE_BLOCK;\n";
-        cv_loop && out << "if (tid_<n_) {\n" << indent;
+        if (flags.ppack_iface) out << "PPACK_IFACE_BLOCK;\n";
+        if (flags.cv_loop) out << "if (tid_<n_) {\n" << indent;
 
         for (auto& index: indices) {
             out << "auto " << index_i_name(index.source_var)
@@ -444,9 +444,9 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc, bool 
         out << cuprint(body);
 
         for (auto& sym: indexed_vars) {
-            emit_state_update_cu(out, sym, sym->external_variable(), is_point_proc, additive);
+            emit_state_update_cu(out, sym, sym->external_variable(), flags);
         }
-        cv_loop && out << popindent << "}\n";
+        if (flags.cv_loop) out << popindent << "}\n";
     }
 }
 
@@ -471,9 +471,8 @@ namespace {
 
 void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
     out << "arb_value_type " << cuprint(local) << " = ";
-
-    if (local->is_read() || (local->is_write() && decode_indexed_variable(local->external_variable()).additive)) {
-        auto d = decode_indexed_variable(local->external_variable());
+    auto d = decode_indexed_variable(local->external_variable());
+    if (local->is_read() || (local->is_write() && d.additive)) {
         if (d.scale != 1) {
             out << as_c_double(d.scale) << "*";
         }
@@ -486,7 +485,7 @@ void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
 
 
 void emit_state_update_cu(std::ostream& out, Symbol* from,
-                          IndexedVariable* external, bool is_point_proc, bool use_additive) {
+                          IndexedVariable* external, const ApiFlags& flags) {
     if (!external->is_write()) return;
     auto d = decode_indexed_variable(external);
     if (d.readonly) {
@@ -498,11 +497,12 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto data   = pp_var_pfx + d.data_var;
     auto index  = index_i_name(d.outer_index_var());
     auto var    = deref(d);
-    auto weight = scale + pp_var_pfx + "weight[tid_]";
+    std::string weight = (d.always_use_weight || !flags.is_point) ? pp_var_pfx + "weight[tid_]" : "1.0";
+    weight = scale + weight;
 
-    if (d.additive && use_additive) {
+    if (d.additive && flags.use_additive) {
         out << name << " -= " << var << ";\n";
-        if (is_point_proc) {
+        if (flags.is_point) {
             out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
         }
         else {
@@ -510,7 +510,7 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         }
     }
     else if (d.accumulate) {
-        if (is_point_proc) {
+        if (flags.is_point) {
             out << "::arb::gpu::reduce_by_key(" << weight << "*" << name << ',' << data << ", " << index << ", lane_mask_);\n";
         }
         else {
