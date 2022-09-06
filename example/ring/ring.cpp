@@ -100,7 +100,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator({{{"primary_syn"}, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({"primary_syn"}, event_weight_, std::vector<float>{1.0f}));
         }
         return gens;
     }

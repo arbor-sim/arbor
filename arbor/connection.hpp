@@ -15,52 +15,33 @@ public:
                float w,
                float d,
                cell_gid_type didx=cell_gid_type(-1)):
-        source_(src),
-        destination_(dest),
-        weight_(w),
-        delay_(d),
-        index_on_domain_(didx)
+        source(src),
+        destination(dest),
+        weight(w),
+        delay(d),
+        index_on_domain(didx)
     {}
 
-    float weight() const { return weight_; }
-    time_type delay() const { return delay_; }
+    spike_event make_event(const spike& s) { return { destination, s.time + delay, weight}; }
 
-    cell_member_type source() const { return source_; }
-    cell_lid_type destination() const { return destination_; }
-    cell_size_type index_on_domain() const { return index_on_domain_; }
-
-    spike_event make_event(const spike& s) {
-        return {destination_, s.time + delay_, weight_};
-    }
-
-private:
-    cell_member_type source_;
-    cell_lid_type destination_;
-    float weight_;
-    float delay_;
-    cell_size_type index_on_domain_;
+    cell_member_type source;
+    cell_lid_type destination;
+    float weight;
+    float delay;
+    cell_size_type index_on_domain;
 };
 
 // connections are sorted by source id
 // these operators make for easy interopability with STL algorithms
-
-static inline bool operator<(const connection& lhs, const connection& rhs) {
-    return lhs.source() < rhs.source();
-}
-
-static inline bool operator<(const connection& lhs, cell_member_type rhs) {
-    return lhs.source() < rhs;
-}
-
-static inline bool operator<(cell_member_type lhs, const connection& rhs) {
-    return lhs < rhs.source();
-}
+static inline bool operator<(const connection& lhs, const connection& rhs) { return lhs.source < rhs.source; }
+static inline bool operator<(const connection& lhs, cell_member_type rhs)  { return lhs.source < rhs; }
+static inline bool operator<(cell_member_type lhs, const connection& rhs)  { return lhs < rhs.source; }
 
 } // namespace arb
 
 static inline std::ostream& operator<<(std::ostream& o, arb::connection const& con) {
-    return o << "con [" << con.source() << " -> " << con.destination()
-             << " : weight " << con.weight()
-             << ", delay " << con.delay()
-             << ", index " << con.index_on_domain() << "]";
+    return o << "con [" << con.source << " -> " << con.destination
+             << " : weight " << con.weight
+             << ", delay " << con.delay
+             << ", index " << con.index_on_domain << "]";
 }

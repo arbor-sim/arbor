@@ -644,10 +644,10 @@ TEST(communicator, all2all)
     for (auto i: util::make_span(0, n_global)) {
         for (unsigned j = 0; j < n_local; ++j) {
             auto c = connections[i*n_local+j];
-            EXPECT_EQ(i, c.source().gid);
-            EXPECT_EQ(0u, c.source().index);
-            EXPECT_EQ(i, c.destination());
-            EXPECT_LT(c.index_on_domain(), n_local);
+            EXPECT_EQ(i, c.source.gid);
+            EXPECT_EQ(0u, c.source.index);
+            EXPECT_EQ(i, c.destination);
+            EXPECT_LT(c.index_on_domain, n_local);
         }
     }
 
@@ -689,7 +689,7 @@ TEST(communicator, mini_network)
     // sort connections by source then target
     auto connections = C.connections();
     util::sort(connections, [](const connection& lhs, const connection& rhs) {
-      return std::forward_as_tuple(lhs.source(), lhs.index_on_domain(), lhs.destination()) < std::forward_as_tuple(rhs.source(), rhs.index_on_domain(), rhs.destination());
+      return std::forward_as_tuple(lhs.source, lhs.index_on_domain, lhs.destination) < std::forward_as_tuple(rhs.source, rhs.index_on_domain, rhs.destination);
     });
 
     // Expect one set of 22 connections from every rank: these have been sorted.
@@ -701,9 +701,9 @@ TEST(communicator, mini_network)
         std::vector<cell_gid_type> ex_source_gids(22u, i*3 + 1);
         for (unsigned j = 0; j < 22u; ++j) {
             auto c = connections[i*22 + j];
-            EXPECT_EQ(ex_source_gids[j], c.source().gid);
-            EXPECT_EQ(ex_source_lids[j], c.source().index);
-            EXPECT_EQ(ex_target_lids[i%2][j], c.destination());
+            EXPECT_EQ(ex_source_gids[j], c.source.gid);
+            EXPECT_EQ(ex_source_lids[j], c.source.index);
+            EXPECT_EQ(ex_target_lids[i%2][j], c.destination);
         }
     }
 }

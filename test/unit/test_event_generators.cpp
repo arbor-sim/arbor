@@ -33,8 +33,7 @@ TEST(event_generators, assign_and_copy) {
     event_generator g1(gen);
     EXPECT_EQ(expected, first(g1.events(0., 1.)));
 
-    event_generator g2;
-    g2 = gen;
+    event_generator g2 = gen;
     EXPECT_EQ(expected, first(g2.events(0., 1.)));
 
     const auto& const_gen = gen;
@@ -42,8 +41,7 @@ TEST(event_generators, assign_and_copy) {
     event_generator g3(const_gen);
     EXPECT_EQ(expected, first(g3.events(0., 1.)));
 
-    event_generator g4;
-    g4 = gen;
+    event_generator g4 = gen;
     EXPECT_EQ(expected, first(g4.events(0., 1.)));
 
     event_generator g5(std::move(gen));
@@ -82,54 +80,30 @@ TEST(event_generators, regular) {
     EXPECT_EQ(expected({12, 12.5}), as_vector(gen.events(12, 12.7)));
 }
 
+using lse_vector = std::vector<std::tuple<cell_local_label_type, time_type, float>>;
+
 TEST(event_generators, seq) {
-    explicit_generator::lse_vector in = {
-        {{"l0"}, 0.1, 1.0},
-        {{"l0"}, 1.0, 2.0},
-        {{"l2"}, 1.0, 3.0},
-        {{"l1"}, 1.5, 4.0},
-        {{"l2"}, 2.3, 5.0},
-        {{"l0"}, 3.0, 6.0},
-        {{"l0"}, 3.5, 7.0},
-    };
-    std::unordered_map<cell_tag_type, cell_lid_type> lid_map = {{"l0", 0},{"l1", 1}, {"l2", 2}};
+    std::vector<arb::time_type> times = {1, 2, 3, 4, 5, 6, 7};
+    lse_vector in;
     pse_vector expected;
-    std::transform(in.begin(), in.end(), std::back_inserter(expected),
-        [lid_map](const auto& item) {return spike_event{lid_map.at(item.label.tag), item.time, item.weight};});
+    float weight = 0.42;
+    arb::cell_local_label_type l0 = {"l0"};
+    for (auto time: times) {
+        in.push_back({l0, weight, time});
+        expected.push_back({0, time, weight});
+    }
 
-    event_generator gen = explicit_generator(in);
-    gen.resolve_label([lid_map](const cell_local_label_type& item) {return lid_map.at(item.tag);});
+    event_generator gen = explicit_generator(l0, weight, times);
+    gen.resolve_label([](const cell_local_label_type&) {return 0;});
 
-    EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
-    gen.reset();
-    EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
-    gen.reset();
+    EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
+    EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
 
-    // Check reported sub-intervals against a smaller set of events.
-    in = {
-        {{"l0"}, 1.5, 4.0},
-        {{"l0"}, 2.3, 5.0},
-        {{"l0"}, 3.0, 6.0},
-        {{"l0"}, 3.5, 7.0},
-    };
-    expected.clear();
-    std::transform(in.begin(), in.end(), std::back_inserter(expected),
-        [lid_map](const auto& item) {return spike_event{lid_map.at(item.label.tag), item.time, item.weight};});
-
-    gen = explicit_generator(in);
-    gen.resolve_label([lid_map](const cell_local_label_type& item) {return lid_map.at(item.tag);});
-
-    auto draw = [](event_generator& gen, time_type t0, time_type t1) {
-        gen.reset();
-        return as_vector(gen.events(t0, t1));
-    };
-
-    auto events = [&expected] (int b, int e) {
-      return pse_vector(expected.begin()+b, expected.begin()+e);
-    };
+    auto draw = [](auto& gen, auto t0, auto t1) { gen.reset(); return as_vector(gen.events(t0, t1)); };
+    auto events = [&expected] (int b, int e) { auto beg = expected.begin(); return pse_vector(beg+b, beg+e); };
 
     // a range that includes all the events
-    EXPECT_EQ(expected, draw(gen, 0, 4));
+    EXPECT_EQ(expected, draw(gen, 0, 8));
 
     // a strict subset including the first event
     EXPECT_EQ(events(0, 2), draw(gen, 0, 3));

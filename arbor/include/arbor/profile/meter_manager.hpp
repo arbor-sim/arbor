@@ -26,7 +26,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, const context&);
+    measurement(std::string, std::string, const std::vector<double>&, context);
 };
 
 class ARB_ARBOR_API meter_manager {
@@ -41,8 +41,8 @@ private:
 
 public:
     meter_manager();
-    void start(const context& ctx);
-    void checkpoint(std::string name, const context& ctx);
+    void start(context ctx);
+    void checkpoint(std::string name, context ctx);
 
     const std::vector<std::unique_ptr<meter>>& meters() const;
     const std::vector<std::string>& checkpoint_names() const;
@@ -59,7 +59,7 @@ struct meter_report {
     std::vector<std::string> hosts;
 };
 
-ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, const context& ctx);
+ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, context ctx);
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
 } // namespace profile
