@@ -120,7 +120,7 @@ TEST(spike_source, multiple)
 {
     // This test assumes that seq will exhaust itself before t=10 ms.
     auto test_seq = [](auto&&... seqs) {
-        ss_recipe rec(1u, spike_source_cell("src", seqs...));
+        ss_recipe rec(1u, spike_source_cell("src", static_cast<decltype(seqs)&&>(seqs)...));
         cell_label_range srcs, tgts;
         spike_source_cell_group group({0}, rec, srcs, tgts);
 
@@ -145,6 +145,9 @@ TEST(spike_source, multiple)
         EXPECT_LT(group.spikes().back().time, time_type(10));
     };
 
+    auto seqs = std::vector<schedule>{regular_schedule(0, 1, 5),
+                                      explicit_schedule({0.3, 2.3, 4.7})};
+    test_seq(seqs);
     test_seq(std::vector<schedule>{regular_schedule(0, 1, 5),
                                    explicit_schedule({0.3, 2.3, 4.7})});
     test_seq(regular_schedule(0, 1, 5),
