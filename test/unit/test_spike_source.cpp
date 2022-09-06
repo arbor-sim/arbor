@@ -120,7 +120,7 @@ TEST(spike_source, multiple)
 {
     // This test assumes that seq will exhaust itself before t=10 ms.
     auto test_seq = [](auto&&... seqs) {
-        ss_recipe rec(1u, spike_source_cell("src", static_cast<decltype(seqs)&&>(seqs)...));
+        ss_recipe rec(1u, spike_source_cell("src", seqs...));
         cell_label_range srcs, tgts;
         spike_source_cell_group group({0}, rec, srcs, tgts);
 
@@ -132,7 +132,7 @@ TEST(spike_source, multiple)
         std::sort(expected.begin(), expected.end());
 
         auto actual = std::vector<time_type>{};
-        std::vector<schedule> schedules{seqs...};
+        std::vector<schedule> schedules{ seqs...};
         for (auto& schedule: schedules) {
             auto ts = as_vector(schedule.events(0, 10));
             actual.insert(actual.end(),
