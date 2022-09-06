@@ -12,35 +12,48 @@
 
 namespace arb {
 
-template<typename P>
-segment_tree fold(const segment_tree& tree,
-                  P predicate,
-                  std::pair<msize_t, msize_t> start,
-                  const segment_tree& acc={}) {
+struct node_t {
+    msize_t parent;
+    msize_t id;
+};
+
+using node_p = std::function<bool(const node_t&)>;
+
+node_p yes = [](const node_t&) { return true; };
+
+// Copy a segment tree into a new tree
+// - tree to be (partially) copied
+// - start={parent, id}: start by attaching segment=`id`` from `tree` to the
+//                       output at `parent`, then its children to it recursively
+// - predicate: copy subtree starting at node={parent, id}?
+// - init: initial tree to append to
+// Note: this is basically a recursive function w/ an explicit stack.
+segment_tree copy_if(const segment_tree& tree,
+                     const node_t& start,
+                     node_p predicate,
+                     const segment_tree& init={}) {
     // pre-fetch views
     const auto& parents = tree.parents();
     const auto& segments = tree.segments();
 
     // invert parent <*> child relation
-    std::map<msize_t, std::vector<msize_t>> children_of;
+    std::map<msize_t, std::vector<msize_t>> children_of; // NB. Map for predictable ordering
     for (auto ix = 0; ix < tree.size(); ++ix) {
         children_of[parents[ix]].push_back(ix);
     }
     for (auto& [k, v]: children_of) std::sort(v.begin(), v.end());
 
-    segment_tree result = acc;
-    auto todo = std::vector<std::pair<msize_t, msize_t>>{start};
+    segment_tree result = init;
+    auto todo = std::vector<node_t>{start};
     while (!todo.empty()) {
         auto node = todo.back();
         todo.pop_back();
-
         if (!predicate(node)) continue;
 
-        const auto& [parent, id] = node;
-        const auto& segment = segments[id];
-        auto current = result.append(parent, segment.prox, segment.dist, segment.tag);
+        const auto& segment = segments[node.id];
+        auto current = result.append(node.parent, segment.prox, segment.dist, segment.tag);
 
-        for (auto child: children_of[id]) {
+        for (auto child: children_of[node.id]) {
             todo.push_back({current, child});
         }
     }
@@ -51,23 +64,18 @@ std::pair<segment_tree, segment_tree>
 split_at(const segment_tree& tree, msize_t at) {
     if (at >= tree.size() || at == mnpos) throw invalid_segment_parent(at, tree.size());
     // span the sub-tree starting at the splitting node
-    segment_tree post = fold(tree,
-                             [](auto) { return true; },
-                             {mnpos, at});
+    segment_tree post = copy_if(tree, {mnpos, at}, yes);
     // copy the original tree, but skip all nodes in the `post` tree
-    segment_tree pre = fold(tree,
-                            [=](auto& node) { return node.second != at; },
-                            {mnpos, 0});
+    segment_tree pre = copy_if(tree,
+                               {mnpos, 0},
+                               [=](auto& node) { return node.id != at; });
     return {pre, post};
 }
 
 segment_tree
 join_at(const segment_tree& lhs, msize_t at, const segment_tree& rhs) {
     if (at >= lhs.size() && at != mnpos) throw invalid_segment_parent(at, lhs.size());
-    return fold(rhs,
-                [](auto) { return true; },
-                {at, 0},
-                lhs);
+    return copy_if(rhs, {at, 0}, yes, lhs);
 }
 
 bool
