@@ -25,7 +25,8 @@ node_p yes = [](const node_t&) { return true; };
 // - tree to be (partially) copied
 // - start={parent, id}: start by attaching segment=`id`` from `tree` to the
 //                       output at `parent`, then its children to it recursively
-// - predicate: copy subtree starting at node={parent, id}?
+// - predicate: if returning false for a given node, we prune that sub-tree starting
+//              at node (inclusive). Can be used to prune trees by parent or id.
 // - init: initial tree to append to
 // Note: this is basically a recursive function w/ an explicit stack.
 segment_tree copy_if(const segment_tree& tree,
