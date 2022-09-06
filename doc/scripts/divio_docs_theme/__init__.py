@@ -1,6 +1,6 @@
 from os import path
 
-__version__ = "0.0.22"
+__version__ = '0.0.22'
 __version_full__ = __version__
 
 
@@ -11,4 +11,7 @@ def get_html_theme_path():
 
 
 def setup(app):
-    app.add_html_theme("divio_docs_theme", path.abspath(path.dirname(__file__)))
+    app.add_html_theme(
+        'divio_docs_theme',
+        path.abspath(path.dirname(__file__))
+    )
