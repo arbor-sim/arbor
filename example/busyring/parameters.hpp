@@ -22,14 +22,14 @@ struct cell_parameters {
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
     // The number of synapses per cell.
-    unsigned synapses = 2000;
+    unsigned synapses = 100;
 };
 
 struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10000;
+    unsigned num_cells = 1000;
     unsigned ring_size = 10;
     double min_delay = 5;
     double duration = 50;

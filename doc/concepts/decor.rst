@@ -31,6 +31,14 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
 * setting properties defined over the whole cell;
 * descriptions of dynamics applied to regions and locsets.
 
+.. note::
+
+   All methods on decor objects (``paint``, ``place``, and ``set_default``)
+   return a reference to the objects so you can chain them together. This saves
+   some repetition. You can break long statements over multiple lines, but in
+   Python this requires use of continuation lines ``\`` or wrapping the whole
+   expression into parentheses.
+
 .. _cablecell-paint:
 
 Painted dynamics
@@ -62,6 +70,7 @@ The types of dynamics, and where they can be defined, are
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
    density mechanism,       ✓, --, --
+   scaled-mechanism (density),  ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -166,7 +175,28 @@ Take for example the built-in mechanism for passive leaky dynamics:
 
 .. _cablecell-ions:
 
-4. Ion species
+.. _cablecell-scaled-mechs:
+
+4. Scaled mechanisms
+~~~~~~~~~~~~~~~~~~~~~
+Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
+:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
+The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
+Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
+Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.
+Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>` can be scaled.
+
+
+.. code-block:: Python
+
+    # Create mechanism with custom conductance (range)
+    m = arbor.mechanism('pas', {'g': 0.1})
+
+    decor = arbor.decor()
+    # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
+    decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
+
+5. Ion species
 ~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
@@ -326,6 +356,28 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
 2. Threshold detectors (spike detectors).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Spike detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
+between cells. An example where we're interested in when a threshold of ``-10 mV`` is reached:
+
+.. code-block:: Python
+
+    # Placing a spike detector might look like this.
+    decor = arbor.decor()
+    decor.place('"root"', arbor.spike_detector(-10), "my_spike_detector")
+
+    # At this point, "my_spike_detector" could be connected to another cell,
+    # and it would transmit events upon the voltage crossing the threshold.
+
+    # Just printing those spike times goes as follows.
+    sim = arbor.simulation(...)
+    sim.record(arbor.spike_recording.all)
+    sim.run(...)
+    print("spikes:")
+    for sp in sim.spikes():
+        print(" ", sp)
+
+See also :term:`spike detector`.
+
 .. _cablecell-gj-mechs:
 
 3. Gap junction connection sites
@@ -394,6 +446,7 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 5. Probes
 ~~~~~~~~~
 
+See :ref:`probesample`.
 
 API
 ---

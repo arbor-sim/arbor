@@ -52,21 +52,18 @@ public:
         spikes_.clear();
     }
 
-    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids,
+    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
                      schedule sched, sampler_function fn, sampling_policy policy) override;
 
     void remove_sampler(sampler_association_handle h) override;
 
     void remove_all_samplers() override;
 
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const override;
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const override;
 
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
-
-    // Map from gid to integration domain id
-    //std::vector<fvm_index_type> cell_to_intdom_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;

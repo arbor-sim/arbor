@@ -401,7 +401,7 @@ public:
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
-    void assemble(const value_type& dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, fvm_value_type q) {
+    void assemble(const value_type& dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
         assemble_diffusion(d.data(),
                            rhs.data(),
                            invariant_d.data(),

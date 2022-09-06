@@ -15,25 +15,25 @@ namespace gpu {
 // CUDA implementation entry points:
 
 ARB_ARBOR_API void solve_matrix_flat(
-    fvm_value_type* rhs,
-    fvm_value_type* d,
-    const fvm_value_type* u,
-    const fvm_index_type* p,
-    const fvm_index_type* cell_cv_divs,
+    arb_value_type* rhs,
+    arb_value_type* d,
+    const arb_value_type* u,
+    const arb_index_type* p,
+    const arb_index_type* cell_cv_divs,
     int num_mtx);
 
 ARB_ARBOR_API void assemble_matrix_flat(
-    fvm_value_type* d,
-    fvm_value_type* rhs,
-    const fvm_value_type* invariant_d,
-    const fvm_value_type* voltage,
-    const fvm_value_type* current,
-    const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
-    const fvm_value_type* cv_area,
-    const fvm_index_type* cv_to_cell,
-    const fvm_value_type* dt_intdom,
-    const fvm_index_type* cell_to_intdom,
+    arb_value_type* d,
+    arb_value_type* rhs,
+    const arb_value_type* invariant_d,
+    const arb_value_type* voltage,
+    const arb_value_type* current,
+    const arb_value_type* conductivity,
+    const arb_value_type* cv_capacitance,
+    const arb_value_type* cv_area,
+    const arb_index_type* cv_to_cell,
+    const arb_value_type* dt_intdom,
+    const arb_index_type* cell_to_intdom,
     unsigned n);
 
 /// matrix state

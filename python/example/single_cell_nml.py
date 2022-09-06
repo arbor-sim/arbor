@@ -27,53 +27,46 @@ morpho_segments = morpho_data.segments()
 morpho_named = morpho_data.named_segments()
 morpho_groups = morpho_data.groups()
 
-# Create new label dict add to it all the NeuroML dictionaries.
-labels = arbor.label_dict()
+# Create new label dict with some locsets.
+labels = arbor.label_dict(
+    {
+        "stim_site": "(location 1 0.5)",  # site for the stimulus, in the middle of branch 1.
+        "axon_end": '(restrict (terminal) (region "axon"))',  # end of the axon.
+        "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
+    }
+)
+# Add to it all the NeuroML dictionaries.
 labels.append(morpho_segments)
 labels.append(morpho_named)
 labels.append(morpho_groups)
-
-# Add locsets to the label dictionary.
-labels[
-    "stim_site"
-] = "(location 1 0.5)"  # site for the stimulus, in the middle of branch 1.
-labels["axon_end"] = '(restrict (terminal) (region "axon"))'  # end of the axon.
-labels[
-    "root"
-] = "(root)"  # the start of the soma in this morphology is at the root of the cell.
 
 # Optional: print out the regions and locsets available in the label dictionary.
 print("Label dictionary regions: ", labels.regions, "\n")
 print("Label dictionary locsets: ", labels.locsets, "\n")
 
-decor = arbor.decor()
-
-# Set initial membrane potential to -55 mV
-decor.set_property(Vm=-55)
-# Use Nernst to calculate reversal potential for calcium.
-decor.set_ion("ca", method=mech("nernst/x=ca"))
-# decor.set_ion('ca', method='nernst/x=ca')
-# hh mechanism on the soma and axon.
-decor.paint('"soma"', arbor.density("hh"))
-decor.paint('"axon"', arbor.density("hh"))
-# pas mechanism the dendrites.
-decor.paint('"dend"', arbor.density("pas"))
-# Increase resistivity on dendrites.
-decor.paint('"dend"', rL=500)
-# Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-decor.place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
-decor.place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
-decor.place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
-decor.place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
-# Detect spikes at the soma with a voltage threshold of -10 mV.
-decor.place('"axon_end"', arbor.spike_detector(-10), "detector")
-
-# Create the policy used to discretise the cell into CVs.
-# Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
-soma_policy = arbor.cv_policy_single('"soma"')
-dflt_policy = arbor.cv_policy_max_extent(1.0)
-policy = dflt_policy | soma_policy
-decor.discretization(policy)
+decor = (
+    arbor.decor()
+    # Set initial membrane potential to -55 mV
+    .set_property(Vm=-55)
+    # Use Nernst to calculate reversal potential for calcium.
+    .set_ion("ca", method=mech("nernst/x=ca"))
+    # hh mechanism on the soma and axon.
+    .paint('"soma"', arbor.density("hh"))
+    .paint('"axon"', arbor.density("hh"))
+    # pas mechanism the dendrites.
+    .paint('"dend"', arbor.density("pas"))
+    # Increase resistivity on dendrites.
+    .paint('"dend"', rL=500)
+    # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
+    .place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
+    .place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
+    .place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
+    .place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
+    # Detect spikes at the soma with a voltage threshold of -10 mV.
+    .place('"axon_end"', arbor.spike_detector(-10), "detector")
+    # Set discretisation: Soma as one CV, 1um everywhere else
+    .discretization('(replace (single (region "soma")) (max-extent 1.0))')
+)
 
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = arbor.cable_cell(morpho, labels, decor)

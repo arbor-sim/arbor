@@ -120,12 +120,11 @@ struct cable_recipe: public arb::recipe {
         arb::segment_tree tree;
         tree.append(arb::mnpos, {0, 0, 0, 0.5*diam}, {length, 0, 0, 0.5*diam}, 1);
 
-        arb::decor decor;
-        decor.paint(arb::reg::all(), arb::density("hh")); // HH mechanism over whole cell.
-        decor.place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp"); // Inject a 1 nA current indefinitely.
-        decor.place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1"); // a synapse
-        decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
-
+        auto decor = arb::decor{}
+            .paint(arb::reg::all(), arb::density("hh"))                         // HH mechanism over whole cell.
+            .place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp")           // Inject a 1 nA current indefinitely.
+            .place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1")   // a synapse
+            .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
         return arb::cable_cell(tree, {}, decor);
     }
 

@@ -17,7 +17,7 @@ namespace kernel {
 template <typename T>
 __global__ void add_scalar(unsigned n,
                            T* __restrict__ const x,
-                           fvm_value_type v) {
+                           arb_value_type v) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         x[i] += v;
@@ -26,9 +26,9 @@ __global__ void add_scalar(unsigned n,
 
 __global__ void take_samples_impl(
     event_stream_state<raw_probe_info> s,
-    const fvm_value_type time,
-    fvm_value_type* __restrict__ const sample_time,
-    fvm_value_type* __restrict__ const sample_value)
+    const arb_value_type time,
+    arb_value_type* __restrict__ const sample_time,
+    arb_value_type* __restrict__ const sample_value)
 {
     const unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     const auto begin = s.begin_marked;
@@ -45,7 +45,7 @@ __global__ void take_samples_impl(
 
 using impl::block_count;
 
-void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v) {
+void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v) {
     if (!n) return;
 
     constexpr int block_dim = 128;
@@ -55,7 +55,7 @@ void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v) {
 
 void take_samples_impl(
     const event_stream_state<raw_probe_info>& s,
-    const fvm_value_type& time, fvm_value_type* sample_time, fvm_value_type* sample_value)
+    const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value)
 {
     constexpr int block_dim = 128;
     const int nsamples = s.end_marked - s.begin_marked;

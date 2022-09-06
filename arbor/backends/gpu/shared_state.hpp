@@ -30,7 +30,7 @@ namespace gpu {
  *     Xo_     cao              external calcium concentration
  */
 struct ARB_ARBOR_API ion_state {
-    using solver_type = arb::gpu::diffusion_state<fvm_value_type, fvm_index_type>;
+    using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     bool write_eX_;          // is eX written?
@@ -100,7 +100,7 @@ struct ARB_ARBOR_API istim_state {
     void reset();
 
     // Contribute to current density:
-    void add_current(const fvm_value_type& time, array& current_density);
+    void add_current(const arb_value_type& time, array& current_density);
 
     // Number of stimuli:
     std::size_t size() const;
@@ -125,19 +125,19 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
-    using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
+    using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
 
-    fvm_size_type n_intdom = 0;   // Number of distinct integration domains.
-    fvm_size_type n_detector = 0; // Max number of detectors on all cells.
-    fvm_size_type n_cv = 0;       // Total number of CVs.
+    arb_size_type n_intdom = 0;   // Number of distinct integration domains.
+    arb_size_type n_detector = 0; // Max number of detectors on all cells.
+    arb_size_type n_cv = 0;       // Total number of CVs.
 
     iarray cv_to_cell;       // Maps CV index to cell index.
-    fvm_value_type time;     // integration start time [ms].
-    fvm_value_type time_to;  // integration end time [ms]
-    fvm_value_type dt;       // dt [ms].
+    arb_value_type time;     // integration start time [ms].
+    arb_value_type time_to;  // integration end time [ms]
+    arb_value_type dt;       // dt [ms].
     array voltage;           // Maps CV index to membrane voltage [mV].
     array current_density;   // Maps CV index to current density [A/m²].
     array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
@@ -157,14 +157,14 @@ struct ARB_ARBOR_API shared_state {
     shared_state() = default;
 
     shared_state(
-        fvm_size_type n_cell,
-        fvm_size_type n_cv,
-        fvm_size_type n_detector,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
-        const std::vector<fvm_value_type>& init_membrane_potential,
-        const std::vector<fvm_value_type>& temperature_K,
-        const std::vector<fvm_value_type>& diam,
-        const std::vector<fvm_index_type>& src_to_spike,
+        arb_size_type n_cell,
+        arb_size_type n_cv,
+        arb_size_type n_detector,
+        const std::vector<arb_index_type>& cv_to_cell_vec,
+        const std::vector<arb_value_type>& init_membrane_potential,
+        const std::vector<arb_value_type>& temperature_K,
+        const std::vector<arb_value_type>& diam,
+        const std::vector<arb_index_type>& src_to_spike,
         unsigned // align parameter ignored
     );
 
@@ -189,7 +189,7 @@ struct ARB_ARBOR_API shared_state {
     void ions_init_concentration();
 
     // Set time_to to earliest of time+dt_step and tmax and set dt
-    void update_time_to(fvm_value_type dt_step, fvm_value_type tmax);
+    void update_time_to(arb_value_type dt_step, arb_value_type tmax);
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
@@ -198,13 +198,9 @@ struct ARB_ARBOR_API shared_state {
     void integrate_voltage();
     void integrate_diffusion();
 
-    // Return minimum and maximum time value [ms] across cells.
-    //   TODO: I comment this out, because I suspect it isn't needed...
-    //std::pair<fvm_value_type, fvm_value_type> time_bounds() const;
-
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)
-    std::pair<fvm_value_type, fvm_value_type> voltage_bounds() const;
+    std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
     void take_samples(

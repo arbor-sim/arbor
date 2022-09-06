@@ -70,15 +70,15 @@ struct level_metadata {
 
 // C wrappers around kernels
 ARB_ARBOR_API void gather(
-    const fvm_value_type* from,
-    fvm_value_type* to,
-    const fvm_index_type* p,
+    const arb_value_type* from,
+    arb_value_type* to,
+    const arb_index_type* p,
     unsigned n);
 
 ARB_ARBOR_API void scatter(
-    const fvm_value_type* from,
-    fvm_value_type* to,
-    const fvm_index_type* p,
+    const arb_value_type* from,
+    arb_value_type* to,
+    const arb_index_type* p,
     unsigned n);
 
 } // gpu

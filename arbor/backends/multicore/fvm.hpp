@@ -24,9 +24,9 @@ struct backend {
     static bool is_supported() { return true; }
     static std::string name() { return "cpu"; }
 
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-    using size_type  = fvm_size_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
+    using size_type  = arb_size_type;
 
     using array  = arb::multicore::array;
     using iarray = arb::multicore::iarray;
@@ -63,7 +63,7 @@ struct backend {
             context);
     }
 
-    static fvm_value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
+    static value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
 };
 
 } // namespace multicore

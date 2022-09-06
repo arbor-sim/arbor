@@ -18,8 +18,8 @@ bench,Google-benchmark,,submodule ``ext/google-benchmark``,
 --,random123,,source copy ``ext/random123``,
 --,fmt,,submodule ``ext/fmt``,
 --,tinyopt,,source copy ``ext/tinyopt``,
-ARB_WITH_PYTHON,pybind11,,submodule ``python/pybind11``,
-ARB_WITH_PYTHON,Python,3.6,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29.
+ARB_WITH_PYTHON,pybind11,,submodule ``ext/pybind11``,
+ARB_WITH_PYTHON,Python,3.7,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29.
 * it is available as a cray-python version on Piz Daint
 * it is available on labs.ebrains.eu
 

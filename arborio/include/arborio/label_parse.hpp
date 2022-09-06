@@ -7,6 +7,7 @@
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/util/expected.hpp>
+#include <arbor/iexpr.hpp>
 
 #include <arbor/s_expr.hpp>
 #include <arborio/export.hpp>
@@ -26,6 +27,7 @@ ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const arb
 
 ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const std::string& s);
 ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s);
+ARB_ARBORIO_API parse_label_hopefully<arb::iexpr> parse_iexpr_expression(const std::string& s);
 
 namespace literals {
 

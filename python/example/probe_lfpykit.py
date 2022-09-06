@@ -25,9 +25,9 @@ class Recipe(arbor.recipe):
 
         self.the_cell = cell
 
-        self.vprobe_id = (0, 0)
-        self.iprobe_id = (0, 1)
-        self.cprobe_id = (0, 2)
+        self.vprobeset_id = (0, 0)
+        self.iprobeset_id = (0, 1)
+        self.cprobeset_id = (0, 2)
 
         self.the_props = arbor.neuron_cable_properties()
 
@@ -77,21 +77,19 @@ def make_cable_cell(morphology, clamp_location):
     labels = arbor.label_dict()
 
     # decor
-    decor = arbor.decor()
-
-    # set initial voltage, temperature, axial resistivity, membrane capacitance
-    decor.set_property(
-        Vm=-65,  # Initial membrane voltage (mV)
-        tempK=300,  # Temperature (Kelvin)
-        rL=10000,  # Axial resistivity (Ω cm)
-        cm=0.01,  # Membrane capacitance (F/m**2)
+    decor = (
+        arbor.decor()
+        # set initial voltage, temperature, axial resistivity, membrane capacitance
+        .set_property(
+            Vm=-65,  # Initial membrane voltage (mV)
+            tempK=300,  # Temperature (Kelvin)
+            rL=10000,  # Axial resistivity (Ω cm)
+            cm=0.01,  # Membrane capacitance (F/m**2)
+        )
+        # set passive mechanism all over
+        # passive mech w. leak reversal potential (mV)
+        .paint("(all)", arbor.density("pas/e=-65", {"g": 0.0001}))
     )
-
-    # set passive mechanism all over
-    # passive mech w. leak reversal potential (mV)
-    pas = arbor.mechanism("pas/e=-65")
-    pas.set("g", 0.0001)  # leak conductivity (S/cm2)
-    decor.paint("(all)", arbor.density(pas))
 
     # set number of CVs per branch
     policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
@@ -127,9 +125,9 @@ sim = arbor.simulation(recipe)
 
 # set up sampling on probes with sampling every 1 ms
 schedule = arbor.regular_schedule(1.0)
-v_handle = sim.sample(recipe.vprobe_id, schedule, arbor.sampling_policy.exact)
-i_handle = sim.sample(recipe.iprobe_id, schedule, arbor.sampling_policy.exact)
-c_handle = sim.sample(recipe.cprobe_id, schedule, arbor.sampling_policy.exact)
+v_handle = sim.sample(recipe.vprobeset_id, schedule, arbor.sampling_policy.exact)
+i_handle = sim.sample(recipe.iprobeset_id, schedule, arbor.sampling_policy.exact)
+c_handle = sim.sample(recipe.cprobeset_id, schedule, arbor.sampling_policy.exact)
 
 # run simulation for 500 ms of simulated activity and collect results.
 sim.run(tfinal=500)

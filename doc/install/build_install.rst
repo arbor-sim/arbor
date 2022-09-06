@@ -135,7 +135,7 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
+Arbor has a Python frontend, for which a minimum of Python 3.7 is required.
 In addition, `numpy` is a runtime requirement for the Python package.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
@@ -150,12 +150,19 @@ an additional support library ``arborio``. This library requires
 with NeuroML support enabled.
 See :ref:`install-neuroml` for more information.
 
+Boost
+~~~~~
+
+When ``ARB_BACKTRACE`` is set to ``ON`` during configure we use
+``Boost::stacktrace`` to print stacktraces upon failed assertions and attach
+them to the base exception types ``arbor_exception`` and
+``arbor_internal_error`` as ``where``.
 
 Documentation
 ~~~~~~~~~~~~~~
 
 To build a local copy of the html documentation that you are reading now, you will need to
-install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 

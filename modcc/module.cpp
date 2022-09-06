@@ -119,7 +119,7 @@ std::string Module::error_string() const {
     std::string str;
     for (const error_entry& entry: errors()) {
         if (!str.empty()) str += '\n';
-        str += red("error   ");
+        str += red("  * ");
         str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
@@ -130,7 +130,7 @@ std::string Module::warning_string() const {
     std::string str;
     for (auto& entry: warnings()) {
         if (!str.empty()) str += '\n';
-        str += purple("warning   ");
+        str += purple("  * ");
         str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
@@ -727,17 +727,24 @@ void Module::add_variables_to_symbols() {
     }
 
     std::set<std::string> cond;
-    for(auto const& ion : neuron_block_.ions) {
-        for(auto const& var : ion.read) {
-            update_ion_symbols(var, accessKind::read, ion.name);
-        }
-        for(auto const& var : ion.write) {
+    for(auto const& ion: neuron_block_.ions) {
+        for(auto const& var: ion.write) {
             update_ion_symbols(var, accessKind::write, ion.name);
             auto name = "conductivity_" + ion.name + "_";
             if (cond.find(name) == cond.end()) {
                 create_indexed_variable(name, sourceKind::ion_conductivity, accessKind::write, ion.name, var.location);
                 cond.insert(name);
             }
+        }
+
+        for(auto const& var: ion.read) {
+            // Skip vars we have already processed as WRITE, since those can be read as well.
+            if (std::count_if(ion.write.begin(),
+                              ion.write.end(),
+                              [&var](const auto& it) { return var.spelling == it.spelling; })) {
+                continue;
+            }
+            update_ion_symbols(var, accessKind::read, ion.name);
         }
 
         if(ion.uses_valence()) {

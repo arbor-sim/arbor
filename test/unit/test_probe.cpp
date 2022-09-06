@@ -99,9 +99,9 @@ static morphology make_stick_morphology() {
 }
 
 template <typename Backend>
-void run_v_i_probe_test(const context& ctx) {
+void run_v_i_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
-    auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
+    auto deref = [](const arb_value_type* p) { return backend_access<Backend>::deref(p); };
 
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
@@ -174,7 +174,7 @@ void run_v_i_probe_test(const context& ctx) {
     // the voltage probes (cell membrane potential should be constant), and
     // zero for the current probe (including stimulus component).
 
-    fvm_value_type resting = voltage[0];
+    arb_value_type resting = voltage[0];
     EXPECT_NE(0.0, resting);
 
     EXPECT_EQ(resting, deref(p0a));
@@ -198,7 +198,7 @@ void run_v_i_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_v_cell_probe_test(const context& ctx) {
+void run_v_cell_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
 
     // Take the per-cable voltage over a Y-shaped cell with and without
@@ -258,9 +258,9 @@ void run_v_cell_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_expsyn_g_probe_test(const context& ctx) {
+void run_expsyn_g_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
-    auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
+    auto deref = [](const arb_value_type* p) { return backend_access<Backend>::deref(p); };
 
     const double tau = 2.0;
     EXPECT_EQ(tau, global_default_catalogue()["expsyn"].parameters.at("tau").default_value);
@@ -323,8 +323,8 @@ void run_expsyn_g_probe_test(const context& ctx) {
         const double dt = 0.001;
         lcell.integrate(tfinal, dt, evs, {});
 
-        fvm_value_type g0 = deref(p0);
-        fvm_value_type g1 = deref(p1);
+        arb_value_type g0 = deref(p0);
+        arb_value_type g1 = deref(p1);
 
         // Expected value: weight*exp(-(t_final-t_event)/tau).
         double expected_g0 = 0.5*std::exp(-(tfinal-1.0)/tau);
@@ -355,7 +355,7 @@ void run_expsyn_g_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_expsyn_g_cell_probe_test(const context& ctx) {
+void run_expsyn_g_cell_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
     auto deref = [](const auto* p) { return backend_access<Backend>::deref(p); };
 
@@ -437,7 +437,7 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
             std::vector<double> expected_uncoalesced_value(targets.size());
 
             std::vector<double> target_cv(targets.size(), (unsigned)-1);
-            std::unordered_map<fvm_size_type, unsigned> cv_expsyn_count;
+            std::unordered_map<arb_size_type, unsigned> cv_expsyn_count;
 
             for (unsigned j = 0; j<n_expsyn; ++j) {
                 ASSERT_EQ(1u, expsyn_target_loc_map.count(m[j].target));
@@ -485,9 +485,9 @@ void run_expsyn_g_cell_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_ion_density_probe_test(const context& ctx) {
+void run_ion_density_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
-    auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
+    auto deref = [](const arb_value_type* p) { return backend_access<Backend>::deref(p); };
 
     // Use test mechanism write_Xi_Xo to check ion concentration probes and
     // density mechanism state probes.
@@ -658,9 +658,9 @@ void run_ion_density_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_partial_density_probe_test(const context& ctx) {
+void run_partial_density_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
-    auto deref = [](const fvm_value_type* p) { return backend_access<Backend>::deref(p); };
+    auto deref = [](const arb_value_type* p) { return backend_access<Backend>::deref(p); };
 
     // Use test mechanism param_as_state to query averaged state values in CVs with
     // partial coverage by the mechanism.
@@ -757,12 +757,12 @@ void run_partial_density_probe_test(const context& ctx) {
     cell_lid_type probe_lid = 0;
     for (auto tp: test_probes) {
         for (cell_gid_type gid: {0, 1}) {
-            cell_member_type probe_id{gid, probe_lid};
+            cell_member_type probeset_id{gid, probe_lid};
             if (std::isnan(tp.expected[gid])) {
-                EXPECT_EQ(0u, probe_map.data.count(probe_id));
+                EXPECT_EQ(0u, probe_map.data.count(probeset_id));
             }
             else {
-                probe_handle h = get_probe_raw_handle(probe_id);
+                probe_handle h = get_probe_raw_handle(probeset_id);
                 EXPECT_DOUBLE_EQ(tp.expected[gid], deref(h));
             }
         }
@@ -771,7 +771,7 @@ void run_partial_density_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_axial_and_ion_current_sampled_probe_test(const context& ctx) {
+void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     // On a passive cable in steady-state, the capacitive membrane current will be zero,
     // and the axial currents should balance the stimulus and ionic membrane currents in any CV.
     //
@@ -939,7 +939,7 @@ auto run_simple_sampler(
 }
 
 template <typename Backend>
-void run_multi_probe_test(const context& ctx) {
+void run_multi_probe_test(context ctx) {
     // Construct and run thorugh simple sampler a probe defined over
     // cell terminal points; check metadata and values.
 
@@ -973,7 +973,7 @@ void run_multi_probe_test(const context& ctx) {
 }
 
 template <typename Backend>
-void run_v_sampled_probe_test(const context& ctx) {
+void run_v_sampled_probe_test(context ctx) {
     soma_cell_builder builder(12.6157/2.0);
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
@@ -1017,7 +1017,7 @@ void run_v_sampled_probe_test(const context& ctx) {
 
 
 template <typename Backend>
-void run_total_current_probe_test(const context& ctx) {
+void run_total_current_probe_test(context ctx) {
     // Model two passive Y-shaped cells with a similar but not identical
     // time constant τ.
     //
@@ -1149,7 +1149,7 @@ void run_total_current_probe_test(const context& ctx) {
 
 
 template <typename Backend>
-void run_stimulus_probe_test(const context& ctx) {
+void run_stimulus_probe_test(context ctx) {
     // Model two simple stick cable cells, 3 CVs each, and stimuli on cell 0, cv 1
     // and cell 1, cv 2. Run both cells in the same cell group.
 
@@ -1195,7 +1195,7 @@ void run_stimulus_probe_test(const context& ctx) {
 
 /*
 template <typename Backend>
-void run_exact_sampling_probe_test(const context& ctx) {
+void run_exact_sampling_probe_test(context ctx) {
     // As the exact sampling implementation interacts with the event delivery
     // implementation within in cable cell groups, construct a somewhat
     // elaborate model with 4 cells and a gap junction between cell 1 and 3.
@@ -1252,8 +1252,7 @@ void run_exact_sampling_probe_test(const context& ctx) {
 
         std::vector<event_generator> event_generators(cell_gid_type gid) const override {
             // Send a single event to cell i at 0.1*i milliseconds.
-            explicit_generator::lse_vector spikes = {{{"syn"}, 0.1*gid, 1.f}};
-            return {explicit_generator(spikes)};
+            return {explicit_generator({"syn"}, 1.0f, std::vector<float>{0.1f*gid})};
         }
 
         std::any get_global_properties(cell_kind k) const override {

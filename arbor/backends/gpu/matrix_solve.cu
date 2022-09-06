@@ -87,33 +87,33 @@ void solve_matrix_interleaved(
 } // namespace kernels
 
 ARB_ARBOR_API void solve_matrix_flat(
-    fvm_value_type* rhs,
-    fvm_value_type* d,
-    const fvm_value_type* u,
-    const fvm_index_type* p,
-    const fvm_index_type* cell_cv_divs,
+    arb_value_type* rhs,
+    arb_value_type* d,
+    const arb_value_type* u,
+    const arb_index_type* p,
+    const arb_index_type* cell_cv_divs,
     int num_mtx)
 {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
     kernels::solve_matrix_flat
-        <fvm_value_type, fvm_index_type>
+        <arb_value_type, arb_index_type>
         <<<grid_dim, block_dim>>>
         (rhs, d, u, p, cell_cv_divs, num_mtx);
 }
 
 void solve_matrix_interleaved(
-    fvm_value_type* rhs,
-    fvm_value_type* d,
-    const fvm_value_type* u,
-    const fvm_index_type* p,
-    const fvm_index_type* sizes,
+    arb_value_type* rhs,
+    arb_value_type* d,
+    const arb_value_type* u,
+    const arb_index_type* p,
+    const arb_index_type* sizes,
     int padded_size,
     int num_mtx)
 {
     constexpr unsigned block_dim = impl::matrices_per_block();
     const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
-    kernels::solve_matrix_interleaved<fvm_value_type, fvm_index_type, block_dim>
+    kernels::solve_matrix_interleaved<arb_value_type, arb_index_type, block_dim>
         <<<grid_dim, block_dim>>>
         (rhs, d, u, p, sizes, padded_size, num_mtx);
 }

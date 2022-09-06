@@ -28,11 +28,13 @@ class simulation_state;
 class ARB_ARBOR_API simulation {
 public:
 
-    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp);
+    simulation(const recipe& rec, context ctx, const domain_decomposition& decomp);
 
     simulation(const recipe& rec,
-               const context& ctx=make_context(),
-               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
+               context ctx=make_context(),
+               std::function<domain_decomposition(const recipe&, context)> balancer=[](auto& r, auto c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
+
+    void update(const connectivity& rec);
 
     void reset();
 
@@ -41,7 +43,7 @@ public:
     // Note: sampler functions may be invoked from a different thread than that
     // which called the `run` method.
 
-    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
+    sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
         schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
 
     void remove_sampler(sampler_association_handle);
@@ -50,7 +52,7 @@ public:
 
     // Return probe metadata, one entry per probe associated with supplied probe id,
     // or an empty vector if no local match for probe id.
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const;
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const;
 
     std::size_t num_spikes() const;
 

@@ -30,13 +30,13 @@ namespace gpu {
 
 void take_samples_impl(
     const event_stream_state<raw_probe_info>& s,
-    const fvm_value_type& time, fvm_value_type* sample_time, fvm_value_type* sample_value);
+    const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value);
 
-void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v);
+void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
 // GPU-side minmax: consider CUDA kernel replacement.
-std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, const fvm_value_type* v) {
-    auto v_copy = memory::on_host(memory::const_device_view<fvm_value_type>(v, n));
+std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
+    auto v_copy = memory::on_host(memory::const_device_view<arb_value_type>(v, n));
     return util::minmax_value(v_copy);
 }
 
@@ -94,12 +94,12 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     using util::assign;
 
     // Translate instance-to-CV index from stim to istim_state index vectors.
-    std::vector<fvm_index_type> accu_index_stage;
+    std::vector<arb_index_type> accu_index_stage;
     assign(accu_index_stage, util::index_into(stim.cv, stim.cv_unique));
 
     std::size_t n = accu_index_stage.size();
-    std::vector<fvm_value_type> envl_a, envl_t;
-    std::vector<fvm_index_type> edivs;
+    std::vector<arb_value_type> envl_a, envl_t;
+    std::vector<arb_index_type> edivs;
 
     frequency_ = make_const_view(stim.frequency);
     phase_ = make_const_view(stim.phase);
@@ -117,7 +117,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
 
         util::append(envl_a, stim.envelope_amplitude[i]);
         util::append(envl_t, stim.envelope_time[i]);
-        edivs.push_back(fvm_index_type(envl_t.size()));
+        edivs.push_back(arb_index_type(envl_t.size()));
     }
 
     accu_index_ = make_const_view(accu_index_stage);
@@ -142,7 +142,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     ppack_.envl_index = envl_index_.data();
 
     // The following ppack fields must be set in add_current() before queuing kernel.
-    ppack_.time = std::numeric_limits<fvm_value_type>::quiet_NaN();
+    ppack_.time = std::numeric_limits<arb_value_type>::quiet_NaN();
     ppack_.current_density = nullptr;
 }
 
@@ -159,7 +159,7 @@ void istim_state::reset() {
     memory::copy(envl_divs_, envl_index_);
 }
 
-void istim_state::add_current(const fvm_value_type& time, array& current_density) {
+void istim_state::add_current(const arb_value_type& time, array& current_density) {
     ppack_.time = time;
     ppack_.current_density = current_density.data();
     istim_add_current_impl((int)size(), ppack_);
@@ -168,14 +168,14 @@ void istim_state::add_current(const fvm_value_type& time, array& current_density
 // Shared state methods:
 
 shared_state::shared_state(
-        fvm_size_type n_cell,
-        fvm_size_type n_cv,
-        fvm_size_type n_detector,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
-        const std::vector<fvm_value_type>& init_membrane_potential,
-        const std::vector<fvm_value_type>& temperature_K,
-        const std::vector<fvm_value_type>& diam,
-        const std::vector<fvm_index_type>& src_to_spike,
+        arb_size_type n_cell,
+        arb_size_type n_cv,
+        arb_size_type n_detector,
+        const std::vector<arb_index_type>& cv_to_cell_vec,
+        const std::vector<arb_value_type>& init_membrane_potential,
+        const std::vector<arb_value_type>& temperature_K,
+        const std::vector<arb_value_type>& diam,
+        const std::vector<arb_index_type>& src_to_spike,
         unsigned // align parameter ignored
     ):
     n_detector(n_detector),
@@ -448,7 +448,7 @@ void shared_state::ions_init_concentration() {
     }
 }
 
-void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
+void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     auto tnext = std::min(time+dt_step, tmax);
     // round up target time if it is very close to tmax
     time_to = tnext+(1e-8*dt_step) >= tmax ? tmax: tnext;
@@ -459,7 +459,7 @@ void shared_state::add_stimulus_current() {
     stim_data.add_current(time, current_density);
 }
 
-std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
+std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 

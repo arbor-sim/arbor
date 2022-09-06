@@ -20,9 +20,9 @@ void run_celsius_test() {
 
     // one cell, three CVs:
 
-    fvm_size_type ncell = 1;
-    fvm_size_type ncv = 3;
-    std::vector<fvm_index_type> cv_to_cell(ncv, 0);
+    arb_size_type ncell = 1;
+    arb_size_type ncv = 3;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "celsius_test");
     auto& celsius_test = instance.mech;
@@ -30,10 +30,10 @@ void run_celsius_test() {
     double temperature_K = 300.;
     double temperature_C = temperature_K-273.15;
 
-    std::vector<fvm_value_type> temp(ncv, temperature_K);
-    std::vector<fvm_value_type> diam(ncv, 1.);
-    std::vector<fvm_value_type> vinit(ncv, -65);
-    std::vector<fvm_index_type> src_to_spike = {};
+    std::vector<arb_value_type> temp(ncv, temperature_K);
+    std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb_index_type> src_to_spike = {};
 
     auto shared_state = std::make_unique<typename backend::shared_state>(
         ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
@@ -42,7 +42,7 @@ void run_celsius_test() {
     mechanism_overrides overrides;
 
     layout.weight.assign(ncv, 1.);
-    for (fvm_size_type i = 0; i<ncv; ++i) {
+    for (arb_size_type i = 0; i<ncv; ++i) {
         layout.cv.push_back(i);
     }
 
@@ -52,7 +52,7 @@ void run_celsius_test() {
     // expect 0 value in state 'c' after init:
 
     celsius_test->initialize();
-    std::vector<fvm_value_type> expected_c_values(ncv, 0.);
+    std::vector<arb_value_type> expected_c_values(ncv, 0.);
 
     EXPECT_EQ(expected_c_values, mechanism_field(celsius_test.get(), "c"));
 
@@ -70,24 +70,24 @@ void run_diam_test() {
 
     // one cell, three CVs:
 
-    fvm_size_type ncell = 1;
-    fvm_size_type ncv = 3;
-    std::vector<fvm_index_type> cv_to_cell(ncv, 0);
+    arb_size_type ncell = 1;
+    arb_size_type ncv = 3;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "diam_test");
     auto& celsius_test = instance.mech;
 
-    std::vector<fvm_value_type> temp(ncv, 300.);
-    std::vector<fvm_value_type> vinit(ncv, -65);
-    std::vector<fvm_value_type> diam(ncv);
-    std::vector<fvm_index_type> src_to_spike = {};
+    std::vector<arb_value_type> temp(ncv, 300.);
+    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb_value_type> diam(ncv);
+    std::vector<arb_index_type> src_to_spike = {};
 
     mechanism_layout layout;
     mechanism_overrides overrides;
 
     layout.weight.assign(ncv, 1.);
 
-    for (fvm_size_type i = 0; i < ncv; ++i) {
+    for (arb_size_type i = 0; i < ncv; ++i) {
         diam[i] = i*2 + 0.1;
         layout.cv.push_back(i);
     }
@@ -102,7 +102,7 @@ void run_diam_test() {
     // expect 0 value in state 'd' after init:
 
     celsius_test->initialize();
-    std::vector<fvm_value_type> expected_d_values(ncv, 0.);
+    std::vector<arb_value_type> expected_d_values(ncv, 0.);
 
     EXPECT_EQ(expected_d_values, mechanism_field(celsius_test.get(), "d"));
 

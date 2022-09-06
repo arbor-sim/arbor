@@ -23,8 +23,8 @@ namespace multicore {
 template <typename Event>
 class event_stream {
 public:
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
     using event_type = Event;
 
     using event_time_type = ::arb::event_time_type<Event>;
@@ -60,7 +60,7 @@ public:
 
     // Designate for processing events `ev` at head of the event stream
     // until `event_time(ev)` > `t_until`.
-    void mark_until_after(const fvm_value_type& t_until) {
+    void mark_until_after(const arb_value_type& t_until) {
         using ::arb::event_time;
 
         const index_type end = ev_time_.size();
@@ -71,7 +71,7 @@ public:
 
     // Designate for processing events `ev` at head the stream
     // while `t_until` > `event_time(ev)`.
-    void mark_until(const arb::fvm_value_type& t_until) {
+    void mark_until(const arb::arb_value_type& t_until) {
         using ::arb::event_time;
 
         const index_type end = ev_time_.size();

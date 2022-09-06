@@ -108,7 +108,7 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            return {arb::explicit_generator({{{"p_syn"}, 1.0, event_weight_}})};
+            return {arb::explicit_generator({"p_syn"}, event_weight_, std::vector<float>{1.0f})};
         } else {
             return {};
         }
@@ -209,8 +209,8 @@ int main(int argc, char** argv) {
 
         // Create an instance of the recipe.
         ring_recipe recipe(params);
-        cell_stats stats(recipe);
-        if (root) std::cout << stats << "\n";
+        //cell_stats stats(recipe);
+        //if (root) std::cout << stats << "\n";
 
         auto decomp = arb::partition_load_balance(recipe, context);
 
@@ -247,6 +247,7 @@ int main(int argc, char** argv) {
         }
 
         // Run the simulation.
+        if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
         if (root) std::cout << "running simulation\n" << std::endl;
         sim.set_binning_policy(arb::binning_kind::regular, params.dt);
         sim.run(params.duration, params.dt);

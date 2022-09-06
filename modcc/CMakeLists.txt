@@ -41,7 +41,6 @@ if (ARB_USE_BUNDLED_FMT)
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/fmt/include>)
 
     target_compile_definitions(libmodcc PRIVATE FMT_HEADER_ONLY)
-
 else()
     target_include_directories(libmodcc
         PUBLIC

@@ -18,10 +18,26 @@ Recipe
     Describe a model by describing the cells and network, without any information about how the model is to be represented or executed.
 
     All recipes derive from this abstract base class.
-
+    
     Recipes provide a cell-centric interface for describing a model.
     This means that model properties, such as connections, are queried using the global identifier ``gid`` of a cell.
     In the description below, the term ``gid`` is used as shorthand for the cell with global identifier.
+
+    **Required Constructor**
+
+    The constructor must be implemented and call the base class constructor, as at the moment there is no way
+    to instruct Python to do that automatically.
+    
+    .. note:: 
+        Arbor's Python binding is that: a thin wrappper around the Arbor library which is written in C++.
+        Calling the base class constructor ensures correct initialization of memory in the underlying C++ class.
+    
+    A minimal constructor therefore looks like this:
+
+    .. code-block:: python
+
+        def __init__(self):
+            arbor.recipe.__init__(self)
 
     **Required Member Functions**
 
@@ -72,10 +88,10 @@ Recipe
 
     .. function:: probes(gid)
 
-        Returns a list specifying the probe addresses describing probes on the cell ``gid``.
-        Each address in the list is an opaque object of type :class:`probe` produced by
-        cell kind-specific probe address functions. Each probe address in the list
-        has a corresponding probe id of type :class:`cell_member`: an id ``(gid, i)``
+        Returns a list specifying the probesets describing probes on the cell ``gid``.
+        Each element in the list is an opaque object of type :class:`probe` produced by
+        cell kind-specific probeset functions. Each probeset in the list
+        has a corresponding probeset id of type :class:`cell_member`: an id ``(gid, i)``
         refers to the probes described by the ith entry in the list returned by ``get_probes(gid)``.
 
         By default returns an empty list.
@@ -87,7 +103,7 @@ Recipe
         This method needs to be implemented for :class:`arbor.cell_kind.cable`, where the
         properties include ion concentrations and reversal potentials; initial membrane voltage;
         temperature; axial resistivity; membrane capacitance; cv_policy; and a pointer
-        to the mechanism catalogue.
+        to the mechanism catalogue. Also see :ref:`mechanisms_builtins`.
 
         By default returns an empty object.
 

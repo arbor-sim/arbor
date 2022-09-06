@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import defaultdict
+from dataclasses import dataclass
 import json
 import arbor
 import seaborn
@@ -15,13 +16,12 @@ def load_allen_fit(fit):
         fit = json.load(fd)
 
     # cable parameters convenience class
+    @dataclass
     class parameters:
-        def __init__(self, **kwargs):
-            self.cm = None
-            self.tempK = None
-            self.Vm = None
-            self.rL = None
-            self.__dict__.update(kwargs)
+        cm: float = None
+        tempK: float = None
+        Vm: float = None
+        rL: float = None
 
     param = defaultdict(parameters)
     mechs = defaultdict(dict)
@@ -72,6 +72,7 @@ def load_allen_fit(fit):
 
 
 def make_cell(swc, fit):
+    # (1) Load the swc file passed into this function
     morphology = arbor.load_swc_neuron(swc)
     # (2) Label the region tags found in the swc with the names used in the parameter fit file.
     # In addition, label the midpoint of the somarbor.

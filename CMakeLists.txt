@@ -40,7 +40,7 @@ set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
 # Use libunwind to generate stack traces on errors?
 
-option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
+option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
 
 # Specify GPU build type
 
@@ -302,7 +302,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.6.0)
+set(arb_py_version 3.7.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
@@ -311,7 +311,7 @@ endif()
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
 
-    if(DEFINED ENV{CIBUILDWHEEL})
+    if(DEFINED ENV{CIBUILDWHEEL} AND (UNIX AND NOT APPLE))
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
     else()
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
@@ -386,17 +386,15 @@ if(ARB_WITH_GPU)
     endif()
 endif()
 
-# Use libunwind if requested for pretty printing stack traces
-#-------------------------------------------------------------
+# Use boost::stacktrace if requested for pretty printing stack traces
+#--------------------------------------------------------------------
 
-if (ARB_UNWIND)
-    find_package(Unwind REQUIRED)
-    if(Unwind_FOUND)
-        target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
-        target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
-
-        list(APPEND arbor_export_dependencies "Unwind")
-    endif()
+if (ARB_BACKTRACE)
+    find_package(Boost REQUIRED
+                 COMPONENTS stacktrace_basic
+                            stacktrace_addr2line)
+    target_link_libraries(arbor-private-deps INTERFACE Boost::stacktrace_basic Boost::stacktrace_addr2line ${CMAKE_DL_LIBS})
+    target_compile_definitions(arbor-private-deps INTERFACE WITH_BACKTRACE)
 endif()
 
 # Build and use modcc unless explicit path given
@@ -547,7 +545,6 @@ install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
-        cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
 add_subdirectory(lmorpho)

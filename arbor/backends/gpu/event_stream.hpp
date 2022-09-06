@@ -117,8 +117,8 @@ private:
 template <typename Event>
 class event_stream {
 public:
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
     using event_type = Event;
 
     using event_time_type = ::arb::event_time_type<Event>;
@@ -158,7 +158,7 @@ public:
 
     // Designate for processing events `ev` at head of the event stream
     // until `event_time(ev)` > `t_until`.
-    void mark_until_after(const fvm_value_type& t_until) {
+    void mark_until_after(const arb_value_type& t_until) {
         using ::arb::event_time;
 
         const index_type end = ev_time_.size();
@@ -169,7 +169,7 @@ public:
 
     // Designate for processing events `ev` at head the stream
     // while `t_until` > `event_time(ev)`.
-    void mark_until(const arb::fvm_value_type& t_until) {
+    void mark_until(const arb::arb_value_type& t_until) {
         using ::arb::event_time;
 
         const index_type end = ev_time_.size();
@@ -208,11 +208,11 @@ public:
     }
 
 private:
-    memory::device_vector<fvm_value_type> ev_time_;
+    memory::device_vector<arb_value_type> ev_time_;
     memory::device_vector<event_data_type> ev_data_;
 
     // Host-side vectors for staging values in init():
-    std::vector<fvm_value_type> host_ev_time_;
+    std::vector<arb_value_type> host_ev_time_;
     std::vector<event_data_type> host_ev_data_;
 
     index_type span_begin_ = 0;

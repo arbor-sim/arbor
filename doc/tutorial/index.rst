@@ -21,10 +21,18 @@ Cells
    :maxdepth: 1
 
    single_cell_model
-   single_cell_recipe
    single_cell_detailed
-   single_cell_detailed_recipe
    single_cell_cable
+   single_cell_allen
+
+Recipes
+-------
+
+.. toctree::
+   :maxdepth: 1
+   
+   single_cell_recipe
+   single_cell_detailed_recipe
 
 Networks
 --------
@@ -33,9 +41,7 @@ Networks
    :maxdepth: 1
 
    network_ring
-   network_ring_mpi
-   single_cell_allen
-   two_cells_gap_junctions
+   network_two_cells_gap_junctions
 
 Probes
 ------
@@ -43,4 +49,20 @@ Probes
 .. toctree::
    :maxdepth: 1
 
-   tutorial_lfpykit
+   probe_lfpykit
+
+Hardware
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   network_ring_mpi
+   network_ring_gpu
+
+Demonstrations
+--------------
+
+We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
+In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
+and find get in contact with other Arbor users.

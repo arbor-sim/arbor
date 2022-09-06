@@ -65,17 +65,12 @@ struct single_recipe: public arb::recipe {
         dict.set("soma", tagged(1));
         dict.set("dend", join(tagged(3), tagged(4), tagged(42)));
 
-        arb::decor decor;
-
-        // Add HH mechanism to soma, passive channels to dendrites.
-        decor.paint("soma"_lab, arb::density("hh"));
-        decor.paint("dend"_lab, arb::density("pas"));
-
-        // Add synapse to last branch.
-
-        arb::cell_lid_type last_branch = morpho.num_branches()-1;
-        arb::mlocation end_last_branch = { last_branch, 1. };
-        decor.place(end_last_branch, arb::synapse("exp2syn"), "synapse");
+        auto decor = arb::decor{}
+            // Add HH mechanism to soma, passive channels to dendrites.
+            .paint("soma"_lab, arb::density("hh"))
+            .paint("dend"_lab, arb::density("pas"))
+            // Add synapse to last branch.
+            .place(arb::mlocation{ morpho.num_branches()-1, 1. }, arb::synapse("exp2syn"), "synapse");
 
         return arb::cable_cell(morpho, dict, decor);
     }
