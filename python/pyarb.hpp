@@ -13,6 +13,23 @@
 
 #include <pybind11/pybind11.h>
 
+// Version check
+#define mk_tok(x) #x
+#define mk_ver(M, m, p) mk_tok(M) "." mk_tok(m) "." mk_tok(p)
+#define PB11_ERR(M, m, p) "Required version of pybind11 is 2.8.1 <= version < 3.0.0. Found " mk_ver(M, m, p)
+
+static_assert(((PYBIND11_VERSION_MAJOR*1000*1000 + PYBIND11_VERSION_MINOR*1000 + PYBIND11_VERSION_PATCH)
+               >=
+               (2*1000*1000 + 8*1000 + 1))
+              &&
+              ((PYBIND11_VERSION_MAJOR*1000*1000 + PYBIND11_VERSION_MINOR*1000 + PYBIND11_VERSION_PATCH)
+               <
+               (3*1000*1000)),
+              PB11_ERR(PYBIND11_VERSION_MAJOR, PYBIND11_VERSION_MINOR, PYBIND11_VERSION_PATCH));
+#undef PB11_ERR
+#undef mk_ver
+#undef mk_tok
+
 namespace pyarb {
 
 // Sample recorder object interface.
