@@ -119,7 +119,12 @@ TEST(matrix, backends)
 
     // Make the reference matrix and the gpu matrix
     auto flat = state_flat(p, cell_cv_divs, Cm, g, area, cell_to_intdom); // flat
-    auto fine = state_fine(p, cell_cv_divs, Cm, g, area, cell_to_intdom); // interleaved
+    auto fine = state_fine(p, cell_cv_divs, Cm, g, area); // interleaved
+               //const std::vector<size_type>& p,
+               //const std::vector<size_type>& cell_cv_divs,
+               //const std::vector<value_type>& cap,
+               //const std::vector<value_type>& face_conductance,
+               //const std::vector<value_type>& area)
 
     // Set the integration times for the cells to be between 0.01 and 0.02 ms.
     std::vector<T> dt(num_mtx, 0);
