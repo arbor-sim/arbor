@@ -68,7 +68,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:function:: std::pair<segment_tree, segment_tree> split_at(const segment_tree& t, msize_t id)
 
-    Split a segment_tree into a pair of subtrees starts at the given id,
+    Split a segment_tree into a pair of subtrees at the given id,
     such that one tree is the subtree rooted at id and the other is the
     original tree without said subtree.
 
@@ -84,6 +84,13 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
     2. recursively: all sub-trees starting at the current segment are pairwise equivalent.
 
     Note that under 1 we do not consider the ``id`` field.
+
+.. cpp:function:: segment_tree apply(const segment_tree& t, const isometry& i)
+
+    Apply an :cpp:type:`isometry` to the segment tree, returns the transformed tree as a copy.
+    Isometries are rotations around an arbritary axis and/or translations; they can
+    be instantiated using ``isometry::translate`` and ``isometry::rotate`` and combined
+    using the ``*`` operator.
 
 Morphology API
 --------------

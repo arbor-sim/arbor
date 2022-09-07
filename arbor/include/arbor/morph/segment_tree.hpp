@@ -7,6 +7,7 @@
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/isometry.hpp>
 
 namespace arb {
 
@@ -57,6 +58,9 @@ public:
     friend bool operator==(const segment_tree& l, const segment_tree& r) {
         return (l.size() == r.size()) && (l.parents() == r.parents()) && (l.segments() == r.segments());
     }
+
+    // apply isometry by mapping over internal state
+    friend segment_tree apply(const segment_tree&, const isometry&);
 };
 
 // Split a segment_tree T into two subtrees <L, R> such that R is the subtree
@@ -76,5 +80,9 @@ join_at(const segment_tree&, msize_t, const segment_tree&);
 ARB_ARBOR_API bool
 equivalent(const segment_tree& a,
            const segment_tree& b);
+
+// Apply isometry
+ARB_ARBOR_API segment_tree
+apply(const segment_tree&, const isometry&);
 
 } // namesapce arb

@@ -254,6 +254,16 @@ Cable cell morphology
         ``join_at`` is inverse to ``split_at`` for a proper choice of ``id``.
         The join point ``id`` must be in ``L``.
 
+    .. method:: apply_isometry(iso)
+
+        Apply an :type:`isometry` to the segment tree, returns the transformed tree as a copy.
+        Isometries are rotations around an arbritary axis and/or translations; they can
+        be instantiated using ``translate`` and ``rotate`` and combined
+        using the ``*`` operator.
+
+        :return: new tree
+        :param iso: isometry
+
     .. method:: equivalent(other)
 
         Two trees are equivalent if

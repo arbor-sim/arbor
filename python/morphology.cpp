@@ -246,9 +246,18 @@ void register_morphology(py::module& m) {
                 "A list with the parent index of each segment.")
         .def_property_readonly("segments", [](const arb::segment_tree& st){return st.segments();},
                 "A list of the segments.")
-        .def("split_at", [](const arb::segment_tree& t, arb::msize_t id) { return arb::split_at(t, id); })
-        .def("join_at", [](const arb::segment_tree& t, arb::msize_t id, const arb::segment_tree& o) { return arb::join_at(t, id, o); })
-        .def("equivalent", [](const arb::segment_tree& t, const arb::segment_tree& o) { return arb::equivalent(t, o); })
+        .def("apply_isometry",
+             [](const arb::segment_tree& t, const arb::isometry& i) { return arb::apply(t, i); },
+             "Apply an isometry to all segments in the tree.")
+        .def("split_at",
+             [](const arb::segment_tree& t, arb::msize_t id) { return arb::split_at(t, id); },
+             "Split into a pair of trees at the given id, such that one tree is the subtree rooted at id and the other is the original tree without said subtree.")
+        .def("join_at",
+             [](const arb::segment_tree& t, arb::msize_t id, const arb::segment_tree& o) { return arb::join_at(t, id, o); },
+             "Join two subtrees at a given id, such that said id becomes the parent of the inserted sub-tree.")
+        .def("equivalent",
+             [](const arb::segment_tree& t, const arb::segment_tree& o) { return arb::equivalent(t, o); },
+             "Two trees are equivalent, but not neccessarily identical, ie they have the same segments and structure.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
