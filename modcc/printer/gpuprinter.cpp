@@ -29,7 +29,6 @@ static std::string scaled(double coeff) {
 
 
 void emit_api_body_cu(std::ostream& out, APIMethod* method, const ApiFlags&);
-void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* proc);
 void emit_state_read_cu(std::ostream& out, LocalVariable* local);
 void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, const ApiFlags&);
 
@@ -191,32 +190,6 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         << "using ::arb::gpu::safeinv;\n"
         << "using ::arb::gpu::min;\n"
         << "using ::arb::gpu::max;\n\n";
-
-    // Procedures as __device__ functions.
-    auto emit_procedure_proto = [&] (ProcedureExpression* e) {
-        out << fmt::format("__device__\n"
-                           "void {}(arb_mechanism_ppack params_, int tid_",
-                           e->name());
-        for(auto& arg: e->args()) out << ", arb_value_type " << arg->is_argument()->name();
-        out << ")";
-    };
-
-    auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
-        emit_procedure_proto(e);
-        out << " {\n" << indent
-            << "PPACK_IFACE_BLOCK;\n"
-            << cuprint(e->body())
-            << popindent << "}\n\n";
-    };
-
-    for (auto& p: module_normal_procedures(module_)) {
-        emit_procedure_proto(p);
-        out << ";\n\n";
-    }
-
-    for (auto& p: module_normal_procedures(module_)) {
-        emit_procedure_kernel(p);
-    }
 
     // API methods as __global__ kernels.
     auto emit_api_kernel = [&] (APIMethod* e, bool additive=false) {
@@ -447,10 +420,6 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
         }
         if (flags.cv_loop) out << popindent << "}\n";
     }
-}
-
-void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* e) {
-    out << cuprint(e->body());
 }
 
 namespace {
