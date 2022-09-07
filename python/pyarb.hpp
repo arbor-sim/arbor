@@ -20,7 +20,7 @@
 
 static_assert((PYBIND11_VERSION_HEX >= 0x02080100)
               &&
-              (PYBIND11_VERSION_HEX >= 0x03000000),
+              (PYBIND11_VERSION_HEX  < 0x03000000),
               PB11_ERR(PYBIND11_VERSION_MAJOR, PYBIND11_VERSION_MINOR, PYBIND11_VERSION_PATCH));
 #undef PB11_ERR
 #undef mk_verhhhhhhhh
