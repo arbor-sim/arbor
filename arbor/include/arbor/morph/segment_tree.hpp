@@ -7,6 +7,7 @@
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/morph/isometry.hpp>
 
 namespace arb {
 
@@ -52,8 +53,36 @@ public:
     bool is_root(msize_t i) const;
 
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
+
+    // compare two trees for _identity_, not _equivalence_
+    friend bool operator==(const segment_tree& l, const segment_tree& r) {
+        return (l.size() == r.size()) && (l.parents() == r.parents()) && (l.segments() == r.segments());
+    }
+
+    // apply isometry by mapping over internal state
+    friend segment_tree apply(const segment_tree&, const isometry&);
 };
 
+// Split a segment_tree T into two subtrees <L, R> such that R is the subtree
+// of T that starts at the given id and L is T without R.
+ARB_ARBOR_API std::pair<segment_tree, segment_tree>
+split_at(const segment_tree&, msize_t);
+
+// Join two subtrees L and R at a given id in L, such that `join_at` is inverse
+// to `split_at` for a proper choice of id.
+ARB_ARBOR_API segment_tree
+join_at(const segment_tree&, msize_t, const segment_tree&);
+
+// Trees are equivalent if
+// 1. the current segments' prox and dist points and their tags are identical.
+// 2. all sub-trees starting at the current segment are equivalent.
+// Note that orderdoes *not* matter in opposition to ==.
+ARB_ARBOR_API bool
+equivalent(const segment_tree& a,
+           const segment_tree& b);
+
+// Apply isometry
+ARB_ARBOR_API segment_tree
+apply(const segment_tree&, const isometry&);
+
 } // namesapce arb
-
-
