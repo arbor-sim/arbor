@@ -23,12 +23,11 @@ node_p yes = [](const node_t&) { return true; };
 
 // invert parent <*> child relation, returns a map of parent_id -> [children_id]
 // For predictable ordering we sort the vectors.
-std::vector<std::vector<msize_t>> tree_to_children(const segment_tree& tree) {
+std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tree) {
     const auto& parents = tree.parents();
-    std::vector<std::vector<msize_t>> result;
-    result.resize(tree.size());
+    std::map<msize_t, std::vector<msize_t>> result;
     for (auto ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
-    for (auto& v: result) std::sort(v.begin(), v.end());
+    for (auto& [k, v]: result) std::sort(v.begin(), v.end());
     return result;
 }
     
@@ -52,10 +51,8 @@ segment_tree copy_if(const segment_tree& tree,
         auto node = todo.back();
         todo.pop_back();
         if (!predicate(node)) continue;
-
         const auto& segment = segments[node.id];
         auto current = result.append(node.parent, segment.prox, segment.dist, segment.tag);
-
         for (auto child: children_of[node.id]) {
             todo.push_back({current, child});
         }
@@ -90,9 +87,9 @@ equivalent(const segment_tree& a,
         a_children_of = tree_to_children(a),
         b_children_of = tree_to_children(b);
 
-    auto fetch_children = [&](auto cursor, const auto& segments, const auto& children_of) {
+    auto fetch_children = [&](auto cursor, const auto& segments, auto& children_of) {
         std::vector<arb::msegment> segs;
-        for (auto ix: children_of.at(cursor)) segs.push_back(segments[ix]);
+        for (auto ix: children_of[cursor]) segs.push_back(segments[ix]);
         std::sort(segs.begin(), segs.end(),
                   [](auto l, auto r) {
                       l.id = r.id = 0;
