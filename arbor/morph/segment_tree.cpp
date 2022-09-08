@@ -19,7 +19,7 @@ struct node_t {
 
 using node_p = std::function<bool(const node_t&)>;
 
-node_p yes = [](const node_t&) { return true; };
+node_p yes = [](node_t) { return true; };
 
 // invert parent <*> child relation, returns a map of parent_id -> [children_id]
 // For predictable ordering we sort the vectors.
@@ -40,7 +40,7 @@ std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tre
 // - init: initial tree to append to
 // Note: this is basically a recursive function w/ an explicit stack.
 segment_tree copy_if(const segment_tree& tree,
-                     const node_t& start,
+                     node_t start,
                      node_p predicate,
                      const segment_tree& init={}) {
     auto children_of = tree_to_children(tree);

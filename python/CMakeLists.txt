@@ -16,7 +16,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # instead of using find_package.
   add_subdirectory(${pb11_src_dir} pybind11)
 else()
-  find_package(pybind11 REQUIRED)
+  find_package(pybind11 2.8.1..<3.0.0 REQUIRED)
 endif()
 
 set(pyarb_source
@@ -46,6 +46,7 @@ set(pyarb_source
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
 set_target_properties(pyarb_obj PROPERTIES CXX_VISIBILITY_PRESET hidden)
+message("PB11 lives at ${pybind11_INCLUDE_DIR}")
 target_link_libraries(pyarb_obj PRIVATE arbor arborenv arborio pybind11::module)
 
 # The Python library. MODULE will make a Python-exclusive model.
