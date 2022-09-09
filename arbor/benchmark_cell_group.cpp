@@ -39,7 +39,7 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
         cg_targets.add_label(c.target, {0, 1});
     }
 
-    reset();
+    benchmark_cell_group::reset();
 }
 
 void benchmark_cell_group::reset() {
@@ -95,7 +95,7 @@ void benchmark_cell_group::clear_spikes() {
 }
 
 void benchmark_cell_group::add_sampler(sampler_association_handle h,
-                                   cell_member_predicate probe_ids,
+                                   cell_member_predicate probeset_ids,
                                    schedule sched,
                                    sampler_function fn,
                                    sampling_policy policy) {}

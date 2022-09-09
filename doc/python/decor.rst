@@ -173,3 +173,15 @@ Cable cell decoration
         Set the cv_policy used to discretise the cell into control volumes for simulation.
 
         :param str policy: :ref:`string representation <morph-cv-sexpr>` of a cv_policy.
+
+    .. method:: paintings()
+
+        Returns a list of tuples ``(region, painted_object)`` for inspection.
+
+    .. method:: placements()
+
+        Returns a list of tuples ``(locset, placed_object)`` for inspection.
+
+    .. method:: defaults()
+
+        Returns a list of all set defaults for inspection.

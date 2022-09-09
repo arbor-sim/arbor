@@ -1,11 +1,12 @@
 #pragma once
 
 #include <arbor/common_types.hpp>
+#include <arbor/export.hpp>
 
 namespace arb {
 
 // Model parameters of leaky integrate and fire neuron model.
-struct lif_cell {
+struct ARB_SYMBOL_VISIBLE lif_cell {
     cell_tag_type source; // Label of source.
     cell_tag_type target; // Label of target.
 

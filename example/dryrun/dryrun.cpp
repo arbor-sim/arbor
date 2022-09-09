@@ -112,7 +112,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (gid%20 == 0) {
-            gens.push_back(arb::explicit_generator({{{"synapse"}, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({"synapse"}, event_weight_, std::vector<float>{1.0f}));
         }
         return gens;
     }
@@ -174,19 +174,17 @@ int main(int argc, char** argv) {
                 params.num_ranks, params.cell, params.min_delay);
         arb::symmetric_recipe recipe(std::move(tile));
 
-        auto decomp = arb::partition_load_balance(recipe, ctx);
-
         // Construct the model.
-        arb::simulation sim(recipe, decomp, ctx);
+        arb::simulation sim(recipe, ctx);
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probe_id = cell_member_type{0, 0};
+        auto probeset_id = cell_member_type{0, 0};
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(1);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_vector<double> voltage;
-        // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+        // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
+        sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;

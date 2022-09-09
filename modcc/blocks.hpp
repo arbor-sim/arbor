@@ -8,6 +8,7 @@
 #include "identifier.hpp"
 #include "location.hpp"
 #include "token.hpp"
+#include <libmodcc/export.hpp>
 
 // describes a relationship with an ion channel
 struct IonDep {
@@ -30,6 +31,9 @@ struct IonDep {
     };
     bool uses_concentration_int() const {
         return has_variable(name + "i");
+    };
+    bool uses_concentration_diff() const {
+        return has_variable(name + "d");
     };
     bool uses_concentration_ext() const {
         return has_variable(name + "o");
@@ -161,20 +165,20 @@ struct AssignedBlock {
 // helpers for pretty printing block information
 ////////////////////////////////////////////////
 
-std::ostream& operator<<(std::ostream& os, Id const& V);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, Id const& V);
 
-std::ostream& operator<<(std::ostream& os, UnitsBlock::units_pair const& p);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, UnitsBlock::units_pair const& p);
 
-std::ostream& operator<<(std::ostream& os, IonDep const& I);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, IonDep const& I);
 
-std::ostream& operator<<(std::ostream& os, moduleKind const& k);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, moduleKind const& k);
 
-std::ostream& operator<<(std::ostream& os, NeuronBlock const& N);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, NeuronBlock const& N);
 
-std::ostream& operator<<(std::ostream& os, StateBlock const& B);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, StateBlock const& B);
 
-std::ostream& operator<<(std::ostream& os, UnitsBlock const& U);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, UnitsBlock const& U);
 
-std::ostream& operator<<(std::ostream& os, ParameterBlock const& P);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, ParameterBlock const& P);
 
-std::ostream& operator<<(std::ostream& os, AssignedBlock const& A);
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, AssignedBlock const& A);

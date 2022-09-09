@@ -112,7 +112,7 @@ TEST(recipe, gap_junctions)
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {gjs_0, gjs_1}, {{}, {}});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
+        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0));
     }
     {
         std::vector<arb::gap_junction_connection> gjs_0 = {{{1, "gapjunction1", policy::assert_univalent}, {"gapjunction0", policy::assert_univalent}, 0.1},
@@ -126,7 +126,7 @@ TEST(recipe, gap_junctions)
         auto recipe_1 = custom_recipe({cell_0, cell_1}, {{}, {}}, {gjs_0, gjs_1}, {{}, {}});
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
-        EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_connection_label);
+        EXPECT_THROW(simulation(recipe_1, context, decomp_1), arb::bad_connection_label);
 
     }
 }
@@ -150,7 +150,7 @@ TEST(recipe, connections)
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
+        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0));
     }
     {
         conns_0 = {{{1, "detector0"}, {"synapse0"}, 0.1, 0.1},
@@ -164,7 +164,7 @@ TEST(recipe, connections)
         auto recipe_1 = custom_recipe({cell_0, cell_1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_1 = partition_load_balance(recipe_1, context);
 
-        EXPECT_THROW(simulation(recipe_1, decomp_1, context), arb::bad_connection_source_gid);
+        EXPECT_THROW(simulation(recipe_1, context, decomp_1), arb::bad_connection_source_gid);
     }
     {
         conns_0 = {{{1, "detector0"}, {"synapse0"}, 0.1, 0.1},
@@ -178,7 +178,7 @@ TEST(recipe, connections)
         auto recipe_2 = custom_recipe({cell_0, cell_1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_2 = partition_load_balance(recipe_2, context);
 
-        EXPECT_THROW(simulation(recipe_2, decomp_2, context), arb::bad_connection_label);
+        EXPECT_THROW(simulation(recipe_2, context, decomp_2), arb::bad_connection_label);
     }
     {
         conns_0 = {{{1, "detector0"}, {"synapse0"}, 0.1, 0.1},
@@ -192,7 +192,7 @@ TEST(recipe, connections)
         auto recipe_4 = custom_recipe({cell_0, cell_1}, {conns_0, conns_1}, {{}, {}},  {{}, {}});
         auto decomp_4 = partition_load_balance(recipe_4, context);
 
-        EXPECT_THROW(simulation(recipe_4, decomp_4, context), arb::bad_connection_label);
+        EXPECT_THROW(simulation(recipe_4, context, decomp_4), arb::bad_connection_label);
     }
 }
 
@@ -201,24 +201,25 @@ TEST(recipe, event_generators) {
 
     auto cell_0 = custom_cell(1, 2, 0);
     auto cell_1 = custom_cell(2, 1, 0);
-    std::vector<arb::event_generator> gens_0, gens_1;
     {
-        gens_0 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}, {{"synapse1"}, 2.0, 0.1}})};
-
-        gens_1 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}})};
+        std::vector<arb::event_generator>
+            gens_0 = {arb::explicit_generator({"synapse0"}, 0.1, std::vector<arb::time_type>{1.0}),
+                      arb::explicit_generator({"synapse1"}, 0.1, std::vector<arb::time_type>{2.0})},
+            gens_1 = {arb::explicit_generator({"synapse0"}, 0.1, std::vector<arb::time_type>{1.0})};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_NO_THROW(simulation(recipe_0, decomp_0, context));
+        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0).run(1, 0.1));
     }
     {
-        gens_0 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}, {{"synapse3"}, 2.0, 0.1}})};
-        gens_1.clear();
+        std::vector<arb::event_generator>
+            gens_0 = {arb::regular_generator({"totally-not-a-synapse-42"}, 0.1, 0, 0.001)},
+            gens_1 = {};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_THROW(simulation(recipe_0, decomp_0, context), arb::bad_connection_label);
+        EXPECT_THROW(simulation(recipe_0, context, decomp_0), arb::bad_connection_label);
     }
 }

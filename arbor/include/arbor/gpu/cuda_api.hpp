@@ -5,6 +5,8 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 namespace gpu {
 
@@ -12,7 +14,7 @@ namespace gpu {
 
 using DeviceProp = cudaDeviceProp;
 
-struct api_error_type {
+struct ARB_SYMBOL_VISIBLE api_error_type {
     cudaError_t value;
     api_error_type(cudaError_t e): value(e) {}
 

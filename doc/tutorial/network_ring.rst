@@ -27,7 +27,7 @@ We construct the following :term:`morphology` and label the soma and dendrite:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 18-37
+   :lines: 20-46
 
 In step **(2)** we create a :term:`label` for both the root and the site of the synapse.
 These locations will form the endpoints of the connections between the cells.
@@ -40,7 +40,7 @@ These locations will form the endpoints of the connections between the cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 39-42
+   :lines: 48-58
 
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
 The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
@@ -63,7 +63,7 @@ Step **(4)** places a spike detector at the ``'root'``. The detector is given th
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 44-59
+   :lines: 60-69
 
 The recipe
 **********
@@ -73,8 +73,7 @@ The recipe is where the different cells and the :ref:`connections <interconnecti
 
 Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired
 number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main differences
-are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**
-(``make_cable_cell()`` returns the cell above).
+are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
 
 Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
 previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 (inducing a conductance of 0.01 μS
@@ -108,15 +107,23 @@ Step **(11)** instantiates the recipe with 4 cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 61-111
+   :lines: 74-122
 
 The execution
 *************
 
-To create a simulation, we must create an :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
+To create a simulation, we need at minimum to supply the recipe, and in addition can supply a :class:`arbor.context`
+and :py:class:`arbor.domain_decomposition`. The first lets Arbor know what hardware it should use, the second how to
+destribute the work over that hardware. By default, contexts are configured to use 1 thread and domain decompositons to
+divide work equally over all threads.
 
-Step **(12)** creates a default execution context, and uses the :func:`arbor.partition_load_balance` to create a
-default domain decomposition. You can print the objects to see what defaults they produce on your system.
+Step **(12)** initalizes the ``threads`` parameter of :class:`arbor.context` with the ``avail_threads`` flag. By supplying
+this flag, a context is constructed that will use all locally available threads. On your local machine this will match the
+number of logical cores in your system. Especially with large numbers
+of cells you will notice the speed-up. (You could instantiate the recipe with 5000 cells and observe the difference. Don't
+forget to turn of plotting if you do; it will take more time to generate the image then to run the actual simulation!)
+If no domain decomposition is specified, a default one distributing work equally is created. This is sufficient for now.
+You can print the objects to see what defaults they produce on your system.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
 This means the timestamps of the generated events will be kept in memory. Be default, these are discarded.
@@ -124,9 +131,9 @@ This means the timestamps of the generated events will be kept in memory. Be def
 In addition to having the timestamps of spikes, we want to extract the voltage as a function of time.
 
 Step **(14)** sets the probes (step **10**) to measure at a certain schedule. This is sometimes described as
-attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probe id` and the
-desired schedule (here: a recording frequency of 10 kHz, or a ``dt`` of 0.1 ms). Note that the probe id is a separate index from those of
-:term:`connection` endpoints; probe ids correspond to the index of the list produced by
+attaching a :term:`sampler` to a :term:`probe`. :py:func:`arbor.simulation.sample` expects a :term:`probeset id` and the
+desired schedule (here: a recording frequency of 10 kHz, or a ``dt`` of 0.1 ms). Note that the probeset id is a separate index from those of
+:term:`connection` endpoints; probeset ids correspond to the index of the list produced by
 :py:func:`arbor.recipe.probes` on cell ``gid``.
 
 :py:func:`arbor.simulation.sample` returns a handle to the :term:`samples <sample>` that will be recorded. We store
@@ -136,7 +143,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 113-126
+   :lines: 124-136
 
 The results
 ***********
@@ -145,7 +152,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 128-131
+   :lines: 138-141
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -157,7 +164,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 133-141
+   :lines: 143-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 
@@ -170,4 +177,4 @@ We plot the results using pandas and seaborn:
 The full code
 *************
 
-You can find the full code of the example at ``python/examples/network_ring.py``.
+You can find the full code of the example at ``python/example/network_ring.py``.

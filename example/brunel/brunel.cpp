@@ -70,7 +70,7 @@ std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
 std::optional<cl_options> read_options(int argc, char** argv);
 
-void banner(const context& ctx);
+void banner(context ctx);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -246,9 +246,10 @@ int main(int argc, char** argv) {
 
         partition_hint_map hints;
         hints[cell_kind::lif].cpu_group_size = group_size;
-        auto decomp = partition_load_balance(recipe, context, hints);
 
-        simulation sim(recipe, decomp, context);
+        simulation sim(recipe,
+                       context,
+                       [&hints](auto& r, auto c) { return partition_load_balance(r, c, hints); });
 
         // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;
@@ -295,7 +296,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(const context& ctx) {
+void banner(context ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Brunel model miniapp\n";
     std::cout << "  - distributed : " << arb::num_ranks(ctx)

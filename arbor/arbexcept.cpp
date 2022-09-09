@@ -4,11 +4,26 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 
+#include "util/unwind.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
 
 using arb::util::pprintf;
+
+arbor_exception::arbor_exception(const std::string& what):
+    std::runtime_error{what} {
+    // Backtrace w/o this c'tor and that of backtrace.
+    where = util::backtrace{}.pop(2).to_string();
+}
+
+arbor_internal_error::arbor_internal_error(const std::string& what):
+        std::logic_error(what) {
+    // Backtrace w/o this c'tor and that of backtrace.
+    where = util::backtrace{}.pop(2).to_string();
+}
+
+domain_error::domain_error(const std::string& w): arbor_exception(w) {}
 
 bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
@@ -42,9 +57,9 @@ zero_thread_requested_error::zero_thread_requested_error(unsigned nbt):
     nbt(nbt)
 {}
 
-bad_probe_id::bad_probe_id(cell_member_type probe_id):
-    arbor_exception(pprintf("bad probe id {}", probe_id)),
-    probe_id(probe_id)
+bad_probeset_id::bad_probeset_id(cell_member_type probeset_id):
+    arbor_exception(pprintf("bad probe id {}", probeset_id)),
+    probeset_id(probeset_id)
 {}
 
 gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
@@ -84,6 +99,12 @@ no_such_parameter::no_such_parameter(const std::string& mech_name, const std::st
     arbor_exception(pprintf("mechanism {} has no parameter {}", mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
+{}
+
+illegal_diffusive_mechanism::illegal_diffusive_mechanism(const std::string& m, const std::string& i):
+        arbor_exception(pprintf("mechanism '{}' accesses diffusive value of ion '{}', but diffusivity is disabled for it.", m, i)),
+        mech{m},
+        ion{i}
 {}
 
 invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, const std::string& param_name, double value):

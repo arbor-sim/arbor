@@ -191,7 +191,7 @@ struct p3d {
     friend constexpr double dot(const p3d& l, const p3d& r) {
         return l.x*r.x + l.y*r.y + l.z*r.z;
     }
-    friend double norm(const p3d p) {
+    friend double norm(const p3d& p) {
         return std::sqrt(dot(p, p));
     }
     friend std::ostream& operator<<(std::ostream& o, const p3d& p) {
@@ -199,16 +199,10 @@ struct p3d {
     }
 };
 
-// Policy:
-//  If two collated points are equidistant from the input point, take the
-//  proximal location.
-// Rationale:
-//  if the location is on a fork point, it makes sense to take the proximal
-//  location, which corresponds to the end of the parent branch.
-std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) const {
+std::pair<std::vector<mlocation>, double> place_pwlin::all_closest(double x, double y, double z) const {
     double mind = std::numeric_limits<double>::max();
     p3d p(x,y,z);
-    mlocation loc;
+    std::vector<mlocation> locs;
 
     // loop over each branch
     for (msize_t bid: util::count_along(data_->segment_index)) {
@@ -220,15 +214,17 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
             // v and w are the proximal and distal ends of the segment.
             const p3d v = seg.prox;
             const p3d w = seg.dist;
-
             const p3d vw = w-v;
-            const p3d vp = p-v;
             const double wvs = dot(vw, vw);
             if (wvs==0.) { // zero length segment is a special case
                 const double distance = norm(p-v);
+                mlocation loc{bid, s.lower_bound()};
                 if (distance<mind) {
                     mind = distance;
-                    loc = {bid, s.lower_bound()};
+                    locs = {loc};
+                }
+                else if (distance == mind) {
+                    locs.push_back(loc);
                 }
             }
             else {
@@ -237,19 +233,34 @@ std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) 
                 //   t=0 -> proximal end of the segment
                 //   t=1 -> distal end of the segment
                 // values are clamped to the range [0, 1]
-                const double t = std::max(0., std::min(1., dot(vw, vp) / wvs));
+                const double t = std::max(0., std::min(1., dot(vw, p-v) / wvs));
                 const double distance =
                     t<=0.? norm(p-v):
                     t>=1.? norm(p-w):
                            norm(p-(v + t*vw));
+                mlocation loc{bid, math::lerp(s.lower_bound(), s.upper_bound(), t)};
                 if (distance<mind) {
-                    loc = {bid, math::lerp(s.lower_bound(), s.upper_bound(), t)};
+                    locs = {loc};
                     mind = distance;
+                }
+                else if (distance == mind) {
+                    locs.push_back(loc);
                 }
             }
         }
     }
-    return {loc, mind};
+    return {locs, mind};
+}
+
+// Policy:
+//  If two collated points are equidistant from the input point, take the
+//  proximal location.
+// Rationale:
+//  if the location is on a fork point, it makes sense to take the proximal
+//  location, which corresponds to the end of the parent branch.
+std::pair<mlocation, double> place_pwlin::closest(double x, double y, double z) const {
+    const auto& [locs, delta] = all_closest(x, y, z);
+    return {locs.front(), delta};
 }
 
 } // namespace arb

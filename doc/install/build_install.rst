@@ -11,26 +11,53 @@ Then we cover installing and running on `HPC clusters <cluster_>`_, followed by 
 .. note::
     To get help in case of problems installing Arbor, please make an issue on the Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 
+Getting the code
+================
+
+The easiest way to acquire the latest version of Arbor is to check the code out from
+the `Github repository <https://github.com/arbor-sim/arbor>`_:
+
+.. code-block:: bash
+
+    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
+
+We recommend using a recursive checkout, because Arbor uses Git submodules for some
+of its library dependencies.
+The CMake configuration attempts to detect if a required submodule is available, and
+will print a helpful warning
+or error message if not, but it is up to the user to ensure that all required
+submodules are downloaded.
+
+The Git submodules can be updated, or initialized in a project that didn't use a
+recursive checkout:
+
+.. code-block:: bash
+
+    git submodule update --init --recursive
+
+You can also point your browser to Arbor's
+`Github page <https://github.com/arbor-sim/arbor>`_ and download a zip file.
+If you use the zip file, then don't forget to run Git submodule update manually.
+
 .. _install_requirements:
 
 Requirements
 ============
 
+Dependencies
+------------
+
+A full list of dependencies and minimum versions supported thereof is maintained in the file ``doc/dependencies.csv``, for completeness shown also in the following table.
+
+.. csv-table:: List of requirements
+   :file: ../dependencies.csv
+   :widths: 10, 20, 10, 70, 1
+   :header-rows: 1
+
 Minimum requirements
 --------------------
 
-The non distributed (i.e. no MPI) version of Arbor can be compiled on Linux or OS X systems
-with very few tools.
-
-.. table:: Required Tools
-
-    =========== ============================================
-    Tool        Notes
-    =========== ============================================
-    Git         To check out the code, minimum version 2.0.
-    CMake       To set up the build, minimum version 3.18.
-    compiler    A C++17 compiler. See `compilers <install-compilers_>`_.
-    =========== ============================================
+Arbor can be configured with various features, which may introduce additional dependencies. The non distributed (i.e. no MPI) version of Arbor can be compiled on Linux or OS X systems with very few tools. In the table above the blank lines in the "Build option/target" column reflect the minimum you need, provided you have obtained a copy of Arbor which includes the git submodules.
 
 .. _install-compilers:
 
@@ -38,18 +65,7 @@ Compilers
 ~~~~~~~~~
 
 Arbor requires a C++ compiler that fully supports C++17.
-We recommend using GCC or Clang, for which Arbor has been tested and optimised.
-
-.. table:: Supported Compilers
-
-    =========== ============ ============================================
-    Compiler    Min version  Notes
-    =========== ============ ============================================
-    GCC         8.4.0
-    Clang       8.0          Needs GCC 8 or later for standard library.
-    Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
-    Hip Clang   ROCm 3.9     HIP support is currently experimental.
-    =========== ============ ============================================
+We recommend using GCC or Clang, for which Arbor has been tested and optimised, see notes in the above table.
 
 .. _note_CC:
 
@@ -119,7 +135,7 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
+Arbor has a Python frontend, for which a minimum of Python 3.7 is required.
 In addition, `numpy` is a runtime requirement for the Python package.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
@@ -134,12 +150,19 @@ an additional support library ``arborio``. This library requires
 with NeuroML support enabled.
 See :ref:`install-neuroml` for more information.
 
+Boost
+~~~~~
+
+When ``ARB_BACKTRACE`` is set to ``ON`` during configure we use
+``Boost::stacktrace`` to print stacktraces upon failed assertions and attach
+them to the base exception types ``arbor_exception`` and
+``arbor_internal_error`` as ``where``.
 
 Documentation
 ~~~~~~~~~~~~~~
 
 To build a local copy of the html documentation that you are reading now, you will need to
-install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
@@ -160,34 +183,6 @@ If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git
 and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
 
 It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
-
-Getting the code
-================
-
-The easiest way to acquire the latest version of Arbor is to check the code out from
-the `Github repository <https://github.com/arbor-sim/arbor>`_:
-
-.. code-block:: bash
-
-    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
-
-We recommend using a recursive checkout, because Arbor uses Git submodules for some
-of its library dependencies.
-The CMake configuration attempts to detect if a required submodule is available, and
-will print a helpful warning
-or error message if not, but it is up to the user to ensure that all required
-submodules are downloaded.
-
-The Git submodules can be updated, or initialized in a project that didn't use a
-recursive checkout:
-
-.. code-block:: bash
-
-    git submodule update --init --recursive
-
-You can also point your browser to Arbor's
-`Github page <https://github.com/arbor-sim/arbor>`_ and download a zip file.
-If you use the zip file, then don't forget to run Git submodule update manually.
 
 .. _building:
 

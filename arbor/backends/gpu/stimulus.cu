@@ -22,16 +22,16 @@ void istim_add_current_impl(int n, istim_pp pp) {
     auto i = threadIdx.x + blockDim.x*blockIdx.x;
     if (i>=n) return;
 
-    fvm_index_type ei_left = pp.envl_divs[i];
-    fvm_index_type ei_right = pp.envl_divs[i+1];
+    arb_index_type ei_left = pp.envl_divs[i];
+    arb_index_type ei_right = pp.envl_divs[i+1];
 
-    fvm_index_type ai = pp.accu_index[i];
-    fvm_index_type cv = pp.accu_to_cv[ai];
+    arb_index_type ai = pp.accu_index[i];
+    arb_index_type cv = pp.accu_to_cv[ai];
     double t = pp.time[pp.cv_to_intdom[cv]];
 
     if (ei_left==ei_right || t<pp.envl_times[ei_left]) return;
 
-    fvm_index_type& ei = pp.envl_index[i];
+    arb_index_type& ei = pp.envl_index[i];
     while (ei+1<ei_right && pp.envl_times[ei+1]<=t) ++ei;
 
     double J = pp.envl_amplitudes[ei]; // current density (A/m²)
@@ -52,7 +52,7 @@ void istim_add_current_impl(int n, istim_pp pp) {
 
 } // namespace kernel
 
-void istim_add_current_impl(int n, const istim_pp& pp) {
+ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp) {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(n, block_dim);
     if (!grid_dim) return;

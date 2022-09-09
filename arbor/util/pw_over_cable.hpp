@@ -8,8 +8,8 @@ namespace util {
 namespace impl {
 struct get_value {
     template <typename X>
-    double operator()(const X& x) const { return x.value; }
-    double operator()(double x) const { return x; }
+    double operator()(const mcable&, const X& x) const { return x.value; }
+    double operator()(const mcable&, double x) const { return x; }
 };
 } // namespace impl
 
@@ -39,7 +39,7 @@ util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt
         if (el.first.prox_pos>pw_right) {
             pw.push_back(pw_right, el.first.prox_pos, dflt_value);
         }
-        pw.push_back(el.first.prox_pos, el.first.dist_pos, projection(el.second));
+        pw.push_back(el.first.prox_pos, el.first.dist_pos, projection(el.first, el.second));
     }
 
     double pw_right = pw.empty()? 0: pw.bounds().second;

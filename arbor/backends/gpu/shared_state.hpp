@@ -12,6 +12,8 @@
 
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
+#include "backends/gpu/diffusion_state.hpp"
+#include "backends/gpu/matrix_state_fine.hpp"
 
 namespace arb {
 namespace gpu {
@@ -27,13 +29,21 @@ namespace gpu {
  *     Xi_     cai              internal calcium concentration
  *     Xo_     cao              external calcium concentration
  */
+struct ARB_ARBOR_API ion_state {
+    using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
+    using solver_ptr  = std::unique_ptr<solver_type>;
 
-struct ion_state {
+    bool write_eX_;          // is eX written?
+    bool write_Xo_;          // is Xo written?
+    bool write_Xi_;          // is Xi written?
+
     iarray node_index_; // Instance to CV map.
     array iX_;          // (A/m²) current density
     array eX_;          // (mV) reversal potential
     array Xi_;          // (mM) internal concentration
+    array Xd_;          // (mM) diffusive concentration
     array Xo_;          // (mM) external concentration
+    array gX_;             // (kS/m²) per-species conductivity
 
     array init_Xi_;     // (mM) area-weighted initial internal concentration
     array init_Xo_;     // (mM) area-weighted initial external concentration
@@ -43,13 +53,15 @@ struct ion_state {
 
     array charge;       // charge of ionic species (global, length 1)
 
+    solver_ptr solver = nullptr;
+
     ion_state() = default;
 
     ion_state(
         int charge,
         const fvm_ion_config& ion_data,
-        unsigned align
-    );
+        unsigned align,
+        solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();
@@ -62,7 +74,7 @@ struct ion_state {
     void reset();
 };
 
-struct istim_state {
+struct ARB_ARBOR_API istim_state {
     // Immutable data (post construction/initialization):
     iarray accu_index_;     // Instance to accumulator index (accu_stim_ index) map.
     iarray accu_to_cv_;     // Accumulator index to CV map.
@@ -99,7 +111,8 @@ struct istim_state {
     istim_state() = default;
 };
 
-struct shared_state {
+struct ARB_ARBOR_API shared_state {
+
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -112,11 +125,14 @@ struct shared_state {
         memory::device_vector<arb_ion_state>   ion_states_d_;
     };
 
+    using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
+    cable_solver solver;
+
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
 
-    fvm_size_type n_intdom = 0;   // Number of distinct integration domains.
-    fvm_size_type n_detector = 0; // Max number of detectors on all cells.
-    fvm_size_type n_cv = 0;       // Total number of CVs.
+    arb_size_type n_intdom = 0;   // Number of distinct integration domains.
+    arb_size_type n_detector = 0; // Max number of detectors on all cells.
+    arb_size_type n_cv = 0;       // Total number of CVs.
 
     iarray cv_to_intdom;     // Maps CV index to intdom index.
     iarray cv_to_cell;       // Maps CV index to cell index.
@@ -135,8 +151,6 @@ struct shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
-    arb_value_type* time_ptr;
-
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
@@ -145,15 +159,15 @@ struct shared_state {
     shared_state() = default;
 
     shared_state(
-        fvm_size_type n_intdom,
-        fvm_size_type n_cell,
-        fvm_size_type n_detector,
-        const std::vector<fvm_index_type>& cv_to_intdom_vec,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
-        const std::vector<fvm_value_type>& init_membrane_potential,
-        const std::vector<fvm_value_type>& temperature_K,
-        const std::vector<fvm_value_type>& diam,
-        const std::vector<fvm_index_type>& src_to_spike,
+        arb_size_type n_intdom,
+        arb_size_type n_cell,
+        arb_size_type n_detector,
+        const std::vector<arb_index_type>& cv_to_intdom_vec,
+        const std::vector<arb_index_type>& cv_to_cell_vec,
+        const std::vector<arb_value_type>& init_membrane_potential,
+        const std::vector<arb_value_type>& temperature_K,
+        const std::vector<arb_value_type>& diam,
+        const std::vector<arb_index_type>& src_to_spike,
         unsigned // align parameter ignored
     );
 
@@ -168,7 +182,8 @@ struct shared_state {
     void add_ion(
         const std::string& ion_name,
         int charge,
-        const fvm_ion_config& ion_data);
+        const fvm_ion_config& ion_data,
+        ion_state::solver_ptr solver=nullptr);
 
     void configure_stimulus(const fvm_stimulus_config&);
 
@@ -177,7 +192,7 @@ struct shared_state {
     void ions_init_concentration();
 
     // Set time_to to earliest of time+dt_step and tmax.
-    void update_time_to(fvm_value_type dt_step, fvm_value_type tmax);
+    void update_time_to(arb_value_type dt_step, arb_value_type tmax);
 
     // Set the per-intdom and per-compartment dt from time_to - time.
     void set_dt();
@@ -185,12 +200,16 @@ struct shared_state {
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
 
+    // Integrate by matrix solve.
+    void integrate_voltage();
+    void integrate_diffusion();
+
     // Return minimum and maximum time value [ms] across cells.
-    std::pair<fvm_value_type, fvm_value_type> time_bounds() const;
+    std::pair<arb_value_type, arb_value_type> time_bounds() const;
 
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)
-    std::pair<fvm_value_type, fvm_value_type> voltage_bounds() const;
+    std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
     void take_samples(
@@ -202,7 +221,7 @@ struct shared_state {
 };
 
 // For debugging only
-std::ostream& operator<<(std::ostream& o, shared_state& s);
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 } // namespace arb

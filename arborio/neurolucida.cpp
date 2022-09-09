@@ -46,8 +46,8 @@ struct parse_error {
         stack.push_back(cpp);
     }
 
-    parse_error& append(cpp_info i) {
-        stack.push_back(i);
+    parse_error& append(const cpp_info& i) {
+        stack.emplace_back(i);
         return *this;
     }
 
@@ -153,13 +153,21 @@ bool symbol_matches(const char* match, const asc::token& t) {
     return t.kind==tok::symbol && !std::strcmp(match, t.spelling.c_str());
 }
 
+// A list of symbols that indicate markers
+bool is_marker_symbol(const asc::token& t) {
+    return symbol_matches("Dot", t)
+        || symbol_matches("OpenCircle", t)
+        || symbol_matches("Cross", t);
+};
+
+
 // Parse a color expression, which have been observed in the wild in two forms:
 //  (Color Red)                 ; labeled
 //  (Color RGB (152, 251, 152)) ; RGB literal
 struct asc_color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
 };
 
 [[maybe_unused]]
@@ -313,6 +321,74 @@ parse_hopefully<arb::mpoint> parse_spine(asc::lexer& L) {
 
 #define PARSE_SPINE(L, X) if (auto rval__ = parse_spine(L)) X=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
 
+parse_hopefully<std::string> parse_name(asc::lexer& L) {
+    EXPECT_TOKEN(L, tok::lparen);
+    if (!symbol_matches("Name", L.current())) {
+        return unexpected(PARSE_ERROR("expected Name symbol missing", L.current().loc));
+    }
+
+    // consume Name symbol
+    auto t = L.next();
+    if (t.kind != tok::string) {
+        return unexpected(PARSE_ERROR("expected a string in name description", t.loc));
+    }
+    std::string name = t.spelling;
+
+    L.next();
+    EXPECT_TOKEN(L, tok::rparen);
+
+    return name;
+}
+
+#define PARSE_NAME(L, X) {if (auto rval__ = parse_name(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
+
+struct marker_set {
+    asc_color color;
+    std::string name;
+    std::vector<arb::mpoint> locations;
+};
+
+[[maybe_unused]]
+std::ostream& operator<<(std::ostream& o, const marker_set& ms) {
+    o << "(marker-set \"" << ms.name << "\" " << ms.color;
+    for (auto& l: ms.locations) o << " " << l;
+    return o << ")";
+
+}
+
+parse_hopefully<marker_set> parse_markers(asc::lexer& L) {
+    EXPECT_TOKEN(L, tok::lparen);
+
+    marker_set markers;
+
+    // parse marker kind keyword
+    auto t = L.current();
+    if (!is_marker_symbol(t)) {
+        return unexpected(PARSE_ERROR("expected a valid marker type", t.loc));
+    }
+    L.next();
+    while (L.current().kind==tok::lparen) {
+        auto n = L.peek();
+        if (symbol_matches("Color", n)) {
+            PARSE_COLOR(L, markers.color);
+        }
+        else if (symbol_matches("Name", n)) {
+            PARSE_NAME(L, markers.name);
+        }
+        else {
+            arb::mpoint loc;
+            PARSE_POINT(L, loc);
+            markers.locations.push_back(loc);
+        }
+    }
+
+    EXPECT_TOKEN(L, tok::rparen);
+
+    return markers;
+}
+
+#define PARSE_MARKER(L, X) if (auto rval__ = parse_markers(L)) X=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
+
 struct branch {
     std::vector<arb::mpoint> samples;
     std::vector<branch> children;
@@ -348,10 +424,11 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
     };
 
     // One of these symbols must always be present at what Arbor calls a terminal.
-    auto branch_end_symbol = [] (const asc::token& t) {
-        return symbol_matches("Incomplete", t)
+    auto is_branch_end_symbol = [] (const asc::token& t) {
+        return symbol_matches("Normal", t)
+            || symbol_matches("High", t)
             || symbol_matches("Low", t)
-            || symbol_matches("Normal", t)
+            || symbol_matches("Incomplete", t)
             || symbol_matches("Generated", t);
     };
 
@@ -365,16 +442,24 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
             PARSE_POINT(L, sample);
             B.samples.push_back(sample);
         }
+        // A marker statement is always of the form ( MARKER_TYPE ...)
+        else if (t.kind==tok::lparen && is_marker_symbol(p)) {
+            marker_set markers;
+            PARSE_MARKER(L, markers);
+            // Parse the markers, but don't record information about them.
+            // These could be grouped into locset by name and added to the label dictionary.
+        }
         // Spines are marked by a "less than", i.e. "<", symbol.
         else if (t.kind==tok::lt) {
             arb::mpoint spine;
             PARSE_SPINE(L, spine);
+            // parse the spine, but don't record the location.
         }
         // Test for a symbol that indicates a terminal.
-        else if (branch_end_symbol(t)) {
+        else if (is_branch_end_symbol(t)) {
             L.next(); // Consume symbol
             if (!branch_end(t)) {
-                return unexpected(PARSE_ERROR("Incomplete, Normal, Low or Generated not at a branch terminal", t.loc));
+                return unexpected(PARSE_ERROR("Incomplete, Normal, High, Low or Generated not at a branch terminal", t.loc));
             }
             finished = true;
         }
@@ -693,10 +778,10 @@ asc_morphology parse_asc_string(const char* input) {
     labels.set("dend", arb::reg::tagged(3));
     labels.set("apic", arb::reg::tagged(4));
 
-    return {std::move(morphology), std::move(labels)};
+    return {stree, std::move(morphology), std::move(labels)};
 }
 
-asc_morphology load_asc(std::string filename) {
+ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {
     std::ifstream fid(filename);
 
     if (!fid.good()) {

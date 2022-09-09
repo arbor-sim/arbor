@@ -1,10 +1,10 @@
 #include <memory>
 
 #include <arbor/arbexcept.hpp>
-
+#include <arbor/version.hpp>
 #include "gpu_context.hpp"
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 #include <arbor/gpu/gpu_api.hpp>
 #endif
 
@@ -14,7 +14,7 @@ enum gpu_flags {
     has_atomic_double = 1
 };
 
-gpu_context_handle make_gpu_context(int id) {
+ARB_ARBOR_API gpu_context_handle make_gpu_context(int id) {
     return std::make_shared<gpu_context>(id);
 }
 
@@ -30,7 +30,7 @@ bool gpu_context::has_gpu() const {
     return id_ != -1;
 }
 
-#ifndef ARB_HAVE_GPU
+#ifndef ARB_GPU_ENABLED
 
 void gpu_context::set_gpu() const {
     throw arbor_exception("Arbor must be compiled with CUDA/HIP support to set a GPU.");

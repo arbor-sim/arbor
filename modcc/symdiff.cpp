@@ -87,13 +87,13 @@ private:
     bool found_ = false;
 };
 
-bool involves_identifier(Expression* e, const identifier_set& ids) {
+ARB_LIBMODCC_API bool involves_identifier(Expression* e, const identifier_set& ids) {
     FindIdentifierVisitor v(ids);
     e->accept(&v);
     return v.found();
 }
 
-bool involves_identifier(Expression* e, const std::string& id) {
+ARB_LIBMODCC_API bool involves_identifier(Expression* e, const std::string& id) {
     identifier_set ids = {id};
     FindIdentifierVisitor v(ids);
     e->accept(&v);
@@ -262,7 +262,7 @@ private:
     std::string id_;
 };
 
-double expr_value(Expression* e) {
+ARB_LIBMODCC_API double expr_value(Expression* e) {
     return e && e->is_number()? e->is_number()->value(): NAN;
 }
 
@@ -547,14 +547,14 @@ public:
     }
 };
 
-expression_ptr constant_simplify(Expression* e) {
+ARB_LIBMODCC_API expression_ptr constant_simplify(Expression* e) {
     ConstantSimplifyVisitor csimp_visitor;
     e->accept(&csimp_visitor);
     return csimp_visitor.result();
 }
 
 
-expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
+ARB_LIBMODCC_API expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
     if (!involves_identifier(e, id)) {
         return make_expression<NumberExpression>(e->location(), 0);
     }
@@ -562,7 +562,17 @@ expression_ptr symbolic_pdiff(Expression* e, const std::string& id) {
     SymPDiffVisitor pdiff_visitor(id);
     e->accept(&pdiff_visitor);
 
-    if (pdiff_visitor.has_error()) return nullptr;
+    if (pdiff_visitor.has_error()) {
+        std::string errors, sep = "";
+
+        for (const auto& error: pdiff_visitor.errors()) {
+            errors += sep + error.message;
+            sep = "\n";
+        }
+        auto res = std::make_unique<ErrorExpression>(e->location());
+        res->error(errors);
+        return res;
+    }
 
     return constant_simplify(pdiff_visitor.result());
 }
@@ -644,7 +654,7 @@ private:
     const substitute_map& sub_;
 };
 
-expression_ptr substitute(Expression* e, const std::string& id, Expression* sub) {
+ARB_LIBMODCC_API expression_ptr substitute(Expression* e, const std::string& id, Expression* sub) {
     substitute_map subs;
     subs[id] = sub->clone();
     SubstituteVisitor sub_visitor(subs);
@@ -652,13 +662,13 @@ expression_ptr substitute(Expression* e, const std::string& id, Expression* sub)
     return sub_visitor.result();
 }
 
-expression_ptr substitute(Expression* e, const substitute_map& sub) {
+ARB_LIBMODCC_API expression_ptr substitute(Expression* e, const substitute_map& sub) {
     SubstituteVisitor sub_visitor(sub);
     e->accept(&sub_visitor);
     return sub_visitor.result();
 }
 
-linear_test_result linear_test(Expression* e, const std::vector<std::string>& vars) {
+ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector<std::string>& vars) {
     linear_test_result result;
     auto loc = e->location();
     auto zero = [loc]() { return make_expression<IntegerExpression>(loc, 0); };
@@ -666,17 +676,20 @@ linear_test_result linear_test(Expression* e, const std::vector<std::string>& va
     result.constant = e->clone();
     for (const auto& id: vars) {
         auto coef = symbolic_pdiff(e, id);
-        if (!coef) {
-            return linear_test_result{};
+        if (coef->has_error()) {
+            auto res = linear_test_result{};
+            res.error({coef->error_message(), loc});
+            return res;
         }
+        if (!coef) return linear_test_result{};
         if (!is_zero(coef)) result.coef[id] = std::move(coef);
-
         result.constant = substitute(result.constant, id, zero());
     }
 
     ConstantSimplifyVisitor csimp_visitor;
     result.constant->accept(&csimp_visitor);
     result.constant = csimp_visitor.result();
+    if (result.constant.get() == nullptr) throw compiler_exception{"Linear test: simplification of the constant term failed.", loc};
 
     // linearity test: take second order derivatives, test against zero.
     result.is_linear = true;

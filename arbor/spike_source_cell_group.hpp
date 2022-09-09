@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
@@ -14,7 +15,7 @@
 
 namespace arb {
 
-class spike_source_cell_group: public cell_group {
+class ARB_ARBOR_API spike_source_cell_group: public cell_group {
 public:
     spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
@@ -30,7 +31,7 @@ public:
 
     void clear_spikes() override;
 
-    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
+    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
 
     void remove_sampler(sampler_association_handle h) override {}
 
@@ -39,7 +40,7 @@ public:
 private:
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
-    std::vector<schedule> time_sequences_;
+    std::vector<std::vector<schedule>> time_sequences_;
 };
 
 } // namespace arb

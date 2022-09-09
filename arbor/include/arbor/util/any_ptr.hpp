@@ -29,14 +29,15 @@
 #include <cstddef>
 #include <type_traits>
 
+#include <arbor/export.hpp>
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {
 namespace util {
 
-struct any_ptr {
-    any_ptr() {}
+struct ARB_SYMBOL_VISIBLE any_ptr {
+    any_ptr() = default;
 
     any_ptr(std::nullptr_t) {}
 

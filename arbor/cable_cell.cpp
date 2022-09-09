@@ -1,3 +1,4 @@
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 #include <variant>
@@ -16,9 +17,6 @@
 
 namespace arb {
 
-using region_map = std::unordered_map<std::string, mcable_list>;
-using locset_map = std::unordered_map<std::string, mlocation_list>;
-
 using value_type = cable_cell::value_type;
 using index_type = cable_cell::index_type;
 using size_type = cable_cell::size_type;
@@ -26,6 +24,42 @@ using size_type = cable_cell::size_type;
 template <typename T> struct constant_type {
     template <typename> using type = T;
 };
+
+// Helper for debugging: print outermost DSL constructor
+std::string show(const paintable& item) {
+    std::stringstream os;
+    std::visit(
+        [&] (const auto& p) {
+            using T = std::decay_t<decltype(p)>;
+            if constexpr (std::is_same_v<init_membrane_potential, T>) {
+                os << "init-membrane-potential";
+            }
+            else if constexpr (std::is_same_v<axial_resistivity, T>) {
+                os << "axial-resistivity";
+            }
+            else if constexpr (std::is_same_v<temperature_K, T>) {
+                os << "temperature-kelvin";
+            }
+            else if constexpr (std::is_same_v<membrane_capacitance, T>) {
+                os << "membrane-capacitance";
+            }
+            else if constexpr (std::is_same_v<init_int_concentration, T>) {
+                os << "ion-internal-concentration";
+            }
+            else if constexpr (std::is_same_v<init_ext_concentration, T>) {
+                os << "ion-external-concentration";
+            }
+            else if constexpr (std::is_same_v<init_reversal_potential, T>) {
+                os << "ion-reversal-potential";
+            }
+            else if constexpr (std::is_same_v<density, T>) {
+                os << "density:" << p.mech.name();
+            }
+        },
+        item);
+    return os.str();
+}
+
 
 struct cable_cell_impl {
     using value_type = cable_cell::value_type;
@@ -102,12 +136,17 @@ struct cable_cell_impl {
         return region_map.get<T>();
     }
 
-    mcable_map<density>& get_region_map(const density& desc) {
-        return region_map.get<density>()[desc.mech.name()];
+    mcable_map<std::pair<density, iexpr_map>> &
+    get_region_map(const density &desc) {
+      return region_map.get<density>()[desc.mech.name()];
     }
 
     mcable_map<init_int_concentration>& get_region_map(const init_int_concentration& init) {
         return region_map.get<init_int_concentration>()[init.ion];
+    }
+
+    mcable_map<ion_diffusivity>& get_region_map(const ion_diffusivity& init) {
+        return region_map.get<ion_diffusivity>()[init.ion];
     }
 
     mcable_map<init_ext_concentration>& get_region_map(const init_ext_concentration& init) {
@@ -118,8 +157,31 @@ struct cable_cell_impl {
         return region_map.get<init_reversal_potential>()[init.ion];
     }
 
-    template <typename Property>
-    void paint(const region& reg, const Property& prop) {
+    void paint(const region& reg, const density& prop) {
+        this->paint(reg, scaled_mechanism<density>(prop));
+    }
+
+    void paint(const region& reg, const scaled_mechanism<density>& prop) {
+        mextent cables = thingify(reg, provider);
+        auto& mm = get_region_map(prop.t_mech);
+
+        std::unordered_map<std::string, iexpr_ptr> im;
+        for (const auto& [fst, snd]: prop.scale_expr) {
+            im.insert_or_assign(fst, thingify(snd, provider));
+        }
+
+        for (const auto& c: cables) {
+            // Skip zero-length cables in extent:
+            if (c.prox_pos == c.dist_pos) continue;
+
+            if (!mm.insert(c, {prop.t_mech, im})) {
+                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+            }
+        }
+    }
+
+    template <typename TaggedMech>
+    void paint(const region& reg, const TaggedMech& prop) {
         mextent cables = thingify(reg, provider);
         auto& mm = get_region_map(prop);
 
@@ -128,7 +190,8 @@ struct cable_cell_impl {
             if (c.prox_pos==c.dist_pos) continue;
 
             if (!mm.insert(c, prop)) {
-                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+                std::stringstream rg; rg << reg;
+                throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at '{}'", show(prop), rg.str(), c));
             }
         }
     }

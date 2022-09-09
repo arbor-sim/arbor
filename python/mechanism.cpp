@@ -11,6 +11,7 @@
 
 #include "arbor/mechinfo.hpp"
 
+#include "util.hpp"
 #include "conversion.hpp"
 #include "strprintf.hpp"
 
@@ -100,7 +101,7 @@ void register_mechanisms(pybind11::module& m) {
             "True if a synapse mechanism has a `POST_EVENT` procedure defined.")
         .def_property_readonly("kind",
                 [](const arb::mechanism_info& info) {
-                    return arb_mechsnism_kind_str(info.kind);
+                    return arb_mechanism_kind_str(info.kind);
                 }, "String representation of the kind of the mechanism.")
         .def("__repr__",
                 [](const arb::mechanism_info& inf) {
@@ -112,7 +113,9 @@ void register_mechanisms(pybind11::module& m) {
     pybind11::class_<arb::mechanism_catalogue> cat(m, "catalogue");
 
     struct mech_cat_iter_state {
-        mech_cat_iter_state(const arb::mechanism_catalogue &cat_, pybind11::object ref_): names(cat_.mechanism_names()), ref(ref_), cat(cat_) { }
+        mech_cat_iter_state(const arb::mechanism_catalogue &cat_, pybind11::object ref_): names(cat_.mechanism_names()), ref(ref_), cat(cat_) {
+            std::sort(names.begin(), names.end());
+        }
         std::vector<std::string> names;      // cache the names else these will be allocated multiple times
         pybind11::object ref;                // keep a reference to cat lest it dies while we iterate
         const arb::mechanism_catalogue& cat; // to query the C++ object
@@ -197,7 +200,7 @@ void register_mechanisms(pybind11::module& m) {
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
     m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
     m.def("bbp_catalogue", [](){return arb::global_bbp_catalogue();});
-    m.def("load_catalogue", [](const std::string& fn){return arb::load_catalogue(fn);});
+    m.def("load_catalogue", [](pybind11::object fn) { return arb::load_catalogue(util::to_string(fn)); });
 
     // arb::mechanism_desc
     // For specifying a mechanism in the cable_cell interface.

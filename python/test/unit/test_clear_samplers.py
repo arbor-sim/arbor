@@ -6,13 +6,13 @@ import unittest
 import arbor as A
 import numpy as np
 
-# to be able to run .py file from child directory
-import sys, os
-from .. import fixtures, cases
+from .. import fixtures
+from .. import cases
 
 """
 all tests for the simulator wrapper
 """
+
 
 @cases.skipIfDistributed()
 class TestClearSamplers(unittest.TestCase):
@@ -34,10 +34,10 @@ class TestClearSamplers(unittest.TestCase):
         sim.reset()
 
         # simulated with clearing the memory inbetween the steppings
-        sim.run(3,0.01)
+        sim.run(3, 0.01)
         spikes = sim.spikes()
-        times_t  = spikes["time"].tolist()
-        gids_t   = spikes["source"]["gid"].tolist()
+        times_t = spikes["time"].tolist()
+        gids_t = spikes["source"]["gid"].tolist()
         data_t, meta_t = sim.samples(handle)[0]
 
         # clear the samplers memory
@@ -48,7 +48,7 @@ class TestClearSamplers(unittest.TestCase):
         self.assertEqual(0, len(spikes["time"].tolist()))
         self.assertEqual(0, len(spikes["source"]["gid"].tolist()))
         data_test, meta_test = sim.samples(handle)[0]
-        self.assertEqual(0,data_test.size)
+        self.assertEqual(0, data_test.size)
 
         # run the next part of the simulation
         sim.run(5, 0.01)
@@ -57,7 +57,6 @@ class TestClearSamplers(unittest.TestCase):
         gids_t.extend(spikes["source"]["gid"].tolist())
         data_temp, meta_temp = sim.samples(handle)[0]
         data_t = np.concatenate((data_t, data_temp), 0)
-
 
         # check if results are the same
         self.assertEqual(gids, gids_t)

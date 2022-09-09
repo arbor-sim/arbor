@@ -7,40 +7,7 @@
 
 namespace arb {
 namespace gpu {
-
 namespace kernels {
-
-//
-// gather and scatter kernels
-//
-
-// to[i] = from[p[i]]
-template <typename T, typename I>
-__global__
-void gather(const T* __restrict__ const from,
-            T* __restrict__ const to,
-            const I* __restrict__ const p,
-            unsigned n) {
-    unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
-
-    if (i<n) {
-        to[i] = from[p[i]];
-    }
-}
-
-// to[p[i]] = from[i]
-template <typename T, typename I>
-__global__
-void scatter(const T* __restrict__ const from,
-             T* __restrict__ const to,
-             const I* __restrict__ const p,
-             unsigned n) {
-    unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
-
-    if (i<n) {
-        to[p[i]] = from[i];
-    }
-}
 
 /// GPU implementation of Hines matrix assembly.
 /// Fine layout.
@@ -98,10 +65,10 @@ void solve_matrix_fine(
     T* __restrict__ const d,
     const T* __restrict__ const u,
     const level_metadata* __restrict__ const level_meta,
-    const fvm_index_type* __restrict__ const level_lengths,
-    const fvm_index_type* __restrict__ const level_parents,
-    const fvm_index_type* __restrict__ const block_index,
-    const fvm_index_type* __restrict__ const num_matrix) // number of packed matrices = number of cells
+    const arb_index_type* __restrict__ const level_lengths,
+    const arb_index_type* __restrict__ const level_parents,
+    const arb_index_type* __restrict__ const block_index,
+    const arb_index_type* __restrict__ const num_matrix) // number of packed matrices = number of cells
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
@@ -245,42 +212,18 @@ void solve_matrix_fine(
 
 } // namespace kernels
 
-void gather(
-    const fvm_value_type* from,
-    fvm_value_type* to,
-    const fvm_index_type* p,
-    unsigned n)
-{
-    constexpr unsigned blockdim = 128;
-    const unsigned griddim = impl::block_count(n, blockdim);
-
-    kernels::gather<<<griddim, blockdim>>>(from, to, p, n);
-}
-
-void scatter(
-    const fvm_value_type* from,
-    fvm_value_type* to,
-    const fvm_index_type* p,
-    unsigned n)
-{
-    constexpr unsigned blockdim = 128;
-    const unsigned griddim = impl::block_count(n, blockdim);
-
-    kernels::scatter<<<griddim, blockdim>>>(from, to, p, n);
-}
-
-void assemble_matrix_fine(
-    fvm_value_type* d,
-    fvm_value_type* rhs,
-    const fvm_value_type* invariant_d,
-    const fvm_value_type* voltage,
-    const fvm_value_type* current,
-    const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
-    const fvm_value_type* area,
-    const fvm_index_type* cv_to_intdom,
-    const fvm_value_type* dt_intdom,
-    const fvm_index_type* perm,
+ARB_ARBOR_API void assemble_matrix_fine(
+    arb_value_type* d,
+    arb_value_type* rhs,
+    const arb_value_type* invariant_d,
+    const arb_value_type* voltage,
+    const arb_value_type* current,
+    const arb_value_type* conductivity,
+    const arb_value_type* cv_capacitance,
+    const arb_value_type* area,
+    const arb_index_type* cv_to_intdom,
+    const arb_value_type* dt_intdom,
+    const arb_index_type* perm,
     unsigned n)
 {
     const unsigned block_dim = 128;
@@ -308,16 +251,16 @@ void assemble_matrix_fine(
 // num_levels   = [3, 2, 3, ...]
 // num_cells    = [2, 3, ...]
 // num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
-void solve_matrix_fine(
-    fvm_value_type* rhs,
-    fvm_value_type* d,                     // diagonal values
-    const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
+ARB_ARBOR_API void solve_matrix_fine(
+    arb_value_type* rhs,
+    arb_value_type* d,                     // diagonal values
+    const arb_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
     const level_metadata* level_meta,      // information pertaining to each level
-    const fvm_index_type* level_lengths,   // lengths of branches of every level concatenated
-    const fvm_index_type* level_parents,   // parents of branches of every level concatenated
-    const fvm_index_type* block_index,     // start index into levels for each gpu block
-    fvm_index_type* num_cells,             // the number of cells packed into this single matrix
-    fvm_index_type* padded_size,           // length of rhs, d, u, including padding
+    const arb_index_type* level_lengths,   // lengths of branches of every level concatenated
+    const arb_index_type* level_parents,   // parents of branches of every level concatenated
+    const arb_index_type* block_index,     // start index into levels for each gpu block
+    arb_index_type* num_cells,             // the number of cells packed into this single matrix
+    arb_index_type* padded_size,           // length of rhs, d, u, including padding
     unsigned num_blocks,                   // number of blocks
     unsigned blocksize)                    // size of each block
 {

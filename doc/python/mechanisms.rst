@@ -464,7 +464,8 @@ Mechanism catalogues
 
     .. py:method:: extend(other, prefix)
 
-        Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.
+        Import another catalogue, possibly with a prefix. Will raise an exception
+        in case of name collisions.
 
         .. code-block:: Python
 

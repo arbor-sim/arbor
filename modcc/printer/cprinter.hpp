@@ -5,15 +5,16 @@
 
 #include "module.hpp"
 #include "visitor.hpp"
+#include <libmodcc/export.hpp>
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/printeropt.hpp"
 
-std::string emit_cpp_source(const Module& m, const printer_options& opt);
+ARB_LIBMODCC_API std::string emit_cpp_source(const Module& m, const printer_options& opt);
 
 // CPrinter and SimdPrinter visitors exposed in header for testing purposes only.
 
-class CPrinter: public Visitor {
+class ARB_LIBMODCC_API CPrinter: public Visitor {
 public:
     CPrinter(std::ostream& out): out_(out) {}
 
@@ -44,7 +45,22 @@ enum class simd_expr_constraint{
     other
 };
 
-class SimdPrinter: public Visitor {
+struct ApiFlags {
+    bool cv_loop = true;
+    bool ppack_iface=true;
+    bool use_additive=false;
+    bool is_point=false;
+
+    ApiFlags& loop(bool v) { cv_loop = v; return *this; }
+    ApiFlags& iface(bool v) { ppack_iface = v; return *this; }
+    ApiFlags& additive(bool v) { use_additive = v; return *this; }
+    ApiFlags& point(bool v) { is_point = v; return *this; }
+};
+
+const ApiFlags net_recv_flags = {false, false, true, false};
+const ApiFlags post_evt_flags = {false, false, false, false};
+
+class ARB_LIBMODCC_API SimdPrinter: public Visitor {
 public:
     SimdPrinter(std::ostream& out): out_(out) {}
 

@@ -18,7 +18,7 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
         }
     }
     // Default to no binning of events
-    set_binning_policy(binning_kind::none, 0);
+    lif_cell_group::set_binning_policy(binning_kind::none, 0);
 
     cells_.reserve(gids_.size());
     last_time_updated_.resize(gids_.size());
@@ -59,7 +59,7 @@ void lif_cell_group::clear_spikes() {
 }
 
 // TODO: implement sampler
-void lif_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probe_ids,
+void lif_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
                                     schedule sched, sampler_function fn, sampling_policy policy) {}
 void lif_cell_group::remove_sampler(sampler_association_handle h) {}
 void lif_cell_group::remove_all_samplers() {}

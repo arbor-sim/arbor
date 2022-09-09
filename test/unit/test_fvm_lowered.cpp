@@ -48,8 +48,7 @@ using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 using shared_state = backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_cell::state_)
 
-using matrix = arb::matrix<arb::multicore::backend>;
-ACCESS_BIND(matrix fvm_cell::*, private_matrix_ptr, &fvm_cell::matrix_)
+using matrix = arb::multicore::cable_solver;
 
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr, &fvm_cell::mechanisms_)
 
@@ -202,8 +201,8 @@ TEST(fvm_lowered, matrix_init)
     fvm_cell fvcell(*context);
     fvcell.initialize({0}, cable1d_recipe(cell));
 
-    auto& J = fvcell.*private_matrix_ptr;
     auto& S = fvcell.*private_state_ptr;
+    auto& J = S->solver;
     EXPECT_EQ(J.size(), 12u);
 
     // Test that the matrix is initialized with sensible values
@@ -211,14 +210,13 @@ TEST(fvm_lowered, matrix_init)
     fvcell.integrate(0.01, 0.01, {}, {});
 
     auto n = J.size();
-    auto& mat = J.state_;
 
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), isnan));
-    EXPECT_FALSE(arb::util::any_of(mat.d, isnan));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), isnan));
+    EXPECT_FALSE(arb::util::any_of(J.d, isnan));
     EXPECT_FALSE(arb::util::any_of(S->voltage, isnan));
 
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(mat.u, 1, n), ispos));
-    EXPECT_FALSE(arb::util::any_of(mat.d, isneg));
+    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), ispos));
+    EXPECT_FALSE(arb::util::any_of(J.d, isneg));
 }
 
 TEST(fvm_lowered, target_handles) {
@@ -302,8 +300,8 @@ TEST(fvm_lowered, stimulus) {
 
     std::vector<cable_cell> cells{desc};
 
-    const fvm_size_type soma_cv = 0u;
-    const fvm_size_type tip_cv = 5u;
+    const arb_size_type soma_cv = 0u;
+    const arb_size_type tip_cv = 5u;
 
     // The implementation of the stimulus is tested by creating a lowered cell, then
     // testing that the correct currents are injected at the correct control volumes
@@ -457,7 +455,7 @@ TEST(fvm_lowered, derived_mechs) {
 
         // Both mechanisms will have the same internal name, "test_kin1".
 
-        using fvec = std::vector<fvm_value_type>;
+        using fvec = std::vector<arb_value_type>;
         fvec tau_values;
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
             ASSERT_TRUE(mech);
@@ -487,7 +485,7 @@ TEST(fvm_lowered, derived_mechs) {
         float times[] = {10.f, 20.f};
 
         auto decomp = partition_load_balance(rec, context);
-        simulation sim(rec, decomp, context);
+        simulation sim(rec, context, decomp);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 
@@ -518,7 +516,7 @@ TEST(fvm_lowered, null_region) {
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     auto decomp = partition_load_balance(rec, context);
-    simulation sim(rec, decomp, context);
+    simulation sim(rec, context, decomp);
     EXPECT_NO_THROW(sim.run(30.0, 1.f/1024));
 }
 
@@ -574,23 +572,26 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto cat = make_unit_test_catalogue();
 
     // one cell, one CV:
-    fvm_size_type ncell = 1;
-    fvm_size_type ncv = 1;
-    std::vector<fvm_index_type> cv_to_intdom(ncv, 0);
-    std::vector<fvm_value_type> temp(ncv, 23);
-    std::vector<fvm_value_type> diam(ncv, 1.);
-    std::vector<fvm_value_type> vinit(ncv, -65);
-    std::vector<fvm_index_type> src_to_spike = {};
+    arb_size_type ncell = 1;
+    arb_size_type ncv = 1;
+    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_value_type> temp(ncv, 23);
+    std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
     mechanism_layout layout;
     mechanism_overrides overrides;
 
     layout.weight.assign(ncv, 1.);
-    for (fvm_size_type i = 0; i<ncv; ++i) {
+    for (arb_size_type i = 0; i<ncv; ++i) {
         layout.cv.push_back(i);
         ion_config.cv.push_back(i);
     }
+    ion_config.econc_written  = true;
+    ion_config.iconc_written  = true;
+    ion_config.revpot_written = true;
     ion_config.init_revpot.assign(ncv, 0.);
     ion_config.init_econc.assign(ncv, 0.);
     ion_config.init_iconc.assign(ncv, 0.);
@@ -616,7 +617,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     read_cai_mech->initialize();
     write_cai_mech->initialize();
 
-    std::vector<fvm_value_type> expected_s_values(ncv, 2.3e-4);
+    std::vector<arb_value_type> expected_s_values(ncv, 2.3e-4);
 
     EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
 
@@ -810,10 +811,10 @@ TEST(fvm_lowered, integration_domains) {
         fvm_cell fvcell(*context);
 
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
-        std::vector<fvm_index_type> cell_to_intdom;
+        std::vector<arb_index_type> cell_to_intdom;
 
         auto num_dom = fvcell.fvm_intdom(gap_recipe_0(), gids, cell_to_intdom);
-        std::vector<fvm_index_type> expected_doms= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
+        std::vector<arb_index_type> expected_doms= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
 
         EXPECT_EQ(4u, num_dom);
         EXPECT_EQ(expected_doms, cell_to_intdom);
@@ -823,10 +824,10 @@ TEST(fvm_lowered, integration_domains) {
         fvm_cell fvcell(*context);
 
         std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
-        std::vector<fvm_index_type> cell_to_intdom;
+        std::vector<arb_index_type> cell_to_intdom;
 
         auto num_dom = fvcell.fvm_intdom(gap_recipe_1(), gids, cell_to_intdom);
-        std::vector<fvm_index_type> expected_doms= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
+        std::vector<arb_index_type> expected_doms= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
 
         EXPECT_EQ(7u, num_dom);
         EXPECT_EQ(expected_doms, cell_to_intdom);
@@ -836,10 +837,10 @@ TEST(fvm_lowered, integration_domains) {
         fvm_cell fvcell(*context);
 
         std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
-        std::vector<fvm_index_type> cell_to_intdom;
+        std::vector<arb_index_type> cell_to_intdom;
 
         auto num_dom = fvcell.fvm_intdom(gap_recipe_2(), gids, cell_to_intdom);
-        std::vector<fvm_index_type> expected_doms= {0u, 0u, 0u, 0u};
+        std::vector<arb_index_type> expected_doms= {0u, 0u, 0u, 0u};
 
         EXPECT_EQ(1u, num_dom);
         EXPECT_EQ(expected_doms, cell_to_intdom);
@@ -1013,7 +1014,7 @@ TEST(fvm_lowered, label_data) {
 
     // Check correct synapse, deterctor and gj data
     decorated_recipe rec(ncell);
-    std::vector<fvm_index_type> cell_to_intdom;
+    std::vector<arb_index_type> cell_to_intdom;
     std::vector<target_handle> targets;
     probe_association_map probe_map;
 

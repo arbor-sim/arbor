@@ -13,9 +13,9 @@ namespace arb {
 struct target_handle {
     cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
     cell_local_size_type mech_index; // instance of the mechanism
-    cell_size_type intdom_index;     // which integration domain (acts as index into e.g. vec_t)
+    cell_size_type intdom_index;     // which integration domain (acts as index into arrays)
 
-    target_handle() {}
+    target_handle() = default;
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type intdom_index):
         mech_id(mech_id), mech_index(mech_index), intdom_index(intdom_index) {}
 };
@@ -50,7 +50,7 @@ inline deliverable_event_data event_data(const deliverable_event& ev) {
 
 // Sample events (raw values from back-end state).
 
-using probe_handle = const fvm_value_type*;
+using probe_handle = const arb_value_type*;
 
 struct raw_probe_info {
     probe_handle handle;      // where the to-be-probed value sits

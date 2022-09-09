@@ -21,6 +21,7 @@ set(arbor_sources
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
     hardware/power.cpp
+    iexpr.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     label_resolution.cpp
@@ -71,6 +72,8 @@ if(ARB_WITH_GPU)
         backends/gpu/threshold_watcher.cu
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_fine.cu
+        backends/gpu/diffusion.cu
+        backends/gpu/fine.cu
         backends/gpu/matrix_solve.cu
         backends/gpu/multi_event_stream.cpp
         backends/gpu/multi_event_stream.cu
@@ -135,6 +138,11 @@ if(ARB_WITH_CUDA_CLANG)
 endif()
 
 set_target_properties(arbor PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+
+export_visibility(arbor)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

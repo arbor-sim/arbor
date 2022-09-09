@@ -3,7 +3,6 @@
 #include <vector>
 #include <iostream>
 
-#include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/place_pwlin.hpp>
@@ -16,12 +15,16 @@
 #include <arbor/util/any_ptr.hpp>
 #include <arbor/util/unique_any.hpp>
 
+#include <arborio/label_parse.hpp>
+
 using std::any;
 using arb::util::any_cast;
 using arb::util::any_ptr;
 using arb::util::unique_any;
 using arb::cell_gid_type;
 using arb::cell_member_type;
+
+using namespace arborio::literals;
 
 // Recipe represents one cable cell with one synapse, together with probes for total trans-membrane current, membrane voltage,
 // ionic current density, and synaptic conductance. A sequence of spikes are presented to the one synapse on the cell.
@@ -79,23 +82,18 @@ private:
         // Apical dendrite, length 490 μm, radius 1 μm, with SWC tag 4.
         tree.append(soma_apex, {0, 0, 10, 1},  {0, 0, 500, 1}, 4);
 
-        decor dec;
-
-        // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
-        dec.set_default(axial_resistivity{100});     // [Ω·cm]
-        dec.set_default(membrane_capacitance{0.01}); // [F/m²]
-
-        // Twenty CVs per branch on the dendrites (tag 4).
-        dec.set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)));
-
-        // Add pas and hh mechanisms:
-        dec.paint(reg::tagged(1), density("hh")); // (default parameters)
-        dec.paint(reg::tagged(4), density("pas/e=-70.0"));
-
-        // Add exponential synapse at centre of soma.
-        synapse_location_ = ls::on_components(0.5, reg::tagged(1));
-        dec.place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
-
+        synapse_location_ = "(on-components 0.5 (tag 1))"_ls;
+        auto dec = decor()
+            // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
+            .set_default(axial_resistivity{100})     // [Ω·cm]
+            .set_default(membrane_capacitance{0.01}) // [F/m²]
+            // Twenty CVs per branch on the dendrites (tag 4).
+            .set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)))
+            // Add pas and hh mechanisms:
+            .paint("(tag 1)"_reg, density("hh")) // (default parameters)
+            .paint("(tag 4)"_reg, density("pas/e=-70.0"))
+            // Add exponential synapse at centre of soma.
+            .place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
         cell_ = cable_cell(tree, {}, dec);
     }
 };
@@ -183,24 +181,22 @@ struct {
 // Run simulation.
 
 int main(int argc, char** argv) {
-    auto context = arb::make_context();
-
-    // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
-    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
-    lfp_demo_recipe R(events);
-
+    // Configuration
     const double t_stop = 100;    // [ms]
     const double sample_dt = 0.1; // [ms]
     const double dt = 0.1;        // [ms]
 
-    arb::simulation sim(R, arb::partition_load_balance(R, context), context);
+    // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
+    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
+    lfp_demo_recipe recipe(events);
+    arb::simulation sim(recipe);
 
     std::vector<position> electrodes = {
         {30, 0, 0},
         {30, 0, 100}
     };
 
-    arb::morphology cell_morphology = any_cast<arb::cable_cell>(R.get_cell_description(0)).morphology();
+    arb::morphology cell_morphology = any_cast<arb::cable_cell>(recipe.get_cell_description(0)).morphology();
     arb::place_pwlin placed_cell(cell_morphology);
 
     auto probe0_metadata = sim.get_probe_metadata(cell_member_type{0, 0});

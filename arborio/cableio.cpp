@@ -5,6 +5,8 @@
 #include <arbor/s_expr.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/iexpr.hpp>
+#include <arbor/cable_cell_param.hpp>
 
 #include <arborio/label_parse.hpp>
 #include <arborio/cableio.hpp>
@@ -17,7 +19,7 @@ namespace arborio {
 
 using namespace arb;
 
-std::string acc_version() {return "0.1-dev";}
+ARB_ARBORIO_API std::string acc_version() {return "0.1-dev";}
 
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
     arb::arbor_exception(msg+" at :"+
@@ -57,6 +59,9 @@ s_expr mksexp(const init_ext_concentration& c) {
 s_expr mksexp(const init_reversal_potential& c) {
     return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
 }
+s_expr mksexp(const ion_diffusivity& c) {
+    return slist("ion-diffusivity"_symbol, s_expr(c.ion), c.value);
+}
 s_expr mksexp(const i_clamp& c) {
     std::vector<s_expr> evlps;
     std::transform(c.envelope.begin(), c.envelope.end(), std::back_inserter(evlps),
@@ -68,7 +73,7 @@ s_expr mksexp(const threshold_detector& d) {
 }
 s_expr mksexp(const mechanism_desc& d) {
     std::vector<s_expr> mech;
-    mech.push_back(s_expr(d.name()));
+    mech.emplace_back(d.name());
     std::transform(d.values().begin(), d.values().end(), std::back_inserter(mech),
         [](const auto& x){return slist(s_expr(x.first), x.second);});
     return s_expr{"mechanism"_symbol, slist_range(mech)};
@@ -84,6 +89,20 @@ s_expr mksexp(const synapse& j) {
 }
 s_expr mksexp(const density& j) {
     return slist("density"_symbol, mksexp(j.mech));
+}
+s_expr mksexp(const iexpr& j) {
+    std::stringstream s;
+    s << j;
+    return parse_s_expr(s.str());
+}
+template <typename TaggedMech>
+s_expr mksexp(const scaled_mechanism<TaggedMech>& j) {
+    std::vector<s_expr> expressions;
+    std::transform(j.scale_expr.begin(),
+        j.scale_expr.end(),
+        std::back_inserter(expressions),
+        [](const auto& x) { return slist(s_expr(x.first), mksexp(x.second)); });
+    return s_expr{"scaled-mechanism"_symbol, s_expr{mksexp(j.t_mech), slist_range(expressions)}};
 }
 s_expr mksexp(const mpoint& p) {
     return slist("point"_symbol, p.x, p.y, p.z, p.radius);
@@ -131,6 +150,9 @@ s_expr mksexp(const label_dict& dict) {
     for (auto& r: dict.regions()) {
         defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
     }
+    for (auto& r: dict.iexpressions()) {
+        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+    }
     return {"label-dict"_symbol, std::move(defs)};
 }
 s_expr mksexp(const morphology& morph) {
@@ -144,7 +166,7 @@ s_expr mksexp(const morphology& morph) {
     };
     std::vector<s_expr> branches;
     for (msize_t i = 0; i < morph.num_branches(); ++i) {
-        branches.push_back(make_branch(i));
+        branches.emplace_back(make_branch(i));
     }
     return s_expr{"morphology"_symbol, slist_range(branches)};
 }
@@ -153,32 +175,32 @@ s_expr mksexp(const meta_data& meta) {
 }
 
 // Implement public facing s-expr writers
-std::ostream& write_component(std::ostream& o, const decor& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const decor& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_component(std::ostream& o, const label_dict& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const label_dict& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_component(std::ostream& o, const morphology& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const morphology& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
-std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
     if (m.version != acc_version()) {
         throw cableio_version_error(m.version);
     }
     auto cell = s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))};
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), cell)};
 }
-std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
+ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const cable_cell_component& x) {
     if (x.meta.version != acc_version()) {
         throw cableio_version_error(x.meta.version);
     }
@@ -201,7 +223,7 @@ using version_tuple  = std::tuple<std::string>;
 #define ARBIO_DEFINE_DOUBLE_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
 
 ARB_PP_FOREACH(ARBIO_DEFINE_SINGLE_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
-ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
+ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential, ion_diffusivity)
 
 std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::variant<envelope_tuple>>& vec) {
     std::vector<arb::i_clamp::envelope_point> envlp;
@@ -218,7 +240,7 @@ arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp
 pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude) {
     return pulse_tuple{delay, duration, amplitude};
 }
-arb::i_clamp make_i_clamp_pulse(pulse_tuple p, double freq, double phase) {
+arb::i_clamp make_i_clamp_pulse(const pulse_tuple& p, double freq, double phase) {
     return arb::i_clamp::box(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq, phase);
 }
 arb::cv_policy make_cv_policy(const cv_policy& p) {
@@ -235,10 +257,10 @@ T make_wrapped_mechanism(const arb::mechanism_desc& mech) {return T(mech);}
 // Define makers for placeable pairs, paintable pairs, defaultables and decors
 using place_tuple = std::tuple<arb::locset, arb::placeable, std::string>;
 using paint_pair = std::pair<arb::region, arb::paintable>;
-place_tuple make_place(locset where, placeable what, std::string name) {
+place_tuple make_place(const locset& where, const placeable& what, const std::string& name) {
     return place_tuple{where, what, name};
 }
-paint_pair make_paint(region where, paintable what) {
+paint_pair make_paint(const region& where, const paintable& what) {
     return paint_pair{where, what};
 }
 defaultable make_default(defaultable what) {
@@ -259,13 +281,17 @@ decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, default
 // Define maker for locset pairs, region pairs and label_dicts
 using locset_pair = std::pair<std::string, locset>;
 using region_pair = std::pair<std::string, region>;
+using iexpr_pair = std::pair<std::string, iexpr>;
 locset_pair make_locset_pair(std::string name, locset desc) {
-    return locset_pair{name, desc};
+    return locset_pair{std::move(name), std::move(desc)};
 }
 region_pair make_region_pair(std::string name, region desc) {
-    return region_pair{name, desc};
+    return region_pair{std::move(name), std::move(desc)};
 }
-label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair>>& args) {
+iexpr_pair make_iexpr_pair(std::string name, iexpr e) {
+    return iexpr_pair{std::move(name), std::move(e)};
+}
+label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pair, iexpr_pair>>& args) {
     label_dict d;
     for(const auto& a: args) {
         std::visit([&](auto&& x){d.set(x.first, x.second);}, a);
@@ -276,7 +302,7 @@ label_dict make_label_dict(const std::vector<std::variant<locset_pair, region_pa
 arb::mpoint make_point(double x, double y, double z, double r) {
     return arb::mpoint{x, y, z, r};
 }
-arb::msegment make_segment(unsigned id, arb::mpoint prox, arb::mpoint dist, int tag) {
+arb::msegment make_segment(unsigned id, const arb::mpoint& prox, const arb::mpoint& dist, int tag) {
     return arb::msegment{id, prox, dist, tag};
 }
 morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) {
@@ -328,10 +354,10 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
     }
     return cable_cell(morpho, dict, dec);
 }
-version_tuple make_version(std::string v) {
+version_tuple make_version(const std::string& v) {
     return version_tuple{v};
 }
-meta_data make_meta_data(version_tuple v) {
+meta_data make_meta_data(const version_tuple& v) {
     return meta_data{std::get<0>(v)};
 }
 template <typename T>
@@ -371,6 +397,48 @@ struct make_mech_call {
     evaluator state;
     make_mech_call(const char* msg="mechanism"):
         state(mech_eval(), mech_match(), msg)
+    {}
+    operator evaluator() const {
+        return state;
+    }
+};
+
+
+// Test whether a list of arguments passed as a std::vector<std::any> can be converted
+// to a string followed by any number of std::pair<std::string, arb::iexpr>
+template <typename TaggedMech>
+struct scaled_mechanism_match {
+    bool operator()(const std::vector<std::any>& args) const {
+        // First argument is the mech name
+        if (args.size() < 1) return false;
+        if (!match<TaggedMech>(args.front().type())) return false;
+
+        // The rest of the arguments should be tuples
+        for (auto it = args.begin()+1; it != args.end(); ++it) {
+            if (!match<std::tuple<std::string, arb::iexpr>>(it->type())) return false;
+        }
+        return true;
+    }
+};
+// Create a mechanism_desc from a std::vector<std::any>.
+template <typename TaggedMech>
+struct scaled_mechanism_eval {
+    arb::scaled_mechanism<TaggedMech> operator()(const std::vector<std::any>& args) {
+        auto d = scaled_mechanism(eval_cast<TaggedMech>(args.front()));
+
+        for (auto it = args.begin() + 1; it != args.end(); ++it) {
+            auto p = eval_cast<std::tuple<std::string, arb::iexpr>>(*it);
+            d.scale(std::move(std::get<0>(p)), std::move(std::get<1>(p)));
+        }
+        return d;
+    }
+};
+// Wrap mech_match and mech_eval in an evaluator
+template <typename TaggedMech>
+struct make_scaled_mechanism_call {
+    evaluator state;
+    make_scaled_mechanism_call(const char* msg="scaled-mechanism"):
+        state(scaled_mechanism_eval<TaggedMech>(), scaled_mechanism_match<TaggedMech>(), msg)
     {}
     operator evaluator() const {
         return state;
@@ -502,9 +570,11 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         return eval_atom<cableio_parse_error>(e);
     }
 
-    if (e.head().is_atom()) {
+    auto& hd = e.head();
+    if (hd.is_atom()) {
+        auto& atom = hd.atom();
         // If this is not a symbol, parse as a tuple
-        if (e.head().atom().kind != tok::symbol) {
+        if (atom.kind != tok::symbol) {
             auto args = eval_args(e, map, vec);
             if (!args) {
                 return util::unexpected(args.error());
@@ -535,7 +605,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         }
 
         // Find all candidate functions that match the name of the function.
-        auto& name = e.head().atom().spelling;
+        auto& name = atom.spelling;
         auto matches = map.equal_range(name);
 
         // Search for a candidate that matches the argument list.
@@ -549,6 +619,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
         if (auto l = parse_label_expression(e)) {
             if (match<region>(l->type())) return eval_cast<region>(l.value());
             if (match<locset>(l->type())) return eval_cast<locset>(l.value());
+            if (match<iexpr>(l->type())) return eval_cast<iexpr>(l.value());
         }
 
         // Or it could be a cv-policy expression
@@ -580,6 +651,8 @@ eval_map named_evals{
         "'ion_internal_concentration' with 2 arguments (ion:string val:real)")},
     {"ion-external-concentration", make_call<std::string, double>(make_init_ext_concentration,
         "'ion_external_concentration' with 2 arguments (ion:string val:real)")},
+    {"ion-diffusivity", make_call<std::string, double>(make_ion_diffusivity,
+        "'ion_diffusivity' with 2 arguments (ion:string val:real)")},
     {"ion-reversal-potential", make_call<std::string, double>(make_init_reversal_potential,
         "'ion_reversal_potential' with 2 arguments (ion:string val:real)")},
     {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
@@ -601,6 +674,8 @@ eval_map named_evals{
     {"junction", make_call<arb::mechanism_desc>(make_wrapped_mechanism<junction>, "'junction' with 1 argumnet (m: mechanism)")},
     {"synapse",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<synapse>, "'synapse' with 1 argumnet (m: mechanism)")},
     {"density",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<density>, "'density' with 1 argumnet (m: mechanism)")},
+    {"scaled-mechanism", make_scaled_mechanism_call<arb::density>("'scaled_mechanism' with a density argument, and 0 or more parameter scaling expressions"
+        "(d:density (param:string val:iexpr))")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
     {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
     {"place", make_call<locset, junction, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:junction name:string)")},
@@ -612,8 +687,10 @@ eval_map named_evals{
     {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with 2 arguments (reg:region v:axial-resistivity)")},
     {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-internal-concentration)")},
     {"paint", make_call<region, init_ext_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-external-concentration)")},
+    {"paint", make_call<region, ion_diffusivity>(make_paint, "'paint' with 2 arguments (reg:region v:ion-diffusivity)")},
     {"paint", make_call<region, init_reversal_potential>(make_paint, "'paint' with 2 arguments (reg:region v:ion-reversal-potential)")},
     {"paint", make_call<region, density>(make_paint, "'paint' with 2 arguments (reg:region v:density)")},
+    {"paint", make_call<region, scaled_mechanism<density>>(make_paint, "'paint' with 2 arguments (reg:region v:scaled-mechanism)")},
 
     {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (v:membrane-potential)")},
     {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (v:temperature-kelvin)")},
@@ -621,6 +698,7 @@ eval_map named_evals{
     {"default", make_call<axial_resistivity>(make_default, "'default' with 1 argument (v:axial-resistivity)")},
     {"default", make_call<init_int_concentration>(make_default, "'default' with 1 argument (v:ion-internal-concentration)")},
     {"default", make_call<init_ext_concentration>(make_default, "'default' with 1 argument (v:ion-external-concentration)")},
+    {"default", make_call<ion_diffusivity>(make_default, "'default' with 1 argument (v:ion-diffusivity)")},
     {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (v:ion-reversal-potential)")},
     {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (v:ion-reversal-potential-method)")},
     {"default", make_call<cv_policy>(make_default, "'default' with 1 argument (v:cv-policy)")},
@@ -629,6 +707,8 @@ eval_map named_evals{
         "'locset-def' with 2 arguments (name:string ls:locset)")},
     {"region-def", make_call<std::string, region>(make_region_pair,
         "'region-def' with 2 arguments (name:string reg:region)")},
+    {"iexpr-def", make_call<std::string, iexpr>(make_iexpr_pair,
+        "'iexpr-def' with 2 arguments (name:string e:iexpr)")},
 
     {"point",   make_call<double, double, double, double>(make_point,
          "'point' with 4 arguments (x:real y:real z:real radius:real)")},
@@ -639,8 +719,8 @@ eval_map named_evals{
 
     {"decor", make_arg_vec_call<place_tuple, paint_pair, defaultable>(make_decor,
         "'decor' with 1 or more `paint`, `place` or `default` arguments")},
-    {"label-dict", make_arg_vec_call<locset_pair, region_pair>(make_label_dict,
-        "'label-dict' with 1 or more `locset-def` or `region-def` arguments")},
+    {"label-dict", make_arg_vec_call<locset_pair, region_pair, iexpr_pair>(make_label_dict,
+        "'label-dict' with 1 or more `locset-def` or `region-def` or `iexpr-def` arguments")},
     {"morphology", make_arg_vec_call<branch_tuple>(make_morphology,
         "'morphology' 1 or more `branch` arguments")},
 
@@ -658,19 +738,20 @@ eval_map named_evals{
 
 eval_vec unnamed_evals{
     make_call<std::string, double>(std::make_tuple<std::string, double>, "tuple<std::string, double>"),
-    make_call<double, double>(std::make_tuple<double, double>, "tuple<double, double>")
+    make_call<double, double>(std::make_tuple<double, double>, "tuple<double, double>"),
+    make_call<std::string, arb::iexpr>(std::make_tuple<std::string, arb::iexpr>, "tuple<std::string, arb::iexpr>"),
 };
 
 inline parse_hopefully<std::any> parse(const arb::s_expr& s) {
-    return eval(std::move(s), named_evals, unnamed_evals);
+    return eval(s, named_evals, unnamed_evals);
 }
 
-parse_hopefully<std::any> parse_expression(const std::string& s) {
+ARB_ARBORIO_API parse_hopefully<std::any> parse_expression(const std::string& s) {
     return parse(parse_s_expr(s));
 }
 
 // Read s-expr
-parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
+ARB_ARBORIO_API parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     auto sexp = parse_s_expr(s);
     auto try_parse = parse(sexp);
     if (!try_parse) {
@@ -686,7 +767,7 @@ parse_hopefully<cable_cell_component> parse_component(const std::string& s) {
     return comp;
 };
 
-parse_hopefully<cable_cell_component> parse_component(std::istream& s) {
+ARB_ARBORIO_API parse_hopefully<cable_cell_component> parse_component(std::istream& s) {
     return parse_component(std::string(std::istreambuf_iterator<char>(s), {}));
 }
 } // namespace arborio

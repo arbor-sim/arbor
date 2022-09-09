@@ -35,9 +35,9 @@ using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
 
-constexpr unsigned vector_length = (unsigned) simd::simd_abi::native_width<fvm_value_type>::value;
-using simd_value_type = simd::simd<fvm_value_type, vector_length, simd::simd_abi::default_abi>;
-using simd_index_type = simd::simd<fvm_index_type, vector_length, simd::simd_abi::default_abi>;
+constexpr unsigned vector_length = (unsigned) simd::simd_abi::native_width<arb_value_type>::value;
+using simd_value_type = simd::simd<arb_value_type, vector_length, simd::simd_abi::default_abi>;
+using simd_index_type = simd::simd<arb_index_type, vector_length, simd::simd_abi::default_abi>;
 const int simd_width  = simd::width<simd_value_type>();
 
 // Pick alignment compatible with native SIMD width for explicitly
@@ -47,7 +47,7 @@ const int simd_width  = simd::width<simd_value_type>();
 // these up to the compiler to optimize/auto-vectorize.
 
 inline unsigned min_alignment(unsigned align) {
-    unsigned simd_align = sizeof(fvm_value_type)*simd_width;
+    unsigned simd_align = sizeof(arb_value_type)*simd_width;
     return math::next_pow2(std::max(align, simd_align));
 }
 
@@ -56,21 +56,26 @@ using pad = util::padded_allocator<>;
 ion_state::ion_state(
     int charge,
     const fvm_ion_config& ion_data,
-    unsigned align
-):
+    unsigned align,
+    solver_ptr ptr):
     alignment(min_alignment(align)),
+    write_eX_(ion_data.revpot_written),
+    write_Xo_(ion_data.econc_written),
+    write_Xi_(ion_data.iconc_written),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    Xi_(ion_data.cv.size(), NAN, pad(alignment)),
-    Xo_(ion_data.cv.size(), NAN, pad(alignment)),
+    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
+    Xd_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
+    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
+    gX_(ion_data.cv.size(), NAN, pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
     init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
     init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    charge(1u, charge, pad(alignment))
-{
+    charge(1u, charge, pad(alignment)),
+    solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
     arb_assert(node_index_.size()==eX_.size());
@@ -78,19 +83,22 @@ ion_state::ion_state(
 }
 
 void ion_state::init_concentration() {
-    std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
-    std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
+    // NB. not resetting Xd here, it's controlled via the solver.
+    if (write_Xi_) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
+    if (write_Xo_) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
 
 void ion_state::zero_current() {
+    util::fill(gX_, 0);
     util::fill(iX_, 0);
 }
 
 void ion_state::reset() {
     zero_current();
-    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
-    std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
-    std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
+    if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
+    if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
+    if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
 }
 
 // istim_state methods:
@@ -108,8 +116,8 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
     accu_stim_.resize(accu_to_cv_.size());
 
     std::size_t n = accu_index_.size();
-    std::vector<fvm_value_type> envl_a, envl_t;
-    std::vector<fvm_index_type> edivs;
+    std::vector<arb_value_type> envl_a, envl_t;
+    std::vector<arb_index_type> edivs;
 
     arb_assert(n==frequency_.size());
     arb_assert(n==stim.envelope_time.size());
@@ -124,7 +132,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
 
         util::append(envl_a, stim.envelope_amplitude[i]);
         util::append(envl_t, stim.envelope_time[i]);
-        edivs.push_back(fvm_index_type(envl_t.size()));
+        edivs.push_back(arb_index_type(envl_t.size()));
     }
 
     assign(envl_amplitudes_, envl_a);
@@ -153,16 +161,16 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
         // - the next envelope time is greater than simulation time, or
         // - it is the last valid index for the envelope.
 
-        fvm_index_type ei_left = envl_divs_[i];
-        fvm_index_type ei_right = envl_divs_[i+1];
+        arb_index_type ei_left = envl_divs_[i];
+        arb_index_type ei_right = envl_divs_[i+1];
 
-        fvm_index_type ai = accu_index_[i];
-        fvm_index_type cv = accu_to_cv_[ai];
+        arb_index_type ai = accu_index_[i];
+        arb_index_type cv = accu_to_cv_[ai];
         double t = time[cv_to_intdom[cv]];
 
         if (ei_left==ei_right || t<envl_times_[ei_left]) continue;
 
-        fvm_index_type& ei = envl_index_[i];
+        arb_index_type& ei = envl_index_[i];
         while (ei+1<ei_right && envl_times_[ei+1]<=t) ++ei;
 
         double J = envl_amplitudes_[ei]; // current density (A/m²)
@@ -186,15 +194,15 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 // shared_state methods:
 
 shared_state::shared_state(
-    fvm_size_type n_intdom,
-    fvm_size_type n_cell,
-    fvm_size_type n_detector,
-    const std::vector<fvm_index_type>& cv_to_intdom_vec,
-    const std::vector<fvm_index_type>& cv_to_cell_vec,
-    const std::vector<fvm_value_type>& init_membrane_potential,
-    const std::vector<fvm_value_type>& temperature_K,
-    const std::vector<fvm_value_type>& diam,
-    const std::vector<fvm_index_type>& src_to_spike,
+    arb_size_type n_intdom,
+    arb_size_type n_cell,
+    arb_size_type n_detector,
+    const std::vector<arb_index_type>& cv_to_intdom_vec,
+    const std::vector<arb_index_type>& cv_to_cell_vec,
+    const std::vector<arb_value_type>& init_membrane_potential,
+    const std::vector<arb_value_type>& temperature_K,
+    const std::vector<arb_value_type>& diam,
+    const std::vector<arb_index_type>& src_to_spike,
     unsigned align
 ):
     alignment(min_alignment(align)),
@@ -218,8 +226,6 @@ shared_state::shared_state(
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     deliverable_events(n_intdom)
 {
-    time_ptr = time.data();
-
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
@@ -236,14 +242,33 @@ shared_state::shared_state(
     }
 }
 
+void shared_state::integrate_voltage() {
+    solver.assemble(dt_intdom, voltage, current_density, conductivity);
+    solver.solve(voltage);
+}
+
+void shared_state::integrate_diffusion() {
+    for (auto& [ion, data]: ion_data) {
+        if (data.solver) {
+            data.solver->assemble(dt_intdom,
+                                  data.Xd_,
+                                  voltage,
+                                  data.iX_,
+                                  data.gX_,
+                                  data.charge[0]);
+            data.solver->solve(data.Xd_);
+        }
+    }
+}
+
 void shared_state::add_ion(
     const std::string& ion_name,
     int charge,
-    const fvm_ion_config& ion_info)
-{
+    const fvm_ion_config& ion_info,
+    ion_state::solver_ptr ptr) {
     ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(ion_name),
-        std::forward_as_tuple(charge, ion_info, alignment));
+                     std::forward_as_tuple(ion_name),
+                     std::forward_as_tuple(charge, ion_info, alignment, std::move(ptr)));
 }
 
 void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
@@ -280,12 +305,12 @@ void shared_state::ions_init_concentration() {
     }
 }
 
-void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
+void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     using simd::assign;
     using simd::indirect;
     using simd::add;
     using simd::min;
-    for (fvm_size_type i = 0; i<n_intdom; i+=simd_width) {
+    for (arb_size_type i = 0; i<n_intdom; i+=simd_width) {
         simd_value_type t;
         assign(t, indirect(time.data()+i, simd_width));
         t = min(add(t, dt_step), tmax);
@@ -297,7 +322,7 @@ void shared_state::set_dt() {
     using simd::assign;
     using simd::indirect;
     using simd::sub;
-    for (fvm_size_type j = 0; j<n_intdom; j+=simd_width) {
+    for (arb_size_type j = 0; j<n_intdom; j+=simd_width) {
         simd_value_type t, t_to;
         assign(t, indirect(time.data()+j, simd_width));
         assign(t_to, indirect(time_to.data()+j, simd_width));
@@ -306,7 +331,7 @@ void shared_state::set_dt() {
         indirect(dt_intdom.data()+j, simd_width) = dt;
     }
 
-    for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
+    for (arb_size_type i = 0; i<n_cv; i+=simd_width) {
         simd_index_type intdom_idx;
         assign(intdom_idx, indirect(cv_to_intdom.data()+i, simd_width));
 
@@ -320,11 +345,11 @@ void shared_state::add_stimulus_current() {
      stim_data.add_current(time, cv_to_intdom, current_density);
 }
 
-std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
+std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
     return util::minmax_value(time);
 }
 
-std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
+std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return util::minmax_value(voltage);
 }
 
@@ -333,7 +358,7 @@ void shared_state::take_samples(
     array& sample_time,
     array& sample_value)
 {
-    for (fvm_size_type i = 0; i<s.n_streams(); ++i) {
+    for (arb_size_type i = 0; i<s.n_streams(); ++i) {
         auto begin = s.begin_marked(i);
         auto end = s.end_marked(i);
 
@@ -347,7 +372,7 @@ void shared_state::take_samples(
 }
 
 // (Debug interface only.)
-std::ostream& operator<<(std::ostream& out, const shared_state& s) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
 
     out << "n_intdom     " << s.n_intdom << "\n";
@@ -466,9 +491,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    // Set internal variables
-    m.time_ptr_ptr   = &time_ptr;
-
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
     m.ppack_.width            = pos_data.cv.size();
@@ -484,7 +506,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
     m.ppack_.events           = {};
-    m.ppack_.vec_t            = nullptr;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
@@ -501,9 +522,18 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-        ion_state* oion = ptr_by_key(ion_data, ion_binding);
+        auto* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
-        m.ppack_.ion_states[idx] = { oion->iX_.data(), oion->eX_.data(), oion->Xi_.data(), oion->Xo_.data(), oion->charge.data() };
+
+        auto& ion_state = m.ppack_.ion_states[idx];
+        ion_state = {0};
+        ion_state.current_density         = oion->iX_.data();
+        ion_state.reversal_potential      = oion->eX_.data();
+        ion_state.internal_concentration  = oion->Xi_.data();
+        ion_state.external_concentration  = oion->Xo_.data();
+        ion_state.diffusive_concentration = oion->Xd_.data();
+        ion_state.ionic_charge            = oion->charge.data();
+        ion_state.conductivity            = oion->gX_.data();
     }
 
     // Initialize state and parameter vectors with default values.

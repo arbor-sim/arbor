@@ -39,7 +39,6 @@ quantities and their expected units.
 quantity                                         identifier                                           unit
 ===============================================  ===================================================  ==========
 voltage                                          v / v_peer                                           mV
-time                                             t                                                    ms
 temperature                                      celsius                                              °C
 diameter (cross-sectional)                       diam                                                 µm
 
@@ -56,6 +55,7 @@ ion X current (point and junction mechanisms)    iX                             
 ion X reversal potential                         eX                                                   mV
 ion X internal concentration                     Xi                                                   mmol/L
 ion X external concentration                     Xo                                                   mmol/L
+ion X diffusive concentration                    Xd                                                   mmol/L
 ===============================================  ===================================================  ==========
 
 Ions
@@ -72,26 +72,35 @@ Ions
   ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
 * ``READ`` and ``WRITE`` permissions of ``Xi``, ``Xo``, ``eX`` and ``iX`` can be set
   in NMODL in the ``NEURON`` block. If a parameter is writable it is automatically
-  readable and doesn't need to be specified as both.
-* If ``Xi``, ``Xo``, ``eX``, ``iX`` are used in a ``PROCEDURE`` or ``FUNCTION``,
+  readable and must not be specified as both.
+* If ``Xi``, ``Xo``, ``eX``, ``iX``, ``Xd`` are used in a ``PROCEDURE`` or ``FUNCTION``,
   they need to be passed as arguments.
 * If ``Xi`` or ``Xo`` (internal and external concentrations) are written in the
-  NMODL mechanism they need to be declared as ``STATE`` variables and their initial
-  values have to be set in the ``INITIAL`` block in the mechanism.
+  NMODL mechanism they need to be declared as ``STATE`` variables and their
+  initial values have to be set in the ``INITIAL`` block in the mechanism. This
+  transfers **all** responsibility for handling ``Xi`` / ``Xo`` to the mechanism
+  and will lead to painted initial values to be ignored. If these quantities are
+  not made ``STATE`` they may be written to, but their values will be reset to
+  their initial values every time step.
+* The diffusive concentration ``Xd`` does not share this semantics. It will not
+  be reset, even if not in ``STATE``, and may freely be written. This comes at the
+  cost of awkward treatment of ODEs for ``Xd``, see the included ``decay.mod`` for
+  an example.
+* ``Xd`` is present on all cables iff its associated diffusivity is set to a
+  non-zero value.
 
 Special variables
 -----------------
 
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
-  These include ``v``, ``diam``, ``celsius`` and ``t`` in addition to the previously
+  These include ``v``, ``diam``, and ``celsius`` in addition to the previously
   mentioned ion parameters.
 * These special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
   ``PARAMETER``. This is different from NEURON where a built-in variable is
   declared ``ASSIGNED`` to make it accessible.
 * ``diam`` and ``celsius`` are set from the simulation side.
 * ``v`` is a reserved variable name and can be read but not written in NMODL.
-* ``dt`` is not exposed to NMODL mechanisms.
-* ``area`` is not exposed to NMODL mechanisms.
+* ``dt``, ``time``, and ``area`` are not exposed to NMODL mechanisms.
 * ``NONSPECIFIC_CURRENTS`` should not be ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
   They just need to be declared in the NEURON block.
 
@@ -111,7 +120,8 @@ Unsupported features
   units, which are just ignored).
 * Unit declaration is not supported (ex: ``FARADAY = (faraday)  (10000 coulomb)``).
   They can be replaced by declaring them and setting their values in ``CONSTANT``.
-* ``FROM`` - ``TO`` clamping of variables is not supported. The tokens are parsed and ignored.
+* ``FROM`` - ``TO`` clamping of variables is not supported. The tokens are
+  parsed, and reported through the ``mechanism_info``, but otherwise ignored.
   However, ``CONSERVE`` statements are supported.
 * ``TABLE`` is not supported, calculations are exact.
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
@@ -122,6 +132,10 @@ Unsupported features
 Arbor-specific features
 -----------------------
 
+* It is required to explicitly pass 'magic' variables like ``v`` into procedures.
+  It makes things more explicit by eliding shared and implicit global state. However, 
+  this is only partially true, as having `PARAMETER v` brings it into scope, *but only* 
+  in `BREAKPOINT`.
 * Arbor's NMODL dialect supports the most widely used features of NEURON. It also
   has some features unavailable in NEURON such as the ``POST_EVENT`` procedure block.
   This procedure has a single argument representing the time since the last spike on
@@ -186,8 +200,170 @@ modifying the reversal potential (for example ``nernst``) can only be applied (f
 at a global level on a given cell. While in Neuron, different mechanisms can be used for
 calculating the reversal potential of an ion on different parts of the morphology.
 This is due to the different methods Arbor and NEURON use for discretising the morphology.
-(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section``can only
+(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section`` can only
 contain full ``segments``).
 
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
 as it can lead to vastly different model behavior.
+
+Tips for Faster NMODL
+---------------------
+
+.. Note::
+  If you are looking for help with NMODL in the context of NEURON this guide might not help.
+
+NMODL is a language without formal specification and many unexpected
+characteristics (many of which are not supported in Arbor), which results in
+existing NMODL files being treated as difficult to understand and best left
+as-is. This in turn leads to sub-optimal performance, especially since
+mechanisms take up a large amount of the simulations' runtime budget. With some
+understanding of the subject matter, however, it is quite straightforward to
+obtain clean and performant NMODL files. We regularly have seen speed-ups
+factors of roughly three from optimising NMODL.
+
+First, let us discuss how NMODL becomes part of an Arbor simulation. NMODL
+mechanisms are given in ``.mod`` files, whose layout and syntax has been
+discussed above. These are compiled by ``modcc`` into a series of callbacks as
+specified by the :ref:`mechanism_abi`. These operate on data held in Arbor's
+internal storage. But, ``modcc`` does not generate machine code, it goes through
+C++ (and/or CUDA) as an intermediary which is processed by a standard C++
+compiler like GCC (or nvcc) to produce either a shared object (for external
+catalogues) and code directly linked into Arbor (the built-in catalogues).
+
+Now, we turn to a series of tips we found helpful in producing fast NMODL
+mechanisms. In terms of performance of variable declaration, the hierarchy is
+from slowest to fastest:
+
+1. ``RANGE ASSIGNED`` -- mutable array
+2. ``RANGE PARAMETER`` -- configurable array
+3. ``ASSIGNED`` -- mutable
+4. ``PARAMETER`` -- configurable
+5. ``CONSTANT`` -- inlined constant
+
+
+``RANGE``
+~~~~~~~~~
+
+Parameters and ``ASSIGNED`` variables marked as ``RANGE`` will be stored as an
+array with one entry per CV in Arbor. Reading and writing these incurs a memory
+access and thus affects cache and memory utilisation metrics. It is often more
+efficient to use ``LOCAL`` variables instead, even if that means foregoing the
+ability to re-use a computed value. Compute is so much faster than memory on
+modern hardware that re-use at the expense of memory accesses is seldom
+profitable, except for the most complex terms. ``LOCAL`` variables become just
+that in the generated code: a local variable that is likely residing in a
+register and used only as long as needed.
+
+``PROCEDURE``
+~~~~~~~~~~~~~
+
+Prefer ``FUNCTION`` over ``PROCEDURE``. The latter *require* ``ASSIGNED RANGE``
+variables to return values and thus stress the memory system, which, as noted
+above, is not most efficient on current hardware. Also, they may not be inlined,
+as opposed to a ``FUNCTION``.
+
+``PARAMETER``
+~~~~~~~~~~~~~
+
+``PARAMETER`` should only be used for values that must be set by the simulator.
+All fixed values should be ``CONSTANT`` instead. These will be inlined by
+``modcc`` and propagated through the computations which can uncover more
+optimisation potential.
+
+Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is often done using a ``PROCEDURE``, which we now know is inefficient. On top,
+this ``PROCEDURE`` will likely compute more outputs than strictly needed to
+accomodate both blocks. DRY code is a good idea nevertheless, so use a series of
+``FUNCTION`` instead to compute common expressions.
+
+This leads naturally to a common optimisation in H-H style ion channels. If you
+heeded the advice above, you will likely see this patter emerge:
+
+.. code::
+
+   na   = n_alpha()
+   nb   = n_beta()
+   ntau = 1/(na + nb)
+   ninf = na*ntau
+
+   n' = (ninf - n)/ntau
+
+Written out in this explicit way it becomes obvious that this can be expressed
+compactly as
+
+.. code::
+
+   na   = n_alpha()
+   nb   = n_beta()
+   nrho = na + nb
+
+   n' = na - n*nrho
+
+The latter code is faster, but neither ``modcc`` nor the external C++ compiler
+will perform this optimisation [#]_. This is less easy to
+see when partially hidden in a ``PROCEDURE``.
+
+.. [#] GCC/Clang *might* attempt it if asked to relax floating point accuracy
+       with ``-ffast-math`` or ``-Ofast``. However, Arbor refrains from using
+       this option when compiling mechanism code.
+
+Complex Expressions in Current Computation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``modcc``, Arbor's NMODL compiler, applies symbolic differentiation to the
+current expression to find the conductance as ``g = d I/d U`` which are then
+used to compute the voltage update. ``g`` is thus computed multiple times every
+timestep and if the corresponding expression is inefficient, it will cost more
+time than needed. The differentiation implementation quite naive and will not
+optimise the resulting expressions. This is an internal detail of Arbor and
+might change in the future, but for now this particular optimisation can help to
+produce better performing code. Here is an example
+
+.. code::
+
+  : BAD, will compute m^4 * h every step
+  i = m^4 * h * (v - e)
+
+  : GOOD, will just use a constant value of g
+  LOCAL g
+  g = m^4 * h
+  i = g * (v - e)
+
+Note that we do not lose accuracy here, since Arbor does not support
+higher-order ODEs and thus will treat ``g`` as a constant across
+a single timestep even if ``g`` actually depends on ``v``.
+
+Specialised Functions
+~~~~~~~~~~~~~~~~~~~~~
+
+Another common pattern is the use of a guarded exponential of the form
+
+.. code::
+
+   if (x != 1) {
+     r = x*exp(1 - x)
+   } else {
+     r = x
+   }
+
+This incurs some extra cost on most platforms. However, it can be written in
+Arbor's NMODL dialect as
+
+.. code::
+
+   exprelr(x)
+
+which is more efficient and has the same guarantees. NMODL files originating
+from NEURON often use this or related functions, e.g. ``vtrap(x, y) =
+y*exprelr(x/y)``.
+
+Small Tips and Micro-Optimisations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Divisions cost a bit more than multiplications and additions.
+- ``m * m`` is more efficient than ``m^2``. This holds for higher powers as well
+  and if you want to squeeze out the utmost of performance use
+  exponentiation-by-squaring. (Although GCC does this for you. Most of the
+  time.)

@@ -4,7 +4,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   include(FindPythonModule) # required for find_python_module
 
   # Set up pybind11 as an external project.
-  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
+  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/ext/pybind11")
   check_git_submodule(pybind11 "${pb11_src_dir}")
 
   if(NOT pybind11_avail)
@@ -14,7 +14,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # Set up pybind11, which is used to generate Python bindings.
   # Pybind11 has good cmake support, so just add the pybind11 directory,
   # instead of using find_package.
-  add_subdirectory(pybind11)
+  add_subdirectory(${pb11_src_dir} pybind11)
 else()
   find_package(pybind11 REQUIRED)
 endif()
@@ -38,6 +38,7 @@ set(pyarb_source
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
+    env.cpp
 )
 
 # compile the pyarb sources into an object library that will be
@@ -85,8 +86,7 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 
 execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -c
-    "import sys,sysconfig;pfx=sys.stdin.read();print(sysconfig.get_path('platlib',vars={} if pfx=='' else {'base':pfx,'platbase':pfx}))"
+    COMMAND ${PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/where.py"
     INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
     OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
     OUTPUT_STRIP_TRAILING_WHITESPACE)

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <arbor/export.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/pp_util.hpp>
 
@@ -236,7 +237,7 @@ distributed_context_handle make_local_context() {
     return std::make_shared<distributed_context>();
 }
 
-distributed_context_handle make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_rank);
+ARB_ARBOR_API distributed_context_handle make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_rank);
 
 // MPI context creation functions only provided if built with MPI support.
 template <typename MPICommType>

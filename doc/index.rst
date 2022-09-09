@@ -1,10 +1,19 @@
 Arbor
 =====
 
-|testbadge| |zlatest|
+|ci| |hpcci| |pythonwheels| |zlatest| |gitter|
 
-.. |testbadge| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
+.. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
+
+.. |hpcci| image:: https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg
+    :target: https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master
+
+.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml
+
+.. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
+    :target: https://gitter.im/arbor-sim/community
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
@@ -27,8 +36,9 @@ Documentation organisation
 
 * :ref:`tutorial` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
-* The API section details our :ref:`pyoverview` and :ref:`cppoverview` API. :ref:`internals-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, etc.
-* Contributions to Arbor are very welcome! Under :ref:`contribindex` describe conventions and procedures for all kinds of contributions.
+* The API section details our :ref:`pyoverview` and :ref:`cppoverview` API. The :ref:`dev-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, and other information that is relevant to understanding the inner workings of Arbor and the mathematical foundations underpinning the engine.
+* :ref:`modelling-overview` is a collection of best practices and experiences collected from the Arbor modelling community, meant to spread information on how to solve common modelling questions in Arbor.
+* Contributions to Arbor are very welcome! Under :ref:`contribindex` you'll find the conventions and procedures for all kinds of contributions.
 
 Citing Arbor
 ------------
@@ -37,6 +47,9 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 
 Latest version
     |zlatest|
+
+Version 0.7
+    |z07|
 
 Version 0.6
     |z06|
@@ -67,6 +80,9 @@ Cite (Bibtex format)
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
 
+.. |z07| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6865725.svg
+    :target: https://doi.org/10.5281/zenodo.6865725
+    
 .. |z06| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910151.svg
     :target: https://doi.org/10.5281/zenodo.5910151
 
@@ -99,6 +115,7 @@ A full list of our software attributions can be found `here <https://github.com/
 
    install/index
    tutorial/index
+   ecosystem/index
 
 .. toctree::
    :caption: Concepts:
@@ -138,7 +155,7 @@ A full list of our software attributions can be found `here <https://github.com/
 
    python/index
    cpp/index
-   internals/index
+   dev/index
 
 .. toctree::
    :caption: Contributing:
@@ -151,6 +168,7 @@ A full list of our software attributions can be found `here <https://github.com/
    contrib/example
    contrib/test
    contrib/release
+   contrib/dependency-management
 
 .. meta::
    :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo

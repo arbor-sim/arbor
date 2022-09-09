@@ -18,20 +18,20 @@ class mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
 struct ion_state_view {
-    fvm_value_type* current_density;
-    fvm_value_type* reversal_potential;
-    fvm_value_type* internal_concentration;
-    fvm_value_type* external_concentration;
-    fvm_value_type* ionic_charge;
+    arb_value_type* current_density;
+    arb_value_type* reversal_potential;
+    arb_value_type* internal_concentration;
+    arb_value_type* external_concentration;
+    arb_value_type* ionic_charge;
 };
 
 class mechanism {
 public:
-    using value_type = fvm_value_type;
-    using index_type = fvm_index_type;
-    using size_type  = fvm_size_type;
+    using value_type = arb_value_type;
+    using index_type = arb_index_type;
+    using size_type  = arb_size_type;
 
-    mechanism(const arb_mechanism_type m,
+    mechanism(const arb_mechanism_type& m,
               const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
         state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
@@ -58,12 +58,12 @@ public:
     mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
     // Forward to interface methods
-    void initialize()     { ppack_.vec_t = *time_ptr_ptr; iface_.init_mechanism(&ppack_); }
-    void update_current() { prof_enter(current_prof_id); ppack_.vec_t = *time_ptr_ptr; iface_.compute_currents(&ppack_); prof_exit(); }
-    void update_state()   { prof_enter(state_prof_id);   ppack_.vec_t = *time_ptr_ptr; iface_.advance_state(&ppack_);    prof_exit(); }
-    void update_ions()    { ppack_.vec_t = *time_ptr_ptr; iface_.write_ions(&ppack_); }
-    void post_event()     { ppack_.vec_t = *time_ptr_ptr; iface_.post_event(&ppack_); }
-    void deliver_events(arb_deliverable_event_stream& stream) { ppack_.vec_t  = *time_ptr_ptr; iface_.apply_events(&ppack_, &stream); }
+    void initialize()     { iface_.init_mechanism(&ppack_); }
+    void update_current() { prof_enter(current_prof_id); iface_.compute_currents(&ppack_); prof_exit(); }
+    void update_state()   { prof_enter(state_prof_id);   iface_.advance_state(&ppack_);    prof_exit(); }
+    void update_ions()    { iface_.write_ions(&ppack_); }
+    void post_event()     { iface_.post_event(&ppack_); }
+    void deliver_events(arb_deliverable_event_stream& stream) { iface_.apply_events(&ppack_, &stream); }
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
@@ -71,7 +71,6 @@ public:
     arb_mechanism_type  mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
-    arb_value_type** time_ptr_ptr = nullptr;
 
 private:
 #ifdef ARB_PROFILE_ENABLED
@@ -91,21 +90,21 @@ private:
 
 struct mechanism_layout {
     // Maps in-instance index to CV index.
-    std::vector<fvm_index_type> cv;
+    std::vector<arb_index_type> cv;
 
     // Maps in-instance index to peer CV index (only for gap-junctions).
-    std::vector<fvm_index_type> peer_cv;
+    std::vector<arb_index_type> peer_cv;
 
     // Maps in-instance index to compartment contribution.
-    std::vector<fvm_value_type> weight;
+    std::vector<arb_value_type> weight;
 
     // Number of logical point processes at in-instance index;
     // if empty, point processes are not coalesced and all multipliers are 1.
-    std::vector<fvm_index_type> multiplicity;
+    std::vector<arb_index_type> multiplicity;
 };
 
 struct mechanism_overrides {
-    // Global scalar parameters (any value down-conversion to fvm_value_type is the
+    // Global scalar parameters (any value down-conversion to arb_value_type is the
     // responsibility of the mechanism).
     std::unordered_map<std::string, double> globals;
 

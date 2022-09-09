@@ -1147,7 +1147,7 @@ void CompartmentExpression::accept(Visitor *v) {
     v->visit(this);
 }
 
-expression_ptr unary_expression( Location loc,
+ARB_LIBMODCC_API expression_ptr unary_expression( Location loc,
                                  tok op,
                                  expression_ptr&& e
                                )
@@ -1178,7 +1178,7 @@ expression_ptr unary_expression( Location loc,
     return nullptr;
 }
 
-expression_ptr binary_expression( tok op,
+ARB_LIBMODCC_API expression_ptr binary_expression( tok op,
                                   expression_ptr&& lhs,
                                   expression_ptr&& rhs
                                 )
@@ -1186,7 +1186,7 @@ expression_ptr binary_expression( tok op,
     return binary_expression(Location(), op, std::move(lhs), std::move(rhs));
 }
 
-expression_ptr binary_expression(Location loc,
+ARB_LIBMODCC_API expression_ptr binary_expression(Location loc,
                                  tok op,
                                  expression_ptr&& lhs,
                                  expression_ptr&& rhs

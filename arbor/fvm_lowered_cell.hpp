@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -27,8 +28,8 @@ namespace arb {
 
 struct fvm_integration_result {
     util::range<const threshold_crossing*> crossings;
-    util::range<const fvm_value_type*> sample_time;
-    util::range<const fvm_value_type*> sample_value;
+    util::range<const arb_value_type*> sample_time;
+    util::range<const arb_value_type*> sample_value;
 };
 
 // A sample for a probe may be derived from multiple 'raw' sampled
@@ -187,15 +188,15 @@ struct probe_association_map {
         return data.size();
     }
 
-    // Return range of fvm_probe_data values associated with probe_id.
-    auto data_on(cell_member_type probe_id) const {
-        return util::transform_view(util::make_range(data.equal_range(probe_id)), util::second);
+    // Return range of fvm_probe_data values associated with probeset_id.
+    auto data_on(cell_member_type probeset_id) const {
+        return util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second);
     }
 };
 
 struct fvm_initialization_data {
     // Map from gid to integration domain id
-    std::vector<fvm_index_type> cell_to_intdom;
+    std::vector<arb_index_type> cell_to_intdom;
 
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles;
@@ -209,8 +210,8 @@ struct fvm_initialization_data {
     cell_label_range gap_junction_data;
 
     // Maps storing number of sources/targets per cell.
-    std::unordered_map<cell_gid_type, fvm_size_type> num_sources;
-    std::unordered_map<cell_gid_type, fvm_size_type> num_targets;
+    std::unordered_map<cell_gid_type, arb_size_type> num_sources;
+    std::unordered_map<cell_gid_type, arb_size_type> num_targets;
 };
 
 // Common base class for FVM implementation on host or gpu back-end.
@@ -223,18 +224,18 @@ struct fvm_lowered_cell {
         const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(
-        fvm_value_type tfinal,
-        fvm_value_type max_dt,
+        arb_value_type tfinal,
+        arb_value_type max_dt,
         std::vector<deliverable_event> staged_events,
         std::vector<sample_event> staged_samples) = 0;
 
-    virtual fvm_value_type time() const = 0;
+    virtual arb_value_type time() const = 0;
 
     virtual ~fvm_lowered_cell() {}
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx);
+ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx);
 
 } // namespace arb

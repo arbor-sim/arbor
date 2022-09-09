@@ -24,17 +24,17 @@ namespace kernel {
 __global__
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* __restrict__ const cv_to_intdom,
-    const fvm_value_type* __restrict__ const t_after,
-    const fvm_value_type* __restrict__ const t_before,
-    const fvm_index_type* __restrict__ const src_to_spike,
-    fvm_value_type* __restrict__ const time_since_spike,
+    const arb_index_type* __restrict__ const cv_to_intdom,
+    const arb_value_type* __restrict__ const t_after,
+    const arb_value_type* __restrict__ const t_before,
+    const arb_index_type* __restrict__ const src_to_spike,
+    arb_value_type* __restrict__ const time_since_spike,
     stack_storage<threshold_crossing>& stack,
-    fvm_index_type* __restrict__ const is_crossed,
-    fvm_value_type* __restrict__ const prev_values,
-    const fvm_index_type* __restrict__ const cv_index,
-    const fvm_value_type* __restrict__ const values,
-    const fvm_value_type* __restrict__ const thresholds,
+    arb_index_type* __restrict__ const is_crossed,
+    arb_value_type* __restrict__ const prev_values,
+    const arb_index_type* __restrict__ const cv_index,
+    const arb_value_type* __restrict__ const values,
+    const arb_value_type* __restrict__ const thresholds,
     bool record_time_since_spike)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
@@ -46,10 +46,10 @@ void test_thresholds_impl(
         // Test for threshold crossing
         const auto cv     = cv_index[i];
         const auto intdom = cv_to_intdom[cv];
-        const auto v_prev = prev_values[i];
+        const auto v_prev = prev_values[cv];
         const auto v      = values[cv];
         const auto thresh = thresholds[i];
-        fvm_index_type spike_idx = 0;
+        arb_index_type spike_idx = 0;
 
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
         if (record_time_since_spike) {
@@ -75,21 +75,21 @@ void test_thresholds_impl(
             is_crossed[i]=0;
         }
 
-        prev_values[i] = v;
+        prev_values[cv] = v;
     }
 
     if (crossed) {
-        push_back(stack, {fvm_size_type(i), crossing_time});
+        push_back(stack, {arb_size_type(i), crossing_time});
     }
 }
 
 __global__
 extern void reset_crossed_impl(
     int size,
-    fvm_index_type* __restrict__ const is_crossed,
-    const fvm_index_type* __restrict__ const cv_index,
-    const fvm_value_type* __restrict__ const values,
-    const fvm_value_type* __restrict__ const thresholds)
+    arb_index_type* __restrict__ const is_crossed,
+    const arb_index_type* __restrict__ const cv_index,
+    const arb_value_type* __restrict__ const values,
+    const arb_value_type* __restrict__ const thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
     if (i<size) {
@@ -101,10 +101,10 @@ extern void reset_crossed_impl(
 
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
-    const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
-    fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    const arb_index_type* cv_to_intdom, const arb_value_type* t_after, const arb_value_type* t_before,
+    const arb_index_type* src_to_spike, arb_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
+    arb_index_type* is_crossed, arb_value_type* prev_values,
+    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds,
     bool record_time_since_spike)
 {
     if (size>0) {
@@ -117,8 +117,8 @@ void test_thresholds_impl(
 }
 
 void reset_crossed_impl(
-    int size, fvm_index_type* is_crossed,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+    int size, arb_index_type* is_crossed,
+    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds)
 {
     if (size>0) {
         constexpr int block_dim = 128;

@@ -13,6 +13,7 @@
 
 #include <arborio/label_parse.hpp>
 
+#include <arbor/load_balance.hpp>
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -44,9 +45,9 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10;
+    unsigned num_cells = 100;
     double min_delay = 10;
-    double duration = 200;
+    double duration = 1000;
     cell_parameters cell;
 };
 
@@ -99,7 +100,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator({{{"primary_syn"}, 1.0, event_weight_}}));
+            gens.push_back(arb::explicit_generator({"primary_syn"}, event_weight_, std::vector<float>{1.0f}));
         }
         return gens;
     }
@@ -160,21 +161,20 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
 
-        auto decomp = arb::partition_load_balance(recipe, context);
-
         // Construct the model.
-        arb::simulation sim(recipe, decomp, context);
+        auto decomposition = arb::partition_load_balance(recipe, context);
+        arb::simulation sim(recipe, context, decomposition);
 
         // Set up the probe that will measure voltage in the cell.
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probe_id = cell_member_type{0, 0};
+        auto probeset_id = cell_member_type{0, 0};
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(1);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_vector<double> voltage;
-        // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+        // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
+        sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
@@ -187,7 +187,10 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        std::cout << "running simulation" << std::endl;
+        if (root) {
+            sim.set_epoch_callback(arb::epoch_progress_bar());
+        }
+        std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 

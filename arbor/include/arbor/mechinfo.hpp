@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/mechanism_abi.h>
 
 namespace arb {
@@ -35,6 +36,8 @@ struct ion_dependency {
     bool write_concentration_int = false;
     bool write_concentration_ext = false;
 
+    bool access_concentration_diff = false;
+
     bool read_reversal_potential = false;
     bool write_reversal_potential = false;
 
@@ -52,7 +55,7 @@ struct ion_dependency {
 // Use a textual representation to ease readability.
 using mechanism_fingerprint = std::string;
 
-struct mechanism_info {
+struct ARB_ARBOR_API mechanism_info {
     // mechanism_info is a convenient subset of the ABI mech description
     mechanism_info(const arb_mechanism_type&);
     mechanism_info() = default;

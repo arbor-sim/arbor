@@ -48,7 +48,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     const std::vector<value_type> thresh{1., 2., 3.};
 
     std::vector<int> src_to_spike_vec = {0, 1, 5};
-    std::vector<fvm_value_type> time_since_spike_vec(10);
+    std::vector<arb_value_type> time_since_spike_vec(10);
     memory::fill(time_since_spike_vec, -1.0);
 
     // all values are initially 0, except for values[5] which we set
@@ -76,8 +76,10 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index.data(), values.data(), src_to_spike.data(),
-                                     &time_before, &time_after, index, thresh, context);
+    backend::threshold_watcher watch(cell_index.data(), src_to_spike.data(),
+                                     &time_before, &time_after, 
+                                     values.size(), index, thresh, context);
+    watch.reset(values);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking
@@ -197,7 +199,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0);
     values[index[0]] = 10.; // first watch should be intialized to spiking state
     memory::fill(time_before, 0.);
-    watch.reset();
+    watch.reset(values);
     EXPECT_EQ(watch.crossings().size(), 0u);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -232,7 +234,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
         cable1d_recipe rec({cell});
 
         auto decomp = arb::partition_load_balance(rec, context);
-        arb::simulation sim(rec, decomp, context);
+        arb::simulation sim(rec, context, decomp);
 
         sim.set_global_spike_callback(
                 [&spikes](const std::vector<arb::spike>& recorded_spikes) {

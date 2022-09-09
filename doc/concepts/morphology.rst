@@ -602,6 +602,36 @@ because it has two children: the dendrites attached to its distal end.
       :width: 900
       :align: center
 
+Editing morphologies
+--------------------
+
+While a reified morphology cannot be edited -- it is immutable by definition --
+the segment tree can be changed. If you need to make such modifications, first
+consider whethnr they should be stored in a file as this is often easier for
+tracking provenance and version history.
+
+For the remaining cases, Arbor offers a limited suite of tools. First, most
+morphology loaders have a 'raw' variant (C++) or flag (Python), that loads a
+segment tree instead of a morphology. Segment trees are similarly immutable, but
+by traversing the existing tree and adding/pruning subtrees into a new tree
+changes are possible. From these edited trees, new morphologies can be formed.
+
+Two common editing operations are provided
+
+- ``split_at(t, i) -> (l, r)`` Split a segment tree ``t`` into two subtrees
+  ``l`` and ``r`` at a given segment id ``i``.
+  - ``r`` is the subtree of ``t`` that has the segment ``i`` at its root
+  - ``l`` is ``t`` with the segment ``i`` and its children removed
+
+  The id ``i`` must be a valid id in ``t`` or ``mnpos`` in which case ``l == t``
+  and ``r = {}``.
+- ``join_at(t, i, o) -> j`` Given two segment trees ``t`` and ``o``, attach ``o`` to
+  ``t`` such that the segment in ``t`` identified by ``i`` is the parent of
+  ``o``. The id ``i`` must be valid in ``t`` and not ``mnpos`` (else ``t`` would
+  have two root segments).
+
+Note that ``join_at`` and ``split_at`` are inverse to each other.
+
 .. _morph-formats:
 
 Supported file formats

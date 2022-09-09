@@ -1,4 +1,5 @@
 #include <vector>
+#include <numeric>
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
@@ -23,20 +24,14 @@ thread_private_spike_store::thread_private_spike_store(const task_system_handle&
     impl_(new local_spike_store_type(ts))
 {}
 
-thread_private_spike_store::~thread_private_spike_store() {}
+thread_private_spike_store::~thread_private_spike_store() = default;
 
 std::vector<spike> thread_private_spike_store::gather() const {
+    const auto& bs = impl_->buffers_;
+    auto len = std::accumulate(bs.begin(), bs.end(), 0u, [](auto acc, const auto& b) { return acc + b.size(); });
     std::vector<spike> spikes;
-    unsigned num_spikes = 0u;
-    for (auto& b: impl_->buffers_) {
-        num_spikes += b.size();
-    }
-    spikes.reserve(num_spikes);
-
-    for (auto& b: impl_->buffers_) {
-        spikes.insert(spikes.begin(), b.begin(), b.end());
-    }
-
+    spikes.reserve(len);
+    std::for_each(bs.begin(), bs.end(), [&spikes] (const auto& b) { spikes.insert(spikes.end(), b.begin(), b.end()); });
     return spikes;
 }
 

@@ -5,16 +5,17 @@
 
 #include <mpi.h>
 
+#include <arbor/version.hpp>
 #include <arborenv/arbenvexcept.hpp>
 #include <arborenv/gpu_env.hpp>
 #include "gpu_uuid.hpp"
 
 namespace arbenv {
 
-#ifdef ARB_HAVE_GPU
+#ifdef ARB_GPU_ENABLED
 
 template <>
-int find_private_gpu(MPI_Comm comm) {
+ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     int nranks;
     int rank;
     MPI_Comm_rank(comm, &rank);
@@ -96,11 +97,11 @@ int find_private_gpu(MPI_Comm comm) {
 
 // return -1 -> "no gpu" when compiled without GPU support.
 template <>
-int find_private_gpu(MPI_Comm comm) {
+ARB_ARBORENV_API int find_private_gpu(MPI_Comm comm) {
     return -1;
 }
 
-#endif // def ARB_HAVE_GPU
+#endif // def ARB_GPU_ENABLED
 
 } // namespace arbenv
 

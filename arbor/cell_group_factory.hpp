@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
 
 #include "cell_group.hpp"
@@ -20,7 +21,7 @@ namespace arb {
 using cell_group_factory = std::function<
         cell_group_ptr(const std::vector<cell_gid_type>&, const recipe&, cell_label_range& cg_sources, cell_label_range& cg_targets)>;
 
-cell_group_factory cell_kind_implementation(
+ARB_ARBOR_API cell_group_factory cell_kind_implementation(
         cell_kind, backend_kind, const execution_context&);
 
 inline bool cell_kind_supported(

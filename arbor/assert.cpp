@@ -6,13 +6,13 @@
 
 namespace arb {
 
-void abort_on_failed_assertion(
+void ARB_ARBOR_API abort_on_failed_assertion(
     const char* assertion,
     const char* file,
     int line,
     const char* func)
 {
-    // Emit stack trace If libunwind is being used.
+    // Emit stack trace if enabled.
     std::cerr << util::backtrace();
 
     // Explicit flush, as we can't assume default buffering semantics on stderr/cerr,
@@ -22,7 +22,7 @@ void abort_on_failed_assertion(
     std::abort();
 }
 
-void ignore_failed_assertion(
+void ARB_ARBOR_API ignore_failed_assertion(
     const char* assertion,
     const char* file,
     int line,

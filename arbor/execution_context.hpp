@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <arbor/export.hpp>
 #include <arbor/context.hpp>
 
 #include "distributed_context.hpp"
@@ -19,7 +20,7 @@ namespace arb {
 // execution_context, to hide implementation details of the
 // container and its constituent contexts from the public API.
 
-struct execution_context {
+struct ARB_ARBOR_API execution_context {
     distributed_context_handle distributed;
     task_system_handle thread_pool;
     gpu_context_handle gpu;

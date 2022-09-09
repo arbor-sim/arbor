@@ -51,7 +51,7 @@ TEST(simulation, null) {
     auto r = null_recipe{};
     auto c = arb::make_context();
     auto d = arb::partition_load_balance(r, c);
-    auto s = arb::simulation(r, d, c);
+    auto s = arb::simulation(r, c, d);
     s.run(0.05, 0.01);
 }
 
@@ -74,7 +74,7 @@ TEST(simulation, spike_global_callback) {
     play_spikes rec(spike_times);
     auto ctx = n_thread_context(4);
     auto decomp = partition_load_balance(rec, ctx);
-    simulation sim(rec, decomp, ctx);
+    simulation sim(rec, ctx, decomp);
 
     std::vector<spike> collected;
     sim.set_global_spike_callback([&](const std::vector<spike>& spikes) {
@@ -124,7 +124,7 @@ struct lif_chain: public recipe {
             return {};
         }
         else {
-            return {schedule_generator({"tgt"}, weight_, triggers_)};
+            return {event_generator({"tgt"}, weight_, triggers_)};
         }
     }
 
@@ -155,7 +155,7 @@ TEST(simulation, restart) {
 
     auto ctx = n_thread_context(4);
     auto decomp = partition_load_balance(rec, ctx);
-    simulation sim(rec, decomp, ctx);
+    simulation sim(rec, ctx, decomp);
 
     std::vector<spike> collected;
     sim.set_global_spike_callback([&](const std::vector<spike>& spikes) {

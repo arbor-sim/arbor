@@ -23,8 +23,8 @@ namespace multicore {
 template <typename Event>
 class multi_event_stream {
 public:
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
     using event_type = Event;
 
     using event_time_type = ::arb::event_time_type<Event>;
@@ -33,7 +33,7 @@ public:
 
     using state = multi_event_stream_state<event_data_type>;
 
-    multi_event_stream() {}
+    multi_event_stream() = default;
 
     explicit multi_event_stream(size_type n_stream):
        span_begin_(n_stream), span_end_(n_stream), mark_(n_stream) {}

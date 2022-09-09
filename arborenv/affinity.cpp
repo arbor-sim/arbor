@@ -2,6 +2,8 @@
 #include <system_error>
 #include <vector>
 
+#include <arborenv/concurrency.hpp>
+
 #ifdef __linux__
 
 #ifndef _GNU_SOURCE
@@ -14,7 +16,7 @@ extern "C" {
 
 namespace arbenv {
 
-std::vector<int> get_affinity() {
+ARB_ARBORENV_API std::vector<int> get_affinity() {
     std::vector<int> cores;
     cpu_set_t cpu_set_mask;
 
@@ -39,7 +41,7 @@ std::vector<int> get_affinity() {
 // No support for non-linux systems.
 namespace arbenv {
 
-std::vector<int> get_affinity() {
+ARB_ARBORENV_API std::vector<int> get_affinity() {
     return {};
 }
 

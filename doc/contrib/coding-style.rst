@@ -3,6 +3,27 @@
 Coding Guidelines
 =================
 
+Python
+------
+
+We follow the `black <https://black.readthedocs.io/en/stable/index.html>`__
+coding style. It is enforced by an automated check on each pull request. You can
+run the following commands to apply it:
+
+.. code::
+
+   # Install the formatter if not present
+   pip install black
+   # Automatically apply style. If unsure what this does read on.
+   black --extend-exclude '/(ext|doc/scripts/.*_theme)' . scripts/build-catalogue.in
+
+The formatter can also be run with ``--check`` to list offending files and
+``--diff`` to preview changes. Most editors can `integrate with black
+<https://black.readthedocs.io/en/stable/integrations/editors.html>`__.
+
+C++
+---
+
 The main development language of Arbor is C++. For Arbor we start with
 the community guidelines set out in the `C++ Core
 Guidelines <http://isocpp.github.io/CppCoreGuidelines/>`__. These

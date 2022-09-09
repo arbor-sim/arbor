@@ -36,11 +36,11 @@ using std::end;
 //  * matrices all have same size and structure
 TEST(matrix, assemble)
 {
-    using gpu_state = gpu::backend::matrix_state;
-    using mc_state  = multicore::backend::matrix_state;
+    using gpu_state = gpu::backend::cable_solver;
+    using mc_state  = multicore::backend::cable_solver;
 
-    using T = fvm_value_type;
-    using I = fvm_index_type;
+    using T = arb_value_type;
+    using I = arb_index_type;
 
     using gpu_array  = typename gpu::backend::array;
     using host_array = typename multicore::backend::array;

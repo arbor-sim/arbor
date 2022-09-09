@@ -15,7 +15,7 @@
 namespace arb {
 domain_decomposition::domain_decomposition(
     const recipe& rec,
-    const context& ctx,
+    context ctx,
     const std::vector<group_description>& groups)
 {
     struct partition_gid_domain {
@@ -33,8 +33,9 @@ domain_decomposition::domain_decomposition(
         std::unordered_map<cell_gid_type, int> gid_map;
     };
 
-    unsigned num_domains = ctx->distributed->size();
-    int domain_id = ctx->distributed->id();
+    const auto* dist = ctx->distributed.get();
+    unsigned num_domains = dist->size();
+    int domain_id = dist->id();
     cell_size_type num_global_cells = rec.num_cells();
     const bool has_gpu = ctx->gpu->has_gpu();
 
@@ -62,7 +63,7 @@ domain_decomposition::domain_decomposition(
     }
     cell_size_type num_local_cells = local_gids.size();
 
-    auto global_gids = ctx->distributed->gather_gids(local_gids);
+    auto global_gids = dist->gather_gids(local_gids);
     if (global_gids.size() != num_global_cells) {
         throw invalid_sum_local_cells(global_gids.size(), num_global_cells);
     }

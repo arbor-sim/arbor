@@ -742,7 +742,7 @@ struct pw_zip_iterator {
     bool is_end = true;
     typename pw_elements<A>::const_iterator ai, a_end;
     typename pw_elements<B>::const_iterator bi, b_end;
-    double left;
+    double left = std::nan("");
 
     pw_zip_iterator() = default;
     pw_zip_iterator(const pw_elements<A>& a, const pw_elements<B>& b) {

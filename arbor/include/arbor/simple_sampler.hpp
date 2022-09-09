@@ -24,7 +24,7 @@ struct trace_entry {
 // `trace_data` wraps a std::vector of trace_entry with
 // a copy of the probe-specific metadata associated with a probe.
 //
-// If `Meta` is void, ignore any metadta.
+// If `Meta` is void, ignore any metadata.
 
 template <typename V, typename Meta = void>
 struct trace_data: private std::vector<trace_entry<V>> {

@@ -59,7 +59,7 @@ nml_cyclic_dependency::nml_cyclic_dependency(const std::string& id, unsigned lin
     line(line)
 {}
 
-struct neuroml_impl {
+struct ARB_ARBORIO_API neuroml_impl {
     xml_doc doc;
 
     neuroml_impl() {}

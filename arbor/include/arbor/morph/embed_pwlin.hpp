@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include <arbor/export.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 
@@ -19,7 +20,7 @@ template <typename X> struct pw_elements;
 // values defined over contiguous intervals.
 using pw_constant_fn = util::pw_elements<double>;
 
-struct embed_pwlin {
+struct ARB_ARBOR_API embed_pwlin {
     explicit embed_pwlin(const arb::morphology& m);
 
     // Segment queries.
@@ -43,23 +44,23 @@ struct embed_pwlin {
     mcable_list projection_cmp(msize_t bid, double proj_lim, comp_op op) const;
 
     // Computed length of mcable.
-    double integrate_length(mcable c) const;
+    double integrate_length(const mcable& c) const;
     double integrate_length(mlocation proxmal, mlocation distal) const;
 
-    double integrate_length(mcable c, const pw_constant_fn&) const;
+    double integrate_length(const mcable& c, const pw_constant_fn&) const;
     double integrate_length(msize_t bid, const pw_constant_fn&) const;
 
     // Membrane surface area of given mcable.
-    double integrate_area(mcable c) const;
+    double integrate_area(const mcable& c) const;
     double integrate_area(mlocation proxmal, mlocation distal) const;
 
-    double integrate_area(mcable c, const pw_constant_fn&) const;
+    double integrate_area(const mcable& c, const pw_constant_fn&) const;
     double integrate_area(msize_t bid, const pw_constant_fn&) const;
 
     // Integrated inverse cross-sectional area of given mcable.
-    double integrate_ixa(mcable c) const;
+    double integrate_ixa(const mcable& c) const;
 
-    double integrate_ixa(mcable c, const pw_constant_fn&) const;
+    double integrate_ixa(const mcable& c, const pw_constant_fn&) const;
     double integrate_ixa(msize_t bid, const pw_constant_fn&) const;
 
     // Length of whole branch.

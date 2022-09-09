@@ -154,25 +154,25 @@ void assemble_matrix_interleaved(
 
 } // namespace kernels
 
-void assemble_matrix_flat(
-        fvm_value_type* d,
-        fvm_value_type* rhs,
-        const fvm_value_type* invariant_d,
-        const fvm_value_type* voltage,
-        const fvm_value_type* current,
-        const fvm_value_type* conductivity,
-        const fvm_value_type* cv_capacitance,
-        const fvm_value_type* area,
-        const fvm_index_type* cv_to_cell,
-        const fvm_value_type* dt_intdom,
-        const fvm_index_type* cell_to_intdom,
+ARB_ARBOR_API void assemble_matrix_flat(
+        arb_value_type* d,
+        arb_value_type* rhs,
+        const arb_value_type* invariant_d,
+        const arb_value_type* voltage,
+        const arb_value_type* current,
+        const arb_value_type* conductivity,
+        const arb_value_type* cv_capacitance,
+        const arb_value_type* area,
+        const arb_index_type* cv_to_cell,
+        const arb_value_type* dt_intdom,
+        const arb_index_type* cell_to_intdom,
         unsigned n)
 {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(n, block_dim);
 
     kernels::assemble_matrix_flat
-        <fvm_value_type, fvm_index_type>
+        <arb_value_type, arb_index_type>
         <<<grid_dim, block_dim>>>
         (d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance,
          area, cv_to_cell, dt_intdom, cell_to_intdom, n);
@@ -180,19 +180,19 @@ void assemble_matrix_flat(
 
 //template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
 void assemble_matrix_interleaved(
-    fvm_value_type* d,
-    fvm_value_type* rhs,
-    const fvm_value_type* invariant_d,
-    const fvm_value_type* voltage,
-    const fvm_value_type* current,
-    const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
-    const fvm_value_type* area,
-    const fvm_index_type* sizes,
-    const fvm_index_type* starts,
-    const fvm_index_type* matrix_to_cell,
-    const fvm_value_type* dt_intdom,
-    const fvm_index_type* cell_to_intdom,
+    arb_value_type* d,
+    arb_value_type* rhs,
+    const arb_value_type* invariant_d,
+    const arb_value_type* voltage,
+    const arb_value_type* current,
+    const arb_value_type* conductivity,
+    const arb_value_type* cv_capacitance,
+    const arb_value_type* area,
+    const arb_index_type* sizes,
+    const arb_index_type* starts,
+    const arb_index_type* matrix_to_cell,
+    const arb_value_type* dt_intdom,
+    const arb_index_type* cell_to_intdom,
     unsigned padded_size, unsigned num_mtx)
 {
     constexpr unsigned bd = impl::matrices_per_block();
@@ -203,7 +203,7 @@ void assemble_matrix_interleaved(
     const unsigned grid_dim = impl::block_count(num_mtx*lw, block_dim);
 
     kernels::assemble_matrix_interleaved
-        <fvm_value_type, fvm_index_type, bd, lw, block_dim>
+        <arb_value_type, arb_index_type, bd, lw, block_dim>
         <<<grid_dim, block_dim>>>
         (d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
          sizes, starts, matrix_to_cell,

@@ -176,7 +176,7 @@ struct catalogue_state {
 
     // Set mechanism info (unchecked).
     void bind(const std::string& name, mechanism_info info) {
-        info_map_[name] = mechanism_info_ptr(new mechanism_info(std::move(info)));
+        info_map_[name] = std::make_unique<mechanism_info>(std::move(info));
     }
 
     // Add derived mechanism (unchecked).
@@ -488,9 +488,12 @@ struct catalogue_state {
             }
         }
 
-        apply_globals(apply_globals, implicit_deriv? implicit_deriv->parent: name, over);
         if (implicit_deriv) {
-            apply_deriv(over, implicit_deriv.value());
+            apply_globals(apply_globals, implicit_deriv->parent, over);
+            apply_deriv(over, *implicit_deriv);
+        }
+        else {
+            apply_globals(apply_globals, name, over);
         }
 
         return over;
@@ -592,8 +595,8 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-const mechanism_catalogue& load_catalogue(const std::string& fn) {
-    typedef const void* global_catalogue_t();
+ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::string& fn) {
+    typedef void* global_catalogue_t(int*);
     global_catalogue_t* get_catalogue = nullptr;
     try {
         get_catalogue = util::dl_get_symbol<global_catalogue_t*>(fn, "get_catalogue");
@@ -608,7 +611,32 @@ const mechanism_catalogue& load_catalogue(const std::string& fn) {
      * different lifetime than the actual catalogue itfself. This is not a leak,
      * as `dlopen` caches handles for us.
      */
-    return *((const mechanism_catalogue*)get_catalogue());
+    int count = -1;
+    auto mechs = (arb_mechanism*)get_catalogue(&count);
+    if (count <= 0) {
+        throw bad_catalogue_error{util::pprintf("Invalid mechanism count {} in shared object '{}'", count, fn)};
+    }
+    mechanism_catalogue result;
+    for(int ix = 0; ix < count; ++ix) {
+        auto type = mechs[ix].type();
+        auto name = std::string{type.name};
+        if (name == "") {
+            throw bad_catalogue_error{util::pprintf("Empty name for mechanism in '{}'", fn)};
+        }
+        auto icpu = mechs[ix].i_cpu();
+        auto igpu = mechs[ix].i_gpu();
+        if (!icpu && !igpu) {
+            throw bad_catalogue_error{util::pprintf("Empty interfaces for mechanism '{}'", name)};
+        }
+        result.add(name, type);
+        if (icpu) {
+            result.register_implementation(name, std::make_unique<mechanism>(type, *icpu));
+        }
+        if (igpu) {
+            result.register_implementation(name, std::make_unique<mechanism>(type, *igpu));
+        }
+    }
+    return result;
 }
 
 } // namespace arb

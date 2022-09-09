@@ -11,6 +11,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/extra_traits.hpp>
+#include <arbor/export.hpp>
 
 // Time schedules for probe–sampler associations.
 
@@ -103,7 +104,7 @@ inline schedule::schedule(): schedule(empty_schedule{}) {}
 // Common schedules
 
 // Schedule at k·dt for integral k≥0 within the interval [t0, t1).
-class regular_schedule_impl {
+class ARB_ARBOR_API regular_schedule_impl {
 public:
     explicit regular_schedule_impl(time_type t0, time_type dt, time_type t1):
         t0_(t0), t1_(t1), dt_(dt), oodt_(1./dt)
@@ -135,7 +136,7 @@ inline schedule regular_schedule(time_type dt) {
 
 
 // Schedule at times given explicitly via a provided sorted sequence.
-class explicit_schedule_impl {
+class ARB_ARBOR_API explicit_schedule_impl {
 public:
     explicit_schedule_impl(const explicit_schedule_impl&) = default;
     explicit_schedule_impl(explicit_schedule_impl&&) = default;

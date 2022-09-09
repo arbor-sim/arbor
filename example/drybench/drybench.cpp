@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
         auto ctx = arb::make_context(resources);
 
         ctx = arb::make_context(resources, arb::dry_run_info(params.num_ranks, params.num_cells));
-        arb_assert(arb::num_ranks(ctx)==params.num_ranks);
+        arb_assert(arb::num_ranks(ctx)==(unsigned int)params.num_ranks);
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
@@ -156,10 +156,8 @@ int main(int argc, char** argv) {
         auto tile = std::make_unique<tile_desc>(params);
         arb::symmetric_recipe recipe(std::move(tile));
 
-        auto decomp = arb::partition_load_balance(recipe, ctx);
-
         // Construct the model.
-        arb::simulation sim(recipe, decomp, ctx);
+        arb::simulation sim(recipe, ctx);
 
         meters.checkpoint("model-init", ctx);
 

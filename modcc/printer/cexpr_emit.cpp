@@ -11,7 +11,7 @@
 #include "astmanip.hpp"
 #include "io/prefixbuf.hpp"
 
-std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
     bool neg = std::signbit(wrap.value);
 
     switch (std::fpclassify(wrap.value)) {

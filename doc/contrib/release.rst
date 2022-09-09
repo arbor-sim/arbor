@@ -11,13 +11,18 @@ Release cycle
    * Update/trim next-release column in Kanban
    * Prepare agenda, include possible additions not covered by Kanban/Issues
    * Add milestone tags (nextver, nextver+1, etc.)
+   * Add highlighted new features to RELEASE_NOTES.md
 3. ``T-8`` weeks: ``Release Manager`` dev meet (external/public)
 
    * Use Kanban as starter
    * Move issues around based on input
    * Add milestone tags, for this release or future releases
-4. ``T±0``: ``Release Manager`` release!
-5. ``T+1`` weeks: ``Scrum Master`` retrospective
+   * Update highlighted new features to RELEASE_NOTES.md
+4. ``T-1``: ``all`` reserve week for wrapping up PRs and review.
+5. ``T±0``: ``Release Manager`` release!
+
+   * Have a look at Python release schedule, and time Arbor release optimally with new Python minor version. It is nice to generate wheels for the new minor as soon as minor is released.
+6. ``T+1`` weeks: ``Scrum Master`` retrospective
    
    * set date for next release
 
@@ -33,106 +38,119 @@ Pre-release
 Update tags/versions and test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-0. Check README.md, ATTRIBUTIONS.md, CONTRIBUTING.md.
-1. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
-2. Bump the ``VERSION`` file:
-   https://github.com/arbor-sim/arbor/blob/master/VERSION
-   Don't append ``-rc`` here, but if you do, remove it before releasing.
-3. Run all tests.
-   - ``ciwheel.yml`` triggers when you push a branch called ``v*rc``, ON YOUR OWN REPO (so check ``github.com/$yourname/arbor/actions``). Make sure the tests pass.
-   - This should catch many problems. For a manual check:
+#. Check if some files are up to date
+    
+   - README.md, ATTRIBUTIONS.md, CONTRIBUTING.md, RELEASE_NOTES.md
    - Verify MANIFEST.in (required for PyPI sdist)
-   - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``
    - Double check that all examples/tutorials/etc are covered by CI
+   - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``, ``pyproject.toml``
 
-Test the RC
-~~~~~~~~~~~
+#. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
+#. Bump the ``VERSION`` file:
 
-4. Collect artifact from the above GA run.
-   In case you want to manually want to trigger ``ciwheel.yml`` GA, overwrite the ``ciwheel`` branch with the commit of your choosing and force push to Github.
-5. ``twine upload -r testpypi dist/*``
-6. Ask users to test the above, e.g.:
+   - See also :ref:`dev-version`
+   - Append ``-rc``. (Make sure there's no ``-dev``)
 
-.. code-block:: bash
+#. Run all tests.
 
-   python -m venv env && source env/bin/activate
-   pip install numpy
-   pip install -i https://test.pypi.org/simple/ arbor==0.6-rc
-   python -c 'import arbor; print(arbor.__config__)'
+   - ``ciwheel.yml`` triggers when you push a branch called ``ciwheel``, and on new Git tags. Since we've not tagged the release yet, run ``git push origin HEAD:ciwheel``. Make sure the tests pass.
+   
+      - ``ciwheel.yml`` pushes automatically to `Test.PyPI.org <https://test.pypi.org/project/arbor/>`_. This only passes if ran as branch of the main ``arbor-sim`` repo (as that's where the PyPI secret lives). On your own repo, the upload will fail (the rest should pass). If you want to test uploading, then force push to the _upstream_ ``ciwheel`` branch, e.g. ``git push upstream HEAD:ciwheel --force``.
+   
+   - If you want to test the PyPI submission (consider asking other OS-users):
+
+     .. code-block:: bash
+
+        python -m venv env && source env/bin/activate
+        pip install numpy
+        pip install -i https://test.pypi.org/simple/ arbor #should select the latest build, but doublecheck
+        python -c 'import arbor; print(arbor.__config__)'
+
+   - Use build flags to test the source package: :ref:`in_python_adv`
 
 Release
 -------
 
-0. Make sure ``ciwheel.yml`` passes tests, produced working wheels, and nobody reported problems testing the RC.
-   Make sure ``VERSION`` does not end with ``-rc`` or ``-dev``
+#. Make sure no errors were encountered in the pre-release phase, working wheels were produced, and were installable from `Test.PyPI.org <https://test.pypi.org/project/arbor/>`_ and that no problems were reported.
+   
+#. Change ``VERSION``. Make sure does not end with ``-rc`` or ``-dev``.
 
-1. Create tarball with
+#. Update ``scripts/check-all-tags.sh`` to check the current tag.
+
+#. Tag
+
+   - commit and open a PR for the above changes.
+   - on cmdline: ``git tag -a TAGNAME``
+   - ``git push upstream TAGNAME``
+
+#. Upload to pypi & verify
+
+   .. code-block:: bash
+
+      twine upload -r arborpypi dist/*
+
+      python -m venv env && source env/bin/activate
+      pip install arbor
+      python -c 'import arbor; print(arbor.__config__)'
+
+#. Create tarball with
    ``scripts/create_tarball ~/loc/of/arbor tagname outputfile``
 
-   -  eg ``scripts/create_tarball /full/path/to/arbor v0.5.1 ~/arbor-v0.5.1-full.tar.gz``
-
-2. Tag and release: https://github.com/arbor-sim/arbor/releases
-
-   -  on cmdline: git tag -a TAGNAME
-   -  git push upstream TAGNAME
-   -  Go to `GH tags`_ and click “…” and “Create release”
-   -  Go through merged PRs to come up with a changelog
-      Or categorize/edit Github's autogenerated release notes.
-   - add tarball to release, created in previous step.
-
-3. [`AUTOMATED`_] push to git@gitlab.ebrains.eu:arbor-sim/arbor.git
-
-4. Download output of wheel action associated to this release commit and extract (verify the wheels and
+   - eg ``scripts/create_tarball /full/path/to/arbor v0.5.1 ~/arbor-v0.5.1-full.tar.gz``
+   
+#. Download output of wheel action associated to this release commit and extract (verify the wheels and
    source targz is in /dist)
 
    - Of course, the above action must have passed the tests successfully.
+   
+#. Update ``spack/package.py``. The checksum of the targz is the sha256sum.
 
-5. Upload to TEST pypi & verify
+#. Start a new release on Zenodo, this allocated a DOI, but you don't have to finish it right away. Add new Zenodo badge/link to docs/README.
 
-.. code-block:: bash
+#. Create Github Release: https://github.com/arbor-sim/arbor/releases
 
-   twine upload -r arborpypi dist/*
-   python -m venv env && source env/bin/activate
-   pip install numpy
-   pip install -i https://test.pypi.org/simple/ arbor==0.6
-   python -c 'import arbor; print(arbor.__config__)'
-
-6. Upload to pypi & verify
-
-.. code-block:: bash
-
-   twine upload -r arborpypi dist/*
-
-   python -m venv env && source env/bin/activate
-   pip install arbor
-   python -c 'import arbor; print(arbor.__config__)'
-
-7. Update spack package
-
-   -  first, update ``spack/package.py``. The checksum of the targz is the sha256sum.
-   -  Then, use the file to `make PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
-
-8. In the same PR with the update to `spack/package.py`, bump `VERSION` file.
-
-   - e.g. to 0.6.1-dev
+   - Go to `GH tags`_ and click “…” and “Create release”
+   - Categorize/edit Github's autogenerated release notes (alternatively go through merged PRs to come up with a changelog).
+   - add tarball to release, created in previous step.
+   
+#. Update Zenodo with authors and changelog created in previous step and submit.
 
 Post Release
 ------------
 
-1. Announce on our website
-2. Add release for citation on Zenodo, add new ID to docs
-3. Add tagged version of docs on ReadTheDocs (should happen automatically)
-4. HBP internal admin
+#. Make a new PR setting ``VERSION`` to the next with a trailing ``-dev``. E.g. if you just release ``3.14``, change ``VERSION`` to ``3.15-dev``
+    
+   - Include changes such as to ``spack/package.py``, ``CITATIONS``, ``doc/index.rst`` in postrel PR. Copy Zenodo BibTex export to ``CITATIONS``.
 
-  - [Plus](https://plus.humanbrainproject.eu/components/2691/)
-  - [TC Wiki](https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/)
-  - [KG](https://kg.ebrains.eu/search/instances/Software/80d205a9-ffb9-4afe-90b8-2f12819950ec) - [Update howto](https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software).
-    - Supported file formats (ie [ContentTypes](https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html)), [details](https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes)
-  - Send an update to the folk in charge of HBP Twitter if we want to shout about it
+#. Update spack package / Ebrains Lab / Opensourcebrain
 
-5. FZJ admin
+   - Spack upstream: `PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
+   - Ebrains Lab: `MR here <https://gitlab.ebrains.eu/technical-coordination/project-internal/devops/platform/ebrains-spack-builds/>`_
+   - OSB: update `dockerfile <https://github.com/OpenSourceBrain/OSBv2/blob/master/applications/jupyterlab/Dockerfile>`_ if needed.
 
-  - https://juser.fz-juelich.de/submit
+     - Make sure that `Notebooks <https://www.v2.opensourcebrain.org/repositories/38>`_ work on the version that their image is built with.
+
+#. Announce on our website
+#. Announce on HBP newsletter newsletter@humanbrainproject.eu, HBP Twitter/socials evan.hancock@ebrains.eu
+#. [AUTOMATED] Add tagged version of docs on ReadTheDocs
+#. HBP internal admin
+
+   - Plus: https://plus.humanbrainproject.eu/components/2691/
+   - TC Wiki: https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
+   - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
+ 
+     - Update howto: https://github.com/bweyers/HBPVisCatalogue/wiki/How-to-start-software-meta-data-curation%3F#update-curated-software
+     - Previous update as template: https://github.com/bweyers/HBPVisCatalogue/issues/480
+     - Supported file formats
+ 
+       - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
+       - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
+ 
+   - Send an update to the folk in charge of HBP Twitter if we want to shout about it
+
+#. FZJ admin
+
+   - https://juser.fz-juelich.de/submit
 
 .. _GH tags: https://github.com/arbor-sim/arbor/tags
 .. _AUTOMATED: https://github.com/arbor-sim/arbor/blob/master/.github/workflows/ebrains.yml 

@@ -55,11 +55,11 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
-            sim_.reset(new arb::simulation(py_recipe_shim(rec), decomp, ctx.context));
+            sim_.reset(new arb::simulation(py_recipe_shim(rec), ctx.context, decomp));
         }
         catch (...) {
             py_reset_and_throw();
@@ -94,6 +94,10 @@ public:
         sim_->set_binning_policy(policy, bin_interval);
     }
 
+    void update(std::shared_ptr<py_recipe>& rec) {
+        sim_->update(py_recipe_shim(rec));
+    }
+
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
             auto old_size = spike_record_.size();
@@ -126,18 +130,18 @@ public:
         return py::array_t<arb::spike>(py::ssize_t(spike_record_.size()), spike_record_.data());
     }
 
-    py::list get_probe_metadata(arb::cell_member_type probe_id) const {
+    py::list get_probe_metadata(arb::cell_member_type probeset_id) const {
         py::list result;
-        for (auto&& pm: sim_->get_probe_metadata(probe_id)) {
+        for (auto&& pm: sim_->get_probe_metadata(probeset_id)) {
              result.append(global_ptr_->probe_meta_converters.convert(pm.meta));
         }
         return result;
     }
 
-    arb::sampler_association_handle sample(arb::cell_member_type probe_id, const pyarb::schedule_shim_base& sched, arb::sampling_policy policy) {
+    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched, arb::sampling_policy policy) {
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
-        for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probe_id)) {
+        for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
             recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta));
         }
 
@@ -145,7 +149,7 @@ public:
         // is kept in sampler_map_; the two copies share the same recorder data.
 
         sampler_callback cb{std::move(recorders)};
-        auto sah = sim_->add_sampler(arb::one_probe(probe_id), sched.schedule(), cb, policy);
+        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb, policy);
         sampler_map_.insert({sah, cb});
 
         return sah;
@@ -169,6 +173,10 @@ public:
             return py::list{};
         }
     }
+
+    void progress_banner() {
+        sim_->set_epoch_callback(arb::epoch_progress_bar());
+    }
 };
 
 void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
@@ -191,9 +199,13 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         // A custom constructor that wraps a python recipe with arb::py_recipe_shim
         // before forwarding it to the arb::recipe constructor.
         .def(pybind11::init(
-            [global_ptr](std::shared_ptr<py_recipe>& rec, const arb::domain_decomposition& decomp, const context_shim& ctx) {
+                 [global_ptr](std::shared_ptr<py_recipe>& rec,
+                              const std::shared_ptr<context_shim>& ctx_,
+                              const std::optional<arb::domain_decomposition>& decomp) {
                 try {
-                    return new simulation_shim(rec, decomp, ctx, global_ptr);
+                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(arb::make_context());
+                    auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
+                    return new simulation_shim(rec, *ctx, dec, global_ptr);
                 }
                 catch (...) {
                     py_reset_and_throw();
@@ -204,7 +216,13 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Initialize the model described by a recipe, with cells and network distributed\n"
             "according to the domain decomposition and computational resources described by a context.",
-            "recipe"_a, "domain_decomposition"_a, "context"_a)
+             "recipe"_a,
+             pybind11::arg_v("context", pybind11::none(), "Execution context"),
+             pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"))
+        .def("update", &simulation_shim::update,
+             "Rebuild the connection table from recipe::connections_on and the event"
+             "generators based on recipe::event_generators.",
+             "recipe"_a)
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
@@ -217,18 +235,18 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "tfinal"_a, "dt"_a=0.025)
         .def("set_binning_policy", &simulation_shim::set_binning_policy,
             "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
-            "policy"_a, "bin_interval"_a)
+             "policy"_a, "bin_interval"_a)
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,
             "Retrieve recorded spikes as numpy array.")
         .def("probe_metadata", &simulation_shim::get_probe_metadata,
             "Retrieve metadata associated with given probe id.",
-            "probe_id"_a)
+            "probeset_id"_a)
         .def("sample", &simulation_shim::sample,
-            "Record data from probes with given probe_id according to supplied schedule.\n"
+            "Record data from probes with given probeset_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
-            "probe_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
+            "probeset_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
         .def("samples", &simulation_shim::samples,
             "Retrieve sample data as a list, one element per probe associated with the query.",
             "handle"_a)
@@ -236,7 +254,9 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "Remove sampling associated with the given handle.",
             "handle"_a)
         .def("remove_all_samplers", &simulation_shim::remove_sampler,
-            "Remove all sampling on the simulatr.");
+            "Remove all sampling on the simulatr.")
+        .def("progress_banner", &simulation_shim::progress_banner,
+            "Show a text progress bar during simulation.");
 
 }
 

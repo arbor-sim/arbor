@@ -40,7 +40,7 @@ set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
 # Use libunwind to generate stack traces on errors?
 
-option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
+option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
 
 # Specify GPU build type
 
@@ -97,7 +97,6 @@ option(ARB_WITH_PYTHON "enable Python front end" OFF)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
-include(FindCUDAToolkit)
 
 # Set release as the default build type (CMake default is debug.)
 
@@ -110,6 +109,7 @@ endif()
 # Add CUDA as a language if GPU support requested. (This has to be set early so
 # as to enable CUDA tests in generator expressions.)
 if(ARB_GPU STREQUAL "cuda")
+    include(FindCUDAToolkit)
     set(ARB_WITH_NVCC TRUE)
     # CMake 3.18 and later set the default CUDA architecture for
     # each target according to CMAKE_CUDA_ARCHITECTURES. 
@@ -120,14 +120,18 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        if(CUDAToolkit_VERSION_MAJOR GREATER 10)
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-        else()
-            set(CMAKE_CUDA_ARCHITECTURES 60 70)
-        endif()
+    if(CUDAToolkit_VERSION_MAJOR GREATER 10)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    else()
+        set(CMAKE_CUDA_ARCHITECTURES 60 70)
     endif()
+    # We _still_ need this otherwise CUDA symbols will not be exported
+    # from libarbor.a leading to linker errors when link external clients.
+    # Unit tests are NOT external enough. Re-review this somewhere in the
+    # future.
+    find_package(CUDA ${CUDAToolkit_VERSION_MAJOR} REQUIRED)
 elseif(ARB_GPU STREQUAL "cuda-clang")
+    include(FindCUDAToolkit)
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
 elseif(ARB_GPU STREQUAL "hip")
@@ -170,10 +174,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # in the same CMakeLists.txt in which the target is defined.
 
 # Data and internal scripts go here
-set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
+set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
 # Derived paths for arbor-build-catalogue
-file(RELATIVE_PATH ARB_REL_DATADIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_DATAROOTDIR}/arbor)
-file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${CMAKE_INSTALL_FULL_BINDIR} ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/arbor)
+get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_BINDIR} REALPATH)
+get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_DATAROOTDIR} REALPATH)
+get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_LIBDIR} REALPATH)
+file(RELATIVE_PATH ARB_REL_DATADIR ${absolute_full_bindir} ${absolute_full_datarootdir}/arbor)
+file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${absolute_full_bindir} ${absolute_full_libdir}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
@@ -219,11 +226,13 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 # Add scripts and supporting CMake for setting up external catalogues
 
 configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
+
+cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
@@ -232,9 +241,17 @@ if(NOT ARB_USE_BUNDLED_JSON)
 else()
   unset(nlohmann_json_DIR CACHE)
 endif()
+
+cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+add_library(ext-random123 INTERFACE)
+if(NOT ARB_USE_BUNDLED_RANDOM123)
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
+
 add_subdirectory(ext)
 
-cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -285,7 +302,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.6.0)
+set(arb_py_version 3.7.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
@@ -294,7 +311,7 @@ endif()
 if(ARB_WITH_PYTHON)
     cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
 
-    if(DEFINED ENV{CIBUILDWHEEL})
+    if(DEFINED ENV{CIBUILDWHEEL} AND (UNIX AND NOT APPLE))
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
     else()
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
@@ -348,8 +365,6 @@ endif()
 #--------------
 
 if(ARB_WITH_GPU)
-    target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_GPU)
-
     if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG)
         target_include_directories(arborenv-private-deps INTERFACE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
         add_compile_options(
@@ -371,17 +386,15 @@ if(ARB_WITH_GPU)
     endif()
 endif()
 
-# Use libunwind if requested for pretty printing stack traces
-#-------------------------------------------------------------
+# Use boost::stacktrace if requested for pretty printing stack traces
+#--------------------------------------------------------------------
 
-if (ARB_UNWIND)
-    find_package(Unwind REQUIRED)
-    if(Unwind_FOUND)
-        target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
-        target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
-
-        list(APPEND arbor_export_dependencies "Unwind")
-    endif()
+if (ARB_BACKTRACE)
+    find_package(Boost REQUIRED
+                 COMPONENTS stacktrace_basic
+                            stacktrace_addr2line)
+    target_link_libraries(arbor-private-deps INTERFACE Boost::stacktrace_basic Boost::stacktrace_addr2line ${CMAKE_DL_LIBS})
+    target_compile_definitions(arbor-private-deps INTERFACE WITH_BACKTRACE)
 endif()
 
 # Build and use modcc unless explicit path given
@@ -532,7 +545,6 @@ install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
-        cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
 add_subdirectory(lmorpho)
