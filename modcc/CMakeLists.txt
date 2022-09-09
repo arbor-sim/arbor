@@ -47,7 +47,7 @@ else()
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     find_package(fmt REQUIRED)
-    target_link_libraries(libmodcc PRIVATE fmt::fmt-header-only)
+    target_link_libraries(libmodcc fmt::fmt-header-only)
 endif()
 
 set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
@@ -56,6 +56,25 @@ export_visibility(libmodcc)
 
 
 add_executable(modcc ${modcc_sources})
+
+if (ARB_USE_BUNDLED_FMT)
+    target_include_directories(modcc
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+        PRIVATE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/fmt/include>)
+
+    target_compile_definitions(modcc PRIVATE FMT_HEADER_ONLY)
+else()
+    target_include_directories(modcc
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    find_package(fmt REQUIRED)
+    target_link_libraries(modcc fmt::fmt-header-only)
+endif()
+
 target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 
