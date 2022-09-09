@@ -19,7 +19,7 @@ jobs:
             cc:    "gcc-8",
             cxx:   "g++-8",
             py:    "3.7",
-            cmake: "3.18.x",
+            cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -29,7 +29,7 @@ jobs:
             cc:    "clang-8",
             cxx:   "clang++-8",
             py:    "3.7",
-            cmake: "3.18.x",
+            cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -39,7 +39,7 @@ jobs:
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.7",
-            cmake: "3.18.x",
+            cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
