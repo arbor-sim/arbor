@@ -54,7 +54,9 @@ struct linear: public recipe {
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> result;
-        for (const auto& [t, w]: inject_at) result.push_back(arb::explicit_generator({{{"Zap"}, t, w}}));
+        for (const auto& [t, w]: inject_at) {
+            result.push_back(arb::explicit_generator({"Zap"}, w, std::vector<float>{t}));
+        }
         return result;
     }
 
@@ -62,7 +64,7 @@ struct linear: public recipe {
     double extent = 1.0,
            diameter = 1.0,
            cv_length = 1.0;
-    std::vector<std::tuple<double, float>> inject_at;
+    std::vector<std::tuple<float, float>> inject_at;
     morphology morph;
     arb::decor decor;
 

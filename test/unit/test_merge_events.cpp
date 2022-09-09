@@ -179,40 +179,36 @@ TEST(merge_events, X)
     EXPECT_EQ(expected, lf);
 }
 
+    struct labeled_synapse_event {
+
+    };
+
+using lse_vector = std::vector<std::tuple<cell_local_label_type, time_type, float>>;
+
 // Test the tournament tree for merging two small sequences 
 TEST(merge_events, tourney_seq)
 {
-    explicit_generator::lse_vector evs1 = {
-        {{"l0"}, 1, 1},
-        {{"l0"}, 2, 2},
-        {{"l0"}, 3, 3},
-        {{"l0"}, 4, 4},
-        {{"l0"}, 5, 5},
-    };
-
-    explicit_generator::lse_vector evs2 = {
-        {{"l0"}, 1.5, 1},
-        {{"l0"}, 2.5, 2},
-        {{"l0"}, 3.5, 3},
-        {{"l0"}, 4.5, 4},
-        {{"l0"}, 5.5, 5},
-    };
-
+    std::vector<arb::time_type> times {1, 2, 3, 4, 5};
+    cell_local_label_type l0 = {"l0"};
+    float w1 = 1.0f, w2 = 2.0f;
+    lse_vector evs1, evs2;
     pse_vector expected;
-
-    auto gen_pse = [](const auto& item) {return spike_event{0, item.time, item.weight};};
-    std::transform(evs1.begin(), evs1.end(), std::back_inserter(expected), gen_pse);
-    std::transform(evs2.begin(), evs2.end(), std::back_inserter(expected), gen_pse);
+    for (const auto time: times) {
+        evs1.emplace_back(l0, w1, time);
+        evs2.emplace_back(l0, w2, time);
+        expected.push_back({0, time, w1});
+        expected.push_back({0, time, w2});
+    }
     util::sort(expected);
 
-    event_generator g1 = explicit_generator(evs1);
-    event_generator g2 = explicit_generator(evs2);
+    auto
+        g1 = explicit_generator(l0, w1, times),
+        g2 = explicit_generator(l0, w2, times);
     g1.resolve_label([](const cell_local_label_type&) {return 0;});
     g2.resolve_label([](const cell_local_label_type&) {return 0;});
 
-    std::vector<event_span> spans;
-    spans.emplace_back(g1.events(0, terminal_time));
-    spans.emplace_back(g2.events(0, terminal_time));
+    std::vector<event_span> spans = {g1.events(0, terminal_time),
+                                     g2.events(0, terminal_time)};
     impl::tourney_tree tree(spans);
 
     pse_vector lf;

@@ -75,6 +75,8 @@ Release
    
 #. Change ``VERSION``. Make sure does not end with ``-rc`` or ``-dev``.
 
+#. Update ``scripts/check-all-tags.sh`` to check the current tag.
+
 #. Tag
 
    - commit and open a PR for the above changes.
