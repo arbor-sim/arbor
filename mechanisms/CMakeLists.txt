@@ -31,7 +31,7 @@ make_catalogue(
   STANDALONE FALSE
   VERBOSE ${ARB_CAT_VERBOSE})
 
-set(arbor-builtin-mechs ${catalogue-default-mechs} ${catalogue-allen-mechs} ${catalogue-bbp-mechs} PARENT_SCOPE)
+set(arbor-builtin-mechanisms ${catalogue-default-mechs} ${catalogue-allen-mechs} ${catalogue-bbp-mechs} PARENT_SCOPE)
 
 add_dependencies(arbor-public-deps catalogue-default-target)
 add_dependencies(arbor-public-deps catalogue-allen-target)

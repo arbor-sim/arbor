@@ -117,7 +117,7 @@ install(TARGETS arbor-private-headers EXPORT arbor-targets)
 # directory-local.
 
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
-set_source_files_properties(${arbor-builtin-mechanism} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${arbor-builtin-mechanisms} PROPERTIES GENERATED TRUE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor_sources} PROPERTIES LANGUAGE CXX)
@@ -125,7 +125,7 @@ if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
 endif()
 
 # Library target:
-add_library(arbor ${arbor_sources} ${arbor-builtin-mechs})
+add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
