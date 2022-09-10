@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!opt.catalogue.empty()) popt.cpp_namespace += "::" + opt.catalogue;
+    if (!opt.catalogue.empty()) popt.cpp_namespace += "::" + opt.catalogue + "_catalogue";
 
     std::vector<std::string> modules;
 
@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
                                "        if (ic) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ic));\n"
                                "        if (ig) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ig));\n"
                                "    }}\n",
-                               opt.catalogue, mod);
+                               prefix, mod);
         }
 
         out << "    return cat;\n"

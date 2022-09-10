@@ -31,7 +31,11 @@ make_catalogue(
   STANDALONE FALSE
   VERBOSE ${ARB_CAT_VERBOSE})
 
-set(arbor-builtin-mechs ${default-mechs} ${allen-mechs} ${bbp-mechs})
+set(arbor-builtin-mechs ${catalogue-default-mechs} ${catalogue-allen-mechs} ${catalogue-bbp-mechs} PARENT_SCOPE)
+
+add_dependencies(arbor-public-deps catalogue-default-target)
+add_dependencies(arbor-public-deps catalogue-allen-target)
+add_dependencies(arbor-public-deps catalogue-bbp-target)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor-builtin-mechs} PROPERTIES LANGUAGE CXX)

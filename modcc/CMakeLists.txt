@@ -76,9 +76,5 @@ else()
 endif()
 
 target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
-set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
-
-if (NOT ARB_WITH_EXTERNAL_MODCC)
-    install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
-
+set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL OFF)
+install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

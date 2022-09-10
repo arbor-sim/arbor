@@ -396,20 +396,10 @@ if (ARB_BACKTRACE)
     target_compile_definitions(arbor-private-deps INTERFACE WITH_BACKTRACE)
 endif()
 
-# Build and use modcc unless explicit path given
+# Build modcc flags
 #------------------------------------------------
 
-if(ARB_MODCC)
-    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
-    if(NOT modcc)
-        message(FATAL_ERROR "Unable to find modcc executable.")
-    endif()
-    set(ARB_WITH_EXTERNAL_MODCC TRUE)
-else()
-    set(modcc $<TARGET_FILE:modcc>)
-    set(ARB_WITH_EXTERNAL_MODCC FALSE)
-endif()
-
+set(modcc $<TARGET_FILE:modcc>)
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
