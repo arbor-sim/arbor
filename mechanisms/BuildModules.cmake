@@ -1,8 +1,9 @@
 include(CMakeParseArguments)
 
 function("make_catalogue")
-  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;PREFIX;VERBOSE" "CXX_FLAGS_TARGET;MOD;CXX" ${ARGN})
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;VERBOSE" "CXX_FLAGS_TARGET;MOD;CXX" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
+  file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
   if(MK_CAT_VERBOSE)
     message("Catalogue name:       ${MK_CAT_NAME}")
@@ -14,8 +15,6 @@ function("make_catalogue")
     message("Arbor cxx compiler:   ${ARB_CXX}")
     message("Current cxx compiler: ${CMAKE_CXX_COMPILER}")
   endif()
-
-  file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
   set(mk_cat_modcc_flags -t cpu ${ARB_MODCC_FLAGS} -N arb -c ${MK_CAT_NAME} -o ${MK_CAT_OUT_DIR})
   if(ARB_WITH_GPU)
@@ -38,8 +37,6 @@ function("make_catalogue")
                      COMMAND ${modcc} ${mk_cat_modcc_flags} ${catalogue_${MK_CAT_NAME}_mods}
                      COMMENT "modcc generating: ${catalogue_${MK_CAT_NAME}_source}")
   add_custom_target(catalogue-${MK_CAT_NAME}-target DEPENDS ${catalogue_${MK_CAT_NAME}_source})
-  message("mods:  ${catalogue_${MK_CAT_NAME}_mods}")
-  message("mechs: ${catalogue_${MK_CAT_NAME}_source}")
 
   set(catalogue-${MK_CAT_NAME}-mechs ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
@@ -57,6 +54,7 @@ include(CMakeParseArguments)
 function("make_catalogue_standalone")
   cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;PREFIX;VERBOSE" "CXX_FLAGS_TARGET;MOD;CXX" ${ARGN})
   set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
+  file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
   if(MK_CAT_VERBOSE)
     message("Catalogue name:       ${MK_CAT_NAME}")
@@ -68,8 +66,6 @@ function("make_catalogue_standalone")
     message("Arbor cxx compiler:   ${ARB_CXX}")
     message("Current cxx compiler: ${CMAKE_CXX_COMPILER}")
   endif()
-
-  file(MAKE_DIRECTORY "${MK_CAT_OUT_DIR}")
 
   set(mk_cat_modcc_flags -t cpu ${ARB_MODCC_FLAGS} -N arb -c ${MK_CAT_NAME} -o ${MK_CAT_OUT_DIR})
   if(ARB_WITH_GPU)

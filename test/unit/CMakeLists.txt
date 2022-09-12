@@ -43,33 +43,12 @@ set(test_mechanisms
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
-set(test_mech_dir ${CMAKE_CURRENT_BINARY_DIR}/mechanisms)
-
-set(test_mech_mod_dir mod)
-set(test_mech_sources)
-set(test_mech_mods)
-foreach(mech ${test_mechanisms})
-    list(APPEND test_mech_sources ${test_mech_dir}/${mech}_cpu.cpp)
-    list(APPEND test_mech_mods ${test_mech_mod_dir}/${mech}.mod)
-    if(ARB_WITH_GPU)
-        list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cpp)
-        list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cu)
-    endif()
-endforeach()
-
-set(test_modcc_flags -t cpu ${ARB_MODCC_FLAGS} -N testing -o ${test_mech_dir})
-if(ARB_WITH_GPU)
-    set(test_modcc_flags "-t cpu ${test_modcc_flags}")
-endif()
-
-message("MODCC ${modcc}")
-
-add_custom_command(OUTPUT            ${test_mech_sources}
-                   DEPENDS           ${test_mech_mods}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                   COMMAND ${modcc} ${test_modcc_flags} ${test_mech_mods}
-                   COMMENT "modcc generating: ${test_mech_sources}")
-add_custom_target(build_test_mods DEPENDS ${modcc} ${test_mech_mods})
+make_catalogue(
+    NAME    testing
+    MOD     ${test_mechanisms}
+    SOURCES ${PROJECT_SOURCE_DIR}/test/unit/mod
+    PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 # Unit test sources
 
@@ -186,10 +165,7 @@ if(ARB_WITH_GPU)
 endif()
 
 if(ARB_WITH_NEUROML)
-    list(APPEND unit_sources
-
-        test_nml_morphology.cpp
-    )
+    list(APPEND unit_sources test_nml_morphology.cpp)
 endif()
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -197,8 +173,8 @@ if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
-add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
-add_dependencies(unit build_test_mods)
+add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechs})
+add_dependencies(unit catalogue-testing-target)
 add_dependencies(tests unit)
 
 
@@ -248,4 +224,5 @@ target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
 target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
