@@ -51,8 +51,8 @@ def make_cable_cell(gid):
         # Attach one synapse and gap junction each on their labeled sites
         .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
         .place('"gj_site"', arbor.junction("gj"), "gj")
-        # Attach spike detector to cell root
-        .place('"root"', arbor.spike_detector(-10), "detector")
+        # Attach detector to cell root
+        .place('"root"', arbor.threshold_detector(-10), "detector")
     )
 
     return arbor.cable_cell(tree, labels, decor)

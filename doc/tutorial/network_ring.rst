@@ -51,7 +51,7 @@ The synapse is given the label ``'syn'``, which is later used to form :py:class:
    (see :py:class:`arbor.mechanism`). In particular, the ``e`` parameter of ``expsyn`` defaults to ``0``, which makes it,
    given the typical resting potential of cell membranes of ``-70 mV``, an excitatory synapse.
 
-Step **(4)** places a spike detector at the ``'root'``. The detector is given the label ``'detector'``, which is later used to form
+Step **(4)** places a threshold detector at the ``'root'``. The detector is given the label ``'detector'``, which is later used to form
 :py:class:`arbor.connection` objects originating *from* the cell.
 
 .. Note::
