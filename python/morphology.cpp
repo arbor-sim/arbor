@@ -360,7 +360,7 @@ void register_morphology(py::module& m) {
         [](py::object fn) {
             try {
                 auto contents = util::read_file_or_buffer(fn);
-                return arborio::load_asc(contents);
+                return arborio::parse_asc_string(contents.c_str());
             }
             catch (std::exception& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
