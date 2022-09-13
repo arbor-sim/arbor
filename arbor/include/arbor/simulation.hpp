@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <arbor/export.hpp>
+#include <arbor/arb_types.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -30,13 +31,13 @@ class simulation_builder;
 class ARB_ARBOR_API simulation {
 public:
     simulation(const recipe& rec, context ctx, const domain_decomposition& decomp,
-               std::uint64_t seed = 0);
+               arb_seed_type seed = 0);
 
     simulation(const recipe& rec,
                context ctx = make_context(),
                std::function<domain_decomposition(const recipe&, context)> balancer = 
                    [](auto& r, auto c) { return partition_load_balance(r, c); },
-               std::uint64_t seed = 0):
+               arb_seed_type seed = 0):
         simulation(rec, ctx, balancer(rec, ctx)) {}
 
     simulation(simulation const&) = delete;
@@ -109,8 +110,8 @@ public:
         return *this;
     }
 
-    simulation_builder& set_decomposition(domain_decomposition const& decomp) noexcept {
-        decomp_ = &decomp;
+    simulation_builder& set_decomposition(domain_decomposition decomp) noexcept {
+        balancer_ = [decomp = std::move(decomp)](const recipe&, context) {return decomp; };
         return *this;
     }
 
@@ -120,7 +121,7 @@ public:
         return *this;
     }
 
-    simulation_builder& set_seed(std::uint64_t seed) noexcept {
+    simulation_builder& set_seed(arb_seed_type seed) noexcept {
         seed_ = seed;
         return *this;
     }
@@ -139,12 +140,6 @@ private:
     }
 
     simulation build(context ctx) const {
-        return decomp_ ?
-            build(ctx, *decomp_):
-            build_from_balancer(ctx);
-    }
-
-    simulation build_from_balancer(context ctx) const {
         return balancer_ ?
             build(ctx, balancer_(rec_, ctx)):
             build(ctx, partition_load_balance(rec_, ctx));
@@ -155,11 +150,10 @@ private:
     }
 
 private:
-    recipe const & rec_;
+    const recipe& rec_;
     context ctx_;
-    domain_decomposition const * decomp_ = nullptr;
     std::function<domain_decomposition(const recipe&, context)> balancer_;
-    std::uint64_t seed_ = 0u;
+    arb_seed_type seed_ = 0u;
 };
 
 // An epoch callback function that prints out a text progress bar.

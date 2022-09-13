@@ -20,7 +20,7 @@ cell_group_ptr make_cell_group(Args&&... args) {
 }
 
 ARB_ARBOR_API cell_group_factory cell_kind_implementation(
-        cell_kind ck, backend_kind bk, const execution_context& ctx, std::uint64_t seed)
+        cell_kind ck, backend_kind bk, const execution_context& ctx, arb_seed_type seed)
 {
     using gid_vector = std::vector<cell_gid_type>;
 

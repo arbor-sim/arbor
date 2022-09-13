@@ -5,18 +5,18 @@
 #include <arbor/gpu/gpu_api.hpp>
 #include <arbor/gpu/gpu_common.hpp>
 
-#include "../rand.hpp"
+#include "backends/rand.inc"
 
 namespace arb {
 namespace gpu {
 
 __global__
 void generate_normal_random_values_kernel (
-    std::size_t   width,
-    std::size_t   num_variables,
-    cbprng_value_type seed, 
-    cbprng_value_type mech_id,
-    cbprng_value_type counter,
+    std::size_t width,
+    std::size_t num_variables,
+    arb::cbprng::value_type seed, 
+    arb::cbprng::value_type mech_id,
+    arb::cbprng::value_type counter,
     arb_size_type** prng_indices,
     arb_value_type** dst0,
     arb_value_type** dst1,
@@ -30,34 +30,26 @@ void generate_normal_random_values_kernel (
     arb_size_type const* idxs = prng_indices[1];
 
     if (tid < width) {
-        cbprng_value_type const gid = gids[tid];
-        cbprng_value_type const idx = idxs[tid];
+        arb::cbprng::value_type const gid = gids[tid];
+        arb::cbprng::value_type const idx = idxs[tid];
 
-        using counter_type = typename cbprng_generator::ctr_type;
-        using key_type = typename cbprng_generator::key_type;
+        const auto r = generate_normal_random_values(seed, mech_id, vid, gid, idx, counter);
 
-        counter_type c{seed, mech_id, vid, counter};
-        key_type k{gid, idx, 0, 0};
-
-        const auto r = cbprng_generator{}(c, k);
-        const auto n0 = r123::boxmuller(r[0], r[1]);
-        const auto n1 = r123::boxmuller(r[2], r[3]);
-
-        dst0[vid][tid] = n0.x;
-        dst1[vid][tid] = n0.y;
-        dst2[vid][tid] = n1.x;
-        dst3[vid][tid] = n1.y;
+        dst0[vid][tid] = r[0];
+        dst1[vid][tid] = r[1];
+        dst2[vid][tid] = r[2];
+        dst3[vid][tid] = r[3];
     }
 }
 
 void generate_normal_random_values(
-    std::size_t   width,
-    std::size_t   num_variables,
-    cbprng_value_type seed, 
-    cbprng_value_type mech_id,
-    cbprng_value_type counter,
+    std::size_t width,
+    std::size_t num_variables,
+    arb::cbprng::value_type seed, 
+    arb::cbprng::value_type mech_id,
+    arb::cbprng::value_type counter,
     arb_size_type** prng_indices,
-    std::array<arb_value_type**, 4> dst
+    std::array<arb_value_type**, arb::cbprng::cache_size()> dst
 )
 {
     unsigned const block_dim = 128;

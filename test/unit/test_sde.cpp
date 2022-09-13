@@ -1,6 +1,10 @@
 
 #include "../gtest.h"
 
+#include <atomic>
+#include <algorithm>
+#include <cmath>
+
 #include <arborio/label_parse.hpp>
 
 #include <arbor/cable_cell.hpp>
@@ -16,20 +20,243 @@
 #include "unit_test_catalogue.hpp"
 #include "../simple_recipes.hpp"
 
+// ============================
+// helper classes and functions
+// ============================
+
+// data storage, can be filled concurrently
+template<typename T>
+struct archive {
+    std::vector<T> data_;
+    std::atomic<std::size_t> index_ = 0u;
+
+    archive(std::size_t n) : data_(n) {}
+    archive(const archive& other)
+    : data_{other.data_}
+    , index_{other.index_.load()}
+    {}
+
+    T* claim(std::size_t n) {
+        std::size_t expected, desired;
+        do {
+            expected = index_.load();
+            desired = expected + n;
+        }
+        while (!index_.compare_exchange_weak(expected, desired));
+        return &(data_[expected]);
+    }
+
+    // not thread safe
+    void reset() {
+        std::fill(data_.begin(), data_.end(), T{0});
+        index_.store(0u);
+    }
+};
+
+// compute mean and variance online
+// uses Welford-Knuth algorithm for the variance
+struct accumulator {
+    std::size_t n_ = 0;
+    double mean_ = 0;
+    double var_ = 0;
+
+    accumulator& operator()(double sample) {
+        double const delta = sample - mean_;
+        mean_ += delta / (++n_);
+        var_ += delta * (sample - mean_);
+        return *this;
+    }
+
+    std::size_t n() const noexcept { return n_; }
+    double mean() const noexcept { return mean_; }
+    double variance() const noexcept { return n_ > 1 ? var_/(n_-1) : 0; }
+};
+
+// Cumulative distribtion function of normal distribution
+double cdf_0(double x, double mu, double sigma) {
+    return 0.5*(1 + std::erf((x-mu)/(sigma*std::sqrt(2))));
+}
+
+// Supremum of distances of cumulative sample distribution function with respect to
+// normal cumulative distribution function
+template<typename T>
+double cdf_distance(const std::vector<T>& ordered_samples, double mu, double sigma) {
+    const std::size_t n = ordered_samples.size();
+    const double n_inv = 1.0/n;
+    double D_sup = 0;
+    for (std::size_t i=0; i<n; ++i) {
+        const double x = ordered_samples[i];
+        const double F_0 = cdf_0(x, mu, sigma);
+        const double d_u = std::abs((i+1)*n_inv - F_0);
+        const double d_l = std::abs(i*n_inv - F_0);
+        D_sup = std::max(D_sup, d_u);
+        D_sup = std::max(D_sup, d_l);
+    }
+    return D_sup;
+}
+
+// Kolmogorov-Smirnov test
+// Returns true if null hypothesis (samples are normally distributed) can not be rejected at
+// significance level alpha = 5%
+template<typename T>
+bool ks(const std::vector<T>& ordered_samples, double mu, double sigma) {
+    const std::size_t n = ordered_samples.size();
+    const double D_sup = cdf_distance(ordered_samples, mu, sigma);
+    // Kolmogorov statistic K
+    double K = std::sqrt(n)*D_sup;
+    // Critical value for significance level alpha (approximation for n > 35)
+    const double alpha = 0.05;
+    const double K_c = std::sqrt(-0.5*std::log(0.5*alpha));
+    const bool ret = (K < K_c);
+    if (!ret) {
+        std::cout << "ks test failed: "
+            << K << " is not smaller than critical value " << K_c << "\n";
+    }
+    return ret;
+}
+
+// Anderson-Darling test
+// Returns true if null hypothesis (samples are normally distributed) can not be rejected at
+// significance level alpha = 5%
+template<typename T>
+bool ad(const std::vector<T>& ordered_samples, double mu, double sigma) {
+    const std::size_t n = ordered_samples.size();
+    double a_mean = 0;
+    for (std::size_t i=0; i<n; ++i) {
+        const double x = ordered_samples[i];
+        const double a =
+            (2*(i+1)-1)*std::log(cdf_0(x, mu, sigma)) +
+            (2*(n-(i+1))+1)*std::log(1-cdf_0(x, mu, sigma));
+        double const delta = a - a_mean;
+        a_mean += delta / (i+1);
+    }
+    // Anderson-Darling distance
+    const double A2 = -a_mean - n;
+    // Critical value for significance level alpha = 5% (n > 5)
+    const double A2_c = 2.492;
+    const bool ret = (A2 < A2_c);
+    if (!ret) {
+        std::cout << "ad test failed: "
+            << A2 << " is not smaller than critical value " << A2_c << "\n";
+    }
+    return ret;
+}
+
+// Student's t-test
+// Returns true if null hypothesis (sample mean is equal to mu) can not be rejected at
+// significance level alpha = 5%
+bool t_test_mean(double mu, double sample_mean, double sample_variance, std::size_t n) {
+    // t statistic
+    const double t = std::sqrt(n/sample_variance)*(sample_mean - mu);
+    // Critical value for significance level alpha = 5% (n = ∞)
+    const double t_c = 1.960;
+    const bool ret = (t < t_c);
+    if (!ret) {
+        std::cout << "t test failed: "
+            << t << " is not smaller than critical value " << t_c
+            << ", sample_mean = " << sample_mean << ", expected mean " << mu << "\n";
+    }
+    return ret;
+}
+
+// t-test from sample vector
+template<typename T>
+bool t_test_mean(const std::vector<T>& samples, double mu) {
+    // comute sample mean and sample variance
+    accumulator acc;
+    for (auto x : samples) acc(x);
+    return t_test_mean(mu, acc.mean(), acc.variance(), acc.n());
+}
+
+// Chi^2 test
+// Returns true if null hypothesis (sample variance is equal to sigma_squared) can not be rejected
+// at significance level alpha = 5%
+template<typename T>
+bool chi_2_test_variance(const std::vector<T>& samples, double sigma_squared) {
+    // comute sample mean and variance
+    accumulator acc;
+    for (auto x : samples) acc(x);
+    // compute statistic following chi squared distribution
+    const double c = (acc.n()-1)*acc.variance()/sigma_squared;
+    // we assume many samples, so chi squared distribution becomes normal distribution
+    // compute standard normally distributed variable
+    const double c_n = (c-acc.n())/std::sqrt(2*acc.n());
+    // critical value at 5%
+    const double c_n_c = 1.959963984540;
+    const bool ret = ((c_n < c_n_c) && (c_n > -c_n_c));
+    if (!ret) {
+        std::cout << "chi^2 test failed: "
+            << c_n << " is not between critical values (" << -c_n_c << ", " << c_n_c << ")"
+            << ", sample_variance = " << acc.variance()
+            << ", expected variance " << sigma_squared << "\n";
+    }
+    return ret;
+}
+
+// combined statistical tests (assumes data is sorted)
+template<typename T>
+void test_statistics(const std::vector<T>& ordered_samples, double mu, double sigma) {
+    // uniqueness test
+    auto it = std::adjacent_find(ordered_samples.begin(), ordered_samples.end());
+    EXPECT_EQ(it, ordered_samples.end());
+
+    // goodness-of-fit tests (checks whether normally distributed)
+    EXPECT_TRUE(ks(ordered_samples, mu, sigma));
+    EXPECT_TRUE(ad(ordered_samples, mu, sigma));
+
+    // mean and variance tests (assumes normal distribution)
+    EXPECT_TRUE(t_test_mean(ordered_samples, mu));
+    EXPECT_TRUE(chi_2_test_variance(ordered_samples, sigma*sigma));
+}
+
+// ===========================
+// Recipe and global variables
+// ===========================
+
 using namespace arb;
 using namespace arborio::literals;
 
-// depends on the r123 generator
-constexpr unsigned cache_size = 4;
+// forward declaration
+class sde_recipe;
 
-// This recipe generates simple 1D cells (consisting of 2 segments)
+// global variables used in overriden advance methods
+sde_recipe* rec_ptr = nullptr;
+archive<arb_value_type>* archive_ptr = nullptr;
+
+// declaration of overriding advance methods
+void advance_mean_reverting_stochastic_density_process(arb_mechanism_ppack* pp);
+void advance_mean_reverting_stochastic_density_process2(arb_mechanism_ppack* pp);
+void advance_mean_reverting_stochastic_process(arb_mechanism_ppack* pp);
+void advance_mean_reverting_stochastic_process2(arb_mechanism_ppack* pp);
+
+// helper macro for replacing a mechanism's advance method
+#define REPLACE_IMPLEMENTATION(MECH)                                                               \
+{                                                                                                  \
+    auto inst = cell_gprop_.catalogue.instance(arb_backend_kind_cpu, #MECH);                       \
+    advance_ ## MECH = inst.mech->iface_.advance_state;                                            \
+    inst.mech->iface_.advance_state = &::advance_ ## MECH;                                         \
+    cell_gprop_.catalogue.register_implementation(#MECH, std::move(inst.mech));                    \
+}
+
+// This recipe generates simple 1D cells (consisting of 2 segments) and optionally replaces the
+// mechanism's implementation by dispatching to a user defined advance function.
 class sde_recipe: public simple_recipe_base {
 public:
-    sde_recipe(unsigned ncell, unsigned ncvs, label_dict labels, decor dec)
+    sde_recipe(unsigned ncell, unsigned ncvs, label_dict labels, decor dec,
+        bool replace_implementation = true)
     : simple_recipe_base()
     , ncell_(ncell) {
         // add unit test catalogue
         cell_gprop_.catalogue.import(make_unit_test_catalogue(), "");
+
+        // replace mechanisms' advance methods
+        if (replace_implementation) {
+            rec_ptr = this;
+            REPLACE_IMPLEMENTATION(mean_reverting_stochastic_density_process)
+            REPLACE_IMPLEMENTATION(mean_reverting_stochastic_density_process2)
+            REPLACE_IMPLEMENTATION(mean_reverting_stochastic_process)
+            REPLACE_IMPLEMENTATION(mean_reverting_stochastic_process2)
+        }
 
         // set cvs explicitly
         double const cv_size = 1.0;
@@ -45,21 +272,13 @@ public:
         }
     }
 
-    cell_size_type num_cells() const override {
-        return ncell_;
-    }
+    cell_size_type num_cells() const override { return ncell_; }
 
-    util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return cells_[gid];
-    }
+    util::unique_any get_cell_description(cell_gid_type gid) const override { return cells_[gid]; }
 
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
 
-    std::any get_global_properties(cell_kind) const override {
-        return cell_gprop_;
-    }
+    std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
     
     sde_recipe& add_probe(probe_tag tag, std::any address) {
         for (unsigned i=0; i<cells_.size(); ++i) {
@@ -71,52 +290,80 @@ public:
 private:
     unsigned ncell_;
     std::vector<cable_cell> cells_;
+
+public:
+    // pointers to original advance methods
+    arb_mechanism_method advance_mean_reverting_stochastic_density_process;
+    arb_mechanism_method advance_mean_reverting_stochastic_density_process2;
+    arb_mechanism_method advance_mean_reverting_stochastic_process;
+    arb_mechanism_method advance_mean_reverting_stochastic_process2;
 };
+
+// generic advance method used for all pertinent mechanisms
+// first argument indicates the number of random variables
+void advance_common(unsigned int n_rv, arb_mechanism_ppack* pp) {
+    const auto width = pp->width;
+    arb_value_type* ptr = archive_ptr->claim(width * n_rv);
+    for (arb_size_type j=0; j<n_rv; ++j) {
+        for (arb_size_type i=0; i<width; ++i) {
+            ptr[j*width+i] = pp->random_numbers[j][i];
+        }
+    }
+}
+
+// overriden advance methods dispatch to common implementation and then to original method
+void advance_mean_reverting_stochastic_density_process(arb_mechanism_ppack* pp) {
+    advance_common(1, pp);
+    rec_ptr->advance_mean_reverting_stochastic_density_process(pp);
+}
+void advance_mean_reverting_stochastic_density_process2(arb_mechanism_ppack* pp) {
+    advance_common(2, pp);
+    rec_ptr->advance_mean_reverting_stochastic_density_process2(pp);
+}
+void advance_mean_reverting_stochastic_process(arb_mechanism_ppack* pp) {
+    advance_common(1, pp);
+    rec_ptr->advance_mean_reverting_stochastic_process(pp);
+}
+void advance_mean_reverting_stochastic_process2(arb_mechanism_ppack* pp) {
+    advance_common(2, pp);
+    rec_ptr->advance_mean_reverting_stochastic_process2(pp);
+}
+
+// =====
+// Tests
+// =====
 
 // generate a label dictionary with locations for synapses
 label_dict make_label_dict(unsigned nsynapse) {
-    auto t_1 = "(tag 1)"_reg;
-    auto t_2 = "(tag 2)"_reg;
-    auto locs = *arborio::parse_locset_expression("(uniform (all) 0 " + std::to_string(nsynapse-1) + " 0)");
-
     label_dict labels;
+    auto t_1 = "(tag 1)"_reg;
     labels.set("left", t_1);
+    auto t_2 = "(tag 2)"_reg;
     labels.set("right", t_2);
+    auto locs = *arborio::parse_locset_expression("(uniform (all) 0 " + std::to_string(nsynapse-1) + " 0)");
     labels.set("locs", locs);
-
     return labels;
 }
 
-// compute mean and variance
-std::pair<double, double> statistics(std::vector<double> const & samples);
-
-// t test
-void t_test_(double t, double mu, double mean, double var, std::size_t n) {
-    double const lower = mean - t*std::sqrt(var/n);
-    double const upper = mean + t*std::sqrt(var/n);
-    EXPECT_TRUE(lower <= mu);
-    EXPECT_TRUE(mu <= upper);
-}
-
-void t_test(double mu, double mean, double var, std::size_t n) {
-    double const t = 3.291; // 99.9% confidence for ∞ samples
-    t_test_(t, mu, mean, var, n);
-}
-
-void t_test_1000(double mu, double mean, double var, std::size_t n) {
-    double const t = 3.300; // 99.9% confidence for 1000 samples
-    t_test_(t, mu, mean, var, n);
-}
-
 // Test quality of generated random numbers.
-// In order to cover all situations, we have multiple cells running on multiple threads.
-// Furthermore, multiple (and duplicated) stochastic point mechanisms and multiple (and duplicated)
-// stochastic density mechanisms are added for each cell. The simulation is run for several time
-// steps, and we sample the relevant random values each time.
+// In order to cover all situations, we have multiple cells running on multiple threads, using
+// different load balancing strategies. Furthermore, multiple (and duplicated) stochastic point
+// mechanisms and multiple (and duplicated) stochastic density mechanisms are added for each cell.
+// The simulations are run for several time steps, and we sample the relevant random values in each
+// time step.
 // The quality of the random numbers is assesed by checking
+// - consistency
+//     The same simulations with varying number of threads and different partitioning must give the
+//     same random values
 // - uniqueness
-// - mean
-// - variance
+//     The random values must be unique and cannot repeat within a simulation and with respect to
+//     another simulation with a different seed
+// - goodness of fit
+//     We use Kolmogorov-Smirnoff and Anderson-Darling tests to check that we can not reject the
+//     null hypothesis that the values are (standard) normally distributed
+// - mean and variance
+//     Assuming a normal distribution, we check that the mean and the variance are close to the
+//     expected values using a student's t-test and a chi^2 test, respectively.
 TEST(sde, normality) {
     // simulation parameters
     unsigned ncells = 4;
@@ -141,241 +388,144 @@ TEST(sde, normality) {
     dec.place(*labels.locset("locs"), synapse("mean_reverting_stochastic_process2"), "synapses");
     dec.place(*labels.locset("locs"), synapse("mean_reverting_stochastic_process2"), "synapses");
 
-    // a basic sampler: stores result in a vector
-    auto sampler_ = [ncells, nsteps] (std::vector<double>& results, unsigned count,
-        probe_metadata pm, std::size_t n, sample_record const * samples) {
-
-        auto* cables_ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
-        auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
-        assert((cables_ptr != nullptr) || (point_info_ptr != nullptr));
-
-        unsigned n_entities = cables_ptr ? cables_ptr->size() : point_info_ptr->size();
-        unsigned tag = pm.tag;
-        assert(n_entities == count);
-
-        unsigned offset = pm.id.gid*(nsteps-1)*n_entities + n_entities*tag;
-        unsigned stride = n_entities*cache_size;
-        for (std::size_t i = 0; i<n; ++i) {
-            auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            assert(value_range);
-            const auto& [lo, hi] = *value_range;
-            assert(n_entities==hi-lo);
-            for (unsigned j = 0; j<n_entities; ++j) {
-                results[offset + stride*i + j] = lo[j];
-            }
-        }
-    };
-
-    // concrete sampler for random variables used for white noise W
-    std::vector<double> results_W(ncells*(nsteps-1)*(2*nsynapses));
-    auto synapse_sampler_W = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_W, 2*nsynapses, pm, n, samples);
-    };
-
-    // concrete sampler for random variables used for white noise Q
-    std::vector<double> results_Q(ncells*(nsteps-1)*(2*nsynapses));
-    auto synapse_sampler_Q = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_Q, 2*nsynapses, pm, n, samples);
-    };
-
-    // concrete sampler for random variables used for white noise Z
-    std::vector<double> results_Z(ncells*(nsteps-1)*(2*nsynapses));
-    auto synapse_sampler_Z = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_Z, 2*nsynapses, pm, n, samples);
-    };
-
-    // concrete sampler for random variables used for white noise w
-    std::vector<double> results_w1(ncells*(nsteps-1)*(ncvs));
-    auto density_sampler_w1 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_w1, ncvs, pm, n, samples);
-    };
-    std::vector<double> results_w2(ncells*(nsteps-1)*(ncvs));
-    auto density_sampler_w2 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_w2, ncvs, pm, n, samples);
-    };
-
-    // concrete sampler for random variables used for white noise q
-    std::vector<double> results_q1(ncells*(nsteps-1)*(ncvs));
-    auto density_sampler_q1 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_q1, ncvs, pm, n, samples);
-    };
-    std::vector<double> results_q2(ncells*(nsteps-1)*(ncvs));
-    auto density_sampler_q2 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_q2, ncvs, pm, n, samples);
-    };
-
-    // concrete sampler for random variables used for white noise b
-    std::vector<double> results_b1(ncells*(nsteps-1)*(ncvs));
-    auto density_sampler_b1 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_b1, ncvs, pm, n, samples);
-    };
-    std::vector<double> results_b2(ncells*(nsteps-1)*(ncvs));
-    auto density_sampler_b2 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_b2, ncvs, pm, n, samples);
-    };
-
     // instantiate recipe
-    sde_recipe rec(ncells, ncvs, labels, dec);
+    sde_recipe rec(ncells, ncvs, labels, dec, true);
 
-    // add the probes for W
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_point_prng_state_cell{"mean_reverting_stochastic_process", "W", c});
-    }
-    // add the probes for Q
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_point_prng_state_cell{"mean_reverting_stochastic_process2", "Q", c});
-    }
-    // add the probes for Z
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_point_prng_state_cell{"mean_reverting_stochastic_process2", "Z", c});
-    }
+    // calculate storage needs
+    // - 2 point processes with 1 random variable each
+    // - 2 point processes with 2 random variables each
+    // - same for density processes
+    std::size_t n_rv_synapses = ncells*nsynapses*(1+1+2+2);
+    std::size_t n_rv_densities = ncells*ncvs*(1+1+2+2);
+    std::size_t n_rv_per_dt = n_rv_synapses + n_rv_densities;
+    std::size_t n_rv = n_rv_per_dt*(nsteps+1);
 
-    // add the probes for w
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_density_prng_state_cell{"mean_reverting_stochastic_density_process", "w", c});
-    }
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_density_prng_state_cell{"mean_reverting_stochastic_density_process/sigma=0.2", "w", c});
-    }
+    // setup storage
+    std::vector<arb_value_type> data;
+    archive<arb_value_type> arch(n_rv);
+    archive_ptr = &arch;
 
-    // add the probes for q
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_density_prng_state_cell{"mean_reverting_stochastic_density_process2", "q", c});
-    }
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_density_prng_state_cell{"mean_reverting_stochastic_density_process2/sigma=0.2", "q", c});
-    }
+    // Run a bunch of different simulations, with different concurrency and load balancing
+    // Check that generated random numbers are identical
 
-    // add the probes for b
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_density_prng_state_cell{"mean_reverting_stochastic_density_process2", "b", c});
-    }
-    for (unsigned c=0; c<cache_size; ++c) {
-        rec.add_probe(c, cable_probe_density_prng_state_cell{"mean_reverting_stochastic_density_process2/sigma=0.2", "b", c});
+    // single-threaded, one cell per thread
+    {
+        auto context = make_context({1, -1});
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(42);
+        sim.run(nsteps*dt, dt);
+
+        // sort data and store for comparison
+        std::sort(arch.data_.begin(), arch.data_.end());
+        data = arch.data_;
     }
 
-    auto context = make_context({arbenv::default_concurrency(), -1});
-    //auto context = make_context({1, -1});
+    // multi-threaded, one cell per thread
+    {
+        auto context = make_context({arbenv::default_concurrency(), -1});
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(42);
+        arch.reset();
+        sim.run(nsteps*dt, dt);
 
-    // build a simulation object
-    simulation sim = simulation::create(rec)
-        .set_context(context)
-        .set_seed(42);
+        // sort data
+        std::sort(arch.data_.begin(), arch.data_.end());
 
-    // compute sampling times
-    std::vector<std::vector<double>> times(cache_size, std::vector<double>(nsteps+1));
-    for (unsigned c=0; c<cache_size; ++c)
-        for (unsigned i=0; i<nsteps+1; ++i)
-            times[c][i] = dt + c*dt + (i*cache_size)*dt;
-
-    // add sampler for W
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c); },
-            explicit_schedule(times[c]), synapse_sampler_W, sampling_policy::exact);
+        // check for equality
+        EXPECT_TRUE(std::equal(data.begin(), data.end(), arch.data_.begin()));
     }
 
-    // add sampler for Q
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+cache_size); },
-            explicit_schedule(times[c]), synapse_sampler_Q, sampling_policy::exact);
+    // single-threaded, 2 cells per thread
+    {
+        auto context = make_context({1, -1});
+        partition_hint_map hint_map;
+        partition_hint h;
+        h.cpu_group_size = 2;
+        hint_map[cell_kind::cable] = h;
+        auto decomp = partition_load_balance(rec, context, hint_map);
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_decomposition(decomp)
+            .set_seed(42);
+        arch.reset();
+        sim.run(nsteps*dt, dt);
+
+        // sort data
+        std::sort(arch.data_.begin(), arch.data_.end());
+
+        // check for equality
+        EXPECT_TRUE(std::equal(data.begin(), data.end(), arch.data_.begin()));
     }
 
-    // add sampler for Z
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+2*cache_size); },
-            explicit_schedule(times[c]), synapse_sampler_Z, sampling_policy::exact);
+    // multi-threaded, 2 cells per thread
+    {
+        auto context = make_context({arbenv::default_concurrency(), -1});
+        partition_hint_map hint_map;
+        partition_hint h;
+        h.cpu_group_size = 2;
+        hint_map[cell_kind::cable] = h;
+        auto decomp = partition_load_balance(rec, context, hint_map);
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_decomposition(decomp)
+            .set_seed(42);
+        arch.reset();
+        sim.run(nsteps*dt, dt);
+
+        // sort data
+        std::sort(arch.data_.begin(), arch.data_.end());
+
+        // check for equality
+        EXPECT_TRUE(std::equal(data.begin(), data.end(), arch.data_.begin()));
     }
 
-    // add sampler for w
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+3*cache_size); },
-            explicit_schedule(times[c]), density_sampler_w1, sampling_policy::exact);
-    }
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+4*cache_size); },
-            explicit_schedule(times[c]), density_sampler_w2, sampling_policy::exact);
-    }
+    // Run another simulation with different seed and check that values are different
+    {
+        auto context = make_context({arbenv::default_concurrency(), -1});
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(0);
+        arch.reset();
+        sim.run(nsteps*dt, dt);
 
-    // add sampler for q
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+5*cache_size); },
-            explicit_schedule(times[c]), density_sampler_q1, sampling_policy::exact);
-    }
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+6*cache_size); },
-            explicit_schedule(times[c]), density_sampler_q2, sampling_policy::exact);
-    }
+        // sort data
+        std::sort(arch.data_.begin(), arch.data_.end());
 
-    // add sampler for b
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+7*cache_size); },
-            explicit_schedule(times[c]), density_sampler_b1, sampling_policy::exact);
-    }
-    for (unsigned c=0; c<cache_size; ++c) {
-        sim.add_sampler([c](cell_member_type pid) { return (pid.index==c+8*cache_size); },
-            explicit_schedule(times[c]), density_sampler_b2, sampling_policy::exact);
+        // merge sort into combined data
+        std::vector<arb_value_type> combined(data.size()*2);
+        std::merge(
+            arch.data_.begin(), arch.data_.end(),
+            data.begin(), data.end(),
+            combined.begin());
+
+        // uniqueness test
+        auto it = std::adjacent_find(combined.begin(), combined.end());
+        EXPECT_EQ(it, combined.end());
     }
 
-    // run the simulation
-    sim.run(nsteps*dt, dt);
+    // test statistics
+    test_statistics(data, 0.0, 1.0);
 
-    // collect all results
-    std::vector<double> results;
-    results.reserve(
-            results_W.size() + results_Q.size() + results_Z.size() +
-            2*results_w1.size() + 2*results_q1.size() + 2*results_b1.size());
-    results.insert(results.end(), results_W.begin(), results_W.end());
-    results.insert(results.end(), results_Q.begin(), results_Q.end());
-    results.insert(results.end(), results_Z.begin(), results_Z.end());
-    results.insert(results.end(), results_w1.begin(), results_w1.end());
-    results.insert(results.end(), results_w2.begin(), results_w2.end());
-    results.insert(results.end(), results_q1.begin(), results_q1.end());
-    results.insert(results.end(), results_q2.begin(), results_q2.end());
-    results.insert(results.end(), results_b1.begin(), results_b1.end());
-    results.insert(results.end(), results_b2.begin(), results_b2.end());
-
-    // uniqueness test
-    std::sort(results.begin(), results.end());
-    auto it = std::adjacent_find(results.begin(), results.end());
-    EXPECT_EQ(it, results.end());
-
-    // t test
-    auto [mean, variance] = statistics(results);
-    t_test(0.0, mean, variance, results.size());
+    // test statistics with different seed
+    test_statistics(arch.data_, 0.0, 1.0);
 }
 
-// compute mean and variance online
-struct accumulator
-{
-    double n_ = 0;
-    double mean_ = 0;
-    double var_ = 0;
-
-    accumulator& operator()(double sample) {
-        double const delta = sample - mean_;
-        mean_ += delta / (++n_);
-        var_ += delta * (sample - mean_);
-        return *this;
-    }
-
-    double mean() const noexcept { return mean_; }
-    double variance() const noexcept { return n_ > 1 ? var_/(n_-1) : 0; }
-};
-
-
-// Test the solver by running the mean reverting process many times and comparing statistics to
-// expectation value and variance obtained from theory.
+// Test the solver by running the mean reverting process many times and
+// testing statistics with t-test (assumes t-statistic is approximately normally distributed due to
+// central limit theorem).
 // Every synapse in every cell computes the independent evolution of 4 different stochastic
 // processes. The results are evaluated at every time step and accumulated. Moreover, several
 // simulations with different seed values are run which multiply the samples obtained.
 TEST(sde, solver) {
     // simulation parameters
-    unsigned ncells = 10;
-    unsigned nsynapses = 10;
+    unsigned ncells = 4;
+    unsigned nsynapses = 1000;
     unsigned ncvs = 1;
-    double const dt = 1.0/16;
-    unsigned nsteps = 200;
-    unsigned nsims = 10;
+    double const dt = 1.0/64;
+    unsigned nsteps = 100;
+    unsigned nsims = 4;
 
     // make labels (and locations for synapses)
     auto labels = make_label_dict(nsynapses);
@@ -392,7 +542,7 @@ TEST(sde, solver) {
     dec.place(*labels.locset("locs"), synapse(m4), "m4");
 
     // a basic sampler: stores result in a vector
-    auto sampler_ = [ncells, nsteps] (std::vector<double>& results, unsigned count,
+    auto sampler_ = [ncells, nsteps] (std::vector<arb_value_type>& results, unsigned count,
         probe_metadata pm, std::size_t n, sample_record const * samples) {
 
         auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
@@ -416,28 +566,28 @@ TEST(sde, solver) {
     };
 
     // concrete sampler for process m1
-    std::vector<double> results_m1(ncells*(nsteps)*(nsynapses));
+    std::vector<arb_value_type> results_m1(ncells*(nsteps)*(nsynapses));
     auto sampler_m1 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
         sampler_(results_m1, nsynapses, pm, n, samples);
     };
     // concrete sampler for process m2
-    std::vector<double> results_m2(ncells*(nsteps)*(nsynapses));
+    std::vector<arb_value_type> results_m2(ncells*(nsteps)*(nsynapses));
     auto sampler_m2 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
         sampler_(results_m2, nsynapses, pm, n, samples);
     };
     // concrete sampler for process m3
-    std::vector<double> results_m3(ncells*(nsteps)*(nsynapses));
+    std::vector<arb_value_type> results_m3(ncells*(nsteps)*(nsynapses));
     auto sampler_m3 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
         sampler_(results_m3, nsynapses, pm, n, samples);
     };
     // concrete sampler for process m4
-    std::vector<double> results_m4(ncells*(nsteps)*(nsynapses));
+    std::vector<arb_value_type> results_m4(ncells*(nsteps)*(nsynapses));
     auto sampler_m4 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
         sampler_(results_m4, nsynapses, pm, n, samples);
     };
 
     // instantiate recipe
-    sde_recipe rec(ncells, ncvs, labels, dec);
+    sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
     rec.add_probe(1, cable_probe_point_state_cell{m1, "S"});
@@ -451,9 +601,8 @@ TEST(sde, solver) {
     std::vector<accumulator> stats_m3(nsteps);
     std::vector<accumulator> stats_m4(nsteps);
 
-
+    // context
     auto context = make_context({arbenv::default_concurrency(), -1});
-    //auto context = make_context({1, -1});
 
     for (unsigned s=0; s<nsims; ++s)
     {
@@ -475,6 +624,7 @@ TEST(sde, solver) {
         // run the simulation
         sim.run(nsteps*dt, dt);
 
+        // accumulate statistics for sampled data
         for (unsigned int k=0; k<ncells; ++k){
             for (unsigned int i=0; i<nsteps; ++i){
                 for (unsigned int j=0; j<(nsynapses); ++j){
@@ -501,26 +651,18 @@ TEST(sde, solver) {
     auto expected_m3 = [&](double t) { return expected(0.1, 0.2, t); };
     auto expected_m4 = [&](double t) { return expected(0.2, 0.2, t); };
 
-    // t test
-    auto test = [&] (auto func, auto const& stats) {
-        for (unsigned int i=0; i<nsteps; ++i){
-            auto [mu, sigma] = func(i*dt);
+    auto test = [&] (auto func, const auto& stats) {
+        for (unsigned int i=1; i<nsteps; ++i)
+        {
+            auto [mu, sigma_squared] = func(i*dt);
             double const mean = stats[i].mean();
             double const var = stats[i].variance();
-            std::size_t const n = stats[i].n_;
-            t_test_1000(mu, mean, var, n);
+            std::size_t const n = stats[i].n();
+            EXPECT_TRUE(t_test_mean(mu, mean, var, n));
         }
     };
     test(expected_m1, stats_m1);
     test(expected_m2, stats_m2);
     test(expected_m3, stats_m3);
     test(expected_m4, stats_m4);
-}
-
-// compute mean and variance
-std::pair<double, double> statistics(std::vector<double> const & samples)
-{
-    accumulator a;
-    for (auto sample : samples) a(sample);
-    return {a.mean(), a.variance()};
 }

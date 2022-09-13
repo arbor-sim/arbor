@@ -16,6 +16,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/rand.inc"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -26,7 +27,6 @@
 #include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
-#include "rand.hpp"
 
 namespace arb {
 namespace multicore {
@@ -205,7 +205,7 @@ shared_state::shared_state(
     const std::vector<arb_value_type>& diam,
     const std::vector<arb_index_type>& src_to_spike,
     unsigned align,
-    std::uint64_t cbprng_seed_
+    arb_seed_type cbprng_seed_
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
@@ -227,7 +227,6 @@ shared_state::shared_state(
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    random_number_cache_size(cbprng_batch_size),
     deliverable_events(n_intdom)
 {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
@@ -469,25 +468,12 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
-const arb_value_type* shared_state::mechanism_prng_state_data(const mechanism& m, const std::string& key, unsigned cache_index) {
-    auto const mech_id = m.mechanism_id();
-    auto& store = storage[mech_id];
-    if (cache_index >= random_number_cache_size) return nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_random_variables; ++i) {
-        if (key==m.mech_.random_variables[i].name) {
-            return store.random_numbers_[cache_index][m.mech_.random_variables[i].index];
-        }
-    }
-    return nullptr;
-}
-
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
     auto const counter = store.random_number_update_counter_++;
-    //TODO make sure overflow is handled gracefully
-    auto const cache_idx = counter % random_number_cache_size;
+    const auto cache_idx = cbprng::cache_index(counter);
 
     m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
 
@@ -500,12 +486,11 @@ void shared_state::update_prng_state(mechanism& m) {
         // time.
         auto const num_rv = store.random_numbers_[cache_idx].size();
         auto const width = store.gid_.size();
-
         for (std::size_t n=0; n<num_rv; ++n) {
             for (std::size_t i=0; i<width; ++i) {
-                auto const r =  generate_normal_random_values(cbprng_seed, mech_id, n,
+                auto const r =  cbprng::generate_normal_random_values(cbprng_seed, mech_id, n,
                     store.gid_[i], store.idx_[i], counter);
-                for (std::size_t c=0; c<random_number_cache_size; ++c)
+                for (std::size_t c=0; c<cbprng::cache_size(); ++c)
                     store.random_numbers_[c][n][i] = r[c];
             }
         }
@@ -591,8 +576,8 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     {
         // Allocate view pointers for random nubers
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
-        std::size_t random_number_storage = num_random_numbers_per_cv*random_number_cache_size;
-        store.random_numbers_.resize(random_number_cache_size);
+        std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
+        store.random_numbers_.resize(cbprng::cache_size());
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
         m.ppack_.random_numbers = store.random_numbers_[0].data();
 
@@ -614,7 +599,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         }
         // Set random numbers
         for (auto idx_v: make_span(num_random_numbers_per_cv))
-            for (auto idx_c: make_span(random_number_cache_size))
+            for (auto idx_c: make_span(cbprng::cache_size()))
                 store.random_numbers_[idx_c][idx_v] = writer.fill(0);
 
         // Assign global scalar parameters

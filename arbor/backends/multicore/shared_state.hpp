@@ -14,6 +14,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/rand.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
@@ -131,7 +132,7 @@ struct ARB_ARBOR_API shared_state {
         std::vector<std::vector<arb_value_type*>> random_numbers_;
         std::vector<arb_size_type> gid_;
         std::vector<arb_size_type> idx_;
-        std::size_t random_number_update_counter_ = 0u;
+        cbprng::counter_type random_number_update_counter_ = 0u;
     };
 
     cable_solver solver;
@@ -160,8 +161,7 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
-    std::uint64_t cbprng_seed;              // random number generator seed
-    arb_size_type random_number_cache_size; // number of random numbers generated per random variable
+    arb_seed_type cbprng_seed; // random number generator seed
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
@@ -181,7 +181,7 @@ struct ARB_ARBOR_API shared_state {
         const std::vector<arb_value_type>& diam,
         const std::vector<arb_index_type>& src_to_spike,
         unsigned align,
-        std::uint64_t cbprng_seed_ = 0u
+        arb_seed_type cbprng_seed_ = 0u
     );
 
     void instantiate(mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
@@ -191,8 +191,6 @@ struct ARB_ARBOR_API shared_state {
     void update_prng_state(mechanism&);
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
-
-    const arb_value_type* mechanism_prng_state_data(const mechanism&, const std::string&, unsigned cache_index);
 
     void add_ion(
         const std::string& ion_name,

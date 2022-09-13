@@ -10,6 +10,7 @@
 
 #include "fvm_layout.hpp"
 
+#include "backends/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
@@ -130,7 +131,7 @@ struct ARB_ARBOR_API shared_state {
 
         std::vector<arb_size_type*> prng_indices_;
         memory::device_vector<arb_size_type*> prng_indices_d_;
-        std::size_t random_number_update_counter_ = 0u;
+        cbprng::counter_type random_number_update_counter_ = 0u;
     };
 
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
@@ -159,8 +160,7 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
-    std::uint64_t cbprng_seed;              // random number generator seed
-    arb_size_type random_number_cache_size; // number of random numbers generated
+    arb_seed_type cbprng_seed; // random number generator seed
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
@@ -180,7 +180,7 @@ struct ARB_ARBOR_API shared_state {
         const std::vector<arb_value_type>& diam,
         const std::vector<arb_index_type>& src_to_spike,
         unsigned, // align parameter ignored
-        std::uint64_t cbprng_seed_ = 0u
+        arb_seed_type cbprng_seed_ = 0u
     );
 
     // Setup a mechanism and tie its backing store to this object
@@ -192,9 +192,6 @@ struct ARB_ARBOR_API shared_state {
 
     // Note: returned pointer points to device memory.
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
-
-    // Note: returned pointer points to device memory.
-    const arb_value_type* mechanism_prng_state_data(const mechanism&, const std::string&, unsigned cache_index);
 
     void add_ion(
         const std::string& ion_name,

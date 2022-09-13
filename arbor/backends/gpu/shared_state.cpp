@@ -190,7 +190,7 @@ shared_state::shared_state(
     const std::vector<arb_value_type>& diam,
     const std::vector<arb_index_type>& src_to_spike,
     unsigned, // alignment parameter ignored.
-    std::uint64_t cbprng_seed_
+    arb_seed_type cbprng_seed_
     ):
     n_intdom(n_intdom),
     n_detector(n_detector),
@@ -210,7 +210,6 @@ shared_state::shared_state(
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
     cbprng_seed(cbprng_seed_),
-    random_number_cache_size(cbprng_batch_size),
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);
@@ -272,8 +271,7 @@ void shared_state::update_prng_state(mechanism& m) {
     auto const mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
     auto const counter = store.random_number_update_counter_++;
-    //TODO make sure overflow is handled gracefully
-    auto const cache_idx = counter % random_number_cache_size;
+    const auto cache_idx = cbprng::cache_index(counter);
 
     m.ppack_.random_numbers = store.random_numbers_d_[cache_idx].data();
 
@@ -287,7 +285,7 @@ void shared_state::update_prng_state(mechanism& m) {
         generate_normal_random_values(
             m.ppack_.width,                          // number of values per variable
             cbprng_seed,                             // seed
-            mech_id,                                 // mechansim id
+            mech_id,                                 // mechanism id
             counter,                                 // counter
             store.prng_indices_d_,                   // additional indices for prng
             store.random_numbers_d_                  // destination
@@ -301,18 +299,6 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
         if (key==m.mech_.state_vars[i].name) {
             return store.state_vars_[i];
-        }
-    }
-    return nullptr;
-}
-
-const arb_value_type* shared_state::mechanism_prng_state_data(const mechanism& m, const std::string& key, unsigned cache_index) {
-    const auto& store = storage.at(m.mechanism_id());
-
-    if (cache_index >= random_number_cache_size) return nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_random_variables; ++i) {
-        if (key==m.mech_.random_variables[i].name) {
-            return store.random_numbers_d_[cache_index][m.mech_.random_variables[i].index];
         }
     }
     return nullptr;
@@ -379,10 +365,10 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     {
         // Allocate view pointers for random nubers
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
-        std::size_t random_number_storage = num_random_numbers_per_cv*random_number_cache_size;
-        store.random_numbers_.resize(random_number_cache_size);
+        std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
+        store.random_numbers_.resize(cbprng::cache_size());
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
-        store.random_numbers_d_.resize(random_number_cache_size);
+        store.random_numbers_d_.resize(cbprng::cache_size());
 
         // Allocate bulk storage
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
@@ -401,7 +387,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         }
         // Set random numbers
         for (auto idx_v: make_span(num_random_numbers_per_cv)) {
-            for (auto idx_c: make_span(random_number_cache_size)) {
+            for (auto idx_c: make_span(cbprng::cache_size())) {
                 store.random_numbers_[idx_c][idx_v] = writer.fill(0);
             }
         }
@@ -475,7 +461,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
 
-    for (auto idx_c: make_span(random_number_cache_size))
+    for (auto idx_c: make_span(cbprng::cache_size()))
         store.random_numbers_d_[idx_c] = memory::on_gpu(store.random_numbers_[idx_c]);
 
     store.prng_indices_d_ = memory::on_gpu(store.prng_indices_);

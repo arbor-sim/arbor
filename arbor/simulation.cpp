@@ -90,7 +90,7 @@ ARB_ARBOR_API void merge_cell_events(
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, std::uint64_t seed);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
     void update(const connectivity& rec);
 
@@ -190,7 +190,7 @@ simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
         context ctx,
-        std::uint64_t seed
+        arb_seed_type seed
     ):
     ctx_{ctx},
     ddc_{decomp},
@@ -522,7 +522,7 @@ simulation::simulation(
     const recipe& rec,
     context ctx,
     const domain_decomposition& decomp,
-    std::uint64_t seed)
+    arb_seed_type seed)
 {
     impl_.reset(new simulation_state(rec, decomp, ctx, seed));
 }

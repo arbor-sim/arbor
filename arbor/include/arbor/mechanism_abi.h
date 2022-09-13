@@ -81,7 +81,7 @@ typedef struct arb_constraint_partition {
 
 // Parameter Pack
 typedef struct arb_mechanism_ppack {
-    arb_size_type  width;                        // Number of CVs.
+    arb_size_type   width;                       // Number of CVs.
     arb_index_type  n_detectors;                 // Number of spike detectors.
     arb_index_type* vec_ci;
     arb_index_type* vec_di;
@@ -106,7 +106,7 @@ typedef struct arb_mechanism_ppack {
     arb_value_type*  globals;                       // Array of global constant state. (Scalar)
     arb_ion_state*   ion_states;                    // Array of views into shared state.
 
-    arb_value_type const * const * random_numbers;
+    arb_value_type const * const * random_numbers;  // Array of random numbers
 } arb_mechanism_ppack;
 
 

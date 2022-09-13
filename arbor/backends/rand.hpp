@@ -1,10 +1,16 @@
 #pragma once
-#include <Random123/threefry.h>
+
+#include <arbor/arb_types.hpp>
 
 namespace arb {
+namespace cbprng {
 
-using cbprng_generator = r123::Threefry4x64_R<12>;
-using cbprng_value_type = cbprng_generator::ctr_type::value_type;
-constexpr std::size_t cbprng_batch_size = cbprng_generator::ctr_type::static_size;
+using value_type = arb_seed_type;
+using counter_type = value_type;
 
+inline constexpr counter_type cache_size() { return 4; }
+inline constexpr counter_type cache_index(counter_type c) { return (3u & c); }
+
+} // namespace cbprng
 } // namespace arb
+
