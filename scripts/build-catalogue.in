@@ -131,7 +131,6 @@ exec_path = this_path.resolve()
 
 for path in [
     exec_path / "modcc",
-    data_path / "generate_catalogue",
     data_path / "BuildModules.cmake",
     pack_path / "arbor-config.cmake",
 ]:
