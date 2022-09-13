@@ -5,7 +5,7 @@
 #include <arbor/gpu/gpu_api.hpp>
 #include <arbor/gpu/gpu_common.hpp>
 
-#include "backends/rand.inc"
+#include "backends/rand_impl.hpp"
 
 namespace arb {
 namespace gpu {

@@ -1,3 +1,4 @@
+#pragma once
 
 #include <type_traits>
 
@@ -33,7 +34,7 @@ struct darray {
 };
 
 HOST_DEVICE_IF_GPU
-array_type generate_uniform_random_values(
+inline array_type generate_uniform_random_values(
     value_type seed,
     value_type mech_id,
     value_type var_id,
@@ -46,7 +47,7 @@ array_type generate_uniform_random_values(
 }
 
 HOST_DEVICE_IF_GPU
-darray generate_normal_random_values(
+inline darray generate_normal_random_values(
     value_type seed,
     value_type mech_id,
     value_type var_id,

@@ -16,7 +16,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
-#include "backends/rand.inc"
+#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
