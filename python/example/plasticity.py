@@ -54,7 +54,7 @@ class recipe(A.recipe):
         #   - synapse to receive incoming spikes from the source cell.
         decor.place("(location 0 0.5)", A.synapse("expsyn"), "synapse")
         #   - detector for reporting spikes on the cable cells.
-        decor.place("(location 0 0.5)", A.threshold_detector(-10.0), "detector")
+        decor.place("(location 0 0.5)", A.spike_detector(-10.0), "detector")
         # return the cable cell description
         return A.cable_cell(tree, A.label_dict(), decor)
 
@@ -88,13 +88,11 @@ rec = recipe(3)
 # Note that the connection is just _recorded_ in the recipe, the actual connectivity
 # is set up in the simulation construction.
 rec.add_connection_to_spike_source(1)
-
-# Now construct the simulation
 sim = A.simulation(rec)
 sim.record(A.spike_recording.all)
 
 # then run the simulation for a bit
-sim.run(0.25)
+sim.run(0.25, 0.025)
 
 # update the simulation to
 #
@@ -108,12 +106,6 @@ sim.update(rec)
 sim.run(0.5, 0.025)
 
 # When finished, print spike times and locations.
-source_spikes = 0
-print("Spikes generated:")
-for (gid, lid), time in sim.spikes():
-    # skip spike source
-    if gid == 0:
-        source_spikes += 1
-    else:
-        print(f" * {time:.4f} gid={gid} lid={lid}")
-print(f"Source spikes: {source_spikes}")
+print("spikes:")
+for sp in sim.spikes():
+    print(" ", sp)
