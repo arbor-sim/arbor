@@ -502,7 +502,7 @@ void SparseSolverVisitor::finalize() {
     BlockRewriterBase::finalize();
 }
 
-// EulerMaruyama solver vistior implementation
+// EulerMaruyama solver visitor implementation
 
 void EulerMaruyamaSolverVisitor::visit(AssignmentExpression *e) {
     auto lhs = e->lhs();

@@ -161,7 +161,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         out << fmt::format("auto {}{} __attribute__((unused)) = params_.globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
-    out << fmt::format("auto const * const * {}random_numbers  __attribute__((unused))= params_.random_numbers;\\\n", pp_var_pfx);
+    out << fmt::format("auto const * const * {}random_numbers  __attribute__((unused)) = params_.random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
         out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
