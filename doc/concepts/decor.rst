@@ -22,7 +22,7 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 
   * :ref:`Synapse mechanisms <cablecell-synapses>`.
   * :ref:`Gap junction mechanisms <cablecell-gj-mechs>`.
-  * :ref:`Threshold detectors <cablecell-threshold-detectors>` (threshold detectors).
+  * :ref:`Threshold detectors <cablecell-threshold-detectors>`
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
 
