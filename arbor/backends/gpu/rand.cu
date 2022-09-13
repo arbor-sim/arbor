@@ -33,7 +33,7 @@ void generate_normal_random_values_kernel (
         arb::cbprng::value_type const gid = gids[tid];
         arb::cbprng::value_type const idx = idxs[tid];
 
-        const auto r = generate_normal_random_values(seed, mech_id, vid, gid, idx, counter);
+        const auto r = arb::cbprng::generate_normal_random_values(seed, mech_id, vid, gid, idx, counter);
 
         dst0[vid][tid] = r[0];
         dst1[vid][tid] = r[1];
@@ -44,12 +44,11 @@ void generate_normal_random_values_kernel (
 
 void generate_normal_random_values(
     std::size_t width,
-    std::size_t num_variables,
-    arb::cbprng::value_type seed, 
+    arb::cbprng::value_type seed,
     arb::cbprng::value_type mech_id,
     arb::cbprng::value_type counter,
-    arb_size_type** prng_indices,
-    std::array<arb_value_type**, arb::cbprng::cache_size()> dst
+    memory::device_vector<arb_size_type*>& prng_indices,
+    std::array<memory::device_vector<arb_value_type*>, arb::prng_cache_size()>& dst
 )
 {
     unsigned const block_dim = 128;
@@ -58,12 +57,12 @@ void generate_normal_random_values(
 
     generate_normal_random_values_kernel<<<dim3{grid_dim_x, grid_dim_y, 1}, block_dim>>>(
         width,
-        num_variables,
+        dst[0].size(),
         seed, 
         mech_id,
         counter,
-        prng_indices,
-        dst[0], dst[1], dst[2], dst[3]
+        prng_indices.data(),
+        dst[0].data(), dst[1].data(), dst[2].data(), dst[3].data()
     );
 }
 

@@ -126,8 +126,8 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
         
-        std::vector<std::vector<arb_value_type*>> random_numbers_;
-        std::vector<memory::device_vector<arb_value_type*>> random_numbers_d_;
+        std::array<std::vector<arb_value_type*>, cbprng::cache_size()>           random_numbers_;
+        std::array<memory::device_vector<arb_value_type*>, cbprng::cache_size()> random_numbers_d_;
 
         std::vector<arb_size_type*> prng_indices_;
         memory::device_vector<arb_size_type*> prng_indices_d_;

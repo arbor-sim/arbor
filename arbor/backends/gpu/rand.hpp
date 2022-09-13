@@ -8,35 +8,15 @@
 namespace arb {
 namespace gpu {
 
+// dispatches to cuda kernel
 void generate_normal_random_values(
-    std::size_t width,
-    std::size_t num_variables,
-    arb::cbprng::value_type seed, 
-    arb::cbprng::value_type mech_id,
-    arb::cbprng::value_type counter,
-    arb_size_type** prng_indices,
-    std::array<arb_value_type**, arb::cbprng::cache_size()> dst
+    std::size_t width,                                        // number of sites
+    arb::cbprng::value_type seed,                             // simulation seed value
+    arb::cbprng::value_type mech_id,                          // mechanism id
+    arb::cbprng::value_type counter,                          // step counter
+    memory::device_vector<arb_size_type*>& prng_indices,      // holds the gid and per-cell location indices
+    std::array<memory::device_vector<arb_value_type*>, arb::prng_cache_size()>& dst  // pointers to random number cache
 );
-
-inline void generate_normal_random_values(
-    std::size_t width,
-    arb::cbprng::value_type seed, 
-    arb::cbprng::value_type mech_id,
-    arb::cbprng::value_type counter,
-    memory::device_vector<arb_size_type*>& prng_indices,
-    std::vector<memory::device_vector<arb_value_type*>>& dst
-)
-{
-    generate_normal_random_values(
-        width,
-        dst[0].size(),
-        seed,
-        mech_id,
-        counter,
-        prng_indices.data(),
-        {dst[0].data(), dst[1].data(), dst[2].data(), dst[3].data()}
-    );
-}
 
 } // namespace gpu
 } // namespace arb

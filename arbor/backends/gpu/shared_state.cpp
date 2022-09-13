@@ -276,19 +276,19 @@ void shared_state::update_prng_state(mechanism& m) {
     m.ppack_.random_numbers = store.random_numbers_d_[cache_idx].data();
 
     if (cache_idx == 0) {
-        // Generate random numbers every random_number_cache_size iterations:
-        // For each random variable we will generate random_number_cache_size values per site
+        // Generate random numbers every cbprng::cache_size() iterations:
+        // For each random variable we will generate cbprng::cache_size() values per site
         // and there are width sites.
         // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
         // current site's global cell, the site index within its cell and a counter representing
         // time.
         generate_normal_random_values(
-            m.ppack_.width,                          // number of values per variable
-            cbprng_seed,                             // seed
-            mech_id,                                 // mechanism id
-            counter,                                 // counter
-            store.prng_indices_d_,                   // additional indices for prng
-            store.random_numbers_d_                  // destination
+            m.ppack_.width,          // number of sites
+            cbprng_seed,             // simulation seed value
+            mech_id,                 // mechanism id
+            counter,                 // step counter
+            store.prng_indices_d_,   // additional indices (gid and per-cell counter)
+            store.random_numbers_d_  // destination
         ); 
     }
 }
@@ -366,9 +366,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         // Allocate view pointers for random nubers
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
         std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
-        store.random_numbers_.resize(cbprng::cache_size());
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
-        store.random_numbers_d_.resize(cbprng::cache_size());
 
         // Allocate bulk storage
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +

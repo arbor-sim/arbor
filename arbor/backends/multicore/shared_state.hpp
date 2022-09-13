@@ -129,7 +129,7 @@ struct ARB_ARBOR_API shared_state {
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
 
-        std::vector<std::vector<arb_value_type*>> random_numbers_;
+        std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
         std::vector<arb_size_type> gid_;
         std::vector<arb_size_type> idx_;
         cbprng::counter_type random_number_update_counter_ = 0u;

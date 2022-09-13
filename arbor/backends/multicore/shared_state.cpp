@@ -478,8 +478,8 @@ void shared_state::update_prng_state(mechanism& m) {
     m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
 
     if (cache_idx == 0) {
-        // Generate random numbers every random_number_cache_size iterations:
-        // For each random variable we will generate random_number_cache_size values per site
+        // Generate random numbers every cbprng::cache_size() iterations:
+        // For each random variable we will generate cbprng::cache_size() values per site
         // and there are width sites.
         // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
         // current site's global cell, the site index within its cell and a counter representing
@@ -488,8 +488,14 @@ void shared_state::update_prng_state(mechanism& m) {
         auto const width = store.gid_.size();
         for (std::size_t n=0; n<num_rv; ++n) {
             for (std::size_t i=0; i<width; ++i) {
-                auto const r =  cbprng::generate_normal_random_values(cbprng_seed, mech_id, n,
-                    store.gid_[i], store.idx_[i], counter);
+                auto const r =  cbprng::generate_normal_random_values(
+                    cbprng_seed,    // simulation seed value
+                    mech_id,        // mechanism id
+                    n,              // variable index
+                    store.gid_[i],  // global cell id
+                    store.idx_[i],  // per-cell location index
+                    counter         // step conter
+                );
                 for (std::size_t c=0; c<cbprng::cache_size(); ++c)
                     store.random_numbers_[c][n][i] = r[c];
             }
@@ -577,7 +583,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // Allocate view pointers for random nubers
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
         std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
-        store.random_numbers_.resize(cbprng::cache_size());
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
         m.ppack_.random_numbers = store.random_numbers_[0].data();
 
