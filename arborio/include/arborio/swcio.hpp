@@ -128,6 +128,7 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string&);
 // parent record.
 
 ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data);
+ARB_ARBORIO_API arb::segment_tree load_swc_arbor_raw(const swc_data& data);
 
 // As above, will convert a valid, ordered sequence of SWC records into a morphology
 //
@@ -136,5 +137,6 @@ ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data);
 // Complies inferred SWC rules from NEURON, explicitly listed in the docs.
 
 ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data);
+ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data);
 
 } // namespace arborio

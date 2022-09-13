@@ -24,7 +24,7 @@ double mean(const C& c) {
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         const context& ctx):
+                         context ctx):
     name(std::move(n)), units(std::move(u))
 {
     auto dist = ctx->distributed;
@@ -54,7 +54,7 @@ meter_manager::meter_manager() {
     }
 };
 
-void meter_manager::start(const context& ctx) {
+void meter_manager::start(context ctx) {
     arb_assert(!started_);
 
     started_ = true;
@@ -70,7 +70,7 @@ void meter_manager::start(const context& ctx) {
     start_time_ = timer_type::tic();
 };
 
-void meter_manager::checkpoint(std::string name, const context& ctx) {
+void meter_manager::checkpoint(std::string name, context ctx) {
     arb_assert(started_);
 
     // Record the time taken on this domain since the last checkpoint
@@ -101,7 +101,7 @@ const std::vector<double>& meter_manager::times() const {
 
 // Build a report of meters, for use at the end of a simulation
 // for output to file or analysis.
-ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, const context& ctx) {
+ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, context ctx) {
     meter_report report;
 
     // Add the times to the meter outputs
