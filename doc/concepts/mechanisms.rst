@@ -298,21 +298,22 @@ The above differential form is an informal way of expressing the corresponding i
 
 
 By defining a random process called **stationary white noise** as the formal derivative
-:math:`W_i(t) = \dfrac{d B_i(t)}{dt}`, we can write the system of equations in engineering
+:math:`W_i(t) = \dfrac{d B_i(t)}{dt}`, we can write the system of equations using a shorthand
 notation as
 
 .. math::
 
     \textbf{X}^\prime(t) = \textbf{f}(t, \textbf{X}(t)) + \sum_{i=0}^{M-1} \textbf{l}_i(t,\textbf{X}(t)) W_i(t)
 
-Without loss of generality one may assume that the white noises :math:`W_i(t)` are Gaussian for all
+Since we used standard Brownian Motions above, the withe noises :math:`W_i(t)` are Gaussian for all
 *t* with :math:`\mu=0`, :math:`\sigma^2=1`.
 
 In Arbor, the white noises :math:`W_i` are assumed to be independent of each other. Furthermore,
 each connection end point (point mechanism) or control volume (density mechanism) are assumed to
 generate independent noise, as well. The system of stochastic equations is interpreted in the `Itô
 sense <https://en.wikipedia.org/wiki/It%C3%B4_calculus>`_ and numerically solved using the
-Euler-Maruyama method.  For specifics about the notation to define stochastic processes, please
+Euler-Maruyama method.
+For specifics about the notation to define stochastic processes, please
 consult the :ref:`Arbor-specific NMODL extension <format-sde>`.
 
 
