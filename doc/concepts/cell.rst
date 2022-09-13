@@ -26,7 +26,7 @@ Cells interact with each other via spike exchange and gap junctions.
 Cell interactions via :ref:`connections <modelconnections>` and :ref:`gap junctions <modelgapjunctions>` occur
 between **source**, **target** and **gap junction site** locations on a cell. Connections are formed from sources
 to targets. Gap junctions are formed between two gap junction sites. An example of a source on a
-:ref:`cable cell<modelcablecell>` is a :ref:`threshold detector <cablecell-threshold-detectors>` (threshold detector);
+:ref:`cable cell<modelcablecell>` is a :ref:`threshold detector <cablecell-threshold-detectors>`;
 an example of a target on a cable cell is a :ref:`synapse <cablecell-synapses>`.
 
 **Sources**, **targets** and **gap junction sites** are placed on sets of one or more locations on a cell.
