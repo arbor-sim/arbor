@@ -8,7 +8,6 @@
 #include "backends/event.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
-#include "backends/gpu/rand.hpp"
 #include "backends/multi_event_stream_state.hpp"
 #include "memory/copy.hpp"
 #include "memory/gpu_wrappers.hpp"
@@ -44,6 +43,8 @@ void take_samples_impl(
     const arb_value_type* time, arb_value_type* sample_time, arb_value_type* sample_value);
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
+
+void generate_normal_random_values(std::size_t width, cbprng::value_type seed, cbprng::value_type mech_id, cbprng::value_type counter, memory::device_vector<arb_size_type*>& prng_indices, std::array<memory::device_vector<arb_value_type*>, prng_cache_size()>& dst);
 
 // GPU-side minmax: consider CUDA kernel replacement.
 std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
