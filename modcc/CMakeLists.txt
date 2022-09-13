@@ -72,7 +72,7 @@ else()
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     find_package(fmt REQUIRED)
-    target_link_libraries(modcc fmt::fmt-header-only)
+    target_link_libraries(modcc PRIVATE fmt::fmt-header-only)
 endif()
 
 target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
