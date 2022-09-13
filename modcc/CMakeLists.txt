@@ -47,7 +47,7 @@ else()
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     find_package(fmt REQUIRED)
-    target_link_libraries(libmodcc fmt::fmt-header-only)
+    target_link_libraries(libmodcc PRIVATE fmt::fmt-header-only)
 endif()
 
 set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
