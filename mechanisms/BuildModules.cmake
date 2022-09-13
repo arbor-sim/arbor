@@ -31,6 +31,13 @@ function("make_catalogue")
     endif()
   endforeach()
 
+  foreach(mech ${MK_CAT_CXX})
+    list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_cpu.cpp)
+    if(ARB_WITH_GPU)
+      list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
+    endif()
+  endforeach()
+
   add_custom_command(OUTPUT            ${catalogue_${MK_CAT_NAME}_source}
                      DEPENDS           ${modcc} ${catalogue_${MK_CAT_NAME}_mods}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -40,13 +47,6 @@ function("make_catalogue")
 
   set(catalogue-${MK_CAT_NAME}-mechs ${catalogue_${MK_CAT_NAME}_source} PARENT_SCOPE)
 
-  # TODO(TH): Need to tell modcc about those
-  # foreach(mech ${MK_CAT_CXX})
-    # list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_cpu.cpp)
-    # if(ARB_WITH_GPU)
-      # list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
-    # endif()
-  # endforeach()
 endfunction()
 
 include(CMakeParseArguments)
@@ -88,13 +88,13 @@ function("make_catalogue_standalone")
                      COMMAND ${modcc} ${mk_cat_modcc_flags} ${catalogue_${MK_CAT_NAME}_mods}
                      COMMENT "modcc generating: ${catalogue_${MK_CAT_NAME}_source}")
 
-  # TODO(TH): Need to tell modcc about those
-  # foreach(mech ${MK_CAT_CXX})
-    # list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_cpu.cpp)
-    # if(ARB_WITH_GPU)
-      # list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
-    # endif()
-  # endforeach()
+  foreach(mech ${MK_CAT_CXX})
+    list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_cpu.cpp)
+    if(ARB_WITH_GPU)
+      list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
+    endif()
+  endforeach()
+
   add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
   target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
 
