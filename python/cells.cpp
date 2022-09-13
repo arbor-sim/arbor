@@ -578,10 +578,12 @@ void register_cells(pybind11::module& m) {
 
     // arb::threshold_detector
     struct spike_detector {};
-    pybind11::class_<spike_detector>(m, "spike_detector")
-        .def(pybind11::init<>([](pybind11::object) {
-            throw arb::arbor_exception{"spike_detector is deprecated, use threshold_detector instead."};
-        }));
+    pybind11::class_<spike_detector> sd(m, "spike_detector", "Deprecated, please use 'threshold_detector'");
+    sd.def(pybind11::init(
+               [](pybind11::object) -> spike_detector {
+                   throw arb::arbor_exception{"Deprecated, please use 'threshold_detector' instead."};
+                   return {}; // unreachable
+               }));
 
     pybind11::class_<arb::threshold_detector> detector(m, "threshold_detector",
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
