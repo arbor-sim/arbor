@@ -760,8 +760,7 @@ Neurolucida
        asc = arbor.load_asc('granule.asc')
 
        # Construct a cable cell.
-       decor = arbor.decor()
-       cell = arbor.cable_cell(asc.morphology, asc.labels, decor)
+       cell = arbor.cable_cell(asc.morphology, arbor.decor(), asc.labels)
 
 
    :param str filename: the name of the input file.

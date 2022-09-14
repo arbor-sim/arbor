@@ -265,7 +265,7 @@ ion at the cell level using the Python interface:
     # Method 2: set directly using a string description.
     decor.set_ion(ion='ca', method='nernst/x=ca')
 
-    cell = arbor.cable_cell(morph, labels, decor)
+    cell = arbor.cable_cell(morph, decor)
 
 
 The NMODL code for the

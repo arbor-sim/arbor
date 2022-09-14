@@ -39,7 +39,7 @@ LLDB.
           # [...]
           decor = (arbor.decor()
               .place('"synapse_site"', arbor.synapse("expsyn"), "syn"))
-          return arbor.cable_cell(tree, labels, decor)
+          return arbor.cable_cell(tree, decor, labels)
 
       rec = Recipe()            # "Ok"
       sim = arb.simulation(rec) # ERROR here
