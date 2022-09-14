@@ -160,7 +160,7 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string& text) {
     return parse_swc(is);
 }
 
-ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data) {
+ARB_ARBORIO_API arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
     const auto& records = data.records();
 
     if (records.empty())  return {};
@@ -202,10 +202,10 @@ ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data) {
         throw swc_spherical_soma(first_id);
     }
 
-    return arb::morphology(tree);
+    return tree;
 }
 
-ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data) {
+ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     constexpr int soma_tag = 1;
 
     const auto n_samples = data.records().size();
@@ -230,7 +230,7 @@ ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data) {
         if (auto it=std::find_if(R.begin(), R.end(), [](const auto& r) {return r.tag<1 || r.tag>4;}); it!=R.end()) {
             throw swc_unsupported_tag(R[std::distance(R.begin(), it)].id);
         }
-        return load_swc_arbor(data);
+        return load_swc_arbor_raw(data);
     }
 
     // Make a copy of the records and canonicalise them.
@@ -326,8 +326,11 @@ ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data) {
         }
     }
 
-    return arb::morphology(tree);
+    return tree;
 }
+
+ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data) { return {load_swc_neuron_raw(data)}; }
+ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data) { return {load_swc_arbor_raw(data)}; }
 
 } // namespace arborio
 

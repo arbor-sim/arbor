@@ -14,7 +14,6 @@ max_complexity = 15
 extend-exclude =
                # 3rd party
                ext,
-               python/pybind11,
                # auto-generated
                doc/scripts/inputs.py
                doc/scripts/make_images.py

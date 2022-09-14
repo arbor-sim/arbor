@@ -33,6 +33,9 @@ struct ARB_SYMBOL_VISIBLE asc_unsupported: asc_exception {
 };
 
 struct asc_morphology {
+    // Raw segment tree from ASC, identical to morphology.
+    arb::segment_tree segment_tree;
+
     // Morphology constructed from asc description.
     arb::morphology morphology;
 

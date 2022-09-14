@@ -6,7 +6,7 @@ namespace pyarb {
 
 struct context_shim {
     arb::context context;
-    context_shim(arb::context&& c): context(std::move(c)) {}
+    context_shim(arb::context c): context{c} {}
 };
 
 } // namespace pyarb

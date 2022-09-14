@@ -95,8 +95,8 @@ private:
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
 
-    // Non-physical voltage check threshold, 0 => no check.
-    value_type check_voltage_mV_ = 0;
+    // Optional non-physical voltage check threshold
+    std::optional<double> check_voltage_mV_;
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
@@ -307,13 +307,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         std::swap(state_->time_to, state_->time);
-        state_->time_ptr = state_->time.data();
 
         // Check for non-physical solutions:
 
-        if (check_voltage_mV_>0) {
+        if (check_voltage_mV_) {
             PE(advance:integrate:physicalcheck);
-            assert_voltage_bounded(check_voltage_mV_);
+            assert_voltage_bounded(check_voltage_mV_.value());
             PL();
         }
 
