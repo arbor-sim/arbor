@@ -98,7 +98,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
         else:
             decor.discretization(arbor.cv_policy_single())
 
-        return arbor.cable_cell(tree, labels, decor)
+        return arbor.cable_cell(tree, decor, labels)
 
     def gap_junctions_on(self, gid):
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.

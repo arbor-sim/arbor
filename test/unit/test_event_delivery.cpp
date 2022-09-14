@@ -39,7 +39,7 @@ struct test_recipe: public n_cable_cell_recipe {
         decorations.place(mlocation{0, 0.5}, synapse("expsyn"), "synapse");
         decorations.place(mlocation{0, 0.5}, threshold_detector{-64}, "detector");
         decorations.place(mlocation{0, 0.5}, junction("gj"), "gapjunction");
-        cable_cell c(st, labels, decorations);
+        cable_cell c(st, decorations, labels);
 
         return c;
     }

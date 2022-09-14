@@ -19,7 +19,7 @@ using util::make_span;
 TEST(cv_layout, empty) {
     using namespace common_morphology;
 
-    cable_cell empty_cell{m_empty, {}, {}};
+    cable_cell empty_cell{m_empty};
     fvm_cv_discretization D = fvm_cv_discretize(empty_cell, neuron_parameter_defaults);
 
     EXPECT_TRUE(D.empty());
@@ -50,7 +50,7 @@ TEST(cv_layout, trivial) {
         // they are not 'connected', and will generate multiple CVs.
         if (p.second.branch_children(mnpos).size()>1u) continue;
 
-        cells.emplace_back(p.second, label_dict{}, decor{});
+        cells.emplace_back(p.second);
         n_cv += !p.second.empty(); // one cv per non-empty cell
     }
 
@@ -95,7 +95,7 @@ TEST(cv_layout, cable) {
     decs.paint(reg::cable(0, 0.0, 0.2), init_membrane_potential{10});
     decs.paint(reg::cable(0, 0.2, 0.7), init_membrane_potential{20});
     decs.paint(reg::cable(0, 0.7, 1.0), init_membrane_potential{30});
-    cable_cell c(morph, {}, decs);
+    cable_cell c(morph, decs);
 
     params.discretization = cv_policy_explicit(ls::nil());
     fvm_cv_discretization D = fvm_cv_discretize(c, params);
@@ -118,7 +118,7 @@ TEST(cv_layout, cable_conductance) {
     auto params = neuron_parameter_defaults;
     params.axial_resistivity = rho;
 
-    cable_cell c(morph, {}, {});
+    cable_cell c(morph);
     double radius = c.embedding().radius(mlocation{0, 0.5});
     double length = c.embedding().branch_length(0);
 
@@ -140,7 +140,7 @@ TEST(cv_layout, zero_size_cv) {
     // Six branches; branches 0, 1 and 2 meet at (0, 1); branches
     // 2, 3, 4, and 5 meet at (2, 1). Terminal branches are 1, 3, 4, and 5.
     auto morph = common_morphology::m_reg_b6;
-    cable_cell cell(morph, {}, {});
+    cable_cell cell(morph);
 
     auto params = neuron_parameter_defaults;
     const double rho = 5.; // [Ω·cm]

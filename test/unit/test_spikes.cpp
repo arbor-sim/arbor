@@ -230,7 +230,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
         decor.place("mid"_lab, arb::i_clamp::box(0.01+i*dt, duration, 0.5), "clamp");
         decor.place("mid"_lab, arb::synapse("expsyn"), "synapse");
 
-        arb::cable_cell cell(morpho, dict, decor);
+        arb::cable_cell cell(morpho, decor, dict);
         cable1d_recipe rec({cell});
 
         auto decomp = arb::partition_load_balance(rec, context);

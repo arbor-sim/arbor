@@ -585,7 +585,7 @@ TEST(region_cv, custom_geometry) {
         decor d;
         // Discretize by segment
         d.set_default(cv_policy_every_segment());
-        auto cell = cable_cell(m, l, d);
+        auto cell = cable_cell(m, d, l);
         auto geom = cv_data(cell);
         EXPECT_TRUE(geom);
 
@@ -643,7 +643,7 @@ TEST(region_cv, custom_geometry) {
           {2, 1}
         });
         d.set_default(cv_policy_explicit(ls));
-        auto cell = cable_cell(m, l, d);
+        auto cell = cable_cell(m, d, l);
         auto geom = cv_data(cell);
         EXPECT_TRUE(geom);
 

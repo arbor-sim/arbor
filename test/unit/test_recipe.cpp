@@ -88,7 +88,7 @@ namespace {
             decorations.place(arb::mlocation{0,(double)i/num_gj}, arb::junction("gj"), "gapjunction"+std::to_string(i));
         }
 
-        return arb::cable_cell(tree, {}, decorations);
+        return arb::cable_cell(tree, decorations);
     }
 }
 

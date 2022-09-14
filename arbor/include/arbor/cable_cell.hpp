@@ -266,10 +266,7 @@ public:
     }
 
     /// Construct from morphology, label and decoration descriptions.
-    cable_cell(const class morphology&, const label_dict&, const decor&);
-    cable_cell(const class morphology& m):
-        cable_cell(m, {}, {})
-    {}
+    cable_cell(const class morphology& m, const decor& d={}, const label_dict& l={});
 
     /// Access to labels
     const label_dict& labels() const;

@@ -67,7 +67,7 @@ decor.discretization('(replace (single (region "soma")) (max-extent 1.0))')
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morph, labels, decor)
+cell = arbor.cable_cell(morph, decor, labels)
 
 # (5) Construct the model
 

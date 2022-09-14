@@ -201,7 +201,7 @@ namespace {
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
-                return arb::cable_cell(arb::morphology(tree), {}, decor);
+                return arb::cable_cell(arb::morphology(tree), decor);
             }
             return arb::lif_cell("src", "tgt");
         }
@@ -274,7 +274,7 @@ namespace {
             decor.set_default(arb::cv_policy_fixed_per_branch(10));
             decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
             decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), arb::synapse("expsyn"), "tgt");
-            return arb::cable_cell(arb::morphology(tree), {}, decor);
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable;
@@ -352,7 +352,7 @@ namespace {
                 decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10}, "detectors_0");
                 decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10}, "detectors_1");
             }
-            return arb::cable_cell(arb::morphology(tree), {}, decor);
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {

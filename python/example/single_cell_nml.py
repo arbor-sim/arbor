@@ -69,7 +69,7 @@ decor = (
 )
 
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = arbor.cable_cell(morpho, labels, decor)
+cell = arbor.cable_cell(morpho, decor, labels)
 
 print(cell.locations('"axon_end"'))
 

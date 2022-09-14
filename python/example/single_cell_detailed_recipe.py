@@ -68,7 +68,7 @@ decor = (
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morph, labels, decor)
+cell = arbor.cable_cell(morph, decor, labels)
 
 
 # (5) Create a class that inherits from arbor.recipe

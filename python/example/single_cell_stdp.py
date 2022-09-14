@@ -41,7 +41,7 @@ class single_recipe(arbor.recipe):
             )
         )
 
-        return arbor.cable_cell(tree, labels, decor)
+        return arbor.cable_cell(tree, decor, labels)
 
     def event_generators(self, gid):
         """two stimuli: one that makes the cell spike, the other to monitor STDP"""

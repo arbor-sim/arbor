@@ -55,7 +55,7 @@ def make_cable_cell(gid):
         .place('"root"', arbor.spike_detector(-10), "detector")
     )
 
-    return arbor.cable_cell(tree, labels, decor)
+    return arbor.cable_cell(tree, decor, labels)
 
 
 # Create a recipe that generates connected chains of cells

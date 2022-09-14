@@ -26,7 +26,7 @@ decor = (
     .place('"midpoint"', arbor.spike_detector(-10), "detector")
 )
 
-cell = arbor.cable_cell(tree, labels, decor)
+cell = arbor.cable_cell(tree, decor, labels)
 
 # (4) Define a recipe for a single cell and set of probes upon it.
 # This constitutes the corresponding generic recipe version of
