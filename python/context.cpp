@@ -125,13 +125,11 @@ void register_contexts(pybind11::module& m) {
     // context
     pybind11::class_<context_shim, std::shared_ptr<context_shim>> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
     context
+        .def(pybind11::init([](){return make_context(arbenv::thread_concurrency(), pybind11::none(), pybind11::none());}),
+            "Construct a default context without arguments: defaults to the maximum number of threads the system makes available.")
         .def(pybind11::init(
             [](unsigned threads, pybind11::object gpu, pybind11::object mpi){
-                if (gpu.is(pybind11::none()) && mpi.is(pybind11::none()) ) {
-                    return make_context(arbenv::thread_concurrency(), gpu, mpi);
-                } else {
-                    return make_context(threads, gpu, mpi);
-                }
+                return make_context(threads, gpu, mpi);
             }),
             "threads"_a=1, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
             "Construct a distributed context with arguments:\n"
