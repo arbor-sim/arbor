@@ -127,11 +127,15 @@ void register_contexts(pybind11::module& m) {
     context
         .def(pybind11::init(
             [](unsigned threads, pybind11::object gpu, pybind11::object mpi){
-                return make_context(threads, gpu, mpi);
+                if (gpu.is(pybind11::none()) && mpi.is(pybind11::none()) ) {
+                    return make_context(arbenv::thread_concurrency(), gpu, mpi);
+                } else {
+                    return make_context(threads, gpu, mpi);
+                }
             }),
-            "threads"_a=arbenv::thread_concurrency(), "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
+            "threads"_a=1, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
             "Construct a distributed context with arguments:\n"
-            "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. Set to the maximum number of threads the system makes available by default.\n"
+            "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. Defaults to the maximum number of threads the system makes available if gpu_id and mpi are not set, else defaults to 1.\n"
             "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']==True.\n"
             "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n")
         .def(pybind11::init(
