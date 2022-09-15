@@ -2,6 +2,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <arborenv/concurrency.hpp>
+
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
@@ -203,7 +205,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
                               const std::shared_ptr<context_shim>& ctx_,
                               const std::optional<arb::domain_decomposition>& decomp) {
                 try {
-                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(arb::make_context());
+                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(arb::make_context({arbenv::thread_concurrency(),-1}));
                     auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
                     return new simulation_shim(rec, *ctx, dec, global_ptr);
                 }

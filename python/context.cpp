@@ -67,7 +67,7 @@ struct proc_allocation_shim {
     }
 };
 
-context_shim create_context(unsigned threads, pybind11::object gpu, pybind11::object mpi) {
+context_shim make_context(unsigned threads, pybind11::object gpu, pybind11::object mpi) {
     const char* gpu_err_str = "gpu_id must be None, or a non-negative integer";
 
 #ifndef ARB_GPU_ENABLED
@@ -127,25 +127,11 @@ void register_contexts(pybind11::module& m) {
     context
         .def(pybind11::init(
             [](unsigned threads, pybind11::object gpu, pybind11::object mpi){
-                return create_context(threads, gpu, mpi);
+                return make_context(threads, gpu, mpi);
             }),
-            "threads"_a=1, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
+            "threads"_a=arbenv::thread_concurrency(), "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
             "Construct a distributed context with arguments:\n"
-            "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.\n"
-            "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']==True.\n"
-            "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n")
-        .def(pybind11::init(
-            [](std::string threads, pybind11::object gpu, pybind11::object mpi){
-                if ("avail_threads" == threads) {
-                    return create_context(arbenv::thread_concurrency(), gpu, mpi);
-                }
-                throw pyarb_error(
-                        util::pprintf("Attempt to set threads to {}. The only valid thread options are a positive integer greater than 0, or 'avial_threads'.", threads));
-
-            }),
-            "threads"_a, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
-            "Construct a distributed context with arguments:\n"
-            "  threads: A string option describing the number of threads. Currently, only \"avail_threads\" is supported.\n"
+            "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. Set to the maximum number of threads the system makes available by default.\n"
             "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']==True.\n"
             "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n")
         .def(pybind11::init(
