@@ -264,9 +264,6 @@ void register_morphology(py::module& m) {
         .def("equivalent",
              [](const arb::segment_tree& t, const arb::segment_tree& o) { return arb::equivalent(t, o); },
              "Two trees are equivalent, but not neccessarily identical, ie they have the same segments and structure.")
-        .def("prune_tag",
-            [](const arb::segment_tree& t, int tag) { return arb::prune_tag(t, tag); },
-            "Get segment_tree with pruned tag region and roots of pruned region in this segment tree.")
         .def("tag_roots",
             [](const arb::segment_tree& t, int tag) { return arb::tag_roots(t, tag); },
             "Get roots of tag region of this segment tree.")
