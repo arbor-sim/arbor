@@ -85,13 +85,11 @@ equivalent(const segment_tree& a,
 ARB_ARBOR_API segment_tree
 apply(const segment_tree&, const isometry&);
 
-// Prune segment tree w.r.t. particular tag
-ARB_ARBOR_API segment_tree prune_tag(const segment_tree& in, int tag);
+// Prune segment tree w.r.t. a particular tag and get roots of pruned region
+ARB_ARBOR_API std::pair<segment_tree, std::vector<msize_t>> prune_tag(const segment_tree& in, int tag);
 
 // Roots of regions of specific tag in segment tree
-ARB_ARBOR_API std::vector<msize_t> prune_tag_roots(const segment_tree& in, int tag);
+ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& in, int tag);
 
-// Radii at specific distance from tag region roots
-ARB_ARBOR_API std::vector<double> median_distal_radii(const segment_tree& in, int tag, double dist);
 
 } // namespace arb

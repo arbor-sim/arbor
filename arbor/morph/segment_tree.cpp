@@ -28,23 +28,23 @@ node_p yes = [](const node_t&) { return true; };
 std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tree) {
     const auto& parents = tree.parents();
     std::map<msize_t, std::vector<msize_t>> result;
-    for (auto ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
+    for (msize_t ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
     for (auto& [k, v]: result) std::sort(v.begin(), v.end());
     return result;
 }
     
 // Copy a segment tree into a new tree
 // - tree to be (partially) copied
-// - start={parent, id}: start by attaching segment=`id`` from `tree` to the
-//                       output at `parent`, then its children to it recursively
+// - start={parent, id}: start by attaching segment=`id` from `tree` to the segment
+//                       `parent` of `init`, then its children to it recursively
 // - predicate: if returning false for a given node, we prune that sub-tree starting
 //              at node (inclusive). Can be used to prune trees by parent or id.
 // - init: initial tree to append to
-// Note: this is basically a recursive function w/ an explicit stack.
-segment_tree copy_if(const segment_tree& tree,
-                     const node_t& start,
-                     node_p predicate,
-                     const segment_tree& init={}) {
+// Note: this is an iterative implementation of depth-first traversal with an explicit stack.
+segment_tree copy_subtree_if(const segment_tree& tree,
+                             const node_t& start,
+                             node_p predicate,
+                             const segment_tree& init={}) {
     auto children_of = tree_to_children(tree);
     auto& segments = tree.segments();
     segment_tree result = init;
@@ -66,18 +66,30 @@ std::pair<segment_tree, segment_tree>
 split_at(const segment_tree& tree, msize_t at) {
     if (at >= tree.size() || at == mnpos) throw invalid_segment_parent(at, tree.size());
     // span the sub-tree starting at the splitting node
-    segment_tree post = copy_if(tree, {mnpos, at}, yes);
-    // copy the original tree, but skip all nodes in the `post` tree
-    segment_tree pre = copy_if(tree,
-                               {mnpos, 0},
-                               [=](auto& node) { return node.id != at; });
+    segment_tree post = copy_subtree_if(tree, {mnpos, at}, yes);
+
+    // copy the original segment_tree (as a graph), but skip all nodes in the `post` subtree
+    auto segment_ids = make_span(0, tree.segments().size());
+    std::vector<msize_t> roots;
+    std::copy_if(segment_ids.begin(),
+                 segment_ids.end(),
+                 std::back_inserter(roots),
+                 [&tree](msize_t i) { return tree.is_root(i); });
+
+    segment_tree pre;
+    for (auto root : roots) {
+        pre = copy_subtree_if(tree,
+                              {mnpos, root},
+                              [=](auto& node) { return node.id != at; },
+                              pre);
+    }
     return {pre, post};
 }
 
 segment_tree
 join_at(const segment_tree& lhs, msize_t at, const segment_tree& rhs) {
     if (at >= lhs.size() && at != mnpos) throw invalid_segment_parent(at, lhs.size());
-    return copy_if(rhs, {at, 0}, yes, lhs);
+    return copy_subtree_if(rhs, {at, 0}, yes, lhs);
 }
 
 bool
@@ -107,7 +119,7 @@ equivalent(const segment_tree& a,
         auto bs = fetch_children(b_cursor, b.segments(), b_children_of);
         todo.pop_back();
         if (as.size() != bs.size()) return false;
-        for (auto ix = 0; ix < as.size(); ++ix) {
+        for (msize_t ix = 0; ix < as.size(); ++ix) {
             if ((as[ix].prox != bs[ix].prox) ||
                 (as[ix].dist != bs[ix].dist) ||
                 (as[ix].tag != bs[ix].tag)) return false;
@@ -203,18 +215,25 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
 }
 
 
-// Utilities.
-
-ARB_ARBOR_API segment_tree prune_tag(const segment_tree& in, int tag) {
+ARB_ARBOR_API std::pair<segment_tree, std::vector<msize_t>> prune_tag(const segment_tree& in, int tag) {
     const auto& in_segments = in.segments();
     const auto& in_parents = in.parents();
     segment_tree out;
+
     std::vector<int> pruned_id_upper_bounds, pruned_id_offsets;
+    std::vector<msize_t> tag_roots;
 
     int num_pruned = 0;
     for (auto i: make_span(0, in_segments.size())) {
         if (in_segments[i].tag == tag) {
             ++num_pruned;
+
+            // Get roots of pruned tag region
+            auto par = in_parents[i];
+            if (in_segments[i].tag == tag && (par == mnpos || in_segments[par].tag != tag)) {
+                tag_roots.push_back(i);
+            }
+
             if (i+1 < in_segments.size() && in_segments[i+1].tag != tag) {
                 pruned_id_upper_bounds.push_back(i+1);
                 pruned_id_offsets.push_back(num_pruned);
@@ -225,6 +244,7 @@ ARB_ARBOR_API segment_tree prune_tag(const segment_tree& in, int tag) {
     for (auto i: make_span(in_segments.size())) {
         const auto& seg = in_segments[i];
         auto par = in_parents[i];
+
         if (seg.tag != tag) {
             if (par != mnpos && in_segments[par].tag == tag) {
                 // children of pruned parents must be pruned
@@ -241,82 +261,23 @@ ARB_ARBOR_API segment_tree prune_tag(const segment_tree& in, int tag) {
         }
     }
 
-    return out;
-}
-
-ARB_ARBOR_API std::vector<msize_t> prune_tag_roots(const segment_tree& in, int tag) {
-    const auto& in_segments = in.segments();
-    const auto& in_parents = in.parents();
-    std::vector<msize_t> prune_roots;
-
-    for (auto i: make_span(0, in_segments.size())) {
-        auto par = in_parents[i];
-        if (in_segments[i].tag == tag && (par == mnpos || in_segments[par].tag != tag)) {
-            prune_roots.push_back(i);
-        }
-    }
-
-    return prune_roots;
+    return {out, tag_roots};
 }
 
 
-double segment_length(const msegment& seg) {
-    auto seg_x = seg.dist.x - seg.prox.x;
-    auto seg_y = seg.dist.y - seg.prox.y;
-    auto seg_z = seg.dist.z - seg.prox.z;
-    return std::sqrt(seg_x*seg_x + seg_y*seg_y + seg_z*seg_z);
-}
+ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& t, int tag) {
+    const auto& segments = t.segments();
+    const auto& parents = t.parents();
+    std::vector<msize_t> tag_roots;
 
-// TODO: change to median distal radius
-ARB_ARBOR_API std::vector<double> median_distal_radii(const segment_tree& in, int tag, double dist) {
-    const auto& in_segments = in.segments();
-    const auto& in_parents = in.parents();
-    auto median_dist = 0.5*dist;
-
-    assert(tag != 1);
-
-    double soma_length = 0.;
-    for (auto i: make_span(0, in_segments.size())) {
-        if (in_segments[i].tag == 1) {  // soma
-            soma_length += segment_length(in_segments[i]);
+    for (auto i: make_span(0, segments.size())) {
+        auto par = parents[i];
+        if (segments[i].tag == tag && (par == mnpos || segments[par].tag != tag)) {
+            tag_roots.push_back(i);
         }
     }
 
-    dist -= 0.5 * soma_length;
-    median_dist -= 0.5 * soma_length;
-    if (dist < 0.) {
-        return {};
-    }
-
-    std::vector<double> distance(in_segments.size(), 0.);
-    enum median_rel_pos {before, on, after};
-    std::vector<int> median_segment(in_segments.size(), before);
-    std::vector<double> out;
-
-    for (auto i: make_span(0, in_segments.size())) {
-        auto par = in_parents[i];
-        if (in_segments[i].tag == tag) {
-            if (par == mnpos) {
-                distance[i] = 0.;
-            } else if (in_segments[par].tag == tag) {
-                distance[i] = distance[par] + segment_length(in_segments[par]);
-            }
-            auto seg_length = segment_length(in_segments[i]);
-            if (distance[i] < median_dist && median_dist < distance[i] + seg_length) {
-                median_segment[i] = on;
-            } else if (median_dist < distance[i]) {
-                median_segment[i] = after;
-            }
-            if (distance[i] < dist && dist < distance[i] + seg_length) {
-                auto median_i = i;
-                while (median_segment[median_i] != on) { median_i = in_parents[median_i]; }
-                auto t = (median_dist - distance[median_i])/segment_length(in_segments[median_i]);
-                out.push_back((1.-t)*in_segments[median_i].prox.radius + t*in_segments[median_i].dist.radius);
-            }
-        }
-    }
-
-    return out;
+    return tag_roots;
 }
 
 

@@ -77,6 +77,11 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
     Join two subtrees at a given id, such that said id becomes the parent
     of the inserted sub-tree.
 
+.. cpp:function:: std::vector<msize_t> tag_roots(const segment_tree& t, int tag)
+
+    Get IDs of roots of a region with specific tag in the segment tree, i.e. segments whose
+    parent is either :data:`mnpos` or a segment with a different tag.
+
 .. cpp:function:: bool equivalent(const segment_tree& l, const segment_tree& r)
 
     Two trees are equivalent if

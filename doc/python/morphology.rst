@@ -254,6 +254,12 @@ Cable cell morphology
         ``join_at`` is inverse to ``split_at`` for a proper choice of ``id``.
         The join point ``id`` must be in ``L``.
 
+    .. method:: tag_roots(tag)
+
+        Get IDs of roots of region with a particular ``tag`` in the segment tree, i.e.
+        segments whose parent is either :data:`mnpos` or a segment with a different
+        tag.
+
     .. method:: apply_isometry(iso)
 
         Apply an :type:`isometry` to the segment tree, returns the transformed tree as a copy.

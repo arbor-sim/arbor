@@ -264,6 +264,12 @@ void register_morphology(py::module& m) {
         .def("equivalent",
              [](const arb::segment_tree& t, const arb::segment_tree& o) { return arb::equivalent(t, o); },
              "Two trees are equivalent, but not neccessarily identical, ie they have the same segments and structure.")
+        .def("prune_tag",
+            [](const arb::segment_tree& t, int tag) { return arb::prune_tag(t, tag); },
+            "Get segment_tree with pruned tag region and roots of pruned region in this segment tree.")
+        .def("tag_roots",
+            [](const arb::segment_tree& t, int tag) { return arb::tag_roots(t, tag); },
+            "Get roots of tag region of this segment tree.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
@@ -315,26 +321,6 @@ void register_morphology(py::module& m) {
         "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
         "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
         "for a detailed description of the interpretation.");
-
-    m.def("prune_tag",
-        &arb::prune_tag,
-        "segment_tree"_a, "tag"_a,
-        "Prune a segment_tree w.r.t. tag.\n"
-        "Useful for modeling axon replacement in BluePyOpt cell models.");
-
-
-    m.def("prune_tag_roots",
-        &arb::prune_tag_roots,
-        "segment_tree"_a, "tag"_a,
-        "Get roots of pruned region of segment_tree.\n"
-        "Useful for modeling axon replacement in BluePyOpt cell models.");
-
-
-    m.def("median_distal_radii",
-        &arb::median_distal_radii,
-        "segment_tree"_a, "tag"_a, "dist"_a,
-        "Get radius at given distance from roots of tag-region of segment_tree.\n"
-        "Useful for modeling axon replacement in BluePyOpt cell models.");
 
 
     // arb::morphology
@@ -389,7 +375,7 @@ void register_morphology(py::module& m) {
         [](py::object fn) {
             try {
                 auto contents = util::read_file_or_buffer(fn);
-                return arborio::load_asc(contents);
+                return arborio::parse_asc_string(contents.c_str());
             }
             catch (std::exception& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
