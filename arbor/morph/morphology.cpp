@@ -173,7 +173,7 @@ msize_t morphology::num_branches() const {
     return impl_->branches_.size();
 }
 
-segment_tree morphology::to_segment_tree() const {
+ARB_ARBOR_API segment_tree morphology::to_segment_tree() const {
     segment_tree st;
     const auto& branches = impl_->branches_;
 
