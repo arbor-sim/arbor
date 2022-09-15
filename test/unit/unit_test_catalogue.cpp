@@ -49,6 +49,7 @@
 #include "mechanisms/mean_reverting_stochastic_process2.hpp"
 #include "mechanisms/mean_reverting_stochastic_density_process.hpp"
 #include "mechanisms/mean_reverting_stochastic_density_process2.hpp"
+#include "mechanisms/stochastic_volatility.hpp"
 
 #include "../gtest.h"
 
@@ -108,6 +109,7 @@ mechanism_catalogue make_unit_test_catalogue(const mechanism_catalogue& from) {
     ADD_MECH(cat, mean_reverting_stochastic_process2);
     ADD_MECH(cat, mean_reverting_stochastic_density_process);
     ADD_MECH(cat, mean_reverting_stochastic_density_process2);
+    ADD_MECH(cat, stochastic_volatility);
 
     return cat;
 }

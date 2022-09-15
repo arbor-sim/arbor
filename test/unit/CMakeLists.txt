@@ -43,6 +43,7 @@ set(test_mechanisms
     mean_reverting_stochastic_process2
     mean_reverting_stochastic_density_process
     mean_reverting_stochastic_density_process2
+    stochastic_volatility
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)

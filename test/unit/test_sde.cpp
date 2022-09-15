@@ -668,3 +668,138 @@ TEST(sde, solver) {
     test(expected_m3, stats_m3);
     test(expected_m4, stats_m4);
 }
+
+// coupled linear SDE with 2 white noise sources
+TEST(sde, coupled) {
+    // simulation parameters
+    unsigned ncells = 4;
+    unsigned nsynapses = 2000;
+    unsigned ncvs = 1;
+    double const dt = 1.0/512; // need relatively small time steps due to low accuracy
+    unsigned nsteps = 100;
+    unsigned nsims = 4;
+
+    // make labels (and locations for synapses)
+    auto labels = make_label_dict(nsynapses);
+
+    // Decorations
+    std::string m1 = "stochastic_volatility";
+    decor dec;
+    dec.place(*labels.locset("locs"), synapse(m1), "m1");
+
+    // a basic sampler: stores result in a vector
+    auto sampler_ = [ncells, nsteps] (std::vector<arb_value_type>& results, unsigned count,
+        probe_metadata pm, std::size_t n, sample_record const * samples) {
+
+        auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
+        assert(point_info_ptr != nullptr);
+
+        unsigned n_entities = point_info_ptr->size();
+        assert(n_entities == count);
+
+        unsigned offset = pm.id.gid*(nsteps)*n_entities;
+        unsigned stride = n_entities;
+        assert(n == nsteps);
+        for (std::size_t i = 0; i<n; ++i) {
+            auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
+            assert(value_range);
+            const auto& [lo, hi] = *value_range;
+            assert(n_entities==hi-lo);
+            for (unsigned j = 0; j<n_entities; ++j) {
+                results[offset + stride*i + j] = lo[j];
+            }
+        }
+    };
+
+    // concrete sampler for P
+    std::vector<arb_value_type> results_P(ncells*(nsteps)*(nsynapses));
+    auto sampler_P = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
+        sampler_(results_P, nsynapses, pm, n, samples);
+    };
+    // concrete sampler for sigma
+    std::vector<arb_value_type> results_sigma(ncells*(nsteps)*(nsynapses));
+    auto sampler_sigma = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
+        sampler_(results_sigma, nsynapses, pm, n, samples);
+    };
+
+    // instantiate recipe
+    sde_recipe rec(ncells, ncvs, labels, dec, false);
+
+    // add probes
+    rec.add_probe(1, cable_probe_point_state_cell{m1, "P"});
+    rec.add_probe(2, cable_probe_point_state_cell{m1, "sigma"});
+
+    // results are accumulated for each time step
+    std::vector<accumulator> stats_P(nsteps);
+    std::vector<accumulator> stats_sigma(nsteps);
+    std::vector<accumulator> stats_Psigma(nsteps);
+
+    // context
+    auto context = make_context({arbenv::default_concurrency(), -1});
+
+    for (unsigned s=0; s<nsims; ++s)
+    {
+        // build a simulation object
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(s);
+
+        // add sampler
+        sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
+            sampler_P, sampling_policy::exact);
+        sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
+            sampler_sigma, sampling_policy::exact);
+
+        // run the simulation
+        sim.run(nsteps*dt, dt);
+
+        // accumulate statistics for sampled data
+        for (unsigned int k=0; k<ncells; ++k){
+            for (unsigned int i=0; i<nsteps; ++i){
+                for (unsigned int j=0; j<(nsynapses); ++j){
+                    const double P = results_P[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ];
+                    const double sigma = results_sigma[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ];
+                    stats_P[i](P);
+                    stats_sigma[i](sigma);
+                    stats_Psigma[i](P*sigma);
+                }
+            }
+        }
+    }
+
+    // analytical solutions
+    auto expected = [](double t, double mu, double theta, double kappa, double sigma_1,
+        double P0, double sigma0) -> std::array<double,4> {
+        // E[P]                                        = mu*t + P0
+        // E[sigma]                                    = (simga0 - theta)*exp(-kappa*t) + theta
+        // Cov[P,P]         = E[P^2]-E[P]^2            = complicated
+        // Cov[P,sigma]     = E[P*sigma]-E[P]*E[sigma] = 0
+        // Cov[sigma,sigma] = E[sigma^2]-E[sigma]^2    = sigma_1^2*(1-exp(-2*kappa*t)/(2*kappa)
+        return {
+            mu*t + P0,
+            (sigma0 - theta)*std::exp(-kappa*t) + theta,
+            sigma_1*sigma_1*(1.0-std::exp(-2*kappa*t))/(2.0*kappa)
+        };
+    };
+
+    for (unsigned int i=1; i<nsteps; ++i) {
+        auto ex = expected(i*dt, 0.1, 0.1, 0.1, 0.1, 1, 0.2);
+
+        const double E_P = ex[0];
+        const double E_sigma = ex[1];
+        const double Var_sigma = ex[2];
+
+        const double stats_Cov_P_sigma =
+            stats_Psigma[i].mean() - stats_P[i].mean()*stats_sigma[i].mean();
+
+        auto relative_error = [](double result, double expected) {
+            return std::abs(result-expected)/expected;
+        };
+
+        EXPECT_TRUE( relative_error(stats_P[i].mean(), E_P)*100 < 1.0 );
+        EXPECT_TRUE( relative_error(stats_sigma[i].mean(), E_sigma)*100 < 1.0 );
+        EXPECT_TRUE( relative_error(std::sqrt(stats_sigma[i].variance()),
+            std::sqrt(Var_sigma))*100 < 1.0 );
+        EXPECT_TRUE( stats_Cov_P_sigma < 1.0e-4);
+    }
+}
