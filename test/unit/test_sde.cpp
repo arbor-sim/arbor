@@ -159,36 +159,24 @@ bool t_test_mean(double mu, double sample_mean, double sample_variance, std::siz
     return ret;
 }
 
-// t-test from sample vector
-template<typename T>
-bool t_test_mean(const std::vector<T>& samples, double mu) {
-    // comute sample mean and sample variance
-    accumulator acc;
-    for (auto x : samples) acc(x);
-    return t_test_mean(mu, acc.mean(), acc.variance(), acc.n());
-}
-
 // Chi^2 test
 // Returns true if null hypothesis (sample variance is equal to sigma_squared) can not be rejected
 // at significance level alpha = 5%
-template<typename T>
-bool chi_2_test_variance(const std::vector<T>& samples, double sigma_squared) {
-    // comute sample mean and variance
-    accumulator acc;
-    for (auto x : samples) acc(x);
+bool chi_2_test_variance(double sigma_squared, double sample_mean, double sample_variance, std::size_t n) {
     // compute statistic following chi squared distribution
-    const double c = (acc.n()-1)*acc.variance()/sigma_squared;
+    const double c = (n-1)*sample_variance/sigma_squared;
     // we assume many samples, so chi squared distribution becomes normal distribution
     // compute standard normally distributed variable
-    const double c_n = (c-acc.n())/std::sqrt(2*acc.n());
+    const double c_n = (c-n)/std::sqrt(2*n);
     // critical value at 5%
     const double c_n_c = 1.959963984540;
     const bool ret = ((c_n < c_n_c) && (c_n > -c_n_c));
     if (!ret) {
         std::cout << "chi^2 test failed: "
             << c_n << " is not between critical values (" << -c_n_c << ", " << c_n_c << ")"
-            << ", sample_variance = " << acc.variance()
-            << ", expected variance " << sigma_squared << "\n";
+            << ", sample_variance = " << sample_variance
+            << ", expected variance = " << sigma_squared 
+            << ", number of samples = " << n << "\n";
     }
     return ret;
 }
@@ -205,8 +193,10 @@ void test_statistics(const std::vector<T>& ordered_samples, double mu, double si
     EXPECT_TRUE(ad(ordered_samples, mu, sigma));
 
     // mean and variance tests (assumes normal distribution)
-    EXPECT_TRUE(t_test_mean(ordered_samples, mu));
-    EXPECT_TRUE(chi_2_test_variance(ordered_samples, sigma*sigma));
+    accumulator acc;
+    for (auto x : ordered_samples) acc(x);
+    EXPECT_TRUE(t_test_mean(mu, acc.mean(), acc.variance(), acc.n()));
+    EXPECT_TRUE(chi_2_test_variance(sigma*sigma, acc.mean(), acc.variance(), acc.n()));
 }
 
 // ===========================
@@ -512,18 +502,21 @@ TEST(sde, normality) {
     test_statistics(arch.data_, 0.0, 1.0);
 }
 
-// Test the solver by running the mean reverting process many times and
-// testing statistics with t-test (assumes t-statistic is approximately normally distributed due to
-// central limit theorem).
+// Test the solver by running the mean reverting process many times.
 // Every synapse in every cell computes the independent evolution of 4 different stochastic
 // processes. The results are evaluated at every time step and accumulated. Moreover, several
 // simulations with different seed values are run which multiply the samples obtained.
+// Quality of results is checked by comparing to expected mean and expected standard deviation
+// (relative error less than 1%).  We could also test the statistics with t test/ chi^2 test for
+// mean and variance - this is possible since the solution of the SDE is normally distributed
+// (linear SDE). However, due to the slow convergence of the variance, the sample size needs to be
+// very large, and the test would take too long to complete.
 TEST(sde, solver) {
     // simulation parameters
     unsigned ncells = 4;
-    unsigned nsynapses = 1000;
+    unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    double const dt = 1.0/64;
+    double const dt = 1.0/512; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
@@ -532,9 +525,9 @@ TEST(sde, solver) {
 
     // Decorations with a bunch of stochastic processes
     std::string m1 = "mean_reverting_stochastic_process/kappa=0.1,sigma=0.1";
-    std::string m2 = "mean_reverting_stochastic_process/kappa=0.2,sigma=0.1";
-    std::string m3 = "mean_reverting_stochastic_process/kappa=0.1,sigma=0.2";
-    std::string m4 = "mean_reverting_stochastic_process/kappa=0.2,sigma=0.2";
+    std::string m2 = "mean_reverting_stochastic_process/kappa=0.01,sigma=0.1";
+    std::string m3 = "mean_reverting_stochastic_process/kappa=0.1,sigma=0.05";
+    std::string m4 = "mean_reverting_stochastic_process/kappa=0.01,sigma=0.05";
     decor dec;
     dec.place(*labels.locset("locs"), synapse(m1), "m1");
     dec.place(*labels.locset("locs"), synapse(m2), "m2");
@@ -639,26 +632,35 @@ TEST(sde, solver) {
 
     // analytical solutions
     auto expected = [](double kappa, double sigma, double t) -> std::pair<double,double> {
-        double const mu = 1.0;
-        double const S_0 = 2.0;
+        const double mu = 1.0;
+        const double S_0 = 2.0;
         return {
             mu - (mu-S_0)*std::exp(-kappa*t),
             (sigma*sigma/(2*kappa))*(1.0 - std::exp(-2*kappa*t))
         };
     };
     auto expected_m1 = [&](double t) { return expected(0.1, 0.1, t); };
-    auto expected_m2 = [&](double t) { return expected(0.2, 0.1, t); };
-    auto expected_m3 = [&](double t) { return expected(0.1, 0.2, t); };
-    auto expected_m4 = [&](double t) { return expected(0.2, 0.2, t); };
+    auto expected_m2 = [&](double t) { return expected(0.01, 0.1, t); };
+    auto expected_m3 = [&](double t) { return expected(0.1, 0.05, t); };
+    auto expected_m4 = [&](double t) { return expected(0.01, 0.05, t); };
 
     auto test = [&] (auto func, const auto& stats) {
-        for (unsigned int i=1; i<nsteps; ++i)
-        {
+        for (unsigned int i=1; i<nsteps; ++i) {
             auto [mu, sigma_squared] = func(i*dt);
             double const mean = stats[i].mean();
             double const var = stats[i].variance();
-            std::size_t const n = stats[i].n();
-            EXPECT_TRUE(t_test_mean(mu, mean, var, n));
+
+            auto relative_error = [](double result, double expected) {
+                return std::abs(result-expected)/expected;
+            };
+
+            EXPECT_TRUE( relative_error(mean, mu)*100 < 1.0 );
+            EXPECT_TRUE( relative_error(std::sqrt(var), std::sqrt(sigma_squared))*100 < 1.0 );
+
+            // using statistcal tests:
+            //std::size_t const n = stats[i].n();
+            //EXPECT_TRUE(t_test_mean(mu, mean, var, n));
+            //EXPECT_TRUE(chi_2_test_variance(sigma_squared, mean, var, n));
         }
     };
     test(expected_m1, stats_m1);
