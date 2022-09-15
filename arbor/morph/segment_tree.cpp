@@ -1,6 +1,5 @@
 #include <iostream>
 #include <stdexcept>
-#include <set>
 #include <map>
 #include <vector>
 
@@ -93,7 +92,9 @@ std::pair<segment_tree, segment_tree>
 split_at(const segment_tree& tree, msize_t at) {
     if (at >= tree.size() || at == mnpos) throw invalid_segment_parent(at, tree.size());
     // span the sub-tree starting at the splitting node
-    auto [post, copied] = copy_subtree_if(tree, {mnpos, at}, yes);
+    const auto& post_copied = copy_subtree_if(tree, {mnpos, at}, yes);
+    auto post = post_copied.first;
+    auto copied = post_copied.second;
 
     // copy the original segment_tree (as a graph), skipping all nodes in the `post` subtree
     segment_tree pre = copy_fulltree_if(tree,
