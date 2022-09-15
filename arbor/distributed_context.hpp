@@ -4,6 +4,7 @@
 #include <string>
 
 #include <arbor/export.hpp>
+#include <arbor/context.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/pp_util.hpp>
 
@@ -55,8 +56,16 @@ public:
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
 
+    void connect_to_remote(std::any hdl) {
+        impl_->connect_to_remote(hdl);
+    }
+
     distributed_context(distributed_context&& other) = default;
     distributed_context& operator=(distributed_context&& other) = default;
+
+    spike_vector remote_gather_spikes(const spike_vector& local_spikes) const {
+        return impl_->remote_gather_spikes(local_spikes);
+    }
 
     gathered_vector<arb::spike> gather_spikes(const spike_vector& local_spikes) const {
         return impl_->gather_spikes(local_spikes);
@@ -102,18 +111,21 @@ public:
 
 private:
     struct interface {
+        virtual void connect_to_remote(std::any hdl) = 0;
         virtual gathered_vector<arb::spike>
-            gather_spikes(const spike_vector& local_spikes) const = 0;
+        gather_spikes(const spike_vector& local_spikes) const = 0;
+        virtual spike_vector
+        remote_gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
-            gather_gids(const gid_vector& local_gids) const = 0;
+        gather_gids(const gid_vector& local_gids) const = 0;
         virtual gj_connection_vector
-            gather_gj_connections(const gj_connection_vector& local_connections) const = 0;
+        gather_gj_connections(const gj_connection_vector& local_connections) const = 0;
         virtual cell_label_range
-            gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
+        gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
         virtual cell_labels_and_gids
-            gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const = 0;
+        gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const = 0;
         virtual std::vector<std::string>
-            gather(std::string value, int root) const = 0;
+        gather(std::string value, int root) const = 0;
         virtual int id() const = 0;
         virtual int size() const = 0;
         virtual void barrier() const = 0;
@@ -129,6 +141,11 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
+        spike_vector
+        remote_gather_spikes(const spike_vector& local_spikes) const override {
+            return wrapped.remote_gather_spikes(local_spikes);
+        }
+        void connect_to_remote(std::any hdl) override { return wrapped.connect_to_remote(hdl); }
         gathered_vector<arb::spike>
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
@@ -183,6 +200,11 @@ struct local_context {
             {0u, static_cast<count_type>(local_spikes.size())}
         );
     }
+    std::vector<arb::spike>
+    remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+        return {};
+    }
+    void connect_to_remote(std::any) { throw bad_connection_request{}; }
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;

@@ -56,11 +56,6 @@ struct cell_member_type {
     cell_lid_type index;
 };
 
-// Globally unique ID for external connections.
-struct ext_guid_type {
-    std::string guid; // this is kind of a cop-out ... but what's better?
-};
-
 // Pair of indexes that describe range of local indices.
 
 struct lid_range {

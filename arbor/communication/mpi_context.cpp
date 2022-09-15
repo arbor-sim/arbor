@@ -23,10 +23,21 @@ struct mpi_context_impl {
     int size_;
     int rank_;
     MPI_Comm comm_;
+    MPI_Comm portal_ = MPI_COMM_NULL;
+
+    void connect_to_remote(std::any hdl) {
+        //portal_ = std::any_cast<MPI_Comm>(hdl);
+    }
 
     explicit mpi_context_impl(MPI_Comm comm): comm_(comm) {
         size_ = mpi::size(comm_);
         rank_ = mpi::rank(comm_);
+    }
+
+    std::vector<arb::spike>
+    remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+        if (portal_ == MPI_COMM_NULL) return {};
+        return mpi::gather_all(local_spikes, portal_);
     }
 
     gathered_vector<arb::spike>

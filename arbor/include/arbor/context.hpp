@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <memory>
 
 #include <arbor/export.hpp>
@@ -49,6 +50,10 @@ struct execution_context;
 // arb::context is an opaque handle for the execution context for use
 // in the public API, implemented as a shared pointer.
 using context = std::shared_ptr<execution_context>;
+
+// To connect to external simulations
+template<typename Comm>
+std::any make_remote_connection(const std::string&, Comm);
 
 // Helpers for creating contexts. These are implemented in the back end.
 

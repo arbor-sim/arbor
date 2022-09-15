@@ -15,14 +15,18 @@ struct dry_run_context_impl {
 
     explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
         num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
-
-    gathered_vector<arb::spike>
-    gather_spikes(const std::vector<arb::spike>& local_spikes) const {
-        using count_type = typename gathered_vector<arb::spike>::count_type;
+    std::vector<spike>
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+        return {};
+    }
+    void connect_to_remote(std::any) { throw bad_connection_request{}; }
+    gathered_vector<spike>
+    gather_spikes(const std::vector<spike>& local_spikes) const {
+        using count_type = typename gathered_vector<spike>::count_type;
 
         count_type local_size = local_spikes.size();
 
-        std::vector<arb::spike> gathered_spikes;
+        std::vector<spike> gathered_spikes;
         gathered_spikes.reserve(local_size*num_ranks_);
 
         for (count_type i = 0; i < num_ranks_; i++) {
@@ -40,7 +44,7 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<arb::spike>(std::move(gathered_spikes), std::move(partition));
+        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
     }
 
     gathered_vector<cell_gid_type>

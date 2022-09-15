@@ -87,12 +87,13 @@ ARB_ARBOR_API void merge_cell_events(
     PL();
 }
 
-
 class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx);
 
     void update(const connectivity& rec);
+
+    void connect_to_remote_simulation(std::any hdl) { ctx_->distributed->connect_to_remote(hdl); }
 
     void reset();
 
@@ -185,6 +186,8 @@ private:
         threading::parallel_for::apply(0, communicator_.num_local_cells(), task_system_.get(), fn);
     }
 };
+
+void simulation::connect_to_remote_simulation(std::any hdl) { impl_->connect_to_remote_simulation(hdl); }
 
 simulation_state::simulation_state(
         const recipe& rec,
@@ -375,7 +378,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
         // Gather generated spikes across all ranks.
-        auto global_spikes = communicator_.exchange(all_local_spikes);
+        const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
         PE(communication:spikeio);
@@ -389,7 +392,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
         // Append events formed from global spikes to per-cell pending event queues.
         PE(communication:walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_);
+        communicator_.make_event_queues(global_spikes, pending_events_, remote_spikes);
         PL();
     };
 

@@ -8,46 +8,28 @@
 
 namespace arb {
 
-class connection {
-public:
-    connection() = default;
-    connection(cell_member_type src,
-               cell_lid_type dest,
-               float w,
-               float d,
-               cell_gid_type didx=cell_gid_type(-1)):
-        source(src),
-        destination(dest),
-        weight(w),
-        delay(d),
-        index_on_domain(didx)
-    {}
-
-    spike_event make_event(const spike& s) { return { destination, s.time + delay, weight}; }
-
-    cell_member_type source;
-    cell_lid_type destination;
-    float weight;
-    float delay;
-    cell_size_type index_on_domain;
-};
-
-struct ext_connection {
-    ext_guid_type source_;
-    cell_lid_type destination_;
-    float weight_;
-    float delay_;
-    cell_size_type index_on_domain_;
+struct connection {
+    cell_member_type source = {0, 0};
+    cell_lid_type destination = 0;
+    float weight = 0.0f;
+    float delay = 0.0f;
+    cell_size_type index_on_domain = cell_gid_type(-1);
 };
 
 inline
-spike_event make_event(const connection& c, const spike& s) {
-    return {c.destination(), s.time + c.delay(), c.weight()};
+bool is_external(cell_gid_type gid) {
+    auto msb = sizeof(cell_gid_type)*8 - 1;
+    return bool(gid & (1 << msb));
 }
 
 inline
-spike_event make_event(const ext_connection& c, const spike& s) {
-    return {c.destination_, s.time + c.delay_, c.weight_};
+bool is_external(const connection& c) {
+    return is_external(c.source.gid);
+}
+
+inline
+spike_event make_event(const connection& c, const spike& s) {
+    return {c.destination, s.time + c.delay, c.weight};
 }
 
 // connections are sorted by source id

@@ -38,6 +38,15 @@ template <>
 ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
     return std::make_shared<execution_context>(p, comm);
 }
+
+template <>
+std::any make_remote_connection(const std::string& token, MPI_Comm comm) {
+    MPI_Comm portal;
+    auto rc = MPI_Comm_connect(token.c_str(), MPI_INFO_NULL, 0, comm, &portal);
+    if (rc != MPI_SUCCESS) throw bad_connection_request{};
+    arb_assert(portal != MPI_COMM_NULL);
+    return portal;
+}
 #endif
 template <>
 execution_context::execution_context(

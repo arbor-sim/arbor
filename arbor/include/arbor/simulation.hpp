@@ -34,6 +34,8 @@ public:
                context ctx=make_context(),
                std::function<domain_decomposition(const recipe&, context)> balancer=[](auto& r, auto c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
 
+    // Connect to a remote simulation conforming to the remote protocol
+    void connect_to_remote_simulation(std::any);
     void update(const connectivity& rec);
 
     void reset();
