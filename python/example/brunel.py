@@ -231,7 +231,7 @@ if __name__ == "__main__":
         for k, v in vars(opt).items():
             print(f"{k} = {v}")
 
-    context = arbor.context("avail_threads")
+    context = arbor.context()
     print(context)
 
     meters = arbor.meter_manager()

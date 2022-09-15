@@ -28,14 +28,14 @@ The hardware context
 
 An :ref:`execution context <modelcontext>` describes the hardware resources on which the simulation will run.
 It contains the thread pool used to parallelise work on the local CPU, and optionally describes GPU resources
-and the MPI communicator for distributed simulations. In some other examples, the :class:`arbor.single_cell_model`
-object created the execution context :class:`arbor.context` behind the scenes. The details of the execution
-context can be customized by the user. We may specify the number of threads in the thread pool; determine the
-id of the GPU to be used; or create our own MPI communicator.
+and the MPI communicator for distributed simulations. In some Arbor tutorials, the :class:`arbor.single_cell_model` or
+:class:`arbor.simulation` objects created the execution context :class:`arbor.context` behind the scenes. The details
+of the execution context can be customized by the user. We may specify the number of threads in the thread pool;
+determine the id of the GPU to be used; or create our own MPI communicator.
 
-The configuration of the context will need to be changed to reflect the change in hardware.
-First of all, we scrap setting `threads="avail_threads"` and instead use 
-`MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over nodes, cores and threads.
+The configuration of the context will need to be added to reflect the change in hardware. We will use
+`MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over
+nodes, cores and threads.
 
 Step **(12)** uses the Arbor-built-in :py:class:`MPI communicator <arbor.mpi_comm>`, which is identical to the
 ``MPI_COMM_WORLD`` communicator you'll know if you are familiar with MPI. The :py:class:`arbor.context` takes a

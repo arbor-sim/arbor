@@ -58,7 +58,7 @@ class TestContexts(unittest.TestCase):
         # test that by default context has 1 thread and no GPU, no MPI
         self.assertFalse(ctx.has_mpi)
         self.assertFalse(ctx.has_gpu)
-        self.assertEqual(ctx.threads, 1)
+        self.assertTrue(ctx.threads >= 1)
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
 
@@ -68,16 +68,6 @@ class TestContexts(unittest.TestCase):
         self.assertFalse(ctx.has_mpi)
         self.assertFalse(ctx.has_gpu)
         self.assertEqual(ctx.threads, 42)
-        self.assertEqual(ctx.ranks, 1)
-        self.assertEqual(ctx.rank, 0)
-
-    def test_context_avail_threads(self):
-        # test that 'avail_threads' returns at least 1.
-        ctx = arb.context(threads="avail_threads", gpu_id=None)
-
-        self.assertFalse(ctx.has_mpi)
-        self.assertFalse(ctx.has_gpu)
-        self.assertTrue(ctx.threads >= 1)
         self.assertEqual(ctx.ranks, 1)
         self.assertEqual(ctx.rank, 0)
 
