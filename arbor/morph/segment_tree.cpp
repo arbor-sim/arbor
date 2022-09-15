@@ -26,7 +26,7 @@ node_p yes = [](const node_t&) { return true; };
 std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tree) {
     const auto& parents = tree.parents();
     std::map<msize_t, std::vector<msize_t>> result;
-    for (auto ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
+    for (msize_t ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
     for (auto& [k, v]: result) std::sort(v.begin(), v.end());
     return result;
 }
@@ -105,7 +105,7 @@ equivalent(const segment_tree& a,
         auto bs = fetch_children(b_cursor, b.segments(), b_children_of);
         todo.pop_back();
         if (as.size() != bs.size()) return false;
-        for (auto ix = 0; ix < as.size(); ++ix) {
+        for (msize_t ix = 0; ix < as.size(); ++ix) {
             if ((as[ix].prox != bs[ix].prox) ||
                 (as[ix].dist != bs[ix].dist) ||
                 (as[ix].tag != bs[ix].tag)) return false;
