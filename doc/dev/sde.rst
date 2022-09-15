@@ -116,7 +116,7 @@ the *Threefry-4x64-12* algorithm because
 * it is reasonably fast on both CPU and GPU
 
 Due to the structure of the *Threefry* and other CBPRNGs, we get multiple indpendent uniformly
-distributed values per invocation. In particular, *Threefry-4x64-12* return 4 such values. Throwing
+distributed values per invocation. In particular, *Threefry-4x64-12* returns 4 such values. Throwing
 away 3 out of the 4 values would result in a quite significant performance penalty, so we use all 4
 values, instead. This is achieved by circling through a cache of 4 values per location, and updating
 the cache every 4th time step.
