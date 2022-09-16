@@ -712,13 +712,3 @@ TEST(communicator, mini_network)
         }
     }
 }
-
-#ifdef TEST_MPI
-TEST(remote, setup) {
-    const auto& C = g_context;
-    auto N = C->distributed->size();
-    auto R = mini_recipe(N);
-    auto D = partition_load_balance(R, C);
-    auto sim = simulation(R, C, D);
-}
-#endif

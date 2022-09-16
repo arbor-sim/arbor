@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-
+#include <typeinfo>
 #include <mpi.h>
 
 #include <arbor/spike.hpp>
@@ -26,7 +26,13 @@ struct mpi_context_impl {
     MPI_Comm portal_ = MPI_COMM_NULL;
 
     void connect_to_remote(std::any hdl) {
-        //portal_ = std::any_cast<MPI_Comm>(hdl);
+        try {
+            portal_ = std::any_cast<MPI_Comm>(hdl);
+        } catch (const std::bad_any_cast& e) {
+            std::cerr << e.what()
+                      << " " << hdl.has_value() << " "
+                      << typeid(MPI_Comm).name() << " -> " << hdl.type().name() << '\n';
+        }
     }
 
     explicit mpi_context_impl(MPI_Comm comm): comm_(comm) {
