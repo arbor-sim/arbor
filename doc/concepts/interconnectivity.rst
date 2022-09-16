@@ -105,7 +105,7 @@ full recipe.
    action potential
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
 
-   spike detector
+   threshold detector
       :ref:`Placed <cablecell-place>` on a cell. Possible source of a connection.
       Detects crossing of a fixed threshold and generates corresponding events.
       Also used to :ref:`record spikes <>` for analysis. See :ref:`here

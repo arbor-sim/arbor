@@ -54,10 +54,10 @@ Interconnectivity
             labels['synapse_site'] = '(location 1 0.5)'
             labels['root'] = '(root)'
 
-            # Place 'expsyn' mechanism on "synapse_site", and a spike detector at "root"
+            # Place 'expsyn' mechanism on "synapse_site", and a threshold detector at "root"
             decor = arbor.decor()
             decor.place('"synapse_site"', 'expsyn', 'syn')
-            decor.place('"root"', arbor.spike_detector(-10), 'detector')
+            decor.place('"root"', arbor.threshold_detector(-10), 'detector')
 
             # Implement the connections_on() function on a recipe as follows:
             def connections_on(gid):
@@ -104,12 +104,11 @@ Interconnectivity
 
         The unit-less weight of the gap junction connection.
 
-.. class:: spike_detector
+.. class:: threshold_detector
 
-    A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an
+    A threshold detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an
     :class:`arbor.connection`.
 
     .. attribute:: threshold
 
-        Voltage threshold of spike detector [mV]
-
+        Voltage threshold of threshold detector [mV]
