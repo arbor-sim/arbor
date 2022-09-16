@@ -42,6 +42,8 @@ public:
     const std::vector<msegment>& branch_segments(msize_t b) const;
 
     // Convert to segment tree
+    // Note: tree == arb::morphology(tree).to_segment_tree() is not guaranteed
+    // to be true.
     segment_tree to_segment_tree() const;
 
     friend std::ostream& operator<<(std::ostream&, const morphology&);
