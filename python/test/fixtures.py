@@ -207,7 +207,7 @@ class art_spiker_recipe(arbor.recipe):
         decor.set_property(Vm=-40)
         decor.paint('"soma"', arbor.density("hh"))
         decor.place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
-        decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+        decor.place('"midpoint"', arbor.threshold_detector(-10), "detector")
 
         # return tuple of tree, labels, and decor for creating a cable cell (can still be modified before calling arbor.cable_cell())
         return tree, labels, decor

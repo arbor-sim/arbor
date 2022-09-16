@@ -22,7 +22,7 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 
   * :ref:`Synapse mechanisms <cablecell-synapses>`.
   * :ref:`Gap junction mechanisms <cablecell-gj-mechs>`.
-  * :ref:`Threshold detectors <cablecell-threshold-detectors>` (spike detectors).
+  * :ref:`Threshold detectors <cablecell-threshold-detectors>`
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
 
@@ -353,8 +353,30 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
 
 .. _cablecell-threshold-detectors:
 
-2. Threshold detectors (spike detectors).
+2. Threshold detectors.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Threshold detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
+between cells. An example where we're interested in when a threshold of ``-10 mV`` is reached:
+
+.. code-block:: Python
+
+    # Placing a threshold detector might look like this.
+    decor = arbor.decor()
+    decor.place('"root"', arbor.threshold_detector(-10), "detector")
+
+    # At this point, "detector" could be connected to another cell,
+    # and it would transmit events upon the voltage crossing the threshold.
+
+    # Just printing those spike times goes as follows.
+    sim = arbor.simulation(...)
+    sim.record(arbor.spike_recording.all)
+    sim.run(...)
+    print("spikes:")
+    for sp in sim.spikes():
+        print(" ", sp)
+
+See also :term:`threshold detector`.
 
 .. _cablecell-gj-mechs:
 
@@ -424,6 +446,7 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 5. Probes
 ~~~~~~~~~
 
+See :ref:`probesample`.
 
 API
 ---

@@ -90,7 +90,9 @@ ARB_ARBOR_API void merge_cell_events(
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx);
+
+    void update(const connectivity& rec);
 
     void reset();
 
@@ -116,6 +118,8 @@ public:
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
+    label_resolution_map source_resolution_map_;
+    label_resolution_map target_resolution_map_;
 
 private:
     // Record last computed epoch (integration interval).
@@ -137,6 +141,8 @@ private:
     std::unordered_map<cell_gid_type, gid_local_info> gid_to_local_;
 
     communicator communicator_;
+    context ctx_;
+    domain_decomposition ddc_;
 
     task_system_handle task_system_;
 
@@ -183,11 +189,13 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        execution_context ctx
+        context ctx
     ):
-    task_system_(ctx.thread_pool),
-    local_spikes_({thread_private_spike_store(ctx.thread_pool), thread_private_spike_store(ctx.thread_pool)})
-{
+    ctx_{ctx},
+    ddc_{decomp},
+    task_system_(ctx->thread_pool),
+    local_spikes_({thread_private_spike_store(ctx->thread_pool),
+                  thread_private_spike_store(ctx->thread_pool)}) {
     // Generate the cell groups in parallel, with one task per cell group.
     auto num_groups = decomp.num_groups();
     cell_groups_.resize(num_groups);
@@ -197,7 +205,7 @@ simulation_state::simulation_state(
         [&](cell_group_ptr& group, int i) {
           const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
-          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
+          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_);
           group = factory(group_info.gids, rec, sources, targets);
 
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
@@ -209,44 +217,44 @@ simulation_state::simulation_state(
         local_sources.append(cg_sources.at(i));
         local_targets.append(cg_targets.at(i));
     }
-    auto global_sources = ctx.distributed->gather_cell_labels_and_gids(local_sources);
+    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
 
-    auto source_resolution_map = label_resolution_map(std::move(global_sources));
-    auto target_resolution_map = label_resolution_map(std::move(local_targets));
+    source_resolution_map_ = label_resolution_map(std::move(global_sources));
+    target_resolution_map_ = label_resolution_map(std::move(local_targets));
+    communicator_ = communicator(rec, ddc_, source_resolution_map_, target_resolution_map_, *ctx_);
+    update(rec);
+    epoch_.reset();
+}
 
-    communicator_ = arb::communicator(rec, decomp, source_resolution_map, target_resolution_map, ctx);
-
-    const auto num_local_cells = communicator_.num_local_cells();
-
+void simulation_state::update(const connectivity& rec) {
+    communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = communicator_.min_delay()/2;
 
+    const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
     pending_events_.resize(num_local_cells);
-
+    // Forget old generators, if present
+    event_generators_.clear();
     event_generators_.resize(num_local_cells);
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
-
-    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(std::move(target_resolution_map));
-    for (const auto& group_info: decomp.groups()) {
+    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
+    for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = gid_local_info{lidx, grpidx};
-
-            // Resolve event_generator targets.
-            // Each event generator gets their own resolver state.
+            gid_to_local_[gid] = {lidx, grpidx};
+            // Resolve event_generator targets; each event generator gets their own resolver state.
             auto event_gens = rec.event_generators(gid);
             for (auto& g: event_gens) {
-                g.resolve_label([target_resolution_map_ptr, event_resolver=resolver(target_resolution_map_ptr.get()), gid]
-                    (const cell_local_label_type& label) mutable {
+                g.resolve_label([target_resolution_map_ptr,
+                                 event_resolver=resolver(target_resolution_map_ptr.get()),
+                                 gid] (const cell_local_label_type& label) mutable {
                         return event_resolver.resolve({gid, label});
                     });
             }
-
             // Set up the event generators for cell gid.
             event_generators_[lidx] = event_gens;
-
             ++lidx;
         }
         ++grpidx;
@@ -257,9 +265,8 @@ simulation_state::simulation_state(
     // the following epoch. In each buffer there is one lane for each local cell.
     event_lanes_[0].resize(num_local_cells);
     event_lanes_[1].resize(num_local_cells);
-
-    epoch_.reset();
 }
+
 
 void simulation_state::reset() {
     epoch_ = epoch();
@@ -510,15 +517,17 @@ void simulation_state::inject_events(const cse_vector& events) {
 
 simulation::simulation(
     const recipe& rec,
-    const context& ctx,
+    context ctx,
     const domain_decomposition& decomp)
 {
-    impl_.reset(new simulation_state(rec, decomp, *ctx));
+    impl_.reset(new simulation_state(rec, decomp, ctx));
 }
 
 void simulation::reset() {
     impl_->reset();
 }
+
+void simulation::update(const connectivity& rec) { impl_->update(rec); }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {

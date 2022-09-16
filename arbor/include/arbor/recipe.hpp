@@ -61,28 +61,43 @@ struct gap_junction_connection {
         peer(std::move(peer)), local(std::move(local)), weight(g) {}
 };
 
-class ARB_ARBOR_API recipe {
-public:
-    virtual cell_size_type num_cells() const = 0;
-
-    // Cell description type will be specific to cell kind of cell with given gid.
-    virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
-    virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
-
-    virtual std::vector<event_generator> event_generators(cell_gid_type) const {
-        return {};
-    }
-    virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
-        return {};
-    }
+struct ARB_ARBOR_API has_gap_junctions {
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
+};
 
+struct ARB_ARBOR_API has_synapses {
+    virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
+        return {};
+    }
+};
+
+struct ARB_ARBOR_API has_probes {
     virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
         return {};
     }
+};
 
+struct ARB_ARBOR_API has_generators {
+    virtual std::vector<event_generator> event_generators(cell_gid_type) const {
+        return {};
+    }
+};
+
+// Toppings allow updating a simulation
+struct ARB_ARBOR_API connectivity: public has_synapses, has_generators {
+    virtual ~connectivity() {}
+};
+
+// Recipes allow building a simulation by lazy queries
+struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity {
+    // number of cells to build
+    virtual cell_size_type num_cells() const = 0;
+    // Cell description type will be specific to cell kind of cell with given gid.
+    virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
+    // Query cell kind per gid
+    virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
 

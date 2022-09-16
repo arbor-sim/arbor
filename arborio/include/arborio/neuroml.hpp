@@ -71,7 +71,7 @@ struct nml_morphology_data {
     // Morphology id.
     std::string id;
 
-    // Morphology constructed from a signle NeuroML <morphology> element.
+    // Morphology constructed from a single NeuroML <morphology> element.
     arb::morphology morphology;
 
     // One region expression for each segment id.

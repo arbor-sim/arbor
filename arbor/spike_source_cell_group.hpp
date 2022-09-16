@@ -40,7 +40,7 @@ public:
 private:
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
-    std::vector<schedule> time_sequences_;
+    std::vector<std::vector<schedule>> time_sequences_;
 };
 
 } // namespace arb

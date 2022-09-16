@@ -778,7 +778,7 @@ asc_morphology parse_asc_string(const char* input) {
     labels.set("dend", arb::reg::tagged(3));
     labels.set("apic", arb::reg::tagged(4));
 
-    return {std::move(morphology), std::move(labels)};
+    return {stree, std::move(morphology), std::move(labels)};
 }
 
 ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {

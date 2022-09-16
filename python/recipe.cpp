@@ -107,7 +107,7 @@ static std::vector<arb::event_generator> convert_gen(std::vector<pybind11::objec
         auto& p = cast<const pyarb::event_generator_shim&>(g);
 
         // convert the event_generator to an arb::event_generator
-        gens.push_back(arb::schedule_generator(p.target, p.weight, std::move(p.time_sched)));
+        gens.push_back(arb::event_generator(p.target, p.weight, std::move(p.time_sched)));
     }
 
     return gens;

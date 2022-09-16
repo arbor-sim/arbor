@@ -92,7 +92,7 @@ context_shim create_context(unsigned threads, pybind11::object gpu, pybind11::ob
         return context_shim(arb::make_context(alloc, c->comm));
     }
 #endif
-    return context_shim(arb::make_context(alloc));
+    return context_shim{arb::make_context(alloc)};
 }
 
 std::ostream& operator<<(std::ostream& o, const proc_allocation_shim& alloc) {

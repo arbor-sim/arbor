@@ -267,4 +267,4 @@ API
 ---
 
 * :ref:`Python <py_mechanisms>`
-* *TODO* C++ documentation.
+* :ref:`C++ <cpp_mechanisms>`
