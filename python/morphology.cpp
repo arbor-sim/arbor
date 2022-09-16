@@ -374,7 +374,7 @@ void register_morphology(py::module& m) {
         },
         "filename_or_stream"_a,
         pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
-        "Load a morphology and meta data from a Neurolucida ASCII .asc file.");
+        "Load a morphology or segment_tree and meta data from a Neurolucida ASCII .asc file.");
 
 
 #ifdef ARB_NEUROML_ENABLED
