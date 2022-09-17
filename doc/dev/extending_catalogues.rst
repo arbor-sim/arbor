@@ -20,7 +20,7 @@ produce a catalogue of the same level of integration as the built-in catalogues
 (*default*, *bbp*, and *allen*). The required steps are as follows
 
 1. Go to the Arbor source tree.
-2. Create a new directory under *mechanisms*.
+2. Create a new directory under *mechanisms* with the name of your catalogue
 
    1. Add any ``.mod`` files you wish to integrate.
    2. Add any raw C++ files to be included in the catalogue.
@@ -31,7 +31,7 @@ produce a catalogue of the same level of integration as the built-in catalogues
    .. code-block :: cmake
 
      make_catalogue(
-       NAME default                                                # Name of your catalogue
+       NAME default                                                # Name of your catalogue, must match directory under 2.
        MOD exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas # Space separated list of mechanism names
        CXX                                                         # Optional: list of raw C++ mechanism names
        VERBOSE  ${ARB_CAT_VERBOSE}                                 # Print debug info at configuration time
