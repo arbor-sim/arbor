@@ -46,9 +46,8 @@ include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 make_catalogue(
     NAME    testing
     MOD     ${test_mechanisms}
-    SOURCES ${PROJECT_SOURCE_DIR}/test/unit/mod
-    PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
-    VERBOSE ${ARB_CAT_VERBOSE})
+    VERBOSE ${ARB_CAT_VERBOSE}
+    ADD_DEPS OFF)
 
 # Unit test sources
 
@@ -173,7 +172,7 @@ if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
-add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechs})
+add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechanisms})
 add_dependencies(unit catalogue-testing-target)
 add_dependencies(tests unit)
 
@@ -183,7 +182,6 @@ make_catalogue_standalone(
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
     MOD dummy
     CXX
-    PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     VERBOSE ON)
 

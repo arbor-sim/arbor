@@ -1,35 +1,28 @@
 include(BuildModules.cmake)
 
+set(arbor-builtin-mechanisms)
+
 # Define catalogues
 make_catalogue(
   NAME bbp
-  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/bbp"
   MOD CaDynamics_E2 Ca_HVA Ca_LVAst Ih Im K_Pst K_Tst Nap_Et2 NaTa_t NaTs2_t SK_E2 SKv3_1
-  CXX
-  CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"
-  VERBOSE ${ARB_CAT_VERBOSE})
+  VERBOSE ${ARB_CAT_VERBOSE}
+  ADD_DEPS ON)
 
 make_catalogue(
   NAME allen
-  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/allen"
   MOD CaDynamics Ca_HVA Ca_LVA Ih Im Im_v2 K_P K_T Kd Kv2like Kv3_1 NaTa NaTs NaV Nap SK
-  CXX
-  CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"
-  VERBOSE ${ARB_CAT_VERBOSE})
+  VERBOSE ${ARB_CAT_VERBOSE}
+  ADD_DEPS ON)
 
 make_catalogue(
   NAME default
-  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/default"
   MOD exp2syn expsyn expsyn_curr expsyn_stdp hh kamt kdrmt nax nernst pas gj decay inject
-  CXX
-  CXX_FLAGS_TARGET "${ARB_CXX_FLAGS_TARGET_FULL}"
-  VERBOSE ${ARB_CAT_VERBOSE})
+  VERBOSE ${ARB_CAT_VERBOSE}
+  ADD_DEPS ON)
 
-set(arbor-builtin-mechanisms ${catalogue-default-mechs} ${catalogue-allen-mechs} ${catalogue-bbp-mechs} PARENT_SCOPE)
-
-add_dependencies(arbor-public-deps catalogue-default-target)
-add_dependencies(arbor-public-deps catalogue-allen-target)
-add_dependencies(arbor-public-deps catalogue-bbp-target)
+# This re-exports
+set(arbor-builtin-mechanisms ${arbor-builtin-mechanisms} PARENT_SCOPE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor-builtin-mechs} PROPERTIES LANGUAGE CXX)

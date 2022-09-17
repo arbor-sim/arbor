@@ -31,27 +31,13 @@ produce a catalogue of the same level of integration as the built-in catalogues
    .. code-block :: cmake
 
      make_catalogue(
-       NAME default                                                   # Name of your catalogue
-       SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/default"                  # Directory name (added above)
-       OUTPUT "CAT_DEFAULT_SOURCES"                                   # Variable name to store C++ files into (see below)
-       MOD exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas    # Space separated list of NMODL mechanism names
-       CXX                                                            # Space separated list of raw C++ mechanism names
-       PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"                      # where does 'generate_catalogue' live, do not change
-       STANDALONE FALSE                                               # build as shared object, must be OFF
-       VERBOSE OFF)                                                   # Print debug info at configuration time
-
-5. Add your ``output-name`` to the ``arbor_mechanism_sources`` list.
-
-   .. code-block :: cmake
-
-     set(arbor_mechanism_sources
-       ${CAT_BBP_SOURCES}
-       ${CAT_ALLEN_SOURCES}
-       ${CAT_DEFAULT_SOURCES}                                          # from above
-       PARENT_SCOPE)
-
-6. Add a ``global_NAME_catalogue`` function in ``mechcat.hpp`` and ``mechcat.cpp``
-7. Bind this function in ``python/mechanisms.cpp``.
+       NAME default                                                # Name of your catalogue
+       MOD exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas # Space separated list of mechanism names
+       CXX                                                         # Optional: list of raw C++ mechanism names
+       VERBOSE  ${ARB_CAT_VERBOSE}                                 # Print debug info at configuration time
+       ADD_DEPS ON)                                                # Must be ON, make catalogue part of arbor
+5. Add a ``global_NAME_catalogue`` function in ``mechcat.hpp``.
+6. Bind this function in ``python/mechanisms.cpp`` to ``NAME-catalogue``.
 
 All steps can be directly adapted from the surrounding code.
 
