@@ -159,7 +159,6 @@ make_catalogue_standalone(
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
   MOD {' '.join(mods)}
   CXX {' '.join(raw)}
-  PREFIX {data_path}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
   VERBOSE {"ON" if verbose else "OFF"})
 """
