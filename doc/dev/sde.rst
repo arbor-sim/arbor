@@ -9,9 +9,9 @@ We want to solve a system of SDEs,
 
     \textbf{X}^\prime(t) = \textbf{f}(t, \textbf{X}(t)) + \sum_{i=0}^{M-1} \textbf{l}_i(t,\textbf{X}(t)) W_i(t),
 
-which describes the dynamics of an arbitrary mechanism's state :math:`\textbf{X}`,
-see also :ref:`this short SDE overview <mechanisms-sde>`
-and the corresponding :ref:`Arbor-specific NMODL extension <format-sde>`.
+which describes the dynamics of an arbitrary mechanism's state :math:`\textbf{X}`, see also
+:ref:`this short SDE overview <mechanisms-sde>` and the corresponding :ref:`Arbor-specific NMODL
+extension <format-sde>`.
 
 Analytical Solutions
 --------------------
@@ -26,10 +26,9 @@ For systems of linear SDEs with
     \end{align}
 
  
-there exist ordinary differential equations for moments of the process :math:`\textbf{X}`.
-The expectation :math:`\textbf{m}(t) = E\left[\textbf{X}(t)\right]`
-and the second moment matrix :math:`\textbf{P}(t) = E\left[\textbf{X}(t) \textbf{X}^T(t)\right]`
-can be computed with
+there exist ordinary differential equations for moments of the process :math:`\textbf{X}`.  The
+expectation :math:`\textbf{m}(t) = E\left[\textbf{X}(t)\right]` and the second moment matrix
+:math:`\textbf{P}(t) = E\left[\textbf{X}(t) \textbf{X}^T(t)\right]` can be computed with
 
 .. math::
 
@@ -47,12 +46,11 @@ can be computed with
     \textbf{P}(0) = &\textbf{x}_0 \textbf{x}^T_0 
     \end{align}
 
-Thus, we could in principle use our existing solvers (for linear systems of ODEs) for the above
-moment equations. Once the moments are computed, we could then sample from the resulting mean and
-covariance matrix, using the fact that the solution is normally distributed,
-with
-:math:`\textbf{X}(t) \sim N\left(\textbf{m}(t), \textbf{P}(t) - \textbf{m}(t)\textbf{m}^T(t)\right)`.
-This approach has a few drawbacks, however:
+Thus, we could in principle use our existing solvers for the above moment equations. Note, that the
+equations for the second order moment are not linear, in general. Once the moments are computed, we
+could then sample from the resulting mean and covariance matrix, using the fact that the solution is
+normally distributed, with :math:`\textbf{X}(t) \sim N\left(\textbf{m}(t), \textbf{P}(t) -
+\textbf{m}(t)\textbf{m}^T(t)\right)`. This approach has a few drawbacks, however:
 
 * tracking of the moment equations increases the size of the system
 * there exist no general solutions for non-linear systems of SDEs
@@ -73,10 +71,10 @@ Euler-Maruyama Solver
 ---------------------
 
 The Euler-Maruyama method is a first order stochastic Runge-Kutta method, where the forward Euler
-method is its deterministic counterpart. The method can be derived by approximating
-the solution of the SDE with an It\^o-Taylor series and truncating at first order.
-Higher-order stochastic Runge-Kutta methods are not as easy to use as their deterministic
-counterparts, especially for the vector case (system of SDEs).
+method is its deterministic counterpart. The method can be derived by approximating the solution of
+the SDE with an It\^o-Taylor series and truncating at first order.  Higher-order stochastic
+Runge-Kutta methods are not as easy to use as their deterministic counterparts, especially for the
+vector case (system of SDEs).
             
 **Algorithm:** For each time step :math:`t_k = k ~\Delta t`
 
@@ -90,9 +88,9 @@ Stochastic Mechanisms
 ---------------------
 
 This Euler-Maruyama solver is implemented in modcc and requires a normally distributed noise source.
-Since we assume that this noise is uncorrelated, we need independent random variables for
-every location where a mechanism is placed at or painted on. We can achieve this by carefully
-seeding the random number generator with a unique fingerprint of each such location, consisting of
+Since we assume that this noise is uncorrelated, we need independent random variables for every
+location where a mechanism is placed at or painted on. We can achieve this by carefully seeding the
+random number generator with a unique fingerprint of each such location, consisting of
 
 * global seed value (per simulation)
 * global cell id
@@ -108,9 +106,9 @@ of independence, the correlation between the white noises is zero, :math:`\textb
 Random Number Generation
 ------------------------
 
-Counter based random number generators (CBPRNGs) as implemented in Random123 offer a simple solution for both
-CPU and GPU kernels to generate independent random numbers based on the above seed values. We use
-the *Threefry-4x64-12* algorithm because
+Counter based random number generators (CBPRNGs) as implemented in Random123 offer a simple solution
+for both CPU and GPU kernels to generate independent random numbers based on the above seed values.
+We use the *Threefry-4x64-12* algorithm because
 
 * it offers 8 64-bit fields for placing the seed values
 * it is reasonably fast on both CPU and GPU
