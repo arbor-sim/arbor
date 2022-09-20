@@ -128,27 +128,44 @@ quiet = args["quiet"]
 verbose = args["verbose"] and not quiet
 debug = args["debug"]
 raw = args["raw"]
-gpu = args["gpu"].lower()
+gpu = args["gpu"]
 cpu = args["cpu"]
 
-if gpu != "none":
-    if gpu == "cuda":
-        gpu_support = f"""
+if gpu == "cuda":
+    gpu_support = f"""
+include(FindCUDAToolkit)
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
-
+find_package(CUDAToolkit)
 enable_language(CUDA)
+set(CMAKE_CUDA_STANDARD 14)
+
 set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
 """
-    else:
-        print(
-            f"Unsupported GPU target: {gpu}. If you need support for HIP or Clang-CUDA, please check here: https://github.com/arbor-sim/arbor/issues/1783"
-        )
-        exit(-1)
-else:
+elif gpu == "cuda-clang":
+    print("CUDA-Clang support is currently considered experimental only.")
+    gpu_support = f"""
+add_compile_definitions(ARB_CUDA)
+add_compile_definitions(ARB_HAVE_GPU)
+find_package(CUDAToolkit)
+enable_language(CUDA)
+set(CMAKE_CUDA_STANDARD 14)
+add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}))
+"""
+elif gpu == "hip":
+    print("HIP support is currently considered experimental only.")
+    gpu_support = f"""
+add_compile_definitions(ARB_HIP)
+add_compile_definitions(ARB_HAVE_GPU)
+add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+"""
+elif gpu == "none":
     gpu_support = """
 # GPU: Disabled
 """
+else:
+    print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
+    exit(-1)
 
 bindir = Path(args["prefix"]) / args["bin"]
 datdir = Path(args["prefix"]) / args["data"] / "arbor"
@@ -167,6 +184,9 @@ for path in [
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(arbor_DIR {pakdir})
 find_package(arbor REQUIRED)
