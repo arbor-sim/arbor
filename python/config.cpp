@@ -24,7 +24,7 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("mpi4py")]  = pybind11::bool_(false);
 #endif
-#ifdef ARB_WITH_GPU
+#ifdef ARB_GPU_ENABLED
 #ifdef ARB_CUDA
 #ifdef ARB_WITH_CUDA_CLANG
     dict[pybind11::str("gpu")]     = pybind11::str("cuda:clang");
@@ -33,7 +33,7 @@ pybind11::dict config() {
 #endif
 #endif
 #ifdef ARB_HIP
-    dict[pybind11::str("gpu")]     = pybind11::str("cuda");
+    dict[pybind11::str("gpu")]     = pybind11::str("cuda:hip");
 #endif
 #else
     dict[pybind11::str("gpu")]     = pybind11::none();
