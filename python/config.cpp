@@ -26,7 +26,6 @@ pybind11::dict config() {
 #endif
 #ifdef ARB_WITH_GPU
 #ifdef ARB_CUDA
-    dict[pybind11::str("gpu_arch")] = pybind11::str(ARB_GPU_ARCH);
 #ifdef ARB_WITH_CUDA_CLANG
     dict[pybind11::str("gpu")]     = pybind11::str("cuda:clang");
 #else
