@@ -32,7 +32,7 @@ pybind11::dict config() {
     dict[pybind11::str("gpu")]     = pybind11::str("cuda");
 #endif
 #endif
-#ifdef ARB_WITH_HIP_CLAG
+#ifdef ARB_WITH_HIP_CLANG
     dict[pybind11::str("gpu")]     = pybind11::str("cuda:hip");
 #endif
 #else
