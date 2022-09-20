@@ -24,14 +24,14 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("mpi4py")]  = pybind11::bool_(false);
 #endif
-#ifdef ARB_WITH_NVCC
-    dict[pybind11::str("gpu")]     = pybind11::str("cuda:nvcc");
+#ifdef ARB_NVCC_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::str("cuda");
 #endif
-#ifdef ARB_WITH_CUDA_CLANG
-    dict[pybind11::str("gpu")]     = pybind11::str("cuda:clang");
+#ifdef ARB_CUDA_CLANG_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::str("cuda-clang");
 #endif
-#ifdef ARB_WITH_HIP_CLANG
-    dict[pybind11::str("gpu")]     = pybind11::str("cuda:hip");
+#ifdef ARB_HIP_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::str("hip");
 #endif
 #ifndef ARB_GPU_ENABLED
     dict[pybind11::str("gpu")]     = pybind11::none();
