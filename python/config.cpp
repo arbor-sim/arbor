@@ -56,6 +56,7 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("bundled")] = pybind11::bool_(false);
 #endif
+
     dict[pybind11::str("version")]       = pybind11::str(ARB_VERSION);
     dict[pybind11::str("source")]        = pybind11::str(ARB_SOURCE_ID);
     dict[pybind11::str("arch")]          = pybind11::str(ARB_ARCH);
@@ -64,6 +65,16 @@ pybind11::dict config() {
     dict[pybind11::str("lib_path")]      = pybind11::str(ARB_LIB);
     dict[pybind11::str("data_path")]     = pybind11::str(ARB_DATA);
     dict[pybind11::str("CXX")]           = pybind11::str(ARB_CXX_COMPILER);
+    {
+#define mk_tok(x) #x
+#define mk_ver(M, m, p) mk_tok(M) "." mk_tok(m) "." mk_tok(p)
+        const char* version = mk_ver(PYBIND11_VERSION_MAJOR,
+                                     PYBIND11_VERSION_MINOR,
+                                     PYBIND11_VERSION_PATCH);
+        dict[pybind11::str("pybind-version")] = pybind11::str(version);
+#undef mk_ver
+#undef mk_tok
+    }
     return dict;
 }
 

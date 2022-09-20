@@ -610,7 +610,7 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
 
 
 // Perform the parsing of the input as a string.
-asc_morphology parse_asc_string(const char* input) {
+ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input) {
     asc::lexer lexer(input);
 
     std::vector<sub_tree> sub_trees;
@@ -768,6 +768,14 @@ asc_morphology parse_asc_string(const char* input) {
         }
     }
 
+    return stree;
+}
+
+
+ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input) {
+    // Parse segment tree
+    arb::segment_tree stree = parse_asc_string_raw(input);
+
     // Construct the morphology.
     arb::morphology morphology(stree);
 
@@ -781,7 +789,8 @@ asc_morphology parse_asc_string(const char* input) {
     return {stree, std::move(morphology), std::move(labels)};
 }
 
-ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {
+
+inline std::string read_file(std::string filename) {
     std::ifstream fid(filename);
 
     if (!fid.good()) {
@@ -796,9 +805,21 @@ ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {
 
     fstr.assign((std::istreambuf_iterator<char>(fid)),
                  std::istreambuf_iterator<char>());
+    return fstr;
+}
 
+
+ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {
+    std::string fstr = read_file(filename);
     return parse_asc_string(fstr.c_str());
 }
+
+
+ARB_ARBORIO_API arb::segment_tree load_asc_raw(std::string filename) {
+    std::string fstr = read_file(filename);
+    return parse_asc_string_raw(fstr.c_str());
+}
+
 
 } // namespace arborio
 

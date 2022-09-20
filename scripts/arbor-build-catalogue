@@ -173,7 +173,6 @@ pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
 
 for path in [
     bindir / "modcc",
-    datdir / "generate_catalogue",
     datdir / "BuildModules.cmake",
     pakdir / "arbor-config.cmake",
 ]:
@@ -200,15 +199,13 @@ include(BuildModules.cmake)
 set(ARB_WITH_EXTERNAL_MODCC true)
 find_program(modcc NAMES modcc PATHS {bindir})
 
-make_catalogue(
+make_catalogue_standalone(
   NAME {name}
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
-  OUTPUT "CAT_{name.upper()}_SOURCES"
   MOD {' '.join(mods)}
   CXX {' '.join(raw)}
   PREFIX {datdir}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
-  STANDALONE ON
   VERBOSE {"ON" if verbose else "OFF"})
 """
 
@@ -260,7 +257,6 @@ with TemporaryDirectory() as tmp:
     with open(tmp / "CMakeLists.txt", "w") as fd:
         fd.write(cmake)
     shutil.copy2(f"{datdir}/BuildModules.cmake", tmp)
-    shutil.copy2(f"{datdir}/generate_catalogue", tmp)
 
     out = tmp / "build" / "generated" / name
     os.makedirs(out, exist_ok=True)
