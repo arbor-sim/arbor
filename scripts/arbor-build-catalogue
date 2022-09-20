@@ -77,13 +77,6 @@ enabled) must be present in the target directory.""",
     )
 
     parser.add_argument(
-        "--gpu-arch",
-        metavar="gpu_arch",
-        default=config.get("gpu_arch", ""),
-        help=f'Specific GPU architecture use, if enabled.',
-    )
-
-    parser.add_argument(
         "--cxx",
         metavar="cxx",
         default=config["CXX"],
@@ -146,7 +139,6 @@ add_compile_definitions(ARB_HAVE_GPU)
 
 enable_language(CUDA)
 set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
-set(CMAKE_CUDA_ARCHITECTURES {args["gpu_arch"]})
 """
     else:
         print(
