@@ -69,7 +69,7 @@ namespace {
         tree.append(arb::mnpos, {0,0,0,10}, {0,0,20,10}, 1); // soma
         tree.append(0, {0,0, 20, 2}, {0,0, 320, 2}, 3);  // dendrite
 
-        arb::cable_cell cell(tree);
+        arb::cable_cell cell(tree, {});
 
         arb::decor decorations;
 

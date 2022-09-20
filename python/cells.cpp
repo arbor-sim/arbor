@@ -914,25 +914,21 @@ void register_cells(pybind11::module& m) {
         "tree of one-dimensional cable segments.");
     cable_cell
         .def(pybind11::init(
-            [](const arb::morphology& m, const std::optional<arb::decor>& d, const std::optional<label_dict_proxy>& l) {
-                if (d && l) return arb::cable_cell(m, *d, l->dict);
-                if (d) return arb::cable_cell(m, *d);
-                if (l) return arb::cable_cell(m, {}, l->dict);
-                return arb::cable_cell(m);
+            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
+                if (l) return arb::cable_cell(m, d, l->dict);
+                return arb::cable_cell(m, d);
             }),
             "morphology"_a,
-             pybind11::arg_v("decor",  pybind11::none(), "Cable cell decor"),
+             "decor"_a,
              pybind11::arg_v("labels", pybind11::none(), "Labels"),
             "Construct with a morphology, decor, and label dictionary.")
         .def(pybind11::init(
-            [](const arb::segment_tree& t, const std::optional<arb::decor>& d, const std::optional<label_dict_proxy>& l) {
-                if (d && l) return arb::cable_cell({t}, *d, l->dict);
-                if (d) return arb::cable_cell({t}, *d);
-                if (l) return arb::cable_cell({t}, {}, l->dict);
-                return arb::cable_cell(arb::morphology{t});
+            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
+                if (l) return arb::cable_cell({t}, d, l->dict);
+                return arb::cable_cell({t}, d);
             }),
             "segment_tree"_a,
-             pybind11::arg_v("decor",  pybind11::none(), "Cable cell decor"),
+             "decor"_a,
              pybind11::arg_v("labels", pybind11::none(), "Labels"),
             "Construct with a morphology derived from a segment tree, decor, and label dictionary.")
         .def_property_readonly("num_branches",
