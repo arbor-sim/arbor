@@ -98,7 +98,7 @@ std::vector<defaultable> cable_cell_parameter_set::serialize() const {
         if (data.init_reversal_potential) {
             D.push_back(init_reversal_potential{name, *data.init_reversal_potential});
         }
-        if (data.init_reversal_potential) {
+        if (data.diffusivity) {
             D.push_back(ion_diffusivity{name, *data.diffusivity});
         }
     }

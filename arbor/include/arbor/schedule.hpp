@@ -65,7 +65,9 @@ private:
         virtual ~interface() {}
     };
 
-    std::unique_ptr<interface> impl_;
+    using iface_ptr = std::unique_ptr<interface> ;
+
+    iface_ptr impl_;
 
     template <typename Impl>
     struct wrap: interface {
@@ -80,8 +82,8 @@ private:
             wrapped.reset();
         }
 
-        virtual std::unique_ptr<interface> clone() {
-            return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
+        virtual iface_ptr clone() {
+            return std::make_unique<wrap<Impl>>(wrapped);
         }
 
         Impl wrapped;

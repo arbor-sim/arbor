@@ -427,7 +427,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "    result.write_ions = {3}write_ions;\n"
                                    "    result.post_event = {3}post_event;\n"
                                    "    return &result;\n"
-                                   "  }}"
+                                   "  }}\n"
                                    "}}\n\n"),
                        std::regex_replace(opt.cpp_namespace, std::regex{"::"}, "_"),
                        name,

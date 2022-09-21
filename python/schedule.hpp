@@ -81,7 +81,7 @@ struct poisson_schedule_shim: schedule_shim_base {
 
     arb::time_type tstart; // ms
     arb::time_type freq; // kHz
-    opt_time_type  tstop = {}; // ms
+    opt_time_type  tstop; // ms
     rng_type::result_type seed;
 
     poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s, pybind11::object tstop);

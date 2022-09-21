@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+#include <regex>
 
 #include <tinyopt/tinyopt.h>
 
@@ -18,6 +19,8 @@
 
 #include "io/bulkio.hpp"
 #include "io/pprintf.hpp"
+
+#include <fmt/format.h>
 
 using std::cout;
 using std::cerr;
@@ -66,8 +69,9 @@ auto key_by_value(const Map& map, const V& v) -> decltype(map.begin()->first) {
 
 struct Options {
     std::string outprefix;
-    std::string modfile;
+    std::vector<std::string> modfiles;
     std::string modulename;
+    std::string catalogue;
     bool verbose = false;
     bool analysis = false;
     std::unordered_set<targetKind> targets;
@@ -97,12 +101,14 @@ std::ostream& operator<<(std::ostream& out, const Options& opt) {
         targets += " "+key_by_value(targetKindMap, t);
     }
 
-    return out <<
-        table_prefix{"file"} << opt.modfile << line_end <<
-        table_prefix{"output"} << (opt.outprefix.empty()? "-": opt.outprefix) << line_end <<
+    for (const auto& f: opt.modfiles) {
+        out << table_prefix{"file"} << f << line_end;
+    }
+    out << table_prefix{"output"} << (opt.outprefix.empty()? "-": opt.outprefix) << line_end <<
         table_prefix{"verbose"} << noyes[opt.verbose] << line_end <<
         table_prefix{"targets"} << targets << line_end <<
         table_prefix{"analysis"} << noyes[opt.analysis] << line_end;
+    return out;
 }
 
 std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
@@ -139,7 +145,7 @@ const char* usage_str =
         "-V|--verbose           [Toggle verbose mode]\n"
         "-A|--analyse           [Toggle analysis mode]\n"
         "-T|--trace-codegen     [Leave trace marks in generated source]\n"
-        "<filename>             [File to be compiled]\n";
+        "<filenames>            [Files to be compiled]\n";
 
 int main(int argc, char **argv) {
     using namespace to;
@@ -159,16 +165,14 @@ int main(int argc, char **argv) {
             }
         };
 
-        auto add_target = [&opt](targetKind t) {
-            opt.targets.insert(t);
-        };
+        auto add_target = [&opt](targetKind t) { opt.targets.insert(t); };
 
         to::option options[] = {
-                { opt.modfile,  to::mandatory},
-                { opt.outprefix,                                         "-o", "--output" },
+                { to::push_back(opt.modfiles)},
+                { opt.outprefix,                                         "-o", "--output-dir" },
                 { to::set(opt.verbose),  to::flag,                       "-V", "--verbose" },
                 { to::set(opt.analysis), to::flag,                       "-A", "--analyse" },
-                { opt.modulename,                                        "-m", "--module" },
+                { opt.catalogue,                                         "-c", "--catalogue"},
                 { popt.cpp_namespace,                                    "-N", "--namespace" },
                 { to::action(enable_simd), to::flag,                     "-s", "--simd" },
                 { popt.simd,                                             "-S", "--simd-abi" },
@@ -184,109 +188,192 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    try {
-        auto emit_header = [&opt](const char* h) {
+    if (!opt.catalogue.empty()) popt.cpp_namespace += "::" + opt.catalogue + "_catalogue";
+
+    std::vector<std::string> modules;
+
+    for (const auto& modfile: opt.modfiles) {
+        try {
+            auto emit_header = [&opt](const char* h) {
+                if (opt.verbose) {
+                    cout << green("[") << h << green("]") << "\n";
+                }
+            };
+
             if (opt.verbose) {
-                cout << green("[") << h << green("]") << "\n";
+                static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
+                cout << tableline;
+                cout << opt;
+                cout << popt;
+                cout << tableline;
             }
-        };
 
-        if (opt.verbose) {
-            static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
-            cout << tableline;
-            cout << opt;
-            cout << popt;
-            cout << tableline;
-        }
+            // Load module file and initialize Module object.
+            Module m(io::read_all(modfile), modfile);
 
-        // Load module file and initialize Module object.
-
-        Module m(io::read_all(opt.modfile), opt.modfile);
-
-        if (m.empty()) {
-            return report_error("empty file: "+opt.modfile);
-        }
-
-        if (!opt.modulename.empty()) {
-            m.module_name(opt.modulename);
-        }
-
-        // Perform parsing and semantic analysis passes.
-
-        emit_header("parsing");
-        Parser p(m, false);
-        if (!p.parse()) {
-            // Parser::parse() writes its own errors to stderr.
-            return 1;
-        }
-
-        emit_header("semantic analysis");
-        m.semantic();
-        if (m.has_warning()) {
-            cerr << yellow("Warnings:\n");
-            cerr << m.warning_string() << "\n";
-        }
-        if (m.has_error()) {
-            return report_error(m.error_string());
-        }
-
-        // Generate backend-specific sources for each backend provided.
-
-        emit_header("code generation");
-
-        // If no output prefix given, use the module name.
-        std::string prefix = opt.outprefix.empty()? m.module_name(): opt.outprefix;
-
-        bool have_cpu = opt.targets.find(targetKind::cpu) != opt.targets.end();
-        bool have_gpu = opt.targets.find(targetKind::gpu) != opt.targets.end();
-
-        io::write_all(build_info_header(m, popt, have_cpu, have_gpu), prefix+".hpp");
-        for (targetKind target: opt.targets) {
-            std::string outfile = prefix;
-            switch (target) {
-            case targetKind::gpu:
-                io::write_all(emit_gpu_cpp_source(m, popt), outfile+"_gpu.cpp");
-                io::write_all(emit_gpu_cu_source(m, popt), outfile+"_gpu.cu");
-                break;
-            case targetKind::cpu:
-                io::write_all(emit_cpp_source(m, popt), outfile+"_cpu.cpp");
-                break;
+            if (m.empty()) {
+                return report_error("empty file: "+modfile);
             }
-        }
 
-        // Optional analysis report.
+            // Perform parsing and semantic analysis passes.
 
-        if (opt.analysis) {
-            cout << green("performance analysis\n");
-            for (auto &symbol: m.symbols()) {
-                if (auto method = symbol.second->is_api_method()) {
-                    cout << white("-------------------------\n");
-                    cout << yellow("method " + method->name()) << "\n";
-                    cout << white("-------------------------\n");
+            emit_header("parsing");
+            Parser p(m, false);
+            if (!p.parse()) {
+                // Parser::parse() writes its own errors to stderr.
+                return 1;
+            }
 
-                    FlopVisitor flops;
-                    method->accept(&flops);
-                    cout << white("FLOPS\n") << flops.print() << "\n";
+            emit_header("semantic analysis");
+            m.semantic();
+            if (m.has_warning()) {
+                cerr << yellow("Warnings:\n");
+                cerr << m.warning_string() << "\n";
+            }
+            if (m.has_error()) {
+                return report_error(m.error_string());
+            }
 
-                    MemOpVisitor memops;
-                    method->accept(&memops);
-                    cout << white("MEMOPS\n") << memops.print() << "\n";
+            // Generate backend-specific sources for each backend provided.
+
+            emit_header("code generation");
+
+            std::string prefix = m.module_name();
+            if (!opt.outprefix.empty()) {
+                if (opt.outprefix.back() != '/') opt.outprefix += "/";
+                prefix = opt.outprefix + prefix;
+            }
+
+            bool have_cpu = opt.targets.find(targetKind::cpu) != opt.targets.end();
+            bool have_gpu = opt.targets.find(targetKind::gpu) != opt.targets.end();
+
+            io::write_all(build_info_header(m, popt, have_cpu, have_gpu), prefix+".hpp");
+            for (targetKind target: opt.targets) {
+                std::string outfile = prefix;
+                switch (target) {
+                    case targetKind::gpu:
+                        io::write_all(emit_gpu_cpp_source(m, popt), outfile+"_gpu.cpp");
+                        io::write_all(emit_gpu_cu_source(m, popt), outfile+"_gpu.cu");
+                        break;
+                    case targetKind::cpu:
+                        io::write_all(emit_cpp_source(m, popt), outfile+"_cpu.cpp");
+                        break;
                 }
             }
+
+            // Optional analysis report.
+
+            if (opt.analysis) {
+                cout << green("performance analysis\n");
+                for (auto &symbol: m.symbols()) {
+                    if (auto method = symbol.second->is_api_method()) {
+                        cout << white("-------------------------\n");
+                        cout << yellow("method " + method->name()) << "\n";
+                        cout << white("-------------------------\n");
+
+                        FlopVisitor flops;
+                        method->accept(&flops);
+                        cout << white("FLOPS\n") << flops.print() << "\n";
+
+                        MemOpVisitor memops;
+                        method->accept(&memops);
+                        cout << white("MEMOPS\n") << memops.print() << "\n";
+                    }
+                }
+            }
+
+            modules.push_back(m.module_name());
+        }
+        catch (io::bulkio_error& e) {
+            return report_error(e.what());
+        }
+        catch (compiler_exception& e) {
+            return report_ice(pprintf("% @ %", e.what(), e.location()));
+        }
+        catch (std::exception& e) {
+            return report_ice(e.what());
+        }
+        catch (...) {
+            return report_ice("");
         }
     }
-    catch (io::bulkio_error& e) {
-        return report_error(e.what());
-    }
-    catch (compiler_exception& e) {
-        return report_ice(pprintf("% @ %", e.what(), e.location()));
-    }
-    catch (std::exception& e) {
-        return report_ice(e.what());
-    }
-    catch (...) {
-        return report_ice("");
-    }
 
-    return 0;
+    if (!opt.catalogue.empty()) {
+        const auto prefix = std::regex_replace(popt.cpp_namespace, std::regex{"::"}, "_");
+        {
+            std::ofstream out(opt.outprefix + opt.catalogue + "_catalogue.cpp");
+            out << "// Automatically generated by modcc\n"
+                "\n"
+                "#include <arbor/mechanism_abi.h>\n"
+                "\n";
+
+            for (const auto& mod: modules) {
+                out << fmt::format("#include \"{}.hpp\"\n", mod);
+            }
+
+            out << "\n"
+                "#ifdef STANDALONE\n"
+                "extern \"C\" {\n"
+                "    [[gnu::visibility(\"default\")]] const void* get_catalogue(int* n) {\n";
+            out << fmt::format("        *n = {0};\n"
+                               "        static arb_mechanism cat[{0}] = {{\n",
+                               opt.modfiles.size());
+            for (const auto& mod: modules) {
+                out << fmt::format("            make_{}_{}(),\n", prefix, mod);
+            }
+            out << "        };\n"
+                "        return (void*)cat;\n"
+                "    }\n"
+                "}\n"
+                "\n"
+                "#else\n"
+                "\n"
+                "#include <arbor/mechanism.hpp>\n"
+                "#include <arbor/assert.hpp>\n"
+                "\n";
+            out << fmt::format("#include \"{0}_catalogue.hpp\"\n"
+                               "\n"
+                               "namespace arb {{\n"
+                               "mechanism_catalogue build_{0}_catalogue() {{\n"
+                               "    mechanism_catalogue cat;\n",
+                               opt.catalogue);
+            for (const auto& mod: modules) {
+                out << fmt::format("    {{\n"
+                                   "        auto mech = make_{}_{}();\n"
+                                   "        auto ty = mech.type();\n"
+                                   "        auto nm = ty.name;\n"
+                                   "        auto ig = mech.i_gpu();\n"
+                                   "        auto ic = mech.i_cpu();\n"
+                                   "        arb_assert(ic || ig);\n"
+                                   "        cat.add(nm, ty);\n"
+                                   "        if (ic) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ic));\n"
+                                   "        if (ig) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ig));\n"
+                                   "    }}\n",
+                                   prefix, mod);
+            }
+
+            out << "    return cat;\n"
+                "}\n"
+                "\n";
+            out << fmt::format("ARB_ARBOR_API const mechanism_catalogue& global_{0}_catalogue() {{\n"
+                               "    static mechanism_catalogue cat = build_{0}_catalogue();\n"
+                               "    return cat;\n"
+                               "}}\n",
+                               opt.catalogue);
+            out << "} // namespace arb\n"
+                "#endif\n";
+        }
+        {
+        std::ofstream out(opt.outprefix + opt.catalogue + "_catalogue.hpp");
+        out << fmt::format("#pragma once\n"
+                           "\n"
+                           "#include <arbor/mechcat.hpp>\n"
+                           "#include <arbor/export.hpp>\n"
+                           "\n"
+                           "namespace arb {{\n"
+                           "ARB_ARBOR_API const mechanism_catalogue& global_{0}_catalogue();\n"
+                           "}}\n",
+                           opt.catalogue);
+        }
+    }
 }
