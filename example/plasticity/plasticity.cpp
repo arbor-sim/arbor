@@ -62,7 +62,7 @@ struct recipe: public arb::recipe {
             .place(center, arb::synapse("expsyn"), syn)
             .place(center, arb::threshold_detector{-10.0}, det)
             .set_default(arb::cv_policy_every_segment());
-        return arb::cable_cell({tree}, decor);
+        return arb::cable_cell({tree}, {}, decor);
     }
 };
 
