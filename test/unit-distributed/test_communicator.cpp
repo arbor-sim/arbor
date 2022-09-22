@@ -531,8 +531,8 @@ TEST(communicator, ring)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids(local_sources);
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets), *g_context);
-
+    auto C = communicator(R, D, *g_context);
+    C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets));
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
     // last cell in each domain fires
@@ -638,11 +638,12 @@ TEST(communicator, all2all)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}), *g_context);
+    auto C = communicator(R, D, *g_context);
+    C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}));
     auto connections = C.connections();
 
     for (auto i: util::make_span(0, n_global)) {
-        for (unsigned j = 0; j < n_local; ++j) {
+        for (auto j: util::make_span(0, n_local)) {
             auto c = connections[i*n_local+j];
             EXPECT_EQ(i, c.source.gid);
             EXPECT_EQ(0u, c.source.index);
@@ -684,7 +685,8 @@ TEST(communicator, mini_network)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}), *g_context);
+    auto C = communicator(R, D, *g_context);
+    C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
 
     // sort connections by source then target
     auto connections = C.connections();
