@@ -48,27 +48,25 @@ struct recipe: public arb::recipe {
         arb::cell_kind get_cell_kind(cell_gid_type) const override { return arb::cell_kind::lif; }
 };
 
-// Stolen from Arbor's mpi internals
-template <typename T>
-std::vector<arb::spike> gather_all(const std::vector<arb::spike>& values, MPI_Comm comm) {
-    int size = 0;
+std::vector<arb::spike> gather_all(const std::vector<arb::spike>& spikes, MPI_Comm comm) {
+    int size = -1, rank = -1;
     MPI_Comm_size(comm, &size);
-    std::vector<int> counts(0, size), displs(0, size);
-
-    counts = gather_all(int(values.size()), comm);
-    for (auto& c : counts) {
-        c *= traits::count();
+    MPI_Comm_rank(comm, &rank);
+    int spike_count = spikes.size();
+    std::vector<int> counts(size, 0);
+    std::vector<int> displs(size, 0);
+    MPI_Allgather(&spike_count, 1, MPI_INT, counts.data(), 1, MPI_INT, comm);
+    int global_count = 0;
+    for (int ix = 0; ix < spike_count; ++ix) {
+        displs[ix]    = global_count*sizeof(arb::spike); // Offset for rank `ix` in B
+        global_count += counts[ix];                      // Total number of items so far
+        counts[ix]   *= sizeof(arb::spike);              // Number of B for rank `ix`
     }
-    util::make_partition(displs, counts);
-
-    std::vector<T> buffer(displs.back()/traits::count());
-    MPI_OR_THROW(MPI_Allgatherv,
-            // const_cast required for MPI implementations that don't use const* in their interfaces
-            const_cast<T*>(values.data()), counts[rank(comm)], traits::mpi_type(),  // send buffer
-            buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive buffer
-            comm);
-
-    return buffer;
+    std::vector<arb::spike> global_spikes(global_count);
+    MPI_Allgatherv(spikes.data(),        counts[rank],                 MPI_BYTE, // send buffer
+                   global_spikes.data(), counts.data(), displs.data(), MPI_BYTE, // recv buffer
+                   comm);
+    return global_spikes;
 }
 
 
@@ -101,19 +99,21 @@ int main() {
     int peer_lead = (group == 0) ? 0 : 1;
     MPI_Intercomm_create(split, 0,         // local comm + local leader rank
                          comm, peer_lead,  // peer  comm + peer  leader rank
-                         42,               // tag ... no idea what it does.
+                         42,               // tag, must match across call
                          &inter);          // new intercomm
+    std::cout << typeid(MPI_Comm).name() << '\n'
+              << typeid(MPI_Comm).hash_code() << '\n';
     if (group == 1) {
         // Run the simulation for slightly more than one epoch; thus we expect a single
-        // inter-communcation to happend.
+        // inter-communication to happend.
         auto ctx = arb::make_context({}, split);
         auto rec = recipe(); // one cell per process
         auto sim = arb::simulation(rec, ctx);
-        sim.connect_to_remote_simulation(std::any{inter});
+        sim.connect_to_remote_simulation(inter);
         sim.run(1.01, 0.025);
     }
     else {
-
+        // The other group will wait until this is sent.
     }
     MPI_Finalize();
 }

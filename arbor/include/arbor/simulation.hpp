@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <any>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -16,6 +17,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
+#include <arbor/util/unique_any.hpp>
 
 namespace arb {
 
@@ -35,7 +37,7 @@ public:
                std::function<domain_decomposition(const recipe&, context)> balancer=[](auto& r, auto c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
 
     // Connect to a remote simulation conforming to the remote protocol
-    void connect_to_remote_simulation(std::any);
+    void connect_to_remote_simulation(const util::unique_any&);
     void update(const connectivity& rec);
 
     void reset();

@@ -11,6 +11,8 @@
 #include <mpi.h>
 
 #include <arbor/spike.hpp>
+#include <arbor/util/unique_any.hpp>
+
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
@@ -25,13 +27,17 @@ struct mpi_context_impl {
     MPI_Comm comm_;
     MPI_Comm portal_ = MPI_COMM_NULL;
 
-    void connect_to_remote(std::any hdl) {
+    void connect_to_remote(const util::unique_any& hdl) {
         try {
-            portal_ = std::any_cast<MPI_Comm>(hdl);
-        } catch (const std::bad_any_cast& e) {
-            std::cerr << e.what()
-                      << " " << hdl.has_value() << " "
-                      << typeid(MPI_Comm).name() << " -> " << hdl.type().name() << '\n';
+            portal_ = util::any_cast<MPI_Comm>(hdl);
+        }
+        catch (const std::bad_any_cast& e) {
+            std::cout << "FAILED!!: " << rank_ << '\n'
+                      << hdl.type().name() << '\n'
+                      << hdl.type().hash_code() << '\n'
+                      << typeid(MPI_Comm).name() << '\n'
+                      << typeid(MPI_Comm).hash_code() << '\n'
+                      << "match=" << (typeid(MPI_Comm) == hdl.type()) << '\n';
         }
     }
 

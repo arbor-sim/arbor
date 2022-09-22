@@ -176,7 +176,6 @@ add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechani
 add_dependencies(unit catalogue-testing-target)
 add_dependencies(tests unit)
 
-
 make_catalogue_standalone(
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
