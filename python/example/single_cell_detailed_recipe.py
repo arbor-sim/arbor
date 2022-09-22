@@ -56,11 +56,11 @@ decor = (
     .paint('"all"', density("pas"))
     .paint('"custom"', density("hh"))
     .paint('"dend"', density("Ih", {"gbar": 0.001}))
-    # Place stimuli and spike detectors.
+    # Place stimuli and detectors.
     .place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
     .place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")
     .place('"root"', arbor.iclamp(50, 1, current=2), "iclamp2")
-    .place('"axon_terminal"', arbor.spike_detector(-10), "detector")
+    .place('"axon_terminal"', arbor.threshold_detector(-10), "detector")
     # Set discretisation: Soma as one CV, 1um everywhere else
     .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )

@@ -107,9 +107,9 @@ def make_cell(swc, fit):
             else:
                 vs[k] = v
         decor.paint(f'"{region}"', arbor.density(arbor.mechanism(nm, vs)))
-    # (9) attach stimulus and spike detector
+    # (9) attach stimulus and detector
     decor.place('"midpoint"', arbor.iclamp(200, 1000, 0.15), "ic")
-    decor.place('"midpoint"', arbor.spike_detector(-40), "sd")
+    decor.place('"midpoint"', arbor.threshold_detector(-40), "sd")
     # (10) discretisation strategy: max compartment length
     decor.discretization(arbor.cv_policy_max_extent(20))
 

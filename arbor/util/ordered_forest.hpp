@@ -420,7 +420,7 @@ public:
     {
         sibling_iterator j;
         for (auto& b: blist) {
-            ordered_forest f(std::move(b.f_), item_alloc_);
+            ordered_forest f(b.f_, item_alloc_);
             j = j? graft_after(j, std::move(f)): sibling_iterator(graft_front(std::move(f)));
         }
     }
@@ -652,7 +652,7 @@ struct ordered_forest_builder {
         sibling_iterator j;
 
         for (auto& g: children) {
-            ordered_forest<V, Allocator> c(std::move(g.f_));
+            ordered_forest<V, Allocator> c(g.f_);
             j = j? f_.graft_after(j, std::move(c)): sibling_iterator(f_.graft_child(top, std::move(c)));
         }
     }

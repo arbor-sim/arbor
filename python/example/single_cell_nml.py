@@ -63,7 +63,7 @@ decor = (
     .place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
     .place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
     # Detect spikes at the soma with a voltage threshold of -10 mV.
-    .place('"axon_end"', arbor.spike_detector(-10), "detector")
+    .place('"axon_end"', arbor.threshold_detector(-10), "detector")
     # Set discretisation: Soma as one CV, 1um everywhere else
     .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )

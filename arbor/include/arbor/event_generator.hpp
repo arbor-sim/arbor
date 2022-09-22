@@ -12,6 +12,7 @@
 #include <arbor/generic_event.hpp>
 #include <arbor/spike_event.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/arbexcept.hpp>
 
 namespace arb {
 
@@ -73,7 +74,7 @@ struct event_generator {
     }
 
     event_seq events(time_type t0, time_type t1) {
-        if (!resolved_) throw ;
+        if (!resolved_) throw arbor_internal_error("Unresolved label in event generator.");
         auto tgt = *resolved_;
         auto ts = sched_.events(t0, t1);
 
