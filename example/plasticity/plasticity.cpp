@@ -57,29 +57,38 @@ struct recipe: public arb::recipe {
         if (gid == 0) return arb::spike_source_cell{src, arb::regular_schedule(f_spike)};
         // all others are receiving cable cells; single CV w/ HH
         arb::segment_tree tree; tree.append(arb::mnpos, {-r_soma, 0, 0, r_soma}, {r_soma, 0, 0, r_soma}, 1);
-        auto decor = arb::decor{};
-        decor.paint(all, arb::density("hh", {{"gl", 5}}));
-        decor.place(center, arb::synapse("expsyn"), syn);
-        decor.place(center, arb::threshold_detector{-10.0}, det);
-        decor.set_default(arb::cv_policy_every_segment());
-        return arb::cable_cell({tree}, {}, decor);
+        auto decor = arb::decor{}
+            .paint(all, arb::density("hh", {{"gl", 5}}))
+            .place(center, arb::synapse("expsyn"), syn)
+            .place(center, arb::threshold_detector{-10.0}, det)
+            .set_default(arb::cv_policy_every_segment());
+        return arb::cable_cell({tree}, decor);
     }
 };
+
+// For demonstration: Avoid interleaving std::cout in multi-threaded scenarios.
+// NEVER do this in HPC!!!
+std::mutex mtx;
 
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
     auto* loc = arb::util::any_cast<const arb::mlocation*>(pm.meta);
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
+        std::lock_guard<std::mutex> lock{mtx};
         auto* value = arb::util::any_cast<const double*>(samples[i].data);
         std::cout << "|  " << samples[i].time << " |      " << loc->pos << " | " << *value << " |\n";
     }
 }
 
 void spike_cb(const std::vector<arb::spike>& spikes) {
-    for(const auto& spike: spikes) std::cout << " * " << spike.source << "@" << spike.time << '\n';
+    for(const auto& spike: spikes) {
+        std::lock_guard<std::mutex> lock{mtx};
+        std::cout << " * " << spike.source << "@" << spike.time << '\n';
+    }
 }
 
 void print_header(double from, double to) {
+    std::lock_guard<std::mutex> lock{mtx};
     std::cout << "\n"
               << "Running simulation from " << from << "ms to " << to << "ms\n"
               << "Spikes are marked: *\n"
@@ -93,9 +102,10 @@ const double dt = 0.05;
 int main(int argc, char** argv) {
     auto rec = recipe(3);
     rec.add_connection(1);
-    auto sim = arb::simulation(rec);
+    auto ctx = arb::make_context(arb::proc_allocation{8, -1});
+    auto sim = arb::simulation(rec, ctx);
     sim.add_sampler(arb::all_probes, arb::regular_schedule(dt), sampler, arb::sampling_policy::exact);
-    sim.set_local_spike_callback(spike_cb);
+    sim.set_global_spike_callback(spike_cb);
     print_header(0, 1);
     sim.run(1.0, dt);
     rec.add_connection(2);
