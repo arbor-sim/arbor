@@ -31,9 +31,7 @@ communicator::communicator(const recipe& rec,
                                                      num_local_groups_{dom_dec.num_groups()},
                                                      num_domains_{(cell_size_type) ctx.distributed->size()},
                                                      distributed_{ctx.distributed},
-                                                     thread_pool_{ctx.thread_pool} {
-    update_connections(rec, dom_dec, source_resolution_map, target_resolution_map);
-}
+                                                     thread_pool_{ctx.thread_pool} {}
 
 void communicator::update_connections(const connectivity& rec,
                                       const domain_decomposition& dom_dec,
@@ -80,7 +78,6 @@ void communicator::update_connections(const connectivity& rec,
             auto gid = gids[i];
             gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
         });
-
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
     std::vector<unsigned> src_domains;

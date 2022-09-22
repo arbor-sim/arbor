@@ -75,9 +75,10 @@ class recipe(A.recipe):
         self.connected.add(to)
 
 
+# Context for multi-threading
+ctx = A.context(threads=2)
 # Make an unconnected network with 2 cable cells and one spike source,
 rec = recipe(3)
-
 # but before setting up anything, connect cable cell gid=1 to spike source gid=0
 # and make the simulation of the simple network
 #
@@ -88,12 +89,10 @@ rec = recipe(3)
 # Note that the connection is just _recorded_ in the recipe, the actual connectivity
 # is set up in the simulation construction.
 rec.add_connection_to_spike_source(1)
-sim = A.simulation(rec)
+sim = A.simulation(rec, ctx)
 sim.record(A.spike_recording.all)
-
 # then run the simulation for a bit
 sim.run(0.25, 0.025)
-
 # update the simulation to
 #
 #    spike_source <gid=0> ----> cable_cell <gid=1>
@@ -101,11 +100,14 @@ sim.run(0.25, 0.025)
 #                         ----> cable_cell <gid=2>
 rec.add_connection_to_spike_source(2)
 sim.update(rec)
-
 # and run the simulation for another bit.
 sim.run(0.5, 0.025)
-
-# When finished, print spike times and locations.
-print("spikes:")
-for sp in sim.spikes():
-    print(" ", sp)
+# when finished, print spike times and locations.
+source_spikes = 0
+print("Spikes:")
+for (gid, lid), t in sim.spikes():
+    if gid == 0:
+        source_spikes += 1
+    else:
+        print(f"  * {t:>8.4f}ms: gid={gid} detector={lid}")
+print(f"Source spiked {source_spikes:>5d} times.")
