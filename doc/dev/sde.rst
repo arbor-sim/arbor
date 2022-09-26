@@ -122,8 +122,11 @@ the cache every 4th time step.
 Normal Distribution
 -------------------
 
-The generated random numbers must then be transformed into standard normally distributed values.
-There exist a number of different algorithms, however, we use the Box-Muller transform because it
-requires exactly 2 independent uniformly distributed values to generate 2 independent normally
-distributed values. Other methods, such as the Ziggurat algorithm, use rejection sampling which may
-unevenly exhaust our cache and make parallelization more difficult.
+The generated random numbers :math:`Z_i` must then be transformed into standard normally distributed
+values :math:`X_i`.  There exist a number of different algorithms, however, we use the Box-Muller
+transform because it requires exactly 2 independent uniformly distributed values to generate 2
+independent normally distributed values. Other methods, such as the Ziggurat algorithm, use
+rejection sampling which may unevenly exhaust our cache and make parallelization more difficult.
+
+For the Euler-Maruyama solver we need normal random numbers with variance :math:`\sigma = \Delta t`.
+Thus, we scale the generated random number accordingly, :math:`\Delta W_{i} = \sqrt{\Delta t} X_i`.
