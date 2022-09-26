@@ -128,5 +128,5 @@ transform because it requires exactly 2 independent uniformly distributed values
 independent normally distributed values. Other methods, such as the Ziggurat algorithm, use
 rejection sampling which may unevenly exhaust our cache and make parallelization more difficult.
 
-For the Euler-Maruyama solver we need normal random numbers with variance :math:`\sigma = \Delta t`.
+For the Euler-Maruyama solver we need normal random numbers with variance :math:`\sigma^2 = \Delta t`.
 Thus, we scale the generated random number accordingly, :math:`\Delta W_{i} = \sqrt{\Delta t} X_i`.
