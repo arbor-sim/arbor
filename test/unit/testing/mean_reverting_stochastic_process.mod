@@ -10,13 +10,13 @@
 
 NEURON {
     POINT_PROCESS mean_reverting_stochastic_process
-	GLOBAL kappa, mu, sigma
+    GLOBAL kappa, mu, sigma
 }
 
 PARAMETER {
     kappa = 0.1
     mu = 1
-	sigma = 0.1
+    sigma = 0.1
 }
 
 ASSIGNED {}

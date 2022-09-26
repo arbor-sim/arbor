@@ -6,14 +6,14 @@
 
 NEURON {
     POINT_PROCESS stochastic_volatility
-	GLOBAL mu, theta, kappa, sigma_1
+    GLOBAL mu, theta, kappa, sigma_1
 }
 
 PARAMETER {
     mu      = 0.1
     theta   = 0.1
     kappa   = 0.1
-	sigma_1 = 0.1
+    sigma_1 = 0.1
 }
 
 ASSIGNED {}
