@@ -9,7 +9,7 @@
 #error "This is an MPI only example. No MPI found."
 #endif
 
-#include <mpi.h>
+#include <arborenv/with_mpi.hpp>
 
 using arb::util::unique_any;
 using arb::cell_size_type;
@@ -108,8 +108,8 @@ int main() {
         // inter-communication to happend.
         auto ctx = arb::make_context({}, split);
         auto rec = recipe(); // one cell per process
+        make_remote_connection(ctx, inter);
         auto sim = arb::simulation(rec, ctx);
-        sim.connect_to_remote_simulation(inter);
         sim.run(1.01, 0.025);
     }
     else {

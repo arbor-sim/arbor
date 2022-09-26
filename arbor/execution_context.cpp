@@ -40,12 +40,10 @@ ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm 
 }
 
 template <>
-std::any make_remote_connection(const std::string& token, MPI_Comm comm) {
-    MPI_Comm portal;
-    auto rc = MPI_Comm_connect(token.c_str(), MPI_INFO_NULL, 0, comm, &portal);
-    if (rc != MPI_SUCCESS) throw bad_connection_request{};
-    arb_assert(portal != MPI_COMM_NULL);
-    return portal;
+ARB_ARBOR_API void make_remote_connection(context ctx, MPI_Comm comm) {
+    MPI_Comm dupe = MPI_COMM_NULL;
+    MPI_Comm_dup(comm, &dupe);
+    ctx->distributed->connect_to_remote(std::make_any<MPI_Comm>(dupe));
 }
 #endif
 template <>

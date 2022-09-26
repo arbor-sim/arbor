@@ -27,18 +27,8 @@ struct mpi_context_impl {
     MPI_Comm comm_;
     MPI_Comm portal_ = MPI_COMM_NULL;
 
-    void connect_to_remote(const util::unique_any& hdl) {
-        try {
-            portal_ = util::any_cast<MPI_Comm>(hdl);
-        }
-        catch (const std::bad_any_cast& e) {
-            std::cout << "FAILED!!: " << rank_ << '\n'
-                      << hdl.type().name() << '\n'
-                      << hdl.type().hash_code() << '\n'
-                      << typeid(MPI_Comm).name() << '\n'
-                      << typeid(MPI_Comm).hash_code() << '\n'
-                      << "match=" << (typeid(MPI_Comm) == hdl.type()) << '\n';
-        }
+    void connect_to_remote(const std::any& hdl) {
+        portal_ = util::any_cast<MPI_Comm>(hdl);
     }
 
     explicit mpi_context_impl(MPI_Comm comm): comm_(comm) {
@@ -49,6 +39,8 @@ struct mpi_context_impl {
     std::vector<arb::spike>
     remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
         if (portal_ == MPI_COMM_NULL) return {};
+        std::cerr << "Waiting for remote spikes\n";
+        std::cerr.flush();
         return mpi::gather_all(local_spikes, portal_);
     }
 

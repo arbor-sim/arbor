@@ -96,10 +96,6 @@ public:
 
     void update(const connectivity& rec);
 
-    void connect_to_remote_simulation(const util::unique_any& hdl) {
-        ctx_->distributed->connect_to_remote(hdl);
-    }
-
     void reset();
 
     time_type run(time_type tfinal, time_type dt);
@@ -191,15 +187,6 @@ private:
         threading::parallel_for::apply(0, communicator_.num_local_cells(), task_system_.get(), fn);
     }
 };
-
-void simulation::connect_to_remote_simulation(const util::unique_any& hdl) {
-    std::cout << hdl.type().name() << '\n'
-              << hdl.type().hash_code() << '\n'
-              << typeid(MPI_Comm).name() << '\n'
-              << typeid(MPI_Comm).hash_code() << '\n';
-
-    impl_->connect_to_remote_simulation(hdl);
-}
 
 simulation_state::simulation_state(
         const recipe& rec,

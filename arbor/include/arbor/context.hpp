@@ -53,7 +53,7 @@ using context = std::shared_ptr<execution_context>;
 
 // To connect to external simulations
 template<typename Comm>
-std::any make_remote_connection(const std::string&, Comm);
+ARB_ARBOR_API void make_remote_connection(context, Comm);
 
 // Helpers for creating contexts. These are implemented in the back end.
 

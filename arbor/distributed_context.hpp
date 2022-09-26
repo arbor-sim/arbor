@@ -57,7 +57,7 @@ public:
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
 
-    void connect_to_remote(const util::unique_any& hdl) {
+    void connect_to_remote(const std::any& hdl) {
         impl_->connect_to_remote(hdl);
     }
 
@@ -112,7 +112,7 @@ public:
 
 private:
     struct interface {
-        virtual void connect_to_remote(const util::unique_any& hdl) = 0;
+        virtual void connect_to_remote(const std::any& hdl) = 0;
         virtual gathered_vector<arb::spike>
         gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual spike_vector
@@ -146,7 +146,7 @@ private:
         remote_gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.remote_gather_spikes(local_spikes);
         }
-        void connect_to_remote(const util::unique_any& hdl) override { return wrapped.connect_to_remote(hdl); }
+        void connect_to_remote(const std::any& hdl) override { return wrapped.connect_to_remote(hdl); }
         gathered_vector<arb::spike>
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
@@ -205,7 +205,7 @@ struct local_context {
     remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
         return {};
     }
-    void connect_to_remote(const util::unique_any&) { throw bad_connection_request{}; }
+    void connect_to_remote(const std::any&) { throw bad_connection_request{}; }
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;
