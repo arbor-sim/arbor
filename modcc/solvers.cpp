@@ -646,13 +646,10 @@ void EulerMaruyamaSolverVisitor::finalize() {
 
         // stochastic part: rhs = rhs + Σ_k l_k dW_k
         for (unsigned k=0; k<wvars_.size(); ++k) {
-            rhs = std::move(
-                binary_expression(loc, tok::plus,
-                    rhs->clone(),
-                    constant_simplify(
-                        binary_expression(loc, tok::times,
-                            L_[k][i]->clone(),
-                            make_expression<IdentifierExpression>(loc, wvars_id_[k])))));
+            rhs = binary_expression(loc, tok::plus, rhs->clone(),
+                constant_simplify(
+                    binary_expression(loc, tok::times, L_[k][i]->clone(),
+                        make_expression<IdentifierExpression>(loc, wvars_id_[k]))));
             rhs = constant_simplify(rhs);
         }
 
