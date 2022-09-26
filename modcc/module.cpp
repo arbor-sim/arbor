@@ -435,10 +435,10 @@ bool Module::semantic() {
                         // mark the white noise variable as used, and set its index if we see this
                         // variable for the first time
                         auto it = white_noise_block_.used.insert(std::make_pair(w,0u));
-                        if (it.second)
-                        {
+                        if (it.second) {
                             // set white noise lookup index
-                            auto const idx = symbols_.find(w)->second->is_white_noise()->set_index();
+                            const unsigned int idx = white_noise_block_.used.size()-1;
+                            symbols_.find(w)->second->is_white_noise()->set_index(idx);
                             it.first->second = idx;
                         }
                     }

@@ -48,47 +48,11 @@ set(test_mechanisms
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
-set(external_modcc)
-if(ARB_WITH_EXTERNAL_MODCC)
-    set(external_modcc MODCC ${modcc})
-endif()
-set(test_mech_dir ${CMAKE_CURRENT_BINARY_DIR}/mechanisms)
-
-build_modules(
-    ${test_mechanisms}
-    SOURCE_DIR mod
-    DEST_DIR "${test_mech_dir}"
-    ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS} -N testing
-    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
-    TARGET build_test_mods
-)
-
-set(test_mech_sources)
-foreach(mech ${test_mechanisms})
-    list(APPEND test_mech_sources ${test_mech_dir}/${mech}_cpu.cpp)
-    if(ARB_WITH_GPU)
-        list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cpp)
-        list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cu)
-    endif()
-endforeach()
-
-# TODO: test_mechanism and mechanism prototype comparisons must
-# be re-jigged.
-
-# set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
-# set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
-# file(MAKE_DIRECTORY "${mech_proto_dir}")
-#
-# build_modules(
-#     ${proto_mechanisms}
-#     SOURCE_DIR "${PROJECT_SOURCE_DIR}/mechanisms/mod"
-#     DEST_DIR "${mech_proto_dir}"
-#     MECH_SUFFIX _proto
-#     MODCC_FLAGS -t cpu
-#     GENERATES _cpu.hpp
-#     TARGET build_test_mods
-# )
+make_catalogue(
+    NAME    testing
+    MOD     ${test_mechanisms}
+    VERBOSE ${ARB_CAT_VERBOSE}
+    ADD_DEPS OFF)
 
 # Unit test sources
 
@@ -196,7 +160,6 @@ if(ARB_WITH_GPU)
         test_gpu_stack.cu
         test_multi_event_stream_gpu.cu
         test_reduce_by_key.cu
-
         test_matrix_cpuvsgpu.cpp
         test_matrix_gpu.cpp
         test_mc_cell_group_gpu.cpp
@@ -207,10 +170,7 @@ if(ARB_WITH_GPU)
 endif()
 
 if(ARB_WITH_NEUROML)
-    list(APPEND unit_sources
-
-        test_nml_morphology.cpp
-    )
+    list(APPEND unit_sources test_nml_morphology.cpp)
 endif()
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -218,36 +178,33 @@ if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
-add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
-add_dependencies(unit build_test_mods)
+add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechanisms})
+add_dependencies(unit catalogue-testing-target)
 add_dependencies(tests unit)
 
-if(${CMAKE_POSITION_INDEPENDENT_CODE})
-  make_catalogue(
+
+make_catalogue_standalone(
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
-    OUTPUT "CAT_DUMMY_SOURCES"
     MOD dummy
     CXX
-    PREFIX "${PROJECT_SOURCE_DIR}/mechanisms"
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
-    STANDALONE ON
     VERBOSE ON)
-  target_compile_definitions(unit PRIVATE USE_DYNAMIC_CATALOGUES)
-  if(ARB_WITH_NVCC)
+
+if(ARB_WITH_NVCC)
     target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)
-  endif()
-  if(ARB_WITH_CUDA_CLANG)
+endif()
+
+if(ARB_WITH_CUDA_CLANG)
     set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-  endif()
+endif()
 
-  if(ARB_WITH_HIP_CLANG)
+if(ARB_WITH_HIP_CLANG)
     set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
     target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-  endif()
-  add_dependencies(unit dummy-catalogue)
 endif()
+add_dependencies(unit dummy-catalogue)
 
 if(ARB_WITH_GPU)
   target_compile_definitions(unit PRIVATE ARB_GPU_ENABLED)
@@ -271,4 +228,5 @@ target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
 target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

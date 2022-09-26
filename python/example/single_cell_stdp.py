@@ -32,7 +32,7 @@ class single_recipe(arbor.recipe):
             arbor.decor()
             .set_property(Vm=-40)
             .paint("(all)", arbor.density("hh"))
-            .place('"center"', arbor.spike_detector(-10), "detector")
+            .place('"center"', arbor.threshold_detector(-10), "detector")
             .place('"center"', arbor.synapse("expsyn"), "synapse")
             .place(
                 '"center"',

@@ -152,7 +152,7 @@ Cable cell decoration
     .. method:: place(locations, d, label)
         :noindex:
 
-        Add a voltage spike detector at each location in ``locations`` and label the group of detectors with ``label``.
+        Add a voltage threshold detector at each location in ``locations`` and label the group of detectors with ``label``.
         The label can be used to form connections from one of the detectors in the :py:class:`arbor.recipe` by creating
         a :py:class:`arbor.connection`.
 

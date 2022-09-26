@@ -37,8 +37,8 @@ We define some terms as used in the context of connectivity
    connection
       Tuple of ``(source, target, weight, delay)`` describing an
       axon/synapse connection as travelling time (`delay`) and attenuation
-      (`weight`) between two sites `source = (gid, spike_detector)` and `target
-      = (gid, synapse)` where `spike_detector` and `synapse` are string labels.
+      (`weight`) between two sites `source = (gid, threshold_detector)` and `target
+      = (gid, synapse)` where `threshold_detector` and `synapse` are string labels.
 
    cell_group
       List of same-kinded cells that share some information. Must not be split

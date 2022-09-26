@@ -620,7 +620,7 @@ ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::string& fn) {
     for(int ix = 0; ix < count; ++ix) {
         auto type = mechs[ix].type();
         auto name = std::string{type.name};
-        if (name == "") {
+        if (name.empty()) {
             throw bad_catalogue_error{util::pprintf("Empty name for mechanism in '{}'", fn)};
         }
         auto icpu = mechs[ix].i_cpu();

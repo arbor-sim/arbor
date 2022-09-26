@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.19)
 include(CMakeDependentOption)
 
 # Make CUDA support throw errors if architectures remain unclear
@@ -228,7 +228,6 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
-install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
@@ -397,20 +396,10 @@ if (ARB_BACKTRACE)
     target_compile_definitions(arbor-private-deps INTERFACE WITH_BACKTRACE)
 endif()
 
-# Build and use modcc unless explicit path given
+# Build modcc flags
 #------------------------------------------------
 
-if(ARB_MODCC)
-    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
-    if(NOT modcc)
-        message(FATAL_ERROR "Unable to find modcc executable.")
-    endif()
-    set(ARB_WITH_EXTERNAL_MODCC TRUE)
-else()
-    set(modcc $<TARGET_FILE:modcc>)
-    set(ARB_WITH_EXTERNAL_MODCC FALSE)
-endif()
-
+set(modcc $<TARGET_FILE:modcc>)
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
