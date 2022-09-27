@@ -16,7 +16,7 @@ function("make_catalogue")
 
   set(mk_cat_modcc_flags -t cpu ${ARB_MODCC_FLAGS} -N arb -c ${MK_CAT_NAME} -o ${MK_CAT_OUT_DIR})
   if(ARB_WITH_GPU)
-    set(mk_cat_modcc_flags, -t gpu ${mk_cat_modcc_flags})
+    set(mk_cat_modcc_flags -t gpu ${mk_cat_modcc_flags})
   endif()
 
   list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${MK_CAT_NAME}_catalogue.cpp)
@@ -68,7 +68,7 @@ function("make_catalogue_standalone")
 
   set(mk_cat_modcc_flags -t cpu ${ARB_MODCC_FLAGS} -N arb -c ${MK_CAT_NAME} -o ${MK_CAT_OUT_DIR})
   if(ARB_WITH_GPU)
-    set(mk_cat_modcc_flags, -t gpu ${mk_cat_modcc_flags})
+    set(mk_cat_modcc_flags -t gpu ${mk_cat_modcc_flags})
   endif()
 
   set(catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${MK_CAT_NAME}_catalogue.cpp)
