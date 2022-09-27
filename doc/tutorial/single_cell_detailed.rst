@@ -281,9 +281,9 @@ mechanism has a custom 'gbar' parameter.
    :language: python
    :lines: 8,56-59
 
-The decor object is also used to *place* stimuli and spike detectors on the cell using :meth:`arbor.decor.place`.
+The decor object is also used to *place* stimuli and threshold detectors on the cell using :meth:`arbor.decor.place`.
 We place 3 current clamps of 2 nA on the "root" locset defined earlier, starting at time = 10, 30, 50 ms and
-lasting 1ms each. As well as spike detectors on the "axon_terminal" locset for voltages above -10 mV.
+lasting 1ms each. As well as threshold detectors on the "axon_terminal" locset for voltages above -10 mV.
 Every placement gets a label. The labels of detectors and synapses are used to form connection from and to them
 in the recipe.
 
@@ -385,7 +385,7 @@ The probes
 ^^^^^^^^^^
 
 The model is almost ready for simulation. Except that the only output we would be able to
-measure at this point is the spikes from the spike detectors placed in the decor.
+measure at this point is the spikes from the threshold detectors placed in the decor.
 
 The :class:`arbor.single_cell_model` can also measure the voltage on specific locations of the cell.
 We can indicate the location we would like to probe using labels from the :class:`label_dict`:
@@ -406,9 +406,9 @@ The cell and model descriptions are now complete and we can run the simulation:
 The results
 ^^^^^^^^^^^
 
-Finally we move on to the data collection segment of the example. We have added a spike detector
+Finally we move on to the data collection segment of the example. We have added a threshold detector
 on the "axon_terminal" locset. The :class:`arbor.single_cell_model` automatically registers all
-spikes on the cell from all spike detectors on the cell and saves the times at which they occurred.
+spikes on the cell from all threshold detectors on the cell and saves the times at which they occurred.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python

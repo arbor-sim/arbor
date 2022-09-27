@@ -19,14 +19,14 @@ struct node_t {
 
 using node_p = std::function<bool(const node_t&)>;
 
-node_p yes = [](const node_t&) { return true; };
+node_p yes = [](node_t) { return true; };
 
 // invert parent <*> child relation, returns a map of parent_id -> [children_id]
 // For predictable ordering we sort the vectors.
 std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tree) {
     const auto& parents = tree.parents();
     std::map<msize_t, std::vector<msize_t>> result;
-    for (auto ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
+    for (msize_t ix = 0; ix < tree.size(); ++ix) result[parents[ix]].push_back(ix);
     for (auto& [k, v]: result) std::sort(v.begin(), v.end());
     return result;
 }
@@ -40,7 +40,7 @@ std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tre
 // - init: initial tree to append to
 // Note: this is basically a recursive function w/ an explicit stack.
 segment_tree copy_if(const segment_tree& tree,
-                     const node_t& start,
+                     node_t start,
                      node_p predicate,
                      const segment_tree& init={}) {
     auto children_of = tree_to_children(tree);
@@ -105,7 +105,7 @@ equivalent(const segment_tree& a,
         auto bs = fetch_children(b_cursor, b.segments(), b_children_of);
         todo.pop_back();
         if (as.size() != bs.size()) return false;
-        for (auto ix = 0; ix < as.size(); ++ix) {
+        for (msize_t ix = 0; ix < as.size(); ++ix) {
             if ((as[ix].prox != bs[ix].prox) ||
                 (as[ix].dist != bs[ix].dist) ||
                 (as[ix].tag != bs[ix].tag)) return false;

@@ -45,8 +45,10 @@ struct asc_morphology {
 
 // Perform the parsing of the input as a string.
 ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input);
+ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input);
 
 // Load asc morphology from file with name filename.
 ARB_ARBORIO_API asc_morphology load_asc(std::string filename);
+ARB_ARBORIO_API arb::segment_tree load_asc_raw(std::string filename);
 
 } // namespace arborio

@@ -8,6 +8,11 @@
 
 #include "common.hpp"
 
+#ifndef LIBDIR
+#warning "LIBDIR not set; defaulting to '.'"
+#define LIBDIR "."
+#endif
+
 using namespace std::string_literals;
 using namespace arb;
 
@@ -273,7 +278,6 @@ TEST(mechcat, names) {
     }
 }
 
-#ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
 #if defined(ARB_ARBOR_SHARED_LIBRARY)
@@ -288,7 +292,6 @@ TEST(mechcat, loading) {
     EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
 #endif
 }
-#endif
 
 TEST(mechcat, derived_info) {
     auto cat = build_fake_catalogue();
