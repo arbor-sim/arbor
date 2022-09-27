@@ -398,6 +398,17 @@ TEST(iexpr, exp) {
     EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.0, 1.0}), std::exp(3.0 * 10.0));
 }
 
+TEST(iexpr, step) {
+    segment_tree tree;
+    tree.append(mnpos, {0, 0, 0, 10}, {0, 0, 10, 10}, 1);
+
+    arb::mprovider prov(arb::morphology(std::move(tree)));
+    auto root_dist = arb::iexpr::distance(1.0, arb::mlocation{0, 0.0});
+    auto e = thingify(arb::iexpr::step(root_dist-5.0), prov);
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.0, 0.5}), 0.0f); /* step(2.5-5) == 0 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.5, 1.0}), 1.0f); /* step(7.5-5) == 1 */
+}
+
 TEST(iexpr, log) {
     segment_tree tree;
     tree.append(mnpos, {0, 0, 0, 10}, {0, 0, 10, 10}, 1);
