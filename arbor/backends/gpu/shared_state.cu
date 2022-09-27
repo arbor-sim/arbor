@@ -151,25 +151,37 @@ void take_samples_impl(
 
 void generate_normal_random_values(
     std::size_t width,                                        // number of sites
+    std::size_t n_vars,                                       // number of variables
     arb::cbprng::value_type seed,                             // simulation seed value
     arb::cbprng::value_type mech_id,                          // mechanism id
     arb::cbprng::value_type counter,                          // step counter
-    memory::device_vector<arb_size_type*>& prng_indices,      // holds the gid and per-cell location indices
-    std::array<memory::device_vector<arb_value_type*>, arb::prng_cache_size()>& dst  // pointers to random number cache
+    //memory::device_vector<arb_size_type*>& prng_indices,      // holds the gid and per-cell location indices
+    arb_size_type** prng_indices,    // holds the gid and per-cell location indices
+    //std::array<memory::device_vector<arb_value_type*>, arb::prng_cache_size()>& dst  // pointers to random number cache
+    //arb_value_type** dst0,
+    //arb_value_type** dst1,
+    //arb_value_type** dst2,
+    //arb_value_type** dst3
+    std::array<arb_value_type**, cbprng::cache_size()> dst  // pointers to random number cache
+
 )
 {
     unsigned const block_dim = 128;
     unsigned const grid_dim_x = block_count(width, block_dim);
-    unsigned const grid_dim_y = num_variables;
+    unsigned const grid_dim_y = n_vars; //num_variables;
 
     kernel::generate_random_values<<<dim3{grid_dim_x, grid_dim_y, 1}, block_dim>>>(
         width,
-        dst[0].size(),
+        //dst[0].size(),
+        n_vars,
         seed, 
         mech_id,
         counter,
-        prng_indices.data(),
-        dst[0].data(), dst[1].data(), dst[2].data(), dst[3].data()
+        //prng_indices.data(),
+        prng_indices,
+        //dst[0].data(), dst[1].data(), dst[2].data(), dst[3].data()
+        //dst0, dst1, dst2, dst3
+        dst[0], dst[1], dst[2], dst[3]
     );
 }
 

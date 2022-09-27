@@ -55,9 +55,11 @@ inline darray generate_normal_random_values(
     value_type idx,
     value_type counter) {
     const array_type r = generate_uniform_random_values(seed, mech_id, var_id, gid, idx, counter);
-    const auto [n0, n1] = r123::boxmuller(r[0], r[1]);
-    const auto [n2, n3] = r123::boxmuller(r[2], r[3]);
-    return {n0, n1, n2, n3};
+    // structured binding declaration auto [a, b] = fn(...) only available from c++17 onwards (cuda
+    // is still fixed to c++14)
+    const auto n1 = r123::boxmuller(r[0], r[1]);
+    const auto n2 = r123::boxmuller(r[2], r[3]);
+    return {n1.x, n1.y, n2.x, n2.y};
 }
 
 } // namespace cbprng

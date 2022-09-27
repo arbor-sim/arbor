@@ -44,7 +44,16 @@ void take_samples_impl(
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
-void generate_normal_random_values(std::size_t width, cbprng::value_type seed, cbprng::value_type mech_id, cbprng::value_type counter, memory::device_vector<arb_size_type*>& prng_indices, std::array<memory::device_vector<arb_value_type*>, prng_cache_size()>& dst);
+//void generate_normal_random_values(std::size_t width, cbprng::value_type seed, cbprng::value_type mech_id, cbprng::value_type counter, memory::device_vector<arb_size_type*>& prng_indices, std::array<memory::device_vector<arb_value_type*>, cbprng::cache_size()>& dst);
+void generate_normal_random_values(
+    std::size_t width,                                        // number of sites
+    std::size_t n_vars,                                       // number of variables
+    arb::cbprng::value_type seed,                             // simulation seed value
+    arb::cbprng::value_type mech_id,                          // mechanism id
+    arb::cbprng::value_type counter,                          // step counter
+    arb_size_type** prng_indices,    // holds the gid and per-cell location indices
+    std::array<arb_value_type**, cbprng::cache_size()> dst
+);
 
 // GPU-side minmax: consider CUDA kernel replacement.
 std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
@@ -285,11 +294,16 @@ void shared_state::update_prng_state(mechanism& m) {
         // time.
         generate_normal_random_values(
             m.ppack_.width,          // number of sites
+            store.random_numbers_d_[0].size(),
             cbprng_seed,             // simulation seed value
             mech_id,                 // mechanism id
             counter,                 // step counter
-            store.prng_indices_d_,   // additional indices (gid and per-cell counter)
-            store.random_numbers_d_  // destination
+            //store.prng_indices_d_,   // additional indices (gid and per-cell counter)
+            store.prng_indices_d_.data(),   // additional indices (gid and per-cell counter)
+            {store.random_numbers_d_[0].data(),  // destination
+            store.random_numbers_d_[1].data(),  // destination
+            store.random_numbers_d_[2].data(),  // destination
+            store.random_numbers_d_[3].data()}  // destination
         ); 
     }
 }
