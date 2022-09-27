@@ -1,5 +1,7 @@
 arborsup_src = ['ioutil.cpp', 'json_meter.cpp', 'path.cpp']
 
+subdir('include/sup')
+
 lib_arborsup = library('arbsup',
                  sources: arborsup_src,
                  include_directories: ['include'],

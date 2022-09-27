@@ -53,5 +53,15 @@ if not fs.is_file(version_path)
                  configuration : conf)
 endif
 
+configure_file(input: meson.global_source_root() + '/cmake/export.hpp.in',
+               output: 'export.hpp',
+               configuration: {
+               'target_short_NAME': 'ARBOR',
+               'target': 'arbor',
+               'target_name': 'arbor',
+               'target_type': 'STATIC', # TODO: figure out shared/static
+
+  })
+
 install_headers([assert_macro_path, version_path], install_dir: 'include/arbor')
 

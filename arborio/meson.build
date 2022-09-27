@@ -20,6 +20,8 @@ lib_arborio = library('arborio',
   cpp_args : arbor_private_args,
   install: true)
 
+subdir('include/arborio')
+
 install_subdir('include/arborio', install_dir: 'include')
 
 dep_arborio = declare_dependency(

@@ -16,6 +16,7 @@ lib_arborenv = library('arborenv',
   cpp_args : arbor_private_args,
   install: true)
 
+subdir('include/arborenv')
 install_subdir('include/arborenv', install_dir: 'include')
 
 dep_arborenv = declare_dependency(
