@@ -1,5 +1,5 @@
-subdir('mechanisms')
-subdir('dummy')
+subdir('testing')
+#subdir('dummy')
 
 unit_sources = files(
   'test_abi.cpp',
@@ -93,6 +93,8 @@ unit_sources = files(
   '../common_cells.cpp',
   'mech_private_field_access.cpp',
   'stats.cpp',
+
+  # wrapper for testing catalogue
   'unit_test_catalogue.cpp'
 )
 
@@ -116,22 +118,22 @@ if arb_with_gpu
 endif
 
 unit_data_dir = meson.current_source_dir() + '/../swc'
-unit_dummy_catalogue_dir = meson.current_build_dir() + '/dummy'
+#unit_dummy_catalogue_dir = meson.current_build_dir() + '/dummy'
 unit_build_dir = meson.current_build_dir()
 
 arbor_unit_defines = [
   f'-DDATADIR="@unit_data_dir@"',
   f'-DBUILDDIR="@unit_build_dir@"',
-  f'-DCATALOGUEDIR="@unit_dummy_catalogue_dir@"',
-  '-DUSE_DYNAMIC_CATALOGUES',
+  #f'-DCATALOGUEDIR="@unit_dummy_catalogue_dir@"',
+  #'-DUSE_DYNAMIC_CATALOGUES',
 ]
 
 unit = executable('unit',
-                  sources: [unit_sources, unit_mech_sources],
+                  sources: [unit_sources, unit_testing_cat],
                   include_directories: [inc_arb_public, inc_arb_private, inc_arborio_private],
                   cpp_args: arbor_private_args + arbor_unit_defines,
                   cuda_args: arbor_cuda_private_args,
                   dependencies: [dep_arb, dep_arborio, dep_arborsup, dep_arborenv, dep_gtest, dep_arb_internal],
-                  link_with: [dummy_catalogue],
+                  #link_with: [dummy_catalogue],
                   build_by_default: false,
                   install: false)

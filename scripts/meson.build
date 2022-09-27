@@ -13,9 +13,3 @@ buildcat_configuration.set('cuda_private_args',
                              '\''+'\', \''.join(arbor_cuda_private_args)+'\'')
 buildcat_configuration.set('catalogue_options',
                              '\''+'\', \''.join(catalogue_options)+'\'')
-
-configure_file(input : 'build-meson-catalogue.in',
-               output : 'build-catalogue',
-               configuration : buildcat_configuration)
-
-
