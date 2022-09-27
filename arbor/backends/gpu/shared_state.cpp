@@ -255,6 +255,17 @@ struct chunk_writer {
         end += stride;
         return p;
     }
+
+    template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
+    T* append_with_padding(Seq&& seq, typename util::sequence_traits<Seq>::value_type value) {
+        std::size_t n = std::size(seq);
+        arb_assert(n <= stride);
+        std::size_t r = stride - n;
+        auto p = append_freely(std::forward<Seq>(seq));
+        memory::fill(memory::device_view<typename util::sequence_traits<Seq>::value_type>(end, r), value);
+        end += r;
+        return p;
+    }
 };
 }
 
@@ -460,8 +471,8 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
 
         store.prng_indices_.resize(2);
         
-        store.prng_indices_[0] = writer.append(pos_data.gid);
-        store.prng_indices_[1] = writer.append(pos_data.idx);
+        store.prng_indices_[0] = writer.append_with_padding(pos_data.gid, 0);
+        store.prng_indices_[1] = writer.append_with_padding(pos_data.idx, 0);
     }
     
     // Shift data to GPU, set up pointers
