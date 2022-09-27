@@ -175,7 +175,7 @@ public:
         expression_ptr dlhs = std::move(result_);
 
         e->rhs()->accept(this);
-        result_ = make_expression<SubBinaryExpression>(loc, move(dlhs), result());
+        result_ = make_expression<SubBinaryExpression>(loc, std::move(dlhs), result());
     }
 
     void visit(MulBinaryExpression* e) override {
