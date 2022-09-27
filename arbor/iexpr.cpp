@@ -596,6 +596,10 @@ std::ostream& operator<<(std::ostream& o, const iexpr& e) {
         o << "exp " << std::get<0>(std::any_cast<const std::tuple<iexpr>&>(e.args()));
         break;
     }
+    case iexpr_type::step: {
+        o << "step " << std::get<0>(std::any_cast<const std::tuple<iexpr>&>(e.args()));
+        break;
+    }
     case iexpr_type::log: {
         o << "log " << std::get<0>(std::any_cast<const std::tuple<iexpr>&>(e.args()));
         break;
