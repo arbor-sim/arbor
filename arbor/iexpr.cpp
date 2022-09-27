@@ -285,7 +285,7 @@ struct step: public iexpr_interface {
     step(iexpr_ptr v): value(std::move(v)) {}
 
     double eval(const mprovider& p, const mcable& c) const override {
-        return value->eval(p, c) >= 0.0 ? 1.0 : 0.0;
+        return value->eval(p, c) > 0.0 ? 1.0 : 0.0;
     }
 
     iexpr_ptr value;
