@@ -660,8 +660,8 @@ TEST(sde, solver) {
                 return std::abs(result-expected)/expected;
             };
 
-            EXPECT_TRUE( relative_error(mean, mu)*100 < 1.0 );
-            EXPECT_TRUE( relative_error(std::sqrt(var), std::sqrt(sigma_squared))*100 < 1.0 );
+            EXPECT_LT( relative_error(mean, mu)*100, 1.0 );
+            EXPECT_LT( relative_error(std::sqrt(var), std::sqrt(sigma_squared))*100, 2.0 );
 
             // using statistcal tests:
             //std::size_t const n = stats[i].n();
@@ -802,11 +802,11 @@ TEST(sde, coupled) {
             return std::abs(result-expected)/expected;
         };
 
-        EXPECT_TRUE( relative_error(stats_P[i].mean(), E_P)*100 < 1.0 );
-        EXPECT_TRUE( relative_error(stats_sigma[i].mean(), E_sigma)*100 < 1.0 );
-        EXPECT_TRUE( relative_error(std::sqrt(stats_sigma[i].variance()),
-            std::sqrt(Var_sigma))*100 < 1.0 );
-        EXPECT_TRUE( stats_Cov_P_sigma < 1.0e-4);
+        EXPECT_LT( relative_error(stats_P[i].mean(), E_P)*100, 1.0 );
+        EXPECT_LT( relative_error(stats_sigma[i].mean(), E_sigma)*100,  1.0 );
+        EXPECT_LT( relative_error(std::sqrt(stats_sigma[i].variance()),
+            std::sqrt(Var_sigma))*100, 2.0 );
+        EXPECT_LT( stats_Cov_P_sigma, 1.0e-4);
     }
 }
 

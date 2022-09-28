@@ -20,7 +20,7 @@ void generate_random_numbers(arb_value_type* dst, std::size_t width, std::size_t
         const arb::cbprng::value_type gid = gids[i];
         const arb::cbprng::value_type idx = idxs[i];
         const auto r = arb::cbprng::generator{}(arb::cbprng::array_type{seed, mech_id, n, counter},
-            arb::cbprng::array_type{gid, idx, 0, 0});
+            arb::cbprng::array_type{gid, idx, 0xdeadf00dull, 0xdeadbeefull});
         const auto a = r123::boxmuller(r[0], r[1]);
         const auto b = r123::boxmuller(r[2], r[3]);
         dst[i + width_padded*(0 + cache_size*n)] = a.x;

@@ -16,7 +16,8 @@ void generate_random_numbers(
     ) {
     for (std::size_t n=0; n<num_rv; ++n) {
         for (std::size_t i=0; i<width; ++i) {
-            const auto r = cbprng::generator{}({seed, mech_id, n, counter}, {gid[i], idx[i], 0, 0});
+            const auto r = cbprng::generator{}({seed, mech_id, n, counter},
+                    {gid[i], idx[i], 0xdeadf00dull, 0xdeadbeefull});
             const auto [a0, a1] = r123::boxmuller(r[0], r[1]);
             const auto [a2, a3] = r123::boxmuller(r[2], r[3]);
             dst[i + width_padded*(0 + cbprng::cache_size()*n)] = a0;
