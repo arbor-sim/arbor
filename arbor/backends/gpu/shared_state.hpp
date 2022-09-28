@@ -10,7 +10,7 @@
 
 #include "fvm_layout.hpp"
 
-#include "backends/rand.hpp"
+#include "backends/rand_fwd.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
@@ -117,7 +117,9 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
+#ifndef ARB_ARBOR_NO_GPU_RAND
         sarray sindices_;
+#endif
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
@@ -128,9 +130,14 @@ struct ARB_ARBOR_API shared_state {
         
         std::array<std::vector<arb_value_type*>, cbprng::cache_size()>           random_numbers_;
         std::array<memory::device_vector<arb_value_type*>, cbprng::cache_size()> random_numbers_d_;
-
+#ifdef ARB_ARBOR_NO_GPU_RAND
+        std::vector<arb_value_type> random_numbers_h_;
+        std::vector<arb_size_type> gid_;
+        std::vector<arb_size_type> idx_;
+#else
         std::vector<arb_size_type*> prng_indices_;
         memory::device_vector<arb_size_type*> prng_indices_d_;
+#endif
         cbprng::counter_type random_number_update_counter_ = 0u;
     };
 

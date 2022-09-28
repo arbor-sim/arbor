@@ -14,7 +14,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
-#include "backends/rand.hpp"
+#include "backends/rand_fwd.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 

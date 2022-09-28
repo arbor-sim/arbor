@@ -470,9 +470,9 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
 
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
-    auto const mech_id = m.mechanism_id();
+    const auto mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
-    auto const counter = store.random_number_update_counter_++;
+    const auto counter = store.random_number_update_counter_++;
     const auto cache_idx = cbprng::cache_index(counter);
 
     m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
@@ -484,22 +484,12 @@ void shared_state::update_prng_state(mechanism& m) {
         // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
         // current site's global cell, the site index within its cell and a counter representing
         // time.
-        auto const num_rv = store.random_numbers_[cache_idx].size();
-        auto const width = store.gid_.size();
-        for (std::size_t n=0; n<num_rv; ++n) {
-            for (std::size_t i=0; i<width; ++i) {
-                auto const r =  cbprng::generate_normal_random_values(
-                    cbprng_seed,    // simulation seed value
-                    mech_id,        // mechanism id
-                    n,              // variable index
-                    store.gid_[i],  // global cell id
-                    store.idx_[i],  // per-cell location index
-                    counter         // step conter
-                );
-                for (std::size_t c=0; c<cbprng::cache_size(); ++c)
-                    store.random_numbers_[c][n][i] = r[c];
-            }
-        }
+        const auto num_rv = store.random_numbers_[cache_idx].size();
+        const auto width_padded = m.ppack_.width;
+        const auto width = store.gid_.size();
+        arb_value_type* dst = store.random_numbers_[0][0];
+        generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter,
+            store.gid_.data(), store.idx_.data());
     }
 }
 

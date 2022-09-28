@@ -4,6 +4,7 @@ set(arbor_sources
     arbexcept.cpp
     assert.cpp
     backends/multicore/shared_state.cpp
+    backends/multicore/rand.cpp
     communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
@@ -83,6 +84,12 @@ if(ARB_WITH_GPU)
         backends/gpu/threshold_watcher.cu
         memory/fill.cu
     )
+    if((ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG) AND ARB_USE_GPU_RNG)
+        list(APPEND arbor_sources backends/gpu/rand.cu)
+    else()
+        set_source_files_properties(backends/gpu/shared_state.cpp
+            PROPERTIES COMPILE_DEFINITIONS ARB_ARBOR_NO_GPU_RAND)
+    endif()
 endif()
 
 if(ARB_WITH_MPI)

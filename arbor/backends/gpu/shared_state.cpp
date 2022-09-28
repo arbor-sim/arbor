@@ -44,17 +44,6 @@ void take_samples_impl(
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
-//void generate_normal_random_values(std::size_t width, cbprng::value_type seed, cbprng::value_type mech_id, cbprng::value_type counter, memory::device_vector<arb_size_type*>& prng_indices, std::array<memory::device_vector<arb_value_type*>, cbprng::cache_size()>& dst);
-void generate_normal_random_values(
-    std::size_t width,                                        // number of sites
-    std::size_t n_vars,                                       // number of variables
-    arb::cbprng::value_type seed,                             // simulation seed value
-    arb::cbprng::value_type mech_id,                          // mechanism id
-    arb::cbprng::value_type counter,                          // step counter
-    arb_size_type** prng_indices,    // holds the gid and per-cell location indices
-    std::array<arb_value_type**, cbprng::cache_size()> dst
-);
-
 // GPU-side minmax: consider CUDA kernel replacement.
 std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
     auto v_copy = memory::on_host(memory::const_device_view<arb_value_type>(v, n));
@@ -303,19 +292,22 @@ void shared_state::update_prng_state(mechanism& m) {
         // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
         // current site's global cell, the site index within its cell and a counter representing
         // time.
-        generate_normal_random_values(
-            m.ppack_.width,          // number of sites
-            store.random_numbers_d_[0].size(),
-            cbprng_seed,             // simulation seed value
-            mech_id,                 // mechanism id
-            counter,                 // step counter
-            //store.prng_indices_d_,   // additional indices (gid and per-cell counter)
-            store.prng_indices_d_.data(),   // additional indices (gid and per-cell counter)
-            {store.random_numbers_d_[0].data(),  // destination
-            store.random_numbers_d_[1].data(),  // destination
-            store.random_numbers_d_[2].data(),  // destination
-            store.random_numbers_d_[3].data()}  // destination
-        ); 
+        const auto num_rv = store.random_numbers_d_[0].size();
+        const auto width_padded = m.ppack_.width;
+        const auto width = m.ppack_.width;
+#ifndef ARB_ARBOR_NO_GPU_RAND
+        // generate random numbers on the device
+        generate_random_numbers(store.random_numbers_[0][0], width, width_padded, num_rv, cbprng_seed,
+            mech_id, counter, store.prng_indices_[0], store.prng_indices_[1]);
+#else
+        // generate random numbers on the host
+        arb_value_type* dst = store.random_numbers_h_.data();
+        arb::multicore::generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed,
+            mech_id, counter, store.gid_.data(), store.idx_.data());
+        // transfer values to device
+        memory::gpu_memcpy_h2d(store.random_numbers_[0][0], dst,
+            (num_rv*cbprng::cache_size()*width)*sizeof(arb_value_type));
+#endif
     }
 }
 
@@ -361,6 +353,12 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
+#ifdef ARB_ARBOR_NO_GPU_RAND
+    // store indices for random number generation
+    store.gid_ = pos_data.gid;
+    store.idx_ = pos_data.idx;
+#endif
+
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
     store.parameters_ = std::vector<arb_value_type*>(m.mech_.n_parameters);
@@ -393,6 +391,9 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
         std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+#ifdef ARB_ARBOR_NO_GPU_RAND
+        store.random_numbers_h_.resize(random_number_storage*width, 0);
+#endif
 
         // Allocate bulk storage
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
@@ -462,6 +463,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
     }
 
+#ifndef ARB_ARBOR_NO_GPU_RAND
     // Allocate and initialize index vectors for prng
     {
         // Allocate bulk storage
@@ -474,6 +476,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         store.prng_indices_[0] = writer.append_with_padding(pos_data.gid, 0);
         store.prng_indices_[1] = writer.append_with_padding(pos_data.idx, 0);
     }
+#endif
     
     // Shift data to GPU, set up pointers
     store.parameters_d_ = memory::on_gpu(store.parameters_);
@@ -488,7 +491,9 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     for (auto idx_c: make_span(cbprng::cache_size()))
         store.random_numbers_d_[idx_c] = memory::on_gpu(store.random_numbers_[idx_c]);
 
+#ifndef ARB_ARBOR_NO_GPU_RAND
     store.prng_indices_d_ = memory::on_gpu(store.prng_indices_);
+#endif
 }
 
 void shared_state::integrate_voltage() {

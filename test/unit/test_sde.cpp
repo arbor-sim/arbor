@@ -14,6 +14,9 @@
 #include <arbor/schedule.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/util/any_ptr.hpp>
+#ifdef ARB_GPU_ENABLED
+#include "memory/gpu_wrappers.hpp"
+#endif
 
 #include <arborenv/default_env.hpp>
 
@@ -31,6 +34,7 @@ struct archive {
     std::atomic<std::size_t> index_ = 0u;
 
     archive(std::size_t n) : data_(n) {}
+
     archive(const archive& other)
     : data_{other.data_}
     , index_{other.index_.load()}
@@ -51,6 +55,8 @@ struct archive {
         std::fill(data_.begin(), data_.end(), T{0});
         index_.store(0u);
     }
+
+    std::size_t size() const noexcept { return data_.size(); }
 };
 
 // compute mean and variance online
@@ -803,3 +809,165 @@ TEST(sde, coupled) {
         EXPECT_TRUE( stats_Cov_P_sigma < 1.0e-4);
     }
 }
+
+
+#ifdef ARB_GPU_ENABLED
+
+// forward declaration
+class sde_recipe_gpu;
+
+// global variables used in overriden advance methods
+sde_recipe_gpu* rec_gpu_ptr = nullptr;
+
+// declaration of overriding advance methods
+void advance_mech_cpu(arb_mechanism_ppack* pp);
+void advance_mech_gpu(arb_mechanism_ppack* pp);
+
+class sde_recipe_gpu: public simple_recipe_base {
+public:
+    sde_recipe_gpu(unsigned ncell, unsigned ncvs, label_dict labels, decor dec)
+    : simple_recipe_base()
+    , ncell_(ncell) {
+        // add unit test catalogue
+        cell_gprop_.catalogue.import(make_unit_test_catalogue(), "");
+
+        rec_gpu_ptr = this;
+
+        // replace mechanisms' advance methods
+        auto inst_cpu = cell_gprop_.catalogue.instance(arb_backend_kind_cpu, "mean_reverting_stochastic_process");
+        advance_mech_cpu = inst_cpu.mech->iface_.advance_state;
+        inst_cpu.mech->iface_.advance_state = &::advance_mech_cpu;
+        cell_gprop_.catalogue.register_implementation("mean_reverting_stochastic_process", std::move(inst_cpu.mech));
+
+        auto inst_gpu = cell_gprop_.catalogue.instance(arb_backend_kind_gpu, "mean_reverting_stochastic_process");
+        advance_mech_gpu = inst_gpu.mech->iface_.advance_state;
+        inst_gpu.mech->iface_.advance_state = &::advance_mech_gpu;
+        cell_gprop_.catalogue.register_implementation("mean_reverting_stochastic_process", std::move(inst_gpu.mech));
+
+        // set cvs explicitly
+        double const cv_size = 1.0;
+        dec.set_default(cv_policy_max_extent(cv_size));
+
+        // generate cells
+        unsigned const n1 = ncvs/2;
+        for (unsigned int i=0; i<ncell_; ++i) {
+            segment_tree tree;
+            tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
+            tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
+            cells_.push_back(cable_cell(morphology(tree), labels, dec));
+        }
+    }
+
+    cell_size_type num_cells() const override { return ncell_; }
+
+    util::unique_any get_cell_description(cell_gid_type gid) const override { return cells_[gid]; }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
+
+    std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
+
+private:
+    unsigned ncell_;
+    std::vector<cable_cell> cells_;
+
+public:
+    // pointers to original advance methods
+    arb_mechanism_method advance_mech_cpu;
+    arb_mechanism_method advance_mech_gpu;
+};
+
+void advance_mech_cpu(arb_mechanism_ppack* pp) {
+    const auto width = pp->width;
+    arb_value_type* ptr = archive_ptr->claim(width);
+    for (arb_size_type i=0; i<width; ++i) {
+        ptr[i] = pp->random_numbers[0][i];
+    }
+    rec_gpu_ptr->advance_mech_cpu(pp);
+}
+
+void advance_mech_gpu(arb_mechanism_ppack* pp) {
+    const auto width = pp->width;
+    arb_value_type* ptr = archive_ptr->claim(width);
+    // copy gpu pointer
+    arb_value_type const * gpu_ptr;
+    memory::gpu_memcpy_d2h(&gpu_ptr, pp->random_numbers, sizeof(arb_value_type const*));
+    // copy data
+    memory::gpu_memcpy_d2h(ptr, gpu_ptr, width*sizeof(arb_value_type));
+    //tmp.resize(width);
+    rec_gpu_ptr->advance_mech_gpu(pp);
+}
+
+template<class T>
+bool almost_equal(T x, T y, unsigned ulp, T abs_tol = std::numeric_limits<T>::min()) {
+    if (x == y) return true;
+    const auto diff = std::abs(x-y);
+    const auto norm = std::min(std::abs(x) + std::abs(y), std::numeric_limits<T>::max());
+    return (diff < std::max(abs_tol, std::numeric_limits<T>::epsilon() * norm * ulp));
+}
+
+// This test checks that the GPU implementation returns the same random numbers than the CPU version
+TEST(sde, gpu) {
+    // simulation parameters
+    unsigned ncells = 4;
+    unsigned nsynapses = 100;
+    unsigned ncvs = 100;
+    double const dt = 0.5;
+    unsigned nsteps = 50;
+
+    // make labels (and locations for synapses)
+    auto labels = make_label_dict(nsynapses);
+
+    // instantiate recipe
+    decor dec;
+    dec.paint("(all)"_reg , density("hh"));
+    dec.place(*labels.locset("locs"), synapse("mean_reverting_stochastic_process"), "synapses");
+    sde_recipe_gpu rec(ncells, ncvs, labels, dec);
+
+    // calculate storage needs
+    std::size_t n_rv_synapses = ncells*nsynapses;
+    std::size_t n_rv_per_dt = n_rv_synapses;
+    std::size_t n_rv = n_rv_per_dt*(nsteps+1);
+
+    // setup storage
+    archive<arb_value_type> arch_cpu(n_rv);
+    archive<arb_value_type> arch_gpu(n_rv);
+
+    // on CPU
+    {
+        archive_ptr = &arch_cpu;
+        auto context = make_context({1, -1});
+        partition_hint_map hint_map;
+        partition_hint h;
+        h.cpu_group_size = ncells;
+        hint_map[cell_kind::cable] = h;
+        auto decomp = partition_load_balance(rec, context, hint_map);
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_decomposition(decomp)
+            .set_seed(42);
+        sim.run(nsteps*dt, dt);
+    }
+
+    // on GPU
+    {
+        archive_ptr = &arch_gpu;
+        auto context = make_context({1, arbenv::default_gpu()});
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(42);
+        sim.run(nsteps*dt, dt);
+    }
+
+    // compare values
+    for (std::size_t i=0; i<arch_cpu.size(); ++i) {
+        EXPECT_TRUE(
+            almost_equal(
+                arch_gpu.data_[i],
+                arch_cpu.data_[i],
+                128,
+                4*std::numeric_limits<arb_value_type>::epsilon()
+            )
+        );
+    }
+}
+#endif
