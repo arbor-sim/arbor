@@ -152,7 +152,7 @@ set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 include(BuildModules.cmake)
 
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS {exec_path})
+find_program(modcc NAMES modcc PATHS {exec_path} NO_DEFAULT_PATH)
 
 make_catalogue_standalone(
   NAME {name}
