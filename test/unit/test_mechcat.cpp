@@ -13,6 +13,12 @@
 #define LIBDIR "."
 #endif
 
+#ifndef CATALOGUEDIR
+#warning "CATALOGUUDIR not set; defaulting to" LIBDIR
+#define CATALOGUEDIR LIBDIR
+#endif
+
+
 using namespace std::string_literals;
 using namespace arb;
 
@@ -288,7 +294,7 @@ TEST(mechcat, loading) {
 #endif
 #else
     EXPECT_THROW(load_catalogue(LIBDIR "/libarbor.a"), bad_catalogue_error);
-    const mechanism_catalogue cat = load_catalogue(LIBDIR "/dummy-catalogue.so");
+    const mechanism_catalogue cat = load_catalogue(CATALOGUEDIR "/dummy-catalogue.so");
     EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
 #endif
 }

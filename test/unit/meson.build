@@ -1,5 +1,5 @@
 subdir('testing')
-#subdir('dummy')
+subdir('dummy')
 
 unit_sources = files(
   'test_abi.cpp',
@@ -118,14 +118,17 @@ if arb_with_gpu
 endif
 
 unit_data_dir = meson.current_source_dir() + '/../swc'
-#unit_dummy_catalogue_dir = meson.current_build_dir() + '/dummy'
+unit_dummy_catalogue_dir = meson.current_build_dir() + '/dummy'
 unit_build_dir = meson.current_build_dir()
+arbor_lib_dir = meson.project_build_root() +  '/arbor'
+message('Will load dummy from: ' + unit_dummy_catalogue_dir)
 
 arbor_unit_defines = [
   f'-DDATADIR="@unit_data_dir@"',
   f'-DBUILDDIR="@unit_build_dir@"',
-  #f'-DCATALOGUEDIR="@unit_dummy_catalogue_dir@"',
-  #'-DUSE_DYNAMIC_CATALOGUES',
+  f'-DLIBDIR="@arbor_lib_dir@"',
+  f'-DCATALOGUEDIR="@unit_dummy_catalogue_dir@"',
+  '-DUSE_DYNAMIC_CATALOGUES',
 ]
 
 unit = executable('unit',
@@ -134,6 +137,6 @@ unit = executable('unit',
                   cpp_args: arbor_private_args + arbor_unit_defines,
                   cuda_args: arbor_cuda_private_args,
                   dependencies: [dep_arb, dep_arborio, dep_arborsup, dep_arborenv, dep_gtest, dep_arb_internal],
-                  #link_with: [dummy_catalogue],
+                  link_with: [dummy_catalogue],
                   build_by_default: false,
                   install: false)

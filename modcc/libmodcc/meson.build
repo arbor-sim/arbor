@@ -1,8 +1,9 @@
-configure_file(input: 'export.hpp.in',
+name = 'libmodcc'
+
+env_export = configure_file(input: 'export.hpp.in',
                output: 'export.hpp',
                configuration: {
-               'target_short_NAME': 'LIBMODCC',
-               'target': 'libmodcc',
-               'target_name': 'libmodcc',
-               'target_type': 'STATIC', # TODO: figure out shared/static
-  })
+               'target_short_NAME': name.to_upper(),
+               'target': name,
+               'target_name': name,
+               'target_type': f'@arb_build_type@_LIBRARY',})
