@@ -20,7 +20,7 @@ pyarb_srcs = [
 ]
 
 if arb_with_bundled_libs
-  dep_pybind   = declare_dependency(include_directories: ['pybind11/include'])
+  dep_pybind   = declare_dependency(include_directories: ['../ext/pybind11/include'])
 else
   dep_pybind   = dependency('pybind11', version : '>=2.8.1', required : true)
 endif
@@ -28,7 +28,7 @@ endif
 python3 = import('python').find_installation('python3')
 dep_python = dependency('python3', required: true)
 
-py_dependencies = [dep_python, dep_pybind, dep_arborio, dep_arb]
+py_dependencies = [dep_python, dep_pybind, dep_arborio, dep_arb, dep_arborenv]
 if arb_with_gpu
   py_dependencies += dep_cuda
 endif

@@ -59,8 +59,7 @@ configure_file(input: meson.global_source_root() + '/cmake/export.hpp.in',
                'target_short_NAME': 'ARBOR',
                'target': 'arbor',
                'target_name': 'arbor',
-               'target_type': 'STATIC', # TODO: figure out shared/static
-
+               'target_type': f'@arb_build_type@_LIBRARY',
   })
 
 install_headers([assert_macro_path, version_path], install_dir: 'include/arbor')

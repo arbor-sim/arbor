@@ -1,7 +1,7 @@
 project('arbor',
   ['cpp'],
   version: files('VERSION'),
-  meson_version: '>=0.60',
+  meson_version: '>=0.63',
   default_options : ['buildtype=debug', 'cpp_std=c++17', 'default_library=static'],
   license: 'BSD')
 
@@ -44,8 +44,12 @@ if arb_with_vectorize
   arb_modcc_flags += '--simd'
 endif
 
+# set our build type STATIC/SHARED for properly exporting symbols
+arb_build_type = 'STATIC'
+
 # set configure-time defines for arbor, arborenv and arborio
 # of the form ARB_HAVE_XXX (private) and ARB_XXX (public)
+
 arb_public_defs = []
 arb_private_defs = []
 arb_configurations = []
@@ -72,6 +76,11 @@ if arb_with_neuroml
 endif
 if arb_with_vectorize
   arb_configurations += 'VECTORIZE'
+endif
+if arb_build_type == 'STATIC'
+  arb_private_defs += '-DARB_arbor_EXPORTS_STATIC'
+else
+  arb_private_defs += '-DARB_arbor_EXPORTS'
 endif
 
 # Set optimization/target-specific architecture flags
@@ -183,3 +192,21 @@ pkg.generate(lib_arb,
   variables: pkg_config_variables
 )
 pkg.generate(lib_arborio)
+
+# targets for bundling tests, examples, ...
+
+tests = [unit, unit_modcc, unit_local]
+if arb_with_mpi
+  tests += unit_mpi
+endif
+alias_target('tests', tests)
+# add test runners
+test('unit', unit)
+test('unit-modcc', unit_modcc)
+test('unit-local', unit_local)
+if arb_with_mpi
+  test('unit-mpi', unit_mpi)
+endif
+
+examples = [ring, bench, brunel, diffusion, drybench, dryrun, gap_junctions, generators, lfp, plasticity, probes, ring, single]
+alias_target('examples', examples)

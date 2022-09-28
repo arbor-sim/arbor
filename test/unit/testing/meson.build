@@ -44,7 +44,7 @@ cat_srcs = [f'@name@_catalogue.cpp']
 mod_srcs = []
 foreach m: mechs
   mod_srcs += meson.current_source_dir()+f'/@m@.mod'
-  cat_srcs = [f'@m@.hpp', f'@m@_cpu.cpp']
+  cat_srcs += [f'@m@.hpp', f'@m@_cpu.cpp']
   if arb_with_gpu
     cat_srcs += [f'@m@_gpu.cu', f'@m@_gpu.cpp']
   endif

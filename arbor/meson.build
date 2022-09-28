@@ -6,6 +6,7 @@ arb_src = [
   'communication/dry_run_context.cpp',
   'benchmark_cell_group.cpp',
   'cable_cell.cpp',
+  'iexpr.cpp',
   'cable_cell_param.cpp',
   'cell_group_factory.cpp',
   'common_types_io.cpp',
@@ -104,22 +105,21 @@ if arb_with_gpu
 endif
 
 lib_arb = library('arbor',
-              sources: [arb_src, catalogue_sources],
-              include_directories: [inc_arb_public, inc_arb_private],
-              cpp_args: arbor_private_args,
-              cuda_args: arbor_cuda_private_args,
-              dependencies: dep_arb_internal,
-              install: true)
+                  sources: [arb_src, default_cat, allen_cat, bbp_cat],
+                  include_directories: [inc_arb_public, inc_arb_private],
+                  cpp_args: arbor_private_args,
+                  cuda_args: arbor_cuda_private_args,
+                  dependencies: [dep_arb_internal],
+                  install: true)
 
-install_subdir(
-  'include/arbor',
-  install_dir: 'include',
-  exclude_files: [
-    'arb_types.inc',
-    'assert_macro.hpp.disabled',
-    'assert_macro.hpp.enabled',
-    'meson.build',
-    'version.hpp.in'])
+install_subdir('include/arbor',
+               install_dir: 'include',
+               exclude_files: [
+                 'arb_types.inc',
+                 'assert_macro.hpp.disabled',
+                 'assert_macro.hpp.enabled',
+                 'meson.build',
+                 'version.hpp.in'])
 
 dep_arb = declare_dependency(
               include_directories: [inc_arb_public],

@@ -1,10 +1,12 @@
 subdir('bench')
 subdir('brunel')
 subdir('dryrun')
+subdir('drybench')
 subdir('gap_junctions')
 subdir('generators')
 subdir('lfp')
+subdir('plasticity')
 subdir('probe-demo')
 subdir('ring')
 subdir('single')
-
+subdir('diffusion')

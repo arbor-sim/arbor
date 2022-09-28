@@ -408,7 +408,7 @@ iexpr iexpr::named(std::string name) {
     return iexpr(iexpr_type::named, std::make_tuple(std::move(name)));
 }
 
-iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
+ARB_ARBOR_API iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     switch (expr.type()) {
     case iexpr_type::scalar:
         return iexpr_ptr(new iexpr_impl::scalar(
