@@ -117,9 +117,10 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
-#ifndef ARB_ARBOR_NO_GPU_RAND
-        sarray sindices_;
-#endif
+
+        // rounded up array size (multiple of preferred GPU alignment)
+        std::size_t width_padded;
+
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
@@ -128,16 +129,20 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
         
+        // random number device storage
         std::array<std::vector<arb_value_type*>, cbprng::cache_size()>           random_numbers_;
         std::array<memory::device_vector<arb_value_type*>, cbprng::cache_size()> random_numbers_d_;
-#ifdef ARB_ARBOR_NO_GPU_RAND
+
+        // auxillary random number host storage (if GPU based generation is disabled)
         std::vector<arb_value_type> random_numbers_h_;
         std::vector<arb_size_type> gid_;
         std::vector<arb_size_type> idx_;
-#else
+        // auxillary random number device storage (if GPU based generation is enabled)
+        sarray sindices_;
         std::vector<arb_size_type*> prng_indices_;
         memory::device_vector<arb_size_type*> prng_indices_d_;
-#endif
+
+        // time step counter
         cbprng::counter_type random_number_update_counter_ = 0u;
     };
 

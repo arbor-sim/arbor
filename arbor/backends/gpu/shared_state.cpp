@@ -293,20 +293,20 @@ void shared_state::update_prng_state(mechanism& m) {
         // current site's global cell, the site index within its cell and a counter representing
         // time.
         const auto num_rv = store.random_numbers_d_[0].size();
-        const auto width_padded = m.ppack_.width;
+        const auto width_padded = store.width_padded;
         const auto width = m.ppack_.width;
-#ifndef ARB_ARBOR_NO_GPU_RAND
-        // generate random numbers on the device
-        generate_random_numbers(store.random_numbers_[0][0], width, width_padded, num_rv, cbprng_seed,
-            mech_id, counter, store.prng_indices_[0], store.prng_indices_[1]);
-#else
+#ifdef ARB_ARBOR_NO_GPU_RAND
         // generate random numbers on the host
         arb_value_type* dst = store.random_numbers_h_.data();
         arb::multicore::generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed,
             mech_id, counter, store.gid_.data(), store.idx_.data());
         // transfer values to device
         memory::gpu_memcpy_h2d(store.random_numbers_[0][0], dst,
-            (num_rv*cbprng::cache_size()*width)*sizeof(arb_value_type));
+            (num_rv*cbprng::cache_size()*width_padded)*sizeof(arb_value_type));
+#else
+        // generate random numbers on the device
+        generate_random_numbers(store.random_numbers_[0][0], width, width_padded, num_rv, cbprng_seed,
+            mech_id, counter, store.prng_indices_[0], store.prng_indices_[1]);
 #endif
     }
 }
@@ -353,6 +353,8 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
+    store.width_padded = width_padded;
+
 #ifdef ARB_ARBOR_NO_GPU_RAND
     // store indices for random number generation
     store.gid_ = pos_data.gid;
@@ -392,17 +394,17 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
         for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
 #ifdef ARB_ARBOR_NO_GPU_RAND
-        store.random_numbers_h_.resize(random_number_storage*width, 0);
+        store.random_numbers_h_.resize(random_number_storage*width_padded, 0);
 #endif
 
         // Allocate bulk storage
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
             random_number_storage)*width_padded + m.mech_.n_globals;
         store.data_   = array(count, NAN);
-        chunk_writer writer(store.data_.data(), width);
+        chunk_writer writer(store.data_.data(), width_padded);
 
         // First sub-array of data_ is used for weight_
-        m.ppack_.weight = writer.append(pos_data.weight);
+        m.ppack_.weight = writer.append_with_padding(pos_data.weight, 0);
         // Set fields
         for (auto idx: make_span(m.mech_.n_parameters)) {
             store.parameters_[idx] = writer.fill(m.mech_.parameters[idx].default_value);
@@ -438,10 +440,10 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         // Allocate bulk storage
         std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*width_padded);
-        chunk_writer writer(store.indices_.data(), width);
+        chunk_writer writer(store.indices_.data(), width_padded);
 
         // Setup node indices
-        m.ppack_.node_index = writer.append(pos_data.cv);
+        m.ppack_.node_index = writer.append_with_padding(pos_data.cv, 0);
         // Create ion indices
         for (auto idx: make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
@@ -453,14 +455,14 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             auto ni = memory::on_host(oion->node_index_);
             auto indices = util::index_into(pos_data.cv, ni);
             std::vector<arb_index_type> mech_ion_index(indices.begin(), indices.end());
-            store.ion_states_[idx].index = writer.append(mech_ion_index);
+            store.ion_states_[idx].index = writer.append_with_padding(mech_ion_index, 0);
         }
 
-        m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
+        m.ppack_.multiplicity = mult_in_place? writer.append_with_padding(pos_data.multiplicity, 0): nullptr;
         // `peer_index` holds the peer CV of each CV in node_index.
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
-        m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
+        m.ppack_.peer_index = peer_indices? writer.append_with_padding(pos_data.peer_cv, 0): nullptr;
     }
 
 #ifndef ARB_ARBOR_NO_GPU_RAND
@@ -476,6 +478,8 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         store.prng_indices_[0] = writer.append_with_padding(pos_data.gid, 0);
         store.prng_indices_[1] = writer.append_with_padding(pos_data.idx, 0);
     }
+
+    store.prng_indices_d_ = memory::on_gpu(store.prng_indices_);
 #endif
     
     // Shift data to GPU, set up pointers
@@ -490,10 +494,6 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
 
     for (auto idx_c: make_span(cbprng::cache_size()))
         store.random_numbers_d_[idx_c] = memory::on_gpu(store.random_numbers_[idx_c]);
-
-#ifndef ARB_ARBOR_NO_GPU_RAND
-    store.prng_indices_d_ = memory::on_gpu(store.prng_indices_);
-#endif
 }
 
 void shared_state::integrate_voltage() {
