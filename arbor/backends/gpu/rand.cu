@@ -8,9 +8,16 @@ namespace gpu {
 
 namespace kernel {
 __global__
-void generate_random_numbers(arb_value_type* dst, std::size_t width, std::size_t width_padded,
-    std::size_t num_rv, arb::cbprng::value_type seed, arb::cbprng::value_type mech_id,
-    arb::cbprng::value_type counter, arb_size_type const * gids, arb_size_type const * idxs,
+void generate_random_numbers(
+    arb_value_type* __restrict__ dst,
+    std::size_t width,
+    std::size_t width_padded,
+    std::size_t num_rv,
+    arb::cbprng::value_type seed,
+    arb::cbprng::value_type mech_id,
+    arb::cbprng::value_type counter,
+    arb_size_type const * __restrict__ gids,
+    arb_size_type const * __restrict__ idxs,
     unsigned cache_size) {
     // location and variable number extracted from thread block
     const int i = threadIdx.x + blockDim.x*blockIdx.x;

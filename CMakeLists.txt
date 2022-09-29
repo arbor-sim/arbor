@@ -407,6 +407,16 @@ if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
 endif()
 
+# Random number creation
+# -----------------------------------------------
+
+if(ARB_USE_GPU_RNG AND (ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG))
+    set(ARB_USE_GPU_RNG_IMPL TRUE)
+else()
+    set(ARB_USE_GPU_RNG_IMPL FALSE)
+    target_compile_definitions(arbor-private-deps INTERFACE ARB_ARBOR_NO_GPU_RAND)
+endif()
+
 #----------------------------------------------------------
 # Set up install paths, permissions.
 #----------------------------------------------------------
