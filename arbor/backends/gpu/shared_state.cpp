@@ -293,7 +293,7 @@ void shared_state::update_prng_state(mechanism& m) {
         // current site's global cell, the site index within its cell and a counter representing
         // time.
         const auto num_rv = store.random_numbers_d_[0].size();
-        const auto width_padded = store.width_padded;
+        const auto width_padded = store.value_width_padded;
         const auto width = m.ppack_.width;
 #ifdef ARB_ARBOR_NO_GPU_RAND
         // generate random numbers on the host
@@ -353,7 +353,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
-    store.width_padded = width_padded;
+    store.value_width_padded = width_padded;
 
 #ifdef ARB_ARBOR_NO_GPU_RAND
     // store indices for random number generation

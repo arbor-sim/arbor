@@ -123,6 +123,7 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
+        std::size_t value_width_padded;
         constraint_partition constraints_;
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;

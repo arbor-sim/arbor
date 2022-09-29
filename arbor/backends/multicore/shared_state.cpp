@@ -485,8 +485,8 @@ void shared_state::update_prng_state(mechanism& m) {
         // current site's global cell, the site index within its cell and a counter representing
         // time.
         const auto num_rv = store.random_numbers_[cache_idx].size();
-        const auto width_padded = m.ppack_.width;
-        const auto width = store.gid_.size();
+        const auto width_padded = store.value_width_padded;
+        const auto width = m.ppack_.width;
         arb_value_type* dst = store.random_numbers_[0][0];
         generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter,
             store.gid_.data(), store.idx_.data());
@@ -578,6 +578,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
         // Allocate bulk storage
         std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
+        store.value_width_padded = value_width_padded;
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
             random_number_storage)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);

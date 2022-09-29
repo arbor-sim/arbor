@@ -119,7 +119,7 @@ struct ARB_ARBOR_API shared_state {
         iarray indices_;
 
         // rounded up array size (multiple of preferred GPU alignment)
-        std::size_t width_padded;
+        std::size_t value_width_padded;
 
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
