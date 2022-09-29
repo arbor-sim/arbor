@@ -958,6 +958,30 @@ TEST(sde, gpu) {
         sim.run(nsteps*dt, dt);
     }
 
+    for (std::size_t n=0; n<6; ++n) {
+        std::cout << "step " << n << std::endl;
+        std::cout << "CPU: ";
+        for (std::size_t i=0; i<20; ++i) std::cout << " " << arch_cpu.data_[n*n_rv_per_dt + i];
+        std::cout << "  ... ";
+        for (std::size_t i=0; i<20; ++i) std::cout << " " << arch_cpu.data_[n*n_rv_per_dt + (n_rv_per_dt-1-20) + i];
+        std::cout << std::endl;
+        std::cout << "GPU: ";
+        for (std::size_t i=0; i<20; ++i) std::cout << " " << arch_gpu.data_[n*n_rv_per_dt + i];
+        std::cout << "  ... ";
+        for (std::size_t i=0; i<20; ++i) std::cout << " " << arch_gpu.data_[n*n_rv_per_dt + (n_rv_per_dt-1-20) + i];
+        std::cout << std::endl;
+        std::cout << "Diff ";
+        for (std::size_t i=0; i<20; ++i)
+            std::cout << " "
+                << std::abs(arch_cpu.data_[n*n_rv_per_dt + i] - arch_gpu.data_[n*n_rv_per_dt + i]);
+        std::cout << "  ... ";
+        for (std::size_t i=0; i<20; ++i)
+            std::cout << " "
+                << std::abs(arch_cpu.data_[n*n_rv_per_dt + (n_rv_per_dt-1-20) + i] - arch_cpu.data_[n*n_rv_per_dt + (n_rv_per_dt-1-20) + i]);
+        std::cout << std::endl;
+        std::cout << "---------------------------------------------------" << std::endl;
+    }
+
     // compare values
     for (std::size_t i=0; i<arch_cpu.size(); ++i) {
         EXPECT_TRUE(
