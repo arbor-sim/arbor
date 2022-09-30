@@ -42,9 +42,9 @@ std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tre
 // - init: initial tree to append to
 // Note: this is an iterative implementation of depth-first traversal with an explicit stack.
 std::pair<segment_tree, std::vector<bool>> copy_subtree_if(const segment_tree& tree,
-                                                              const node_t& start,
-                                                              id_p predicate,
-                                                              const segment_tree& init={}) {
+                                                           const node_t& start,
+                                                           id_p predicate,
+                                                           const segment_tree& init={}) {
     auto children_of = tree_to_children(tree);
     auto& segments = tree.segments();
     segment_tree result = init;
@@ -98,7 +98,7 @@ split_at(const segment_tree& tree, msize_t at) {
 
     // copy the original segment_tree (as a graph), skipping all nodes in the `post` subtree
     segment_tree pre = copy_fulltree_if(tree,
-                                        [=](msize_t id) { return !copied[id]; }).first;
+                                        [&](msize_t id) { return !copied[id]; }).first;
 
     return {pre, post};
 }

@@ -42,13 +42,6 @@ struct ARB_SYMBOL_VISIBLE invalid_segment_parent: morphology_error {
     msize_t tree_size;
 };
 
-struct ARB_SYMBOL_VISIBLE unpruned_child: morphology_error {
-    unpruned_child(msize_t pruned_parent, msize_t child, int tag);
-    msize_t pruned_parent;
-    msize_t child;
-    int tag;
-};
-
 struct ARB_SYMBOL_VISIBLE duplicate_stitch_id: morphology_error {
     duplicate_stitch_id(const std::string& id);
     std::string id;
