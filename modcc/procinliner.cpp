@@ -35,7 +35,7 @@ ARB_LIBMODCC_API expression_ptr inline_procedure_calls(std::string caller, Block
     for(;;) {
         inline_block->semantic(block->scope());
 
-        auto inliner = std::make_unique<ProcedureInliner>(std::move(caller));
+        auto inliner = std::make_unique<ProcedureInliner>(caller);
         inline_block->accept(inliner.get());
         inline_block = inliner->as_block(false);
         if (inliner->state_ == ProcedureInliner::state::Done) break;
