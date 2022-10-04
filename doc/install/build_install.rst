@@ -605,6 +605,20 @@ on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
+.. warn::
+
+   On many HPC systems a tool called ``module`` or ``ml`` is installed, which
+   use the ``CPATH`` environment variable to set up include paths for building.
+   The contents of this variable are forced on all compilations and by extension
+   to dependency generation. This can lead to the wrong headers being picked up
+   despite ``CMake`` reporting the correct versions, which can produce spurious
+   errors.
+
+   If you are using one of these tools (and possibly ```easybuid``) and encounter
+   such problems, try to ``module unload`` as many modules as possibe. One example
+   has been found with JSC clusters and an outdated pybind11 which was brought in
+   by ``ml SciPy-Stack``.
+
 .. _install-mpi:
 
 MPI

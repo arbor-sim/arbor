@@ -54,7 +54,7 @@ class recipe(A.recipe):
         #   - synapse to receive incoming spikes from the source cell.
         decor.place("(location 0 0.5)", A.synapse("expsyn"), "synapse")
         #   - detector for reporting spikes on the cable cells.
-        decor.place("(location 0 0.5)", A.spike_detector(-10.0), "detector")
+        decor.place("(location 0 0.5)", A.threshold_detector(-10.0), "detector")
         # return the cable cell description
         return A.cable_cell(tree, A.label_dict(), decor)
 
