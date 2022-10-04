@@ -59,7 +59,7 @@ endif()
 if(ARB_WITH_CUDA_CLANG)
     list(APPEND arb_features CUDA_CLANG)
 endif()
-if(ARB_WITH_HI_CLANG)
+if(ARB_WITH_HIP_CLANG)
     list(APPEND arb_features HIP)
 endif()
 
