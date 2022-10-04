@@ -117,7 +117,6 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
-
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
@@ -125,7 +124,6 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> parameters_d_;
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
-
         random_numbers random_numbers_;
     };
 

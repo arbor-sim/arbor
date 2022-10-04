@@ -312,8 +312,7 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded +
-            m.mech_.n_globals;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
         store.data_   = array(count, NAN);
         chunk_writer writer(store.data_.data(), width_padded);
 
