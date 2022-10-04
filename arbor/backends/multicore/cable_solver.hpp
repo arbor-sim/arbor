@@ -68,17 +68,17 @@ struct cable_solver {
 
     // Setup and solve the cable equation
     // * expects the voltage from its first argument
-    // * will likewise overwrite the first argument with the soluction
+    // * will likewise overwrite the first argument with the solction
     template<typename T>
     void solve(T& rhs, const_view dt_intdom, const_view current, const_view conductivity) {
-        value_type * const __restrict__ d_ = d.data();
-        value_type * const __restrict__ r_ = rhs.data();
+        value_type * const ARB_NO_ALIAS d_ = d.data();
+        value_type * const ARB_NO_ALIAS r_ = rhs.data();
 
-        const value_type * const __restrict__ i_ = current.data();
-        const value_type * const __restrict__ inv_ = invariant_d.data();
-        const value_type * const __restrict__ c_ = cv_capacitance.data();
-        const value_type * const __restrict__ g_ = conductivity.data();
-        const value_type * const __restrict__ a_ = cv_area.data();
+        const value_type * const ARB_NO_ALIAS i_ = current.data();
+        const value_type * const ARB_NO_ALIAS inv_ = invariant_d.data();
+        const value_type * const ARB_NO_ALIAS c_ = cv_capacitance.data();
+        const value_type * const ARB_NO_ALIAS g_ = conductivity.data();
+        const value_type * const ARB_NO_ALIAS a_ = cv_area.data();
 
         const auto cell_cv_part = util::partition_view(cell_cv_divs);
         const index_type ncells = cell_cv_part.size();
@@ -115,11 +115,11 @@ struct cable_solver {
     // NOTE: This exists separately only to cater to the tests
     template<typename T>
     void solve(T& rhs) {
-        value_type * const __restrict__ r_ = rhs.data();
-        value_type * const __restrict__ d_ = d.data();
+        value_type * const ARB_NO_ALIAS r_ = rhs.data();
+        value_type * const ARB_NO_ALIAS d_ = d.data();
 
-        const value_type * const __restrict__ u_ = u.data();
-        const index_type * const __restrict__ p_ = parent_index.data();
+        const value_type * const ARB_NO_ALIAS u_ = u.data();
+        const index_type * const ARB_NO_ALIAS p_ = parent_index.data();
 
         const auto cell_cv_part = util::partition_view(cell_cv_divs);
         for (const auto& [first, last]: cell_cv_part) {
