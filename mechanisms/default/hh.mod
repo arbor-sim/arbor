@@ -79,6 +79,6 @@ FUNCTION m_alpha(v) { m_alpha = exprelr(-0.1*v - 4.0) }
 FUNCTION h_alpha(v) { h_alpha = 0.07*exp(-0.05*v - 3.25) }
 FUNCTION n_alpha(v) { n_alpha = 0.1*exprelr(-0.1*v - 5.5) }
 
-FUNCTION m_beta(v)  { m_beta  = 4.0*exp(-v*0.0555555555556 - 3.61111111111) }
-FUNCTION h_beta(v)  { h_beta  = 1.0/(exp(-v - 3.5) + 1.0) }
+FUNCTION m_beta(v)  { m_beta  = 4.0*exp(-(v + 65.0)/18.0) }
+FUNCTION h_beta(v)  { h_beta  = 1.0/(exp(-0.1*v - 3.5) + 1.0) }
 FUNCTION n_beta(v)  { n_beta  = 0.125*exp(-0.0125*v - 0.8125) }
