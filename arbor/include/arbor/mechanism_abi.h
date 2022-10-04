@@ -7,6 +7,19 @@
 extern "C" {
 #endif
 
+// Marker for non-overlapping arrays/pointers
+#ifdef __cplusplus
+#if defined ( __GNUC__ ) || defined ( __clang__ )
+#define ARB_NO_ALIAS __restrict__
+#else
+#error "Unknown compiler, please add support."
+#endif
+#else
+#define ARB_NO_ALIAS restrict
+#endif
+
+
+
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
 #define ARB_MECH_ABI_VERSION_MINOR 3
