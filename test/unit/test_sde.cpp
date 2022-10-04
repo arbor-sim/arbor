@@ -905,7 +905,7 @@ bool almost_equal(T x, T y, unsigned ulp, T abs_tol = std::numeric_limits<T>::mi
     return (diff < std::max(abs_tol, std::numeric_limits<T>::epsilon() * norm * ulp));
 }
 
-// This test checks that the GPU implementation returns the same random numbers than the CPU version
+// This test checks that the GPU implementation returns the same random numbers as the CPU version
 TEST(sde, gpu) {
     // simulation parameters
     unsigned ncells = 4;

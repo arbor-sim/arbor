@@ -10,7 +10,7 @@
 
 #include "fvm_layout.hpp"
 
-#include "backends/rand_fwd.hpp"
+#include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
@@ -118,9 +118,6 @@ struct ARB_ARBOR_API shared_state {
         array data_;
         iarray indices_;
 
-        // rounded up array size (multiple of preferred GPU alignment)
-        std::size_t value_width_padded;
-
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
@@ -128,22 +125,8 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> parameters_d_;
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
-        
-        // random number device storage
-        std::array<std::vector<arb_value_type*>, cbprng::cache_size()>           random_numbers_;
-        std::array<memory::device_vector<arb_value_type*>, cbprng::cache_size()> random_numbers_d_;
 
-        // auxillary random number host storage (if GPU based generation is disabled)
-        std::vector<arb_value_type> random_numbers_h_;
-        std::vector<arb_size_type> gid_;
-        std::vector<arb_size_type> idx_;
-        // auxillary random number device storage (if GPU based generation is enabled)
-        sarray sindices_;
-        std::vector<arb_size_type*> prng_indices_;
-        memory::device_vector<arb_size_type*> prng_indices_d_;
-
-        // time step counter
-        cbprng::counter_type random_number_update_counter_ = 0u;
+        random_numbers random_numbers_;
     };
 
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
