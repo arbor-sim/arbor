@@ -158,6 +158,45 @@ Arbor-specific features
   made available through the ``v_peer`` variable while the local membrane potential
   is available through ``v``, as usual.
 
+
+.. _format-sde:
+
+Stochastic Processes
+--------------------
+
+Arbor supports :ref:`stochastic processes <mechanisms-sde>` in the form of stochastic differential
+equations. The *white noise* sources can be defined in the model files using a ``WHITE_NOISE`` block:
+
+.. code:: none
+
+   WHITE_NOISE {
+       a b 
+       c
+   }
+
+Arbitrary white noise variables can be declared (``a, b, c`` in the example above). The
+noise will be appropriately scaled with the numerical time step and can be considered unitless. In
+order to influence the white noise generation, a seed value can be set at the level of the
+simulation through the optional constructor argument ``seed``
+(see :ref:`here <pysimulation>` or :ref:`here <cppsimulation>`).
+
+If the state is updated by involving at least one of the declared white noise variables
+the system is considered to be stochastic:
+
+.. code:: none
+
+   DERIVATIVE state {
+       s' = f + g*a
+   }
+
+The solver method must then accordingly set to ``stochastic``:
+
+.. code:: none
+
+   BREAKPOINT {
+       SOLVE state METHOD stochastic
+   }
+
 Nernst
 ------
 Many mechanisms make use of the reversal potential of an ion (``eX`` for ion ``X``).

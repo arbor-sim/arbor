@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <arbor/export.hpp>
+
 namespace arb {
 namespace util {
 
@@ -17,7 +19,7 @@ struct source_location {
 
 /// Builds a stack trace when constructed.
 /// NOTE: if WITH_BACKTRACE is not defined, the methods are empty
-class backtrace {
+class ARB_ARBOR_API backtrace {
 public:
     /// the default constructor will build and store the strack trace.
     backtrace();

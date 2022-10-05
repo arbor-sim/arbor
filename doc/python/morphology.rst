@@ -256,7 +256,7 @@ Cable cell morphology
 
     .. method:: apply_isometry(iso)
 
-        Apply an :type:`isometry` to the segment tree, returns the transformed tree as a copy.
+        Apply an :py:class:`isometry` to the segment tree, returns the transformed tree as a copy.
         Isometries are rotations around an arbritary axis and/or translations; they can
         be instantiated using ``translate`` and ``rotate`` and combined
         using the ``*`` operator.
@@ -267,6 +267,7 @@ Cable cell morphology
     .. method:: equivalent(other)
 
         Two trees are equivalent if
+
         1. the root segments' ``prox`` and ``dist`` points and their ``tags``
            are identical.
         2. recursively: all sub-trees starting at the current segment are

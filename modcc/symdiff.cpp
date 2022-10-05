@@ -682,7 +682,10 @@ ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector
             return res;
         }
         if (!coef) return linear_test_result{};
-        if (!is_zero(coef)) result.coef[id] = std::move(coef);
+        if (!is_zero(coef)){
+            result.coef[id] = std::move(coef);
+            result.is_constant = false;
+        }
         result.constant = substitute(result.constant, id, zero());
     }
 
@@ -714,4 +717,3 @@ done:
 
     return result;
 }
-

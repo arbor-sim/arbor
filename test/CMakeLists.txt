@@ -1,6 +1,9 @@
 find_package(Threads REQUIRED)
 
-add_library(gtest EXCLUDE_FROM_ALL gtest-all.cpp)
+# Using shared gtest library seems to cause problems at test teardown (double free) on certain
+# systems, potentially related to this issue https://github.com/google/googletest/issues/930. Always
+# building a static library works around this problem.
+add_library(gtest STATIC EXCLUDE_FROM_ALL gtest-all.cpp)
 set_target_properties(gtest PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_include_directories(gtest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(gtest PUBLIC Threads::Threads)

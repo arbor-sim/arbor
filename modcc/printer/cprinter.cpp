@@ -243,7 +243,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         }
     };
 
-    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);
+    const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
     const auto& assigned_ids = module_.assigned_block().parameters;
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
@@ -270,6 +270,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
+    out << fmt::format("[[maybe_unused]] auto const * const * {}random_numbers = pp->random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
         out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
@@ -446,6 +447,10 @@ void CPrinter::visit(IdentifierExpression *e) {
 
 void CPrinter::visit(LocalVariable* sym) {
     out_ << sym->name();
+}
+
+void CPrinter::visit(WhiteNoise* sym) {
+    out_ << fmt::format("{}random_numbers[{}][i_]", pp_var_pfx, sym->index());
 }
 
 void CPrinter::visit(VariableExpression *sym) {
@@ -650,6 +655,12 @@ void SimdPrinter::visit(VariableExpression *sym) {
         out_ << pp_var_pfx << sym->name();
     }
     EXITM(out_, "variable");
+}
+
+void SimdPrinter::visit(WhiteNoise* sym) {
+    auto index = is_indirect_? "index_": "i_";
+    out_ << fmt::format("simd_cast<simd_value>(indirect({}random_numbers[{}]+{}, simd_width_))",
+        pp_var_pfx, sym->index(), index);
 }
 
 void SimdPrinter::visit(AssignmentExpression* e) {

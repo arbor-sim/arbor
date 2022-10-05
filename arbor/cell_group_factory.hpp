@@ -22,7 +22,7 @@ using cell_group_factory = std::function<
         cell_group_ptr(const std::vector<cell_gid_type>&, const recipe&, cell_label_range& cg_sources, cell_label_range& cg_targets)>;
 
 ARB_ARBOR_API cell_group_factory cell_kind_implementation(
-        cell_kind, backend_kind, const execution_context&);
+        cell_kind, backend_kind, const execution_context&, std::uint64_t = 0);
 
 inline bool cell_kind_supported(
         cell_kind c, backend_kind b, const execution_context& ctx)

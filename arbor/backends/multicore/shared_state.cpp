@@ -16,6 +16,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -203,7 +204,8 @@ shared_state::shared_state(
     const std::vector<arb_value_type>& temperature_K,
     const std::vector<arb_value_type>& diam,
     const std::vector<arb_index_type>& src_to_spike,
-    unsigned align
+    unsigned align,
+    arb_seed_type cbprng_seed_
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
@@ -224,6 +226,7 @@ shared_state::shared_state(
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
+    cbprng_seed(cbprng_seed_),
     deliverable_events(n_intdom)
 {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
@@ -464,6 +467,31 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
+void shared_state::update_prng_state(mechanism& m) {
+    if (!m.mech_.n_random_variables) return;
+    const auto mech_id = m.mechanism_id();
+    auto& store = storage[mech_id];
+    const auto counter = store.random_number_update_counter_++;
+    const auto cache_idx = cbprng::cache_index(counter);
+
+    m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
+
+    if (cache_idx == 0) {
+        // Generate random numbers every cbprng::cache_size() iterations:
+        // For each random variable we will generate cbprng::cache_size() values per site
+        // and there are width sites.
+        // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
+        // current site's global cell, the site index within its cell and a counter representing
+        // time.
+        const auto num_rv = store.random_numbers_[cache_idx].size();
+        const auto width_padded = store.value_width_padded;
+        const auto width = m.ppack_.width;
+        arb_value_type* dst = store.random_numbers_[0][0];
+        generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter,
+            store.gid_.data(), store.idx_.data());
+    }
+}
+
 // The derived class (typically generated code from modcc) holds pointers that need
 // to be set to point inside the shared state, or into the allocated parameter/variable
 // data block.
@@ -512,6 +540,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];
 
+    // store indices for random number generation
+    store.gid_ = pos_data.gid;
+    store.idx_ = pos_data.idx;
+
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
     store.parameters_.resize(m.mech_.n_parameters); m.ppack_.parameters = store.parameters_.data();
@@ -537,9 +569,17 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     // Initialize state and parameter vectors with default values.
     {
+        // Allocate view pointers for random nubers
+        std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
+        std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
+        for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+        m.ppack_.random_numbers = store.random_numbers_[0].data();
+
         // Allocate bulk storage
         std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*value_width_padded + m.mech_.n_globals;
+        store.value_width_padded = value_width_padded;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
+            random_number_storage)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
         chunk_writer writer(store.data_.data(), value_width_padded);
 
@@ -552,6 +592,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
+        // Set random numbers
+        for (auto idx_v: make_span(num_random_numbers_per_cv))
+            for (auto idx_c: make_span(cbprng::cache_size()))
+                store.random_numbers_[idx_c][idx_v] = writer.fill(0);
 
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
