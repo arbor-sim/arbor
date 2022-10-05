@@ -222,7 +222,7 @@ simulation_state::simulation_state(
 
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
-    communicator_ = communicator(rec, ddc_, source_resolution_map_, target_resolution_map_, *ctx_);
+    communicator_ = communicator(rec, ddc_, *ctx_);
     update(rec);
     epoch_.reset();
 }
@@ -267,7 +267,6 @@ void simulation_state::update(const connectivity& rec) {
     event_lanes_[0].resize(num_local_cells);
     event_lanes_[1].resize(num_local_cells);
 }
-
 
 void simulation_state::reset() {
     epoch_ = epoch();

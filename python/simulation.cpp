@@ -67,6 +67,16 @@ public:
         }
     }
 
+    void update(std::shared_ptr<py_recipe>& rec) {
+        try {
+            sim_->update(py_recipe_shim(rec));
+        }
+        catch (...) {
+            py_reset_and_throw();
+            throw;
+        }
+    }
+
     void reset() {
         sim_->reset();
         spike_record_.clear();
@@ -92,10 +102,6 @@ public:
 
     void set_binning_policy(arb::binning_kind policy, arb::time_type bin_interval) {
         sim_->set_binning_policy(policy, bin_interval);
-    }
-
-    void update(std::shared_ptr<py_recipe>& rec) {
-        sim_->update(py_recipe_shim(rec));
     }
 
     void record(spike_recording policy) {
@@ -222,6 +228,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"),
              pybind11::arg_v("seed", 0u, "Random number generator seed"))
         .def("update", &simulation_shim::update,
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
              "Rebuild the connection table from recipe::connections_on and the event"
              "generators based on recipe::event_generators.",
              "recipe"_a)
