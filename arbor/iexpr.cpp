@@ -286,13 +286,10 @@ struct step: public iexpr_interface {
 
     double eval(const mprovider& p, const mcable& c) const override {
         double x = value->eval(p, c);
-        if (x > 0) {
-            return 1.0;
-        } else if (x < 0) {
-            return 0.0;
-        } else {
-            return 0.5;
-        }
+        // x <  0:  0
+        // x == 0:  0.5
+        // x >  0:  1
+        return 0.5*((0. < x) - (x < 0.) + 1);
     }
 
     iexpr_ptr value;
