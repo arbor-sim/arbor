@@ -2,13 +2,13 @@
 # unit tests for the driver also use this library.
 
 set(libmodcc_sources
-
     astmanip.cpp
     blocks.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp
     functioninliner.cpp
+    procinliner.cpp
     lexer.cpp
     kineticrewriter.cpp
     linearrewriter.cpp

@@ -10,6 +10,7 @@
 #include "errorvisitor.hpp"
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
+#include "procinliner.hpp"
 #include "kineticrewriter.hpp"
 #include "linearrewriter.hpp"
 #include "module.hpp"
@@ -905,8 +906,14 @@ int Module::semantic_func_proc() {
     }
 
     auto inline_and_simplify = [&](auto&& caller) {
-        auto rewritten = inline_function_calls(caller->name(), caller->body());
-        caller->body(std::move(rewritten));
+        {
+            auto rewritten = inline_function_calls(caller->name(), caller->body());
+            caller->body(std::move(rewritten));
+        }
+        {
+            auto rewritten = inline_procedure_calls(caller->name(), caller->body());
+            caller->body(std::move(rewritten));
+        }
         caller->body(constant_simplify(caller->body()));
     };
 

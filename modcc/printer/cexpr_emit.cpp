@@ -349,9 +349,9 @@ void SimdExprEmitter::visit(BlockExpression* block) {
 
 void SimdExprEmitter::visit(CallExpression* e) {
     if(is_indirect_)
-        out_ << e->name() << "(index_";
+        out_ << e->name() << "(pp, index_";
     else
-        out_ << e->name() << "(i_";
+        out_ << e->name() << "(pp, i_";
 
     if (processing_true_ && !current_mask_.empty()) {
         out_ << ", " << current_mask_;
