@@ -502,6 +502,169 @@ void SparseSolverVisitor::finalize() {
     BlockRewriterBase::finalize();
 }
 
+// EulerMaruyama solver visitor implementation
+
+void EulerMaruyamaSolverVisitor::visit(AssignmentExpression *e) {
+    auto lhs = e->lhs();
+    auto rhs = e->rhs();
+    auto deriv = lhs->is_derivative();
+
+    if (!deriv) {
+        // add to substitute map if regular assignment involves white noise
+        auto orig = e->clone();
+        auto id = lhs->is_identifier();
+        if (id) {
+            auto expand = substitute(rhs, local_expr_);
+            if (involves_identifier(expand, wvars_))
+                local_expr_[id->spelling()] = std::move(expand);
+            else
+                statements_.push_back(std::move(orig));
+        }
+        else {
+            statements_.push_back(std::move(orig));
+        }
+    }
+    else {
+        // expand the rhs of the derivative with substitute map
+        auto expanded_rhs = substitute(rhs, local_expr_);
+
+        // get the determinsitc part: f
+        Location loc = e->location();
+        auto rhs_deterministic = expanded_rhs->clone();
+        for (auto w : wvars_) {
+            auto zero_expr = make_expression<NumberExpression>(loc, 0.0);
+            rhs_deterministic = substitute(rhs_deterministic, w,  zero_expr);
+        }
+        rhs_deterministic = constant_simplify(rhs_deterministic);
+        f_.push_back(std::move(rhs_deterministic));
+
+        // get the white noise coefficients
+        auto r = linear_test(expanded_rhs, wvars_);
+        if (!r.is_linear) {
+            error({"System is not a valid SDE", e->location()});
+            return;
+        }
+        for (unsigned k=0; k<wvars_.size(); ++k) {
+            auto const & w = wvars_[k];
+            if (r.coef.count(w))
+                L_[k].push_back(std::move(r.coef[w]));
+            else
+                L_[k].push_back(make_expression<IntegerExpression>(loc, 0));
+        }
+        // push back placeholder
+        statements_.push_back(make_expression<IdentifierExpression>(loc, deriv->name()));
+    }
+}
+
+void EulerMaruyamaSolverVisitor::visit(BlockExpression* e) {
+
+    // scaling factor for white noise: s = sqrt(dt)
+    auto dt_expr = make_expression<IdentifierExpression>(Location{}, "dt");
+    auto half_expr = make_expression<NumberExpression>(Location{}, 0.5);
+    auto wscale_expr = binary_expression(Location{}, tok::pow, std::move(dt_expr), std::move(half_expr));
+    auto wscale = make_unique_local_assign(e->scope(), wscale_expr, "s_");
+    wscale_ = wscale.id->is_identifier()->spelling();
+    statements_.push_back(std::move(wscale.local_decl));
+    statements_.push_back(std::move(wscale.assignment));
+
+    // white noise w
+    for (auto const& w : wvars_) {
+        // check if symbol is present
+        auto w_symbol = e->scope()->find(w);
+        if (!w_symbol) {
+            error({"couldn't find symbol", e->location()});
+            return;
+        }
+
+        // scaled white noise w_i = s * w
+        auto wscale = make_expression<IdentifierExpression>(Location{}, wscale_);
+        auto ww = make_expression<IdentifierExpression>(Location{}, w);
+        ww->is_identifier()->symbol(w_symbol);
+        auto w_ = binary_expression(Location{}, tok::times, std::move(wscale), std::move(ww));
+        auto temp_wvar_term = make_unique_local_assign(e->scope(), w_, "w_");
+        auto temp_wvar = temp_wvar_term.id->is_identifier()->spelling();
+        wvars_id_.push_back(temp_wvar);
+        statements_.push_back(std::move(temp_wvar_term.local_decl));
+        statements_.push_back(std::move(temp_wvar_term.assignment));
+    }
+
+    // Do a first pass to extract variables comprising ODE system
+    // lhs; can't really trust 'STATE' block.
+    for (auto& stmt: e->statements()) {
+        if (stmt && stmt->is_assignment() && stmt->is_assignment()->lhs()->is_derivative()) {
+            auto id = stmt->is_assignment()->lhs()->is_derivative();
+            dvars_.push_back(id->name());
+        }
+    }
+
+    BlockRewriterBase::visit(e);
+}
+
+void EulerMaruyamaSolverVisitor::finalize() {
+    if (has_error()) return;
+
+    // filter out unused white noise
+    std::vector<std::string> wvars_new;
+    std::vector<std::string> wvars_id_new;
+    std::vector<std::vector<expression_ptr>> L_new;
+    for (unsigned k=0; k<wvars_.size(); ++k) {
+        bool used = false;
+        for (auto& coef : L_[k]){
+            if (!is_zero(coef)) {
+                used = true;
+                break;
+            }
+        }
+        if (used) {
+            wvars_new.push_back(std::move(wvars_[k]));
+            wvars_id_new.push_back(std::move(wvars_id_[k]));
+            L_new.push_back( std::move(L_[k]) );
+        }
+    }
+    wvars_ = std::move(wvars_new);
+    wvars_id_ = std::move(wvars_id_new);
+    L_ = std::move(L_new);
+
+    // update the state variables
+    for (unsigned i = 0; i < dvars_.size(); ++i) {
+        // find placeholder expression
+        auto placeholder_expr_iter = std::find_if(statements_.begin(), statements_.end(),
+            [name=dvars_[i]](expression_ptr const & e) {
+                return e->is_identifier() && (e->is_identifier()->spelling() == name); });
+        if (placeholder_expr_iter == statements_.end()) {
+            error({"inconsistent ordering of derivative assignments"});
+            return;
+        }
+        Location loc = (*placeholder_expr_iter)->location();
+
+        // deterministic part: rhs = x + f dt
+        auto rhs = binary_expression(loc, tok::plus, 
+            make_expression<IdentifierExpression>(loc, dvars_[i]),
+                binary_expression(loc, tok::times,
+                    f_[i]->clone(),
+                    make_expression<IdentifierExpression>(loc, "dt")));
+
+        // stochastic part: rhs = rhs + Σ_k l_k dW_k
+        for (unsigned k=0; k<wvars_.size(); ++k) {
+            rhs = binary_expression(loc, tok::plus, rhs->clone(),
+                constant_simplify(
+                    binary_expression(loc, tok::times, L_[k][i]->clone(),
+                        make_expression<IdentifierExpression>(loc, wvars_id_[k]))));
+            rhs = constant_simplify(rhs);
+        }
+
+        // update state: x = rhs
+        auto expr = make_expression<AssignmentExpression>(loc,
+            make_expression<IdentifierExpression>(loc, dvars_[i]), std::move(rhs));
+
+        // replace placeholder expression
+        *placeholder_expr_iter = std::move(expr);
+    }
+}
+
+
+// Linear solver vistior implementation
+
 void LinearSolverVisitor::visit(BlockExpression* e) {
     BlockRewriterBase::visit(e);
 }

@@ -90,7 +90,7 @@ ARB_ARBOR_API void merge_cell_events(
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
     void update(const connectivity& rec);
 
@@ -189,7 +189,8 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        context ctx
+        context ctx,
+        arb_seed_type seed
     ):
     ctx_{ctx},
     ddc_{decomp},
@@ -205,7 +206,7 @@ simulation_state::simulation_state(
         [&](cell_group_ptr& group, int i) {
           const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
-          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_);
+          auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
 
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
@@ -221,7 +222,7 @@ simulation_state::simulation_state(
 
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
-    communicator_ = communicator(rec, ddc_, source_resolution_map_, target_resolution_map_, *ctx_);
+    communicator_ = communicator(rec, ddc_, *ctx_);
     update(rec);
     epoch_.reset();
 }
@@ -266,7 +267,6 @@ void simulation_state::update(const connectivity& rec) {
     event_lanes_[0].resize(num_local_cells);
     event_lanes_[1].resize(num_local_cells);
 }
-
 
 void simulation_state::reset() {
     epoch_ = epoch();
@@ -515,12 +515,15 @@ void simulation_state::inject_events(const cse_vector& events) {
 
 // Simulation class implementations forward to implementation class.
 
+simulation_builder simulation::create(recipe const & rec) { return {rec}; };
+
 simulation::simulation(
     const recipe& rec,
     context ctx,
-    const domain_decomposition& decomp)
+    const domain_decomposition& decomp,
+    arb_seed_type seed)
 {
-    impl_.reset(new simulation_state(rec, decomp, ctx));
+    impl_.reset(new simulation_state(rec, decomp, ctx, seed));
 }
 
 void simulation::reset() {
@@ -580,6 +583,8 @@ void simulation::set_epoch_callback(epoch_function epoch_callback) {
 void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
+
+simulation::simulation(simulation&&) = default;
 
 simulation::~simulation() = default;
 

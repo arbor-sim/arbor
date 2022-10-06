@@ -731,6 +731,32 @@ TEST(Parser, parse_state_block) {
     }
 }
 
+TEST(Parser, parse_white_noise_block) {
+    const char* white_noise_blocks[] = {
+        "WHITE_NOISE {\n"
+        "    a b c\n"
+        "}",
+        "WHITE_NOISE {\n"
+        "    a\n"
+        "    b c\n"
+        "}",
+        "WHITE_NOISE {\n"
+        "    a b\n"
+        "    c\n"
+        "}"};
+
+    expression_ptr null;
+    for (const auto& text: white_noise_blocks) {
+        Module m(text, text + std::strlen(text), "");
+        Parser p(m, false);
+        p.parse_white_noise_block();
+        EXPECT_EQ(lexerStatus::happy, p.status());
+        verbose_print(null, p, text);
+        EXPECT_EQ(m.white_noise_block().parameters.size(), 3u);
+        EXPECT_EQ(m.white_noise_block().used.size(), 0u);
+    }
+}
+
 static std::vector<IonDep> extract_useion(const std::string& neuron_block) {
     Module m(neuron_block, "dummy");
     Parser p(m, false);

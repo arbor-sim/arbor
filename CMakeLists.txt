@@ -46,6 +46,8 @@ option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires B
 
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
 set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
+option(ARB_USE_GPU_RNG
+    "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF)
 
 # Use bundled 3rd party libraries
 
@@ -396,6 +398,15 @@ set(modcc $<TARGET_FILE:modcc>)
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
+endif()
+
+# Random number creation
+# -----------------------------------------------
+
+if(ARB_USE_GPU_RNG AND (ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG))
+    set(ARB_USE_GPU_RNG_IMPL TRUE)
+else()
+    set(ARB_USE_GPU_RNG_IMPL FALSE)
 endif()
 
 #----------------------------------------------------------

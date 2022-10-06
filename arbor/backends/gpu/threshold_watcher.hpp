@@ -110,7 +110,6 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test(array* time_since_spike) {
-        arb_assert(values_);
 
         if (size()>0) {
             test_thresholds_impl(
