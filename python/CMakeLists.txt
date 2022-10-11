@@ -16,7 +16,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # instead of using find_package.
   add_subdirectory(${pb11_src_dir} pybind11)
 else()
-  find_package(pybind11 2.8.1 REQUIRED)
+  find_package(pybind11 2.10.0 REQUIRED)
 endif()
 
 set(pyarb_source
