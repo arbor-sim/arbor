@@ -19,7 +19,7 @@ decor = (
     .set_property(Vm=-40)
     .paint('"soma"', arbor.density("hh"))
     .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
-    .place('"midpoint"', arbor.spike_detector(-10), "detector")
+    .place('"midpoint"', arbor.threshold_detector(-10), "detector")
 )
 
 # (4) Create cell and the single cell model based on it

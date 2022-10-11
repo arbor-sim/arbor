@@ -57,11 +57,21 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
-            sim_.reset(new arb::simulation(py_recipe_shim(rec), ctx.context, decomp));
+            sim_.reset(new arb::simulation(py_recipe_shim(rec), ctx.context, decomp, seed));
+        }
+        catch (...) {
+            py_reset_and_throw();
+            throw;
+        }
+    }
+
+    void update(std::shared_ptr<py_recipe>& rec) {
+        try {
+            sim_->update(py_recipe_shim(rec));
         }
         catch (...) {
             py_reset_and_throw();
@@ -94,10 +104,6 @@ public:
 
     void set_binning_policy(arb::binning_kind policy, arb::time_type bin_interval) {
         sim_->set_binning_policy(policy, bin_interval);
-    }
-
-    void update(std::shared_ptr<py_recipe>& rec) {
-        sim_->update(py_recipe_shim(rec));
     }
 
     void record(spike_recording policy) {
@@ -203,11 +209,12 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def(pybind11::init(
                  [global_ptr](std::shared_ptr<py_recipe>& rec,
                               const std::shared_ptr<context_shim>& ctx_,
-                              const std::optional<arb::domain_decomposition>& decomp) {
+                              const std::optional<arb::domain_decomposition>& decomp,
+                              std::uint64_t seed) {
                 try {
                     auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(arb::make_context({arbenv::thread_concurrency(),-1}));
                     auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
-                    return new simulation_shim(rec, *ctx, dec, global_ptr);
+                    return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
                 }
                 catch (...) {
                     py_reset_and_throw();
@@ -220,8 +227,10 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "according to the domain decomposition and computational resources described by a context.",
              "recipe"_a,
              pybind11::arg_v("context", pybind11::none(), "Execution context"),
-             pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"))
+             pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"),
+             pybind11::arg_v("seed", 0u, "Random number generator seed"))
         .def("update", &simulation_shim::update,
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
              "Rebuild the connection table from recipe::connections_on and the event"
              "generators based on recipe::event_generators.",
              "recipe"_a)

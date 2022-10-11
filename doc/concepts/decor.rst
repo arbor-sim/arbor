@@ -22,7 +22,7 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 
   * :ref:`Synapse mechanisms <cablecell-synapses>`.
   * :ref:`Gap junction mechanisms <cablecell-gj-mechs>`.
-  * :ref:`Threshold detectors <cablecell-threshold-detectors>` (spike detectors).
+  * :ref:`Threshold detectors <cablecell-threshold-detectors>`
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
 
@@ -353,19 +353,19 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
 
 .. _cablecell-threshold-detectors:
 
-2. Threshold detectors (spike detectors).
+2. Threshold detectors.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Spike detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
+Threshold detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
 between cells. An example where we're interested in when a threshold of ``-10 mV`` is reached:
 
 .. code-block:: Python
 
-    # Placing a spike detector might look like this.
+    # Placing a threshold detector might look like this.
     decor = arbor.decor()
-    decor.place('"root"', arbor.spike_detector(-10), "my_spike_detector")
+    decor.place('"root"', arbor.threshold_detector(-10), "detector")
 
-    # At this point, "my_spike_detector" could be connected to another cell,
+    # At this point, "detector" could be connected to another cell,
     # and it would transmit events upon the voltage crossing the threshold.
 
     # Just printing those spike times goes as follows.
@@ -376,7 +376,7 @@ between cells. An example where we're interested in when a threshold of ``-10 mV
     for sp in sim.spikes():
         print(" ", sp)
 
-See also :term:`spike detector`.
+See also :term:`threshold detector`.
 
 .. _cablecell-gj-mechs:
 

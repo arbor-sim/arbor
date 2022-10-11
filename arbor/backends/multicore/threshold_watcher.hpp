@@ -67,7 +67,8 @@ public:
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
     void test(array* time_since_spike) {
-        arb_assert(values_);
+        // either number of cvs is 0 or values_ is not null
+        arb_assert((n_cv_ == 0) || (bool)values_);
 
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
         const arb_value_type* t_before = t_before_ptr_->data();

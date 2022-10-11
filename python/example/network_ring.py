@@ -64,8 +64,8 @@ def make_cable_cell(gid):
         .paint('"soma"', arbor.density("hh")).paint('"dend"', arbor.density("pas"))
         # (4) Attach a single synapse.
         .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
-        # Attach a spike detector with threshold of -10 mV.
-        .place('"root"', arbor.spike_detector(-10), "detector")
+        # Attach a detector with threshold of -10 mV.
+        .place('"root"', arbor.threshold_detector(-10), "detector")
     )
 
     return arbor.cable_cell(tree, labels, decor)

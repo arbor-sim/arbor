@@ -11,7 +11,7 @@ reduced to a simple time value. The connection is abstracted into a weight and a
 delay; modelling all axonal processes. While this may seem crude, it is a well
 supported model and commonly used in neuronal simulations.
 
-Connections are formed between sources (cable cell: spike detectors) and targets
+Connections are formed between sources (cable cell: threshold detectors) and targets
 (cable cell: synapses). During runtime, events from all sources are concatenated
 on all MPI ranks using ``Allgatherv`` and targets are responsible for selecting
 events they have subscribed to. This is optimised for by sorting events locally

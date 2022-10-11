@@ -263,6 +263,60 @@ In NMODL, junction mechanisms are identified using the ``JUNCTION_PROCESS`` keyw
     ``JUNCTION_PROCESS`` is an Arbor-specific extension to NMODL. The NMODL description of gap-junction
     mechanisms in arbor is not identical to NEURON's though it is similar.
 
+.. _mechanisms-sde:
+
+Stochastic Processes
+''''''''''''''''''''
+
+Arbor offers support for stochastic processes at the level of
+:ref:`point mechanisms <mechanisms-point>` and :ref:`density mechanisms <mechanisms-density>`.
+These processes can be modelled as systems of stochastic differential equations (SDEs). In general,
+such equations have the differential form:
+
+.. math::
+
+    d\textbf{X}(t) = \textbf{f}(t, \textbf{X}(t)) dt + \sum_{i=0}^{M-1} \textbf{l}_i(t,\textbf{X}(t)) d B_i(t),
+
+where :math:`\textbf{X}` is the vector of state variables, while the vector valued function
+:math:`\textbf{f}` represents the deterministic differential. The *M* functions :math:`\textbf{l}_i`
+are each associated with the Brownian Motion :math:`B_i` (Wiener process). The Brownian motions are
+assumed to be standard: 
+
+.. math::
+
+    \begin{align*}
+    B_i(0) &= 0 \\
+    E[B_i(t)] &= 0 \\
+    E[B_i^2(t)] &= t
+    \end{align*}
+
+The above differential form is an informal way of expressing the corresponding integral equation,
+
+.. math::
+
+    \textbf{X}(t+s) = \textbf{X}(t) + \int_t^{t+s} \textbf{f}(\tau, \textbf{X}(\tau)) d\tau + \sum_{i=0}^{M-1} \int_t^{t+s} \textbf{l}_i(\tau,\textbf{X}(\tau)) d B_i(\tau).
+
+
+By defining a random process called **stationary white noise** as the formal derivative
+:math:`W_i(t) = \dfrac{d B_i(t)}{dt}`, we can write the system of equations using a shorthand
+notation as
+
+.. math::
+
+    \textbf{X}^\prime(t) = \textbf{f}(t, \textbf{X}(t)) + \sum_{i=0}^{M-1} \textbf{l}_i(t,\textbf{X}(t)) W_i(t)
+
+Since we used standard Brownian Motions above, the withe noises :math:`W_i(t)` are Gaussian for all
+*t* with :math:`\mu=0`, :math:`\sigma^2=1`.
+
+In Arbor, the white noises :math:`W_i` are assumed to be independent of each other. Furthermore,
+each connection end point (point mechanism) or control volume (density mechanism) are assumed to
+generate independent noise, as well. The system of stochastic equations is interpreted in the `Itô
+sense <https://en.wikipedia.org/wiki/It%C3%B4_calculus>`_ and numerically solved using the
+Euler-Maruyama method.
+For specifics about the notation to define stochastic processes, please
+consult the :ref:`Arbor-specific NMODL extension <format-sde>`.
+
+
 API
 ---
 

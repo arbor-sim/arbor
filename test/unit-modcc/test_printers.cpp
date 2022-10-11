@@ -290,13 +290,19 @@ TEST(SimdPrinter, simd_if_else) {
             "indirect(_pp_var_s+i_, simd_width_) = S::where(S::logical_and(S::logical_not(mask_1_), mask_input_),simd_cast<simd_value>((double)42.0));\n"
             "indirect(_pp_var_s+i_, simd_width_) = S::where(mask_input_, u);"
             ,
+            "simd_value r_0_;"
             "simd_mask mask_2_ = S::cmp_gt(simd_cast<simd_value>(indirect(_pp_var_g+i_, simd_width_)), (double)2.0);\n"
             "simd_mask mask_3_ = S::cmp_gt(simd_cast<simd_value>(indirect(_pp_var_g+i_, simd_width_)), (double)3.0);\n"
             "S::where(S::logical_and(mask_2_,mask_3_),i) = (double)0.;\n"
             "S::where(S::logical_and(mask_2_,S::logical_not(mask_3_)),i) = (double)1.0;\n"
             "simd_mask mask_4_ = S::cmp_lt(simd_cast<simd_value>(indirect(_pp_var_g+i_, simd_width_)), (double)1.0);\n"
             "indirect(_pp_var_s+i_, simd_width_) = S::where(S::logical_and(S::logical_not(mask_2_),mask_4_),simd_cast<simd_value>((double)2.0));\n"
-            "rates(i_, S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)), i);"
+            // This is the inlined call rates(pp, i_, S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)), i);
+            "simd_maskmask_5_=S::cmp_gt(i,(double)2.0);"
+            "S::where(S::logical_and(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),mask_5_),r_0_)=(double)7.0;"
+            "S::where(S::logical_and(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),S::logical_not(mask_5_)),r_0_)=(double)5.0;"
+            "indirect(_pp_var_s+i_,simd_width_)=S::where(S::logical_and(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),S::logical_not(mask_5_)),simd_cast<simd_value>((double)42.0));"
+            "indirect(_pp_var_s+i_,simd_width_)=S::where(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),r_0_);"
     };
 
     Module m(io::read_all(DATADIR "/mod_files/test7.mod"), "test7.mod");
