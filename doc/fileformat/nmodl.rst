@@ -346,8 +346,9 @@ a term similar to
    q = 3^(0.1*celsius - 0.63)
 
 Here, we find that the cost of the exponential when computing ``q`` in the
-``DERIVATIVE`` block is high enough to justify this pattern (here simplified
-from ``hh.mod`` in the Arbor sources)
+``DERIVATIVE`` block is high enough to make pre-computing ``q`` in ``INITIAL``
+and loading the value later an optimisation. Shown below is a simplified version
+of this pattern from ``hh.mod`` in the Arbor sources
 
 .. code::
 
