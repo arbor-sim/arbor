@@ -45,9 +45,7 @@ TEST(matrix, solve_host)
         solver_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1), {0});
         fill(m.d,  2);
         fill(m.u, -1);
-        fill(m.rhs,1);
-
-        auto x = array({0});
+        array x({1});
         m.solve(x);
 
         EXPECT_EQ(x[0], 0.5);
@@ -65,11 +63,8 @@ TEST(matrix, solve_host)
 
             fill(m.d,  2);
             fill(m.u, -1);
-            fill(m.rhs,1);
+            auto x = array(n, 1);
 
-
-            auto x = array();
-            x.resize(n);
             m.solve(x);
 
             auto err = math::square(std::fabs(2.*x[0] - x[1] - 1.));
@@ -103,12 +98,11 @@ TEST(matrix, zero_diagonal)
 
     assign(m.d,   vvec({2,  3,  2, 0,  0,  4,  5}));
     assign(m.u,   vvec({0, -1, -1, 0, -1,  0, -2}));
-    assign(m.rhs, vvec({3,  5,  7, 7,  8, 16, 32}));
 
     // Expected solution:
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
-    auto x = array({0, 0, 0, 0, 0, 0, 0});
+    auto x = vvec({3,  5,  7, 7,  8, 16, 32});
     m.solve(x);
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
@@ -142,7 +136,7 @@ TEST(matrix, zero_diagonal_assembled)
     vvec Cm = {1, 1, 1, 1, 1, 2, 3};
 
     // Initial voltage of zero; currents alone determine rhs.
-    array v(7, 0.0);
+    auto v = vvec{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     vvec area(7, 1.0);
 
     // (Scaled) membrane conductances contribute to diagonal.
@@ -158,24 +152,18 @@ TEST(matrix, zero_diagonal_assembled)
     // x = [ 4 5 6 7 8 9 10 ]
 
     solver_type m(p, c, Cm, g, area, s);
-    m.assemble(dt, v, i, mg);
-
-    auto x = array({0, 0, 0, 0, 0, 0, 0});
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
-    m.solve(x);
-    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+    m.solve(v, dt, i, mg);
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, v));
 
     // Set dt of 2nd (middle) submatrix to zero. Solution
     // should then return voltage values for that submatrix.
 
     dt[1] = 0;
-    v[3] = -20;
-    v[4] = -30;
-    m.assemble(dt, v, i, mg);
-    m.solve(x);
-
+    v = vvec{0.0, 0.0, 0.0, -20.0, -30.0, 0.0, 0.0};
+    m.solve(v, dt, i, mg);
     expected = {4, 5, 6, -20, -30, 9, 10};
 
-    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, v));
 }

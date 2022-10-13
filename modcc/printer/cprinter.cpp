@@ -49,9 +49,6 @@ struct index_prop {
     }
 };
 
-void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
-void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
-void emit_masked_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string&, const std::string& qualified = "");
 void emit_api_body(std::ostream&, APIMethod*, const ApiFlags& flags={});
 void emit_simd_api_body(std::ostream&, APIMethod*, const std::vector<VariableExpression*>& scalars, const ApiFlags&);
 void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& indices, simd_expr_constraint constraint);
@@ -122,7 +119,6 @@ struct simdprint {
 ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     auto name           = module_.module_name();
     auto namespace_name = "kernel_" + name;
-    auto ppack_name     = "arb_mechanism_ppack";
     auto ns_components  = namespace_components(opt.cpp_namespace);
 
     APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
@@ -243,7 +239,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         }
     };
 
-    const auto& [state_ids, global_ids, param_ids] = public_variable_ids(module_);
+    const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
     const auto& assigned_ids = module_.assigned_block().parameters;
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
@@ -270,6 +266,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
         global++;
     }
+    out << fmt::format("[[maybe_unused]] auto const * const * {}random_numbers = pp->random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
         out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
@@ -289,23 +286,10 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         out << fmt::format("[[maybe_unused]] auto* {}{} = pp->ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
         idx++;
     }
-    out << "//End of IFACEBLOCK\n\n";
-
-    out << "// procedure prototypes\n";
-    for (auto proc: normal_procedures(module_)) {
-        if (with_simd) {
-            emit_simd_procedure_proto(out, proc, ppack_name);
-            out << ";\n";
-            emit_masked_simd_procedure_proto(out, proc, ppack_name);
-            out << ";\n";
-        } else {
-            emit_procedure_proto(out, proc, ppack_name);
-            out << ";\n";
-        }
-    }
-    out << "\n"
-        << "// interface methods\n";
-    out << "static void init(arb_mechanism_ppack* pp) {\n" << indent;
+    out << "//End of IFACEBLOCK\n\n"
+        << "\n"
+        << "// interface methods\n"
+        << "static void init(arb_mechanism_ppack* pp) {\n" << indent;
     emit_body(init_api);
     if (init_api && init_api->body() && !init_api->body()->statements().empty()) {
         auto n = std::count_if(vars.arrays.begin(), vars.arrays.end(),
@@ -373,36 +357,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         out << "static void post_event(arb_mechanism_ppack*) {}\n";
     }
 
-    out << "\n// Procedure definitions\n";
-    for (auto proc: normal_procedures(module_)) {
-        if (with_simd) {
-            emit_simd_procedure_proto(out, proc, ppack_name);
-            auto simd_print = simdprint(proc->body(), vars.scalars);
-            out << " {\n"
-                << indent
-                << "PPACK_IFACE_BLOCK;\n"
-                << simd_print
-                << popindent
-                << "}\n\n";
-
-            emit_masked_simd_procedure_proto(out, proc, ppack_name);
-            auto masked_print = simdprint(proc->body(), vars.scalars);
-            masked_print.set_masked();
-            out << " {\n"
-                << indent
-                << "PPACK_IFACE_BLOCK;\n"
-                << masked_print
-                << popindent
-                << "}\n\n";
-        } else {
-            emit_procedure_proto(out, proc, ppack_name);
-            out << " {\n" << indent
-                << "PPACK_IFACE_BLOCK;\n"
-                << cprint(proc->body())
-                << popindent << "}\n";
-        }
-    }
-
     out << popindent
         << "#undef PPACK_IFACE_BLOCK\n"
         << "} // namespace kernel_" << name
@@ -448,6 +402,10 @@ void CPrinter::visit(LocalVariable* sym) {
     out_ << sym->name();
 }
 
+void CPrinter::visit(WhiteNoise* sym) {
+    out_ << fmt::format("{}random_numbers[{}][i_]", pp_var_pfx, sym->index());
+}
+
 void CPrinter::visit(VariableExpression *sym) {
     out_ << fmt::format("{}{}{}", pp_var_pfx, sym->name(), sym->is_range() ? "[i_]": "");
 }
@@ -488,14 +446,6 @@ void CPrinter::visit(BlockExpression* block) {
 
 static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
-}
-
-void emit_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
-    out << "[[maybe_unused]] static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(" << ppack_name << "* pp, int i_";
-    for (auto& arg: e->args()) {
-        out << ", arb_value_type " << arg->is_argument()->name();
-    }
-    out << ")";
 }
 
 namespace {
@@ -652,6 +602,12 @@ void SimdPrinter::visit(VariableExpression *sym) {
     EXITM(out_, "variable");
 }
 
+void SimdPrinter::visit(WhiteNoise* sym) {
+    auto index = is_indirect_? "index_": "i_";
+    out_ << fmt::format("simd_cast<simd_value>(indirect({}random_numbers[{}]+{}, simd_width_))",
+        pp_var_pfx, sym->index(), index);
+}
+
 void SimdPrinter::visit(AssignmentExpression* e) {
     ENTERM(out_, "assign");
     if (!e->lhs() || !e->lhs()->is_identifier() || !e->lhs()->is_identifier()->symbol()) {
@@ -746,27 +702,6 @@ void SimdPrinter::visit(BlockExpression* block) {
         }
     }
     EXITM(out_, "block");
-}
-
-void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
-    ENTER(out);
-    out << "[[maybe_unused]] static void " << qualified << (qualified.empty()? "": "::") << e->name() << "(arb_mechanism_ppack* pp, arb_index_type i_";
-    for (auto& arg: e->args()) {
-        out << ", const simd_value& " << arg->is_argument()->name();
-    }
-    out << ")";
-    EXIT(out);
-}
-
-void emit_masked_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& ppack_name, const std::string& qualified) {
-    ENTER(out);
-    out << "[[maybe_unused]] static void " << qualified << (qualified.empty()? "": "::") << e->name()
-    << "(arb_mechanism_ppack* pp, arb_index_type i_, simd_mask mask_input_";
-    for (auto& arg: e->args()) {
-        out << ", const simd_value& " << arg->is_argument()->name();
-    }
-    out << ")";
-    EXIT(out);
 }
 
 void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_constraint constraint) {

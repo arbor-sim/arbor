@@ -103,6 +103,9 @@ bool Parser::parse() {
         case tok::assigned:
             parse_assigned_block();
             break;
+        case tok::white_noise:
+            parse_white_noise_block();
+            break;
         // INITIAL, KINETIC, DERIVATIVE, PROCEDURE, NET_RECEIVE and BREAKPOINT blocks
         // are all lowered to ProcedureExpression
         case tok::net_receive:
@@ -661,6 +664,66 @@ ass_exit:
     // only write error message if one hasn't already been logged by the lexer
     if (!success && status_ == lexerStatus::happy) {
         error(pprintf("ASSIGNED block unexpected symbol '%'", token_.spelling));
+    }
+    return;
+}
+
+void Parser::parse_white_noise_block() {
+    WhiteNoiseBlock block;
+
+    get_token();
+
+    // assert that the block starts with a curly brace
+    if (token_.type != tok::lbrace) {
+        error(pprintf("WHITE_NOISE block must start with a curly brace {, found '%'", token_.spelling));
+        return;
+    }
+
+    int success = 1;
+
+    // there are no use cases for curly brace in an WHITE_NOISE block, so we don't have to count them
+    get_token();
+    while (token_.type != tok::rbrace && token_.type != tok::eof) {
+        int line = location_.line;
+        std::vector<Token> variables; // we can have more than one variable on a line
+
+        // the first token must be ...
+        if (token_.type != tok::identifier) {
+            success = 0;
+            goto wn_exit;
+        }
+        // read all of the identifiers until we run out of identifiers or reach a new line
+        while (token_.type == tok::identifier && line == location_.line) {
+            variables.push_back(token_);
+            get_token();
+        }
+
+        // there must be no paramters at the end of the line
+        if (line == location_.line && token_.type == tok::lparen) {
+            success = 0;
+            goto wn_exit;
+        }
+        else {
+            for (auto const& t: variables) {
+                block.parameters.push_back(Id(t, "", {}));
+            }
+        }
+    }
+
+    // error if EOF before closing curly brace
+    if (token_.type == tok::eof) {
+        error("WHITE_NOISE block must have closing '}'");
+        goto wn_exit;
+    }
+
+    get_token(); // consume closing brace
+
+    module_->white_noise_block(block);
+
+wn_exit:
+    // only write error message if one hasn't already been logged by the lexer
+    if (!success && status_ == lexerStatus::happy) {
+        error(pprintf("WHITE_NOISE block unexpected symbol '%'", token_.spelling));
     }
     return;
 }
@@ -1590,6 +1653,9 @@ expression_ptr Parser::parse_solve() {
             break;
         case tok::sparse:
             method = solverMethod::sparse;
+            break;
+        case tok::stochastic:
+            method = solverMethod::stochastic;
             break;
         default:
             goto solve_statement_error;

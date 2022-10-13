@@ -27,6 +27,7 @@ public:
     void visit(IdentifierExpression*) override;
     void visit(VariableExpression*) override;
     void visit(LocalVariable*) override;
+    void visit(WhiteNoise*) override;
 
     // Delegate low-level emits to cexpr_emit:
     void visit(NumberExpression* e) override { cexpr_emit(e, out_, this); }
@@ -83,6 +84,7 @@ public:
     void visit(VariableExpression*) override;
     void visit(LocalVariable*) override;
     void visit(AssignmentExpression*) override;
+    void visit(WhiteNoise*) override;
 
     void visit(NumberExpression* e) override { simd_expr_emit(e, out_, is_indirect_, input_mask_, scalars_, this); } 
     void visit(UnaryExpression* e)  override { simd_expr_emit(e, out_, is_indirect_, input_mask_, scalars_, this); }

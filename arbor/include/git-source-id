@@ -71,6 +71,8 @@ __end__
 if [ -n "$version_dev" ]; then echo "#define ARB_VERSION_DEV \"${version_dev}\""; fi
 
 for feature in "$@"; do
+    echo "#ifndef ARB_${feature}_ENABLED"
     echo "#define ARB_${feature}_ENABLED"
+    echo "#endif"
 done
 

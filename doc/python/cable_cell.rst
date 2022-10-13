@@ -54,7 +54,7 @@ Cable cells
         # Construct a cable cell.
         cell = arbor.cable_cell(morph, decor, labels)
 
-    .. method:: __init__(morph, decorations, labels)
+    .. method:: __init__(morphology, decorations, labels)
 
         Constructor.
 

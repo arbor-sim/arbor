@@ -123,10 +123,9 @@ TEST(matrix, assemble)
     std::generate(dt.begin(), dt.end(), [&](){return dt_dist(gen);});
 
     // Voltage, current, and conductance values
-    auto result_h = host_array(group_size);
+    auto result_h = host_array(group_size, -64);
     auto x_d = gpu_array(group_size);
-    m_mc.assemble(host_array(dt.begin(), dt.end()), host_array(group_size, -64), host_array(group_size, 10), host_array(group_size, 3));
-    m_mc.solve(result_h);
+    m_mc.solve(result_h, host_array(dt.begin(), dt.end()), host_array(group_size, 10), host_array(group_size, 3));
     m_gpu.assemble(on_gpu(dt), gpu_array(group_size, -64), gpu_array(group_size, 10), gpu_array(group_size, 3));
     m_gpu.solve(x_d);
     auto result_g = on_host(x_d);

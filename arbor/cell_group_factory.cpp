@@ -20,14 +20,14 @@ cell_group_ptr make_cell_group(Args&&... args) {
 }
 
 ARB_ARBOR_API cell_group_factory cell_kind_implementation(
-        cell_kind ck, backend_kind bk, const execution_context& ctx)
+        cell_kind ck, backend_kind bk, const execution_context& ctx, arb_seed_type seed)
 {
     using gid_vector = std::vector<cell_gid_type>;
 
     switch (ck) {
     case cell_kind::cable:
-        return [bk, ctx](const gid_vector& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets) {
-            return make_cell_group<mc_cell_group>(gids, rec, cg_sources, cg_targets, make_fvm_lowered_cell(bk, ctx));
+        return [bk, ctx, seed](const gid_vector& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets) {
+            return make_cell_group<mc_cell_group>(gids, rec, cg_sources, cg_targets, make_fvm_lowered_cell(bk, ctx, seed));
         };
 
     case cell_kind::spike_source:

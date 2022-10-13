@@ -77,3 +77,10 @@ ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, AssignedBlock const&
 
     return os;
 }
+
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, WhiteNoiseBlock const& W) {
+    os << blue("WhiteNoiseBlock")   << std::endl;
+    os << "  parameters : "  << W.parameters << std::endl;
+
+    return os;
+}
