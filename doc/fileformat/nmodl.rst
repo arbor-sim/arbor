@@ -374,6 +374,51 @@ Note that we do not lose accuracy here, since Arbor does not support
 higher-order ODEs and thus will treat ``g`` as a constant across
 a single timestep even if ``g`` actually depends on ``v``.
 
+Using Memory versus Computation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Commonly ion channels need to correct for temperature differences, which yields
+a term similar to
+
+.. code::
+
+   q = 3^(0.1*celsius - 0.63)
+
+Here, we find that the cost of the exponential when computing ``q`` in the
+``DERIVATIVE`` block is high enough to make pre-computing ``q`` in ``INITIAL``
+and loading the value later an optimisation. Shown below is a simplified version
+of this pattern from ``hh.mod`` in the Arbor sources
+
+.. code::
+
+   NEURON {
+     ...
+     RANGE ..., q
+   }
+
+   ASSIGNED { q }
+
+   PARAMETER {
+       ...
+       celsius (degC)
+   }
+
+   STATE { ... }
+
+   BREAKPOINT {
+       SOLVE dS METHOD cnexp
+       ...
+   }
+
+   INITIAL {
+      q = 3^(0.1*celsius - 0.63)
+      ...
+   }
+
+   DERIVATIVE states {
+      ... : uses q
+   }
+
 Specialised Functions
 ~~~~~~~~~~~~~~~~~~~~~
 
