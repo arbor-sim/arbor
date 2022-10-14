@@ -858,7 +858,7 @@ the regions, locsets or iexpr defined in the label dictionary by referring to th
       'root': '(root)',   # typically the start of the soma is at the root of the cell.
       'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
       'axon_end': '(restrict (terminal) (region "axon"))',  # end of the axon.
-      'rad_expr': '(radius 0.5)'}  # iexpr evaluating the radius scaled by 0.5
+      'rad_expr': '(radius 0.5)'  # iexpr evaluating the radius scaled by 0.5
     })
 
 

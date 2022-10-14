@@ -10,5 +10,5 @@ python /path/to/BluePyOpt/examples/simplecell/generate_acc.py --output <output-d
 An Arbor simulation using this cell model can then be launched using
 
 ```shell
-python ../../single_cell_bpo_simple.py simple_cell.json
+python ../../single_cell_bluepyopt_simple.py simple_cell.json
 ```

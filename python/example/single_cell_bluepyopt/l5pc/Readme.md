@@ -9,5 +9,5 @@ python /path/to/BluePyOpt/examples/l5pc/generate_acc.py --output <output-dir> --
 We use the Arbor BBP mechanism catalogue as a substitute for the one in BluePyOpt and an Arbor simulation using this cell model can be launched using
 
 ```shell
-python ../../single_cell_bpo_l5pc.py l5pc.json
+python ../../single_cell_bluepyopt_l5pc.py l5pc.json
 ```

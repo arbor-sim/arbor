@@ -1,8 +1,8 @@
 { 
   "cell_model_name": "simple_cell",
-  "produced_by": "Created by BluePyOpt(1.12.86) at 2022-08-24 12:09:40.488714", 
+  "produced_by": "Created by BluePyOpt(1.12.100) at 2022-10-12 21:36:47.495284", 
   "morphology": {
-     "path": "simple.swc"
+     "original": "simple.swc"
   },
   "label_dict": "simple_cell_label_dict.acc",
   "decor": "simple_cell_decor.acc"

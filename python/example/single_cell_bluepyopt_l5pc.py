@@ -19,32 +19,23 @@ if len(sys.argv) < 2:
 cell_json_filename = sys.argv[1]
 cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
 
-# (2) Create and populate the label dictionary.
+# (2) Define labels for stimuli and voltage recordings.
 
-# Locsets:
+labels["soma_center"] = '(location 0 0.5)'
+labels["dend1"] = '(restrict (distal-translate (proximal ' \
+    '(region "apic")) 660) (proximal-interval (distal (branch 123))))'
 
-# Add a labels for the root of the morphology and all the terminal points
-labels["root"] = "(root)"
-labels["terminal"] = "(terminal)"
-# Add a label for the terminal locations in the "axon" region:
-labels["axon_terminal"] = '(restrict (locset "terminal") (region "axon"))'
+# (3) Define stimulus and spike detector, adjust discretization
 
-# (3) Create and populate the decor.
+decor.place('"soma_center"',
+            arbor.iclamp(tstart=295, duration=5, current=1.9),
+            'soma_iclamp')
 
-# Place stimuli and spike detectors.
-decor.place('"root"', arbor.iclamp(10, 10, current=50), "iclamp0")
-decor.place('"root"', arbor.iclamp(30, 1, current=20), "iclamp1")
-decor.place('"root"', arbor.iclamp(50, 1, current=20), "iclamp2")
-decor.place('"axon_terminal"', arbor.spike_detector(-10), "detector")
+# Add spike detector
+decor.place('"soma_center"', arbor.spike_detector(-10), "detector")
 
-# Single CV for the "soma" region
-soma_policy = arbor.cv_policy_single('"soma"')
-# Single CV for the "soma" region
-dflt_policy = arbor.cv_policy_max_extent(10)
-# default policy everywhere except the soma
-policy = dflt_policy | soma_policy
-# Set cv_policy
-decor.discretization(policy)
+# Adjust discretization (single CV on soma, default everywhere else)
+decor.discretization(arbor.cv_policy_max_extent(1.0) | arbor.cv_policy_single('"soma"'))
 
 # (4) Create the cell.
 
@@ -52,7 +43,7 @@ cell = arbor.cable_cell(morpho, labels, decor)
 
 # (5) Declare a probe.
 
-probe = arbor.cable_probe_membrane_voltage('"axon_terminal"')
+probe = arbor.cable_probe_membrane_voltage('"dend1"')
 
 
 # (6) Create a class that inherits from arbor.recipe
@@ -68,7 +59,7 @@ class single_recipe(arbor.recipe):
 
         self.the_props = arbor.neuron_cable_properties()
 
-        # Add catalogues with qualifiers
+        # Add catalogues with explicit qualifiers
         self.the_props.catalogue = arbor.catalogue()
         self.the_props.catalogue.extend(arbor.default_catalogue(), "default::")
         self.the_props.catalogue.extend(arbor.bbp_catalogue(), "BBP::")
@@ -110,14 +101,8 @@ class single_recipe(arbor.recipe):
 # Pass the probe in a list because that it what single_recipe expects.
 recipe = single_recipe(cell, [probe])
 
-# (4) Create an execution context
-context = arbor.context()
-
-# (5) Create a domain decomposition
-domains = arbor.partition_load_balance(recipe, context)
-
-# (6) Create a simulation
-sim = arbor.simulation(recipe, context, domains)
+# (7) Create a simulation (using defaults for context and partition_load_balance)
+sim = arbor.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
@@ -125,10 +110,10 @@ sim.record(arbor.spike_recording.all)
 probe_id = arbor.cell_member(0, 0)
 handle = sim.sample(probe_id, arbor.regular_schedule(0.02))
 
-# (7) Run the simulation
-sim.run(tfinal=100, dt=0.025)
+# (8) Run the simulation
+sim.run(tfinal=600, dt=0.025)
 
-# (8) Print or display the results
+# (9) Print or display the results
 spikes = sim.spikes()
 print(len(spikes), "spikes recorded:")
 for s in spikes:
@@ -155,4 +140,4 @@ for i in range(len(data)):
 df = pandas.concat(df_list, ignore_index=True)
 seaborn.relplot(
     data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", ci=None
-).savefig("single_cell_bpo_l5pc.svg")
+).savefig("single_cell_bluepyopt_l5pc_bAP_dend1.svg")

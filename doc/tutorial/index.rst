@@ -24,6 +24,7 @@ Cells
    single_cell_detailed
    single_cell_cable
    single_cell_allen
+   single_cell_bluepyopt
 
 Recipes
 -------

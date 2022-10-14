@@ -15,6 +15,7 @@
 #include <arbor/simulation.hpp>
 #include <arbor/util/any_cast.hpp>
 
+#include "event_generator.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
 
@@ -74,12 +75,14 @@ struct single_cell_recipe: arb::recipe {
     const arb::cable_cell& cell_;
     const std::vector<probe_site>& probes_;
     const arb::cable_cell_global_properties& gprop_;
+    const std::vector<arb::event_generator>& event_generators_;
 
     single_cell_recipe(
             const arb::cable_cell& c,
             const std::vector<probe_site>& probes,
-            const arb::cable_cell_global_properties& props):
-        cell_(c), probes_(probes), gprop_(props)
+            const arb::cable_cell_global_properties& props,
+            const std::vector<arb::event_generator>& event_generators):
+        cell_(c), probes_(probes), gprop_(props), event_generators_(event_generators)
     {}
 
     virtual arb::cell_size_type num_cells() const override {
@@ -90,18 +93,18 @@ struct single_cell_recipe: arb::recipe {
         return cell_;
     }
 
-    virtual arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
+    virtual arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {
         return arb::cell_kind::cable;
     }
 
     // connections and event generators
 
-    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type) const override {
-        return {}; // no connections on a single cell model
+    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
+        return {};
     }
 
     virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
-        return {};
+        return event_generators_;
     }
 
     // probes
@@ -121,7 +124,7 @@ struct single_cell_recipe: arb::recipe {
         return {}; // No gap junctions on a single cell model.
     }
 
-    virtual std::any get_global_properties(arb::cell_kind) const override {
+    virtual std::any get_global_properties(arb::cell_kind kind) const override {
         return gprop_;
     }
 };
@@ -132,6 +135,7 @@ class single_cell_model {
     bool run_ = false;
 
     std::vector<probe_site> probes_;
+    std::vector<arb::event_generator> event_generators_;
     std::unique_ptr<arb::simulation> sim_;
     std::vector<double> spike_times_;
     // Create one trace for each probe.
@@ -166,8 +170,13 @@ public:
         }
     }
 
+    void event_generator(const arb::event_generator& event_generator) {
+        event_generators_.push_back(event_generator);
+    }
+
     void run(double tfinal, double dt) {
-        single_cell_recipe rec(cell_, probes_, gprop);
+        // single_cell_recipe rec(cell_, probes_, gprop, spike_sources_, connections_);
+        single_cell_recipe rec(cell_, probes_, gprop, event_generators_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
@@ -199,6 +208,10 @@ public:
         sim_->run(tfinal, dt);
 
         run_ = true;
+    }
+
+    const arb::cable_cell& cable_cell() const {
+        return cell_;
     }
 
     const std::vector<double>& spike_times() const {
@@ -248,6 +261,16 @@ void register_single_cell(pybind11::module& m) {
             " what:      Name of the variable to record (currently only 'voltage').\n"
             " where:     Location on cell morphology at which to sample the variable.\n"
             " frequency: The target frequency at which to sample [kHz].")
+        .def("event_generator",
+            [](single_cell_model& m, const pyarb::event_generator_shim& event_generator) {
+                m.event_generator(arb::event_generator(
+                    event_generator.target, event_generator.weight, event_generator.time_sched));},
+            "event_generator"_a,
+            "Register an event generator.\n"
+            " event_generator: An Arbor event generator.")
+        .def_property_readonly("cable_cell",
+            [](const single_cell_model& m) {
+                return m.cable_cell();}, "The cable cell held by this model.")
         .def_property_readonly("spikes",
             [](const single_cell_model& m) {
                 return m.spike_times();}, "Holds spike times [ms] after a call to run().")

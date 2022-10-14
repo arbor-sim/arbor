@@ -438,7 +438,7 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 
     # Piecewise linear stimulus with amplitude ranging from 0 nA to 10 nA,
     # starting at t = 30 ms and stopping at t = 50 ms.
-    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)], "iclamp3")
+    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)]), "iclamp3")
 
 
 .. _cablecell-probes:
