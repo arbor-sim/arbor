@@ -49,7 +49,7 @@ The ``update_connections`` method accepts either a full ``recipe`` (but will
 Currently ``connectivity`` is only available in C++; Python users have to pass a
 full recipe.
 
-.. warn::
+.. warning::
 
    The semantics of connection updates are subtle and might produce surprising
    results if handled carelessly. In particular, spikes in-flight over a
@@ -105,7 +105,7 @@ full recipe.
    action potential
       Spikes travel over :term:`connections <connection>`. In a synapse, they generate an event.
 
-   spike detector
+   threshold detector
       :ref:`Placed <cablecell-place>` on a cell. Possible source of a connection.
       Detects crossing of a fixed threshold and generates corresponding events.
       Also used to :ref:`record spikes <>` for analysis. See :ref:`here

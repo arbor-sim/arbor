@@ -53,35 +53,35 @@ public:
 class py_recipe_trampoline: public py_recipe {
 public:
     arb::cell_size_type num_cells() const override {
-        PYBIND11_OVERLOAD_PURE(arb::cell_size_type, py_recipe, num_cells);
+        PYBIND11_OVERRIDE_PURE(arb::cell_size_type, py_recipe, num_cells);
     }
 
     pybind11::object cell_description(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD_PURE(pybind11::object, py_recipe, cell_description, gid);
+        PYBIND11_OVERRIDE_PURE(pybind11::object, py_recipe, cell_description, gid);
     }
 
     arb::cell_kind cell_kind(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
+        PYBIND11_OVERRIDE_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
     }
 
     std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, event_generators, gid);
+        PYBIND11_OVERRIDE(std::vector<pybind11::object>, py_recipe, event_generators, gid);
     }
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
+        PYBIND11_OVERRIDE(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
+        PYBIND11_OVERRIDE(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
     }
 
     std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::probe_info>, py_recipe, probes, gid);
+        PYBIND11_OVERRIDE(std::vector<arb::probe_info>, py_recipe, probes, gid);
     }
 
     pybind11::object global_properties(arb::cell_kind kind) const override {
-        PYBIND11_OVERLOAD(pybind11::object, py_recipe, global_properties, kind);
+        PYBIND11_OVERRIDE(pybind11::object, py_recipe, global_properties, kind);
     }
 };
 

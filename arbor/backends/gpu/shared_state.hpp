@@ -10,6 +10,7 @@
 
 #include "fvm_layout.hpp"
 
+#include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
@@ -123,6 +124,7 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> parameters_d_;
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
+        random_numbers random_numbers_;
     };
 
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
@@ -151,6 +153,8 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
+    arb_seed_type cbprng_seed; // random number generator seed
+
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
@@ -168,13 +172,16 @@ struct ARB_ARBOR_API shared_state {
         const std::vector<arb_value_type>& temperature_K,
         const std::vector<arb_value_type>& diam,
         const std::vector<arb_index_type>& src_to_spike,
-        unsigned // align parameter ignored
+        unsigned, // align parameter ignored
+        arb_seed_type cbprng_seed_ = 0u
     );
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(arb::mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+
+    void update_prng_state(mechanism&);
 
     // Note: returned pointer points to device memory.
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);

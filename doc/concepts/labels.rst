@@ -762,6 +762,10 @@ Inhomogeneous Expressions
 
     The exponential function of the inhomogeneous expression or real ``value``.
 
+.. label:: (step value:(iexpr | real))
+
+    The Heaviside step function of the inhomogeneous expression or real ``value``, with `(step 0.0)` evaluating to 0.5.
+
 .. label:: (log value:(iexpr | real))
 
     The logarithm of the inhomogeneous expression or real ``value``.

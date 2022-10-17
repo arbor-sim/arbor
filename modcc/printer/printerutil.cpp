@@ -76,6 +76,13 @@ ARB_LIBMODCC_API public_variable_ids_t public_variable_ids(const Module& m) {
         }
     }
 
+    for (auto const & id : m.white_noise_block().parameters) {
+        auto it = m.white_noise_block().used.find(id.name());
+        if (it != m.white_noise_block().used.end()) {
+            ids.white_noise_ids.push_back(std::make_pair(id, it->second));
+        }
+    }
+
     return ids;
 }
 

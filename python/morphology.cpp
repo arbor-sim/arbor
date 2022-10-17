@@ -368,10 +368,15 @@ void register_morphology(py::module& m) {
             [](const arborio::asc_morphology& m) {return label_dict_proxy(m.labels);},
             "The four canonical regions are labeled 'soma', 'axon', 'dend' and 'apic'.");
 
+    using asc_morph_or_tree = std::variant<arb::segment_tree, arborio::asc_morphology>;
+
     m.def("load_asc",
-        [](py::object fn) {
+        [](py::object fn, bool raw) -> asc_morph_or_tree {
             try {
                 auto contents = util::read_file_or_buffer(fn);
+                if (raw) {
+                    return arborio::parse_asc_string_raw(contents.c_str());
+                }
                 return arborio::parse_asc_string(contents.c_str());
             }
             catch (std::exception& e) {
@@ -379,7 +384,9 @@ void register_morphology(py::module& m) {
                 throw pyarb_error(util::pprintf("error loading neurolucida asc file: {}", e.what()));
             }
         },
-        "filename"_a, "Load a morphology and meta data from a Neurolucida ASCII .asc file.");
+        "filename_or_stream"_a,
+        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
+        "Load a morphology or segment_tree and meta data from a Neurolucida ASCII .asc file.");
 
 
 #ifdef ARB_NEUROML_ENABLED

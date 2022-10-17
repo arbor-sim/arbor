@@ -177,7 +177,7 @@ fully formed to the interface. At this point:
 
   .. c:member:: arb_index_type n_detectors
 
-    Number of spike detectors
+    Number of threshold detectors
 
   .. c:member:: arb_index_type* vec_ci
 

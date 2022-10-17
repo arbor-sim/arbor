@@ -32,7 +32,7 @@ and a current clamp stimulus, then run the model for 30 ms.
 The first step is to construct the cell. In Arbor, the abstract representation used to
 define a cell with branching cable morphology is a ``cable_cell``, which holds a
 description of the cell's morphology, named regions and locations on the morphology, and
-descriptions of ion channels, synapses, spike detectors and electrical properties.
+descriptions of ion channels, synapses, threshold detectors and electrical properties.
 
 Our *single-segment HH cell* has a simple morphology and dynamics, constructed as follows:
 
@@ -73,9 +73,9 @@ following way:
   HH dynamics on the region we previously named ``"soma"`` in our label dictionary.
 * :meth:`arbor.decor.place` is used to add objects on a precise
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
-  spike detectors, current stimuli, and probes. In the above example we place a current stimulus
+  threshold detectors, current stimuli, and probes. In the above example we place a current stimulus
   :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
-  on the location we previously labelled ``"midpoint"``. We also place a :class:`arbor.spike_detector`
+  on the location we previously labelled ``"midpoint"``. We also place a :class:`arbor.threshold_detector`
   with a threshold of -10 mV on the same location.
 
 Step **(4)** constructs the :class:`arbor.cable_cell` from the segment tree and dictionary of labelled regions and locations.
@@ -93,7 +93,7 @@ The single cell model has 4 main functions:
 1. It holds the **global properties** of the model
 2. It registers **probes** on specific locations on the cell to measure the voltage.
 3. It **runs** the simulation.
-4. It collects **spikes** from spike detectors and voltage **traces** from registered probes.
+4. It collects **spikes** from threshold detectors and voltage **traces** from registered probes.
 
 Right now, we'll only set a probe and run the simulation.
 
@@ -115,7 +115,7 @@ The results
 -----------
 
 Our cell and model have been defined and we have run our simulation. Now we can look at what
-the spike detector and a voltage probes from our model have produced.
+the threshold detector and a voltage probes from our model have produced.
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python

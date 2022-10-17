@@ -24,16 +24,12 @@ namespace arb {
 
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
-                           const label_resolution_map& source_resolution_map,
-                           const label_resolution_map& target_resolution_map,
                            execution_context& ctx):  num_total_cells_{rec.num_cells()},
                                                      num_local_cells_{dom_dec.num_local_cells()},
                                                      num_local_groups_{dom_dec.num_groups()},
                                                      num_domains_{(cell_size_type) ctx.distributed->size()},
                                                      distributed_{ctx.distributed},
-                                                     thread_pool_{ctx.thread_pool} {
-    update_connections(rec, dom_dec, source_resolution_map, target_resolution_map);
-}
+                                                     thread_pool_{ctx.thread_pool} {}
 
 void communicator::update_connections(const connectivity& rec,
                                       const domain_decomposition& dom_dec,
@@ -80,7 +76,6 @@ void communicator::update_connections(const connectivity& rec,
             auto gid = gids[i];
             gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
         });
-
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
     std::vector<unsigned> src_domains;
@@ -129,7 +124,9 @@ void communicator::update_connections(const connectivity& rec,
     // This is num_domains_ independent sorts, so it can be parallelized trivially.
     const auto& cp = connection_part_;
     threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
-                                   [&](cell_size_type i) { util::sort(util::subrange_view(connections_, cp[i], cp[i+1])); });
+                                   [&](cell_size_type i) {
+                                       util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
+                                   });
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
