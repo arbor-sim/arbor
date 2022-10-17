@@ -93,12 +93,12 @@ jobs:
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
     steps:
-      - name: "Linux: get libxml2"
+      - name: "Linux: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-dev
-      - name: "MacOS: get libxml2"
+          sudo apt-get install -y libxml2-dev ${{ matrix.config.cc }}
+      - name: "MacOS: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
           brew install libxml2 
