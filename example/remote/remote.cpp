@@ -101,16 +101,14 @@ int main() {
                          comm, peer_lead,  // peer  comm + peer  leader rank
                          42,               // tag, must match across call
                          &inter);          // new intercomm
-    std::cout << typeid(MPI_Comm).name() << '\n'
-              << typeid(MPI_Comm).hash_code() << '\n';
-    if (group == 1) {
+w    if (group == 1) {
         // Run the simulation for slightly more than one epoch; thus we expect a single
         // inter-communication to happend.
         auto ctx = arb::make_context({}, split);
         auto rec = recipe(); // one cell per process
         make_remote_connection(ctx, inter);
         auto sim = arb::simulation(rec, ctx);
-        sim.run(1.01, 0.025);
+        sim.run(1.01, 0.025); // You should sending the minimal delay over the InterComm here.
     }
     else {
         // The other group will wait until this is sent.
