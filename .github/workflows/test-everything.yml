@@ -16,8 +16,8 @@ jobs:
         - {
             name:  "Linux Min GCC",
             os:    "ubuntu-20.04",
-            cc:    "gcc-8",
-            cxx:   "g++-8",
+            cc:    "gcc-9",
+            cxx:   "g++-9",
             py:    "3.7",
             cmake: "3.19.x",
             mpi:   "ON",
@@ -26,8 +26,8 @@ jobs:
         - {
             name:  "Linux Min Clang",
             os:    "ubuntu-20.04",
-            cc:    "clang-8",
-            cxx:   "clang++-8",
+            cc:    "clang-9",
+            cxx:   "clang++-9",
             py:    "3.7",
             cmake: "3.19.x",
             mpi:   "ON",
@@ -113,7 +113,7 @@ jobs:
       - name: Update pip
         run: python -m pip install --upgrade pip
       - name: OpenMPI cache
-        uses: actions/cache@latest
+        uses: actions/cache@v3
         id:   cache-ompi
         with:
           path: ~/openmpi-4.0.2
@@ -141,7 +141,7 @@ jobs:
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules
-        uses: actions/checkout@latest
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Check config
@@ -203,7 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone w/ submodules
-        uses: actions/checkout@latest
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Build and install Arbor using pip + build flags
