@@ -21,18 +21,20 @@ cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
 
 # (2) Define labels for stimuli and voltage recordings.
 
-labels["soma_center"] = '(location 0 0.5)'
-labels["dend1"] = '(restrict (distal-translate (proximal ' \
-    '(region "apic")) 660) (proximal-interval (distal (branch 123))))'
+labels["soma_center"] = "(location 0 0.5)"
+labels["dend1"] = (
+    '(restrict (distal-translate (proximal (region "apic")) 660)'
+    " (proximal-interval (distal (branch 123))))"
+)
 
 # (3) Define stimulus and spike detector, adjust discretization
 
-decor.place('"soma_center"',
-            arbor.iclamp(tstart=295, duration=5, current=1.9),
-            'soma_iclamp')
+decor.place(
+    '"soma_center"', arbor.iclamp(tstart=295, duration=5, current=1.9), "soma_iclamp"
+)
 
 # Add spike detector
-decor.place('"soma_center"', arbor.spike_detector(-10), "detector")
+decor.place('"soma_center"', arbor.threshold_detector(-10), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
 decor.discretization(arbor.cv_policy_max_extent(1.0) | arbor.cv_policy_single('"soma"'))
@@ -80,19 +82,7 @@ class single_recipe(arbor.recipe):
     def probes(self, gid):
         return self.the_probes
 
-    # (6.6) Override the connections_on method
-    def connections_on(self, gid):
-        return []
-
-    # (6.7) Override the gap_junction_on method
-    def gap_junction_on(self, gid):
-        return []
-
-    # (6.8) Override the event_generators method
-    def event_generators(self, gid):
-        return []
-
-    # (6.9) Overrode the global_properties method
+    # (6.6) Overrode the global_properties method
     def global_properties(self, gid):
         return self.the_props
 

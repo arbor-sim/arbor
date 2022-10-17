@@ -342,13 +342,13 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     expsyn = arbor.mechanism('expsyn')
 
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
-    decor.paint('"syn_loc_0"', arbor.synapse(expsyn))
+    decor.place('"syn_loc_0"', arbor.synapse(expsyn))
 
     # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
-    decor.paint('"syn_loc_1"', arbor.synapse("expsyn"))
+    decor.place('"syn_loc_1"', arbor.synapse("expsyn"))
 
     # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
-    decor.paint('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
+    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
 
 
 .. _cablecell-threshold-detectors:
@@ -399,10 +399,10 @@ on two separate cells.
     gj = arbor.mechanism("gj", {"g": 2.0})
 
     # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
-    decor.paint('"gj_loc_0"', arbor.junction(gj))
+    decor.place('"gj_loc_0"', arbor.junction(gj))
 
     # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
-    decor.paint('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
+    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
 
 .. _cablecell-stimuli:
 
@@ -431,7 +431,7 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
     decor.place('(root)', arbor.iclamp(10), "iclamp0")
 
     # Constant amplitude 10 nA stimulus at 20 Hz, with initial phase of π/4 radians.
-    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phasce=math.pi/4), "iclamp1")
+    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phase=math.pi/4), "iclamp1")
 
     # Stimulus at 1 kHz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
     decor.place('(root)', arbor.iclamp(30, 40, 10, frequency=1), "iclamp2")

@@ -224,7 +224,7 @@ For the following, we will add a label for this location as well as for the cent
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 12,24-26
+   :lines: 13,24-28
 
 
 The cable cell and protocols
@@ -237,16 +237,21 @@ To replicate the ``bAP`` protocol in BluePyOpt, we add a short stimulus centrall
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 28,30-42
+   :lines: 30,32-34,38-40
 
-The decor allows to further customize the discretization for a subsequent simulation using :func:`arbor.decor.discretization` as examined in the :ref:`tutorial for a detailed single cell model <tutorialsinglecellswc>`. For brevity, we will use the default here except on the soma. As a next step, we create an :class:`arbor.cable_cell` using the morphology, label dictionary and decor.
+The decor allows to further customize the discretization for a subsequent simulation using :func:`arbor.decor.discretization` as done in the :ref:`tutorial for a detailed single cell model <tutorialsinglecellswc>`. For brevity, we will use the default here except on the soma. As a next step, we create an :class:`arbor.cable_cell` using the morphology, label dictionary and decor.
+
+.. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
+   :language: python
+   :dedent:
+   :lines: 42,44
 
 Then, we can install a voltage probe on the apical dendrite.
 
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 44-46
+   :lines: 46,48
 
 
 To prepare the cable cell for simulation, we can either construct an instance of the :class:`arbor.single_cell_model` from the cable cell (shown in the simple-cell example) or - for more complicated use cases - define our own recipe. We will follow the latter for the layer-5 pyramidal cell. 
@@ -256,20 +261,20 @@ To be runnable in a simulation, we also need to make sure the appropriate mechan
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 49-102
+   :lines: 51-92
 
 
 Running the simulation
 ----------------------
 
-We can now create and run a simulation with
+We can now run a simulation with
 
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 104-114
+   :lines: 94-96,100-104
 
-and visualize the voltage trace for the measurement on the apical dendrite of the layer-5 pyramidal cell. 
+and visualize the voltage trace for the measurement on the apical dendrite of the layer-5 pyramidal cell that is available through ``sim.samples(handle)``. 
 
 .. figure:: single_cell_bluepyopt_l5pc_bAP_dend1.svg
     :width: 600

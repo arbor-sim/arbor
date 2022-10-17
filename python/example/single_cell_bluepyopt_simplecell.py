@@ -21,16 +21,16 @@ cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
 
 # (2) Define labels for stimuli and voltage recordings.
 
-labels["soma_center"] = '(location 0 0.5)'
+labels["soma_center"] = "(location 0 0.5)"
 
 # (3) Define stimulus and spike detector, adjust discretization
 
-decor.place('"soma_center"',
-            arbor.iclamp(tstart=100, duration=50, current=0.05),
-            'soma_iclamp')
+decor.place(
+    '"soma_center"', arbor.iclamp(tstart=100, duration=50, current=0.05), "soma_iclamp"
+)
 
 # Add spike detector
-decor.place('"soma_center"', arbor.spike_detector(-10), "detector")
+decor.place('"soma_center"', arbor.threshold_detector(-10), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
 decor.discretization(arbor.cv_policy_max_extent(1.0) | arbor.cv_policy_single('"soma"'))
