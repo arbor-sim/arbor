@@ -2,7 +2,7 @@
 #include <random>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include "util/index_into.hpp"
 #include "util/rangeutil.hpp"

@@ -57,3 +57,31 @@ add_library(ext-benchmark INTERFACE)
 add_dependencies(ext-benchmark gbench-build)
 target_include_directories(ext-benchmark INTERFACE "${gbench_install_dir}/include")
 target_link_libraries(ext-benchmark INTERFACE "${gbench_install_dir}/lib/libbenchmark.a")
+
+# Google Test framework:
+
+# use cmake's fetch content
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG        release-1.12.1
+)
+# set gtest options (hardcoded)
+set(BUILD_GMOCK OFF CACHE INTERNAL "Builds the googlemock subproject")
+set(INSTALL_GTEST OFF CACHE INTERNAL
+    "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.")
+mark_as_advanced(
+    FETCHCONTENT_BASE_DIR
+    FETCHCONTENT_FULLY_DISCONNECTED
+    FETCHCONTENT_QUIET
+    FETCHCONTENT_SOURCE_DIR_GOOGLETEST
+    FETCHCONTENT_UPDATES_DISCONNECTED
+    FETCHCONTENT_UPDATES_DISCONNECTED_GOOGLETEST)
+# store the old value of the 'BUILD_SHARED_LIBS'
+set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
+# use static build for gtest
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build SHARED libraries")
+FetchContent_MakeAvailable(googletest)
+# restore build shared libs
+set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_OLD} CACHE BOOL "Type of libraries to build" FORCE)

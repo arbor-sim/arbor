@@ -3,7 +3,7 @@
 
 #include <arbor/morph/primitives.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 using namespace arb;
 

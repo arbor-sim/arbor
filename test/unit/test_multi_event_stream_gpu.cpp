@@ -2,7 +2,7 @@
 #include <random>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <backends/event.hpp>
 #include <backends/gpu/multi_event_stream.hpp>

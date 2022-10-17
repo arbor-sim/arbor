@@ -108,6 +108,9 @@ if (NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
 endif()
 
+# Build static library by default
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
+
 # Add CUDA as a language if GPU support requested. (This has to be set early so
 # as to enable CUDA tests in generator expressions.)
 if(ARB_GPU STREQUAL "cuda")

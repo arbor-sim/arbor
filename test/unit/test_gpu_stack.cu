@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include "backends/gpu/stack.hpp"
 #include "backends/gpu/stack_cu.hpp"
