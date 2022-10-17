@@ -31,7 +31,7 @@ communicator::communicator(const recipe& rec,
                                                      distributed_{ctx.distributed},
                                                      thread_pool_{ctx.thread_pool} {}
 
-void communicator::update_connections(const connectivity& rec,
+void communicator::update_connections(const recipe& rec,
                                       const domain_decomposition& dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
