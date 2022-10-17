@@ -300,7 +300,7 @@ Locset expressions
 .. label:: (proximal-translate ls:locset distance:real)
 
     The set of locations that correspond to moving each location in the ``ls`` in the proximal direction
-    ``distance`` μm. The locations in the output have a one to one correspondance with those in ``ls``.
+    ``distance`` μm. The locations in the output have a one to one correspondence with those in ``ls``.
 
     .. figure:: ../gen-images/proximal_translate_label.svg
       :width: 600
@@ -316,7 +316,7 @@ Locset expressions
 
     An input location will generate multiple output locations when it is translated
     past a fork point, with a new location for each child branch (see the example
-    below). For this reason there is not a one-to-one correspondance between locations
+    below). For this reason there is not a one-to-one correspondence between locations
     in the input and output sets, so the results are sorted and duplicates are removed.
 
 

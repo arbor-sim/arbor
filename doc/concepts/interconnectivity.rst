@@ -68,7 +68,7 @@ full recipe.
 
    Arbor uses a lazily constructed network (from the ``recipe`` callbacks) for
    good reason; storing the full connectivity (for all ``gids``) in the
-   ``recipe`` can lead to probitivively large memory footprints. Keep this in
+   ``recipe`` can lead to prohibitively large memory footprints. Keep this in
    mind when designing your connectivity and heed the consequences of doing I/O
    in these callbacks. This is doubly important when using models with dynamic
    connectivity where the temptation to store all connections is even larger and
