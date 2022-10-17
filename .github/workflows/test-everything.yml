@@ -15,7 +15,7 @@ jobs:
         config:
         - {
             name:  "Linux Min GCC",
-            os:    "ubuntu-18.04",
+            os:    "ubuntu-20.04",
             cc:    "gcc-8",
             cxx:   "g++-8",
             py:    "3.7",
@@ -25,7 +25,7 @@ jobs:
           }
         - {
             name:  "Linux Min Clang",
-            os:    "ubuntu-18.04",
+            os:    "ubuntu-20.04",
             cc:    "clang-8",
             cxx:   "clang++-8",
             py:    "3.7",
@@ -98,27 +98,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-dev
-      - name: "Linux-Min: get clang/gcc 8"
-        if: ${{ startsWith(matrix.config.os, 'ubuntu-18') }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y "clang-8" "lldb-8" "lld-8" "clang-format-8" g++-8
       - name: "MacOS: get libxml2"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
           brew install libxml2 
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.12
+        uses: jwlawson/actions-setup-cmake@latest
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@latest
         with:
           python-version: ${{ matrix.config.py }}
       - name: Update pip
         run: python -m pip install --upgrade pip
       - name: OpenMPI cache
-        uses: actions/cache@v2
+        uses: actions/cache@latest
         id:   cache-ompi
         with:
           path: ~/openmpi-4.0.2
@@ -146,7 +141,7 @@ jobs:
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@latest
         with:
           submodules: recursive
       - name: Check config
@@ -208,7 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone w/ submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@latest
         with:
           submodules: recursive
       - name: Build and install Arbor using pip + build flags
