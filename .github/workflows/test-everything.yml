@@ -103,11 +103,11 @@ jobs:
         run: |
           brew install libxml2 
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@latest
+        uses: jwlawson/actions-setup-cmake@v1.13
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
-        uses: actions/setup-python@latest
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.config.py }}
       - name: Update pip
