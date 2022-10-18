@@ -252,11 +252,11 @@ struct xml_xpathctx: protected xml_base<xmlXPathContext, xmlXPathFreeContext> {
 struct xml_doc: protected xml_base<xmlDoc, xmlFreeDoc> {
     using base = xml_base<xmlDoc, xmlFreeDoc>;
 
-    xml_doc(): xml_doc(nullptr) {}
+    xml_doc(): xml_doc(nullptr, std::any{}) {}
 
     explicit xml_doc(std::string the_doc):
-        // 'Pretty sure' we don't need to keep the string after the tree is built. Pretty sure.
-        xml_doc(xmlReadMemory(the_doc.c_str(), the_doc.length(), "", nullptr, xml_options))
+        // keep the string after the tree is built by wrapping it and passing as dependency to base
+        xml_doc(std::any{std::move(the_doc)})
     {}
 
     // TODO: (... add other ctors ...)
@@ -268,8 +268,12 @@ struct xml_doc: protected xml_base<xmlDoc, xmlFreeDoc> {
     explicit operator bool() const { return get(); }
 
 private:
-    explicit xml_doc(xmlDoc* p): base(p) {}
+    explicit xml_doc(xmlDoc* p, std::any&& the_doc): base(p, std::move(the_doc)) {}
+    explicit xml_doc(std::any the_doc):
+        xml_doc(xmlReadMemory(to_string(the_doc).c_str(), to_string(the_doc).length(), "", nullptr, xml_options), std::move(the_doc))
+    {}
     static constexpr int xml_options = XML_PARSE_NOENT | XML_PARSE_NONET;
+    static std::string& to_string(std::any& s) { return *std::any_cast<std::string>(&s); }
 };
 
 // Escape a string for use as string expression within an XPath expression.
