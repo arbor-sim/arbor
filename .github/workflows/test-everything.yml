@@ -33,16 +33,16 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        #- {
-        #    name:  "MacOS Min",
-        #    os:    "macos-11",
-        #    cc:    "clang",
-        #    cxx:   "clang++",
-        #    py:    "3.7",
-        #    cmake: "3.19.x",
-        #    mpi:   "ON",
-        #    simd:  "OFF"
-        #  }
+        - {
+            name:  "MacOS Min",
+            os:    "macos-11",
+            cc:    "clang",
+            cxx:   "clang++",
+            py:    "3.7",
+            cmake: "3.19.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
         #- {
         #    name:  "Linux Max GCC",
         #    os:    "ubuntu-22.04",
