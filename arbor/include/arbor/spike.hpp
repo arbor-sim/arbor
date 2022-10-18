@@ -9,7 +9,7 @@
 namespace arb {
 
 template <typename I>
-struct ARB_SYMBOL_VISIBLE basic_spike {
+struct basic_spike {
     using id_type = I;
 
     id_type source = id_type{};
@@ -29,10 +29,15 @@ struct ARB_SYMBOL_VISIBLE basic_spike {
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
 
-} // namespace arb
-
 // Custom stream operator for printing arb::spike<> values.
 template <typename I>
-ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::basic_spike<I> const& s) {
+std::ostream& operator<<(std::ostream& o, basic_spike<I> const& s) {
     return o << "S[src " << s.source << ", t " << s.time << "]";
 }
+
+// explict specilaization for spike to avoid compile error for older compilers
+template <>
+inline std::ostream& operator<< <cell_member_type>(std::ostream& o, basic_spike<cell_member_type> const& s) {
+    return o << "S[src " << s.source << ", t " << s.time << "]";
+}
+} // namespace arb
