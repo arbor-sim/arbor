@@ -82,7 +82,7 @@ This script also supports axon replacement by first instantiating the morphology
    nrn_sim = ephys.simulators.NrnSimulator()
    cell_model.instantiate_morphology_3d(nrn_sim)
 
-The model in the example directory ``python/example/single_cell_bluepyopt/l5pc`` was exported using this setting. For this reason, we find an axon-replacement morphology and a modified morphology (after performing axon replacement on the original) in the ACC format in that directory. The latter can be obtained by setting ``create_mod_acc=True`` as a parameter to ``create_acc``. For a more basic example, consider ``python/example/single_cell_bluepyopt/simplecell``, where no axon replacement is performed and, hence, only the original morphology is exported.
+The model in the example directory ``python/example/single_cell_bluepyopt/l5pc`` was exported using this setting. For this reason, we find an axon-replacement morphology and a modified morphology (after performing axon replacement on the original) in the ACC format in that directory. The latter can be obtained by setting ``create_mod_morph=True`` as a parameter to ``create_acc``. For a more basic example, consider ``python/example/single_cell_bluepyopt/simplecell``, where no axon replacement is performed and, hence, only the original morphology is exported.
 
 Load from JSON/ACC
 ------------------
@@ -274,6 +274,7 @@ To be runnable in a simulation, we also need to make sure the appropriate mechan
    :dedent:
    :lines: 51-92
 
+If we want to run a model with mechanism catalogues that are not built into Arbor, we can specify a mapping of catalogue name to folder with the NMODL files in the argument ``ext_catalogues`` of the JSON/ACC exporter. We can then load the catalogue with an appropriate prefix analogous to the built-in ones using ``arbor.load_catalogue('<name>-catalogue.so', '<name>::')`` and use it with the exported model. Here, ``<name>-catalogue.so`` is the compiled output of ``arbor-build-catalogue <name> <path/to/nmodl>``. To use such a mechanism catalogue in a BluePyOpt optimisation, ``<name>-catalogue.so`` must be available in the same folder as the NMODL files at runtime. It is then sufficient, to supply the same ``ext_catalogues`` dictionary as used in the JSON/ACC exporter to the ``ephys.simulators.ArbSimulator`` at its construction.
 
 Running the simulation
 ----------------------
