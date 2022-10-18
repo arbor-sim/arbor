@@ -255,8 +255,9 @@ struct xml_doc: protected xml_base<xmlDoc, xmlFreeDoc> {
     xml_doc(): xml_doc(nullptr, std::any{}) {}
 
     explicit xml_doc(std::string the_doc):
-        // keep the string after the tree is built by wrapping it and passing as dependency to base
-        xml_doc(std::any{std::move(the_doc)})
+        // Keep the string alive after the tree is built by wrapping it in std::any and passing as dependency to base.
+        // Additionally allocate on the heap to circumvent any's potential small buffer optimization, which could lead to dangling pointers.
+        xml_doc(std::any{std::make_shared<std::string>(std::move(the_doc))})
     {}
 
     // TODO: (... add other ctors ...)
@@ -273,7 +274,7 @@ private:
         xml_doc(xmlReadMemory(to_string(the_doc).c_str(), to_string(the_doc).length(), "", nullptr, xml_options), std::move(the_doc))
     {}
     static constexpr int xml_options = XML_PARSE_NOENT | XML_PARSE_NONET;
-    static std::string& to_string(std::any& s) { return *std::any_cast<std::string>(&s); }
+    static std::string& to_string(std::any& s) { return *(std::any_cast<std::shared_ptr<std::string>>(&s)->get()); }
 };
 
 // Escape a string for use as string expression within an XPath expression.
