@@ -308,7 +308,7 @@ TEST(range, minmax_value) {
 template <typename V>
 class counter_range: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(counter_range);
+TYPED_TEST_SUITE_P(counter_range);
 
 TYPED_TEST_P(counter_range, max_size) {
     using int_type = TypeParam;
@@ -378,7 +378,7 @@ TYPED_TEST_P(counter_range, iteration) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(counter_range, max_size, extreme_size, size, at,
+REGISTER_TYPED_TEST_SUITE_P(counter_range, max_size, extreme_size, size, at,
                            iteration);
 
 using int_types = ::testing::Types<signed char, unsigned char, short,
@@ -388,7 +388,7 @@ using int_types = ::testing::Types<signed char, unsigned char, short,
 using signed_int_types = ::testing::Types<signed char, short,
                                           int, long, std::ptrdiff_t>;
 
-INSTANTIATE_TYPED_TEST_CASE_P(int_types, counter_range, int_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(int_types, counter_range, int_types);
 
 TEST(range, assign) {
     const char *cstr = "howdy";

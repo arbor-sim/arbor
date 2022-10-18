@@ -60,28 +60,68 @@ target_link_libraries(ext-benchmark INTERFACE "${gbench_install_dir}/lib/libbenc
 
 # Google Test framework:
 
-# use cmake's fetch content
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        release-1.12.1
-)
-# set gtest options (hardcoded)
-set(BUILD_GMOCK OFF CACHE INTERNAL "Builds the googlemock subproject")
-set(INSTALL_GTEST OFF CACHE INTERNAL
-    "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.")
-mark_as_advanced(
-    FETCHCONTENT_BASE_DIR
-    FETCHCONTENT_FULLY_DISCONNECTED
-    FETCHCONTENT_QUIET
-    FETCHCONTENT_SOURCE_DIR_GOOGLETEST
-    FETCHCONTENT_UPDATES_DISCONNECTED
-    FETCHCONTENT_UPDATES_DISCONNECTED_GOOGLETEST)
-# store the old value of the 'BUILD_SHARED_LIBS'
-set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
-# use static build for gtest
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build SHARED libraries")
-FetchContent_MakeAvailable(googletest)
-# restore build shared libs
-set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_OLD} CACHE BOOL "Type of libraries to build" FORCE)
+check_git_submodule(gtest googletest)
+
+if(gtest_avail)
+    #add_subdirectory(googletest)
+    include(ExternalProject)
+    set(gtest_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/googletest")
+    set(gtest_install_dir "${CMAKE_CURRENT_BINARY_DIR}/googletest")
+    set(gtest_install_lib_dir "${gtest_install_dir}/lib")
+    set(gtest_cmake_args
+        "-DCMAKE_BUILD_TYPE=release"
+        "-DBUILD_SHARED_LIBS=OFF"
+        "-DCMAKE_INSTALL_PREFIX=${gtest_install_dir}"
+        "-DCMAKE_INSTALL_LIBDIR=${gtest_install_lib_dir}"
+        "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+        "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DBUILD_GMOCK=OFF"
+        #"-DINSTALL_GTEST=OFF"
+    )
+
+    ExternalProject_Add(gtest-build
+        # Add dummy DOWNLOAD_COMMAND to stop ExternalProject_Add terminating CMake if the
+        # git submodule had not been udpated.
+        DOWNLOAD_COMMAND "${CMAKE_COMMAND}" -E echo "Warning: ${gtest_src_dir} empty or missing."
+        SOURCE_DIR "${gtest_src_dir}"
+        CMAKE_ARGS "${gtest_cmake_args}"
+        INSTALL_DIR "${gtest_install_dir}"
+    )
+    set_target_properties(gtest-build PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+else()
+    add_error_target(gtest-build
+        "Building Google Test library"
+        "The git submodule for google test is not available")
+endif()
+
+add_library(ext-gtest INTERFACE)
+add_dependencies(ext-gtest gtest-build)
+target_include_directories(ext-gtest INTERFACE "${gtest_install_dir}/include")
+target_link_libraries(ext-gtest INTERFACE "${gtest_install_dir}/lib/libgtest.a")
+
+## use cmake's fetch content
+#include(FetchContent)
+#FetchContent_Declare(
+#    googletest
+#    GIT_REPOSITORY https://github.com/google/googletest.git
+#    GIT_TAG        release-1.12.1
+#)
+## set gtest options (hardcoded)
+#set(BUILD_GMOCK OFF CACHE INTERNAL "Builds the googlemock subproject")
+#set(INSTALL_GTEST OFF CACHE INTERNAL
+#    "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.")
+#mark_as_advanced(
+#    FETCHCONTENT_BASE_DIR
+#    FETCHCONTENT_FULLY_DISCONNECTED
+#    FETCHCONTENT_QUIET
+#    FETCHCONTENT_SOURCE_DIR_GOOGLETEST
+#    FETCHCONTENT_UPDATES_DISCONNECTED
+#    FETCHCONTENT_UPDATES_DISCONNECTED_GOOGLETEST)
+## store the old value of the 'BUILD_SHARED_LIBS'
+#set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
+## use static build for gtest
+#set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build SHARED libraries")
+#FetchContent_MakeAvailable(googletest)
+## restore build shared libs
+#set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_OLD} CACHE BOOL "Type of libraries to build" FORCE)
