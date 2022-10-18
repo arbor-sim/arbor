@@ -4,11 +4,12 @@
 #include <type_traits>
 
 #include <arbor/common_types.hpp>
+#include <arbor/export.hpp>
 
 namespace arb {
 
 template <typename I>
-struct basic_spike {
+struct ARB_SYMBOL_VISIBLE basic_spike {
     using id_type = I;
 
     id_type source = id_type{};
@@ -32,6 +33,6 @@ using spike = basic_spike<cell_member_type>;
 
 // Custom stream operator for printing arb::spike<> values.
 template <typename I>
-std::ostream& operator<<(std::ostream& o, arb::basic_spike<I> const& s) {
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::basic_spike<I> const& s) {
     return o << "S[src " << s.source << ", t " << s.time << "]";
 }
