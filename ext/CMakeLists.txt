@@ -102,5 +102,7 @@ add_external_cmake_project(
         "-DBUILD_GMOCK=OFF")
 
 # on some systems we need link explicitly against threads
-find_package (Threads)
-target_link_libraries(ext-gtest INTERFACE Threads::Threads)
+if (TARGET ext-gtest)
+    find_package (Threads)
+    target_link_libraries(ext-gtest INTERFACE Threads::Threads)
+endif()
