@@ -12,16 +12,16 @@ In this tutorial we'll see how we can export a model with optimised cell paramet
    1. Export a model with optimised parameters from BluePyOpt to a mixed JSON/ACC format.
    2. Load the morphology, label dictionary and decor from the mixed JSON/ACC format in Arbor.
    3. Perform axon replacement with a surrogate model using the segment tree editing functionality.
-   4. Determine voltage probe locations that match BluePyOpt protocols defined with the Neuron simulator using the Arbor GUI.
+   4. Determine voltage probe locations that match BluePyOpt protocols defined with the Neuron simulator using the Arbor graphical user interface (GUI).
    5. Create an :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model` or :class:`arbor.recipe` supporting mechanism catalogues that are consistent with BluePyOpt. 
    6. Running a simulation and visualising the results.
 
 The model
 ---------
 
-We will focus on the neocortical layer-5 pyramidal cell from the BluePyOpt repository documented in the `L5PC Jupyter notebook <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/L5PC.ipynb>`_ and the references listed thereunder, in particular the `BluePyOpt paper (2015) in Frontiers of Neuroinformatics <https://www.frontiersin.org/articles/10.3389/fninf.2016.00017/full>`_. The steps shown in the following can also be performed on the `simple-cell example <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/simplecell/simplecell.ipynb>`_ for a more basic setup.
+We will focus on the neocortical layer-5 pyramidal cell from the BluePyOpt repository documented in the `L5PC Jupyter notebook <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/L5PC.ipynb>`_ and the references listed thereunder, in particular the `BluePyOpt paper (2015) in Frontiers of Neuroinformatics <https://www.frontiersin.org/articles/10.3389/fninf.2016.00017/full>`_. The steps shown in the following can also be performed on BluePyOpt's `simple-cell example <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/simplecell/simplecell.ipynb>`_ for a more basic setup.
 
-The layer-5 pyramidal cell model is specified with the `morphology <https://github.com/BlueBrain/BluePyOpt/tree/master/examples/l5pc/morphology>`_  in ASC-format, the `mechanisms <https://github.com/BlueBrain/BluePyOpt/tree/master/examples/l5pc/mechanisms>`_, which match Arbor's Blue Brain Project catalogue, and their mapping to morphological regions in `mechanisms.json <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/config/mechanisms.json>`_ as well as mechanism parameters in `parameters.json <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/config/parameters.json>`_. The model exclusively uses density mechanisms, however, models with point-processes can also be exported to the JSON/ACC format presented in the following.
+The layer-5 pyramidal cell model is specified with the `morphology <https://github.com/BlueBrain/BluePyOpt/tree/master/examples/l5pc/morphology>`_ in ASC-format, the `mechanisms <https://github.com/BlueBrain/BluePyOpt/tree/master/examples/l5pc/mechanisms>`_, which match Arbor's Blue Brain Project catalogue, and their mapping to morphological regions in `mechanisms.json <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/config/mechanisms.json>`_ as well as mechanism parameters in `parameters.json <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/config/parameters.json>`_. The model exclusively uses density mechanisms. However, models with point-processes can also be exported to the JSON/ACC format presented in this tutorial.
 
 Export to JSON/ACC
 ------------------
@@ -73,9 +73,9 @@ We can now export the model to a given target directory using the ``create_acc``
 
    ephys.create_acc.output_acc('path/to/exported/l5pc', cell_model, param_values)
 
-This exports a model in a mixed JSON/ACC format analogous to that in the example directory of Arbor at ``python/example/single_cell_bluepyopt/l5pc``. The whole set of steps to construct and export the model is automated in the script `generate_acc.py <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/generate_acc.py>`_.
+This exports a model in a mixed JSON/ACC format analogous to that in the example directory of Arbor at ``python/example/single_cell_bluepyopt/l5pc``. The whole set of steps to construct and export the model is automated in the script `generate_acc.py <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/generate_acc.py>`_, part of BluePyOpt.
 
-This script also supports axon replacement by first instantiating the morphology in BluePyOpt through the Neuron simulator before exporting the model to JSON/ACC with
+This script also supports axon replacement by first instantiating the morphology in BluePyOpt through the Neuron simulator before exporting the model to JSON/ACC with:
 
 .. code-block:: python
 
@@ -87,20 +87,20 @@ The model in the example directory ``python/example/single_cell_bluepyopt/l5pc``
 Load from JSON/ACC
 ------------------
 
-The exported model is summarised by a JSON file in the output directory, that references a morphology file (for the layer-5 pyramical cell in ASC, for the simple-cell in SWC), a label dictionary and decor (both in ACC) with relative paths. For the simple-cell example, this amounts to
+The exported model is summarised by a JSON file in the output directory, that references the original morphology file (for the layer-5 pyramical cell in ASC, for the simple-cell in SWC), a label dictionary and decor (both in ACC) with relative paths. For the simple-cell example, this amounts to
 
 .. literalinclude:: ../../python/example/single_cell_bluepyopt/simplecell/simple_cell.json
    :language: json
    :dedent:
 
-In case of axon replacement, also the axon-replacement morphology and optionally the morphology after replacing the axon in the original are exported, as in the layer-5 pyramidal cell example.
+In case of axon replacement, also the morphology to replace the axon with (``replace_axon``) and (optionally) the morphology resulting after performing axon-replacement on the original (``modified``) are exported in the ACC format, as in the layer-5 pyramidal cell example.
 
 .. literalinclude:: ../../python/example/single_cell_bluepyopt/l5pc/l5pc.json
    :language: json
    :dedent:
    :lines: 4-8
 
-For the morphology, we use a file-format specific loader, whereas the label-dict and decor can be loaded as Arbor cable cell components, so that for the exported ``l5pc`` example in the Arbor repository, we can set
+We use a file-format specific loader for the morphology (e.g. :py:func:`~arbor.load_asc`), while the label-dict and decor can be loaded as Arbor cable cell components (:py:func:`~arbor.load_component`). So, for the exported ``l5pc`` example in the Arbor repository, we can set:
 
 .. code-block:: python
 
@@ -116,9 +116,9 @@ and use
    labels = arbor.load_component(cell_json['label_dict']).component
    decor = arbor.load_component(cell_json['decor']).component
 
-This loads the original morphology. While for the exported simple-cell, this would represent the morphology used inside BluePyOpt, for the exported layer-5 pyramidal cell the modifications in terms of axon-replacement still have to be applied. We will turn to that topic in the following.
+This loads the original morphology. For the exported simple-cell, this represents the morphology used inside BluePyOpt. On the other hand, for the exported layer-5 pyramidal cell the modifications in terms of axon replacement still have to be applied. We will turn to that topic in the following.
 
-In BluePyOpt, the above steps can be abbreviated using the ``read_acc`` function, which also reconstructs the morphology in a way that is faithful to BluePyOpt's Neuron-based axon replacement procedure. 
+In BluePyOpt, the above steps can be abbreviated using the ``read_acc`` function. This also reconstructs the morphology in a way that is faithful to BluePyOpt's Neuron-based axon replacement procedure. 
 
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
@@ -128,7 +128,9 @@ In BluePyOpt, the above steps can be abbreviated using the ``read_acc`` function
 Axon replacement
 ----------------
 
-A popular modeling choice for cell optimisation with the Neuron simulator in BluePyOpt is to substitute the axon by a surrogate morphology that is computationally less expensive. The corresponding composite morphology can be obtained in Arbor by substituting the axon of the original morphology with the exported replacement using the segment tree editing primitives :func:`arbor.segment_tree.split_at` and :func:`arbor.segment_tree.join_at`. The axon-replacement morphology is automatically exported to ACC when calling ``create_acc`` on a cell model with a morphology that has ``do_replace_axon`` set to ``True``. If the axon-replacement exported by BluePyOpt is not satisfactory, alternatively, the user can also define his/her own morphology in ACC to use as a replacement.
+A common modeling choice for cell optimisation with the Neuron simulator in BluePyOpt is to substitute the axon by a simpler surrogate morphology that is computationally cheaper to simulate. `The assumption is that the axon is often not modeled well or at all, and its function is poorly understood <https://www.nature.com/articles/s41467-017-02718-3>`_.
+
+The corresponding composite morphology can be obtained in Arbor by substituting the axon of the original morphology (``original``) with the exported replacement (``replace_axon``) using the segment tree editing primitives :func:`arbor.segment_tree.split_at` and :func:`arbor.segment_tree.join_at`. The axon-replacement morphology is automatically exported to ACC when calling ``create_acc`` on a cell model with a morphology that has ``do_replace_axon`` set to ``True``. If the axon-replacement exported by BluePyOpt is not satisfactory, alternatively, the user can also define his/her own morphology in ACC to use as a replacement.
 
 To perform axon replacement, we first have to find the (unique) root segment of this region in the morphology. We can then split the segment tree at the axon root into two separate segment trees - a pruned one and one for the original axon.
 
@@ -159,13 +161,13 @@ Then we can determine the parent of the axon root to join the replacement onto, 
    # final morphology
    morpho_axon_replaced = arbor.morphology(joined_st)
 
-The steps presented here are included when loading an exported model with the above ``read_acc`` function from BluePyOpt.
+The steps presented here are performed automatically when loading an exported model with the above ``read_acc`` function from BluePyOpt.
 
 
 Define locations in the GUI
 ---------------------------
 
-BluePyOpt makes use of the Neuron simulator's features to define custom locations for stimuli and voltage probes that can be challenging to translate to Arbor. As an example, the layer-5 pyramidal cell optimisation problem has multiple voltage probes located distally on the apical dendrite at a fixed distance from the soma as described in `config/protocols.json <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/config/protocols.json>`_.
+BluePyOpt makes use of the Neuron simulator's features to define custom locations for stimuli and voltage probes that can be challenging to translate to Arbor. As an example, the layer-5 pyramidal cell optimisation problem has a protocol named ``bAP`` with multiple voltage probes located distally on the apical dendrite at a fixed distance from the soma as described in `config/protocols.json <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/config/protocols.json>`_.
 
 To describe these locations accurately in Arbor, we will use the Arbor GUI. For this purpose, we create an :class:`arbor.cable_cell` and export it to ACC so that it can be loaded in the GUI,
 
@@ -174,13 +176,16 @@ To describe these locations accurately in Arbor, we will use the Arbor GUI. For 
    cell = arbor.cable_cell(morpho, labels, decor)
    arbor.write_component(cell, 'path/to/l5pc_cable_cell.acc')
 
-After loading this in file in the GUI with ``File > Cable cell > Load``, we can click the ``Locations`` and ``Cell`` tab to obtain the following overview.
+After loading this file in the GUI with ``File > Cable cell > Load``, we can click the ``Locations`` and ``Cell`` tab to obtain the following overview.
 
 .. figure:: single_cell_bluepyopt_gui_l5pc_overview.png
     :width: 800
     :align: center
+    :class: with-border
 
-As a first attempt to formulate the location at 660 µm from the soma, we can use
+    Apical view on the layer-5 pyramidal cell morphology with axon-replacement performed. The replacement axon is not visible from this perspective as hidden by the soma (red). Colour legend for regions on the left. 
+
+The first extra recording of the ``bAP`` protocol is located at 660 µm from the soma. As a first attempt to formulate this location using Arbor's S-expression syntax for :ref:`regions <labels-region-expr>` and :ref:`locsets <labels-locset-expr>`, we can use
 
 .. code-block::
 
@@ -193,10 +198,13 @@ Unfortunately, for this particular morphology, this does not result in a concret
 .. figure:: single_cell_bluepyopt_gui_l5pc_bAP_attempt.png
     :width: 800
     :align: center
+    :class: with-border
+
+    First two attempts (Locset A and B) to define a location for the extra recording in the ``bAP`` protocol on the layer-5 pyramidal cell morphology with axon-replacement.
 
 BluePyOpt solves this issue with the Neuron simulator by choosing a particular section on the apical dendrite. While a similar approach is possible in Arbor using the :func:`arbor.cable_cell.locations` method, for reproducibility it is preferable to determine the location directly in the Arbor GUI.
 
-For this purpose, we can use the identify a distal apical branch (or segment) by hovering with the mouse over the morphology and keeping a focus on the data in the left lower corner. We can then define a region with 
+For this purpose, we can identify a particular branch (or segment) by hovering over the distal apical part of the morphology with the mouse and keeping a focus on the data in the left lower corner. We can then define a region with 
 
 .. code-block::
 
@@ -207,6 +215,9 @@ that includes the path (Region C, yellow) from that branch to the (apical) root 
 .. figure:: single_cell_bluepyopt_gui_l5pc_bAP_final.png
     :width: 800
     :align: center
+    :class: with-border
+
+    Proximal region of a distal apical branch (Region C, between Locset D and E) and locset at fixed distance from the apical root for the extra recording in the ``bAP`` protocol on the layer-5 pyramidal cell morphology with axon-replacement.
 
 The final expression for the probe location on the morphology with axon-replacement, hence, is
 
