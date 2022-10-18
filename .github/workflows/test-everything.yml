@@ -23,16 +23,16 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        #- {
-        #    name:  "Linux Min Clang",
-        #    os:    "ubuntu-18.04",
-        #    cc:    "clang-8",
-        #    cxx:   "clang++-8",
-        #    py:    "3.7",
-        #    cmake: "3.19.x",
-        #    mpi:   "ON",
-        #    simd:  "OFF"
-        #  }
+        - {
+            name:  "Linux Min Clang",
+            os:    "ubuntu-20.04",
+            cc:    "clang-9",
+            cxx:   "clang++-9",
+            py:    "3.7",
+            cmake: "3.19.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
         #- {
         #    name:  "MacOS Min",
         #    os:    "macos-11",
@@ -83,7 +83,7 @@ jobs:
         #    mpi:   "ON",
         #    simd:  "OFF"
         #  }
-        #variant: [static, shared]
+        variant: [static, shared]
     env:
         CC:         ${{ matrix.config.cc }}
         CXX:        ${{ matrix.config.cxx }}

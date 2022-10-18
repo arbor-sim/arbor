@@ -35,9 +35,4 @@ std::ostream& operator<<(std::ostream& o, basic_spike<I> const& s) {
     return o << "S[src " << s.source << ", t " << s.time << "]";
 }
 
-// explict specilaization for spike to avoid compile error for older compilers
-template <>
-inline std::ostream& operator<< <cell_member_type>(std::ostream& o, basic_spike<cell_member_type> const& s) {
-    return o << "S[src " << s.source << ", t " << s.time << "]";
-}
 } // namespace arb
