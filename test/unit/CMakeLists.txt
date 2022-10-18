@@ -143,7 +143,7 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
-    #test_sde.cpp
+    test_sde.cpp
 
     # unit test driver
     test.cpp

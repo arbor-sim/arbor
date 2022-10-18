@@ -22,13 +22,17 @@ endif()
 add_library(ext-tinyopt INTERFACE)
 target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
 
+
+# Cmake functionality for external projects
+include(ExternalProject)
+
+
 # Google benchmark for microbenchmarks:
 
 check_git_submodule(gbench google-benchmark)
 if(gbench_avail)
     # Set up google benchmark as an external project.
 
-    include(ExternalProject)
     set(gbench_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/google-benchmark")
     set(gbench_install_dir "${CMAKE_CURRENT_BINARY_DIR}/google-benchmark")
     set(gbench_cmake_args
@@ -63,8 +67,8 @@ target_link_libraries(ext-benchmark INTERFACE "${gbench_install_dir}/lib/libbenc
 check_git_submodule(gtest googletest)
 
 if(gtest_avail)
-    #add_subdirectory(googletest)
-    include(ExternalProject)
+    # Set up google test as an external project.
+
     set(gtest_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/googletest")
     set(gtest_install_dir "${CMAKE_CURRENT_BINARY_DIR}/googletest")
     set(gtest_install_lib_dir "${gtest_install_dir}/lib")
@@ -76,7 +80,6 @@ if(gtest_avail)
         "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
         "-DBUILD_GMOCK=OFF"
-        #"-DINSTALL_GTEST=OFF"
     )
 
     ExternalProject_Add(gtest-build
@@ -95,9 +98,10 @@ else()
         "The git submodule for google test is not available")
 endif()
 
-find_package (Threads)
 add_library(ext-gtest INTERFACE)
 add_dependencies(ext-gtest gtest-build)
 target_include_directories(ext-gtest INTERFACE "${gtest_install_dir}/include")
 target_link_libraries(ext-gtest INTERFACE "${gtest_install_dir}/lib/libgtest.a")
+# on some systems we need link explicitly against threads
+find_package (Threads)
 target_link_libraries(ext-gtest INTERFACE Threads::Threads)
