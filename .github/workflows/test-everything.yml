@@ -43,46 +43,46 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        #- {
-        #    name:  "Linux Max GCC",
-        #    os:    "ubuntu-22.04",
-        #    cc:    "gcc-11",
-        #    cxx:   "g++-11",
-        #    py:    "3.10",
-        #    cmake: "3.22.x",
-        #    mpi:   "ON",
-        #    simd:  "OFF"
-        #  }
-        #- {
-        #    name:  "Linux SIMD",
-        #    os:    "ubuntu-22.04",
-        #    cc:    "gcc-11",
-        #    cxx:   "g++-11",
-        #    py:    "3.10",
-        #    cmake: "3.22.x",
-        #    mpi:   "OFF",
-        #    simd:  "ON"
-        #  }
-        #- {
-        #    name:  "Linux Max Clang",
-        #    os:    "ubuntu-22.04",
-        #    cc:    "clang-14",
-        #    cxx:   "clang++-14",
-        #    py:    "3.10",
-        #    cmake: "3.22.x",
-        #    mpi:   "ON",
-        #    simd:  "OFF"
-        #  }
-        #- {
-        #    name:  "MacOS Max",
-        #    os:    "macos-12",
-        #    cc:    "clang",
-        #    cxx:   "clang++",
-        #    py:    "3.10",
-        #    cmake: "3.22.x",
-        #    mpi:   "ON",
-        #    simd:  "OFF"
-        #  }
+        - {
+            name:  "Linux Max GCC",
+            os:    "ubuntu-22.04",
+            cc:    "gcc-11",
+            cxx:   "g++-11",
+            py:    "3.10",
+            cmake: "3.22.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "Linux SIMD",
+            os:    "ubuntu-22.04",
+            cc:    "gcc-11",
+            cxx:   "g++-11",
+            py:    "3.10",
+            cmake: "3.22.x",
+            mpi:   "OFF",
+            simd:  "ON"
+          }
+        - {
+            name:  "Linux Max Clang",
+            os:    "ubuntu-22.04",
+            cc:    "clang-14",
+            cxx:   "clang++-14",
+            py:    "3.10",
+            cmake: "3.22.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
+        - {
+            name:  "MacOS Max",
+            os:    "macos-12",
+            cc:    "clang",
+            cxx:   "clang++",
+            py:    "3.10",
+            cmake: "3.22.x",
+            mpi:   "ON",
+            simd:  "OFF"
+          }
         variant: [static, shared]
     env:
         CC:         ${{ matrix.config.cc }}
