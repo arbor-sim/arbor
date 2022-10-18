@@ -153,6 +153,9 @@ include(BuildModules.cmake)
 
 set(ARB_WITH_EXTERNAL_MODCC true)
 find_program(modcc NAMES modcc PATHS {exec_path} NO_DEFAULT_PATH)
+if (NOT modcc)
+    find_program(modcc NAMES modcc)
+endif()
 
 make_catalogue_standalone(
   NAME {name}
