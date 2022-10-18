@@ -25,7 +25,7 @@ target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
 
 # functionality for adding external projects
 include(ExternalProject)
-macro(add_external_cmake_project)
+function(add_external_cmake_project)
     # handle named arguments
     set(options OPTIONAL)
     set(oneValueArgs NAME SOURCE_DIR INSTALL_DIR LIB)
@@ -57,7 +57,7 @@ macro(add_external_cmake_project)
     add_dependencies(${EP_NAME} ${EP_BUILD})
     target_include_directories(${EP_NAME} INTERFACE "${EP_INSTALL_DIR}/include")
     target_link_libraries(${EP_NAME} INTERFACE "${EP_INSTALL_DIR}/lib/${EP_LIB}")
-endmacro()
+endfunction()
 
 
 # Google benchmark for microbenchmarks:
@@ -73,7 +73,9 @@ if(gbench_avail)
         INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/google-benchmark"
         LIB libbenchmark.a
         CMAKE_ARGS
-            "-DCMAKE_BUILD_TYPE=release")
+            "-DCMAKE_BUILD_TYPE=release"
+            "-DBUILD_SHARED_LIBS=OFF")
+    set_target_properties(ext-benchmark PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else()
     add_error_target(ext-benchmark-build
         "Building Google benchmark library"
@@ -99,6 +101,7 @@ if(gtest_avail)
     # on some systems we need link explicitly against threads
     find_package (Threads)
     target_link_libraries(ext-gtest INTERFACE Threads::Threads)
+    set_target_properties(ext-gtest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else()
     add_error_target(ext-gtest-build
         "Building Google Test library"
