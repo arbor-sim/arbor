@@ -1,7 +1,7 @@
 #include <numeric>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/math.hpp>
 

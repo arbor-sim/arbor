@@ -1,5 +1,4 @@
 [![ci](https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg)](https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml)
-[![hpcci](https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg)](https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master)
 [![pythonwheels](https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml/badge.svg)](https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml)
 [![gitpod](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor)
 [![docs](https://readthedocs.org/projects/arbor/badge/?version=latest)](https://docs.arbor-sim.org/en/latest/)

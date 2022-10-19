@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "util/ordered_forest.hpp"
 
 using arb::util::ordered_forest;

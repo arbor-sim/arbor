@@ -6,7 +6,7 @@
 #include <util/filter.hpp>
 #include <util/transform.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include "common.hpp"
 
