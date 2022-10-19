@@ -60,6 +60,7 @@ function(add_external_cmake_project)
             # Add dummy DOWNLOAD_COMMAND to stop ExternalProject_Add terminating CMake if the
             # git submodule had not been udpated.
             DOWNLOAD_COMMAND "${CMAKE_COMMAND}" -E echo "Warning: ${EP_SOURCE_DIR} empty or missing."
+            BUILD_BYPRODUCTS "${EP_INTERFACE_LIB_NAME}"
             SOURCE_DIR "${EP_SOURCE_DIR}"
             CMAKE_ARGS "${EP_ALL_CMAKE_ARGS}"
             INSTALL_DIR "${EP_INSTALL_DIR}"
