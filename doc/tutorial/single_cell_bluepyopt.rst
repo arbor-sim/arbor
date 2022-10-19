@@ -93,7 +93,7 @@ The exported model is summarised by a JSON file in the output directory, that re
    :language: json
    :dedent:
 
-In case of axon replacement, also the morphology to replace the axon with (``replace_axon``) and (optionally) the morphology resulting after performing axon-replacement on the original (``modified``) are exported in the ACC format, as in the layer-5 pyramidal cell example.
+In case of axon replacement, the morphology to replace the axon with (``replace_axon``) and (optionally) the morphology resulting after performing axon-replacement on the original (``modified``) are also exported in the ACC format, as in the layer-5 pyramidal cell example.
 
 .. literalinclude:: ../../python/example/single_cell_bluepyopt/l5pc/l5pc.json
    :language: json
@@ -202,7 +202,7 @@ Unfortunately, for this particular morphology, this does not result in a concret
 
     First two attempts (Locset A and B) to define a location for the extra recording in the ``bAP`` protocol on the layer-5 pyramidal cell morphology with axon-replacement.
 
-BluePyOpt solves this issue with the Neuron simulator by choosing a particular section on the apical dendrite. While a similar approach is possible in Arbor using the :func:`arbor.cable_cell.locations` method, for reproducibility it is preferable to determine the location directly in the Arbor GUI.
+BluePyOpt solves this issue with the Neuron simulator by choosing a particular section on the apical dendrite. While a similar approach is possible in Arbor using the :func:`arbor.cable_cell.locations` method, for reproducibility it is preferable to determine the location directly oneself as a user in the Arbor GUI.
 
 For this purpose, we can identify a particular branch (or segment) by hovering over the distal apical part of the morphology with the mouse and keeping a focus on the data in the left lower corner. We can then define a region with 
 
