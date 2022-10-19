@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <string>
 #include <arbor/util/pp_util.hpp>

@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 // TODO: Amend for new mechanism architecture
 #if 0

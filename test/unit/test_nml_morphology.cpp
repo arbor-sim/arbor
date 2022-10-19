@@ -9,7 +9,7 @@
 #include <arborio/neuroml.hpp>
 #include <arborio/xml.hpp>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 #include "morph_pred.hpp"
 
 using testing::region_eq;

@@ -4,7 +4,7 @@
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 using namespace arb;
 

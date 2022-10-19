@@ -1,5 +1,5 @@
-#include "../gtest.h"
-#include "common_cells.hpp"
+#include <gtest/gtest.h>
+#include "../common_cells.hpp"
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>

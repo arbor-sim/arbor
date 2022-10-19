@@ -20,7 +20,7 @@
 #include "backends/gpu/matrix_state_flat.hpp"
 #include "backends/gpu/matrix_state_fine.hpp"
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
 
 

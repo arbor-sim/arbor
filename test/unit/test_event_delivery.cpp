@@ -19,7 +19,7 @@
 #include "util/transform.hpp"
 
 #include "../simple_recipes.hpp"
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 using namespace arb;
 

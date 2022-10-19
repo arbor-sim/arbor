@@ -6,7 +6,7 @@
 
 #include <arbor/context.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 /// A specialized listener desinged for printing test results with MPI
 /// or in other distributed contexts.

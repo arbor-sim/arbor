@@ -14,7 +14,7 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
-#include "common_cells.hpp"
+#include "../common_cells.hpp"
 #include "common_morphologies.hpp"
 #include "morph_pred.hpp"
 

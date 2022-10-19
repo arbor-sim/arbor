@@ -6,7 +6,7 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
 
 using namespace arb;
