@@ -94,7 +94,7 @@ set(unit_sources
     test_math.cpp
     test_matrix.cpp
     test_mcable_map.cpp
-    test_mc_cell_group.cpp
+    test_cable_cell_group.cpp
     test_mechanisms.cpp
     test_mech_temp_diam.cpp
     test_mechcat.cpp

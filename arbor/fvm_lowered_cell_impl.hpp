@@ -35,6 +35,7 @@
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
+#include "cable_cell_group.hpp"
 
 namespace arb {
 
@@ -402,18 +403,12 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         auto gid = gids[i];
         const auto& c = cells[i];
 
-        fvm_info.source_data.add_cell();
         fvm_info.target_data.add_cell();
         fvm_info.gap_junction_data.add_cell();
 
-        unsigned count = 0;
-        for (const auto& [label, range]: c.detector_ranges()) {
-            fvm_info.source_data.add_label(label, range);
-            count+=(range.end - range.begin);
-        }
-        fvm_info.num_sources[gid] = count;
+        fvm_info.num_sources[gid] = get_sources(fvm_info.source_data, c);
 
-        count = 0;
+        unsigned count = 0;
         for (const auto& [label, range]: c.synapse_ranges()) {
             fvm_info.target_data.add_label(label, range);
             count+=(range.end - range.begin);

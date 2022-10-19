@@ -92,7 +92,7 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 
@@ -118,7 +118,6 @@ public:
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
-    label_resolution_map source_resolution_map_;
     label_resolution_map target_resolution_map_;
 
 private:
@@ -200,7 +199,6 @@ simulation_state::simulation_state(
     // Generate the cell groups in parallel, with one task per cell group.
     auto num_groups = decomp.num_groups();
     cell_groups_.resize(num_groups);
-    std::vector<cell_labels_and_gids> cg_sources(num_groups);
     std::vector<cell_labels_and_gids> cg_targets(num_groups);
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
@@ -208,27 +206,21 @@ simulation_state::simulation_state(
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
-
-          cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
           cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
         });
 
-    cell_labels_and_gids local_sources, local_targets;
+    cell_labels_and_gids local_targets;
     for(const auto& i: util::make_span(num_groups)) {
-        local_sources.append(cg_sources.at(i));
         local_targets.append(cg_targets.at(i));
     }
-    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
-
-    source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
     communicator_ = communicator(rec, ddc_, *ctx_);
     update(rec);
     epoch_.reset();
 }
 
-void simulation_state::update(const connectivity& rec) {
-    communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
+void simulation_state::update(const recipe& rec) {
+    communicator_.update_connections(rec, ddc_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = communicator_.min_delay()/2;
 
@@ -530,7 +522,7 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update(const connectivity& rec) { impl_->update(rec); }
+void simulation::update(const recipe& rec) { impl_->update(rec); }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {

@@ -8,6 +8,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/spike_source_cell.hpp>
 
 #include "cell_group.hpp"
 #include "epoch.hpp"
@@ -42,6 +43,8 @@ private:
     std::vector<cell_gid_type> gids_;
     std::vector<std::vector<schedule>> time_sequences_;
 };
+
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const spike_source_cell& c);
 
 } // namespace arb
 

@@ -40,5 +40,7 @@ private:
     std::vector<cell_gid_type> gids_;
 };
 
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const benchmark_cell& c);
+
 } // namespace arb
 

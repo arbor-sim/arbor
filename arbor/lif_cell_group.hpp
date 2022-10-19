@@ -55,4 +55,6 @@ private:
     std::vector<time_type> last_time_updated_;
 };
 
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const lif_cell& c);
+
 } // namespace arb

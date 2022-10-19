@@ -1,5 +1,6 @@
 #include <utility>
 #include <vector>
+#include <any>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -17,6 +18,10 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "spike_source_cell_group.hpp"
+#include "cable_cell_group.hpp"
+#include "benchmark_cell_group.hpp"
+#include "lif_cell_group.hpp"
 
 #include "communication/communicator.hpp"
 
@@ -31,9 +36,35 @@ communicator::communicator(const recipe& rec,
                                                      distributed_{ctx.distributed},
                                                      thread_pool_{ctx.thread_pool} {}
 
+// This is a bit nasty, as we basically reimplement things from all cell kinds ...
+cell_label_range get_sources(cell_gid_type gid, const recipe& rec) {
+    auto cell = rec.get_cell_description(gid);
+    auto kind = rec.get_cell_kind(gid);
+    cell_label_range result;
+    if (kind == cell_kind::lif) {
+        get_sources(result, util::any_cast<lif_cell>(cell));
+    }
+    else if (kind == cell_kind::spike_source) {
+        get_sources(result, util::any_cast<spike_source_cell>(cell));
+    }
+    else if (kind == cell_kind::benchmark) {
+        get_sources(result, util::any_cast<benchmark_cell>(cell));
+    }
+    else if (kind == cell_kind::cable) {
+        auto c = util::any_cast<cable_cell>(cell);
+        result.add_cell();
+        for (const auto& [label, range]: c.detector_ranges()) {
+            result.add_label(label, range);
+        }
+    }
+    else {
+        throw arbor_internal_error("Unknown cell kind");
+    }
+    return result;
+}    
+
 void communicator::update_connections(const recipe& rec,
                                       const domain_decomposition& dom_dec,
-                                      const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
     // Forget all lingering information
     connections_.clear();
@@ -102,11 +133,20 @@ void communicator::update_connections(const recipe& rec,
     auto offsets = connection_part_; // Copy, as we use this as the list of current target indices to write into
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
+    auto source_labels = std::unordered_map<cell_gid_type, std::unique_ptr<label_resolution_map>>{};
     for (const auto& cell: gid_infos) {
         auto index = cell.index_on_domain;
-        auto source_resolver = resolver(&source_resolution_map);
+        auto source_resolvers = std::unordered_map<cell_gid_type, resolver>{};
         for (const auto& c: cell.conns) {
-            auto src_lid = source_resolver.resolve(c.source);
+            auto sgid = c.source.gid;
+            if (!source_labels.count(sgid)) {
+                auto sources = cell_labels_and_gids{get_sources(sgid, rec), {sgid}};
+                source_labels.emplace(sgid, std::make_unique<label_resolution_map>(sources));
+            }
+            if (!source_resolvers.count(sgid)) {
+                source_resolvers.emplace(sgid, source_labels.at(sgid).get());
+            }
+            auto src_lid = source_resolvers.at(sgid).resolve(c.source);
             auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
             auto offset  = offsets[*src_domain]++;
             ++src_domain;

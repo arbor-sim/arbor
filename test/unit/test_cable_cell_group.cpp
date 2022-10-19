@@ -6,7 +6,7 @@
 
 #include "epoch.hpp"
 #include "fvm_lowered_cell.hpp"
-#include "mc_cell_group.hpp"
+#include "cable_cell_group.hpp"
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
@@ -36,19 +36,19 @@ namespace {
 }
 
 ACCESS_BIND(
-    std::vector<cell_member_type> mc_cell_group::*,
+    std::vector<cell_member_type> cable_cell_group::*,
     private_spike_sources_ptr,
-    &mc_cell_group::spike_sources_)
+    &cable_cell_group::spike_sources_)
 
-TEST(mc_cell_group, get_kind) {
+TEST(cable_cell_group, get_kind) {
     cable_cell cell = make_cell();
     cell_label_range srcs, tgts;
-    mc_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, lowered_cell()};
+    cable_cell_group group{{0}, cable1d_recipe({cell}), srcs, tgts, lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable, group.get_cell_kind());
 }
 
-TEST(mc_cell_group, test) {
+TEST(cable_cell_group, test) {
     cable_cell cell = make_cell();
     auto rec = cable1d_recipe({cell});
     rec.nernst_ion("na");
@@ -56,7 +56,7 @@ TEST(mc_cell_group, test) {
     rec.nernst_ion("k");
 
     cell_label_range srcs, tgts;
-    mc_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
+    cable_cell_group group{{0}, rec, srcs, tgts, lowered_cell()};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
@@ -64,7 +64,7 @@ TEST(mc_cell_group, test) {
     EXPECT_EQ(4u, group.spikes().size());
 }
 
-TEST(mc_cell_group, sources) {
+TEST(cable_cell_group, sources) {
     // Make twenty cells, with an extra detector on gids 0, 3 and 17
     // to make things more interesting.
     std::vector<cable_cell> cells;
@@ -86,7 +86,7 @@ TEST(mc_cell_group, sources) {
     rec.nernst_ion("k");
 
     cell_label_range srcs, tgts;
-    mc_cell_group group{gids, rec, srcs, tgts, lowered_cell()};
+    cable_cell_group group{gids, rec, srcs, tgts, lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.

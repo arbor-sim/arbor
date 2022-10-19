@@ -114,7 +114,7 @@ struct ARB_ARBOR_API resolver {
     resolver(const label_resolution_map* label_map): label_map_(label_map) {}
     cell_lid_type resolve(const cell_global_label_type& iden);
 
-private:
+// private:
     using state_variant = std::variant<round_robin_state, round_robin_halt_state, assert_univalent_state>;
 
     state_variant construct_state(lid_selection_policy pol);

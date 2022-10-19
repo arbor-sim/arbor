@@ -12,6 +12,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/cable_cell.hpp>
 
 #include "backends/event.hpp"
 #include "cell_group.hpp"
@@ -24,11 +25,11 @@
 
 namespace arb {
 
-class ARB_ARBOR_API mc_cell_group: public cell_group {
+class ARB_ARBOR_API cable_cell_group: public cell_group {
 public:
-    mc_cell_group() = default;
+    cable_cell_group() = default;
 
-    mc_cell_group(const std::vector<cell_gid_type>& gids,
+    cable_cell_group(const std::vector<cell_gid_type>& gids,
                   const recipe& rec,
                   cell_label_range& cg_sources,
                   cell_label_range& cg_targets,
@@ -104,5 +105,7 @@ private:
     // Lookup table for target ids -> local target handle indices.
     std::vector<std::size_t> target_handle_divisions_;
 };
+
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const cable_cell& c);
 
 } // namespace arb

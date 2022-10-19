@@ -15,6 +15,12 @@
 
 namespace arb {
 
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const benchmark_cell& c) {
+    src.add_cell();
+    src.add_label(c.source, {0, 1});
+    return 1;
+}
+
 benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gids,
                                            const recipe& rec,
                                            cell_label_range& cg_sources,
@@ -29,14 +35,11 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
 
     cells_.reserve(gids_.size());
     for (auto gid: gids_) {
-        cells_.push_back(util::any_cast<benchmark_cell>(rec.get_cell_description(gid)));
-    }
-
-    for (const auto& c: cells_) {
-        cg_sources.add_cell();
+        auto cell = util::any_cast<benchmark_cell>(rec.get_cell_description(gid));
+        cells_.push_back(cell);
         cg_targets.add_cell();
-        cg_sources.add_label(c.source, {0, 1});
-        cg_targets.add_label(c.target, {0, 1});
+        cg_targets.add_label(cell.target, {0, 1});
+        get_sources(cg_sources, cell);
     }
 
     benchmark_cell_group::reset();
