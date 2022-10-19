@@ -10,7 +10,7 @@ file formats; see :ref:`cppcablecell-morphology-construction` for details.
 Segment tree
 ------------
 
-A ``segment_tree` is -- as the name implies -- a set of segments arranged in a
+A ``segment_tree`` is -- as the name implies -- a set of segments arranged in a
 tree structure, ie each segment has exactly one parent and no child is the
 parent of any of its ancestors. The tree starts at a *root* segment which has no
 parent. Each segment comprises two points in 3d space together with the radii at

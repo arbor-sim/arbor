@@ -162,7 +162,7 @@ Documentation
 ~~~~~~~~~~~~~~
 
 To build a local copy of the html documentation that you are reading now, you will need to
-install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
@@ -552,7 +552,7 @@ component ``neuroml``. The corresponding CMake library target is ``arbor::arbori
    # ...
    target_link_libraries(myapp arbor::arborio)
 
-.. install-profiling:
+.. _install-profiling:
 
 Profiling
 ---------
@@ -605,7 +605,7 @@ on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
-.. warn::
+.. warning::
 
    On many HPC systems a tool called ``module`` or ``ml`` is installed, which
    use the ``CPATH`` environment variable to set up include paths for building.

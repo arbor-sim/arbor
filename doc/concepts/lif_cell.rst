@@ -23,4 +23,3 @@ API
 ---
 
 * :ref:`Python <pylifcell>`
-* :ref:`C++ <cpplifcell>`

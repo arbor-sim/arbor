@@ -4,6 +4,7 @@ Cable cell probing and sampling
 ===============================
 
 .. module:: arbor
+   :noindex:
 
 .. figure:: probe_sample-diag.svg
     :width: 800

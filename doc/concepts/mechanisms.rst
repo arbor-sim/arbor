@@ -6,7 +6,7 @@ Cable cell mechanisms
 Mechanisms describe biophysical processes such as ion channels, synapses and gap-junctions.
 Mechanisms are assigned to regions and locations on a cell morphology
 through the process of :ref:`decoration <cablecell-decoration>`.
-Mechanisms are described using a dialect of the :ref:`NMODL <nmodl>` domain
+Mechanisms are described using a dialect of the :ref:`NMODL <formatnmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
 Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
@@ -321,4 +321,3 @@ API
 ---
 
 * :ref:`Python <py_mechanisms>`
-* :ref:`C++ <cpp_mechanisms>`
