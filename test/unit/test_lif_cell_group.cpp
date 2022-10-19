@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
