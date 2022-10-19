@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <cmath>
 
@@ -92,7 +92,7 @@ constexpr double upoly(double x) { return x*upoly<n-1>(x)+1.; }
 template <>
 constexpr double upoly<0>(double x) { return 1.; }
 
-TYPED_TEST_CASE(ratelem_pq, pq_types);
+TYPED_TEST_SUITE(ratelem_pq, pq_types);
 
 TYPED_TEST(ratelem_pq, interpolate_monotonic) {
     constexpr unsigned p = TypeParam::p;

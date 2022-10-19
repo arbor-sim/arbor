@@ -1,4 +1,4 @@
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/primitives.hpp>

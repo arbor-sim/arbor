@@ -4,7 +4,7 @@
 
 #include <util/strprintf.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
 
 using namespace std::string_literals;

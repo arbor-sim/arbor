@@ -46,8 +46,12 @@ option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires B
 
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
 set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
-option(ARB_USE_GPU_RNG
-    "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF)
+if(NOT ARB_GPU STREQUAL "none")
+    set(ARB_USE_GPU_DEP ON)
+endif()
+cmake_dependent_option(ARB_USE_GPU_RNG
+    "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF
+    "ARB_USE_GPU_DEP" OFF)
 
 # Use bundled 3rd party libraries
 

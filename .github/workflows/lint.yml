@@ -20,7 +20,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8
       - name: Clone w/ submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Python Formatting

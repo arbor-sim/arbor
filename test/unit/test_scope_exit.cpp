@@ -1,6 +1,6 @@
 #include <functional>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/util/scope_exit.hpp>
 

@@ -11,7 +11,7 @@
 #include "backends/gpu/fvm.hpp"
 #include "backends/multicore/fvm.hpp"
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
 
 
