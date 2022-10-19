@@ -1,7 +1,7 @@
 #include <any>
 #include <typeinfo>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>

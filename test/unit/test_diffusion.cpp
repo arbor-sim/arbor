@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arborio/label_parse.hpp>
 

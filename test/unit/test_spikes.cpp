@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arborio/label_parse.hpp>
 
@@ -13,7 +13,7 @@
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
-#include <simple_recipes.hpp>
+#include "../simple_recipes.hpp"
 
 using namespace arb;
 using namespace arborio::literals;

@@ -20,11 +20,11 @@ jobs:
         ASAN_OPTIONS: detect_leaks=1
     steps:
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.7
+        uses: jwlawson/actions-setup-cmake@v1.13
         with:
           cmake-version: 3.19.x
       - name: Clone w/ submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Update pip

@@ -2,7 +2,7 @@
 
 #include <util/padded_alloc.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
 
 using arb::util::padded_allocator;
