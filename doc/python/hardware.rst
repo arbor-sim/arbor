@@ -78,9 +78,10 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
    Requires GPU and MPI. Will return an integer id of a GPU such that each GPU
    is mapped to at most one MPI task (on the same node as the GPU). Raises an
    exception if
-   - not built with GPU or MPI support
-   - unable to satisfy the constraints above
-   - handed an invalid or unknown MPI communicator object
+   
+    - not built with GPU or MPI support
+    - unable to satisfy the constraints above
+    - handed an invalid or unknown MPI communicator object
 
 Prescribed resources
 ---------------------
@@ -152,7 +153,7 @@ The Python wrapper provides an API for:
 
         .. attribute:: threads
 
-            The number of threads available locally for execution. Defaults to the maximum number of threads the system makes available if gpu_id and mpi are not set, else defaults to 1.
+            The number of threads to be used for execution. Defaults to the maximum number of threads the system makes available (respecting optional affinity limits imposed through the environment) if gpu_id and mpi are not set, else defaults to 1.
             
         .. attribute:: gpu_id
 

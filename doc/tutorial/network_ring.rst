@@ -119,8 +119,8 @@ divide work equally over all threads.
 
 Step **(12)** creates a simulation object from the recipe. Optionally, the :py:class:`~arbor.simulation` constructor takes two more
 parameters: a :class:`arbor.context` and a :class:`arbor.domain_decomposition`. In a followup of this tutorial that will be demonstrated.
-For now, it is enough to know that for simulations that don't require customized execution those arguments can be left out. Arbor
-will without any further arguments use all locally available threads.
+For now, it is enough to know that for simulations that don't require customized execution those arguments can be left out. Without
+further arguments Arbor will use all locally available threads.
 
 Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
 This means the timestamps of the generated events will be kept in memory. Be default, these are discarded.

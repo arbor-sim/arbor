@@ -110,10 +110,10 @@ void register_contexts(pybind11::module& m) {
         .def(pybind11::init<unsigned, pybind11::object>(),
             "threads"_a=1, "gpu_id"_a=pybind11::none(),
             "Construct an allocation with arguments:\n"
-            "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.\n"
+            "  threads: The number of threads to be used for execution. Must be set to 1 at minimum. 1 by default.\n"
             "  gpu_id:  The identifier of the GPU to use, None by default.\n")
         .def_property("threads", &proc_allocation_shim::get_num_threads, &proc_allocation_shim::set_num_threads,
-            "The number of threads available locally for execution.")
+            "The number of threads to be used for execution.")
         .def_property("gpu_id", &proc_allocation_shim::get_gpu_id, &proc_allocation_shim::set_gpu_id,
             "The identifier of the GPU to use.\n"
             "Corresponds to the integer parameter used to identify GPUs in CUDA API calls.")
@@ -133,7 +133,7 @@ void register_contexts(pybind11::module& m) {
             }),
             "threads"_a=1, "gpu_id"_a=pybind11::none(), "mpi"_a=pybind11::none(),
             "Construct a distributed context with arguments:\n"
-            "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. Defaults to the maximum number of threads the system makes available if gpu_id and mpi are not set, else defaults to 1.\n"
+            "  threads: The number of threads to be used for execution. Must be set to 1 at minimum. Defaults to the maximum number of threads the system makes available if gpu_id and mpi are not set, else defaults to 1.\n"
             "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']==True.\n"
             "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n")
         .def(pybind11::init(

@@ -31,7 +31,7 @@ It contains the thread pool used to parallelise work on the local CPU, and optio
 and the MPI communicator for distributed simulations. In some Arbor tutorials, the :class:`arbor.single_cell_model` or
 :class:`arbor.simulation` objects created the execution context :class:`arbor.context` behind the scenes. The details
 of the execution context can be customized by the user. We may specify the number of threads in the thread pool;
-determine the id of the GPU to be used; or create our own MPI communicator.
+determine the id of the GPU to be used (see also :py:func:`~arbor.find_private_gpu`); or create our own MPI communicator.
 
 The configuration of the context will need to be added to reflect the change in hardware. We will use
 `MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over
