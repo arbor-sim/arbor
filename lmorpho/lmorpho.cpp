@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
             labels.set("apical", "(tag 4)"_reg);
             arb::decor decor;
 
-            arb::cable_cell cell(morph, labels, decor);
+            arb::cable_cell cell(morph, decor, labels);
 
             if(acc_file) {
                 std::string filename = acc_file.value();

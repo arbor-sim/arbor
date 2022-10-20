@@ -70,7 +70,7 @@ def make_cable_cell(gid):
         .place('"root"', arbor.threshold_detector(-10), "detector")
     )
 
-    return arbor.cable_cell(tree, labels, decor)
+    return arbor.cable_cell(tree, decor, labels)
 
 
 # (5) Create a recipe that generates a network of connected cells.

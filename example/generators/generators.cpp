@@ -66,7 +66,7 @@ public:
             // event_generators.
         .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
 
-        return arb::cable_cell(tree, labels, decor);
+        return arb::cable_cell(tree, decor, labels);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
