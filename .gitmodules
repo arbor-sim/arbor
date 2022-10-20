@@ -21,3 +21,5 @@
 	path = ext/googletest
 	url = git@github.com:google/googletest.git
 	branch = release-1.12.1
+[submodule "ext/googletest/"]
+	url = https://github.com/google/googletest.git
