@@ -56,7 +56,7 @@ class recipe(A.recipe):
         #   - detector for reporting spikes on the cable cells.
         decor.place("(location 0 0.5)", A.threshold_detector(-10.0), "detector")
         # return the cable cell description
-        return A.cable_cell(tree, A.label_dict(), decor)
+        return A.cable_cell(tree, decor)
 
     def connections_on(self, gid):
         # If we have added a connection to this cell, return it, else nothing.

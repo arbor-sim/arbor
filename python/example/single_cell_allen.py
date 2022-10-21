@@ -114,7 +114,7 @@ def make_cell(swc, fit):
     decor.discretization(arbor.cv_policy_max_extent(20))
 
     # (11) Create cell
-    return arbor.cable_cell(morphology, labels, decor), offset
+    return arbor.cable_cell(morphology, decor, labels), offset
 
 
 # (12) Create cell, model

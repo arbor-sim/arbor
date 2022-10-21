@@ -218,7 +218,7 @@ class art_spiker_recipe(arbor.recipe):
             )
         else:
             tree, labels, decor = self._cable_cell_elements()
-            return arbor.cable_cell(tree, labels, decor)
+            return arbor.cable_cell(tree, decor, labels)
 
 
 @_fixture

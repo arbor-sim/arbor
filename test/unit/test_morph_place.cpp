@@ -9,8 +9,8 @@
 #include "util/piecewise.hpp"
 #include "util/rangeutil.hpp"
 
-#include "../test/gtest.h"
-#include "common_cells.hpp"
+#include <gtest/gtest.h>
+#include "../common_cells.hpp"
 
 using namespace arb;
 

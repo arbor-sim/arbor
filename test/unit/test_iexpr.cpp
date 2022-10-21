@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "../common_cells.hpp"
 #include "fvm_layout.hpp"
 

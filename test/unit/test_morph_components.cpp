@@ -6,7 +6,7 @@
 
 #include "util/rangeutil.hpp"
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 #include "common_morphologies.hpp"
 
 using namespace arb;

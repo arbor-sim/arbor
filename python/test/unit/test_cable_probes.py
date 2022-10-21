@@ -24,7 +24,7 @@ class cc_recipe(A.recipe):
         dec.place("(location 0 0.1)", A.iclamp(20.0), "iclamp")
         dec.paint("(all)", A.density("hh"))
 
-        self.cell = A.cable_cell(st, A.label_dict(), dec)
+        self.cell = A.cable_cell(st, dec)
 
         self.props = A.neuron_cable_properties()
         self.props.catalogue = A.default_catalogue()
