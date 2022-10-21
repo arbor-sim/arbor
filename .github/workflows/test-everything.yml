@@ -92,12 +92,14 @@ jobs:
         # This is a workaround for the unfortunate interaction of MacOS and OpenMPI 4
         # See https://github.com/open-mpi/ompi/issues/6518
         OMPI_MCA_btl: "self,tcp"
+        # Use a different malloc implementation as workaround for failures in CI
+        LD_PRELOAD: "/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4"
     steps:
       - name: "Linux: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-dev ${{ matrix.config.cc }}
+          sudo apt-get install -y libxml2-dev libtcmalloc-minimal4 ${{ matrix.config.cc }}
       - name: "MacOS: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
