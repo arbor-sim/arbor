@@ -18,7 +18,7 @@ struct cable_cell_description {
     decor decorations;
 
     operator cable_cell() const {
-        return cable_cell(morph, labels, decorations);
+        return cable_cell(morph, decorations, labels);
     }
 };
 

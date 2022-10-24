@@ -108,7 +108,7 @@ class Cable(arbor.recipe):
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)
 
-        return arbor.cable_cell(tree, labels, decor)
+        return arbor.cable_cell(tree, decor, labels)
 
 
 def get_rm(g):

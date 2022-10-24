@@ -43,7 +43,7 @@ struct linear: public recipe {
         decor.set_default(ion_diffusivity{"na", b});
         decor.place("(location 0 0.5)"_ls, synapse("inject/x=na", {{"alpha", 200.0*l}}), "Zap");
         decor.paint("(all)"_reg, density("decay/x=na"));
-        return cable_cell({tree}, {}, decor);
+        return cable_cell({tree}, decor);
     }
 
     cable_cell_global_properties gprop;

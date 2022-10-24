@@ -15,7 +15,7 @@ class recipe(arb.recipe):
         self.props = arb.neuron_cable_properties()
         self.props.catalogue = arb.load_catalogue(cat)
         d = arb.decor().paint("(all)", "dummy").set_property(Vm=0.0)
-        self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
+        self.cell = arb.cable_cell(self.tree, d)
 
     def global_properties(self, _):
         return self.props
