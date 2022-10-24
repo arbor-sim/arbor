@@ -42,6 +42,10 @@ Step **(12)** uses the Arbor-built-in :py:class:`MPI communicator <arbor.mpi_com
 communicator for its ``mpi`` parameter. Note that you can also pass in communicators created with ``mpi4py``.
 We print both the communicator and context to observe how Arbor configures their defaults.
 
+.. note::
+   
+   If you use GPUs in combination with MPI, consider using :py:class:`~arbor.env.find_private_gpu`.
+
 Step **(13)** creates the simulation using the recipe and the context created in the previous step.
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py

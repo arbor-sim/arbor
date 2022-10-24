@@ -83,6 +83,10 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
     - unable to satisfy the constraints above
     - handed an invalid or unknown MPI communicator object
 
+.. function:: thread_concurrency()
+
+   Attempts to detect the number of locally available CPU cores. Returns 1 if unable to detect the number of cores. Use with caution in combination with MPI.
+
 Prescribed resources
 ---------------------
 

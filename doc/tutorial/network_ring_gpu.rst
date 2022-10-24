@@ -1,4 +1,4 @@
-.. _tutorialmpi:
+.. _tutorialgpu:
 
 GPU and profiling
 =================
@@ -27,7 +27,13 @@ id of the GPU to be used; or create our own MPI communicator.
 Step **(11)** creates a hardware context where we set the :py:attr:`~arbor.proc_allocation.gpu_id`. This requires 
 that you have built Arbor manually, with GPU support (See :ref:`here <in_python_adv>` how to do that). On a regular 
 consumer device with a single GPU, the index you should pass is ``0``. Change the value to run the example with and 
-without GPU.
+without GPU. The number of threads :class:`~arbor.context.threads`s are (when no MPI is used) set to
+:py:class:`arbor.env.thread_concurrency`. This value corresponds to the number of locally available threads as best as
+can be established by Arbor at the start of the program.
+
+.. note::
+   
+   If you use GPUs in combination with MPI, consider using :py:class:`~arbor.env.find_private_gpu`.
 
 .. literalinclude:: ../../python/example/network_ring_gpu.py
    :language: python

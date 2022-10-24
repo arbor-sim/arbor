@@ -118,7 +118,7 @@ destribute the work over that hardware. By default, contexts are configured to u
 divide work equally over all threads.
 
 Step **(12)** creates a simulation object from the recipe. Optionally, the :py:class:`~arbor.simulation` constructor takes two more
-parameters: a :class:`arbor.context` and a :class:`arbor.domain_decomposition`. In a followup of this tutorial that will be demonstrated.
+parameters: a :class:`arbor.context` and a :class:`arbor.domain_decomposition`. In :ref:`a followup of this tutorial <tutorialgpu>` that will be demonstrated.
 For now, it is enough to know that for simulations that don't require customized execution those arguments can be left out. Without
 further arguments Arbor will use all locally available threads.
 

@@ -18,7 +18,7 @@ namespace pyarb {
 #ifndef ARB_MPI_ENABLED
                   throw pyarb_error("Private GPU: Arbor is not configured with MPI.");
 #else
-                  auto err = ""Private GPU: Invalid MPI Communicator."";
+                  auto err = "Private GPU: Invalid MPI Communicator.";
                   if (can_convert_to_mpi_comm(mpi)) {
                       return arbenv::find_private_gpu(can_convert_to_mpi_comm(mpi));
                   }
@@ -33,6 +33,6 @@ namespace pyarb {
               "Identify a private GPU id per node, only available if built with GPU and MPI.\n"
               "  mpi:     The MPI communicator.")
         .def("thread_concurrency", []() -> unsigned {return arbenv::thread_concurrency();},
-            "Attempts to detect the number of available CPU cores. Returns 1 if unable to detect the number of cores.");
+            "Attempts to detect the number of locally available CPU cores. Returns 1 if unable to detect the number of cores. Use with caution in combination with MPI.");
     }
 }
