@@ -264,7 +264,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), labels, dec));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels));
         }
     }
 
@@ -276,7 +276,7 @@ public:
 
     std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
     
-    sde_recipe& add_probe(probe_tag tag, std::any address) {
+    sde_recipe& add_probe_all_gids(probe_tag tag, std::any address) {
         for (unsigned i=0; i<cells_.size(); ++i) {
             simple_recipe_base::add_probe(i, tag, address);
         }
@@ -541,7 +541,7 @@ TEST(sde, solver) {
     dec.place(*labels.locset("locs"), synapse(m4), "m4");
 
     // a basic sampler: stores result in a vector
-    auto sampler_ = [ncells, nsteps] (std::vector<arb_value_type>& results, unsigned count,
+    auto sampler_ = [nsteps] (std::vector<arb_value_type>& results, unsigned count,
         probe_metadata pm, std::size_t n, sample_record const * samples) {
 
         auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
@@ -589,10 +589,10 @@ TEST(sde, solver) {
     sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
-    rec.add_probe(1, cable_probe_point_state_cell{m1, "S"});
-    rec.add_probe(2, cable_probe_point_state_cell{m2, "S"});
-    rec.add_probe(3, cable_probe_point_state_cell{m3, "S"});
-    rec.add_probe(4, cable_probe_point_state_cell{m4, "S"});
+    rec.add_probe_all_gids(1, cable_probe_point_state_cell{m1, "S"});
+    rec.add_probe_all_gids(2, cable_probe_point_state_cell{m2, "S"});
+    rec.add_probe_all_gids(3, cable_probe_point_state_cell{m3, "S"});
+    rec.add_probe_all_gids(4, cable_probe_point_state_cell{m4, "S"});
 
     // results are accumulated for each time step
     std::vector<accumulator> stats_m1(nsteps);
@@ -694,7 +694,7 @@ TEST(sde, coupled) {
     dec.place(*labels.locset("locs"), synapse(m1), "m1");
 
     // a basic sampler: stores result in a vector
-    auto sampler_ = [ncells, nsteps] (std::vector<arb_value_type>& results, unsigned count,
+    auto sampler_ = [nsteps] (std::vector<arb_value_type>& results, unsigned count,
         probe_metadata pm, std::size_t n, sample_record const * samples) {
 
         auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
@@ -732,8 +732,8 @@ TEST(sde, coupled) {
     sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
-    rec.add_probe(1, cable_probe_point_state_cell{m1, "P"});
-    rec.add_probe(2, cable_probe_point_state_cell{m1, "sigma"});
+    rec.add_probe_all_gids(1, cable_probe_point_state_cell{m1, "P"});
+    rec.add_probe_all_gids(2, cable_probe_point_state_cell{m1, "sigma"});
 
     // results are accumulated for each time step
     std::vector<accumulator> stats_P(nsteps);
@@ -854,7 +854,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), labels, dec));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels));
         }
     }
 

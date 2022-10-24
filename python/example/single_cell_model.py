@@ -23,7 +23,7 @@ decor = (
 )
 
 # (4) Create cell and the single cell model based on it
-cell = arbor.cable_cell(tree, labels, decor)
+cell = arbor.cable_cell(tree, decor, labels)
 
 # (5) Make single cell model.
 m = arbor.single_cell_model(cell)

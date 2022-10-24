@@ -222,7 +222,7 @@ void cable_cell_impl::init(const decor& d) {
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
+cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
     impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
 {}
 

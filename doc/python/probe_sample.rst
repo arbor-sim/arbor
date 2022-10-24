@@ -80,7 +80,7 @@ Example
       .paint('"soma"', arbor.density("hh"))
       .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp"))
 
-   cell = arbor.cable_cell(tree, labels, decor)
+   cell = arbor.cable_cell(tree, decor)
 
    class single_recipe(arbor.recipe):
       def __init__(self):
