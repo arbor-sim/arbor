@@ -352,7 +352,7 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
             [&](const decor & p){ dec = p; });
         std::visit(cable_cell_visitor, a);
     }
-    return cable_cell(morpho, dict, dec);
+    return cable_cell(morpho, dec, dict);
 }
 version_tuple make_version(const std::string& v) {
     return version_tuple{v};

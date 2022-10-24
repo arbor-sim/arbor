@@ -111,7 +111,7 @@ class TestMultipleConnections(unittest.TestCase):
                     "postsyn_target",
                 )  # place synapse for input from another presynaptic neuron at the center of the soma
                 # (using the same label as above!)
-                return arb.cable_cell(tree, labels, decor)
+                return arb.cable_cell(tree, decor, labels)
 
         art_spiker_recipe.cell_description = types.MethodType(
             cell_description, art_spiker_recipe
@@ -352,7 +352,7 @@ class TestMultipleConnections(unittest.TestCase):
                 )  # place synapse for input from another presynaptic neuron at the center of the soma
                 # (using another label as above!)
 
-                return arb.cable_cell(tree, labels, decor)
+                return arb.cable_cell(tree, decor, labels)
 
         art_spiker_recipe.cell_description = types.MethodType(
             cell_description, art_spiker_recipe

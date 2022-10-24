@@ -121,5 +121,5 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     for (unsigned i=1u; i<params.synapses; ++i) {
         decor.place(arb::mlocation{1, 0.5}, arb::synapse("expsyn"), "dummy_synapses");
     }
-    return arb::cable_cell{arb::morphology(tree), labels, decor};
+    return arb::cable_cell{arb::morphology(tree), decor, labels};
 }

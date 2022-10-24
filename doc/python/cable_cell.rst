@@ -52,14 +52,14 @@ Cable cells
         decor.paint('"soma"', arbor.density('hh'))
 
         # Construct a cable cell.
-        cell = arbor.cable_cell(morph, labels, decor)
+        cell = arbor.cable_cell(morph, decor, labels)
 
-    .. method:: __init__(morphology, labels, decorations)
+    .. method:: __init__(morphology, decorations, labels)
 
         Constructor.
 
         :param morphology: the morphology of the cell
-        :type morphology: :py:class:`morphology`
+        :type morphology: :py:class:`morphology` or :py:class:`segment_tree`
         :param labels: dictionary of labeled regions and locsets
         :type labels: :py:class:`label_dict`
         :param decorations: the decorations on the cell

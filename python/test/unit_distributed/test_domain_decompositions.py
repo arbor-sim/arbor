@@ -47,7 +47,7 @@ class hetero_recipe(arb.recipe):
         tree.append(arb.mnpos, arb.mpoint(-3, 0, 0, 3), arb.mpoint(3, 0, 0, 3), tag=1)
         decor = arb.decor()
         decor.place("(location 0 0.5)", arb.gap_junction_site(), "gj")
-        return arb.cable_cell(tree, arb.label_dict(), decor)
+        return arb.cable_cell(tree, decor)
 
     def cell_kind(self, gid):
         if gid % 2:
@@ -132,7 +132,7 @@ class gj_non_symmetric(arb.recipe):
         tree.append(arb.mnpos, arb.mpoint(-3, 0, 0, 3), arb.mpoint(3, 0, 0, 3), tag=1)
         decor = arb.decor()
         decor.place("(location 0 0.5)", arb.gap_junction_site(), "gj")
-        return arb.cable_cell(tree, arb.label_dict(), decor)
+        return arb.cable_cell(tree, decor)
 
     def cell_kind(self, gid):
         return arb.cell_kind.cable
