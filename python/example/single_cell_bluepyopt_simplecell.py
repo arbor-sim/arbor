@@ -17,7 +17,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 cell_json_filename = sys.argv[1]
-cell_json, morpho, labels, decor = ephys.create_acc.read_acc(cell_json_filename)
+cell_json, morpho, decor, labels = ephys.create_acc.read_acc(cell_json_filename)
 
 # (2) Define labels for stimuli and voltage recordings.
 
