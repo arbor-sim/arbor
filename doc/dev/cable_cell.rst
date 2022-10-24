@@ -80,7 +80,7 @@ Discretisation splits the segments described by the morphology into *control
 volumes* (CV; sometimes called *compartments*) according to a ``cv_policy``.
 This allows us to construct a system of linear equations, the Hines matrix, to
 describe the evolution of the CV voltages according to the cable equation. Refer
-to the :ref:`decor's discretization method <pycablecell-decor>` and :ref:`Cable equation
+to the :ref:`Discretisation <discretisation>` and :ref:`Cable equation
 <cable_equation>`.
 
 Backend-dependent data is stored in ``shared_state`` as per-compartment data and
