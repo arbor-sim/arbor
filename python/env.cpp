@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 
 #include <arborenv/gpu_env.hpp>
+#include <arborenv/concurrency.hpp>
 
 #include "mpi.hpp"
 #include "error.hpp"
@@ -30,6 +31,8 @@ namespace pyarb {
 #endif
               },
               "Identify a private GPU id per node, only available if built with GPU and MPI.\n"
-              "  mpi:     The MPI communicator.");
+              "  mpi:     The MPI communicator.")
+        .def("thread_concurrency", []() -> unsigned {return arbenv::thread_concurrency();},
+            "Attempts to detect the number of available CPU cores. Returns 1 if unable to detect the number of cores.");
     }
 }
