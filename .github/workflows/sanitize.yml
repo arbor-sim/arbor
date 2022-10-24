@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: "Sanitize"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -15,8 +15,8 @@ jobs:
         sanitizer: ["address", "undefined", "thread"]
         simd:      ["ON", "OFF"]
     env:
-        CC:           clang-10
-        CXX:          clang++-10
+        CC:           clang-14
+        CXX:          clang++-14
         ASAN_OPTIONS: detect_leaks=1
     steps:
       - name: Set up cmake

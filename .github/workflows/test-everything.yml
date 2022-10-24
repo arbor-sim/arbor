@@ -116,23 +116,23 @@ jobs:
         uses: actions/cache@v3
         id:   cache-ompi
         with:
-          path: ~/openmpi-4.0.2
-          key:  ${{ matrix.config.os }}-openmpi-4.0.2-${{ matrix.config.cxx }}
+          path: ~/openmpi-4.1.4
+          key:  ${{ matrix.config.os }}-openmpi-4.1.4-${{ matrix.config.cxx }}
       - name: Build OpenMPI
         if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
         run: |
            echo cache-hit='${{ steps.cache-ompi.outputs.cache-hit }}'
            cd ~
-           wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz
-           tar -xvf ./openmpi-4.0.2.tar.gz
-           cd openmpi-4.0.2
+           wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.gz
+           tar -xvf ./openmpi-4.1.4.tar.gz
+           cd openmpi-4.1.4
            ./configure --disable-mpi-fortran
            make -j4
       - name: Install OpenMPI
         run: |
            echo "Going to install ompi"
            cd ~
-           cd openmpi-4.0.2
+           cd openmpi-4.1.4
            sudo make install
            cd -
       - name: Update shared library cache
