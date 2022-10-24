@@ -22,4 +22,4 @@ API
 ---
 
 * :ref:`Python <pyspikecell>`
-* :ref:`C++ <cpplabels>`
+* :ref:`C++ <cppspikecell>`

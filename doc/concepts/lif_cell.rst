@@ -23,4 +23,4 @@ API
 ---
 
 * :ref:`Python <pylifcell>`
-* :ref:`C++ <cpplabels>`
+* :ref:`C++ <cpplifcell>`
