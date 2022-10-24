@@ -19,5 +19,6 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "ext/googletest"]
 	path = ext/googletest
-	url = git@github.com:google/googletest.git
+	url = https://github.com/google/googletest.git	
 	branch = release-1.12.1
+

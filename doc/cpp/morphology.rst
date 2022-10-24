@@ -190,9 +190,10 @@ by two stitches:
    builder.add({"dend", dend_end, 4}, "soma", 0.5);
 
    stitched_morphology stitched(std::move(builder));
-   cable_cell cell(stitched.morphology(), stitched.labels());
 
-   cell.paint("\"soma\"", density("hh"));
+   auto dec = decor{}.paint("\"soma\"", density("hh"));
+
+   cable_cell cell(stitched.morphology(), dec, stitched.labels());
 
 
 .. _locsets-and-regions:

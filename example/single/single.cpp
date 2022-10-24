@@ -72,7 +72,7 @@ struct single_recipe: public arb::recipe {
             // Add synapse to last branch.
             .place(arb::mlocation{ morpho.num_branches()-1, 1. }, arb::synapse("exp2syn"), "synapse");
 
-        return arb::cable_cell(morpho, dict, decor);
+        return arb::cable_cell(morpho, decor, dict);
     }
 
     arb::morphology morpho;

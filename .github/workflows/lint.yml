@@ -1,4 +1,4 @@
-name: Sanitize
+name: Lint
 
 on:
   pull_request:
