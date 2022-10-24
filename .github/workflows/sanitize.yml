@@ -15,8 +15,8 @@ jobs:
         sanitizer: ["address", "undefined", "thread", "memory"]
         simd:      ["ON", "OFF"]
     env:
-        CC:           clang-10
-        CXX:          clang++-10
+        CC:           clang-14
+        CXX:          clang++-14
         ASAN_OPTIONS: detect_leaks=1
     steps:
       - name: Set up cmake
