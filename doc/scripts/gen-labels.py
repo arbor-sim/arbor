@@ -223,7 +223,7 @@ labels = {**regions, **locsets}
 d = arbor.label_dict(labels)
 
 # Create a cell to concretise the region and locset definitions
-cell = arbor.cable_cell(label_morph, d, arbor.decor())
+cell = arbor.cable_cell(label_morph, None, d)
 
 ###############################################################################
 # Tutorial Example: single_cell_detailed
@@ -263,7 +263,7 @@ tutorial_labels = {**tutorial_regions, **tutorial_locsets}
 tutorial_dict = arbor.label_dict(tutorial_labels)
 
 # Create a cell to concretise the region and locset definitions
-tutorial_cell = arbor.cable_cell(tutorial_morph, tutorial_dict, arbor.decor())
+tutorial_cell = arbor.cable_cell(tutorial_morph, None, tutorial_dict)
 
 ###############################################################################
 # Tutorial Example: network_ring
@@ -298,7 +298,7 @@ tutorial_network_ring_dict = arbor.label_dict(tutorial_network_ring_labels)
 
 # Create a cell to concretise the region and locset definitions
 tutorial_network_ring_cell = arbor.cable_cell(
-    tutorial_network_ring_morph, tutorial_network_ring_dict, arbor.decor()
+    tutorial_network_ring_morph, None, tutorial_network_ring_dict
 )
 
 ################################################################################
