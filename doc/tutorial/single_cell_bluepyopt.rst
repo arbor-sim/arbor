@@ -173,7 +173,7 @@ To describe these locations accurately in Arbor, we will use the Arbor GUI. For 
 
 .. code-block:: python
 
-   cell = arbor.cable_cell(morpho, labels, decor)
+   cell = arbor.cable_cell(morpho, decor, labels)
    arbor.write_component(cell, 'path/to/l5pc_cable_cell.acc')
 
 After loading this file in the GUI with ``File > Cable cell > Load``, we can click the ``Locations`` and ``Cell`` tab to obtain the following overview.

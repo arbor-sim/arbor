@@ -37,7 +37,7 @@ decor.discretization(arbor.cv_policy_max_extent(1.0) | arbor.cv_policy_single('"
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morpho, labels, decor)
+cell = arbor.cable_cell(morpho, decor, labels)
 
 # (5) Make the single cell model.
 
