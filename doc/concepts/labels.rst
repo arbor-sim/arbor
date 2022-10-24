@@ -870,3 +870,4 @@ API
 ---
 
 * :ref:`Python <pylabels>`
+* :ref:`C++ <cpplabels>`
