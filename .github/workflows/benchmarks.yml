@@ -1,0 +1,40 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: "Benchmarks"
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    env:
+        CC:  gcc-11
+        CXX: g++-11
+    steps:
+      - name: Set up cmake
+        uses: jwlawson/actions-setup-cmake@v1.13
+        with:
+          cmake-version: 3.22.x
+      - name: Clone w/ submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build arbor
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON
+          make -j4 ubenches
+          cd -
+      - name: Run benchmarks
+        run: |
+          build/bin/accumulate_functor_values
+          build/bin/default_construct
+          build/bin/event_setup
+          build/bin/event_binning
+          build/bin/fvm_discretize
+          build/bin/mech_vec
+          build/bin/task_system
