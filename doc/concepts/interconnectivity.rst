@@ -108,7 +108,7 @@ full recipe.
    threshold detector
       :ref:`Placed <cablecell-place>` on a cell. Possible source of a connection.
       Detects crossing of a fixed threshold and generates corresponding events.
-      Also used to :ref:`record spikes <>` for analysis. See :ref:`here
+      Also used to record spikes for analysis. See :ref:`here
       <cablecell-threshold-detectors>` for more information.
 
    spike source cell

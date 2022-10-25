@@ -169,6 +169,7 @@ Cable cell decoration
         :type policy: :py:class:`cv_policy`
 
     .. method:: discretization(policy)
+        :noindex:
 
         Set the cv_policy used to discretise the cell into control volumes for simulation.
 

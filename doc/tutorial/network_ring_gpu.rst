@@ -1,4 +1,4 @@
-.. _tutorialmpi:
+.. _tutorialgpu:
 
 GPU and profiling
 =================

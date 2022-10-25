@@ -556,7 +556,7 @@ component ``neuroml``. The corresponding CMake library target is ``arbor::arbori
    # ...
    target_link_libraries(myapp arbor::arborio)
 
-.. install-profiling:
+.. _install-profiling:
 
 Profiling
 ---------
