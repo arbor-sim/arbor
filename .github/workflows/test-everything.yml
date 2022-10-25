@@ -97,11 +97,11 @@ jobs:
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-dev libopenmpi-dev ninja-build ${{ matrix.config.cc }}
+          sudo apt-get install -y libxml2-dev libopenmpi-dev ninja-build ccache ${{ matrix.config.cc }}
       - name: "MacOS: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
-          brew install libxml2 openmpi ninja
+          brew install libxml2 openmpi ninja ccache
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -118,6 +118,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: Setup ccache
+        uses: Chocobo1/setup-ccache-action@v1
+        with:
+          install_ccache: false
+          update_packager_index: false
+          override_cache_key: ${{ matrix.config.os }}-${{ matrix.config.cxx }}-${{ matrix.variant }}
       - name: Check config
         run: |
           $CC --version
