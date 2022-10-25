@@ -121,7 +121,7 @@ jobs:
       # figure out vector extensions for ccache key
       - if: ${{ contains(matrix.config.os, 'macos') }}
         name: Check vector extensions
-        # assume uniform hardware on macos
+        # assume uniform hardware for macos
         run: |
           echo "VECTOR_EXTENSIONS=" >> $GITHUB_ENV
       - if: ${{ contains(matrix.config.os, 'ubuntu') }}
