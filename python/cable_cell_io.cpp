@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/iostream.h>
 
 #include <fstream>
 #include <iostream>
@@ -30,13 +31,25 @@ arborio::cable_cell_component load_component(py::object fn) {
 
 template<typename T>
 void write_component(const T& component, py::object fn) {
-    std::ofstream fid(util::to_path(fn));
-    arborio::write_component(fid, component, arborio::meta_data{});
+    if (py::hasattr(fn, "write")) {
+      std::ostringstream fid;
+      py::scoped_ostream_redirect redirect{fid, fn};
+      arborio::write_component(fid, component, arborio::meta_data{});
+    } else {
+      std::ofstream fid(util::to_path(fn));
+      arborio::write_component(fid, component, arborio::meta_data{});
+    }
 }
 
 void write_component(const arborio::cable_cell_component& component, py::object fn) {
-    std::ofstream fid(util::to_path(fn));
-    arborio::write_component(fid, component);
+    if (py::hasattr(fn, "write")) {
+      std::ostringstream fid;
+      py::scoped_ostream_redirect redirect{fid, fn};
+      arborio::write_component(fid, component);
+    } else {
+      std::ofstream fid(util::to_path(fn));
+      arborio::write_component(fid, component);
+    }
 }
 
 void register_cable_loader(pybind11::module& m) {

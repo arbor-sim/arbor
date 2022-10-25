@@ -90,7 +90,7 @@ The header ``arborenv/concurrency.hpp`` supplies lower-level functions for query
    Returns the list of logical processor ids where the calling thread has affinity,
    or an empty vector if unable to determine.
 
-The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for queruing the GPU environment.
+The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for querying the GPU environment.
 
 .. cpp:function:: int find_private_gpu(MPI_Comm comm)
 
