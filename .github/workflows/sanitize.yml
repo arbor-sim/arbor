@@ -33,6 +33,7 @@ jobs:
           submodules: recursive
       - name: Update pip
         run: python -m pip install --upgrade pip
+      # figure out vector extensions for ccache key
       - name: Check vector extensions
         run: |
           HAS_AVX512F=$([[ $(lscpu | grep "avx512f" | wc -l) -eq 1 ]] && echo "_avx512f" || echo "")
@@ -44,7 +45,7 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.sanitizer }}-${{ env.VECTOR_EXTENSIONS }}
+          key: sanitize-${{ env.CXX }}-${{ matrix.sanitizer }}-${{ env.VECTOR_EXTENSIONS }}
       - name: Build arbor
         run: |
           export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"

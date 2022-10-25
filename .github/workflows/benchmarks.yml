@@ -17,7 +17,7 @@ jobs:
       - name: Get build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build
+          sudo apt-get install -y ninja-build ccache
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -26,6 +26,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: Check vector extensions
+        run: |
+          HAS_AVX512F=$([[ $(lscpu | grep "avx512f" | wc -l) -eq 1 ]] && echo "_avx512f" || echo "")
+          HAS_AVX2=$([[ $(lscpu | grep "avx2" | wc -l) -eq 1 ]] && echo "_avx2" || echo "")
+          HAS_FMA=$([[ $(lscpu | grep "fma" | wc -l) -eq 1 ]] && echo "_fma" || echo "")
+          HAS_AVX=$([[ $(lscpu | grep "avx" | wc -l) -eq 1 ]] && echo "_avx" || echo "")
+          VECTOR_EXTENSIONS=${HAS_AVX512F}${HAS_AVX2}${HAS_FMA}${HAS_AVX}
+          echo "VECTOR_EXTENSIONS=$VECTOR_EXTENSIONS" >> $GITHUB_ENV
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: benchmarks-${{ env.CXX }}-${{ env.VECTOR_EXTENSIONS }}
       - name: Build arbor
         run: |
           mkdir build
