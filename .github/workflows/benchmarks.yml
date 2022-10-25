@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      # figure out vector extensions for ccache key
       - name: Check vector extensions
         run: |
           HAS_AVX512F=$([[ $(lscpu | grep "avx512f" | wc -l) -eq 1 ]] && echo "_avx512f" || echo "")
