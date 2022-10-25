@@ -14,6 +14,10 @@ jobs:
         CC:  gcc-11
         CXX: g++-11
     steps:
+      - name: Get build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -26,8 +30,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON
-          make -j4 ubenches
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON
+          ninja -j4 ubenches
           cd -
       - name: Run benchmarks
         run: |
