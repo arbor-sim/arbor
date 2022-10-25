@@ -4,6 +4,7 @@
 
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>
+#include <arborenv/concurrency.hpp>
 
 #include "distributed_context.hpp"
 #include "threading/threading.hpp"
@@ -25,7 +26,7 @@ struct ARB_ARBOR_API execution_context {
     task_system_handle thread_pool;
     gpu_context_handle gpu;
 
-    execution_context(const proc_allocation& resources = proc_allocation{});
+    execution_context(const proc_allocation& resources = proc_allocation{arbenv::thread_concurrency(),-1});
 
     // Use a template for constructing with a specific distributed context.
     // Specialised implementations are implemented in execution_context.cpp.

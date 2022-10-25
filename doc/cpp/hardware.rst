@@ -280,7 +280,7 @@ with and without distributed computation with MPI respectively.
 
     Create a local :cpp:class:`context`, with no distributed/MPI,
     that uses local resources described by :cpp:any:`alloc`.
-    By default it will create a context with one thread and no GPU.
+    By default it will create a context with :cpp:func:`thread_concurrency` threads and no GPU.
 
 .. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm)
 
