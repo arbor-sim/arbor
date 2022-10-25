@@ -54,6 +54,10 @@ A full list of dependencies and minimum versions supported thereof is maintained
    :widths: 10, 20, 10, 70, 1
    :header-rows: 1
 
+Note, that while we consider these to be our minimally supported versions, Arbor
+might still compiler and work fine using older versions. We will, however, not
+offer much support for these versions, nor will we fix issues specific to them.
+
 Minimum requirements
 --------------------
 
@@ -161,8 +165,8 @@ them to the base exception types ``arbor_exception`` and
 Documentation
 ~~~~~~~~~~~~~~
 
-To build a local copy of the html documentation that you are reading now, you will need to
-install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+To build a local copy of the html documentation that you are reading now, you
+will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
