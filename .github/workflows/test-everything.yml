@@ -97,11 +97,11 @@ jobs:
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-dev libopenmpi-dev ${{ matrix.config.cc }}
+          sudo apt-get install -y libxml2-dev libopenmpi-dev ninja-build ${{ matrix.config.cc }}
       - name: "MacOS: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
-          brew install libxml2 openmpi
+          brew install libxml2 openmpi ninja
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -131,21 +131,21 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
-          make -j4 tests examples pyarb html
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
+          ninja -j4 tests examples pyarb html
           cd -
       - if:   ${{ matrix.variant == 'shared' }}
         name: Build arbor
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON -DBUILD_SHARED_LIBS=ON
-          make -j4 tests examples pyarb html
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON -DBUILD_SHARED_LIBS=ON
+          ninja -j4 tests examples pyarb html
           cd -
       - name: Install arbor
         run: |
           cd build
-          sudo make install
+          sudo ninja install
           cd -
       - name: Run unit tests
         run: |
