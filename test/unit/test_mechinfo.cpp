@@ -4,7 +4,7 @@
 
 #include <arbor/cable_cell.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "unit_test_catalogue.hpp"
 
 // TODO: This test is really checking part of the recipe description

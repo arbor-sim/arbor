@@ -125,7 +125,7 @@ specialised on specific regions.
 
 Regions can have density mechanisms defined over their extents.
 :ref:`Density mechanisms <mechanisms-density>` are a kind of
-:ref:`NMODL mechanism <nmodl>` which describe biophysical processes.
+:ref:`NMODL mechanism <formatnmodl>` which describe biophysical processes.
 These are processes that are distributed in space, but whose behaviour is
 defined purely by the state of the cell and the process at any given point.
 
@@ -265,7 +265,7 @@ ion at the cell level using the Python interface:
     # Method 2: set directly using a string description.
     decor.set_ion(ion='ca', method='nernst/x=ca')
 
-    cell = arbor.cable_cell(morph, labels, decor)
+    cell = arbor.cable_cell(morph, decor)
 
 
 The NMODL code for the
@@ -305,7 +305,7 @@ pile-up effects similar to reflective bounds.
 The diffusive concentration is *separate* from the internal concentration for
 reasons innate to the cable model, which require resetting it to its starting
 point at every timestep. It can be accessed from NMODL density and point
-mechanisms as an independent quantity, see :ref:`NMODL mechanism <nmodl>`. It is
+mechanisms as an independent quantity, see :ref:`NMODL mechanism <formatnmodl>`. It is
 present on the full morphology if its associated diffusivity is set to a
 non-zero value on any subset of the morphology, ie ``region``. It is initialised
 to the value of the internal concentration at time zero.
@@ -328,7 +328,7 @@ locset.
 
 Similar to how regions can have density mechanisms defined over their extents,
 locsets can have point mechanisms placed on their individual locations.
-:ref:`Point mechanisms <mechanisms-point>` are a kind of :ref:`NMODL mechanism <nmodl>`
+:ref:`Point mechanisms <mechanisms-point>` are a kind of :ref:`NMODL mechanism <formatnmodl>`
 which describe synaptic processes such as the ``expsyn`` mechanism provided by
 NEURON and Arbor, which models an exponential synapse.
 
@@ -384,7 +384,7 @@ See also :term:`threshold detector`.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Locsets can also have junction mechanisms placed on their individual locations.
-:ref:`Junction mechanisms <mechanisms-junction>` are a kind of :ref:`NMODL mechanism <nmodl>`
+:ref:`Junction mechanisms <mechanisms-junction>` are a kind of :ref:`NMODL mechanism <formatnmodl>`
 which describe gap-junction processes such as the ``gj`` mechanism provided by Arbor,
 which models a basic, linear, constant-conductance based gap-junction.
 
@@ -452,5 +452,3 @@ API
 ---
 
 * :ref:`Python <pycablecell-decor>`
-* :ref:`C++ <cppcablecell-decor>`
-

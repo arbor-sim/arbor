@@ -103,6 +103,8 @@ each sub-array of spikes is sorted, ie between ``offsets[ix]`` and
 and its ``i``'th element gives the position of the first spike sent by
 task ``i``.
 
+.. _event_distribution:
+
 Distribution of Events to Targets
 =================================
 

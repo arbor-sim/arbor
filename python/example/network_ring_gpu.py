@@ -69,7 +69,7 @@ def make_cable_cell(gid):
     # Attach a detector with threshold of -10 mV.
     decor.place('"root"', arbor.threshold_detector(-10), "detector")
 
-    cell = arbor.cable_cell(tree, labels, decor)
+    cell = arbor.cable_cell(tree, decor, labels)
 
     return cell
 
@@ -123,7 +123,7 @@ class ring_recipe(arbor.recipe):
 # (11) Set up the hardware context
 # gpu_id set to None will not use a GPU.
 # gpu_id=0 instructs Arbor to the first GPU present in your system
-context = arbor.context(1, gpu_id=None)
+context = arbor.context(gpu_id=None)
 print(context)
 
 # (12) Set up and start the meter manager

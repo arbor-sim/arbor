@@ -31,7 +31,7 @@ It contains the thread pool used to parallelise work on the local CPU, and optio
 and the MPI communicator for distributed simulations. In some Arbor tutorials, the :class:`arbor.single_cell_model` or
 :class:`arbor.simulation` objects created the execution context :class:`arbor.context` behind the scenes. The details
 of the execution context can be customized by the user. We may specify the number of threads in the thread pool;
-determine the id of the GPU to be used (see also :py:func:`~arbor.find_private_gpu`); or create our own MPI communicator.
+determine the id of the GPU to be used; or create our own MPI communicator.
 
 The configuration of the context will need to be added to reflect the change in hardware. We will use
 `MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over
@@ -50,7 +50,7 @@ Step **(13)** creates the simulation using the recipe and the context created in
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 128-136
+   :lines: 126-134
 
 The execution
 *************
@@ -59,7 +59,7 @@ Step **(16)** runs the simulation. Since we have more cells this time, which are
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 145-147
+   :lines: 143-145
 
 An important change in the execution is how the script is run. Whereas normally you run the Python script by passing
 it as an argument to the ``python`` command, you need to use ``srun`` or ``mpirun`` (depending on your MPI
@@ -93,7 +93,7 @@ analyse them later. We query :py:attr:`arbor.context.rank` to generate a unique 
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 149-
+   :lines: 147-
 
 In a second script, ``network_ring_mpi_plot.py``, we load the results stored to disk into a pandas table, and plot the concatenated table as before:
 

@@ -3,9 +3,9 @@
 Single cell model
 =================
 
-.. currentmodule:: arbor
+.. py:currentmodule:: arbor
 
-.. py:class:: single_cell_model
+.. class:: single_cell_model
 
    Wrapper for simplified description and execution of single cell models.
    Only available in the python library.
@@ -48,7 +48,7 @@ Single cell model
 
       The :class:`mechanism_catalogue` of the model.
 
-.. py:class:: trace
+.. class:: trace
 
    Stores a trace obtained from a probe after running a model.
 

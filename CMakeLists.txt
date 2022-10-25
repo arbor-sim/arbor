@@ -46,8 +46,12 @@ option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires B
 
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
 set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
-option(ARB_USE_GPU_RNG
-    "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF)
+if(NOT ARB_GPU STREQUAL "none")
+    set(ARB_USE_GPU_DEP ON)
+endif()
+cmake_dependent_option(ARB_USE_GPU_RNG
+    "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF
+    "ARB_USE_GPU_DEP" OFF)
 
 # Use bundled 3rd party libraries
 
@@ -122,11 +126,7 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    if(CUDAToolkit_VERSION_MAJOR GREATER 10)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-    else()
-        set(CMAKE_CUDA_ARCHITECTURES 60 70)
-    endif()
+    set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the

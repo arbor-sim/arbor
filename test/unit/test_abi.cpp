@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechanism.hpp>

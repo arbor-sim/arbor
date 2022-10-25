@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <iterator>
 #include <type_traits>
@@ -10,7 +10,7 @@ using namespace arb;
 template <typename V>
 class counter_test: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(counter_test);
+TYPED_TEST_SUITE_P(counter_test);
 
 TYPED_TEST_P(counter_test, value) {
     using int_type = TypeParam;
@@ -124,7 +124,7 @@ TYPED_TEST_P(counter_test, iterator_functions) {
     EXPECT_EQ(counter{int_type{9}}, std::prev(c2));
 }
 
-REGISTER_TYPED_TEST_CASE_P(counter_test, value, compare, arithmetic, iterator_traits, iterator_functions);
+REGISTER_TYPED_TEST_SUITE_P(counter_test, value, compare, arithmetic, iterator_traits, iterator_functions);
 
 using int_types = ::testing::Types<signed char, unsigned char, short, unsigned short, int, unsigned, std::size_t, std::ptrdiff_t>;
-INSTANTIATE_TYPED_TEST_CASE_P(int_types, counter_test, int_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(int_types, counter_test, int_types);
