@@ -670,6 +670,11 @@ The first thing to do is change this module, which by default is set to the Cray
 programming environment, to a compiler that can compile Arbor.
 For example, to use the GCC compilers, select the GNU programming environment:
 
+.. note::
+
+   While the specific versions mentioned here are outdated, the general workflow
+   is still correct.
+
 .. code-block:: bash
 
     module swap PrgEnv-cray PrgEnv-gnu
