@@ -605,7 +605,7 @@ on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
-.. warn::
+.. warning::
 
    On many HPC systems a tool called ``module`` or ``ml`` is installed, which
    use the ``CPATH`` environment variable to set up include paths for building.
