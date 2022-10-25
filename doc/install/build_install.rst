@@ -55,7 +55,7 @@ A full list of dependencies and minimum versions supported thereof is maintained
    :header-rows: 1
 
 Note, that while we consider these to be our minimally supported versions, Arbor
-might still compiler and work fine using older versions. We will, however, not
+might still compile and work fine using older versions. We will, however, not
 offer much support for these versions, nor will we fix issues specific to them.
 
 Minimum requirements
