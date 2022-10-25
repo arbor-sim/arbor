@@ -111,7 +111,7 @@ void ProcedureInliner::visit(BinaryExpression* e) {
 void ProcedureInliner::visit(AssignmentExpression* e) {
     // If we're inlining a call, take care of variable renaming
     if (state_ == state::Running) {
-        if (auto lhs = e->lhs()->is_identifier()) {
+        if (e->lhs()->is_identifier()) {
             e->replace_lhs(substitute(e->lhs(), local_arg_map_));
         }
         if (e->rhs()->is_identifier()) {
