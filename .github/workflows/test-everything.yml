@@ -97,11 +97,11 @@ jobs:
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-dev ${{ matrix.config.cc }}
+          sudo apt-get install -y libxml2-dev libopenmpi-dev ${{ matrix.config.cc }}
       - name: "MacOS: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
-          brew install libxml2 
+          brew install libxml2 openmpi
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -112,32 +112,6 @@ jobs:
           python-version: ${{ matrix.config.py }}
       - name: Update pip
         run: python -m pip install --upgrade pip
-      - name: OpenMPI cache
-        uses: actions/cache@v3
-        id:   cache-ompi
-        with:
-          path: ~/openmpi-4.1.4
-          key:  ${{ matrix.config.os }}-openmpi-4.1.4-${{ matrix.config.cxx }}
-      - name: Build OpenMPI
-        if: ${{ steps.cache-ompi.outputs.cache-hit != 'true' }}
-        run: |
-           echo cache-hit='${{ steps.cache-ompi.outputs.cache-hit }}'
-           cd ~
-           wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.gz
-           tar -xvf ./openmpi-4.1.4.tar.gz
-           cd openmpi-4.1.4
-           ./configure --disable-mpi-fortran
-           make -j4
-      - name: Install OpenMPI
-        run: |
-           echo "Going to install ompi"
-           cd ~
-           cd openmpi-4.1.4
-           sudo make install
-           cd -
-      - name: Update shared library cache
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
-        run: sudo ldconfig
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules

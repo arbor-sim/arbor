@@ -169,12 +169,13 @@ TEST(segment_tree, split) {
         EXPECT_THROW(arb::split_at(t, arb::mnpos), arb::arbor_exception);
         EXPECT_THROW(arb::split_at(t, 1),          arb::arbor_exception);
     }
-    // gnarly tree
-    // (npos) - 0 - 1 - 4
-    //            \
-    //              2 - 3
-    //                \
-    //                  5
+    /* gnarly tree
+    ** (npos) - 0 - 1 - 4
+    **            \
+    **              2 - 3
+    **                \
+    **                  5
+    */
     // NB: Splitting _will_ re-order segments. So we have to be careful when
     //     building values to compare against.
     {
@@ -275,12 +276,13 @@ TEST(segment_tree, join) {
         EXPECT_THROW(arb::split_at(t, arb::mnpos), arb::arbor_exception);
         EXPECT_THROW(arb::split_at(t, 1),          arb::arbor_exception);
     }
-    // gnarly tree
-    // (npos) - 0 - 1 - 4
-    //            \
-    //              2 - 3
-    //                \
-    //                  5
+    /* gnarly tree
+    ** (npos) - 0 - 1 - 4
+    **            \
+    **              2 - 3
+    **                \
+    **                  5
+    */
     // NB: Joining _will_ re-order segments. So we have to be careful when
     //     building values to compare against.
     {

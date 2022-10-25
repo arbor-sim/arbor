@@ -54,6 +54,10 @@ A full list of dependencies and minimum versions supported thereof is maintained
    :widths: 10, 20, 10, 70, 1
    :header-rows: 1
 
+Note, that while we consider these to be our minimally supported versions, Arbor
+might still compile and work fine using older versions. We will, however, not
+offer much support for these versions, nor will we fix issues specific to them.
+
 Minimum requirements
 --------------------
 
@@ -161,8 +165,8 @@ them to the base exception types ``arbor_exception`` and
 Documentation
 ~~~~~~~~~~~~~~
 
-To build a local copy of the html documentation that you are reading now, you will need to
-install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+To build a local copy of the html documentation that you are reading now, you
+will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
@@ -552,7 +556,7 @@ component ``neuroml``. The corresponding CMake library target is ``arbor::arbori
    # ...
    target_link_libraries(myapp arbor::arborio)
 
-.. install-profiling:
+.. _install-profiling:
 
 Profiling
 ---------
@@ -605,7 +609,7 @@ on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
-.. warn::
+.. warning::
 
    On many HPC systems a tool called ``module`` or ``ml`` is installed, which
    use the ``CPATH`` environment variable to set up include paths for building.
@@ -669,6 +673,11 @@ The compiler used by the MPI wrappers is set using a "programming environment" m
 The first thing to do is change this module, which by default is set to the Cray
 programming environment, to a compiler that can compile Arbor.
 For example, to use the GCC compilers, select the GNU programming environment:
+
+.. note::
+
+   While the specific versions mentioned here are outdated, the general workflow
+   is still correct.
 
 .. code-block:: bash
 

@@ -105,12 +105,12 @@ This was handled by the :class:`arbor.single_cell_model` object in the original 
 We would like to get a list of the spikes on the cell during the runtime of the simulation, and we would like
 to plot the voltage registered by the probe on the "custom_terminal" locset.
 
-The lines handling probe sampling warrant a second look. First, we declared :term:`probe_id` to be a
+The lines handling probe sampling warrant a second look. First, we declared ``probeset_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
 This variable serves as a global identifier of a probe on a cell, namely the first declared probe on the
 cell with ``gid = 0``, which is id of the only probe we created on the only cell in the model.
 
-Next, we instructed the simulation to sample :term:`probe_id` at a frequency of 50 kHz. That function returns a
+Next, we instructed the simulation to sample ``probeset_id`` at a frequency of 50 kHz. That function returns a
 :term:`handle` which we will use to :ref:`extract the results <pycablecell-probesample>` of the sampling after running the simulation.
 
 We can now run the simulation we just instantiated for a duration of 100 ms with a time step of 0.025 ms.
