@@ -14,7 +14,7 @@ struct target_handle {
     cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
     cell_local_size_type mech_index; // instance of the mechanism
 
-    target_handle() {}
+    target_handle() = default;
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index):
         mech_id(mech_id), mech_index(mech_index) {}
 };
