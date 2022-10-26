@@ -126,11 +126,7 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    if(CUDAToolkit_VERSION_MAJOR GREATER 10)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-    else()
-        set(CMAKE_CUDA_ARCHITECTURES 60 70)
-    endif()
+    set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the

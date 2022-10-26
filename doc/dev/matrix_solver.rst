@@ -3,6 +3,8 @@
 Matrix Solvers
 ==============
 
+.. _cable_equation:
+
 Cable Equation
 --------------
 
