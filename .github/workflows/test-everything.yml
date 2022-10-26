@@ -97,11 +97,11 @@ jobs:
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxml2-dev libopenmpi-dev ${{ matrix.config.cc }}
+          sudo apt-get install -y libxml2-dev libopenmpi-dev ninja-build ccache ${{ matrix.config.cc }}
       - name: "MacOS: get build dependencies"
         if: ${{ startsWith(matrix.config.os, 'macos') }}
         run: |
-          brew install libxml2 openmpi
+          brew install libxml2 openmpi ninja ccache
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -118,6 +118,25 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      # figure out vector extensions for ccache key
+      - if: ${{ contains(matrix.config.os, 'macos') }}
+        name: Check vector extensions
+        # assume uniform hardware for macos
+        run: |
+          echo "VECTOR_EXTENSIONS=" >> $GITHUB_ENV
+      - if: ${{ contains(matrix.config.os, 'ubuntu') }}
+        name: Check vector extensions
+        run: |
+          HAS_AVX512F=$([[ $(lscpu | grep "avx512f" | wc -l) -eq 1 ]] && echo "_avx512f" || echo "")
+          HAS_AVX2=$([[ $(lscpu | grep "avx2" | wc -l) -eq 1 ]] && echo "_avx2" || echo "")
+          HAS_FMA=$([[ $(lscpu | grep "fma" | wc -l) -eq 1 ]] && echo "_fma" || echo "")
+          HAS_AVX=$([[ $(lscpu | grep "avx" | wc -l) -eq 1 ]] && echo "_avx" || echo "")
+          VECTOR_EXTENSIONS=${HAS_AVX512F}${HAS_AVX2}${HAS_FMA}${HAS_AVX}
+          echo "VECTOR_EXTENSIONS=$VECTOR_EXTENSIONS" >> $GITHUB_ENV
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.config.os }}-${{ matrix.config.cxx }}-${{ matrix.variant }}-${{ env.VECTOR_EXTENSIONS }}
       - name: Check config
         run: |
           $CC --version
@@ -129,23 +148,25 @@ jobs:
       - if:   ${{ matrix.variant == 'static' }}
         name: Build arbor
         run: |
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
-          make -j4 tests examples pyarb html
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON
+          ninja -j4 tests examples pyarb html
           cd -
       - if:   ${{ matrix.variant == 'shared' }}
         name: Build arbor
         run: |
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
           mkdir build
           cd build
-          cmake .. -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON -DBUILD_SHARED_LIBS=ON
-          make -j4 tests examples pyarb html
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_NEUROML=ON -DBUILD_SHARED_LIBS=ON
+          ninja -j4 tests examples pyarb html
           cd -
       - name: Install arbor
         run: |
           cd build
-          sudo make install
+          sudo ninja install
           cd -
       - name: Run unit tests
         run: |
