@@ -60,10 +60,10 @@ void solve_matrix_fine(
     T* __restrict__ const d,
     const T* __restrict__ const u,
     const level_metadata* __restrict__ const level_meta,
-    const fvm_index_type* __restrict__ const level_lengths,
-    const fvm_index_type* __restrict__ const level_parents,
-    const fvm_index_type* __restrict__ const block_index,
-    const fvm_index_type* __restrict__ const num_matrix) // number of packed matrices = number of cells
+    const arb_index_type* __restrict__ const level_lengths,
+    const arb_index_type* __restrict__ const level_parents,
+    const arb_index_type* __restrict__ const block_index,
+    const arb_index_type* __restrict__ const num_matrix) // number of packed matrices = number of cells
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
@@ -246,15 +246,15 @@ ARB_ARBOR_API void assemble_matrix_fine(
 // num_cells    = [2, 3, ...]
 // num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
 ARB_ARBOR_API void solve_matrix_fine(
-    fvm_value_type* rhs,
-    fvm_value_type* d,                     // diagonal values
-    const fvm_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
+    arb_value_type* rhs,
+    arb_value_type* d,                     // diagonal values
+    const arb_value_type* u,               // upper diagonal (and lower diagonal as the matrix is SPD)
     const level_metadata* level_meta,      // information pertaining to each level
-    const fvm_index_type* level_lengths,   // lengths of branches of every level concatenated
-    const fvm_index_type* level_parents,   // parents of branches of every level concatenated
-    const fvm_index_type* block_index,     // start index into levels for each gpu block
-    fvm_index_type* num_cells,             // the number of cells packed into this single matrix
-    fvm_index_type* padded_size,           // length of rhs, d, u, including padding
+    const arb_index_type* level_lengths,   // lengths of branches of every level concatenated
+    const arb_index_type* level_parents,   // parents of branches of every level concatenated
+    const arb_index_type* block_index,     // start index into levels for each gpu block
+    arb_index_type* num_cells,             // the number of cells packed into this single matrix
+    arb_index_type* padded_size,           // length of rhs, d, u, including padding
     unsigned num_blocks,                   // number of blocks
     unsigned blocksize)                    // size of each block
 {

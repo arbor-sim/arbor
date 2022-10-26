@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arborio/label_parse.hpp>
 
@@ -50,11 +50,13 @@ struct linear: public recipe {
     arb::cell_kind get_cell_kind(arb::cell_gid_type)            const override { return arb::cell_kind::cable; }
     std::any get_global_properties(arb::cell_kind)              const override { return gprop; }
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::cable_probe_ion_diff_concentration_cell{"na"}}; }
-    util::unique_any get_cell_description(arb::cell_gid_type)   const override { return arb::cable_cell(morph, {}, decor); }
+    util::unique_any get_cell_description(arb::cell_gid_type)   const override { return arb::cable_cell(morph, decor); }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> result;
-        for (const auto& [t, w]: inject_at) result.push_back(arb::explicit_generator({{{"Zap"}, t, w}}));
+        for (const auto& [t, w]: inject_at) {
+            result.push_back(arb::explicit_generator({"Zap"}, w, std::vector<float>{t}));
+        }
         return result;
     }
 
@@ -62,7 +64,7 @@ struct linear: public recipe {
     double extent = 1.0,
            diameter = 1.0,
            cv_length = 1.0;
-    std::vector<std::tuple<double, float>> inject_at;
+    std::vector<std::tuple<float, float>> inject_at;
     morphology morph;
     arb::decor decor;
 

@@ -36,6 +36,7 @@ public:
     expression_ptr parse_local();
     expression_ptr parse_solve();
     expression_ptr parse_conductance();
+    expression_ptr parse_watch();
     expression_ptr parse_block(bool);
     expression_ptr parse_initial();
     expression_ptr parse_compartment_statement();
@@ -57,6 +58,7 @@ public:
     void parse_parameter_block();
     void parse_constant_block();
     void parse_assigned_block();
+    void parse_white_noise_block();
     void parse_title();
 
     std::unordered_map<std::string, std::string> constants_map_;

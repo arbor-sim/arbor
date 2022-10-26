@@ -110,21 +110,13 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     labels.set("soma", tagged(stag));
     labels.set("dend", tagged(dtag));
 
-    arb::decor decor;
-
-    decor.paint("soma"_lab, arb::density("hh"));
-    decor.paint("dend"_lab, arb::density("pas"));
-
-    decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
-
-    // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
-
-    // Add a synapse to the mid point of the first dendrite.
-    decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "primary_syn");
-
+    auto decor = arb::decor{}
+        .paint("soma"_lab, arb::density("hh"))
+        .paint("dend"_lab, arb::density("pas"))
+        .set_default(arb::axial_resistivity{100}) // [Ω·cm]
+        .place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector")   // Add spike threshold detector at the soma.
+        .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "primary_syn"); // Add a synapse to the mid point of the first dendrite.
     // Add additional synapses that will not be connected to anything.
-
     if (params.synapses > 1) {
         decor.place(arb::ls::uniform("dend"_lab, 0, params.synapses - 2, gid), arb::synapse("expsyn"), "extra_syns");
     }
@@ -132,7 +124,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     // Make a CV between every sample in the sample tree.
     decor.set_default(arb::cv_policy_every_segment());
 
-    arb::cable_cell cell(arb::morphology(tree), labels, decor);
+    arb::cable_cell cell(arb::morphology(tree), decor, labels);
 
     return cell;
 }

@@ -3,7 +3,14 @@
 Ecosystem
 =========
 
-Arbor exists in a wider computational neuroscience software ecosystem. The Arbor simulator is also not the only component written by the Arbor developers.
+Arbor exists in a wider computational neuroscience software ecosystem. In addition to the Arbor simulator, the Arbor development team writes and maintains a set of useful tools to be used in conjuction with Arbor.
+
+Arbor models
+------------
+
+We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
+In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
+and find get in contact with other Arbor users.
 
 Arbor software
 --------------
@@ -30,6 +37,8 @@ nmlcc
 
 Wider ecosystem
 ---------------
+
+A list of tools in the computational neuroscience ecosystem is being maintained at `compneuroweb <https://compneuroweb.com/sftwr.html>`_. We've made a slightly more hierarchical overview of some of the simulators below, as well as an overview of some commonly used frameworks.
 
 Simulators
 ~~~~~~~~~~

@@ -52,14 +52,14 @@ Cable cells
         decor.paint('"soma"', arbor.density('hh'))
 
         # Construct a cable cell.
-        cell = arbor.cable_cell(morph, labels, decor)
+        cell = arbor.cable_cell(morph, decor, labels)
 
-    .. method:: __init__(morphology, labels, decorations)
+    .. method:: __init__(morphology, decorations, labels)
 
         Constructor.
 
         :param morphology: the morphology of the cell
-        :type morphology: :py:class:`morphology`
+        :type morphology: :py:class:`morphology` or :py:class:`segment_tree`
         :param labels: dictionary of labeled regions and locsets
         :type labels: :py:class:`label_dict`
         :param decorations: the decorations on the cell
@@ -74,7 +74,68 @@ Cable cells
         :type index: int
         :rtype: tuple(int, int)
 
-
 .. py:class:: ion
 
     properties of an ionic species.
+
+
+.. py:class:: cable_cell_global_properties
+
+   .. property:: catalogue
+
+       All mechanism names refer to mechanism instances in this mechanism
+       catalogue. by default, this is set to point to ``default_catalogue()``.
+
+   .. property:: membrane_voltage_limit
+
+       Set a limiter ``U_max`` (mV) on the membrane potential; if ``U > U_max``
+       at any point and location the simulation is aborted with an error.
+       Defaults to ``None``, if set to a numeric value the limiter is armed.
+
+   .. property:: ion_data
+
+     Return a read-only view onto concentrations, diffusivity, and reversal potential settings.
+
+  .. property:: ion_valence
+
+     Return a read-only view onto species and charge.
+
+  .. property:: ion_reversal_potential
+
+     Return a read-only view onto reversal potential methods (if set).
+
+   .. property:: ions
+
+     Return a read-only view onto all settings.
+
+   .. function:: set_ion(name,
+                         charge,
+                         internal_concentration, external_concentration,
+                         reversal_potential, reversal_potential_method,
+                         diffusivty)
+
+      Add a new ion to the global set of known species.
+
+   .. function:: unset_ion(name)
+
+      Remove the named ion.
+
+   .. property:: membrane_potential
+
+    Set the default value for the membrane potential. (``mV``)
+
+   .. property:: membrane_capacitance
+
+    Set the default value for the membrane potential. (``F/m²``)
+
+    .. property:: temperature
+
+    Set the default value for the temperature (``K``).
+
+    .. property:: axial_resisitivity
+
+    Set the default value for the membrane axial resisitivity. (``Ω·cm``)
+
+
+For convenience, ``neuron_cable_properties`` is a predefined value that holds
+values that correspond to NEURON defaults.

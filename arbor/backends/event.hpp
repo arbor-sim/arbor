@@ -29,7 +29,7 @@ struct deliverable_event {
         time(time), weight(weight), handle(handle) {}
 };
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(deliverable_event, (a.handle.mech_id, a.handle.mech_index, a.time), (b.handle.mech_id, b.handle.mech_index, b.time));
+//ARB_DEFINE_LEXICOGRAPHIC_ORDERING(deliverable_event, (a.handle.mech_id, a.handle.mech_index, a.time), (b.handle.mech_id, b.handle.mech_index, b.time));
 
 // Subset of event information required for mechanism delivery.
 struct deliverable_event_data {
@@ -46,7 +46,7 @@ inline deliverable_event_data event_data(const deliverable_event& ev) {
 
 // Sample events (raw values from back-end state).
 
-using probe_handle = const fvm_value_type*;
+using probe_handle = const arb_value_type*;
 
 struct raw_probe_info {
     probe_handle handle;      // where the to-be-probed value sits

@@ -152,7 +152,7 @@ Cable cell decoration
     .. method:: place(locations, d, label)
         :noindex:
 
-        Add a voltage spike detector at each location in ``locations`` and label the group of detectors with ``label``.
+        Add a voltage threshold detector at each location in ``locations`` and label the group of detectors with ``label``.
         The label can be used to form connections from one of the detectors in the :py:class:`arbor.recipe` by creating
         a :py:class:`arbor.connection`.
 
@@ -169,7 +169,20 @@ Cable cell decoration
         :type policy: :py:class:`cv_policy`
 
     .. method:: discretization(policy)
+        :noindex:
 
         Set the cv_policy used to discretise the cell into control volumes for simulation.
 
         :param str policy: :ref:`string representation <morph-cv-sexpr>` of a cv_policy.
+
+    .. method:: paintings()
+
+        Returns a list of tuples ``(region, painted_object)`` for inspection.
+
+    .. method:: placements()
+
+        Returns a list of tuples ``(locset, placed_object)`` for inspection.
+
+    .. method:: defaults()
+
+        Returns a list of all set defaults for inspection.

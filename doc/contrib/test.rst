@@ -7,6 +7,85 @@ C++ tests are located in ``/tests`` and Python (binding) tests in
 ``/python/test``. See the documentation on :ref:`building <building>` for the
 C++ tests and ``/python/test/readme.md`` for the latter.
 
+What to test?
+-------------
+
+Adding a feature should be accompanied by tests to ensure its functionality is
+sound. That means
+1. identify the core ideas of your feature
+2. find the functions/classes that encapsulate these ideas
+3. for each add a test case that covers it
+
+The core motivation is to capture the essence of your feature and to protect it
+against accidental change. This is what enables us to freely add optimisations,
+and perform refactoring.
+
+Example
+^^^^^^^
+
+This example might touch parts of Arbor that you are unfamiliar with. Don't
+Panic! The details are less important than the general approach to adding tests.
+Imagine adding a new feature that is intended to improve performance during the
+communication step. Spikes should be transferred pre-sorted to avoid locally
+sorting them after the exchange. Also assume, just for the sake of this example,
+that you decided to add your own radix sort algorithm, since you expect it to be
+faster for this particular usecase.
+
+Thus, the tests added should be
+
+1. sorting algorithm
+
+  - the application of `sort` sorts the given array. This seems trivial, but is
+    really the core of what you are doing!
+  - corner cases like: empty array, all elements equal, ... are treated greacefully
+  - if the sort is intended to be stable, check that equal elements do not switch order
+
+2. local sorting
+
+  - spikes are -- after sorting -- ordered by their source id and in case of ties by time
+  - corner cases: NaN, negative numbers, ...
+
+3. global sorting
+
+  - after MPI exchange, each sub-array is still sorted
+  - by the guarantees of ``MPI_Allgather``, the global array is sorted
+
+Note that we added tests that are only applicable when eg MPI is enabled. Our test
+runners probe the different combinations automatically, see below.
+
+Next, we would ask you to prove that this change does as promised, ie it
+improves performance. When adding a new user-facing feature, also consider
+adding an example showing off your cool new addition to Arbor.
+
+Regression tests
+^^^^^^^^^^^^^^^^
+
+However, it's impossible to foresee every dark corner of your code. Inevitably,
+bugs will occur. When fixing a bug, please add a test case that covers this
+particular sequence of events to catch this bug in the future (imagine someone
+inadvertently removing your fix).
+
+C++ tests
+---------
+
+We are using the GTest library for writing tests. Each group of tests should be
+contained in a ``.cpp`` file in ``test/unit`` (do not forget to add it to the
+``CMakeLists.txt``!). To get access to the library and a battery of helpers
+include ``common.hpp``. Test cases are defined vi the ``TEST`` macro which takes
+two arguments ``group`` and ``case``. Inside cases macros like ``ASSERT_TRUE``
+can be used. Another helpful feature is that the test executable accepts
+arguments on the commandline. Of these we would like to point out
+
+- ``--gtest_catch_exceptions`` allows for disabling exception catching by the
+  framework. Handy when running the tests in a debugger.
+- ``--gtest_throw_on_failure`` turns missed assert into exceptions, likewise
+  useful in a debugger
+- ``--gtest_filter`` to filter the tests to run. Can cut down the runtrip time
+  when working on a specific feature.
+
+For more information on GTest refer to the `documentation
+<https://google.github.io/googletest/>`_` and our existing tests.
+
 Python tests
 ------------
 
@@ -21,3 +100,14 @@ mechanism. For tests to be discovered they must meet the following criteria:
 * The test functions inside the cases must begin with ``test_``.
 
 To run the tests locally use `python -m unittest` from the `python` directory.
+
+Feature dependent tests
+-----------------------
+
+Certain tests need to be guarded by feature flags, notably ``ARB_MPI_ENABLED``
+and ``ARB_GPU_ENABLED``. Another important (**especially** when dealing with
+mechanisms, modcc, and the ABI) but less obvious feature is SIMD. The
+combinations arising from the cartesian product of OS=Linux|MacOS x SIMD=ON|OFF
+x MPI=ON|OFF is tested automatically on GitHub CI. As no instances with GPUs are
+provided, GPU features are tested via CSCS' GitLab. Such a run is initiated by
+commenting ``bors try`` in the PR discussion.

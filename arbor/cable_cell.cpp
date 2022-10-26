@@ -1,3 +1,4 @@
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 #include <variant>
@@ -15,9 +16,6 @@
 #include "util/strprintf.hpp"
 
 namespace arb {
-
-using region_map = std::unordered_map<std::string, mcable_list>;
-using locset_map = std::unordered_map<std::string, mlocation_list>;
 
 using value_type = cable_cell::value_type;
 using index_type = cable_cell::index_type;
@@ -138,8 +136,9 @@ struct cable_cell_impl {
         return region_map.get<T>();
     }
 
-    mcable_map<density>& get_region_map(const density& desc) {
-        return region_map.get<density>()[desc.mech.name()];
+    mcable_map<std::pair<density, iexpr_map>> &
+    get_region_map(const density &desc) {
+      return region_map.get<density>()[desc.mech.name()];
     }
 
     mcable_map<init_int_concentration>& get_region_map(const init_int_concentration& init) {
@@ -158,8 +157,31 @@ struct cable_cell_impl {
         return region_map.get<init_reversal_potential>()[init.ion];
     }
 
-    template <typename Property>
-    void paint(const region& reg, const Property& prop) {
+    void paint(const region& reg, const density& prop) {
+        this->paint(reg, scaled_mechanism<density>(prop));
+    }
+
+    void paint(const region& reg, const scaled_mechanism<density>& prop) {
+        mextent cables = thingify(reg, provider);
+        auto& mm = get_region_map(prop.t_mech);
+
+        std::unordered_map<std::string, iexpr_ptr> im;
+        for (const auto& [fst, snd]: prop.scale_expr) {
+            im.insert_or_assign(fst, thingify(snd, provider));
+        }
+
+        for (const auto& c: cables) {
+            // Skip zero-length cables in extent:
+            if (c.prox_pos == c.dist_pos) continue;
+
+            if (!mm.insert(c, {prop.t_mech, im})) {
+                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+            }
+        }
+    }
+
+    template <typename TaggedMech>
+    void paint(const region& reg, const TaggedMech& prop) {
         mextent cables = thingify(reg, provider);
         auto& mm = get_region_map(prop);
 
@@ -200,7 +222,7 @@ void cable_cell_impl::init(const decor& d) {
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
+cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
     impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
 {}
 

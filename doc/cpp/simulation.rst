@@ -38,6 +38,19 @@ then build the simulation.
         // Instantiate the simulation.
         arb::simulation sim(recipe, decomp, context);
 
+All the simulation's constructor arguments are optional, except the recipe, and assume
+default values if not specified. In order to simplify construction of a simulation, the helper class
+:cpp:class:`arb::simulation_builder` can be used to better control constrution arguments:
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        arb::simulation sim =                // implicit conversion to simulation
+            arb::simulation::create(recipe)  // the recipe is always required
+                .add_context(context)        // optionally add a context
+                .add_decompostion(decomp)    // optionally add a decompostion
+                .add_seed(42);               // optionally add a seed value
 
 Class documentation
 -------------------
@@ -57,6 +70,7 @@ Class documentation
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;
             *   an :cpp:class:`arb::context` which is used to execute the simulation.
+            *   a :cpp:class:`uint64_t` in order to seed the pseudo pandom number generator (optional)
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
@@ -77,7 +91,14 @@ Class documentation
 
     **Constructor:**
 
-    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx)
+    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx, std::uint64_t seed)
+
+    **Static member functions:**
+
+    .. cpp:function:: simulation_builder create(const recipe& rec)
+
+        Returns a builder object to which the constructor arguments can be passed selectively (see
+        also example above).
 
     **Experimental inputs:**
 
@@ -105,7 +126,7 @@ Class documentation
     **I/O:**
 
     .. cpp:function:: sampler_association_handle add_sampler(\
-                        cell_member_predicate probe_ids,\
+                        cell_member_predicate probeset_ids,\
                         schedule sched,\
                         sampler_function f,\
                         sampling_policy policy = sampling_policy::lax)

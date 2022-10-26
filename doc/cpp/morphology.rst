@@ -4,8 +4,98 @@ Cable cell morphology
 =====================
 
 Cell morphologies are required to describe a :ref:`cppcablecell`.
-Morphologies can be constructed directly, or read from a number of
+Morphologies can be constructed from :cpp:type:`segment_trees`, or read from a number of
 file formats; see :ref:`cppcablecell-morphology-construction` for details.
+
+Segment tree
+------------
+
+A ``segment_tree`` is -- as the name implies -- a set of segments arranged in a
+tree structure, ie each segment has exactly one parent and no child is the
+parent of any of its ancestors. The tree starts at a *root* segment which has no
+parent. Each segment comprises two points in 3d space together with the radii at
+these points. The segment's endpoints are called proximal (at the parent's
+distal end) and distal (farther from the root).
+
+Segment trees are used to form morphologies which ignore the 3d information
+encoded in the segments and just utilise the radii, length, and tree-structure.
+Branches in the tree occur where a segment has more than one child. The tree is
+constructed by *appending* segments to the tree. Segments are numbered starting
+at ``0`` in the order that they are added, with the first segment getting id
+``0``, the second segment id ``1``, and so forth. A segment can not be added
+before its parent, hence the first segment is always at the root. In this
+manner, a segment tree is always guaranteed to be in a correct state, with
+consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
+``n-1``. The first parent must be :data:`mnpos`, indicating 'no parent'.
+
+
+.. cpp:class:: segment_tree
+
+
+    .. cpp:function:: segment_tree()
+
+        Construct an empty segment tree.
+
+    .. cpp:function:: msize_t append(msize_t parent, const mpoint& prox, const mpoint& dist, int tag)
+
+        Append a segment to the tree. Returns the new parent's id.
+
+    .. cpp:function:: msize_t append(msize_t parent, const mpoint& dist, int tag)
+
+        Append a segment to the tree whose proximal end has the location and
+        radius of the distal end of the parent segment. Returns the new
+        parent's id.
+
+        This version of append can't be used for a segment at the root of the
+        tree, that is, when ``parent`` is :data:`mnpos`, in which case both
+        proximal and distal ends of the segment must be specified.
+
+    .. cpp:function:: bool empty()
+
+        If the tree is empty (i.e. whether it has size 0)
+
+    .. cpp:function:: msize_t size()
+
+        The number of segments.
+
+    .. cpp:function:: std::vector<msize_t> parents()
+
+        A list of parent indices of the segments.
+
+    .. cpp:function:: std::vector<msegment> segments()
+
+        A list of the segments.
+
+.. cpp:function:: std::pair<segment_tree, segment_tree> split_at(const segment_tree& t, msize_t id)
+
+    Split a segment_tree into a pair of subtrees at the given id,
+    such that one tree is the subtree rooted at id and the other is the
+    original tree without said subtree.
+
+.. cpp:function:: segment_tree join_at(const segment_tree& t, msize_t id, const segment_tree& o)
+
+    Join two subtrees at a given id, such that said id becomes the parent
+    of the inserted sub-tree.
+
+.. cpp:function:: std::vector<msize_t> tag_roots(const segment_tree& t, int tag)
+
+    Get IDs of roots of a region with specific tag in the segment tree, i.e. segments whose
+    parent is either :data:`mnpos` or a segment with a different tag.
+
+.. cpp:function:: bool equivalent(const segment_tree& l, const segment_tree& r)
+
+    Two trees are equivalent if
+    1. the root segments' ``prox`` and ``dist`` points and their ``tags`` are identical.
+    2. recursively: all sub-trees starting at the current segment are pairwise equivalent.
+
+    Note that under 1 we do not consider the ``id`` field.
+
+.. cpp:function:: segment_tree apply(const segment_tree& t, const isometry& i)
+
+    Apply an :cpp:type:`isometry` to the segment tree, returns the transformed tree as a copy.
+    Isometries are rotations around an arbritary axis and/or translations; they can
+    be instantiated using ``isometry::translate`` and ``isometry::rotate`` and combined
+    using the ``*`` operator.
 
 Morphology API
 --------------
@@ -15,14 +105,6 @@ Morphology API
    Describe morphology methods.
 
 .. _cppcablecell-morphology-construction:
-
-Constructing cell morphologies
-------------------------------
-
-.. todo::
-
-   Description of segment trees.
-
 
 The stitch-builder interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -113,9 +195,10 @@ by two stitches:
    builder.add({"dend", dend_end, 4}, "soma", 0.5);
 
    stitched_morphology stitched(std::move(builder));
-   cable_cell cell(stitched.morphology(), stitched.labels());
 
-   cell.paint("\"soma\"", density("hh"));
+   auto dec = decor{}.paint("\"soma\"", density("hh"));
+
+   cable_cell cell(stitched.morphology(), dec, stitched.labels());
 
 
 .. _locsets-and-regions:

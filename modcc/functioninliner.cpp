@@ -158,7 +158,7 @@ void FunctionInliner::visit(AssignmentExpression* e) {
 
         auto body = f->function()->body()->clone();
         for (auto&s: body->is_block()->statements()) {
-            s->semantic(e->scope());
+            s->semantic(scope_);
         }
 
         body->accept(this);

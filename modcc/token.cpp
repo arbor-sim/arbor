@@ -27,6 +27,7 @@ static Keyword keywords[] = {
     {"PARAMETER",   tok::parameter},
     {"CONSTANT",    tok::constant},
     {"ASSIGNED",    tok::assigned},
+    {"WHITE_NOISE", tok::white_noise},
     {"STATE",       tok::state},
     {"BREAKPOINT",  tok::breakpoint},
     {"DERIVATIVE",  tok::derivative},
@@ -64,6 +65,7 @@ static Keyword keywords[] = {
     {"ELSE",        tok::else_stmt},
     {"cnexp",       tok::cnexp},
     {"sparse",      tok::sparse},
+    {"stochastic",  tok::stochastic},
     {"min",         tok::min},
     {"max",         tok::max},
     {"exp",         tok::exp},
@@ -74,6 +76,7 @@ static Keyword keywords[] = {
     {"exprelr",     tok::exprelr},
     {"safeinv",     tok::safeinv},
     {"CONDUCTANCE", tok::conductance},
+    {"WATCH",       tok::watch},
     {nullptr,       tok::reserved},
 };
 
@@ -110,6 +113,7 @@ static TokenString token_strings[] = {
     {"PARAMETER",   tok::parameter},
     {"CONSTANT",    tok::constant},
     {"ASSIGNED",    tok::assigned},
+    {"WHITE_NOISE", tok::white_noise},
     {"STATE",       tok::state},
     {"BREAKPOINT",  tok::breakpoint},
     {"DERIVATIVE",  tok::derivative},
@@ -152,6 +156,7 @@ static TokenString token_strings[] = {
     {"sin",         tok::sin},
     {"cnexp",       tok::cnexp},
     {"CONDUCTANCE", tok::conductance},
+    {"WATCH",       tok::watch},
     {"error",       tok::reserved},
 };
 

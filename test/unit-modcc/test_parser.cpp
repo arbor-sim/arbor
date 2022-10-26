@@ -279,6 +279,10 @@ TEST(Parser, parse_conductance) {
     }
 }
 
+TEST(Parser, parse_watch) {
+    EXPECT_TRUE(check_parse_fail(&Parser::parse_watch, "WATCH( 0 < 1) 42"));
+}
+
 TEST(Parser, parse_if) {
     std::unique_ptr<IfExpression> s;
 
@@ -724,6 +728,32 @@ TEST(Parser, parse_state_block) {
         p.parse_state_block();
         EXPECT_EQ(lexerStatus::happy, p.status());
         verbose_print(null, p, text);
+    }
+}
+
+TEST(Parser, parse_white_noise_block) {
+    const char* white_noise_blocks[] = {
+        "WHITE_NOISE {\n"
+        "    a b c\n"
+        "}",
+        "WHITE_NOISE {\n"
+        "    a\n"
+        "    b c\n"
+        "}",
+        "WHITE_NOISE {\n"
+        "    a b\n"
+        "    c\n"
+        "}"};
+
+    expression_ptr null;
+    for (const auto& text: white_noise_blocks) {
+        Module m(text, text + std::strlen(text), "");
+        Parser p(m, false);
+        p.parse_white_noise_block();
+        EXPECT_EQ(lexerStatus::happy, p.status());
+        verbose_print(null, p, text);
+        EXPECT_EQ(m.white_noise_block().parameters.size(), 3u);
+        EXPECT_EQ(m.white_noise_block().used.size(), 0u);
     }
 }
 

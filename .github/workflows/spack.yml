@@ -15,16 +15,16 @@ jobs:
         python-version: [3.8]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
             path: arbor
 
       - name: Spack cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.spack-cache
-          key: cache-${{ github.sha }}
-          restore-keys: cache-
+          key: arbor-cache-${{ github.run_id }}
+          restore-keys: arbor-cache-
 
       - name: Build Arbor's Spack package against the develop branch
         run: arbor/scripts/build_spack_package.sh arbor develop

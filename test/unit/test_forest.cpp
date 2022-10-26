@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <backends/gpu/forest.hpp>
 

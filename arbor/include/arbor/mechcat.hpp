@@ -109,7 +109,6 @@ private:
     void register_impl(arb_backend_kind, const std::string&, mechanism_ptr);
 };
 
-// References to global mechanism catalogues.
 ARB_ARBOR_API const mechanism_catalogue& global_default_catalogue();
 ARB_ARBOR_API const mechanism_catalogue& global_allen_catalogue();
 ARB_ARBOR_API const mechanism_catalogue& global_bbp_catalogue();

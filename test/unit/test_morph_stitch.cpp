@@ -11,7 +11,7 @@
 
 #include <arborio/label_parse.hpp>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 #include "morph_pred.hpp"
 
 using namespace arb;

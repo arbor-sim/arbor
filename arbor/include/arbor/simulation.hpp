@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <arbor/export.hpp>
+#include <arbor/arb_types.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -25,14 +26,26 @@ using epoch_function = std::function<void(double time, double tfinal)>;
 // simulation_state comprises private implementation for simulation class.
 class simulation_state;
 
+class simulation_builder;
+
 class ARB_ARBOR_API simulation {
 public:
-
-    simulation(const recipe& rec, const context& ctx, const domain_decomposition& decomp);
+    simulation(const recipe& rec, context ctx, const domain_decomposition& decomp,
+               arb_seed_type seed = 0);
 
     simulation(const recipe& rec,
-               const context& ctx=make_context(),
-               std::function<domain_decomposition(const recipe&, const context&)> balancer=[](auto& r, auto& c) { return partition_load_balance(r, c); }): simulation(rec, ctx, balancer(rec, ctx)) {}
+               context ctx = make_context(),
+               std::function<domain_decomposition(const recipe&, context)> balancer = 
+                   [](auto& r, auto c) { return partition_load_balance(r, c); },
+               arb_seed_type seed = 0):
+        simulation(rec, ctx, balancer(rec, ctx)) {}
+
+    simulation(simulation const&) = delete;
+    simulation(simulation&&);
+
+    static simulation_builder create(recipe const &);
+
+    void update(const connectivity& rec);
 
     void reset();
 
@@ -41,7 +54,7 @@ public:
     // Note: sampler functions may be invoked from a different thread than that
     // which called the `run` method.
 
-    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
+    sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
         schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
 
     void remove_sampler(sampler_association_handle);
@@ -50,7 +63,7 @@ public:
 
     // Return probe metadata, one entry per probe associated with supplied probe id,
     // or an empty vector if no local match for probe id.
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type probe_id) const;
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const;
 
     std::size_t num_spikes() const;
 
@@ -78,6 +91,69 @@ public:
 
 private:
     std::unique_ptr<simulation_state> impl_;
+};
+
+// Builder pattern for simulation class to help with construction.
+// Simulation constructor arguments can be added through setter functions in any order or left out
+// entirely, in which case a sane default is chosen. The build member function instantiates the
+// simulation with the current arguments and returns it.
+class ARB_ARBOR_API simulation_builder {
+public:
+
+    simulation_builder(recipe const& rec) noexcept : rec_{rec} {}
+
+    simulation_builder(simulation_builder&&) = default;
+    simulation_builder(simulation_builder const&) = default;
+
+    simulation_builder& set_context(context ctx) noexcept {
+        ctx_ = ctx;
+        return *this;
+    }
+
+    simulation_builder& set_decomposition(domain_decomposition decomp) noexcept {
+        balancer_ = [decomp = std::move(decomp)](const recipe&, context) {return decomp; };
+        return *this;
+    }
+
+    simulation_builder& set_balancer(
+        std::function<domain_decomposition(const recipe&, context)> balancer) noexcept {
+        balancer_ = std::move(balancer);
+        return *this;
+    }
+
+    simulation_builder& set_seed(arb_seed_type seed) noexcept {
+        seed_ = seed;
+        return *this;
+    }
+
+    operator simulation() const { return build(); }
+
+    std::unique_ptr<simulation> make_unique() const {
+        return std::make_unique<simulation>(build());
+    }
+
+private:
+    simulation build() const {
+        return ctx_ ?
+            build(ctx_):
+            build(make_context());
+    }
+
+    simulation build(context ctx) const {
+        return balancer_ ?
+            build(ctx, balancer_(rec_, ctx)):
+            build(ctx, partition_load_balance(rec_, ctx));
+    }
+
+    simulation build(context ctx, domain_decomposition const& decomp) const {
+        return simulation(rec_, ctx, decomp, seed_);
+    }
+
+private:
+    const recipe& rec_;
+    context ctx_;
+    std::function<domain_decomposition(const recipe&, context)> balancer_;
+    arb_seed_type seed_ = 0u;
 };
 
 // An epoch callback function that prints out a text progress bar.

@@ -5,9 +5,12 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include <utility>
+#include <memory>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/math.hpp>
 #include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/mprovider.hpp>
@@ -92,7 +95,7 @@ cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
     // Build location query map.
     auto n_cv = cv_parent.size();
     branch_cv_map.resize(1);
-    std::vector<util::pw_elements<fvm_size_type>>& bmap = branch_cv_map.back();
+    std::vector<util::pw_elements<arb_size_type>>& bmap = branch_cv_map.back();
     for (auto cv: util::make_span(n_cv)) {
         for (auto cable: cables(cv)) {
             if (cable.branch>=bmap.size()) {
@@ -104,10 +107,10 @@ cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
         }
     }
     cv_to_cell.assign(n_cv, 0);
-    cell_cv_divs = {0, (fvm_index_type)n_cv};
+    cell_cv_divs = {0, (arb_index_type)n_cv};
 }
 
-fvm_size_type cv_geometry::location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const {
+arb_size_type cv_geometry::location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const {
     auto& pw_cv_offset = branch_cv_map.at(cell_idx).at(loc.branch);
     auto zero_extent = [&pw_cv_offset](auto j) {
         return pw_cv_offset.extent(j).first==pw_cv_offset.extent(j).second;
@@ -353,7 +356,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             info.face_diffusivity[i] = 0.0;
         }
 
-        fvm_index_type p = D.geometry.cv_parent[i];
+        arb_index_type p = D.geometry.cv_parent[i];
         if (p!=-1) {
             auto parent_cables = D.geometry.cables(p);
             msize_t bid = cv_cables.front().branch;
@@ -460,7 +463,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_ce
 // site.
 
 struct voltage_reference {
-    fvm_index_type cv = -1;
+    arb_index_type cv = -1;
     mlocation loc;
 };
 
@@ -507,7 +510,7 @@ bool cables_intersect_location(Seq&& cables, const mlocation& x) {
         [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
 }
 
-voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, fvm_size_type cell_idx, const mlocation& site) {
+voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, arb_size_type cell_idx, const mlocation& site) {
     voltage_reference site_ref, parent_ref, child_ref;
     bool check_parent = true, check_child = true;
     msize_t bid = site.branch;
@@ -597,7 +600,7 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
 
 // Interpolate membrane voltage from reference points in adjacent CVs.
 
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -638,7 +641,7 @@ ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& 
 
 // Axial current as linear combination of membrane voltages at reference points in adjacent CVs.
 
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, fvm_size_type cell_idx, const mlocation& site) {
+ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
 
@@ -675,7 +678,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     using impl::append_offset;
     using impl::append_divs;
 
-    fvm_size_type target_offset = left.n_target;
+    arb_size_type target_offset = left.n_target;
 
     for (const auto& [k, R]: right.ions) {
         fvm_ion_config& L = left.ions[k];
@@ -739,13 +742,13 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_junction_cv_map(
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
     const std::vector<cable_cell>& cells,
     const std::vector<cell_gid_type>& gids,
     const fvm_cv_discretization& D)
 {
     arb_assert(cells.size() == gids.size());
-    std::unordered_map<cell_member_type, fvm_size_type> gj_cvs;
+    std::unordered_map<cell_member_type, arb_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
         for (const auto& mech : cells[cell_idx].junctions()) {
             for (const auto& gj: mech.second) {
@@ -759,7 +762,7 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, fvm_size_type> fvm_build_gap_
 ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
     const std::vector<cell_gid_type>& gids,
     const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, fvm_size_type>& gj_cvs,
+    const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
     const recipe& rec)
 {
     // Construct and resolve all gj_connections.
@@ -789,7 +792,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx);
+    arb_size_type cell_idx);
 
 ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
@@ -818,11 +821,11 @@ fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell& cell,
     const std::vector<fvm_gap_junction>& gj_conns,
     const fvm_cv_discretization& D,
-    fvm_size_type cell_idx)
+    arb_size_type cell_idx)
 {
-    using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
-    using value_type = fvm_value_type;
+    using size_type = arb_size_type;
+    using index_type = arb_index_type;
+    using value_type = arb_value_type;
 
     const mechanism_catalogue& catalogue = gprop.catalogue;
     const auto& embedding = cell.embedding();
@@ -895,9 +898,9 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     std::unordered_map<std::string, mcable_map<double>> init_iconc_mask;
     std::unordered_map<std::string, mcable_map<double>> init_econc_mask;
+    iexpr_ptr unit_scale = thingify(iexpr::scalar(1.0), cell.provider());
 
     // Density mechanisms:
-
     for (const auto& [name, cables]: assignments.get<density>()) {
         mechanism_info info = catalogue[name];
 
@@ -923,20 +926,23 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
 
         mcable_map<double> support;
-        std::vector<mcable_map<double>> param_maps;
+        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps;
 
         param_maps.resize(n_param);
 
-        for (auto& on_cable: cables) {
-            const auto& mech = on_cable.second.mech;
+        for (const auto& [cable, density_iexpr]: cables) {
+            const auto& mech = density_iexpr.first.mech;
+            const auto& scale_expr = density_iexpr.second;
+
             verify_mechanism(info, mech);
-            mcable cable = on_cable.first;
             const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
                 double value = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
-                param_maps[i].insert(cable, value);
+                auto scale_it = scale_expr.find(param_names[i]);
+                param_maps[i].insert(cable, {value, scale_it == scale_expr.end()
+                                                        ? unit_scale : scale_it->second});
             }
         }
 
@@ -952,7 +958,12 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
                 area += area_on_cable;
                 for (std::size_t i = 0; i<n_param; ++i) {
-                    param_on_cv[i] += embedding.integrate_area(c.branch, pw_over_cable(param_maps[i], c, 0.));
+                  param_on_cv[i] += embedding.integrate_area(
+                      c.branch,
+                      pw_over_cable(
+                          param_maps[i], c, 0., [&](const mcable &c, const auto& x) {
+                              return x.first * x.second->eval(cell.provider(), c);
+                          }));
                 }
             }
 
@@ -1095,7 +1106,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             return a.target_index<b.target_index;
         });
 
-        bool coalesce = info.linear && gprop.coalesce_synapses;
+        bool coalesce = !info.random_variables.size() && info.linear && gprop.coalesce_synapses;
 
         fvm_mechanism_config config;
         config.kind = arb_mechanism_kind_point;
@@ -1259,7 +1270,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         for (auto i: cv_order) {
             const i_clamp& stim = stimuli[i].item;
             auto cv = stimuli_cv[i];
-            double cv_area_scale = 1000./D.cv_area[cv]; // constant scales from nA/µm² to A/m².
+            double cv_area_scale = 1000./D.cv_area[cv]; // constant scale from nA/µm² to A/m².
 
             config.cv.push_back(cv);
             config.frequency.push_back(stim.frequency);

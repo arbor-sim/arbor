@@ -16,16 +16,13 @@ PARAMETER {
     celsius : temperature in °C (set externally)
 }
 
-ASSIGNED {
-    coeff
-}
+ASSIGNED { coeff }
 
 INITIAL {
-    coeff = R*(celsius+273.15)/(zx*F)*1000
+    coeff = R*(celsius + 273.15)/(zx*F)*1000
 }
 
-STATE {
-}
+STATE {}
 
 BREAKPOINT  {
     ex = coeff*log(xo/xi)

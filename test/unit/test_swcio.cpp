@@ -9,7 +9,7 @@
 
 #include <arborio/swcio.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 
 // Path to data directory can be overriden at compile time.

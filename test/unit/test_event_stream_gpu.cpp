@@ -2,7 +2,7 @@
 #include <random>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "memory/memory.hpp"
 
 #include <backends/event.hpp>

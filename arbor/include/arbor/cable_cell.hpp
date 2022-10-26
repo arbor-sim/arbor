@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -11,6 +12,7 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/mcable_map.hpp>
@@ -195,20 +197,27 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration_cell {
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
-
 // Typed maps for access to painted and placed assignments:
 //
 // Mechanisms and initial ion data are further keyed by
 // mechanism name and ion name respectively.
 
+using iexpr_map = std::unordered_map<std::string, iexpr_ptr>;
+
 template <typename T>
-using region_assignment =
+using region_assignment = std::conditional_t<
+    std::is_same_v<T, init_int_concentration> ||
+        std::is_same_v<T, init_ext_concentration> ||
+        std::is_same_v<T, init_reversal_potential>,
+    std::unordered_map<std::string, mcable_map<T>>,
     std::conditional_t<
-        std::is_same<T, density>::value || std::is_same<T, init_int_concentration>::value ||
+        std::is_same<T, init_int_concentration>::value ||
         std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
         std::is_same<T, ion_diffusivity>::value,
         std::unordered_map<std::string, mcable_map<T>>,
-        mcable_map<T>>;
+        std::conditional_t<std::is_same_v<T, density>,
+            std::unordered_map<std::string, mcable_map<std::pair<T, iexpr_map>>>,
+            mcable_map<T>>>>;
 
 template <typename T>
 struct placed {
@@ -257,10 +266,7 @@ public:
     }
 
     /// Construct from morphology, label and decoration descriptions.
-    cable_cell(const class morphology&, const label_dict&, const decor&);
-    cable_cell(const class morphology& m):
-        cable_cell(m, {}, {})
-    {}
+    cable_cell(const class morphology& m, const decor& d, const label_dict& l={});
 
     /// Access to labels
     const label_dict& labels() const;

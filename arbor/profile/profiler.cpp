@@ -357,7 +357,7 @@ ARB_ARBOR_API void profiler_enter(region_id_type region_id) {
     profiler::get_global_profiler().enter(region_id);
 }
 
-ARB_ARBOR_API void profiler_initialize(context& ctx) {
+ARB_ARBOR_API void profiler_initialize(context ctx) {
     profiler::get_global_profiler().initialize(ctx->thread_pool);
 }
 

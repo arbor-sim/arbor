@@ -1,7 +1,7 @@
 #include <numeric>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/math.hpp>
 
@@ -50,9 +50,7 @@ TEST(matrix, solve_host)
         solver_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1));
         fill(m.d,  2);
         fill(m.u, -1);
-        fill(m.rhs,1);
-
-        auto x = array({0});
+        array x({1});
         m.solve(x);
 
         EXPECT_EQ(x[0], 0.5);
@@ -70,11 +68,8 @@ TEST(matrix, solve_host)
 
             fill(m.d,  2);
             fill(m.u, -1);
-            fill(m.rhs,1);
+            auto x = array(n, 1);
 
-
-            auto x = array();
-            x.resize(n);
             m.solve(x);
 
             auto err = math::square(std::fabs(2.*x[0] - x[1] - 1.));
@@ -116,7 +111,7 @@ TEST(matrix, solve_multi_matrix)
     vvec Cm = {1, 1, 1, 1, 1, 2, 3};
 
     // Initial voltage of zero; currents alone determine rhs.
-    array v(7, 0.0);
+    auto v = vvec{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     vvec area(7, 1.0);
 
     // (Scaled) membrane conductances contribute to diagonal.
@@ -132,11 +127,8 @@ TEST(matrix, solve_multi_matrix)
     // x = [ 4 5 6 7 8 9 10 ]
 
     solver_type m(p, c, Cm, g, area);
-    m.assemble(dt, v, i, mg);
-
-    auto x = array({0, 0, 0, 0, 0, 0, 0});
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
-    m.solve(x);
-    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+    m.solve(v, dt, i, mg);
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, v));
 }

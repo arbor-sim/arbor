@@ -4,7 +4,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   include(FindPythonModule) # required for find_python_module
 
   # Set up pybind11 as an external project.
-  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
+  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/ext/pybind11")
   check_git_submodule(pybind11 "${pb11_src_dir}")
 
   if(NOT pybind11_avail)
@@ -14,9 +14,9 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # Set up pybind11, which is used to generate Python bindings.
   # Pybind11 has good cmake support, so just add the pybind11 directory,
   # instead of using find_package.
-  add_subdirectory(pybind11)
+  add_subdirectory(${pb11_src_dir} pybind11)
 else()
-  find_package(pybind11 REQUIRED)
+  find_package(pybind11 2.8.1 REQUIRED)
 endif()
 
 set(pyarb_source
@@ -38,6 +38,7 @@ set(pyarb_source
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
+    env.cpp
 )
 
 # compile the pyarb sources into an object library that will be

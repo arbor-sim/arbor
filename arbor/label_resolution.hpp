@@ -77,7 +77,7 @@ public:
         lid_hopefully at(unsigned idx) const;
     };
 
-    label_resolution_map() = delete;
+    label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
     const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const;

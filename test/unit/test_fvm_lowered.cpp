@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arborio/label_parse.hpp>
 
@@ -295,8 +295,8 @@ TEST(fvm_lowered, stimulus) {
 
     std::vector<cable_cell> cells{desc};
 
-    const fvm_size_type soma_cv = 0u;
-    const fvm_size_type tip_cv = 5u;
+    const arb_size_type soma_cv = 0u;
+    const arb_size_type tip_cv = 5u;
 
     // The implementation of the stimulus is tested by creating a lowered cell, then
     // testing that the correct currents are injected at the correct control volumes
@@ -361,7 +361,7 @@ TEST(fvm_lowered, ac_stimulus) {
 
     // Envelope is linear ramp from 0 to max_time.
     dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase), "clamp");
-    std::vector<cable_cell> cells = {cable_cell(tree, {}, dec)};
+    std::vector<cable_cell> cells = {cable_cell(tree, dec)};
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
@@ -447,7 +447,7 @@ TEST(fvm_lowered, derived_mechs) {
 
         // Both mechanisms will have the same internal name, "test_kin1".
 
-        using fvec = std::vector<fvm_value_type>;
+        using fvec = std::vector<arb_value_type>;
         fvec tau_values;
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
             ASSERT_TRUE(mech);
@@ -564,20 +564,20 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto cat = make_unit_test_catalogue();
 
     // one cell, one CV:
-    fvm_size_type ncell = 1;
-    fvm_size_type ncv = 1;
-    std::vector<fvm_index_type> cv_to_cell(ncv, 0);
-    std::vector<fvm_value_type> temp(ncv, 23);
-    std::vector<fvm_value_type> diam(ncv, 1.);
-    std::vector<fvm_value_type> vinit(ncv, -65);
-    std::vector<fvm_index_type> src_to_spike = {};
+    arb_size_type ncell = 1;
+    arb_size_type ncv = 1;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
+    std::vector<arb_value_type> temp(ncv, 23);
+    std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
     mechanism_layout layout;
     mechanism_overrides overrides;
 
     layout.weight.assign(ncv, 1.);
-    for (fvm_size_type i = 0; i<ncv; ++i) {
+    for (arb_size_type i = 0; i<ncv; ++i) {
         layout.cv.push_back(i);
         ion_config.cv.push_back(i);
     }
@@ -609,7 +609,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     read_cai_mech->initialize();
     write_cai_mech->initialize();
 
-    std::vector<fvm_value_type> expected_s_values(ncv, 2.3e-4);
+    std::vector<arb_value_type> expected_s_values(ncv, 2.3e-4);
 
     EXPECT_EQ(expected_s_values, mechanism_field(read_cai_mech.get(), "s"));
 
@@ -827,7 +827,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             }
             decor.place(arb::mlocation{0, 0.5}, synapse_, "syanpse");
 
-            return arb::cable_cell(arb::morphology(tree), {}, decor);
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -919,7 +919,7 @@ TEST(fvm_lowered, label_data) {
                 decor.place(uniform(all(), 4, 4, 42), arb::synapse("expsyn"), "1_synapse");
                 decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
 
-                cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
             {
                 arb::decor decor;
@@ -929,7 +929,7 @@ TEST(fvm_lowered, label_data) {
                 decor.place(uniform(all(), 5, 6, 24), arb::junction("gj"), "2_gap_junctions");
                 decor.place(uniform(all(), 7, 7, 24), arb::junction("gj"), "1_gap_junction");
 
-                cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
         }
 
@@ -964,7 +964,7 @@ TEST(fvm_lowered, label_data) {
 
     // Check correct synapse, deterctor and gj data
     decorated_recipe rec(ncell);
-    std::vector<fvm_index_type> cell_to_intdom;
+    std::vector<arb_index_type> cell_to_intdom;
     std::vector<target_handle> targets;
     probe_association_map probe_map;
 

@@ -54,15 +54,15 @@ mechanism_info mk_fleeb_info() {
 
 // Backend classes:
 struct test_backend {
-    using iarray = std::vector<fvm_index_type>;
-    using array  = std::vector<fvm_value_type>;
+    using iarray = std::vector<arb_index_type>;
+    using array  = std::vector<arb_value_type>;
 
     test_backend(const std::unordered_map<std::string, arb_ion_state>& ions_): shared_{ions_} {}
 
     struct shared_state {
         shared_state(const std::unordered_map<std::string, arb_ion_state>& ions_): ions{ions_} {}
 
-        void instantiate(mechanism& m, fvm_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
+        void instantiate(mechanism& m, arb_size_type id, const mechanism_overrides& o, const mechanism_layout& l) {
             m.ppack_ = {0};
             m.ppack_.width = l.cv.size();
             m.ppack_.mechanism_id = id;
@@ -84,7 +84,7 @@ struct test_backend {
             }
         }
 
-        std::unordered_map<std::string, fvm_value_type> overrides;
+        std::unordered_map<std::string, arb_value_type> overrides;
         std::unordered_map<std::string, arb_ion_state> ions;
         std::unordered_map<arb_size_type, std::vector<arb_ion_state>> storage;
     };
@@ -278,7 +278,6 @@ TEST(mechcat, names) {
     }
 }
 
-#ifdef USE_DYNAMIC_CATALOGUES
 TEST(mechcat, loading) {
     EXPECT_THROW(load_catalogue(LIBDIR "/does-not-exist-catalogue.so"), file_not_found_error);
 #if defined(ARB_ARBOR_SHARED_LIBRARY)
@@ -293,7 +292,6 @@ TEST(mechcat, loading) {
     EXPECT_EQ(std::vector<std::string>{"dummy"}, cat.mechanism_names());
 #endif
 }
-#endif
 
 TEST(mechcat, derived_info) {
     auto cat = build_fake_catalogue();

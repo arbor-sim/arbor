@@ -6,12 +6,15 @@
 #include <unordered_map>
 #include <string>
 #include <variant>
+#include <any>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/cv_policy.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/locset.hpp>
+#include <arbor/morph/primitives.hpp>
 
 namespace arb {
 
@@ -192,6 +195,7 @@ private:
     std::unordered_map<std::string, double> param_;
 };
 
+
 // Tagged mechanism types for dispatching decor::place() and decor::paint() calls
 struct ARB_SYMBOL_VISIBLE junction {
     mechanism_desc mech;
@@ -228,6 +232,19 @@ struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
     mechanism_desc method;
 };
 
+template <typename TaggedMech>
+struct ARB_SYMBOL_VISIBLE scaled_mechanism {
+    TaggedMech t_mech;
+    std::unordered_map<std::string, iexpr> scale_expr;
+
+    explicit scaled_mechanism(TaggedMech m) : t_mech(std::move(m)) {}
+
+    scaled_mechanism& scale(std::string name, iexpr expr) {
+        scale_expr.insert_or_assign(name, expr);
+        return *this;
+    }
+};
+
 using paintable =
     std::variant<init_membrane_potential,
                  axial_resistivity,
@@ -237,7 +254,8 @@ using paintable =
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
-                 density>;
+                 density,
+                 scaled_mechanism<density>>;
 
 using placeable =
     std::variant<i_clamp,
@@ -293,9 +311,9 @@ public:
     const auto& placements() const {return placements_; }
     const auto& defaults()   const {return defaults_;   }
 
-    void paint(region, paintable);
-    void place(locset, placeable, cell_tag_type);
-    void set_default(defaultable);
+    decor& paint(region, paintable);
+    decor& place(locset, placeable, cell_tag_type);
+    decor& set_default(defaultable);
 };
 
 ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
@@ -305,9 +323,9 @@ ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
 struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     mechanism_catalogue catalogue = global_default_catalogue();
 
-    // If >0, check membrane voltage magnitude is less than limit
+    // Optional check if membrane voltage magnitude is less than limit
     // during integration.
-    double membrane_voltage_limit_mV = 0;
+    std::optional<double> membrane_voltage_limit_mV;
 
     // True => combine linear synapses for performance.
     bool coalesce_synapses = true;

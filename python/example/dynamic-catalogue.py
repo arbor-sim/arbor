@@ -14,10 +14,8 @@ class recipe(arb.recipe):
         self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         self.props = arb.neuron_cable_properties()
         self.props.catalogue = arb.load_catalogue(cat)
-        d = arb.decor()
-        d.paint("(all)", arb.density("dummy"))
-        d.set_property(Vm=0.0)
-        self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
+        d = arb.decor().paint("(all)", "dummy").set_property(Vm=0.0)
+        self.cell = arb.cable_cell(self.tree, d)
 
     def global_properties(self, _):
         return self.props

@@ -44,9 +44,9 @@ DERIVATIVE states	{
 	h' = (hInf-h)/hTau
 }
 
-INITIAL{
-	rates(v)
-	h = hInf
+INITIAL {
+   rates(v)
+   h = hInf
 }
 
 PROCEDURE rates(v){

@@ -96,6 +96,7 @@ struct public_variable_ids_t {
     std::vector<Id> state_ids;
     std::vector<Id> global_parameter_ids;
     std::vector<Id> range_parameter_ids;
+    std::vector<std::pair<Id,unsigned int>> white_noise_ids;
 };
 
 // Public module variables by role.
@@ -150,6 +151,7 @@ struct ARB_LIBMODCC_API indexed_variable_info {
     bool accumulate = true; // true => add with weight_ factor on assignment
     bool readonly = false;  // true => can never be assigned to by a mechanism
     bool additive = false;  // only additive contributions allowed?
+    bool always_use_weight = false; // can disable weighting?
 
     // Scale is the conversion factor from the data variable
     // to the NMODL value.

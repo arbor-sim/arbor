@@ -20,14 +20,10 @@ struct diffusion_solver {
     iarray parent_index;
     iarray cell_cv_divs;
 
-    array d;     // [μS]
-    array u;     // [μS]
-    array rhs;   // [nA]
-
-    array cv_area;             // [μm^2]
-
-    // the invariant part of the matrix diagonal
-    array invariant_d;         // [μS]
+    array d;           // [μS]
+    array u;           // [μS]
+    array cv_area;     // [μm^2]
+    array invariant_d; // [μS] invariant part of matrix diagonal
 
     diffusion_solver() = default;
     diffusion_solver(const diffusion_solver&) = default;
@@ -42,8 +38,9 @@ struct diffusion_solver {
                      const std::vector<value_type>& area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        d(size(), 0), u(size(), 0), rhs(size()),
-        cv_area(area.begin(), area.end())
+        d(size(), 0), u(size(), 0),
+        cv_area(area.begin(), area.end()),
+        invariant_d(size(), 0)
     {
         // Sanity check
         arb_assert(diff.size() == size());
@@ -51,7 +48,6 @@ struct diffusion_solver {
 
         // Build invariant parts
         const auto n = size();
-        invariant_d = array(n, 0);
         if (n >= 1) { // skip empty matrix, ie cell with empty morphology
             for (auto i: util::make_span(1u, n)) {
                 auto gij = diff[i];
@@ -63,20 +59,19 @@ struct diffusion_solver {
         }
     }
 
-    const_view solution() const {
-        // In this back end the solution is a simple view of the rhs, which
-        // contains the solution after the matrix_solve is performed.
-        return rhs;
-    }
 
+    // Assemble and solve the matrix
     // Assemble the matrix
     //   dt              [ms]      (scalar)
     //   internal conc   [mM]      (per control volume)
     //   voltage         [mV]      (per control volume)
     //   current density [A.m^-2]  (per control volume and species)
-    //   diffusivity     [???]     (per control volume)
+    //   diffusivity     [m^2/s]   (per control volume)
     //   charge          [e]
-    void assemble(value_type dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, fvm_value_type q) {
+    //   diff. concentration
+    //    * will be overwritten by the solution
+    template<typename T>
+    void solve(T& concentration, value_type dt, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
         // loop over submatrices
@@ -88,16 +83,19 @@ struct diffusion_solver {
                 auto J = current[i];        // A/m^2
                 auto A = 1e-3*cv_area[i];   // 1e-9·m²
                 auto X = concentration[i];  // mM
-
-                // conversion from current density to concentration change using Faraday's constant
+                // conversion from current density to concentration change
+                // using Faraday's constant
                 auto F = A/(q*96.485332);
                 d[i]   = _1_dt   + F*g + invariant_d[i];
-                rhs[i] = _1_dt*X + F*(u*g - J);
+                concentration[i] = _1_dt*X + F*(u*g - J);
             }
         }
+        solve(concentration);
     }
 
-    void solve() {
+    // Separate solver; analoguos with cable solver
+    template<typename T>
+    void solve(T& rhs) {
         // loop over submatrices
         for (const auto& [first, last]: util::partition_view(cell_cv_divs)) {
             if (first >= last) continue; // skip cell with no CVs
@@ -118,12 +116,6 @@ struct diffusion_solver {
                 rhs[i] = std::fma(-u[i], rhs[parent_index[i]], rhs[i])/d[i];
             }
         }
-    }
-
-    template<typename VTo>
-    void solve(VTo& to) {
-        solve();
-        memory::copy(rhs, to);
     }
 
     std::size_t size() const { return parent_index.size(); }

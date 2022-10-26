@@ -17,7 +17,7 @@ namespace kernel {
 template <typename T>
 __global__ void add_scalar(unsigned n,
                            T* __restrict__ const x,
-                           fvm_value_type v) {
+                           arb_value_type v) {
     unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     if (i<n) {
         x[i] += v;
@@ -45,7 +45,7 @@ __global__ void take_samples_impl(
 
 using impl::block_count;
 
-void add_scalar(std::size_t n, fvm_value_type* data, fvm_value_type v) {
+void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v) {
     if (!n) return;
 
     constexpr int block_dim = 128;

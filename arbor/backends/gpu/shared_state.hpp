@@ -10,6 +10,7 @@
 
 #include "fvm_layout.hpp"
 
+#include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
@@ -30,7 +31,7 @@ namespace gpu {
  *     Xo_     cao              external calcium concentration
  */
 struct ARB_ARBOR_API ion_state {
-    using solver_type = arb::gpu::diffusion_state<fvm_value_type, fvm_index_type>;
+    using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     bool write_eX_;          // is eX written?
@@ -123,16 +124,17 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> parameters_d_;
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
+        random_numbers random_numbers_;
     };
 
-    using cable_solver = arb::gpu::matrix_state_fine<fvm_value_type, fvm_index_type>;
+    using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     cable_solver solver;
 
     static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
 
-    fvm_size_type n_intdom = 0;   // Number of distinct integration domains.
-    fvm_size_type n_detector = 0; // Max number of detectors on all cells.
-    fvm_size_type n_cv = 0;       // Total number of CVs.
+    arb_size_type n_intdom = 0;   // Number of distinct integration domains.
+    arb_size_type n_detector = 0; // Max number of detectors on all cells.
+    arb_size_type n_cv = 0;       // Total number of CVs.
 
     iarray cv_to_cell;       // Maps CV index to cell index.
     fvm_value_type time;     // integration start time [ms].
@@ -148,6 +150,8 @@ struct ARB_ARBOR_API shared_state {
 
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
+
+    arb_seed_type cbprng_seed; // random number generator seed
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
@@ -165,13 +169,16 @@ struct ARB_ARBOR_API shared_state {
         const std::vector<fvm_value_type>& temperature_K,
         const std::vector<fvm_value_type>& diam,
         const std::vector<fvm_index_type>& src_to_spike,
-        unsigned // align parameter ignored
+        unsigned, // align parameter ignored
+        arb_seed_type cbprng_seed_ = 0u
     );
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(arb::mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
 
     void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+
+    void update_prng_state(mechanism&);
 
     // Note: returned pointer points to device memory.
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
@@ -204,7 +211,7 @@ struct ARB_ARBOR_API shared_state {
 
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)
-    std::pair<fvm_value_type, fvm_value_type> voltage_bounds() const;
+    std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
     void take_samples(

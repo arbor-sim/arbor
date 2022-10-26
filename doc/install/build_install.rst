@@ -54,6 +54,10 @@ A full list of dependencies and minimum versions supported thereof is maintained
    :widths: 10, 20, 10, 70, 1
    :header-rows: 1
 
+Note, that while we consider these to be our minimally supported versions, Arbor
+might still compile and work fine using older versions. We will, however, not
+offer much support for these versions, nor will we fix issues specific to them.
+
 Minimum requirements
 --------------------
 
@@ -135,7 +139,7 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python frontend, for which a minimum of Python 3.6 is required.
+Arbor has a Python frontend, for which a minimum of Python 3.7 is required.
 In addition, `numpy` is a runtime requirement for the Python package.
 In order to use MPI in combination with the python frontend the
 `mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
@@ -150,12 +154,19 @@ an additional support library ``arborio``. This library requires
 with NeuroML support enabled.
 See :ref:`install-neuroml` for more information.
 
+Boost
+~~~~~
+
+When ``ARB_BACKTRACE`` is set to ``ON`` during configure we use
+``Boost::stacktrace`` to print stacktraces upon failed assertions and attach
+them to the base exception types ``arbor_exception`` and
+``arbor_internal_error`` as ``where``.
 
 Documentation
 ~~~~~~~~~~~~~~
 
-To build a local copy of the html documentation that you are reading now, you will need to
-install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+To build a local copy of the html documentation that you are reading now, you
+will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
@@ -545,7 +556,7 @@ component ``neuroml``. The corresponding CMake library target is ``arbor::arbori
    # ...
    target_link_libraries(myapp arbor::arborio)
 
-.. install-profiling:
+.. _install-profiling:
 
 Profiling
 ---------
@@ -598,6 +609,20 @@ on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
+.. warning::
+
+   On many HPC systems a tool called ``module`` or ``ml`` is installed, which
+   use the ``CPATH`` environment variable to set up include paths for building.
+   The contents of this variable are forced on all compilations and by extension
+   to dependency generation. This can lead to the wrong headers being picked up
+   despite ``CMake`` reporting the correct versions, which can produce spurious
+   errors.
+
+   If you are using one of these tools (and possibly ```easybuid``) and encounter
+   such problems, try to ``module unload`` as many modules as possibe. One example
+   has been found with JSC clusters and an outdated pybind11 which was brought in
+   by ``ml SciPy-Stack``.
+
 .. _install-mpi:
 
 MPI
@@ -648,6 +673,11 @@ The compiler used by the MPI wrappers is set using a "programming environment" m
 The first thing to do is change this module, which by default is set to the Cray
 programming environment, to a compiler that can compile Arbor.
 For example, to use the GCC compilers, select the GNU programming environment:
+
+.. note::
+
+   While the specific versions mentioned here are outdated, the general workflow
+   is still correct.
 
 .. code-block:: bash
 

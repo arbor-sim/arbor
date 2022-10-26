@@ -4,6 +4,7 @@ set(arbor_sources
     arbexcept.cpp
     assert.cpp
     backends/multicore/shared_state.cpp
+    backends/multicore/rand.cpp
     communication/communicator.cpp
     communication/dry_run_context.cpp
     benchmark_cell_group.cpp
@@ -21,6 +22,7 @@ set(arbor_sources
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
     hardware/power.cpp
+    iexpr.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     label_resolution.cpp
@@ -78,8 +80,15 @@ if(ARB_WITH_GPU)
         backends/gpu/forest.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
+        backends/gpu/rand.cpp
         memory/fill.cu
     )
+    if (ARB_USE_GPU_RNG_IMPL)
+        list(APPEND arbor_sources backends/gpu/rand.cu)
+    else()
+        set_source_files_properties(backends/gpu/rand.cpp PROPERTIES
+            COMPILE_DEFINITIONS ARB_ARBOR_NO_GPU_RAND)
+    endif()
 endif()
 
 if(ARB_WITH_MPI)
@@ -114,18 +123,15 @@ install(TARGETS arbor-private-headers EXPORT arbor-targets)
 # directory-local.
 
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
-set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${arbor-builtin-mechanisms} PROPERTIES GENERATED TRUE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor_sources} PROPERTIES LANGUAGE CXX)
-    set_source_files_properties(${arbor_mechanism_sources} PROPERTIES LANGUAGE CXX)
+    set_source_files_properties(${arbor-builtin-mechanism} PROPERTIES LANGUAGE CXX)
 endif()
 
 # Library target:
-
-add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
-add_dependencies(arbor build_all_mods)
-
+add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 

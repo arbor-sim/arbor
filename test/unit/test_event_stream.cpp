@@ -1,5 +1,5 @@
 #include <vector>
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include "arbor/common_types.hpp"
 #include "backends/event.hpp"

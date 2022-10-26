@@ -22,7 +22,7 @@ The choice of region or locset is reflected in the two broad classes of dynamics
 
   * :ref:`Synapse mechanisms <cablecell-synapses>`.
   * :ref:`Gap junction mechanisms <cablecell-gj-mechs>`.
-  * :ref:`Threshold detectors <cablecell-threshold-detectors>` (spike detectors).
+  * :ref:`Threshold detectors <cablecell-threshold-detectors>`
   * :ref:`Stimuli <cablecell-stimuli>`.
   * :ref:`Probes <cablecell-probes>`.
 
@@ -30,6 +30,14 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
 
 * setting properties defined over the whole cell;
 * descriptions of dynamics applied to regions and locsets.
+
+.. note::
+
+   All methods on decor objects (``paint``, ``place``, and ``set_default``)
+   return a reference to the objects so you can chain them together. This saves
+   some repetition. You can break long statements over multiple lines, but in
+   Python this requires use of continuation lines ``\`` or wrapping the whole
+   expression into parentheses.
 
 .. _cablecell-paint:
 
@@ -62,6 +70,7 @@ The types of dynamics, and where they can be defined, are
    cable properties,       ✓, ✓, ✓
    ion initial conditions, ✓, ✓, ✓
    density mechanism,       ✓, --, --
+   scaled-mechanism (density),  ✓, --, --
    ion rev pot mechanism,  --, ✓, ✓
    ion valence,            --, --, ✓
 
@@ -116,7 +125,7 @@ specialised on specific regions.
 
 Regions can have density mechanisms defined over their extents.
 :ref:`Density mechanisms <mechanisms-density>` are a kind of
-:ref:`NMODL mechanism <nmodl>` which describe biophysical processes.
+:ref:`NMODL mechanism <formatnmodl>` which describe biophysical processes.
 These are processes that are distributed in space, but whose behaviour is
 defined purely by the state of the cell and the process at any given point.
 
@@ -166,7 +175,28 @@ Take for example the built-in mechanism for passive leaky dynamics:
 
 .. _cablecell-ions:
 
-4. Ion species
+.. _cablecell-scaled-mechs:
+
+4. Scaled mechanisms
+~~~~~~~~~~~~~~~~~~~~~
+Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
+:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
+The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
+Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
+Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.
+Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>` can be scaled.
+
+
+.. code-block:: Python
+
+    # Create mechanism with custom conductance (range)
+    m = arbor.mechanism('pas', {'g': 0.1})
+
+    decor = arbor.decor()
+    # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
+    decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
+
+5. Ion species
 ~~~~~~~~~~~~~~
 
 Arbor allows arbitrary ion species to be defined, to extend the default
@@ -235,7 +265,7 @@ ion at the cell level using the Python interface:
     # Method 2: set directly using a string description.
     decor.set_ion(ion='ca', method='nernst/x=ca')
 
-    cell = arbor.cable_cell(morph, labels, decor)
+    cell = arbor.cable_cell(morph, decor)
 
 
 The NMODL code for the
@@ -275,7 +305,7 @@ pile-up effects similar to reflective bounds.
 The diffusive concentration is *separate* from the internal concentration for
 reasons innate to the cable model, which require resetting it to its starting
 point at every timestep. It can be accessed from NMODL density and point
-mechanisms as an independent quantity, see :ref:`NMODL mechanism <nmodl>`. It is
+mechanisms as an independent quantity, see :ref:`NMODL mechanism <formatnmodl>`. It is
 present on the full morphology if its associated diffusivity is set to a
 non-zero value on any subset of the morphology, ie ``region``. It is initialised
 to the value of the internal concentration at time zero.
@@ -298,7 +328,7 @@ locset.
 
 Similar to how regions can have density mechanisms defined over their extents,
 locsets can have point mechanisms placed on their individual locations.
-:ref:`Point mechanisms <mechanisms-point>` are a kind of :ref:`NMODL mechanism <nmodl>`
+:ref:`Point mechanisms <mechanisms-point>` are a kind of :ref:`NMODL mechanism <formatnmodl>`
 which describe synaptic processes such as the ``expsyn`` mechanism provided by
 NEURON and Arbor, which models an exponential synapse.
 
@@ -312,19 +342,41 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     expsyn = arbor.mechanism('expsyn')
 
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
-    decor.paint('"syn_loc_0"', arbor.synapse(expsyn))
+    decor.place('"syn_loc_0"', arbor.synapse(expsyn))
 
     # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
-    decor.paint('"syn_loc_1"', arbor.synapse("expsyn"))
+    decor.place('"syn_loc_1"', arbor.synapse("expsyn"))
 
     # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
-    decor.paint('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
+    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
 
 
 .. _cablecell-threshold-detectors:
 
-2. Threshold detectors (spike detectors).
+2. Threshold detectors.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Threshold detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
+between cells. An example where we're interested in when a threshold of ``-10 mV`` is reached:
+
+.. code-block:: Python
+
+    # Placing a threshold detector might look like this.
+    decor = arbor.decor()
+    decor.place('"root"', arbor.threshold_detector(-10), "detector")
+
+    # At this point, "detector" could be connected to another cell,
+    # and it would transmit events upon the voltage crossing the threshold.
+
+    # Just printing those spike times goes as follows.
+    sim = arbor.simulation(...)
+    sim.record(arbor.spike_recording.all)
+    sim.run(...)
+    print("spikes:")
+    for sp in sim.spikes():
+        print(" ", sp)
+
+See also :term:`threshold detector`.
 
 .. _cablecell-gj-mechs:
 
@@ -332,7 +384,7 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Locsets can also have junction mechanisms placed on their individual locations.
-:ref:`Junction mechanisms <mechanisms-junction>` are a kind of :ref:`NMODL mechanism <nmodl>`
+:ref:`Junction mechanisms <mechanisms-junction>` are a kind of :ref:`NMODL mechanism <formatnmodl>`
 which describe gap-junction processes such as the ``gj`` mechanism provided by Arbor,
 which models a basic, linear, constant-conductance based gap-junction.
 
@@ -347,10 +399,10 @@ on two separate cells.
     gj = arbor.mechanism("gj", {"g": 2.0})
 
     # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
-    decor.paint('"gj_loc_0"', arbor.junction(gj))
+    decor.place('"gj_loc_0"', arbor.junction(gj))
 
     # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
-    decor.paint('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
+    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
 
 .. _cablecell-stimuli:
 
@@ -379,14 +431,14 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
     decor.place('(root)', arbor.iclamp(10), "iclamp0")
 
     # Constant amplitude 10 nA stimulus at 20 Hz, with initial phase of π/4 radians.
-    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phasce=math.pi/4), "iclamp1")
+    decor.place('(root)', arbor.iclamp(10, frequency=0.020, phase=math.pi/4), "iclamp1")
 
     # Stimulus at 1 kHz, amplitude 10 nA, for 40 ms starting at t = 30 ms.
     decor.place('(root)', arbor.iclamp(30, 40, 10, frequency=1), "iclamp2")
 
     # Piecewise linear stimulus with amplitude ranging from 0 nA to 10 nA,
     # starting at t = 30 ms and stopping at t = 50 ms.
-    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)], "iclamp3")
+    decor.place('(root)', arbor.iclamp([(30, 0), (37, 10), (43, 8), (50, 0)]), "iclamp3")
 
 
 .. _cablecell-probes:
@@ -394,10 +446,9 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 5. Probes
 ~~~~~~~~~
 
+See :ref:`probesample`.
 
 API
 ---
 
 * :ref:`Python <pycablecell-decor>`
-* :ref:`C++ <cppcablecell-decor>`
-

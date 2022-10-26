@@ -40,8 +40,6 @@ class Cable(arbor.recipe):
         cv_policy_max_extent -- maximum extent of control volume in μm
         """
 
-        # (4.1) The base C++ class constructor must be called first, to ensure that
-        # all memory in the C++ class is initialized correctly.
         arbor.recipe.__init__(self)
 
         self.the_probes = probes
@@ -65,12 +63,16 @@ class Cable(arbor.recipe):
         return 1
 
     def num_sources(self, gid):
-        assert gid == 0
         return 0
 
     def cell_kind(self, gid):
-        assert gid == 0
         return arbor.cell_kind.cable
+
+    def probes(self, gid):
+        return self.the_probes
+
+    def global_properties(self, kind):
+        return self.the_props
 
     def cell_description(self, gid):
         """A high level description of the cell with global identifier gid.
@@ -78,7 +80,6 @@ class Cable(arbor.recipe):
         For example the morphology, synapses and ion channels required
         to build a multi-compartment neuron.
         """
-        assert gid == 0
 
         tree = arbor.segment_tree()
 
@@ -91,32 +92,23 @@ class Cable(arbor.recipe):
 
         labels = arbor.label_dict({"cable": "(tag 1)", "start": "(location 0 0)"})
 
-        decor = arbor.decor()
-        decor.set_property(Vm=self.Vm)
-        decor.set_property(cm=self.cm)
-        decor.set_property(rL=self.rL)
-
-        decor.paint('"cable"', arbor.density(f"pas/e={self.Vm}", {"g": self.g}))
-
-        decor.place(
-            '"start"',
-            arbor.iclamp(
-                self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
-            ),
-            "iclamp",
+        decor = (
+            arbor.decor()
+            .set_property(Vm=self.Vm, cm=self.cm, rL=self.rL)
+            .paint('"cable"', arbor.density(f"pas/e={self.Vm}", {"g": self.g}))
+            .place(
+                '"start"',
+                arbor.iclamp(
+                    self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
+                ),
+                "iclamp",
+            )
         )
 
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)
 
-        return arbor.cable_cell(tree, labels, decor)
-
-    def probes(self, gid):
-        assert gid == 0
-        return self.the_probes
-
-    def global_properties(self, kind):
-        return self.the_props
+        return arbor.cable_cell(tree, decor, labels)
 
 
 def get_rm(g):

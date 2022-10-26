@@ -27,6 +27,8 @@ Properties shared by all cable cells, as returned by the recipe
 object of type :cpp:type:`cable_cell_global_properties`.
 
 
+
+
 The :cpp:type:`cable_cell` object
 ---------------------------------
 
@@ -55,14 +57,15 @@ are specified via the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
 Cell dynamics
 -------------
 
-Each segment in a cell may have attached to it one or more density *mechanisms*,
-which describe biophysical processes. These are processes
-that are distributed in space, but whose behaviour is defined purely
-by the state of the cell and the process at any given point.
+Dynamics are imbued onto the cell by setting a :cpp:type:`decor` object during
+construction. Each segment in a cell may have attached to it one or more density
+*mechanisms*, which describe biophysical processes. These are processes that are
+distributed in space, but whose behaviour is defined purely by the state of the
+cell and the process at any given point.
 
-Cells may also have *point* mechanisms, describing the dynamics
-at post-synaptic sites. And *junction* mechanisms, describing the
-dynamics at each site of the two sites of a gap-junction connection.
+Cells may also have *point* mechanisms, describing the dynamics at post-synaptic
+sites. And *junction* mechanisms, describing the dynamics at each site of the
+two sites of a gap-junction connection.
 
 A fourth type of mechanism, which describes ionic reversal potential
 behaviour, can be specified for cells or the whole model via cell parameter
@@ -121,14 +124,14 @@ Relevant methods:
 
 Density mechanisms are associated with a cable cell object with:
 
-.. cpp:function:: void cable_cell::paint(const region&, density)
+.. cpp:function:: void decor::paint(const region&, density)
 
 Point mechanisms, which are associated with connection end points on a
 cable cell, are placed on a set of locations given by a locset. The group
 of generated items are given a label which can be used to create connections
 in the recipe. Point mechanisms are attached to a cell with:
 
-.. cpp:function:: void cable_cell::place(const locset&, synapse, cell_tag_type label)
+.. cpp:function:: void decor::place(const locset&, synapse, cell_tag_type label)
 
 Gap-junction mechanisms, which are associated with gap-junction connection
 end points on a cable cell, are placed on a single location given by a locset
@@ -136,7 +139,7 @@ end points on a cable cell, are placed on a single location given by a locset
 is given a label which can be used to create gap-junction connections in the
 recipe. Gap-junction mechanisms are attached to a cell with:
 
-.. cpp:function:: void cable_cell::place(const locset&, junction, cell_tag_type label)
+.. cpp:function:: void decor::place(const locset&, junction, cell_tag_type label)
 
 .. todo::
 
@@ -214,9 +217,9 @@ Global properties
    by default, this is set to point to `global_default_catalogue()`, the catalogue
    that contains all mechanisms bundled with arbor.
 
-   .. cpp:member:: double membrane_voltage_limit_mv
+   .. cpp:member:: optional<double> membrane_voltage_limit_mv
 
-   if non-zero, check to see if the membrane voltage ever exceeds this value
+   if set, check to see if the membrane voltage ever exceeds this value
    in magnitude during the course of a simulation. if so, throw an exception
    and abort the simulation.
 

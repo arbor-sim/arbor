@@ -29,7 +29,7 @@ using util::make_span;
         }
 
         for (auto cv: g.children(i)) {
-            if ((fvm_index_type)i != g.cv_parent.at(cv)) {
+            if ((arb_index_type)i != g.cv_parent.at(cv)) {
                 return ::testing::AssertionFailure() << "CV " << i
                     << " has child CV " << cv << " which has parent " << g.cv_parent.at(cv);
             }
@@ -73,7 +73,7 @@ std::ostream& operator<<(std::ostream& out, ::arb::cv_prefer::type p) {
 TEST(cv_geom, empty) {
     using namespace common_morphology;
 
-    cable_cell empty_cell{m_empty};
+    cable_cell empty_cell{m_empty, {}};
     cv_geometry geom(empty_cell, ls::nil());
     EXPECT_TRUE(verify_cv_children(geom));
 
@@ -96,7 +96,7 @@ TEST(cv_geom, trivial) {
         if (p.second.empty()) continue;
 
         SCOPED_TRACE(p.first);
-        cable_cell cell{p.second};
+        cable_cell cell{p.second, {}};
         auto& m = cell.morphology();
 
         // Equivalent ways of specifying one CV comprising whole cell:
@@ -137,7 +137,7 @@ TEST(cv_geom, one_cv_per_branch) {
         if (p.second.empty()) continue;
         SCOPED_TRACE(p.first);
 
-        cable_cell cell{p.second};
+        cable_cell cell{p.second, {}};
         auto& m = cell.morphology();
 
         auto cell_cv_geom = cv_geometry(cell, sum(ls::on_branches(0), ls::on_branches(1)));
@@ -192,7 +192,7 @@ TEST(cv_geom, midpoints) {
         if (p.second.empty()) continue;
         SCOPED_TRACE(p.first);
 
-        cable_cell cell{p.second};
+        cable_cell cell{p.second, {}};
         auto& m = cell.morphology();
 
         cv_geometry geom(cell, ls::on_branches(0.5));
@@ -285,7 +285,7 @@ TEST(cv_geom, weird) {
     using C = mcable;
     using testing::seq_eq;
 
-    cable_cell cell{common_morphology::m_reg_b6};
+    cable_cell cell{common_morphology::m_reg_b6, {}};
     cv_geometry geom(cell, mlocation_list{{1, 0}, {4,0}});
 
     EXPECT_TRUE(verify_cv_children(geom));
@@ -304,7 +304,7 @@ TEST(cv_geom, weird) {
 TEST(cv_geom, location_cv) {
     using namespace common_morphology;
 
-    cable_cell cell{m_reg_b6};
+    cable_cell cell{m_reg_b6, {}};
     auto& m = cell.morphology();
 
     auto cv_extent = [](const cv_geometry& geom, auto cv) {
@@ -451,7 +451,7 @@ TEST(cv_geom, multicell) {
     using namespace common_morphology;
     using index_type = cv_geometry::index_type;
 
-    cable_cell cell = cable_cell(m_reg_b6);
+    cable_cell cell = cable_cell(m_reg_b6, {});
 
     cv_geometry geom(cell, ls::on_branches(0.5));
     unsigned n_cv = geom.size();
@@ -489,7 +489,7 @@ TEST(cv_geom, multicell) {
 TEST(region_cv, empty) {
     using namespace common_morphology;
 
-    cable_cell empty_cell{m_empty};
+    cable_cell empty_cell{m_empty, {}};
     cell_cv_data cv_data(empty_cell, ls::nil());
 
     auto all_cv = intersect_region(reg::all(), cv_data);
@@ -506,7 +506,7 @@ TEST(region_cv, trivial) {
         if (p.second.empty()) continue;
 
         SCOPED_TRACE(p.first);
-        cable_cell cell{p.second};
+        cable_cell cell{p.second, {}};
 
         // One CV comprising whole cell:
         cell_cv_data cell_geom1(cell, ls::nil());
@@ -585,7 +585,7 @@ TEST(region_cv, custom_geometry) {
         decor d;
         // Discretize by segment
         d.set_default(cv_policy_every_segment());
-        auto cell = cable_cell(m, l, d);
+        auto cell = cable_cell(m, d, l);
         auto geom = cv_data(cell);
         EXPECT_TRUE(geom);
 
@@ -643,7 +643,7 @@ TEST(region_cv, custom_geometry) {
           {2, 1}
         });
         d.set_default(cv_policy_explicit(ls));
-        auto cell = cable_cell(m, l, d);
+        auto cell = cable_cell(m, d, l);
         auto geom = cv_data(cell);
         EXPECT_TRUE(geom);
 

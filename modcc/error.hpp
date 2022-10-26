@@ -71,6 +71,3 @@ public:
 private:
     error_entry error_info_;
 };
-
-
-
