@@ -208,16 +208,16 @@ void solve_matrix_fine(
 } // namespace kernels
 
 ARB_ARBOR_API void assemble_matrix_fine(
-    fvm_value_type* d,
-    fvm_value_type* rhs,
-    const fvm_value_type* invariant_d,
-    const fvm_value_type* voltage,
-    const fvm_value_type* current,
-    const fvm_value_type* conductivity,
-    const fvm_value_type* cv_capacitance,
-    const fvm_value_type* area,
-    const fvm_value_type  dt,
-    const fvm_index_type* perm,
+    arb_value_type* d,
+    arb_value_type* rhs,
+    const arb_value_type* invariant_d,
+    const arb_value_type* voltage,
+    const arb_value_type* current,
+    const arb_value_type* conductivity,
+    const arb_value_type* cv_capacitance,
+    const arb_value_type* area,
+    const arb_value_type  dt,
+    const arb_index_type* perm,
     unsigned n)
 {
     const unsigned block_dim = 128;

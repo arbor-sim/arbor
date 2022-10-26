@@ -31,7 +31,7 @@ namespace gpu {
 
 void take_samples_impl(
     const event_stream_state<raw_probe_info>& s,
-    const fvm_value_type& time, fvm_value_type* sample_time, fvm_value_type* sample_value);
+    const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value);
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
@@ -143,7 +143,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim) {
     ppack_.envl_index = envl_index_.data();
 
     // The following ppack fields must be set in add_current() before queuing kernel.
-    ppack_.time = std::numeric_limits<fvm_value_type>::quiet_NaN();
+    ppack_.time = std::numeric_limits<arb_value_type>::quiet_NaN();
     ppack_.current_density = nullptr;
 }
 
@@ -160,7 +160,7 @@ void istim_state::reset() {
     memory::copy(envl_divs_, envl_index_);
 }
 
-void istim_state::add_current(const fvm_value_type& time, array& current_density) {
+void istim_state::add_current(const arb_value_type& time, array& current_density) {
     ppack_.time = time;
     ppack_.current_density = current_density.data();
     istim_add_current_impl((int)size(), ppack_);
@@ -169,14 +169,14 @@ void istim_state::add_current(const fvm_value_type& time, array& current_density
 // Shared state methods:
 
 shared_state::shared_state(
-        fvm_size_type n_cell,
-        fvm_size_type n_cv,
-        fvm_size_type n_detector,
-        const std::vector<fvm_index_type>& cv_to_cell_vec,
-        const std::vector<fvm_value_type>& init_membrane_potential,
-        const std::vector<fvm_value_type>& temperature_K,
-        const std::vector<fvm_value_type>& diam,
-        const std::vector<fvm_index_type>& src_to_spike,
+        arb_size_type n_cell,
+        arb_size_type n_cv,
+        arb_size_type n_detector,
+        const std::vector<arb_index_type>& cv_to_cell_vec,
+        const std::vector<arb_value_type>& init_membrane_potential,
+        const std::vector<arb_value_type>& temperature_K,
+        const std::vector<arb_value_type>& diam,
+        const std::vector<arb_index_type>& src_to_spike,
         unsigned, // align parameter ignored
         arb_seed_type cbprng_seed_
     ):
@@ -429,7 +429,7 @@ void shared_state::ions_init_concentration() {
     }
 }
 
-void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
+void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     auto tnext = std::min(time+dt_step, tmax);
     // round up target time if it is very close to tmax
     time_to = tnext+(1e-8*dt_step) >= tmax ? tmax: tnext;

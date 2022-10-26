@@ -141,6 +141,7 @@ struct ARB_ARBOR_API shared_state {
     unsigned alignment = 1;   // Alignment and padding multiple.
     util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
 
+    arb_size_type n_intdom = 0; // Number of integration domains.
     arb_size_type n_detector = 0; // Max number of detectors on all cells.
     arb_size_type n_cv = 0;   // Total number of CVs.
 

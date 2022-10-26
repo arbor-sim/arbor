@@ -298,7 +298,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->time = state_->time_to;
 
         // Check for non-physical solutions:
-
         if (check_voltage_mV_) {
             PE(advance:integrate:physicalcheck);
             assert_voltage_bounded(check_voltage_mV_.value());

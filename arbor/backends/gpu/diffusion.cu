@@ -196,17 +196,17 @@ void solve_diffusion(
 } // namespace kernels
 
 ARB_ARBOR_API void assemble_diffusion(
-    fvm_value_type* d,
-    fvm_value_type* rhs,
-    const fvm_value_type* invariant_d,
-    const fvm_value_type* concentration,
-    const fvm_value_type* voltage,
-    const fvm_value_type* current,
-    fvm_value_type q,
-    const fvm_value_type* conductivity,
-    const fvm_value_type* area,
-    const fvm_value_type dt,
-    const fvm_index_type* perm,
+    arb_value_type* d,
+    arb_value_type* rhs,
+    const arb_value_type* invariant_d,
+    const arb_value_type* concentration,
+    const arb_value_type* voltage,
+    const arb_value_type* current,
+    arb_value_type q,
+    const arb_value_type* conductivity,
+    const arb_value_type* area,
+    const arb_value_type dt,
+    const arb_index_type* perm,
     unsigned n)
 {
     const unsigned block_dim = 128;

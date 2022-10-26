@@ -28,7 +28,7 @@
 namespace arb {
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index),(b.mech_id,b.mech_index))
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
+//ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
 
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
@@ -410,7 +410,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     //util::sort(staged_events_);
     //util::sort_by(staged_events_, [](auto& l, auto& r) {return });
     //ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
-    //util::sort(staged_events_);
     PL();
 
     // Create sample events and delivery information.

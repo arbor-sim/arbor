@@ -466,9 +466,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    // Set internal variables
-    //m.time_ptr_ptr   = &time_ptr;
-
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
     m.ppack_.width            = pos_data.cv.size();

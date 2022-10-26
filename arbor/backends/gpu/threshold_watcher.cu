@@ -24,10 +24,10 @@ namespace kernel {
 __global__
 void test_thresholds_impl(
     int size,
-    fvm_value_type t_after,
-    fvm_value_type t_before,
-    const fvm_index_type* __restrict__ const src_to_spike,
-    fvm_value_type* __restrict__ const time_since_spike,
+    arb_value_type t_after,
+    arb_value_type t_before,
+    const arb_index_type* __restrict__ const src_to_spike,
+    arb_value_type* __restrict__ const time_since_spike,
     stack_storage<threshold_crossing>& stack,
     arb_index_type* __restrict__ const is_crossed,
     arb_value_type* __restrict__ const prev_values,
@@ -99,16 +99,16 @@ extern void reset_crossed_impl(
 
 void test_thresholds_impl(
     int size,
-    const fvm_value_type t_after,
-    const fvm_value_type t_before,
-    const fvm_index_type* src_to_spike,
-    fvm_value_type* time_since_spike,
+    const arb_value_type t_after,
+    const arb_value_type t_before,
+    const arb_index_type* src_to_spike,
+    arb_value_type* time_since_spike,
     stack_storage<threshold_crossing>& stack,
-    fvm_index_type* is_crossed,
-    fvm_value_type* prev_values,
-    const fvm_index_type* cv_index,
-    const fvm_value_type* values,
-    const fvm_value_type* thresholds,
+    arb_index_type* is_crossed,
+    arb_value_type* prev_values,
+    const arb_index_type* cv_index,
+    const arb_value_type* values,
+    const arb_value_type* thresholds,
     bool record_time_since_spike)
 {
     if (size>0) {

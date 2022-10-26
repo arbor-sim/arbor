@@ -21,8 +21,8 @@ struct istim_pp {
     arb_index_type* envl_index;
 
     // Pointers to shared state data:
-    fvm_value_type time;
-    fvm_value_type* current_density;
+    arb_value_type time;
+    arb_value_type* current_density;
 };
 
 ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp);

@@ -26,9 +26,9 @@ __global__ void add_scalar(unsigned n,
 
 __global__ void take_samples_impl(
     event_stream_state<raw_probe_info> s,
-    const fvm_value_type time,
-    fvm_value_type* __restrict__ const sample_time,
-    fvm_value_type* __restrict__ const sample_value)
+    const arb_value_type time,
+    arb_value_type* __restrict__ const sample_time,
+    arb_value_type* __restrict__ const sample_value)
 {
     const unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     const auto begin = s.begin_marked;
@@ -55,7 +55,7 @@ void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v) {
 
 void take_samples_impl(
     const event_stream_state<raw_probe_info>& s,
-    const fvm_value_type& time, fvm_value_type* sample_time, fvm_value_type* sample_value)
+    const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value)
 {
     constexpr int block_dim = 128;
     const int nsamples = s.end_marked - s.begin_marked;
