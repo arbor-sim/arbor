@@ -1,3 +1,5 @@
+include(GNUInstallDirs)
+
 set(PYBIND11_CPP_STANDARD -std=c++17)
 
 if(ARB_USE_BUNDLED_PYBIND11)
@@ -40,6 +42,12 @@ set(pyarb_source
     single_cell_model.cpp
     env.cpp
 )
+
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"       APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_LIB="${CMAKE_INSTALL_LIBDIR}"          APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_DATA="${CMAKE_INSTALL_DATAROOTDIR}"    APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_CXX_COMPILER="${CMAKE_CXX_COMPILER}"   APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PREFIX="${CMAKE_INSTALL_PREFIX}"       APPEND)
 
 # compile the pyarb sources into an object library that will be
 # use by both the Python wrapper target (pyarb) and for the
