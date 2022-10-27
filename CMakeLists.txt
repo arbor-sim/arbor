@@ -177,12 +177,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Data and internal scripts go here
 set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
-# Derived paths for arbor-build-catalogue
-get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_BINDIR} REALPATH)
-get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_DATAROOTDIR} REALPATH)
-get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_LIBDIR} REALPATH)
-file(RELATIVE_PATH ARB_REL_DATADIR ${absolute_full_bindir} ${absolute_full_datarootdir}/arbor)
-file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${absolute_full_bindir} ${absolute_full_libdir}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
@@ -227,8 +221,7 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
 
-configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`

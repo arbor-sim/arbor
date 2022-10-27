@@ -86,10 +86,11 @@ def _build_cat_local(name, path):
             ["arbor-build-catalogue", name, str(path)],
             check=True,
             stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )
     except subprocess.CalledProcessError as e:
         raise _BuildCatError(
-            "Tests can't build catalogues:\n" + e.stderr.decode()
+            f"Tests can't build catalogue '{name}' from '{path}':\n{e.stderr.decode()}\n\n{e.stdout.decode()}"
         ) from None
 
 

@@ -76,7 +76,7 @@ class TestDomain_Decompositions(unittest.TestCase):
             self.assertEqual(grp.kind, arb.cell_kind.cable)
 
     # 1 cpu core, 1 gpu; assumes all cells will be placed on gpu in a single cell group
-    @unittest.skipIf(gpu_enabled is False, "GPU not enabled")
+    @unittest.skipIf(not gpu_enabled, "GPU not enabled")
     def test_domain_decomposition_homogenous_GPU(self):
         n_cells = 10
         recipe = homo_recipe(n_cells)
@@ -139,7 +139,7 @@ class TestDomain_Decompositions(unittest.TestCase):
                 self.assertEqual(k, recipe.cell_kind(gid))
 
     # 1 cpu core, 1 gpu; assumes cable cells will be placed on gpu in a single cell group; spike cells are on cpu in cell groups of size 1
-    @unittest.skipIf(gpu_enabled is False, "GPU not enabled")
+    @unittest.skipIf(not gpu_enabled, "GPU not enabled")
     def test_domain_decomposition_heterogenous_GPU(self):
         n_cells = 10
         recipe = hetero_recipe(n_cells)
