@@ -125,13 +125,19 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
-            // Count up the samplers touching _our_ gid
-            std::size_t delta = 0;
-            for (const auto& pid: assoc.probeset_ids) delta += pid.gid == gid;
-            if (delta == 0) continue;
             // Construct sampling times
             const auto& times = util::make_range(assoc.sched.events(t, tfinal));
-            count += delta*times.size();
+            const auto size = times.size();
+            // Count up the samplers touching _our_ gid
+            std::size_t delta = 0;
+            for (const auto& pid: assoc.probeset_ids) {
+                if (pid.gid != gid) continue;
+                arb_assert (0 == sampled[hdl].count(pid));
+                sampled[hdl][pid].reserve(size);
+                delta += size;
+            }
+            if (delta == 0) continue;
+            count += delta;
             // We only ever use exact sampling, so we over-provision for lax and
             // never look at the policy
             for (auto t: times) samples.emplace_back(t, hdl);
@@ -210,13 +216,15 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
             throw arbor_internal_error{"LIF cell group: Must select either sample or spike event; got neither."};
         }
     }
+    arb_assert (sampled_voltages.size() == count);
     // Now we need to call all sampler callbacks with the data we have collected
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (const auto& [k, vs]: sampled) {
             const auto& fun = samplers_[k].sampler;
             for (const auto& [id, us]: vs) {
-                fun(probe_metadata{id, {}, 0, nullptr}, us.size(), us.data());
+                auto meta = get_probe_metadata(id)[0];
+                fun(meta, us.size(), us.data());
             }
         }
     }
