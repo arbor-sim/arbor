@@ -19,10 +19,8 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
         for (const auto lid: util::count_along(probes)) {
             const auto& probe = probes[lid];
             cell_member_type id = {gid, static_cast<cell_lid_type>(lid)};
-            probe_tags_[id] = probe.tag;
-            probe_meta_[id] = {};
             if (probe.address.type() == typeid(lif_probe_voltage)) {
-                probe_kinds_[id] = lif_probe_kind::voltage;
+                probes_[id] = {probe.tag, lif_probe_kind::voltage, {}};
             }
             else {
                 throw bad_cell_probe{cell_kind::lif, gid};
@@ -77,7 +75,7 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
                                  sampling_policy policy) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     std::vector<cell_member_type> probeset =
-        util::assign_from(util::filter(util::keys(probe_tags_), probeset_ids));
+        util::assign_from(util::filter(util::keys(probes_), probeset_ids));
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
                                           std::move(probeset),
@@ -187,7 +185,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
             for (; s_idx < n_samples && samples[s_idx].first <= time; ++s_idx) {
                 const auto& [s_time, hdl] = samples[s_idx];
                 for (const auto& key: samplers_[hdl].probeset_ids) {
-                    const auto& kind = probe_kinds_[key];
+                    const auto& kind = probes_.at(key).kind;
                     // This is the only thing we know how to do: Probing U(t)
                     switch (kind) {
                         case lif_probe_kind::voltage: {
@@ -227,8 +225,8 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
 }
 
 std::vector<probe_metadata> lif_cell_group::get_probe_metadata(cell_member_type key) const {
-    if (probe_meta_.count(key)) {
-        return {probe_metadata{key, {}, 0, {&probe_meta_.at(key)}}};
+    if (probes_.count(key)) {
+        return {probe_metadata{key, {}, 0, {&probes_.at(key).metadata}}};
     } else {
         return {};
     }

@@ -43,6 +43,12 @@ public:
 private:
     enum class lif_probe_kind { voltage };
 
+    struct lif_probe_info {
+        probe_tag tag;
+        lif_probe_kind kind;
+        lif_probe_metadata metadata;
+    };
+
 
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
@@ -64,9 +70,7 @@ private:
 
     std::mutex sampler_mex_;
     sampler_association_map samplers_;
-    std::unordered_map<cell_member_type, probe_tag> probe_tags_;
-    std::unordered_map<cell_member_type, lif_probe_kind> probe_kinds_;
-    std::unordered_map<cell_member_type, lif_probe_metadata> probe_meta_;
+    std::unordered_map<cell_member_type, lif_probe_info> probes_;
 };
 
 } // namespace arb
