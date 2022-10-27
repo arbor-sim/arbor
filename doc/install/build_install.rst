@@ -747,7 +747,7 @@ environment variable to ``dynamic``.
 
 .. note::
 
-    This step is no longer required beginning with the Cray PE 10.06 release, where
+    This step is no longer required beginning with the Cray PE 19.06 release, where
     the default linking mode is dynamic.
 
     On older systems, if ``CRAYPE_LINK_TYPE`` isn't set, there will be warnings like
@@ -772,7 +772,7 @@ Putting it all together, a typical workflow to build Arbor on a Cray system is:
 
 .. code-block:: bash
 
-    export CRAYPE_LINK_TYPE=dynamic    # may no longer be required
+    export CRAYPE_LINK_TYPE=dynamic    # only required if Cray PE version < 19.06
     
     # For GPU setup
     module load daint-gpu/21.09        # system specific
