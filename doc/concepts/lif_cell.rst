@@ -28,6 +28,13 @@ The LIF cell's time dynamics are this:
 
 LIF cells can be probed to obtain their current membrane potential, see :ref:`probesample`.
 
+.. figure:: ../images/lif.svg
+    :width: 400
+    :align: center
+
+    Plot of the potential over time for a LIF cell.
+
+
 API
 ---
 
