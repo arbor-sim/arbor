@@ -665,7 +665,7 @@ LIF cell probing and sampling
 ===============================
 
 Membrane voltage
-^^^^^^^^^^^^^^^^
+----------------
 
 .. code::
 

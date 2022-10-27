@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 
 #include <arbor/export.hpp>
 #include <arbor/common_types.hpp>

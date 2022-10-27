@@ -113,7 +113,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     auto& cell = cells_[lid];
     // integrate until tfinal using the exact solution of membrane voltage differential equation.
     // spikes to process
-    const auto n_events = event_lanes.size() ? event_lanes[lid].size() : 0;
+    const auto n_events = static_cast<int>(event_lanes.size() ? event_lanes[lid].size() : 0);
     int e_idx = 0;
     // collected sampling data
     std::unordered_map<sampler_association_handle,
@@ -138,7 +138,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
         }
     }
     std::sort(samples.begin(), samples.end());
-    const auto n_samples = samples.size();
+    const auto n_samples = static_cast<int>(samples.size());
     int s_idx = 0;
     // Now allocate some scratch space for the probed values, if we don't,
     // re-alloc might move our data
