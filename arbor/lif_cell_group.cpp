@@ -108,9 +108,9 @@ void lif_cell_group::reset() {
 void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lanes) {
     // our gid
     const auto gid = gids_[lid];
+    auto& cell = cells_[lid];
     // time of last update.
     auto t = last_time_updated_[lid];
-    auto& cell = cells_[lid];
     // integrate until tfinal using the exact solution of membrane voltage differential equation.
     // spikes to process
     const auto n_events = static_cast<int>(event_lanes.size() ? event_lanes[lid].size() : 0);
@@ -154,7 +154,6 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
         const auto e_time = e_idx < n_events ? event_lanes[lid][e_idx].time : tfinal;
         const auto s_time = s_idx < n_samples ? samples[s_idx].first : tfinal;
         const auto time = std::min(e_time, s_time);
-        const auto next = next_time_updatable_[lid];
         // bail at end of integration interval
         if (time >= tfinal) break;
         // Check what to do, we put events before samples, if they collide we'll
@@ -163,23 +162,25 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
         if (time == e_time) {
             const auto& event_lane = event_lanes[lid];
             // process all events at time t
-            auto weight = 0;
+            auto weight = 0.0;
             for (; e_idx < n_events && event_lane[e_idx].time <= time; ++e_idx) {
                 weight += event_lane[e_idx].weight;
             }
-            // skip event if a neuron is in refactory period
-            if (time >= next) {
+            // skip event if neuron is in refactory period
+            if (time >= t) {
                 // Let the membrane potential decay.
                 cell.V_m *= exp((t - time) / cell.tau_m);
-                // Add jump due to spike.
+                // Add jump due to spike(s).
                 cell.V_m += weight / cell.C_m;
+                // Update current time
                 t = time;
                 // If crossing threshold occurred
                 if (cell.V_m >= cell.V_th) {
                     // save spike
-                    spikes_.push_back({{gid, 0}, t});
-                    // Advance the last_time_updated to account for the refractory period.
-                    next_time_updatable_[lid] = t + cell.t_ref;
+                    spikes_.push_back({{gid, 0}, time});
+                    // Advance to account for the refractory period.
+                    // This means decay will also start at t + t_ref
+                    t += cell.t_ref;
                     // Reset the voltage to resting potential.
                     cell.V_m = cell.E_L;
                 }
@@ -197,8 +198,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                         case lif_probe_kind::voltage: {
                             // Compute, but do not _set_ V_m
                             auto U = cell.V_m;
-                            // Honour the refractory period
-                            if (time >= next) U *= exp((t - time) / cell.tau_m);
+                            if (time >= t) U *= exp((t - time) / cell.tau_m);
                             // Store U for later use.
                             sampled_voltages.push_back(U);
                             // Set up reference to sampled value
@@ -215,6 +215,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
         if ((time != s_time) && (time != e_time)) {
             throw arbor_internal_error{"LIF cell group: Must select either sample or spike event; got neither."};
         }
+        last_time_updated_[lid] = t;
     }
     arb_assert (sampled_voltages.size() == count);
     // Now we need to call all sampler callbacks with the data we have collected
@@ -228,8 +229,6 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
             }
         }
     }
-    // This is the last time a cell was updated.
-    last_time_updated_[lid] = t;
 }
 
 std::vector<probe_metadata> lif_cell_group::get_probe_metadata(cell_member_type key) const {

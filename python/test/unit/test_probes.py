@@ -192,7 +192,6 @@ class lif_recipe(A.recipe):
         cell = A.lif_cell("src", "tgt")
         cell.E_L = -42
         cell.V_m = -23
-        cell.V_reset = -21
         cell.t_ref = 0.2
         return cell
 
