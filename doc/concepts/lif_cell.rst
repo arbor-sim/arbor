@@ -19,6 +19,8 @@ cell is created. The labels are used to form connections to and from the cell.
 LIF cells do not support adding additional **sources** or **targets** to the description. They do not support
 **gap junctions**. They do not support adding density or point mechanisms.
 
+LIF cells can be probed to obtain their current membrane potential, see :ref:`probesample`.
+
 API
 ---
 

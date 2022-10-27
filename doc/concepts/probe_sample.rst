@@ -1,7 +1,12 @@
 .. _probesample:
 
-Cable cell probing and sampling
-===============================
+Probing and Sampling
+====================
+
+Both cable cells and LIF cells can be probed, see here for more details on cells
+:ref:`modelcells`. The LIF cell, however, has a much smaller set of observable
+quantities and only offers scalar probes. Thus, the following discussion is
+tailored to the cable cell.
 
 Definitions
 ***********
@@ -63,7 +68,6 @@ Spiking
 
 Threshold detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
 between cells. See also :term:`threshold detector` and :ref:`cablecell-threshold-detectors`.
-
 
 API
 ---

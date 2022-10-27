@@ -9,6 +9,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
 
+#include "sampler_map.hpp"
 #include "cell_group.hpp"
 #include "label_resolution.hpp"
 
@@ -37,10 +38,15 @@ public:
     virtual void remove_sampler(sampler_association_handle) override;
     virtual void remove_all_samplers() override;
 
+    virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const override;
+
 private:
+    enum class lif_probe_kind { voltage };
+
+
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, pse_vector& event_lane);
+    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane);
 
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
@@ -53,6 +59,14 @@ private:
 
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;
+    // Time when the cell can _next_ be updated;
+    std::vector<time_type> next_time_updatable_;
+
+    std::mutex sampler_mex_;
+    sampler_association_map samplers_;
+    std::unordered_map<cell_member_type, probe_tag> probe_tags_;
+    std::unordered_map<cell_member_type, lif_probe_kind> probe_kinds_;
+    std::unordered_map<cell_member_type, lif_probe_metadata> probe_meta_;
 };
 
 } // namespace arb

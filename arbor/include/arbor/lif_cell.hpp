@@ -23,4 +23,11 @@ struct ARB_SYMBOL_VISIBLE lif_cell {
     lif_cell(cell_tag_type source, cell_tag_type  target): source(std::move(source)), target(std::move(target)) {}
 };
 
+// LIF probe metadata, to be passed to sampler callbacks. Intentionally left blank.
+struct ARB_SYMBOL_VISIBLE lif_probe_metadata {};
+
+// Voltage estimate [mV].
+// Sample value type: `double`
+struct ARB_SYMBOL_VISIBLE lif_probe_voltage {};
+
 } // namespace arb
