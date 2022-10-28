@@ -36,7 +36,7 @@ T constexpr area_circle(T r) {
 // with length L, end radii r1, r2.
 template <typename T>
 T constexpr area_frustrum(T L, T r1, T r2) {
-    return pi<T> * (r1+r2) * sqrt(square(L) + square(r1-r2));
+    return pi<T> * (r1+r2) * std::sqrt(square(L) + square(r1-r2));
 }
 
 // Volume of conic frustrum of length L, end radii r1, r2.

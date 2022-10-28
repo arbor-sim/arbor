@@ -1,13 +1,10 @@
 Arbor
 =====
 
-|ci| |hpcci| |pythonwheels| |zlatest| |gitter|
+|ci| |pythonwheels| |zlatest| |gitter|
 
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
-
-.. |hpcci| image:: https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg
-    :target: https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master
 
 .. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml

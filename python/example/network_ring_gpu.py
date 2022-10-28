@@ -69,7 +69,7 @@ def make_cable_cell(gid):
     # Attach a detector with threshold of -10 mV.
     decor.place('"root"', arbor.threshold_detector(-10), "detector")
 
-    cell = arbor.cable_cell(tree, labels, decor)
+    cell = arbor.cable_cell(tree, decor, labels)
 
     return cell
 

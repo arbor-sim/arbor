@@ -32,16 +32,19 @@ that you decided to add your own radix sort algorithm, since you expect it to be
 faster for this particular usecase.
 
 Thus, the tests added should be
+
 1. sorting algorithm
 
   - the application of `sort` sorts the given array. This seems trivial, but is
     really the core of what you are doing!
   - corner cases like: empty array, all elements equal, ... are treated greacefully
   - if the sort is intended to be stable, check that equal elements do not switch order
+
 2. local sorting
 
   - spikes are -- after sorting -- ordered by their source id and in case of ties by time
   - corner cases: NaN, negative numbers, ...
+
 3. global sorting
 
   - after MPI exchange, each sub-array is still sorted

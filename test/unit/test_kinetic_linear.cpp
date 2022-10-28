@@ -13,7 +13,7 @@
 #include "mech_private_field_access.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
-#include "simple_recipes.hpp"
+#include "../simple_recipes.hpp"
 #include "unit_test_catalogue.hpp"
 
 using namespace arb;

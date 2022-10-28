@@ -85,4 +85,8 @@ equivalent(const segment_tree& a,
 ARB_ARBOR_API segment_tree
 apply(const segment_tree&, const isometry&);
 
-} // namesapce arb
+// Roots of regions of specific tag in segment tree
+ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& in, int tag);
+
+
+} // namespace arb

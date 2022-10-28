@@ -607,7 +607,7 @@ Editing morphologies
 
 While a reified morphology cannot be edited -- it is immutable by definition --
 the segment tree can be changed. If you need to make such modifications, first
-consider whethnr they should be stored in a file as this is often easier for
+consider whether they should be stored in a file as this is often easier for
 tracking provenance and version history.
 
 For the remaining cases, Arbor offers a limited suite of tools. First, most
@@ -631,6 +631,13 @@ Two common editing operations are provided
   have two root segments).
 
 Note that ``join_at`` and ``split_at`` are inverse to each other.
+
+A particular use-case for these operations is pruning a specific tag-region in the
+segment tree and replacing it with a surrogate model. This is e.g. commonly performed
+for the axon, known as axon-replacement. For this purpose, the function ``tag_roots``
+allows to obtain the IDs of root segments of a a tag region. These IDs can
+then be used with ``split_at`` to split off subtrees and ``join_at`` to attach a
+surrogate subtree (with the same parent as the one split off).
 
 .. _morph-formats:
 

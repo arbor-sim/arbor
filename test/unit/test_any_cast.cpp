@@ -3,7 +3,7 @@
 
 #include <arbor/util/any_cast.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 using namespace arb;
 

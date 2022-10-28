@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import arbor as A
 import subprocess as sp
 import sys
 from tempfile import mkdtemp
@@ -10,32 +11,24 @@ import argparse
 import re
 
 
+config = A.config()
+prefix = Path(config['prefix'])
+if not prefix.exists():
+    try:
+        # Example <>/lib/python3.10/site-packages/arbor
+        altern = Path(A.__path__[0]).parent.parent.parent.parent
+        print(f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.", file=sys.stderr)
+        prefix = altern
+    except:
+        print(f"Error: Neither prefix '{prefix}' nor fallback '{altern}' exist; giving up.", file=sys.stderr)
+        exit(-1)
+
 def parse_arguments():
-    def append_slash(s):
-        return s + "/" if s and not s.endswith("/") else s
-
-    class ConciseHelpFormatter(argparse.HelpFormatter):
-        def __init__(self, **kwargs):
-            super(ConciseHelpFormatter, self).__init__(max_help_position=20, **kwargs)
-
-        def _format_action_invocation(self, action):
-            if not action.option_strings:
-                return super(ConciseHelpFormatter, self)._format_action_invocation(
-                    action
-                )
-            else:
-                optstr = ", ".join(action.option_strings)
-                if action.nargs == 0:
-                    return optstr
-                else:
-                    return optstr + " " + self._format_args(action, action.dest.upper())
-
     parser = argparse.ArgumentParser(
         description="Generate dynamic catalogue and build it into a shared object.",
         usage="%(prog)s catalogue_name mod_source_dir",
         add_help=False,
-        formatter_class=ConciseHelpFormatter,
-    )
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("name", metavar="name", type=str, help="Catalogue name.")
 
@@ -45,10 +38,9 @@ def parse_arguments():
         nargs="+",
         default=[],
         type=str,
-        help="""Advanced: Raw mechanisms as C++ files. Per <name> the
-files <name>.hpp, <name>_cpu.cpp must be present
-in the target directory and with GPU support
-also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
+        help="""Raw C++ mechanisms; per <name> the files <name>.hpp,
+<name>_cpu.cpp (if CPU enabled), <name>_gpu.cpp and <name>_gpu.cu (if GPU
+enabled) must be present in the target directory.""",
     )
 
     parser.add_argument(
@@ -62,26 +54,61 @@ also <name>_gpu.cpp and <name>_gpu.cu (if not given -C).""",
 
     parser.add_argument("-q", "--quiet", action="store_true", help="Less output.")
 
-    parser.add_argument(
-        "-g",
-        "--gpu",
-        metavar="gpu",
-        help="Enable GPU support, valid options: cuda|hip|cuda-clang.",
-    )
+    parser.add_argument("--cpu",
+                        default=True,
+                        help="Enable CPU support.")
 
     parser.add_argument(
-        "-C", "--no-cpu", action="store_true", help="Disable CPU support."
-    )
-
-    parser.add_argument(
-        "-d",
         "--debug",
         nargs="?",
         metavar="path",
         const=True,
-        default=False,
+        default=None,
         help="Don't clean up the generated temp cpp code."
-        + " Can be a target path for the generated code.",
+            +" Can be a target path for the generated code.",
+    )
+
+    parser.add_argument(
+        "--gpu",
+        metavar="gpu",
+        default=config["gpu"] if config["gpu"] else "none",
+        choices=["none", "cuda", "hip", "cuda-clang"],
+        help=f"Enable GPU support",
+    )
+
+    parser.add_argument(
+        "--cxx",
+        metavar="cxx",
+        default=config["CXX"],
+        help='Use this C++ compiler.',
+    )
+
+    parser.add_argument(
+        "--prefix",
+        metavar="prefix",
+        default=prefix,
+        help="Arbor's install prefix.",
+    )
+
+    parser.add_argument(
+        "--bin",
+        metavar="bin",
+        default=config["binary_path"],
+        help="Look here for Arbor utils like modcc; relative to prefix.",
+    )
+
+    parser.add_argument(
+        "--lib",
+        metavar="lib",
+        default=config["lib_path"],
+        help="Look here for Arbor's CMake config; relative to prefix.",
+    )
+
+    parser.add_argument(
+        "--data",
+        metavar="data",
+        default=config["data_path"],
+        help="Look here for Arbor supplementals like generate_catalogue; relative to prefix.",
     )
 
     parser.add_argument(
@@ -102,37 +129,52 @@ verbose = args["verbose"] and not quiet
 debug = args["debug"]
 raw = args["raw"]
 gpu = args["gpu"]
-cpu = not args["no_cpu"]
+cpu = args["cpu"]
 
-if gpu:
-    if gpu == "cuda":
-        gpu_support = """
+if gpu == "cuda":
+    gpu_support = f"""
+include(FindCUDAToolkit)
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
-
+find_package(CUDAToolkit)
 enable_language(CUDA)
-set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CXX_COMPILER@)
-set(CMAKE_CUDA_ARCHITECTURES @CMAKE_CUDA_ARCHITECTURES@)
+set(CMAKE_CUDA_STANDARD 14)
+
+set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
 """
-    else:
-        print(
-            f"Unsupported GPU target: {gpu}. If you need support for HIP or Clang-CUDA, please check here: https://github.com/arbor-sim/arbor/issues/1783"
-        )
-        exit(-1)
-else:
+elif gpu == "cuda-clang":
+    print("CUDA-Clang support is currently considered experimental only.")
+    gpu_support = f"""
+add_compile_definitions(ARB_CUDA)
+add_compile_definitions(ARB_HAVE_GPU)
+find_package(CUDAToolkit)
+enable_language(CUDA)
+set(CMAKE_CUDA_STANDARD 14)
+add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}))
+"""
+elif gpu == "hip":
+    print("HIP support is currently considered experimental only.")
+    gpu_support = f"""
+add_compile_definitions(ARB_HIP)
+add_compile_definitions(ARB_HAVE_GPU)
+add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+"""
+elif gpu == "none":
     gpu_support = """
 # GPU: Disabled
 """
+else:
+    print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
+    exit(-1)
 
-this_path = Path(__file__).parent
-data_path = (this_path / "@ARB_REL_DATADIR@").resolve()
-pack_path = (this_path / "@ARB_REL_PACKAGEDIR@").resolve()
-exec_path = this_path.resolve()
+bindir = Path(args["prefix"]) / args["bin"]
+datdir = Path(args["prefix"]) / args["data"] / "arbor"
+pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
 
 for path in [
-    exec_path / "modcc",
-    data_path / "BuildModules.cmake",
-    pack_path / "arbor-config.cmake",
+    bindir / "modcc",
+    datdir / "BuildModules.cmake",
+    pakdir / "arbor-config.cmake",
 ]:
     if not path.exists():
         print(f"Could not find required tool: {path}. Please check your installation.")
@@ -141,8 +183,11 @@ for path in [
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(arbor_DIR {pack_path})
+set(arbor_DIR {pakdir})
 find_package(arbor REQUIRED)
 {gpu_support}
 set(CMAKE_BUILD_TYPE release)
@@ -152,10 +197,7 @@ set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 include(BuildModules.cmake)
 
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS {exec_path} NO_DEFAULT_PATH)
-if (NOT modcc)
-    find_program(modcc NAMES modcc)
-endif()
+find_program(modcc NAMES modcc PATHS {bindir} NO_DEFAULT_PATH)
 
 make_catalogue_standalone(
   NAME {name}
@@ -213,7 +255,7 @@ with TemporaryDirectory() as tmp:
     os.chdir(tmp / "build")
     with open(tmp / "CMakeLists.txt", "w") as fd:
         fd.write(cmake)
-    shutil.copy2(f"{data_path}/BuildModules.cmake", tmp)
+    shutil.copy2(f"{datdir}/BuildModules.cmake", tmp)
 
     out = tmp / "build" / "generated" / name
     os.makedirs(out, exist_ok=True)

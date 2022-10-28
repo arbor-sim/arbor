@@ -237,6 +237,12 @@ void register_morphology(py::module& m) {
                 },
                 "parent"_a, "x"_a, "y"_a, "z"_a, "radius"_a, "tag"_a,
                 "Append a segment to the tree, using the distal location of the parent segment as the proximal end.")
+        .def("is_fork", &arb::segment_tree::is_fork,
+                "i"_a, "True if segment has more than one child.")
+        .def("is_terminal", &arb::segment_tree::is_terminal,
+                "i"_a, "True if segment has no children.")
+        .def("is_root", &arb::segment_tree::is_root,
+                "i"_a, "True if segment has no parent.")
         // properties
         .def_property_readonly("empty", [](const arb::segment_tree& st){return st.empty();},
                 "Indicates whether the tree is empty (i.e. whether it has size 0)")
@@ -258,6 +264,9 @@ void register_morphology(py::module& m) {
         .def("equivalent",
              [](const arb::segment_tree& t, const arb::segment_tree& o) { return arb::equivalent(t, o); },
              "Two trees are equivalent, but not neccessarily identical, ie they have the same segments and structure.")
+        .def("tag_roots",
+            [](const arb::segment_tree& t, int tag) { return arb::tag_roots(t, tag); },
+            "Get roots of tag region of this segment tree.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
@@ -310,6 +319,7 @@ void register_morphology(py::module& m) {
         "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
         "for a detailed description of the interpretation.");
 
+
     // arb::morphology
 
     py::class_<arb::morphology> morph(m, "morphology");
@@ -336,6 +346,8 @@ void register_morphology(py::module& m) {
                     return m.branch_segments(i);
                 },
                 "i"_a, "A list of the segments in branch i, ordered from proximal to distal ends of the branch.")
+        .def("to_segment_tree", &arb::morphology::to_segment_tree,
+                "Convert this morphology to a segment_tree.")
         .def("__str__",
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);

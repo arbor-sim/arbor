@@ -109,7 +109,7 @@ def make_cable_cell(morphology, clamp_location):
     p = arbor.place_pwlin(morphology)
 
     # create cell and set properties
-    cell = arbor.cable_cell(morphology, labels, decor)
+    cell = arbor.cable_cell(morphology, decor, labels)
 
     return p, cell
 

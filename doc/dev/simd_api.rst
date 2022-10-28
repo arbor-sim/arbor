@@ -1060,7 +1060,7 @@ wrap calls to the Intel scalar vector mathematics library (SVML).
 
 Outside of this case, the functions *exp*, *log*, *expm1* and
 *exprelr* use explicit approximations as detailed below. The
-algortihms follow those used in the
+algorithms follow those used in the
 `Cephes library <http://www.netlib.org/cephes/>`_, with
 some accommodations.
 

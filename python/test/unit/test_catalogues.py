@@ -23,7 +23,7 @@ class recipe(arb.recipe):
         d = arb.decor()
         d.paint("(all)", arb.density("pas"))
         d.set_property(Vm=0.0)
-        self.cell = arb.cable_cell(self.tree, arb.label_dict(), d)
+        self.cell = arb.cable_cell(self.tree, d)
 
     def global_properties(self, _):
         return self.props

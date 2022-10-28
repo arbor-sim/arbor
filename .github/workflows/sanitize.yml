@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: "Sanitize"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -15,27 +15,45 @@ jobs:
         sanitizer: ["address", "undefined", "thread"]
         simd:      ["ON", "OFF"]
     env:
-        CC:           clang-10
-        CXX:          clang++-10
+        CC:           clang-14
+        CXX:          clang++-14
         ASAN_OPTIONS: detect_leaks=1
     steps:
+      - name: Get build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.7
+        uses: jwlawson/actions-setup-cmake@v1.13
         with:
           cmake-version: 3.19.x
       - name: Clone w/ submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Update pip
         run: python -m pip install --upgrade pip
+      # figure out vector extensions for ccache key
+      - name: Check vector extensions
+        run: |
+          HAS_AVX512F=$([[ $(lscpu | grep "avx512f" | wc -l) -eq 1 ]] && echo "_avx512f" || echo "")
+          HAS_AVX2=$([[ $(lscpu | grep "avx2" | wc -l) -eq 1 ]] && echo "_avx2" || echo "")
+          HAS_FMA=$([[ $(lscpu | grep "fma" | wc -l) -eq 1 ]] && echo "_fma" || echo "")
+          HAS_AVX=$([[ $(lscpu | grep "avx" | wc -l) -eq 1 ]] && echo "_avx" || echo "")
+          VECTOR_EXTENSIONS=${HAS_AVX512F}${HAS_AVX2}${HAS_FMA}${HAS_AVX}
+          echo "VECTOR_EXTENSIONS=$VECTOR_EXTENSIONS" >> $GITHUB_ENV
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: sanitize-${{ env.CXX }}-${{ matrix.sanitizer }}-${{ env.VECTOR_EXTENSIONS }}
       - name: Build arbor
         run: |
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
           mkdir build
           cd build
           export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
-          cmake .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
-          make -j4 VERBOSE=1 tests examples pyarb
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
+          ninja -j4 -v tests examples pyarb
           cd -
       - name: Run unit tests
         run: |

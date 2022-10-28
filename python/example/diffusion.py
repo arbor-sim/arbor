@@ -49,7 +49,7 @@ dec.paint("(tag 1)", ion_name="na", int_con=100.0, diff=0.01)
 prb = [
     A.cable_probe_ion_diff_concentration_cell("na"),
 ]
-cel = A.cable_cell(tree, A.label_dict(), dec)
+cel = A.cable_cell(tree, dec)
 rec = recipe(cel, prb)
 sim = A.simulation(rec)
 hdl = (sim.sample((0, 0), A.regular_schedule(0.1)),)

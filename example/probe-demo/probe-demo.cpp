@@ -125,7 +125,7 @@ struct cable_recipe: public arb::recipe {
             .place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp")           // Inject a 1 nA current indefinitely.
             .place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1")   // a synapse
             .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
-        return arb::cable_cell(tree, {}, decor);
+        return arb::cable_cell(tree, decor);
     }
 
     virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {

@@ -39,6 +39,11 @@ set(test_mechanisms
     write_eX
     write_multiple_eX
     write_Xi_Xo
+    mean_reverting_stochastic_process
+    mean_reverting_stochastic_process2
+    mean_reverting_stochastic_density_process
+    mean_reverting_stochastic_density_process2
+    stochastic_volatility
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
@@ -138,6 +143,7 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
+    test_sde.cpp
 
     # unit test driver
     test.cpp
@@ -223,4 +229,4 @@ target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
-target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE ext-gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

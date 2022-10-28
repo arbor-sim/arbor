@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/morph/morphexcept.hpp>
 
@@ -169,12 +169,13 @@ TEST(segment_tree, split) {
         EXPECT_THROW(arb::split_at(t, arb::mnpos), arb::arbor_exception);
         EXPECT_THROW(arb::split_at(t, 1),          arb::arbor_exception);
     }
-    // gnarly tree
-    // (npos) - 0 - 1 - 4
-    //            \
-    //              2 - 3
-    //                \
-    //                  5
+    /* gnarly tree
+    ** (npos) - 0 - 1 - 4
+    **            \
+    **              2 - 3
+    **                \
+    **                  5
+    */
     // NB: Splitting _will_ re-order segments. So we have to be careful when
     //     building values to compare against.
     {
@@ -275,12 +276,13 @@ TEST(segment_tree, join) {
         EXPECT_THROW(arb::split_at(t, arb::mnpos), arb::arbor_exception);
         EXPECT_THROW(arb::split_at(t, 1),          arb::arbor_exception);
     }
-    // gnarly tree
-    // (npos) - 0 - 1 - 4
-    //            \
-    //              2 - 3
-    //                \
-    //                  5
+    /* gnarly tree
+    ** (npos) - 0 - 1 - 4
+    **            \
+    **              2 - 3
+    **                \
+    **                  5
+    */
     // NB: Joining _will_ re-order segments. So we have to be careful when
     //     building values to compare against.
     {
@@ -331,6 +333,46 @@ TEST(segment_tree, join) {
 
             const auto& t = arb::join_at(p, 0, q);
             EXPECT_TRUE(trees_equivalent(tree, t));
+        }
+    }
+}
+
+
+TEST(segment_tree, tag_roots) {
+    // linear chain
+    {
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 1);
+        tree.append(0,          {0, 0, 1}, {0, 0, 2}, 1);
+        tree.append(1,          {0, 0, 2}, {0, 0, 3}, 2);
+        tree.append(2,          {0, 0, 3}, {0, 0, 4}, 3);
+        tree.append(3,          {0, 0, 4}, {0, 0, 5}, 2);
+        {
+            EXPECT_EQ((std::vector<arb::msize_t>{0}), arb::tag_roots(tree, 1));
+            EXPECT_EQ((std::vector<arb::msize_t>{2, 4}), arb::tag_roots(tree, 2));
+            EXPECT_EQ((std::vector<arb::msize_t>{3}), arb::tag_roots(tree, 3));
+        }
+    }
+    // gnarly tree
+    // (npos) - 0 - 1 - 4
+    //            \
+    //              2 - 3
+    //                \
+    //                  5
+    {
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 1); // 0
+        tree.append(0,          {0, 0, 1}, {0, 0, 2}, 3); // 1
+        tree.append(0,          {0, 0, 2}, {0, 0, 3}, 2); // 2
+        tree.append(2,          {0, 0, 3}, {0, 0, 4}, 5); // 3
+        tree.append(1,          {0, 0, 4}, {0, 0, 5}, 4); // 4
+        tree.append(2,          {0, 0, 5}, {0, 0, 6}, 5); // 5
+        {
+            EXPECT_EQ((std::vector<arb::msize_t>{0}), arb::tag_roots(tree, 1));
+            EXPECT_EQ((std::vector<arb::msize_t>{2}), arb::tag_roots(tree, 2));
+            EXPECT_EQ((std::vector<arb::msize_t>{1}), arb::tag_roots(tree, 3));
+            EXPECT_EQ((std::vector<arb::msize_t>{4}), arb::tag_roots(tree, 4));
+            EXPECT_EQ((std::vector<arb::msize_t>{3, 5}), arb::tag_roots(tree, 5));
         }
     }
 }

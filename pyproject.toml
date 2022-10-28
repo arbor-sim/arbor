@@ -20,6 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: C++"
 ]
 dependencies = [
@@ -28,7 +29,7 @@ dependencies = [
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
 include = '\.pyi?$'
 extend-exclude='^/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
 
@@ -50,7 +51,7 @@ requires = [
     "setuptools",
     "wheel",
     "scikit-build",
-    "cmake>=3.18",
+    "cmake>=3.19",
     "ninja",
 ]
 build-backend = "setuptools.build_meta"

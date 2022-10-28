@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <cmath>
 #include <map>
@@ -218,7 +218,7 @@ void run_v_cell_probe_test(context ctx) {
         decor d;
         d.set_default(testcase.second);
 
-        cable_cell cell(m, {}, d);
+        cable_cell cell(m, d);
 
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, 0, cable_probe_membrane_voltage_cell{});
@@ -384,7 +384,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
         }
     }
 
-    std::vector<cable_cell> cells(2, arb::cable_cell(m, {}, d));
+    std::vector<cable_cell> cells(2, arb::cable_cell(m, d));
 
     auto run_test = [&](bool coalesce_synapses) {
         cable1d_recipe rec(cells, coalesce_synapses);
@@ -514,7 +514,7 @@ void run_ion_density_probe_test(context ctx) {
     mlocation loc1{0, 0.5};
     mlocation loc2{0, 0.9};
 
-    cable1d_recipe rec(cable_cell(m, {}, d));
+    cable1d_recipe rec(cable_cell(m, d));
     rec.catalogue() = cat;
 
     // Probe (0, 0): ca internal on CV 0.
@@ -707,8 +707,8 @@ void run_partial_density_probe_test(context ctx) {
     d1.paint(mcable{0, 0.7, 0.8}, mk_mech(10));
     d1.paint(mcable{0, 0.9, 1.0}, mk_mech(11));
 
-    cells[0] = cable_cell(m, {}, d0);
-    cells[1] = cable_cell(m, {}, d1);
+    cells[0] = cable_cell(m, d0);
+    cells[1] = cable_cell(m, d1);
 
     // Place probes in the middle of each 10% interval, i.e. at 0.05, 0.15, etc.
     struct test_probe {
@@ -798,10 +798,10 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     d.set_default(membrane_capacitance{0.01}); // [F/m²]
     const double tau = 0.1; // [ms]
 
-    cable1d_recipe rec(cable_cell(m, {}, d));
+    cable1d_recipe rec(cable_cell(m, d));
     rec.catalogue() = cat;
 
-    cable_cell cell(m, {}, d);
+    cable_cell cell(m, d);
 
     // Place axial current probes at CV boundaries and make cell-wide probes for
     // total ionic membrane current and stimulus currents.
@@ -950,7 +950,7 @@ void run_multi_probe_test(context ctx) {
     d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
     d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
-    auto tracev = run_simple_sampler<double, mlocation>(ctx, 0.1, {cable_cell{m, {}, d}}, 0, cable_probe_density_state{ls::terminal(), "param_as_state", "s"}, {0.});
+    auto tracev = run_simple_sampler<double, mlocation>(ctx, 0.1, {cable_cell{m, d}}, 0, cable_probe_density_state{ls::terminal(), "param_as_state", "s"}, {0.});
 
     // Expect to have received a sample on each of the terminals of branches 1, 2, and 5.
     ASSERT_EQ(3u, tracev.size());
@@ -989,7 +989,7 @@ void run_v_sampled_probe_test(context ctx) {
     d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.), "clamp1");
     mlocation probe_loc{1, 0.2};
 
-    std::vector<cable_cell> cells = {{bs.morph, bs.labels, d0}, {bs.morph, bs.labels, d1}};
+    std::vector<cable_cell> cells = {{bs.morph, d0, bs.labels}, {bs.morph, d1, bs.labels}};
 
     const double t_end = 1.; // [ms]
     std::vector<double> when = {0.3, 0.6}; // Sample at 0.3 and 0.6 ms.
@@ -1060,7 +1060,7 @@ void run_total_current_probe_test(context ctx) {
         cv_policy policy = cv_policy_fixed_per_branch(n_cv_per_branch, flags);
         d0.set_default(policy);
         d1.set_default(policy);
-        std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
+        std::vector<cable_cell> cells = {{m, d0}, {m, d1}};
 
 
         for (unsigned i = 0; i<2; ++i) {
@@ -1166,7 +1166,7 @@ void run_stimulus_probe_test(context ctx) {
     d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.), "clamp1");
     double expected_stim1 = 20;
 
-    std::vector<cable_cell> cells = {{m, {}, d0}, {m, {}, d1}};
+    std::vector<cable_cell> cells = {{m, d0}, {m, d1}};
 
     // Sample the cells during the stimulus, and after.
 
@@ -1357,7 +1357,7 @@ TEST(probe, get_probe_metadata) {
     d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
     d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
-    cable1d_recipe rec(cable_cell{m, {}, d}, false);
+    cable1d_recipe rec(cable_cell{m, d}, false);
     rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());
     rec.add_probe(0, 7, cable_probe_density_state{ls::terminal(), "param_as_state", "s"});
 

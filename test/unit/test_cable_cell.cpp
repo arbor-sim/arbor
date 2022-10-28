@@ -1,5 +1,5 @@
-#include "../gtest.h"
-#include "common_cells.hpp"
+#include <gtest/gtest.h>
+#include "../common_cells.hpp"
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
@@ -39,7 +39,7 @@ TEST(cable_cell, lid_ranges) {
     decorations.place(three_sites, synapse("expsyn"), "t3");
     decorations.place("term"_lab, synapse("exp2syn"), "t3");
 
-    cable_cell cell(morph, dict, decorations);
+    cable_cell cell(morph, decorations, dict);
 
     // Get the assigned lid ranges for each placement
     const auto& src_ranges = cell.detector_ranges();

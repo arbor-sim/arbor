@@ -96,6 +96,7 @@ struct public_variable_ids_t {
     std::vector<Id> state_ids;
     std::vector<Id> global_parameter_ids;
     std::vector<Id> range_parameter_ids;
+    std::vector<std::pair<Id,unsigned int>> white_noise_ids;
 };
 
 // Public module variables by role.

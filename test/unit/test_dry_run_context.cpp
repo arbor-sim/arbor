@@ -1,7 +1,7 @@
 #include <vector>
 #include <cstring>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <distributed_context.hpp>
 #include <arbor/spike.hpp>
