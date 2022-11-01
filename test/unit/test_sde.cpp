@@ -205,25 +205,100 @@ void test_statistics(const std::vector<T>& ordered_samples, double mu, double si
     EXPECT_TRUE(chi_2_test_variance(sigma*sigma, acc.mean(), acc.variance(), acc.n()));
 }
 
-// ===========================
-// Recipe and global variables
-// ===========================
+// =================================
+// Declarations and global variables
+// =================================
 
 using namespace arb;
 using namespace arborio::literals;
 
-// forward declaration
+// forward declarations
+class simple_sde_recipe;
 class sde_recipe;
 
 // global variables used in overriden advance methods
+simple_sde_recipe* simple_rec_ptr = nullptr;
 sde_recipe* rec_ptr = nullptr;
 archive<arb_value_type>* archive_ptr = nullptr;
 
 // declaration of overriding advance methods
+void advance_process(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_density_process(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_density_process2(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_process(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_process2(arb_mechanism_ppack* pp);
+
+// ===============================================
+// Simple recipe with single mechanism replacement
+// ===============================================
+
+// This recipe generates simple 1D cells (consisting of 2 segments) and replaces the
+// mechanism's implementation by dispatching to a user defined advance function.
+class simple_sde_recipe: public simple_recipe_base {
+public:
+    simple_sde_recipe(unsigned ncell, unsigned ncvs, decor dec)
+    : simple_recipe_base()
+    , ncell_(ncell) {
+        // add unit test catalogue
+        cell_gprop_.catalogue.import(make_unit_test_catalogue(), "");
+
+        simple_rec_ptr = this;
+        auto inst = cell_gprop_.catalogue.instance(arb_backend_kind_cpu, "mean_reverting_stochastic_density_process");
+        advance_process = inst.mech->iface_.advance_state;
+        inst.mech->iface_.advance_state = &::advance_process;
+        cell_gprop_.catalogue.register_implementation("mean_reverting_stochastic_density_process", std::move(inst.mech));
+
+        // set cvs explicitly
+        double const cv_size = 1.0;
+        dec.set_default(cv_policy_max_extent(cv_size));
+
+        // generate cells
+        unsigned const n1 = ncvs/2;
+        for (unsigned int i=0; i<ncell_; ++i) {
+            segment_tree tree;
+            tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
+            tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
+            cells_.push_back(cable_cell(morphology(tree), dec));
+        }
+    }
+
+    cell_size_type num_cells() const override { return ncell_; }
+
+    util::unique_any get_cell_description(cell_gid_type gid) const override { return cells_[gid]; }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
+
+    std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
+
+    simple_sde_recipe& add_probe_all_gids(probe_tag tag, std::any address) {
+        for (unsigned i=0; i<cells_.size(); ++i) {
+            simple_recipe_base::add_probe(i, tag, address);
+        }
+        return *this;
+    }
+
+private:
+    unsigned ncell_;
+    std::vector<cable_cell> cells_;
+
+public:
+    // pointers to original advance methods
+    arb_mechanism_method advance_process;
+};
+
+// overriden advance method dispatches to custom implementation and then to original method
+void advance_process(arb_mechanism_ppack* pp) {
+    const auto width = pp->width;
+    arb_value_type* ptr = archive_ptr->claim(width);
+    for (arb_size_type i=0; i<width; ++i) {
+        ptr[i] = pp->random_numbers[0][i];
+    }
+    simple_rec_ptr->advance_process(pp);
+}
+
+// ===========================================
+// Recipe with multiple mechanism replacements
+// ===========================================
 
 // helper macro for replacing a mechanism's advance method
 #define REPLACE_IMPLEMENTATION(MECH)                                                               \
@@ -328,6 +403,56 @@ void advance_mean_reverting_stochastic_process2(arb_mechanism_ppack* pp) {
 // =====
 // Tests
 // =====
+
+// compares generated random numbers against reference
+TEST(sde, reproducibility) {
+    // simulation parameters
+    unsigned ncells = 4;
+    unsigned ncvs = 2;
+    double const dt = 0.5;
+    unsigned nsteps = 5;
+
+    // Decorations with a bunch of stochastic processes
+    // Duplicate mechanisms added on purpose in order test generation of unique random values
+    decor dec;
+    dec.paint("(all)"_reg , density("hh"));
+    dec.paint("(all)"_reg , density("mean_reverting_stochastic_density_process"));
+
+    // instantiate recipe
+    simple_sde_recipe rec(ncells, ncvs, dec);
+
+    // calculate storage needs
+    // - 1 density processes with 1 random variable
+    std::size_t n_rv_densities = ncells*ncvs;
+    std::size_t n_rv_per_dt = n_rv_densities;
+    std::size_t n_rv = n_rv_per_dt*(nsteps+1);
+
+    // setup storage
+    std::vector<arb_value_type> data;
+    archive<arb_value_type> arch(n_rv);
+    archive_ptr = &arch;
+
+    // single-threaded, one cell per thread
+    {
+        auto context = make_context({1, -1});
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(137);
+        sim.run(nsteps*dt, dt);
+
+        std::vector<int> expected = {
+             -6534072,  7261817,  -641850,   4092657,  -1067250,  2352727,  -2680902, -19692138,
+             -8714527, -4122414, -3796966,   1058017, -10698136, -5570209, -14479632,   4171456,
+              6466273,  1740511, -3643118, -12153758,  -7461799, -1951705,   8674744,  15065297,
+            -11844118,  2182788, -8865947,   8012095,  17129332,   143349, -11931417, -23979743,
+              5414307, -9862772, -4009503,  -6752908, -16568842, 15534309,  20943571,   2316269,
+             -2390096, -4104010, -1970710,   2156172,   4260317,  7019241, -10162286,  -7631898 };
+
+        for (std::size_t i=0; i<expected.size(); ++i) {
+            EXPECT_EQ(expected[i], (int)(arch.data_[i]*10000000));
+        }
+    }
+}
 
 // generate a label dictionary with locations for synapses
 label_dict make_label_dict(unsigned nsynapse) {
