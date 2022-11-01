@@ -33,16 +33,16 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        - {
-            name:  "MacOS Min",
-            os:    "macos-11",
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.7",
-            cmake: "3.19.x",
-            mpi:   "ON",
-            simd:  "OFF"
-          }
+        #- {
+        #    name:  "MacOS Min",
+        #    os:    "macos-11",
+        #    cc:    "clang",
+        #    cxx:   "clang++",
+        #    py:    "3.7",
+        #    cmake: "3.19.x",
+        #    mpi:   "ON",
+        #    simd:  "OFF"
+        #  }
         - {
             name:  "Linux Max GCC",
             os:    "ubuntu-22.04",
@@ -73,16 +73,16 @@ jobs:
             mpi:   "ON",
             simd:  "OFF"
           }
-        - {
-            name:  "MacOS Max",
-            os:    "macos-12",
-            cc:    "clang",
-            cxx:   "clang++",
-            py:    "3.10",
-            cmake: "3.22.x",
-            mpi:   "ON",
-            simd:  "OFF"
-          }
+        #- {
+        #    name:  "MacOS Max",
+        #    os:    "macos-12",
+        #    cc:    "clang",
+        #    cxx:   "clang++",
+        #    py:    "3.10",
+        #    cmake: "3.22.x",
+        #    mpi:   "ON",
+        #    simd:  "OFF"
+        #  }
         variant: [static, shared]
     env:
         CC:         ${{ matrix.config.cc }}

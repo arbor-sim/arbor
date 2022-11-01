@@ -5,9 +5,6 @@
 
 #include <type_traits>
 
-#define R123_USE_SSE4_2 0
-#define R123_USE_SSE4_1 0
-#define R123_USE_SSE 0
 #include <Random123/boxmuller.hpp>
 #include <Random123/threefry.h>
 
