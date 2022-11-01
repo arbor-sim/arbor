@@ -2,6 +2,7 @@
 
 import unittest
 import arbor as A
+import numpy as np
 
 """
 tests for cable probe wrappers
@@ -166,3 +167,63 @@ class TestCableProbes(unittest.TestCase):
         m = sim.probe_metadata((0, 16))
         self.assertEqual(1, len(m))
         self.assertEqual(all_cv_cables, m[0])
+
+
+class lif_recipe(A.recipe):
+    def __init__(self):
+        A.recipe.__init__(self)
+
+    def num_cells(self):
+        return 1
+
+    def cell_kind(self, gid):
+        return A.cell_kind.lif
+
+    def global_properties(self, kind):
+        return None
+
+    def probes(self, gid):
+        return [
+            # probe id (0, 0)
+            A.lif_probe_voltage(),
+        ]
+
+    def cell_description(self, gid):
+        cell = A.lif_cell("src", "tgt")
+        cell.E_L = -42
+        cell.V_m = -23
+        cell.t_ref = 0.2
+        return cell
+
+
+class TestLifProbes(unittest.TestCase):
+    def test_probe_addr_metadata(self):
+        rec = lif_recipe()
+        sim = A.simulation(rec)
+
+        m = sim.probe_metadata((0, 0))
+        self.assertEqual(1, len(m))
+        self.assertTrue(all(isinstance(i, A.lif_probe_metadata) for i in m))
+
+    def test_probe_result(self):
+        rec = lif_recipe()
+        sim = A.simulation(rec)
+        hdl = sim.sample((0, 0), A.regular_schedule(0.1))
+        sim.run(1.0, 0.05)
+        smp = sim.samples(hdl)
+        exp = np.array(
+            [
+                [0.0, -23.0],
+                [0.1, -22.77114618],
+                [0.2, -22.54456949],
+                [0.3, -22.32024727],
+                [0.4, -22.0981571],
+                [0.5, -21.87827676],
+                [0.6, -21.66058427],
+                [0.7, -21.44505786],
+                [0.8, -21.23167597],
+                [0.9, -21.02041726],
+            ]
+        )
+        for d, _ in smp:
+            np.testing.assert_allclose(d, exp)

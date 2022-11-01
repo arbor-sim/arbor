@@ -46,7 +46,6 @@ Once constructed, the cable cell can be queried for specific information about t
    labels
    mechanisms
    decor
-   probe_sample
 
 API
 ---

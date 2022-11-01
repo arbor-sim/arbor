@@ -130,8 +130,8 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
 
 std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}, V_reset {}>",
-        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref, c.V_reset);
+        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
+        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref);
 }
 
 
@@ -230,8 +230,6 @@ void register_cells(pybind11::module& m) {
             "Initial value of the Membrane potential [mV].")
         .def_readwrite("t_ref", &arb::lif_cell::t_ref,
             "Refractory period [ms].")
-        .def_readwrite("V_reset", &arb::lif_cell::V_reset,
-            "Reset potential [mV].")
         .def_readwrite("source", &arb::lif_cell::source,
             "Label of the single build-in source on the cell.")
         .def_readwrite("target", &arb::lif_cell::target,
