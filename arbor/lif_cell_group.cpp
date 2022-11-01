@@ -18,8 +18,8 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
         auto probes = rec.get_probes(gid);
         for (const auto lid: util::count_along(probes)) {
             const auto& probe = probes[lid];
-            cell_member_type id = {gid, static_cast<cell_lid_type>(lid)};
             if (probe.address.type() == typeid(lif_probe_voltage)) {
+                cell_member_type id{gid, static_cast<cell_lid_type>(lid)};
                 probes_[id] = {probe.tag, lif_probe_kind::voltage, {}};
             }
             else {
@@ -106,65 +106,68 @@ void lif_cell_group::reset() {
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
 void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lanes) {
-    // our gid
     const auto gid = gids_[lid];
     auto& cell = cells_[lid];
     // time of last update.
     auto t = last_time_updated_[lid];
-    // integrate until tfinal using the exact solution of membrane voltage differential equation.
     // spikes to process
     const auto n_events = static_cast<int>(event_lanes.size() ? event_lanes[lid].size() : 0);
-    int e_idx = 0;
+    int event_idx = 0;
     // collected sampling data
     std::unordered_map<sampler_association_handle,
                        std::unordered_map<cell_member_type,
                                           std::vector<sample_record>>> sampled;
     // samples to process
+    std::size_t n_values = 0;
     std::vector<std::pair<time_type, sampler_association_handle>> samples;
-    std::size_t count = 0;
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
             // Construct sampling times
             const auto& times = util::make_range(assoc.sched.events(t, tfinal));
-            const auto size = times.size();
+            const auto n_times = times.size();
             // Count up the samplers touching _our_ gid
-            std::size_t delta = 0;
+            int delta = 0;
             for (const auto& pid: assoc.probeset_ids) {
                 if (pid.gid != gid) continue;
                 arb_assert (0 == sampled[hdl].count(pid));
-                sampled[hdl][pid].reserve(size);
-                delta += size;
+                sampled[hdl][pid].reserve(n_times);
+                delta += n_times;
             }
             if (delta == 0) continue;
-            count += delta;
-            // We only ever use exact sampling, so we over-provision for lax and
-            // never look at the policy
+            n_values += delta;
+            // only exact sampling: ignore lax and never look at policy
             for (auto t: times) samples.emplace_back(t, hdl);
         }
     }
     std::sort(samples.begin(), samples.end());
-    const auto n_samples = static_cast<int>(samples.size());
-    int s_idx = 0;
+    int n_samples = samples.size();
+    int sample_idx = 0;
     // Now allocate some scratch space for the probed values, if we don't,
     // re-alloc might move our data
     std::vector<value_type> sampled_voltages;
-    sampled_voltages.reserve(count);
+    sampled_voltages.reserve(n_values);
+    // integrate until tfinal using the exact solution of membrane voltage differential equation.
     for (;;) {
-        const auto e_time = e_idx < n_events ? event_lanes[lid][e_idx].time : tfinal;
-        const auto s_time = s_idx < n_samples ? samples[s_idx].first : tfinal;
-        const auto time = std::min(e_time, s_time);
+        const auto event_time = event_idx < n_events ? event_lanes[lid][event_idx].time : tfinal;
+        const auto sample_time = sample_idx < n_samples ? samples[sample_idx].first : tfinal;
+        const auto time = std::min(event_time, sample_time);
         // bail at end of integration interval
         if (time >= tfinal) break;
-        // Check what to do, we put events before samples, if they collide we'll
-        // see the update in sampling.
-        // We need to incorporate an event
-        if (time == e_time) {
+        // Check what to do, we might need to process events **and/or** perform
+        // sampling.
+        // NB. we put events before samples, if they collide we'll see
+        // the update in sampling.
+
+        bool do_event  = time == event_time;
+        bool do_sample = time == sample_time;
+
+        if (do_event) {
             const auto& event_lane = event_lanes[lid];
             // process all events at time t
             auto weight = 0.0;
-            for (; e_idx < n_events && event_lane[e_idx].time <= time; ++e_idx) {
-                weight += event_lane[e_idx].weight;
+            for (; event_idx < n_events && event_lane[event_idx].time <= time; ++event_idx) {
+                weight += event_lane[event_idx].weight;
             }
             // skip event if neuron is in refactory period
             if (time >= t) {
@@ -186,11 +189,11 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                 }
             }
         }
-        // We need to probe, so figure out what to do.
-        if (time == s_time) {
+
+        if (do_sample) {
             // Consume all sample events at this time
-            for (; s_idx < n_samples && samples[s_idx].first <= time; ++s_idx) {
-                const auto& [s_time, hdl] = samples[s_idx];
+            for (; sample_idx < n_samples && samples[sample_idx].first <= time; ++sample_idx) {
+                const auto& [s_time, hdl] = samples[sample_idx];
                 for (const auto& key: samplers_[hdl].probeset_ids) {
                     const auto& kind = probes_.at(key).kind;
                     // This is the only thing we know how to do: Probing U(t)
@@ -202,8 +205,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                             // Store U for later use.
                             sampled_voltages.push_back(U);
                             // Set up reference to sampled value
-                            auto data_ptr = sampled_voltages.data() + sampled_voltages.size() - 1;
-                            sampled[hdl][key].push_back(sample_record{time, {data_ptr}});
+                            sampled[hdl][key].push_back(sample_record{time, {&sampled_voltages.back()}});
                             break;
                         }
                         default:
@@ -212,12 +214,12 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                 }
             }
         }
-        if ((time != s_time) && (time != e_time)) {
+        if (!(do_sample || do_event)) {
             throw arbor_internal_error{"LIF cell group: Must select either sample or spike event; got neither."};
         }
         last_time_updated_[lid] = t;
     }
-    arb_assert (sampled_voltages.size() == count);
+    arb_assert (sampled_voltages.size() == n_values);
     // Now we need to call all sampler callbacks with the data we have collected
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
