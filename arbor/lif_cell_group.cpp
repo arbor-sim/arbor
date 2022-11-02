@@ -11,10 +11,24 @@
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
-lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets):
-    gids_(gids)
-{
+lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
+                               const recipe& rec,
+                               cell_label_range& cg_sources,
+                               cell_label_range& cg_targets):
+    gids_(gids) {
+    lif_cell_group::set_binning_policy(binning_kind::none, 0);
+
     for (auto gid: gids_) {
+        const auto& cell = util::any_cast<lif_cell>(rec.get_cell_description(gid));
+        // set up cell state
+        cells_.push_back(cell);
+        last_time_updated_.push_back(0.0);
+        // tell our caller about this cell's connections
+        cg_sources.add_cell();
+        cg_targets.add_cell();
+        cg_sources.add_label(cell.source, {0, 1});
+        cg_targets.add_label(cell.target, {0, 1});
+        // insert probes where needed
         auto probes = rec.get_probes(gid);
         for (const auto lid: util::count_along(probes)) {
             const auto& probe = probes[lid];
@@ -26,23 +40,6 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const rec
                 throw bad_cell_probe{cell_kind::lif, gid};
             }
         }
-    }
-    // Default to no binning of events
-    lif_cell_group::set_binning_policy(binning_kind::none, 0);
-
-    cells_.reserve(gids_.size());
-    last_time_updated_.resize(gids_.size());
-    next_time_updatable_.resize(gids_.size());
-
-    for (auto lid: util::make_span(gids_.size())) {
-        cells_.push_back(util::any_cast<lif_cell>(rec.get_cell_description(gids_[lid])));
-    }
-
-    for (const auto& c: cells_) {
-        cg_sources.add_cell();
-        cg_targets.add_cell();
-        cg_sources.add_label(c.source, {0, 1});
-        cg_targets.add_label(c.target, {0, 1});
     }
 }
 
@@ -101,6 +98,12 @@ void lif_cell_group::reset() {
     spikes_.clear();
     util::fill(last_time_updated_, 0.);
     util::fill(next_time_updatable_, 0.);
+}
+
+// produce voltage V_m at t1, given cell state at t0 and no spikes in [t0, t1)
+static constexpr double
+lif_decay(const lif_cell& cell, double t0, double t1) {
+    return (cell.V_m - cell.E_L)*exp((t0 - t1)/cell.tau_m) + cell.E_L;
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
@@ -171,10 +174,8 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
             }
             // skip event if neuron is in refactory period
             if (time >= t) {
-                // Let the membrane potential decay.
-                cell.V_m *= exp((t - time) / cell.tau_m);
-                // Add jump due to spike(s).
-                cell.V_m += weight / cell.C_m;
+                // Let the membrane potential decay towards E_L and add spike contribution(s)
+                cell.V_m = lif_decay(cell, t, time) + weight / cell.C_m;
                 // Update current time
                 t = time;
                 // If crossing threshold occurred
@@ -184,8 +185,8 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                     // Advance to account for the refractory period.
                     // This means decay will also start at t + t_ref
                     t += cell.t_ref;
-                    // Reset the voltage to resting potential.
-                    cell.V_m = cell.E_L;
+                    // Reset the voltage.
+                    cell.V_m = cell.E_R;
                 }
             }
         }
@@ -200,8 +201,13 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                     switch (kind) {
                         case lif_probe_kind::voltage: {
                             // Compute, but do not _set_ V_m
+                            // default value, if _in_ refractory period, this
+                            // will be E_R, so no further action needed.
                             auto U = cell.V_m;
-                            if (time >= t) U *= exp((t - time) / cell.tau_m);
+                            if (time >= t) {
+                                // we are not in the refractory period, apply decay
+                                U = lif_decay(cell, t, time);
+                            }
                             // Store U for later use.
                             sampled_voltages.push_back(U);
                             // Set up reference to sampled value
