@@ -111,31 +111,30 @@ into the test function. Fixtures, and helpers to write them, are available
 in ``python/test/fixtures.py``. The following example shows you how to create
 a fixture that returns the arbor version, and optionally the path to it:
 
-```python
-import arbor
+.. code-block:: python
 
-# This decorator converts your function into a fixture decorator.
-@_fixture
-def arbor_info(return_path=False):
-  if return_path:
-    return (arbor.__version__, arbor.__path__)
-  else:
-    return (arbor.__version__,)
+  import arbor
 
-```
+  # This decorator converts your function into a fixture decorator.
+  @_fixture
+  def arbor_info(return_path=False):
+    if return_path:
+      return (arbor.__version__, arbor.__path__)
+    else:
+      return (arbor.__version__,)
 
 Whenever you are writing a test you can now apply your fixture by calling it
 with the required parameters, and adding a parameter to your function with the
 same name as the fixture:
 
-```python
-# Import fixtures.py
-from .. import fixtures
+.. code-block:: python
 
-@fixtures.arbor_info(return_path=True)
-def test_up_to_date(arbor_info):
-  ...
-```
+  # Import fixtures.py
+  from .. import fixtures
+
+  @fixtures.arbor_info(return_path=True)
+  def test_up_to_date(arbor_info):
+    ...
 
 
 Feature dependent tests
