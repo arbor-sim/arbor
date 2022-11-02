@@ -106,10 +106,11 @@ Fixtures
 
 Multiple tests may require the same reusable piece of test setup to run. You
 can speed up the test writing process for everyone by writing these reusable
-pieces as a fixture. A fixture is a decorator that injects the reusable piece
-into the test function. Fixtures, and helpers to write them, are available
-in ``python/test/fixtures.py``. The following example shows you how to create
-a fixture that returns the Arbor version, and optionally the path to it:
+pieces as a `fixture <https://en.wikipedia.org/wiki/Test_fixture#Software>`_.
+A fixture is a decorator that injects the reusable piece into the test
+function. Fixtures, and helpers to write them, are available in
+``python/test/fixtures.py``. The following example shows you how to create
+a fixture that returns the arbor version, and optionally the path to it:
 
 .. code-block:: python
 
