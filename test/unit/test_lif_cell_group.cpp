@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "common.hpp"
+
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/domain_decomposition.hpp>
@@ -114,7 +116,7 @@ public:
     probe_recipe() {}
 
     cell_size_type num_cells() const override {
-        return 1;
+        return 2;
     }
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         return cell_kind::lif;
@@ -123,17 +125,29 @@ public:
         return {};
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell("src", "tgt");
+        auto cell = lif_cell("src", "tgt");
+        if (gid == 0) {
+            cell.E_L = -42;
+            cell.V_m = -23;
+            cell.t_ref = 0.2;
+        }
+        return cell;
     }
-    std::vector<probe_info> get_probes(cell_gid_type gid) const override{
-        return {arb::cable_probe_membrane_voltage{mlocation{0, 0}}};
+    std::vector<probe_info> get_probes(cell_gid_type gid) const override {
+        if (gid == 0) {
+            return {arb::lif_probe_voltage{}, arb::lif_probe_voltage{}};
+        } else {
+            return {arb::lif_probe_voltage{}};
+        }
     }
+    std::vector<event_generator> event_generators(cell_gid_type) const override { return {regular_generator({"tgt"}, 100.0, 0.25, 0.05)}; }
 };
+
 TEST(lif_cell_group, throw) {
     probe_recipe rec;
     auto context = make_context();
     auto decomp = partition_load_balance(rec, context);
-    EXPECT_THROW(simulation(rec, context, decomp), bad_cell_probe);
+    EXPECT_NO_THROW(simulation(rec, context, decomp));
 }
 
 TEST(lif_cell_group, recipe)
@@ -188,12 +202,9 @@ TEST(lif_cell_group, ring)
     // Total simulation time.
     time_type simulation_time = 100;
 
-    auto context = make_context();
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
-    auto decomp = partition_load_balance(recipe, context);
-
     // Creates a simulation with a ring recipe of lif neurons
-    simulation sim(recipe, context, decomp);
+    simulation sim(recipe);
 
     std::vector<spike> spike_buffer;
 
@@ -221,3 +232,115 @@ TEST(lif_cell_group, ring)
     }
 }
 
+struct Um_type {
+    constexpr static double delta = 1e-6;
+
+    double t;
+    double u;
+
+    friend std::ostream& operator<<(std::ostream& os, const Um_type& um) {
+        os << "{ " << um.t << ", " << um.u << " }";
+        return os;
+    }
+
+    friend bool operator==(const Um_type& lhs, const Um_type& rhs) {
+        return (std::abs(lhs.t - rhs.t) <= delta)
+            && (std::abs(lhs.u - rhs.u) <= delta);
+    }
+};
+
+TEST(lif_cell_group, probe) {
+    auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
+    auto fun = [&ums](probe_metadata pm,
+                  std::size_t n,
+                  const sample_record* samples) {
+        for (int ix = 0; ix < n; ++ix) {
+            const auto& [t, v] = samples[ix];
+            double u = *util::any_cast<double*>(v);
+            ums[pm.id].push_back({t, u});
+        }
+    };
+    auto rec = probe_recipe{};
+    auto sim = simulation(rec);
+
+    sim.add_sampler(all_probes, regular_schedule(0.025), fun);
+
+    std::vector<double> spikes;
+
+    sim.set_global_spike_callback(
+        [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
+    );
+
+    sim.run(1.5, 0.005);
+    std::vector<Um_type> exp = {{0, -23},
+                                {0.025, -22.9425718},
+                                {0.05, -22.885287},
+                                {0.075, -22.8281453},
+                                {0.1, -22.7711462},
+                                {0.125, -22.7142894},
+                                {0.15, -22.6575746},
+                                {0.175, -22.6010014},
+                                {0.2, -22.5445695},
+                                {0.225, -22.4882785},
+                                {0.25, -17.432128},
+                                {0.275, -17.3886021},
+                                {0.3, -12.3451849},
+                                {0.325, -12.3143605},
+                                {0.35, -7.28361301},
+                                {0.375, -7.26542672},
+                                {0.4, -2.24728584},
+                                {0.425, -2.24167464},
+                                {0.45, 2.76392255},
+                                {0.475, 2.75702137},
+                                {0.5, 7.75013743},
+                                {0.525, 7.73078628},
+                                {0.55, -42},
+                                {0.575, -42},
+                                {0.6, -42},
+                                {0.625, -42},
+                                {0.65, -42},
+                                {0.675, -42},
+                                {0.7, -42},
+                                {0.725, -42},
+                                {0.75, -37},
+                                {0.775, -36.9076155},
+                                {0.8, -31.8154617},
+                                {0.825, -31.7360224},
+                                {0.85, -26.6567815},
+                                {0.875, -26.5902227},
+                                {0.9, -21.5238302},
+                                {0.925, -21.4700878},
+                                {0.95, -16.4164796},
+                                {0.975, -16.3754897},
+                                {1, -11.3346021},
+                                {1.025, -11.306301},
+                                {1.05, -6.27807055},
+                                {1.075, -6.26239498},
+                                {1.1, -1.24675854},
+                                {1.125, -1.24364554},
+                                {1.15, 3.75945969},
+                                {1.175, 3.75007278},
+                                {1.2, 8.74070931},
+                                {1.225, 8.71888483},
+                                {1.25, -42},
+                                {1.275, -42},
+                                {1.3, -42},
+                                {1.325, -42},
+                                {1.35, -42},
+                                {1.375, -42},
+                                {1.4, -42},
+                                {1.425, -42},
+                                {1.45, -37},
+                                {1.475, -36.9076155},};
+
+    ASSERT_TRUE(testing::seq_eq(ums[{0, 0}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, 1}], exp));
+    // gid == 1 is different, but of same size
+    EXPECT_EQ((ums[{1, 0}].size()), exp.size());
+    ASSERT_FALSE(testing::seq_eq(ums[{1, 0}], exp));
+    // now check the spikes
+    std::sort(spikes.begin(), spikes.end());
+    EXPECT_EQ(spikes.size(), 3);
+    std::vector<double> sexp{0.35, 0.55, 1.25};
+    ASSERT_TRUE(testing::seq_almost_eq<double>(spikes, sexp));
+}

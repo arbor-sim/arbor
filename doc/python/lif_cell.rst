@@ -48,7 +48,3 @@ LIF cells
     .. attribute:: t_ref
 
         Refractory period [ms].
-
-    .. attribute:: V_reset
-
-        Reset potential [mV].

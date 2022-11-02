@@ -298,3 +298,12 @@ Ionic external concentration
 
    Kind: :term:`vector probe`.
 
+LIF Cell probing
+================
+
+Membrane voltage
+   .. py:function:: lif_probe_voltage()
+
+   Current cell membrane potential (mV).
+
+   Metadata: none
