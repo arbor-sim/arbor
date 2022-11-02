@@ -101,7 +101,7 @@ void lif_cell_group::reset() {
 }
 
 // produce voltage V_m at t1, given cell state at t0 and no spikes in [t0, t1)
-static constexpr double
+static double
 lif_decay(const lif_cell& cell, double t0, double t1) {
     return (cell.V_m - cell.E_L)*exp((t0 - t1)/cell.tau_m) + cell.E_L;
 }
