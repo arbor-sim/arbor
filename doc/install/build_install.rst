@@ -761,7 +761,7 @@ environment variable to ``dynamic``.
     Often the library or executable will work, however if a different glibc is loaded,
     Arbor will crash at runtime with obscure errors that are very difficult to debug.
 
-For building Arbor's python interface, it may be necessary to load a more recent
+For building Arbor's Python interface, it may be necessary to load a Python that knows about the target system; in the case of the CSCS Cray system:
 python version, which knows about the Cray system:
 
 .. code-block:: bash
