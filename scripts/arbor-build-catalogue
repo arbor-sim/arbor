@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 import shutil
 import argparse
+import textwrap
 import re
-
 
 config = A.config()
 prefix = Path(config['prefix'])
@@ -117,196 +117,206 @@ enabled) must be present in the target directory.""",
 
     return vars(parser.parse_args())
 
+def print_config(args):
+    print('Arbor build catalgoue config:', file=sys.stderr)
+    for k, v in args.items():
+        print(f'    --{k:10s} {v}', file=sys.stderr)
+    print(file=sys.stderr)
 
-args = parse_arguments()
-pwd = Path.cwd()
-name = re.sub(r"_+", r"_", re.sub(r"[^a-zA-Z0-9_]", r"_", args["name"]))
+def main():
+    args = parse_arguments()
+    print_config(args)
+    pwd = Path.cwd()
+    name = re.sub(r"_+", r"_", re.sub(r"[^a-zA-Z0-9_]", r"_", args["name"]))
 
-mod_dir = pwd / Path(args["modpfx"])
-mods = [f[:-4] for f in os.listdir(mod_dir) if f.endswith(".mod")]
-quiet = args["quiet"]
-verbose = args["verbose"] and not quiet
-debug = args["debug"]
-raw = args["raw"]
-gpu = args["gpu"]
-cpu = args["cpu"]
+    mod_dir = pwd / Path(args["modpfx"])
+    mods = [f[:-4] for f in os.listdir(mod_dir) if f.endswith(".mod")]
+    quiet = args["quiet"]
+    verbose = args["verbose"] and not quiet
+    debug = args["debug"]
+    raw = args["raw"]
+    gpu = args["gpu"]
+    cpu = args["cpu"]
 
-if gpu == "cuda":
-    gpu_support = f"""
-include(FindCUDAToolkit)
-add_compile_definitions(ARB_CUDA)
-add_compile_definitions(ARB_HAVE_GPU)
-find_package(CUDAToolkit)
-enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 14)
+    if gpu == "cuda":
+        gpu_support = textwrap.dedent(f"""
+        include(FindCUDAToolkit)
+        add_compile_definitions(ARB_CUDA)
+        add_compile_definitions(ARB_HAVE_GPU)
+        find_package(CUDAToolkit)
+        enable_language(CUDA)
+        set(CMAKE_CUDA_STANDARD 14)
 
-set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
-"""
-elif gpu == "cuda-clang":
-    print("CUDA-Clang support is currently considered experimental only.")
-    gpu_support = f"""
-add_compile_definitions(ARB_CUDA)
-add_compile_definitions(ARB_HAVE_GPU)
-find_package(CUDAToolkit)
-enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 14)
-add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}))
-"""
-elif gpu == "hip":
-    print("HIP support is currently considered experimental only.")
-    gpu_support = f"""
-add_compile_definitions(ARB_HIP)
-add_compile_definitions(ARB_HAVE_GPU)
-add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
-"""
-elif gpu == "none":
-    gpu_support = """
-# GPU: Disabled
-"""
-else:
-    print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
-    exit(-1)
-
-bindir = Path(args["prefix"]) / args["bin"]
-datdir = Path(args["prefix"]) / args["data"] / "arbor"
-pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
-
-for path in [
-    bindir / "modcc",
-    datdir / "BuildModules.cmake",
-    pakdir / "arbor-config.cmake",
-]:
-    if not path.exists():
-        print(f"Could not find required tool: {path}. Please check your installation.")
+        set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
+        """)
+    elif gpu == "cuda-clang":
+        print("CUDA-Clang support is currently considered experimental only.")
+        gpu_support = textwrap.dedent(f"""
+        add_compile_definitions(ARB_CUDA)
+        add_compile_definitions(ARB_HAVE_GPU)
+        find_package(CUDAToolkit)
+        enable_language(CUDA)
+        set(CMAKE_CUDA_STANDARD 14)
+        add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}))
+        """)
+    elif gpu == "hip":
+        print("HIP support is currently considered experimental only.")
+        gpu_support = textwrap.dedent(f"""
+        add_compile_definitions(ARB_HIP)
+        add_compile_definitions(ARB_HAVE_GPU)
+        add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+        """)
+    elif gpu == "none":
+        gpu_support = textwrap.dedent("""
+        # GPU: Disabled
+        """)
+    else:
+        print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
         exit(-1)
 
-cmake = f"""
-cmake_minimum_required(VERSION 3.9)
-project({name}-cat LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+    bindir = Path(args["prefix"]) / args["bin"]
+    datdir = Path(args["prefix"]) / args["data"] / "arbor"
+    pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
 
-set(arbor_DIR {pakdir})
-find_package(arbor REQUIRED)
-{gpu_support}
-set(CMAKE_BUILD_TYPE release)
-set(CMAKE_CXX_COMPILER  ${{ARB_CXX}})
-set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
+    for path in [
+        bindir / "modcc",
+        datdir / "BuildModules.cmake",
+        pakdir / "arbor-config.cmake",
+    ]:
+        if not path.exists():
+            print(f"Could not find required tool: {path}. Please check your installation.")
+            exit(-1)
 
-include(BuildModules.cmake)
+    cmake = textwrap.dedent(f"""
+    cmake_minimum_required(VERSION 3.9)
+    project({name}-cat LANGUAGES CXX)
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS {bindir} NO_DEFAULT_PATH)
+    set(arbor_DIR {pakdir})
+    find_package(arbor REQUIRED)
+    {gpu_support}
+    set(CMAKE_BUILD_TYPE release)
+    set(CMAKE_CXX_COMPILER  ${{ARB_CXX}})
+    set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 
-make_catalogue_standalone(
-  NAME {name}
-  SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
-  MOD {' '.join(mods)}
-  CXX {' '.join(raw)}
-  CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
-  VERBOSE {"ON" if verbose else "OFF"})
-"""
+    include(BuildModules.cmake)
 
-if not quiet:
-    print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
-    if debug:
-        print("Debug mode enabled.")
-    if mods:
-        print(" * NMODL")
-        for m in mods:
-            print("   *", m)
-    if raw:
-        print(" * Raw")
-        for m in raw:
-            print("   *", m)
+    set(ARB_WITH_EXTERNAL_MODCC true)
+    find_program(modcc NAMES modcc PATHS {bindir} NO_DEFAULT_PATH)
 
-if debug:
-    # Overwrite the local reference to `TemporaryDirectory` with a context
-    # manager that doesn't clean up the build folder so that the generated cpp
-    # code can be debugged
-    class TemporaryDirectory:
-        def __enter__(*args, **kwargs):
-            if isinstance(debug, str):
-                path = os.path.abspath(debug)
-                try:
-                    os.makedirs(path, exist_ok=False)
-                except FileExistsError:
-                    sys.stderr.write(
-                        f"Error: Debug destination '{path}' already exists.\n"
-                    )
-                    sys.stderr.flush()
-                    exit(1)
-            else:
-                path = mkdtemp()
-            print(f"Building debug code in '{path}'.")
-            return path
-
-        def __exit__(*args, **kwargs):
-            pass
-
-else:
-    from tempfile import TemporaryDirectory
-
-with TemporaryDirectory() as tmp:
-    tmp = Path(tmp)
-    shutil.copytree(mod_dir, tmp / "mod")
-    os.mkdir(tmp / "build")
-    os.chdir(tmp / "build")
-    with open(tmp / "CMakeLists.txt", "w") as fd:
-        fd.write(cmake)
-    shutil.copy2(f"{datdir}/BuildModules.cmake", tmp)
-
-    out = tmp / "build" / "generated" / name
-    os.makedirs(out, exist_ok=True)
-    sfx = [".hpp"]
-    if cpu:
-        sfx += ["_cpu.cpp"]
-    if gpu:
-        sfx += ["_gpu.cpp", "_gpu.cu"]
-    for e in raw:
-        for s in sfx:
-            fn = mod_dir / (e + s)
-            if not fn.exists():
-                print(
-                    f"Could not find required file: {fn}. Please check your C++ mechanisms."
-                )
-                exit(-1)
-            else:
-                shutil.copy2(fn, out / (e + s))
-
-    cmake_cmd = "cmake .."
-    make_cmd = "make"
-    if verbose:
-        out, err = (None, None)
-        make_cmd += " VERBOSE=1"
-    else:
-        out, err = (sp.PIPE, sp.PIPE)
-    try:
-        sp.run(cmake_cmd, shell=True, check=True, stdout=out, stderr=err)
-        sp.run(make_cmd, shell=True, check=True, stdout=out, stderr=err)
-        shutil.copy2(f"{name}-catalogue.so", pwd)
-    except sp.CalledProcessError as e:
-        import traceback as tb
-
-        if not verbose:
-            # Not in verbose mode, so we have captured the
-            # `stdout` and `stderr` and can print it to the user.
-            sys.stdout.write("Build log:\n")
-            sys.stdout.write(e.stdout.decode())
-            sys.stderr.write(tb.format_exc() + " Error:\n\n")
-            sys.stderr.write(e.stderr.decode())
-        else:
-            # In verbose mode the outputs weren't captured and
-            # have been streamed to `stdout` and `stderr` already.
-            sys.stderr.write(
-                "Catalogue building error occurred."
-                + " Check stdout log for underlying error,"
-                + " or omit verbose flag to capture it."
-            )
-        sys.stdout.flush()
-        sys.stderr.flush()
-        exit(e.returncode)
+    make_catalogue_standalone(
+      NAME {name}
+      SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
+      MOD {' '.join(mods)}
+      CXX {' '.join(raw)}
+      CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
+      VERBOSE {"ON" if verbose else "OFF"})
+    """)
 
     if not quiet:
-        print(f"Catalogue has been built and copied to {pwd}/{name}-catalogue.so")
+        print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
+        if debug:
+            print("Debug mode enabled.")
+        if mods:
+            print(" * NMODL")
+            for m in mods:
+                print("   *", m)
+        if raw:
+            print(" * Raw")
+            for m in raw:
+                print("   *", m)
+
+    if debug:
+        # Overwrite the local reference to `TemporaryDirectory` with a context
+        # manager that doesn't clean up the build folder so that the generated cpp
+        # code can be debugged
+        class TemporaryDirectory:
+            def __enter__(*args, **kwargs):
+                if isinstance(debug, str):
+                    path = os.path.abspath(debug)
+                    try:
+                        os.makedirs(path, exist_ok=False)
+                    except FileExistsError:
+                        sys.stderr.write(
+                            f"Error: Debug destination '{path}' already exists.\n"
+                        )
+                        sys.stderr.flush()
+                        exit(1)
+                else:
+                    path = mkdtemp()
+                print(f"Building debug code in '{path}'.")
+                return path
+
+            def __exit__(*args, **kwargs):
+                pass
+
+    else:
+        from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        shutil.copytree(mod_dir, tmp / "mod")
+        os.mkdir(tmp / "build")
+        os.chdir(tmp / "build")
+        with open(tmp / "CMakeLists.txt", "w") as fd:
+            fd.write(cmake)
+        shutil.copy2(f"{datdir}/BuildModules.cmake", tmp)
+
+        out = tmp / "build" / "generated" / name
+        os.makedirs(out, exist_ok=True)
+        sfx = [".hpp"]
+        if cpu:
+            sfx += ["_cpu.cpp"]
+        if gpu:
+            sfx += ["_gpu.cpp", "_gpu.cu"]
+        for e in raw:
+            for s in sfx:
+                fn = mod_dir / (e + s)
+                if not fn.exists():
+                    print(
+                        f"Could not find required file: {fn}. Please check your C++ mechanisms."
+                    )
+                    exit(-1)
+                else:
+                    shutil.copy2(fn, out / (e + s))
+
+        cmake_cmd = "cmake .."
+        make_cmd = "make"
+        if verbose:
+            out, err = (None, None)
+            make_cmd += " VERBOSE=1"
+        else:
+            out, err = (sp.PIPE, sp.PIPE)
+        try:
+            sp.run(cmake_cmd, shell=True, check=True, stdout=out, stderr=err)
+            sp.run(make_cmd, shell=True, check=True, stdout=out, stderr=err)
+            shutil.copy2(f"{name}-catalogue.so", pwd)
+        except sp.CalledProcessError as e:
+            import traceback as tb
+
+            if not verbose:
+                # Not in verbose mode, so we have captured the
+                # `stdout` and `stderr` and can print it to the user.
+                sys.stdout.write("Build log:\n")
+                sys.stdout.write(e.stdout.decode())
+                sys.stderr.write(tb.format_exc() + " Error:\n\n")
+                sys.stderr.write(e.stderr.decode())
+            else:
+                # In verbose mode the outputs weren't captured and
+                # have been streamed to `stdout` and `stderr` already.
+                sys.stderr.write(
+                    "Catalogue building error occurred."
+                    + " Check stdout log for underlying error,"
+                    + " or omit verbose flag to capture it."
+                )
+            sys.stdout.flush()
+            sys.stderr.flush()
+            exit(e.returncode)
+
+        if not quiet:
+            print(f"Catalogue has been built and copied to {pwd}/{name}-catalogue.so")
+
+if __name__ == '__main__':
+    main()
