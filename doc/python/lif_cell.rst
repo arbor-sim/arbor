@@ -41,6 +41,10 @@ LIF cells
 
         Resting potential [mV].
 
+    .. attribute:: E_R
+
+        Reset potential [mV].
+
     .. attribute:: V_m
 
         Initial value of the Membrane potential [mV].
@@ -48,7 +52,3 @@ LIF cells
     .. attribute:: t_ref
 
         Refractory period [ms].
-
-    .. attribute:: V_reset
-
-        Reset potential [mV].

@@ -268,3 +268,43 @@ public:
         SolverVisitorBase::reset();
     }
 };
+
+class ARB_LIBMODCC_API EulerMaruyamaSolverVisitor : public SolverVisitorBase {
+protected:
+    // list of white noise names appearing in derivatives on lhs
+    std::vector<std::string> wvars_;
+    std::vector<std::string> wvars_id_;
+
+    // dx = f(x,t) dt + Σ_k l_k dW_k
+    std::vector<expression_ptr> f_;
+    std::vector<std::vector<expression_ptr>> L_;
+    
+    std::string wscale_;
+
+    // Expanded local assignments that need to be substituted in for derivative
+    // calculations.
+    substitute_map local_expr_;
+public:
+    using SolverVisitorBase::visit;
+
+    EulerMaruyamaSolverVisitor() {}
+    EulerMaruyamaSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
+    EulerMaruyamaSolverVisitor(std::vector<std::string> white_noise_vars)
+    :   wvars_{white_noise_vars},
+        L_{wvars_.size()}
+        //wvar_temp_{wvars_.size()}
+    {}
+
+    virtual void visit(BlockExpression* e) override;
+    virtual void visit(AssignmentExpression *e) override;
+    virtual void reset() override {
+        dvars_.clear();
+        f_.clear();
+        L_.clear();
+        local_expr_.clear();
+        BlockRewriterBase::reset();
+    }
+protected:
+    // Finalise statements list at end of top block visit.
+    virtual void finalize() override;
+};

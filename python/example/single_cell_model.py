@@ -13,14 +13,17 @@ tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), ta
 labels = arbor.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 # (3) Create and set up a decor object
-decor = arbor.decor()
-decor.set_property(Vm=-40)
-decor.paint('"soma"', arbor.density("hh"))
-decor.place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
-decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+
+decor = (
+    arbor.decor()
+    .set_property(Vm=-40)
+    .paint('"soma"', arbor.density("hh"))
+    .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
+    .place('"midpoint"', arbor.threshold_detector(-10), "detector")
+)
 
 # (4) Create cell and the single cell model based on it
-cell = arbor.cable_cell(tree, labels, decor)
+cell = arbor.cable_cell(tree, decor, labels)
 
 # (5) Make single cell model.
 m = arbor.single_cell_model(cell)

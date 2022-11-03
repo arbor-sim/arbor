@@ -20,6 +20,16 @@ To build a simulation the following is needed:
   not given, the default context will be used, which allocates one thread, one
   process (MPI task), and no GPU.
 
+Configuring data extraction
+---------------------------
+
+Two kinds of data extraction can be set up:
+
+# certain state variables can be :ref:`sampled <probesample>` by attaching a
+  sampler to a probe.
+# spikes can be recorded by either a callback (C++) or a preset recording model
+  (Python), see the API docs linked below.
+
 Simulation execution and interaction
 ------------------------------------
 

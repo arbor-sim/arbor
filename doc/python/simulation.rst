@@ -53,6 +53,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
     * an :py:class:`arbor.recipe` that describes the model;
     * an :py:class:`arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
     * an :py:class:`arbor.context` which is used to execute the simulation.
+    * a non-negative :py:class:`int` in order to seed the pseudo pandom number generator (optional)
 
     Simulations provide an interface for executing and interacting with the model:
 
@@ -63,11 +64,21 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     **Constructor:**
 
-    .. function:: simulation(recipe, domain_decomposition, context)
+    .. function:: simulation(recipe, domain_decomposition, context, seed)
 
-        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network distributed according to :py:class:`arbor.domain_decomposition`, and computational resources described by :py:class:`arbor.context`.
+        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network
+        distributed according to :py:class:`arbor.domain_decomposition`, computational resources
+        described by :py:class:`arbor.context` and with a seed value for generating reproducible
+        random numbers (optional, default value: `0`).
 
     **Updating Model State:**
+
+    .. function:: update_connections(recipe)
+
+        Rebuild the connection table as described by
+        :py:class:`arbor.recipe::connections_on` The recipe must differ **only**
+        in the return value of its :py:func:`connections_on` when compared to
+        the original recipe used to construct the simulation object.
 
     .. function:: reset()
 
@@ -114,25 +125,25 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     **Sampling probes:**
 
-    .. function:: sample(probe_id, schedule, policy)
+    .. function:: sample(probeset_id, schedule, policy)
 
-        Set up a sampling schedule for the probes associated with the supplied probe_id of type :py:class:`cell_member`.
+        Set up a sampling schedule for the probes associated with the supplied probeset_id of type :py:class:`cell_member`.
         The schedule is any schedule object, as might be used with an event generator — see :ref:`pyrecipe` for details.
         The policy is of type :py:class:`sampling_policy`. It can be omitted, in which case the sampling will accord with the
         ``sampling_policy.lax`` policy.
 
-        The method returns a handle which can be used in turn to retrieve the sampled data from the simulator or to
+        The method returns a :term:`handle` which can be used in turn to retrieve the sampled data from the simulator or to
         remove the corresponding sampling process.
 
-    .. function:: probe_metadata(probe_id)
+    .. function:: probe_metadata(probeset_id)
 
-        Retrieve probe metadata for the probes associated with the given probe_id of type :py:class:`cell_member`.
+        Retrieve probe metadata for the probes associated with the given probeset_id of type :py:class:`cell_member`.
         The result will be a list, with one entry per probe; the specifics of each metadata entry will depend upon
         the kind of probe in question.
 
     .. function:: remove_sampler(handle)
 
-        Disable the sampling process referenced by the argument ``handle`` and remove any associated recorded data.
+        Disable the sampling process referenced by the argument :term:`handle` and remove any associated recorded data.
 
     .. function:: remove_all_samplers()
 
@@ -140,25 +151,28 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: samples(handle)
 
-        Retrieve a list of sample data associated with the given ``handle``.
-        There will be one entry in the list per probe associated with the :term:`probe id` used when the sampling was set up.
-        For example, if a probe was placed on a locset describing three positions, the returned list will contain three elements.
+        Retrieve a list of sample data associated with the given :term:`handle`.
+        There will be one entry in the list per probe associated with the :term:`probeset id` used when the sampling was set up. 
+        Each entry is a pair ``(samples, meta)`` where ``meta`` is the probe metadata as would be returned by
+        ``probe_metadata(probeset_id)``, and ``samples`` contains the recorded values.
+        
+        For example, if a probe was placed on a locset describing three positions, ``samples(handle)`` will
+        return a list of length `3`. In each element, each corresponding to a location in the locset,
+        you'll find a tuple containing ``metadata`` and ``data``, where ``metadata`` will be a string describing the location,
+        and ``data`` will (usually) be a ``numpy.ndarray``.
 
         An empty list will be returned if no output was recorded for the cell. For simulations
         that are distributed using MPI, handles associated with non-local cells will return an
         empty list.
         It is the responsibility of the caller to gather results over the ranks.
 
-        Each entry is a pair ``(samples, meta)`` where ``meta`` is the probe metadata as would be returned by
-        ``probe_metadata(probe_id)``, and ``samples`` contains the recorded values.
-
-        The format of the recorded values will depend upon the specifics of the probe, though generally it will
+        The format of the recorded values (``data``) will depend upon the specifics of the probe, though generally it will
         be a NumPy array, with the first column corresponding to sample time and subsequent columns holding
         the value or values that were sampled from that probe at that time.
 
     .. function:: progress_banner()
 
-        Print a progress bar during simulation, with elapsed miliseconds and percentage of simulation completed.
+        Print a progress bar during simulation, with elapsed milliseconds and percentage of simulation completed.
 
 **Types:**
 
@@ -211,14 +225,15 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 Recording spikes
 ----------------
 
-By default, spikes are not recorded. Recording is enabled with the
+Spikes are generated by various sources, including detectors and spike source
+cells, but by default, spikes are not recorded. Recording is enabled with the
 :py:func:`simulation.record` method, which takes a single argument instructing
 the simulation object to record no spikes, all locally generated spikes, or all
 spikes generated by any MPI rank.
 
 Spikes recorded during a simulation are returned as a NumPy structured datatype with two fields,
 ``source`` and ``time``. The ``source`` field itself is a structured datatype with two fields,
-``gid`` and ``index``, identifying the spike detector that generated the spike.
+``gid`` and ``index``, identifying the threshold detector that generated the spike.
 
 .. Note::
 
@@ -263,44 +278,6 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
 Recording samples
 -----------------
 
-Definitions
-***********
-
-.. glossary::
-
-    probe
-        A measurement that can be performed on a cell. Each cell kind will have its own sorts of probe;
-        Cable cells (:py:attr:`arbor.cable_probe`) allow the monitoring of membrane voltage, total membrane
-        current, mechanism state, and a number of other quantities, measured either over the whole cell,
-        or at specific sites (see :ref:`pycablecell-probesample`).
-
-        Probes are described by probe addresses, and the collection of probe addresses for a given cell is
-        provided by the :py:class:`recipe` object. One address may correspond to more than one probe:
-        as an example, a request for membrane voltage on a cable cell at sites specified by a location
-        expression will generate one probe for each site in that location expression.
-
-    probe id
-        A designator for one or more probes as specified by a recipe. The *probe id* is a
-        :py:class:`cell_member` referring to a specific cell by gid, and the index into the list of
-        probe addresses returned by the recipe for that gid.
-
-    metadata
-        Each probe has associated metadata describing, for example, the location on a cell where the
-        measurement is being taken, or other such identifying information. Metadata for the probes
-        associated with a :term:`probe id` can be retrieved from the simulation object, and is also provided
-        along with any recorded samples.
-
-    sampler
-        A sampler is something that receives probe data. It amounts to setting a particular :term:`probe` to a
-        particular measuring schedule, and then having a handle with which to access the recorded probe data later on.
-
-    sample
-        A record of data corresponding to the value at a specific *probe* at a specific time.
-
-    schedule
-        An object representing a series of monotonically increasing points in time, used for determining
-        sample times (see :ref:`pyrecipe`).
-
 Procedure
 *********
 
@@ -309,23 +286,23 @@ There are three parts to the process of recording cell data over a simulation.
 1. Describing what to measure.
 
    The recipe object must provide a method :py:func:`recipe.probes` that returns a list of
-   probe addresses for the cell with a given ``gid``. The kth element of the list corresponds
-   to the :term:`probe id` ``(gid, k)``.
+   probeset addresses for the cell with a given ``gid``. The kth element of the list corresponds
+   to the :term:`probeset id` ``(gid, k)``.
 
-   Each probe address is an opaque object describing what to measure and where, and each cell kind
+   Each probeset address is an opaque object describing what to measure and where, and each cell kind
    will have its own set of functions for generating valid address specifications. Possible cable
    cell probes are described in the cable cell documentation: :ref:`pycablecell-probesample`.
 
 2. Instructing the simulator to record data.
 
    Recording is set up with the method :py:func:`simulation.sample`
-   as described above. It returns a handle that is used to retrieve the recorded data after
+   as described above. It returns a :term:`handle` that is used to retrieve the recorded data after
    simulation.
 
 3. Retrieve recorded data.
 
-   The method :py:func:`simulation.samples` takes a handle and returns the recorded data as a list,
-   with one entry for each probe associated with the :term:`probe id` that was used in step 2 above. Each
+   The method :py:func:`simulation.samples` takes a :term:`handle` and returns the recorded data as a list,
+   with one entry for each probe associated with the :term:`probeset id` that was used in step 2 above. Each
    entry will be a tuple ``(data, meta)`` where ``meta`` is the metadata associated with the
    probe, and ``data`` contains all the data sampled on that probe over the course of the
    simulation.
@@ -350,7 +327,7 @@ Example
 
     sim = arbor.simulation(recipe, decomp, context)
 
-    # Sample probe id (0, 0) (first probe id on cell 0) every 0.1 ms with exact sample timing:
+    # Sample probeset id (0, 0) (first probeset id on cell 0) every 0.1 ms with exact sample timing:
 
     handle = sim.sample((0, 0), arbor.regular_schedule(0.1), arbor.sampling_policy.exact)
 

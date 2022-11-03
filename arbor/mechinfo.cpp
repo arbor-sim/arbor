@@ -31,6 +31,10 @@ mechanism_info::mechanism_info(const arb_mechanism_type& m) {
         v.verify_valence,
         v.expected_valence };
     }
+    for (auto idx: util::make_span(m.n_random_variables)) {
+        const auto& rv = m.random_variables[idx];
+        random_variables[rv.name] = rv.index;
+    }
 }
 
 }

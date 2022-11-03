@@ -265,7 +265,7 @@ TEST(fvm_layout, mech_index) {
     auto& expsyn_config = M.mechanisms.at("expsyn");
     auto& exp2syn_config = M.mechanisms.at("exp2syn");
 
-    using ivec = std::vector<fvm_index_type>;
+    using ivec = std::vector<arb_index_type>;
 
     // HH on somas of two cells, with CVs 0 and 5.
     // Proportional area contrib: soma area/CV area.
@@ -336,7 +336,7 @@ struct exp_instance {
 };
 
 TEST(fvm_layout, coalescing_synapses) {
-    using ivec = std::vector<fvm_index_type>;
+    using ivec = std::vector<arb_index_type>;
 
     auto syn_desc = [&](const char* name, double val0, double val1) {
         mechanism_desc m(name);
@@ -592,7 +592,7 @@ TEST(fvm_layout, synapse_targets) {
     EXPECT_TRUE(util::is_sorted(expsyn_cv));
     EXPECT_TRUE(util::is_sorted(exp2syn_cv));
 
-    using uvec = std::vector<fvm_size_type>;
+    using uvec = std::vector<arb_size_type>;
     uvec all_target_indices;
     util::append(all_target_indices, expsyn_target);
     util::append(all_target_indices, exp2syn_target);
@@ -1228,7 +1228,7 @@ TEST(fvm_lowered, cell_group_gj) {
         EXPECT_EQ(expected[i], GJ1[i+10]);
     }
 
-    std::vector<fvm_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
+    std::vector<arb_index_type> expected_doms= {0u, 1u, 0u, 2u, 0u, 3u, 0u, 4u, 0u, 5u};
     EXPECT_EQ(6u, num_dom0);
     EXPECT_EQ(6u, num_dom1);
 
@@ -1513,9 +1513,9 @@ TEST(fvm_layout, ion_weights) {
     builder.add_branch(1, 200, 0.5, 0.5, 1, "dend");
     builder.add_branch(1, 100, 0.5, 0.5, 1, "dend");
 
-    using uvec = std::vector<fvm_size_type>;
-    using ivec = std::vector<fvm_index_type>;
-    using fvec = std::vector<fvm_value_type>;
+    using uvec = std::vector<arb_size_type>;
+    using ivec = std::vector<arb_index_type>;
+    using fvec = std::vector<arb_value_type>;
 
     //uvec mech_branches[] = {
         //{0}, {0,2}, {2, 3}, {0, 1, 2, 3}, {3}
@@ -1536,8 +1536,8 @@ TEST(fvm_layout, ion_weights) {
     gprop.catalogue = make_unit_test_catalogue();
     gprop.default_parameters = neuron_parameter_defaults;
 
-    fvm_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
-    fvm_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration.value();
+    arb_value_type cai = gprop.default_parameters.ion_data["ca"].init_int_concentration.value();
+    arb_value_type cao = gprop.default_parameters.ion_data["ca"].init_ext_concentration.value();
 
     for (auto& v: expected_init_iconc) {
         for (auto& iconc: v) {
@@ -1565,9 +1565,9 @@ TEST(fvm_layout, ion_weights) {
 
         EXPECT_EQ(expected_ion_cv[run], ca.cv);
 
-        EXPECT_TRUE(testing::seq_almost_eq<fvm_value_type>(expected_init_iconc[run], ca.init_iconc));
+        EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(expected_init_iconc[run], ca.init_iconc));
 
-        EXPECT_TRUE(util::all_of(ca.init_econc, [cao](fvm_value_type v) { return v==cao; }));
+        EXPECT_TRUE(util::all_of(ca.init_econc, [cao](arb_value_type v) { return v==cao; }));
     }
 }
 
@@ -1646,7 +1646,7 @@ TEST(fvm_layout, revpot) {
         // of the second cell.
         auto soma1_index = D.geometry.cell_cv_divs[1];
         ASSERT_EQ(1u, M.mechanisms.count(write_eb_ec.name()));
-        EXPECT_EQ((std::vector<fvm_index_type>(1, soma1_index)), M.mechanisms.at(write_eb_ec.name()).cv);
+        EXPECT_EQ((std::vector<arb_index_type>(1, soma1_index)), M.mechanisms.at(write_eb_ec.name()).cv);
     }
 }
 
@@ -1665,7 +1665,7 @@ TEST(fvm_layout, vinterp_cable) {
     // CV midpoints at branch pos 0.1, 0.3, 0.5, 0.7, 0.9.
     // Expect voltage reference locations to be CV modpoints.
     d.set_default(cv_policy_fixed_per_branch(5));
-    cable_cell cell{m, {}, d};
+    cable_cell cell{m, d};
     fvm_cv_discretization D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Test locations, either side of CV midpoints plus extrema, CV boundaries.
@@ -1674,7 +1674,7 @@ TEST(fvm_layout, vinterp_cable) {
     for (auto pos: site_pos) {
         mlocation site{0, pos};
 
-        fvm_index_type expected_distal;
+        arb_index_type expected_distal;
         if (pos<0.3) {
             expected_distal = 1;
         }
@@ -1687,7 +1687,7 @@ TEST(fvm_layout, vinterp_cable) {
         else {
             expected_distal = 4;
         }
-        fvm_index_type expected_proximal = expected_distal-1;
+        arb_index_type expected_proximal = expected_distal-1;
 
         fvm_voltage_interpolant I = fvm_interpolate_voltage(cell, D, 0, site);
 
@@ -1725,7 +1725,7 @@ TEST(fvm_layout, vinterp_forked) {
     // and contain branches 1 and 2 respectively, excluding the fork point.
     mlocation_list cv_ends{{1, 0.}, {2, 0.}};
     d.set_default(cv_policy_explicit(cv_ends));
-    cable_cell cell{m, {}, d};
+    cable_cell cell{m, d};
     fvm_cv_discretization D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Points in branch 0 should only get CV 0 for interpolation.
@@ -1778,11 +1778,11 @@ TEST(fvm_layout, iinterp) {
         decor d;
 
         d.set_default(cv_policy_fixed_per_branch(3));
-        cells.emplace_back(cable_cell{p.second, {}, d});
+        cells.emplace_back(cable_cell{p.second, d});
         label.push_back(p.first+": forks-at-end"s);
 
         d.set_default(cv_policy_fixed_per_branch(3, cv_policy_flag::interior_forks));
-        cells.emplace_back(cable_cell{p.second, {}, d});
+        cells.emplace_back(cable_cell{p.second, d});
         label.push_back(p.first+": interior-forks"s);
     }
 
@@ -1831,7 +1831,7 @@ TEST(fvm_layout, iinterp) {
     // and contain branches 1 and 2 respectively, excluding the fork point.
     mlocation_list cv_ends{{1, 0.}, {2, 0.}};
     d.set_default(cv_policy_explicit(cv_ends));
-    cable_cell cell{m, {}, d};
+    cable_cell cell{m, d};
     D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Expect axial current interpolations on branches 1 and 2 to match CV 1 and 2

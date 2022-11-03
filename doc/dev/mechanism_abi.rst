@@ -177,7 +177,7 @@ fully formed to the interface. At this point:
 
   .. c:member:: arb_index_type n_detectors
 
-    Number of spike detectors
+    Number of threshold detectors
 
   .. c:member:: arb_index_type* vec_ci
 
@@ -186,10 +186,6 @@ fully formed to the interface. At this point:
   .. c:member:: arb_index_type* vec_di
 
     [Array] Map
-
-  .. c:member:: const arb_value_type* vec_t
-
-    [Array] time value
 
   .. c:member:: arb_value_type* vec_dt
 

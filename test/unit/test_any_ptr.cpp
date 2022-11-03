@@ -5,7 +5,7 @@
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 using namespace arb;
 using util::any_cast;

@@ -126,7 +126,6 @@ Cable cell mechanisms
         The underlying mechanism.
 
     .. method:: density(name)
-        :noindex:
 
         constructs :attr:`mech` with *name* and default parameters.
 
@@ -134,6 +133,7 @@ Cable cell mechanisms
         :type name: str
 
     .. method:: density(name, params)
+        :noindex:
 
         constructs :attr:`mech` with *name* and range parameter overrides *params*.
         for example: ``arbor.density('pas', {'g': 0.01})``.
@@ -152,6 +152,7 @@ Cable cell mechanisms
         :type mech: :py:class:`mechanism`
 
     .. method:: density(mech, params)
+        :noindex:
 
         constructs :attr:`mech` from *mech* and sets the range parameter overrides *params*.
 
@@ -171,7 +172,6 @@ Cable cell mechanisms
         The underlying mechanism.
 
     .. method:: synapse(name)
-        :noindex:
 
         constructs :attr:`mech` with *name* and default parameters.
 
@@ -179,6 +179,7 @@ Cable cell mechanisms
         :type name: str
 
     .. method:: synapse(name, params)
+        :noindex:
 
         constructs :attr:`mech` with *name* and range parameter overrides *params*.
         for example: ``arbor.synapse('expsyn', {'tau': 0.01})``.
@@ -197,6 +198,7 @@ Cable cell mechanisms
         :type mech: :py:class:`mechanism`
 
     .. method:: synapse(mech, params)
+        :noindex:
 
         constructs :attr:`mech` from *mech* and sets the range parameter overrides *params*.
 
@@ -217,7 +219,6 @@ Cable cell mechanisms
         The underlying mechanism.
 
     .. method:: junction(name)
-        :noindex:
 
         constructs :attr:`mech` with *name* and default parameters.
 
@@ -225,6 +226,7 @@ Cable cell mechanisms
         :type name: str
 
     .. method:: junction(name, params)
+        :noindex:
 
         constructs :attr:`mech` with *name* and range parameter overrides *params*.
         for example: ``arbor.junction('gj', {'g': 2})``.
@@ -243,6 +245,7 @@ Cable cell mechanisms
         :type mech: :py:class:`mechanism`
 
     .. method:: junction(mech, params)
+        :noindex:
 
         constructs :attr:`mech` from *mech* and sets the range parameter overrides *params*.
 
@@ -464,7 +467,8 @@ Mechanism catalogues
 
     .. py:method:: extend(other, prefix)
 
-        Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.
+        Import another catalogue, possibly with a prefix. Will raise an exception
+        in case of name collisions.
 
         .. code-block:: Python
 

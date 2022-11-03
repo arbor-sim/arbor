@@ -1,7 +1,7 @@
 #include <cmath>
 #include <limits>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/math.hpp>
 

@@ -16,7 +16,10 @@ Here we document internal components of Arbor. These pages can be useful if you'
 
    cable_cell
    cell_groups
+   communication
+   debug
    matrix_solver
+   sde
    simd_api
    shared_state
    export

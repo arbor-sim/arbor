@@ -59,15 +59,14 @@ public:
         arb::label_dict labels;
         labels.set("soma", arb::reg::tagged(1));
 
-        arb::decor decor;
-        decor.paint("soma"_lab, arb::density("pas"));
+        auto decor = arb::decor{}
+            .paint("soma"_lab, arb::density("pas"))
+            // Add one synapse at the soma.
+            // This synapse will be the target for all events, from both
+            // event_generators.
+        .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
 
-        // Add one synapse at the soma.
-        // This synapse will be the target for all events, from both
-        // event_generators.
-        decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
-
-        return arb::cable_cell(tree, labels, decor);
+        return arb::cable_cell(tree, decor, labels);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -138,13 +137,13 @@ int main() {
     // Set up the probe that will measure voltage in the cell.
 
     // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-    auto probe_id = cell_member_type{0, 0};
+    auto probeset_id = cell_member_type{0, 0};
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1);
     // This is where the voltage samples will be stored as (time, value) pairs
     arb::trace_vector<double> voltage;
-    // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-    sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+    // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
+    sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
     // Run the simulation for 100 ms, with time steps of 0.01 ms.
     sim.run(100, 0.01);

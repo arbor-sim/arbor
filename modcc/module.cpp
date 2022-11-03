@@ -10,6 +10,7 @@
 #include "errorvisitor.hpp"
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
+#include "procinliner.hpp"
 #include "kineticrewriter.hpp"
 #include "linearrewriter.hpp"
 #include "module.hpp"
@@ -119,7 +120,7 @@ std::string Module::error_string() const {
     std::string str;
     for (const error_entry& entry: errors()) {
         if (!str.empty()) str += '\n';
-        str += red("error   ");
+        str += red("  * ");
         str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
@@ -130,7 +131,7 @@ std::string Module::warning_string() const {
     std::string str;
     for (auto& entry: warnings()) {
         if (!str.empty()) str += '\n';
-        str += purple("warning   ");
+        str += purple("  * ");
         str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
@@ -152,9 +153,9 @@ bool Module::semantic() {
     // that all symbols are correctly used
     ////////////////////////////////////////////////////////////////////////////
 
-    // first add variables defined in the NEURON, ASSIGNED and PARAMETER
+    // first add variables defined in the NEURON, ASSIGNED, WHITE_NOISE and PARAMETER
     // blocks these symbols have "global" scope, i.e. they are visible to all
-    // functions and procedurs in the mechanism
+    // functions and procedures in the mechanism
     add_variables_to_symbols();
 
     // Helper which iterates over a vector of Symbols, moving them into the
@@ -163,6 +164,7 @@ bool Module::semantic() {
     // is already in the symbol table.
     bool linear_homogeneous = true;
     std::vector<std::string> state_vars;
+    std::vector<std::string> white_noise_vars;
     auto move_symbols = [this] (std::vector<symbol_ptr>& symbol_list) {
         for(auto& symbol: symbol_list) {
             bool is_found = (symbols_.find(symbol->name()) != symbols_.end());
@@ -267,6 +269,13 @@ bool Module::semantic() {
     for (auto& sym: symbols_) {
         Location loc;
 
+        // get white noise variable names
+        auto wn = sym.second->is_white_noise();
+        if (wn) {
+            white_noise_vars.push_back(wn->name());
+            continue;
+        }
+
         auto state = sym.second->is_variable();
         if (!state || !state->is_state()) continue;
         state_vars.push_back(state->name());
@@ -310,6 +319,11 @@ bool Module::semantic() {
 
     for(auto& e : *proc_init->body()) {
         auto solve_expression = e->is_solve_statement();
+        if (!white_noise_vars.empty() && involves_identifier(e, white_noise_vars)) {
+            error("An error occured while compiling the INITIAL block. "
+                  "White noise is not allowed.", e->location());
+            return false;
+        }
         if (solve_expression) {
             // Grab SOLVE statements, put them in `body` after translation.
             std::set<std::string> solved_ids;
@@ -409,22 +423,57 @@ bool Module::semantic() {
             solve_body = linear_rewrite(deriv->body(), state_vars);
         }
 
-        // Calculate linearity and homogeneity of the statements in the derivative block.
+        // Calculate linearity, homogeneity and stochasticity of the statements in the derivative block.
         bool linear = true;
         bool homogeneous = true;
+        bool needs_substitution = false;
         for (auto& s: solve_body->is_block()->statements()) {
+            // loop over declared white noise variables
+            if (!white_noise_vars.empty()) {
+                for (auto const & w : white_noise_vars) {
+                    // check whether a statement contains an expression involving white noise
+                    if (involves_identifier(s, w)) {
+                        // mark the white noise variable as used, and set its index if we see this
+                        // variable for the first time
+                        auto it = white_noise_block_.used.insert(std::make_pair(w,0u));
+                        if (it.second) {
+                            // set white noise lookup index
+                            const unsigned int idx = white_noise_block_.used.size()-1;
+                            symbols_.find(w)->second->is_white_noise()->set_index(idx);
+                            it.first->second = idx;
+                        }
+                    }
+                }
+            }
             if(s->is_assignment() && !state_vars.empty()) {
                 linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
+                if (!s->is_assignment()->lhs()->is_derivative() && !r.is_constant)
+                    needs_substitution = true;
                 linear &= r.is_linear;
                 homogeneous &= r.is_homogeneous;
             }
         }
         linear_homogeneous &= (linear & homogeneous);
 
+        // filter out unused white noise variables from the white noise vector
+        white_noise_vars.clear();
+        for (auto const & w : white_noise_block_.used) {
+            white_noise_vars.push_back(w.first);
+        }
+        bool stochastic = (white_noise_vars.size() > 0u);
+
+        if (stochastic && (solve_expression->method() != solverMethod::stochastic)) {
+            error("SOLVE expression '" + solve_expression->name() + "' involves white noise and can "
+                  "only be solved using the stochastic method", solve_expression->location());
+            return false;
+        }
+
         // Construct solver based on system kind, linearity and solver method.
         std::unique_ptr<SolverVisitorBase> solver;
         switch(solve_expression->method()) {
         case solverMethod::cnexp:
+            if (needs_substitution)
+                warning("Assignments to local variables containing state variables will not be integrated in time");
             solver = std::make_unique<CnexpSolverVisitor>();
             break;
         case solverMethod::sparse: {
@@ -436,6 +485,9 @@ bool Module::semantic() {
             }
             break;
         }
+        case solverMethod::stochastic:
+                solver = std::make_unique<EulerMaruyamaSolverVisitor>(white_noise_vars);
+            break;
         case solverMethod::none:
             if (deriv->kind()==procedureKind::linear) {
                 solver = std::make_unique<LinearSolverVisitor>(state_vars);
@@ -466,7 +518,6 @@ bool Module::semantic() {
             // Copy body into advance_state.
             for (auto& stmt: solve_block->is_block()->statements()) {
                 api_state->body()->statements().push_back(std::move(stmt));
-
             }
         }
         else {
@@ -570,8 +621,7 @@ bool Module::semantic() {
 void Module::add_variables_to_symbols() {
     auto create_variable =
         [this](const Token& token, accessKind a, visibilityKind v, linkageKind l,
-               rangeKind r, bool is_state = false) -> symbol_ptr&
-        {
+               rangeKind r, bool is_state = false) -> symbol_ptr& {
             auto var = new VariableExpression(token.location, token.spelling);
             var->access(a);
             var->visibility(v);
@@ -582,16 +632,23 @@ void Module::add_variables_to_symbols() {
         };
 
     // add indexed variables to the table
-    auto create_indexed_variable = [this]
-        (std::string const& name, sourceKind data_source,
-         accessKind acc, std::string ch, Location loc) -> symbol_ptr&
-    {
-        if(symbols_.count(name)) {
+    auto create_indexed_variable =
+        [this](std::string const& name, sourceKind data_source,
+               accessKind acc, std::string ch, Location loc) -> symbol_ptr& {
+        if (symbols_.count(name)) {
             throw compiler_exception(
                 pprintf("the symbol % already exists", yellow(name)), loc);
         }
         return symbols_[name] =
             make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
+    };
+
+    auto create_white_noise = [this](Token const & token) -> symbol_ptr& {
+        if (symbols_.count(token.spelling)) {
+            throw compiler_exception(
+                pprintf("the symbol % already exists", yellow(token.spelling)), token.location);
+        }
+        return symbols_[token.spelling] = make_symbol<WhiteNoise>(token.location, token.spelling);
     };
 
     sourceKind current_kind = kind_==moduleKind::density? sourceKind::current_density: sourceKind::current;
@@ -723,17 +780,24 @@ void Module::add_variables_to_symbols() {
     }
 
     std::set<std::string> cond;
-    for(auto const& ion : neuron_block_.ions) {
-        for(auto const& var : ion.read) {
-            update_ion_symbols(var, accessKind::read, ion.name);
-        }
-        for(auto const& var : ion.write) {
+    for(auto const& ion: neuron_block_.ions) {
+        for(auto const& var: ion.write) {
             update_ion_symbols(var, accessKind::write, ion.name);
             auto name = "conductivity_" + ion.name + "_";
             if (cond.find(name) == cond.end()) {
                 create_indexed_variable(name, sourceKind::ion_conductivity, accessKind::write, ion.name, var.location);
                 cond.insert(name);
             }
+        }
+
+        for(auto const& var: ion.read) {
+            // Skip vars we have already processed as WRITE, since those can be read as well.
+            if (std::count_if(ion.write.begin(),
+                              ion.write.end(),
+                              [&var](const auto& it) { return var.spelling == it.spelling; })) {
+                continue;
+            }
+            update_ion_symbols(var, accessKind::read, ion.name);
         }
 
         if(ion.uses_valence()) {
@@ -781,6 +845,10 @@ void Module::add_variables_to_symbols() {
                 "unable to find symbol " + yellow(var.spelling) + " in symbols",
                 var.location);
         }
+    }
+
+    for (const Id& id: white_noise_block_) {
+        create_white_noise(id.token);
     }
 }
 
@@ -838,8 +906,14 @@ int Module::semantic_func_proc() {
     }
 
     auto inline_and_simplify = [&](auto&& caller) {
-        auto rewritten = inline_function_calls(caller->name(), caller->body());
-        caller->body(std::move(rewritten));
+        {
+            auto rewritten = inline_function_calls(caller->name(), caller->body());
+            caller->body(std::move(rewritten));
+        }
+        {
+            auto rewritten = inline_procedure_calls(caller->name(), caller->body());
+            caller->body(std::move(rewritten));
+        }
         caller->body(constant_simplify(caller->body()));
     };
 

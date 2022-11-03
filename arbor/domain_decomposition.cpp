@@ -15,7 +15,7 @@
 namespace arb {
 domain_decomposition::domain_decomposition(
     const recipe& rec,
-    const context& ctx,
+    context ctx,
     const std::vector<group_description>& groups)
 {
     struct partition_gid_domain {

@@ -32,7 +32,7 @@ examine the recipe in detail: how to create one, and why it is needed.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 84-120
+   :lines: 74-114
 
 Let's go through the recipe point by point.
 
@@ -88,40 +88,36 @@ Now we can instantiate a ``single_recipe`` object.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 123-124
+   :lines: 113-114
 
 The simulation
 **************
 
 We have all we need to create a :class:`arbor.simulation` object.
 
-.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
-   :language: python
-   :lines: 126-127
-
 Before we run the simulation, however, we need to register what results we expect once execution is over.
 This was handled by the :class:`arbor.single_cell_model` object in the original example.
+
+.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
+   :language: python
+   :lines: 116-123
 
 We would like to get a list of the spikes on the cell during the runtime of the simulation, and we would like
 to plot the voltage registered by the probe on the "custom_terminal" locset.
 
-.. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
-   :language: python
-   :lines: 129-133
-
-The lines handling probe sampling warrant a second look. First, we declared :term:`probe_id` to be a
+The lines handling probe sampling warrant a second look. First, we declared ``probeset_id`` to be a
 :class:`arbor.cell_member`, with :class:`arbor.cell_member.gid` = 0 and :class:`arbor.cell_member.index` = 0.
 This variable serves as a global identifier of a probe on a cell, namely the first declared probe on the
 cell with ``gid = 0``, which is id of the only probe we created on the only cell in the model.
 
-Next, we instructed the simulation to sample :term:`probe_id` at a frequency of 50 kHz. That function returns a
+Next, we instructed the simulation to sample ``probeset_id`` at a frequency of 50 kHz. That function returns a
 :term:`handle` which we will use to :ref:`extract the results <pycablecell-probesample>` of the sampling after running the simulation.
 
 We can now run the simulation we just instantiated for a duration of 100 ms with a time step of 0.025 ms.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 135-136
+   :lines: 125-126
 
 The results
 ***********
@@ -133,13 +129,13 @@ We can print the times of the spikes:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 138-142
+   :lines: 128-132
 
 The probe results, again, warrant some more explanation:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 144-148
+   :lines: 134-138
 
 ``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
 of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
@@ -152,7 +148,7 @@ We plot the results using pandas and seaborn as we did in the original example, 
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 150-
+   :lines: 140-
 
 The following plot is generated. Identical to the plot of the original example.
 

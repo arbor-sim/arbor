@@ -39,7 +39,6 @@ quantities and their expected units.
 quantity                                         identifier                                           unit
 ===============================================  ===================================================  ==========
 voltage                                          v / v_peer                                           mV
-time                                             t                                                    ms
 temperature                                      celsius                                              °C
 diameter (cross-sectional)                       diam                                                 µm
 
@@ -94,15 +93,14 @@ Special variables
 -----------------
 
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
-  These include ``v``, ``diam``, ``celsius`` and ``t`` in addition to the previously
+  These include ``v``, ``diam``, and ``celsius`` in addition to the previously
   mentioned ion parameters.
 * These special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
   ``PARAMETER``. This is different from NEURON where a built-in variable is
   declared ``ASSIGNED`` to make it accessible.
 * ``diam`` and ``celsius`` are set from the simulation side.
 * ``v`` is a reserved variable name and can be read but not written in NMODL.
-* ``dt`` is not exposed to NMODL mechanisms.
-* ``area`` is not exposed to NMODL mechanisms.
+* ``dt``, ``time``, and ``area`` are not exposed to NMODL mechanisms.
 * ``NONSPECIFIC_CURRENTS`` should not be ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
   They just need to be declared in the NEURON block.
 
@@ -122,7 +120,8 @@ Unsupported features
   units, which are just ignored).
 * Unit declaration is not supported (ex: ``FARADAY = (faraday)  (10000 coulomb)``).
   They can be replaced by declaring them and setting their values in ``CONSTANT``.
-* ``FROM`` - ``TO`` clamping of variables is not supported. The tokens are parsed and ignored.
+* ``FROM`` - ``TO`` clamping of variables is not supported. The tokens are
+  parsed, and reported through the ``mechanism_info``, but otherwise ignored.
   However, ``CONSERVE`` statements are supported.
 * ``TABLE`` is not supported, calculations are exact.
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
@@ -158,6 +157,45 @@ Arbor-specific features
   of a gap-junction connection as well as the local site. The peer membrane potential is
   made available through the ``v_peer`` variable while the local membrane potential
   is available through ``v``, as usual.
+
+
+.. _format-sde:
+
+Stochastic Processes
+--------------------
+
+Arbor supports :ref:`stochastic processes <mechanisms-sde>` in the form of stochastic differential
+equations. The *white noise* sources can be defined in the model files using a ``WHITE_NOISE`` block:
+
+.. code:: none
+
+   WHITE_NOISE {
+       a b 
+       c
+   }
+
+Arbitrary white noise variables can be declared (``a, b, c`` in the example above). The
+noise will be appropriately scaled with the numerical time step and can be considered unitless. In
+order to influence the white noise generation, a seed value can be set at the level of the
+simulation through the optional constructor argument ``seed``
+(see :ref:`here <pysimulation>` or :ref:`here <cppsimulation>`).
+
+If the state is updated by involving at least one of the declared white noise variables
+the system is considered to be stochastic:
+
+.. code:: none
+
+   DERIVATIVE state {
+       s' = f + g*a
+   }
+
+The solver method must then accordingly set to ``stochastic``:
+
+.. code:: none
+
+   BREAKPOINT {
+       SOLVE state METHOD stochastic
+   }
 
 Nernst
 ------
@@ -335,6 +373,51 @@ produce better performing code. Here is an example
 Note that we do not lose accuracy here, since Arbor does not support
 higher-order ODEs and thus will treat ``g`` as a constant across
 a single timestep even if ``g`` actually depends on ``v``.
+
+Using Memory versus Computation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Commonly ion channels need to correct for temperature differences, which yields
+a term similar to
+
+.. code::
+
+   q = 3^(0.1*celsius - 0.63)
+
+Here, we find that the cost of the exponential when computing ``q`` in the
+``DERIVATIVE`` block is high enough to make pre-computing ``q`` in ``INITIAL``
+and loading the value later an optimisation. Shown below is a simplified version
+of this pattern from ``hh.mod`` in the Arbor sources
+
+.. code::
+
+   NEURON {
+     ...
+     RANGE ..., q
+   }
+
+   ASSIGNED { q }
+
+   PARAMETER {
+       ...
+       celsius (degC)
+   }
+
+   STATE { ... }
+
+   BREAKPOINT {
+       SOLVE dS METHOD cnexp
+       ...
+   }
+
+   INITIAL {
+      q = 3^(0.1*celsius - 0.63)
+      ...
+   }
+
+   DERIVATIVE states {
+      ... : uses q
+   }
 
 Specialised Functions
 ~~~~~~~~~~~~~~~~~~~~~

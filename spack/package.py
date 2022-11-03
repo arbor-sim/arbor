@@ -59,7 +59,7 @@ class Arbor(CMakePackage, CudaPackage):
     conflicts("%cce@:9.1")
     conflicts("%intel")
 
-    depends_on("cmake@3.12:", type="build")
+    depends_on("cmake@3.19:", type="build")
 
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
@@ -79,6 +79,7 @@ class Arbor(CMakePackage, CudaPackage):
     with when("+python"):
         depends_on("py-pybind11@2.6:", type=("build"))
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type=("build"))
+        depends_on("py-pybind11@2.10.0:", when="@0.7.1:", type=("build"))
 
     # sphinx based documentation
     depends_on("python@3.7:", when="+doc", type="build")

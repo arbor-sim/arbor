@@ -242,6 +242,43 @@ Cable cell morphology
         :param float radius: distal radius (μm)
         :param int tag: tag meta data of segment
 
+    .. method:: split_at(id)
+
+        Split a segment_tree ``T`` into a pair of subtrees ``(L, R)`` such that
+        ``R`` is the subtree of ``T`` that starts at the given id and L is ``T``
+        without ``R``. Splitting above the root ``mnpos`` returns ``(T, {})``.
+
+    .. method:: join_at(id, other)
+
+        Join two subtrees ``L`` and ``R`` at a given ``id`` in ``L``, such that
+        ``join_at`` is inverse to ``split_at`` for a proper choice of ``id``.
+        The join point ``id`` must be in ``L``.
+
+    .. method:: tag_roots(tag)
+
+        Get IDs of roots of region with a particular ``tag`` in the segment tree, i.e.
+        segments whose parent is either :data:`mnpos` or a segment with a different
+        tag.
+
+    .. method:: apply_isometry(iso)
+
+        Apply an :py:class:`isometry` to the segment tree, returns the transformed tree as a copy.
+        Isometries are rotations around an arbritary axis and/or translations; they can
+        be instantiated using ``translate`` and ``rotate`` and combined
+        using the ``*`` operator.
+
+        :return: new tree
+        :param iso: isometry
+
+    .. method:: equivalent(other)
+
+        Two trees are equivalent if
+
+        1. the root segments' ``prox`` and ``dist`` points and their ``tags``
+           are identical.
+        2. recursively: all sub-trees starting at the current segment are
+           equivalent.
+
     .. attribute:: empty
         :type: bool
 
@@ -558,7 +595,7 @@ region.
 SWC
 ---
 
-.. py:function:: load_swc_arbor(filename)
+.. py:function:: load_swc_arbor(filename, raw=False)
 
     Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
     (See the morphology concepts :ref:`page <morph-formats>` for more details).
@@ -586,16 +623,18 @@ SWC
 
 
     :param str filename: the name of the SWC file.
-    :rtype: morphology
+    :param bool raw: return segment_tree instead of morphology?
+    :rtype: morphology or segment_tree
 
-.. py:function:: load_swc_neuron(filename)
+.. py:function:: load_swc_neuron(filename, raw=False)
 
     Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
     interpretation of the SWC specification.
     See :ref:`the SWC file documention <formatswc-neuron>` for more details.
 
     :param str filename: the name of the SWC file.
-    :rtype: morphology
+    :param bool raw: return segment_tree instead of morphology?
+    :rtype: morphology or segment_tree
 
 .. _pyneuroml:
 
@@ -707,6 +746,10 @@ Neurolucida
 
        The cable cell morphology.
 
+   .. py:attribute:: segment_tree
+
+       The raw segment tree.
+
    .. py:attribute:: labels
 
        The labeled regions and locations extracted from the meta data. The four canonical regions are labeled
@@ -724,8 +767,7 @@ Neurolucida
        asc = arbor.load_asc('granule.asc')
 
        # Construct a cable cell.
-       decor = arbor.decor()
-       cell = arbor.cable_cell(asc.morphology, asc.labels, decor)
+       cell = arbor.cable_cell(asc.morphology, arbor.decor(), asc.labels)
 
 
    :param str filename: the name of the input file.

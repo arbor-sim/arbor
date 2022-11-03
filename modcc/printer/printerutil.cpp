@@ -76,6 +76,13 @@ ARB_LIBMODCC_API public_variable_ids_t public_variable_ids(const Module& m) {
         }
     }
 
+    for (auto const & id : m.white_noise_block().parameters) {
+        auto it = m.white_noise_block().used.find(id.name());
+        if (it != m.white_noise_block().used.end()) {
+            ids.white_noise_ids.push_back(std::make_pair(id, it->second));
+        }
+    }
+
     return ids;
 }
 
@@ -143,6 +150,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     v.accumulate = true;
     v.additive = false;
     v.readonly = true;
+    v.always_use_weight = true;
 
     std::string ion_pfx;
     if (sym->is_ion()) {
@@ -186,12 +194,6 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.data_var = "vec_dt";
         v.readonly = true;
         break;
-    case sourceKind::time:
-        v.data_var = "vec_t";
-        v.cell_index_var = "vec_di";
-        v.index_var_kind = index_kind::cell;
-        v.readonly = true;
-        break;
     case sourceKind::ion_current_density:
         v.data_var = ion_pfx+".current_density";
         v.scale = 0.1;
@@ -215,6 +217,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::ion_iconc:
         v.data_var = ion_pfx+".internal_concentration";
         v.readonly = false;
+        v.always_use_weight = false;
         break;
     case sourceKind::ion_diffusive:
         v.data_var = ion_pfx+".diffusive_concentration";
@@ -225,6 +228,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
     case sourceKind::ion_econc:
         v.data_var = ion_pfx+".external_concentration";
         v.readonly = false;
+        v.always_use_weight = false;
         break;
     case sourceKind::ion_valence:
         v.data_var = ion_pfx+".ionic_charge";

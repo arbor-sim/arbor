@@ -17,6 +17,7 @@ public:
     virtual void visit(Expression *e) = 0;
     virtual void visit(Symbol *e)               { visit((Expression*) e); }
     virtual void visit(LocalVariable *e)        { visit((Expression*) e); }
+    virtual void visit(WhiteNoise *e)           { visit((Expression*) e); }
     virtual void visit(IdentifierExpression *e) { visit((Expression*) e); }
     virtual void visit(NumberExpression *e)     { visit((Expression*) e); }
     virtual void visit(IntegerExpression *e)    { visit((NumberExpression*) e); }
@@ -27,7 +28,7 @@ public:
     virtual void visit(ReactionExpression *e)   { visit((Expression*) e); }
     virtual void visit(StoichTermExpression *e) { visit((Expression*) e); }
     virtual void visit(StoichExpression *e)     { visit((Expression*) e); }
-    virtual void visit(CompartmentExpression *e) { visit((Expression*) e); }
+    virtual void visit(CompartmentExpression *e){ visit((Expression*) e); }
     virtual void visit(VariableExpression *e)   { visit((Expression*) e); }
     virtual void visit(IndexedVariable *e)      { visit((Expression*) e); }
     virtual void visit(FunctionExpression *e)   { visit((Expression*) e); }
@@ -38,7 +39,7 @@ public:
     virtual void visit(ProcedureExpression *e)  { visit((Expression*) e); }
     virtual void visit(NetReceiveExpression *e) { visit((ProcedureExpression*) e); }
     virtual void visit(APIMethod *e)            { visit((Expression*) e); }
-    virtual void visit(ConductanceExpression *e) { visit((Expression*) e); }
+    virtual void visit(ConductanceExpression *e){ visit((Expression*) e); }
     virtual void visit(BlockExpression *e)      { visit((Expression*) e); }
     virtual void visit(InitialBlock *e)         { visit((BlockExpression*) e); }
 
@@ -50,7 +51,7 @@ public:
     virtual void visit(SinUnaryExpression *e)   { visit((UnaryExpression*) e); }
 
     virtual void visit(BinaryExpression *e) = 0;
-    virtual void visit(ConditionalExpression *e) {visit((BinaryExpression*) e); }
+    virtual void visit(ConditionalExpression *e){ visit((BinaryExpression*) e); }
     virtual void visit(AssignmentExpression *e) { visit((BinaryExpression*) e); }
     virtual void visit(ConserveExpression *e)   { visit((BinaryExpression*) e); }
     virtual void visit(LinearExpression *e)     { visit((BinaryExpression*) e); }

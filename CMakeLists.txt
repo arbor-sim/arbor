@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.19)
 include(CMakeDependentOption)
 
 # Make CUDA support throw errors if architectures remain unclear
@@ -40,12 +40,18 @@ set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
 # Use libunwind to generate stack traces on errors?
 
-option(ARB_UNWIND "Use libunwind for stack trace printing if available" OFF)
+option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
 
 # Specify GPU build type
 
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
 set_property(CACHE PROPERTY STRINGS "none" "cuda" "cuda-clang" "hip")
+if(NOT ARB_GPU STREQUAL "none")
+    set(ARB_USE_GPU_DEP ON)
+endif()
+cmake_dependent_option(ARB_USE_GPU_RNG
+    "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF
+    "ARB_USE_GPU_DEP" OFF)
 
 # Use bundled 3rd party libraries
 
@@ -120,11 +126,7 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    if(CUDAToolkit_VERSION_MAJOR GREATER 10)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-    else()
-        set(CMAKE_CUDA_ARCHITECTURES 60 70)
-    endif()
+    set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the
@@ -175,12 +177,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Data and internal scripts go here
 set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
-# Derived paths for arbor-build-catalogue
-get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_BINDIR} REALPATH)
-get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_DATAROOTDIR} REALPATH)
-get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_LIBDIR} REALPATH)
-file(RELATIVE_PATH ARB_REL_DATADIR ${absolute_full_bindir} ${absolute_full_datarootdir}/arbor)
-file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${absolute_full_bindir} ${absolute_full_libdir}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
@@ -225,10 +221,8 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
 
-configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
-install(FILES mechanisms/generate_catalogue DESTINATION ${ARB_INSTALL_DATADIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
@@ -386,36 +380,33 @@ if(ARB_WITH_GPU)
     endif()
 endif()
 
-# Use libunwind if requested for pretty printing stack traces
-#-------------------------------------------------------------
+# Use boost::stacktrace if requested for pretty printing stack traces
+#--------------------------------------------------------------------
 
-if (ARB_UNWIND)
-    find_package(Unwind REQUIRED)
-    if(Unwind_FOUND)
-        target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
-        target_compile_definitions(arbor-private-deps INTERFACE WITH_UNWIND)
-
-        list(APPEND arbor_export_dependencies "Unwind")
-    endif()
+if (ARB_BACKTRACE)
+    find_package(Boost REQUIRED
+                 COMPONENTS stacktrace_basic
+                            stacktrace_addr2line)
+    target_link_libraries(arbor-private-deps INTERFACE Boost::stacktrace_basic Boost::stacktrace_addr2line ${CMAKE_DL_LIBS})
+    target_compile_definitions(arbor-private-deps INTERFACE WITH_BACKTRACE)
 endif()
 
-# Build and use modcc unless explicit path given
+# Build modcc flags
 #------------------------------------------------
 
-if(ARB_MODCC)
-    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
-    if(NOT modcc)
-        message(FATAL_ERROR "Unable to find modcc executable.")
-    endif()
-    set(ARB_WITH_EXTERNAL_MODCC TRUE)
-else()
-    set(modcc $<TARGET_FILE:modcc>)
-    set(ARB_WITH_EXTERNAL_MODCC FALSE)
-endif()
-
+set(modcc $<TARGET_FILE:modcc>)
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
+endif()
+
+# Random number creation
+# -----------------------------------------------
+
+if(ARB_USE_GPU_RNG AND (ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG))
+    set(ARB_USE_GPU_RNG_IMPL TRUE)
+else()
+    set(ARB_USE_GPU_RNG_IMPL FALSE)
 endif()
 
 #----------------------------------------------------------
@@ -547,7 +538,6 @@ install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/arbor-config-version.cmake"
-        cmake/FindUnwind.cmake
     DESTINATION "${cmake_config_dir}")
 
 add_subdirectory(lmorpho)

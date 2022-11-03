@@ -103,6 +103,9 @@ bool Parser::parse() {
         case tok::assigned:
             parse_assigned_block();
             break;
+        case tok::white_noise:
+            parse_white_noise_block();
+            break;
         // INITIAL, KINETIC, DERIVATIVE, PROCEDURE, NET_RECEIVE and BREAKPOINT blocks
         // are all lowered to ProcedureExpression
         case tok::net_receive:
@@ -665,6 +668,66 @@ ass_exit:
     return;
 }
 
+void Parser::parse_white_noise_block() {
+    WhiteNoiseBlock block;
+
+    get_token();
+
+    // assert that the block starts with a curly brace
+    if (token_.type != tok::lbrace) {
+        error(pprintf("WHITE_NOISE block must start with a curly brace {, found '%'", token_.spelling));
+        return;
+    }
+
+    int success = 1;
+
+    // there are no use cases for curly brace in an WHITE_NOISE block, so we don't have to count them
+    get_token();
+    while (token_.type != tok::rbrace && token_.type != tok::eof) {
+        int line = location_.line;
+        std::vector<Token> variables; // we can have more than one variable on a line
+
+        // the first token must be ...
+        if (token_.type != tok::identifier) {
+            success = 0;
+            goto wn_exit;
+        }
+        // read all of the identifiers until we run out of identifiers or reach a new line
+        while (token_.type == tok::identifier && line == location_.line) {
+            variables.push_back(token_);
+            get_token();
+        }
+
+        // there must be no paramters at the end of the line
+        if (line == location_.line && token_.type == tok::lparen) {
+            success = 0;
+            goto wn_exit;
+        }
+        else {
+            for (auto const& t: variables) {
+                block.parameters.push_back(Id(t, "", {}));
+            }
+        }
+    }
+
+    // error if EOF before closing curly brace
+    if (token_.type == tok::eof) {
+        error("WHITE_NOISE block must have closing '}'");
+        goto wn_exit;
+    }
+
+    get_token(); // consume closing brace
+
+    module_->white_noise_block(block);
+
+wn_exit:
+    // only write error message if one hasn't already been logged by the lexer
+    if (!success && status_ == lexerStatus::happy) {
+        error(pprintf("WHITE_NOISE block unexpected symbol '%'", token_.spelling));
+    }
+    return;
+}
+
 // Parse a value (integral or real) with possible preceding unary minus,
 // and return as a string.
 std::string Parser::value_literal() {
@@ -1008,6 +1071,8 @@ expression_ptr Parser::parse_statement() {
         return parse_solve();
     case tok::local:
         return parse_local();
+    case tok::watch:
+        return parse_watch();
     case tok::identifier:
         return parse_line_expression();
     case tok::conserve:
@@ -1399,6 +1464,7 @@ expression_ptr Parser::parse_unaryop() {
 /// expects one of :
 ///  ::  number
 ///  ::  identifier
+///  ::  watch
 ///  ::  call
 ///  ::  parenthesis expression (parsed recursively)
 ///  ::  prefix binary operators
@@ -1588,6 +1654,9 @@ expression_ptr Parser::parse_solve() {
         case tok::sparse:
             method = solverMethod::sparse;
             break;
+        case tok::stochastic:
+            method = solverMethod::stochastic;
+            break;
         default:
             goto solve_statement_error;
         }
@@ -1655,6 +1724,19 @@ conductance_statement_error:
         loc);
     return nullptr;
 }
+
+// WATCH (cond) flag
+expression_ptr Parser::parse_watch() {
+    Location loc = location_; // solve location for expression
+    get_token();              // consume keyword
+
+    parse_parenthesis_expression();
+    parse_expression();
+
+    error("WATCH statements are not supported in modcc.", loc);
+    return nullptr;
+}
+
 
 expression_ptr Parser::parse_if() {
     Token if_token = token_;

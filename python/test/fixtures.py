@@ -4,6 +4,7 @@ from functools import lru_cache as cache
 from pathlib import Path
 import subprocess
 import atexit
+import inspect
 
 _mpi_enabled = arbor.__config__["mpi"]
 _mpi4py_enabled = arbor.__config__["mpi4py"]
@@ -23,21 +24,39 @@ def _fix(param_name, fixture, func):
     """
     Decorates `func` to inject the `fixture` callable result as `param_name`.
     """
+    sig = inspect.signature(func)
+    if param_name not in sig.parameters:
+        raise TypeError(
+            f"{param_name} fixture can't be applied to a function without {param_name}"
+            " parameter"
+        )
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        kwargs[param_name] = fixture()
-        return func(*args, **kwargs)
+    def inject_fixture(*args, **kwargs):
+        bound = sig.bind_partial(*args, **kwargs)
+        if param_name not in bound.arguments:
+            bound.arguments[param_name] = fixture
+        return func(*bound.args, **bound.kwargs)
 
-    return wrapper
+    return inject_fixture
 
 
-def _fixture(decorator):
-    @functools.wraps(decorator)
-    def fixture_decorator(func):
-        return _fix(decorator.__name__, decorator, func)
+def _fixture(fixture_factory):
+    """
+    Takes a fixture factory and returns a decorator factory, so that when the fixture
+    factory is called, a decorator is produced that injects the fixture values when the
+    decorated function is called.
+    """
 
-    return fixture_decorator
+    @functools.wraps(fixture_factory)
+    def decorator_fatory(*args, **kwargs):
+        def decorator(func):
+            fixture = fixture_factory(*args, **kwargs)
+            return _fix(fixture_factory.__name__, fixture, func)
+
+        return decorator
+
+    return decorator_fatory
 
 
 def _singleton_fixture(f):
@@ -86,10 +105,12 @@ def _build_cat_local(name, path):
             ["arbor-build-catalogue", name, str(path)],
             check=True,
             stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )
     except subprocess.CalledProcessError as e:
         raise _BuildCatError(
-            "Tests can't build catalogues:\n" + e.stderr.decode()
+            f"Tests can't build catalogue '{name}' from '{path}':\n"
+            f"{e.stderr.decode()}\n\n{e.stdout.decode()}"
         ) from None
 
 
@@ -115,7 +136,7 @@ def _build_cat_distributed(comm, name, path):
         raise build_err
 
 
-@context
+@context()
 def _build_cat(name, path, context):
     if context.has_mpi:
         try:
@@ -123,7 +144,7 @@ def _build_cat(name, path, context):
         except ImportError:
             raise _BuildCatError(
                 "Building catalogue in an MPI context, but `mpi4py` not found."
-                + " Concurrent identical catalogue builds might occur."
+                " Concurrent identical catalogue builds might occur."
             ) from None
 
         _build_cat_distributed(comm, name, path)
@@ -133,7 +154,7 @@ def _build_cat(name, path, context):
 
 
 @_singleton_fixture
-@repo_path
+@repo_path()
 def dummy_catalogue(repo_path):
     """
     Fixture that returns a dummy `arbor.catalogue`
@@ -189,7 +210,8 @@ class art_spiker_recipe(arbor.recipe):
             return [arbor.cable_probe_membrane_voltage('"midpoint"')]
 
     def _cable_cell_elements(self):
-        # (1) Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
+        # (1) Create a morphology with a single (cylindrical) segment of length=diameter
+        #  = # 6 μm
         tree = arbor.segment_tree()
         tree.append(
             arbor.mnpos,
@@ -206,9 +228,10 @@ class art_spiker_recipe(arbor.recipe):
         decor.set_property(Vm=-40)
         decor.paint('"soma"', arbor.density("hh"))
         decor.place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
-        decor.place('"midpoint"', arbor.spike_detector(-10), "detector")
+        decor.place('"midpoint"', arbor.threshold_detector(-10), "detector")
 
-        # return tuple of tree, labels, and decor for creating a cable cell (can still be modified before calling arbor.cable_cell())
+        # return tuple of tree, labels, and decor for creating a cable cell (can still
+        # be modified before calling arbor.cable_cell())
         return tree, labels, decor
 
     def cell_description(self, gid):
@@ -218,14 +241,14 @@ class art_spiker_recipe(arbor.recipe):
             )
         else:
             tree, labels, decor = self._cable_cell_elements()
-            return arbor.cable_cell(tree, labels, decor)
+            return arbor.cable_cell(tree, decor, labels)
 
 
 @_fixture
 def sum_weight_hh_spike():
     """
-    Fixture returning connection weight for 'expsyn_stdp' mechanism which is just enough to evoke an immediate spike
-    at t=1ms in the 'hh' neuron in 'art_spiker_recipe'
+    Fixture returning connection weight for 'expsyn_stdp' mechanism which is just enough
+    to evoke an immediate spike at t=1ms in the 'hh' neuron in 'art_spiker_recipe'
     """
     return 0.4
 
@@ -233,15 +256,15 @@ def sum_weight_hh_spike():
 @_fixture
 def sum_weight_hh_spike_2():
     """
-    Fixture returning connection weight for 'expsyn_stdp' mechanism which is just enough to evoke an immediate spike
-    at t=1.8ms in the 'hh' neuron in 'art_spiker_recipe'
+    Fixture returning connection weight for 'expsyn_stdp' mechanism which is just enough
+    to evoke an immediate spike at t=1.8ms in the 'hh' neuron in 'art_spiker_recipe'
     """
     return 0.36
 
 
 @_fixture
-@context
-@art_spiker_recipe
+@context()
+@art_spiker_recipe()
 def art_spiking_sim(context, art_spiker_recipe):
     dd = arbor.partition_load_balance(art_spiker_recipe, context)
     return arbor.simulation(art_spiker_recipe, context, dd)

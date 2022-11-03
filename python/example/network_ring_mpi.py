@@ -48,31 +48,29 @@ def make_cable_cell(gid):
     )
 
     # Associate labels to tags
-    labels = arbor.label_dict()
-    labels["soma"] = "(tag 1)"
-    labels["dend"] = "(tag 3)"
-
-    # (2) Mark location for synapse at the midpoint of branch 1 (the first dendrite).
-    labels["synapse_site"] = "(location 1 0.5)"
-    # Mark the root of the tree.
-    labels["root"] = "(root)"
+    labels = arbor.label_dict(
+        {
+            "soma": "(tag 1)",
+            "dend": "(tag 3)",
+            # (2) Mark location for synapse at the midpoint of branch 1 (the first dendrite).
+            "synapse_site": "(location 1 0.5)",
+            # Mark the root of the tree.
+            "root": "(root)",
+        }
+    )
 
     # (3) Create a decor and a cable_cell
-    decor = arbor.decor()
+    decor = (
+        arbor.decor()
+        # Put hh dynamics on soma, and passive properties on the dendrites.
+        .paint('"soma"', arbor.density("hh")).paint('"dend"', arbor.density("pas"))
+        # (4) Attach a single synapse.
+        .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
+        # Attach a detector with threshold of -10 mV.
+        .place('"root"', arbor.threshold_detector(-10), "detector")
+    )
 
-    # Put hh dynamics on soma, and passive properties on the dendrites.
-    decor.paint('"soma"', arbor.density("hh"))
-    decor.paint('"dend"', arbor.density("pas"))
-
-    # (4) Attach a single synapse.
-    decor.place('"synapse_site"', arbor.synapse("expsyn"), "syn")
-
-    # Attach a spike detector with threshold of -10 mV.
-    decor.place('"root"', arbor.spike_detector(-10), "detector")
-
-    cell = arbor.cable_cell(tree, labels, decor)
-
-    return cell
+    return arbor.cable_cell(tree, decor, labels)
 
 
 # (5) Create a recipe that generates a network of connected cells.

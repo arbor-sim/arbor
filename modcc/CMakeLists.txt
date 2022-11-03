@@ -2,13 +2,13 @@
 # unit tests for the driver also use this library.
 
 set(libmodcc_sources
-
     astmanip.cpp
     blocks.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp
     functioninliner.cpp
+    procinliner.cpp
     lexer.cpp
     kineticrewriter.cpp
     linearrewriter.cpp
@@ -41,7 +41,6 @@ if (ARB_USE_BUNDLED_FMT)
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/fmt/include>)
 
     target_compile_definitions(libmodcc PRIVATE FMT_HEADER_ONLY)
-
 else()
     target_include_directories(libmodcc
         PUBLIC
@@ -57,10 +56,25 @@ export_visibility(libmodcc)
 
 
 add_executable(modcc ${modcc_sources})
-target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
-set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 
-if (NOT ARB_WITH_EXTERNAL_MODCC)
-    install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+if (ARB_USE_BUNDLED_FMT)
+    target_include_directories(modcc
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+        PRIVATE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/fmt/include>)
+
+    target_compile_definitions(modcc PRIVATE FMT_HEADER_ONLY)
+else()
+    target_include_directories(modcc
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    find_package(fmt REQUIRED)
+    target_link_libraries(modcc PRIVATE fmt::fmt-header-only)
 endif()
 
+target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
+set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL OFF)
+install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

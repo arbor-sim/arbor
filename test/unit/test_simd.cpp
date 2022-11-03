@@ -96,7 +96,7 @@ namespace {
 template <typename S>
 struct simd_value: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(simd_value);
+TYPED_TEST_SUITE_P(simd_value);
 
 // Test agreement between simd::width(), simd::min_align() and corresponding type attributes.
 TYPED_TEST_P(simd_value, meta) {
@@ -588,7 +588,7 @@ TYPED_TEST_P(simd_value, simd_array_cast) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_value, meta, elements, element_lvalue, copy_to_from, copy_to_from_masked, construct_masked, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, mask_unpack, maths, simd_array_cast, reductions);
+REGISTER_TYPED_TEST_SUITE_P(simd_value, meta, elements, element_lvalue, copy_to_from, copy_to_from_masked, construct_masked, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, mask_unpack, maths, simd_array_cast, reductions);
 
 typedef ::testing::Types<
 
@@ -619,14 +619,14 @@ typedef ::testing::Types<
     simd<double, 8, simd_abi::default_abi>
 > simd_test_types;
 
-INSTANTIATE_TYPED_TEST_CASE_P(S, simd_value, simd_test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(S, simd_value, simd_test_types);
 
 // FP-only SIMD value tests (maths).
 
 template <typename S>
 struct simd_fp_value: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(simd_fp_value);
+TYPED_TEST_SUITE_P(simd_fp_value);
 
 TYPED_TEST_P(simd_fp_value, fp_maths) {
     using simd = TypeParam;
@@ -877,7 +877,7 @@ TYPED_TEST_P(simd_fp_value, log_special_values) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values, expm1_special_values, log_special_values);
+REGISTER_TYPED_TEST_SUITE_P(simd_fp_value, fp_maths, exp_special_values, expm1_special_values, log_special_values);
 
 typedef ::testing::Types<
 
@@ -902,7 +902,7 @@ typedef ::testing::Types<
     simd<double, 8, simd_abi::default_abi>
 > simd_fp_test_types;
 
-INSTANTIATE_TYPED_TEST_CASE_P(S, simd_fp_value, simd_fp_test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(S, simd_fp_value, simd_fp_test_types);
 
 // Gather/scatter tests.
 
@@ -915,7 +915,7 @@ struct simd_and_index {
 template <typename SI>
 struct simd_indirect: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(simd_indirect);
+TYPED_TEST_SUITE_P(simd_indirect);
 
 TYPED_TEST_P(simd_indirect, gather) {
     using simd = typename TypeParam::simd;
@@ -1192,7 +1192,7 @@ TYPED_TEST_P(simd_indirect, constrained_add) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_indirect, gather, masked_gather, scatter, masked_scatter, add_and_subtract, constrained_add);
+REGISTER_TYPED_TEST_SUITE_P(simd_indirect, gather, masked_gather, scatter, masked_scatter, add_and_subtract, constrained_add);
 
 typedef ::testing::Types<
 
@@ -1240,7 +1240,7 @@ typedef ::testing::Types<
                    simd<int, 8, simd_abi::default_abi>>
 > simd_indirect_test_types;
 
-INSTANTIATE_TYPED_TEST_CASE_P(S, simd_indirect, simd_indirect_test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(S, simd_indirect, simd_indirect_test_types);
 
 
 // SIMD cast tests
@@ -1254,7 +1254,7 @@ struct simd_pair {
 template <typename SI>
 struct simd_casting: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(simd_casting);
+TYPED_TEST_SUITE_P(simd_casting);
 
 TYPED_TEST_P(simd_casting, cast) {
     using simd_x = typename TypeParam::simd_first;
@@ -1286,7 +1286,7 @@ TYPED_TEST_P(simd_casting, cast) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_casting, cast);
+REGISTER_TYPED_TEST_SUITE_P(simd_casting, cast);
 
 
 typedef ::testing::Types<
@@ -1314,7 +1314,7 @@ typedef ::testing::Types<
               simd<float, 4, simd_abi::default_abi>>
 > simd_casting_test_types;
 
-INSTANTIATE_TYPED_TEST_CASE_P(S, simd_casting, simd_casting_test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(S, simd_casting, simd_casting_test_types);
 
 
 // Sizeless simd types API tests
@@ -1336,7 +1336,7 @@ struct simd_types_t {
 template <typename SI>
 struct sizeless_api: public ::testing::Test {};
 
-TYPED_TEST_CASE_P(sizeless_api);
+TYPED_TEST_SUITE_P(sizeless_api);
 
 TYPED_TEST_P(sizeless_api, construct) {
     using simd_value   = typename TypeParam::simd_value::simd_type;
@@ -1798,7 +1798,7 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
 
 }
 
-REGISTER_TYPED_TEST_CASE_P(sizeless_api, construct, where_exp, arithmetic);
+REGISTER_TYPED_TEST_SUITE_P(sizeless_api, construct, where_exp, arithmetic);
 
 typedef ::testing::Types<
 
@@ -1836,4 +1836,4 @@ typedef ::testing::Types<
                   simd_t<simd_mask<double, 8, simd_abi::default_abi>, bool,   8>>
 > sizeless_api_test_types;
 
-INSTANTIATE_TYPED_TEST_CASE_P(S, sizeless_api, sizeless_api_test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(S, sizeless_api, sizeless_api_test_types);

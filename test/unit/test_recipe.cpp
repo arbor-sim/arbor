@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <any>
 #include <vector>
@@ -69,7 +69,7 @@ namespace {
         tree.append(arb::mnpos, {0,0,0,10}, {0,0,20,10}, 1); // soma
         tree.append(0, {0,0, 20, 2}, {0,0, 320, 2}, 3);  // dendrite
 
-        arb::cable_cell cell(tree);
+        arb::cable_cell cell(tree, {});
 
         arb::decor decorations;
 
@@ -88,7 +88,7 @@ namespace {
             decorations.place(arb::mlocation{0,(double)i/num_gj}, arb::junction("gj"), "gapjunction"+std::to_string(i));
         }
 
-        return arb::cable_cell(tree, {}, decorations);
+        return arb::cable_cell(tree, decorations);
     }
 }
 
@@ -201,20 +201,21 @@ TEST(recipe, event_generators) {
 
     auto cell_0 = custom_cell(1, 2, 0);
     auto cell_1 = custom_cell(2, 1, 0);
-    std::vector<arb::event_generator> gens_0, gens_1;
     {
-        gens_0 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}, {{"synapse1"}, 2.0, 0.1}})};
-
-        gens_1 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}})};
+        std::vector<arb::event_generator>
+            gens_0 = {arb::explicit_generator({"synapse0"}, 0.1, std::vector<arb::time_type>{1.0}),
+                      arb::explicit_generator({"synapse1"}, 0.1, std::vector<arb::time_type>{2.0})},
+            gens_1 = {arb::explicit_generator({"synapse0"}, 0.1, std::vector<arb::time_type>{1.0})};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);
 
-        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0));
+        EXPECT_NO_THROW(simulation(recipe_0, context, decomp_0).run(1, 0.1));
     }
     {
-        gens_0 = {arb::explicit_generator({{{"synapse0"}, 1.0, 0.1}, {{"synapse3"}, 2.0, 0.1}})};
-        gens_1.clear();
+        std::vector<arb::event_generator>
+            gens_0 = {arb::regular_generator({"totally-not-a-synapse-42"}, 0.1, 0, 0.001)},
+            gens_1 = {};
 
         auto recipe_0 = custom_recipe({cell_0, cell_1}, {{}, {}}, {{}, {}},  {gens_0, gens_1});
         auto decomp_0 = partition_load_balance(recipe_0, context);

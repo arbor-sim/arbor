@@ -5,7 +5,7 @@
 
 #include <arbor/util/any_visitor.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
 
 using namespace std::string_literals;

@@ -53,7 +53,7 @@ enum class tok {
     // block keywoards
     title,
     neuron, units, parameter,
-    constant, assigned, state, breakpoint,
+    constant, assigned, white_noise, state, breakpoint,
     derivative, kinetic, procedure, initial, function, linear,
     net_receive, post_event,
 
@@ -80,8 +80,12 @@ enum class tok {
     // solver methods
     cnexp,
     sparse,
+    stochastic,
 
     conductance,
+
+    // trap unsupported keywords
+    watch,
 
     reserved, // placeholder for generating keyword lookup
 };

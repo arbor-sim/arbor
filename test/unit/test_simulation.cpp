@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <random>
 #include <vector>
@@ -53,6 +53,30 @@ TEST(simulation, null) {
     auto d = arb::partition_load_balance(r, c);
     auto s = arb::simulation(r, c, d);
     s.run(0.05, 0.01);
+}
+
+// Test with simulation builder
+TEST(simulation, null_builder) {
+    auto r = null_recipe{};
+    {
+        arb::simulation s = arb::simulation::create(r);
+        s.run(0.05, 0.01);
+    }
+    {
+        arb::simulation s = arb::simulation::create(r).set_seed(42);
+        s.run(0.05, 0.01);
+    }
+    {
+        auto c = arb::make_context();
+        arb::simulation s = arb::simulation::create(r).set_context(c);
+        s.run(0.05, 0.01);
+    }
+    {
+        auto c = arb::make_context();
+        auto d = arb::partition_load_balance(r, c);
+        arb::simulation s = arb::simulation::create(r).set_context(c).set_decomposition(d);
+        s.run(0.05, 0.01);
+    }
 }
 
 TEST(simulation, spike_global_callback) {
@@ -124,7 +148,7 @@ struct lif_chain: public recipe {
             return {};
         }
         else {
-            return {schedule_generator({"tgt"}, weight_, triggers_)};
+            return {event_generator({"tgt"}, weight_, triggers_)};
         }
     }
 

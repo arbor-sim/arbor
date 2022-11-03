@@ -28,7 +28,7 @@ public:
 
     void clear_spikes() override;
 
-    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
+    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
 
     void remove_sampler(sampler_association_handle h) override {}
 

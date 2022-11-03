@@ -22,16 +22,16 @@ namespace gpu {
 
 void test_thresholds_impl(
     int size,
-    const fvm_index_type* cv_to_intdom, const fvm_value_type* t_after, const fvm_value_type* t_before,
-    const fvm_index_type* src_to_spike, fvm_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
-    fvm_index_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds,
+    const arb_index_type* cv_to_intdom, const arb_value_type* t_after, const arb_value_type* t_before,
+    const arb_index_type* src_to_spike, arb_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
+    arb_index_type* is_crossed, arb_value_type* prev_values,
+    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds,
     bool record);
 
 void reset_crossed_impl(
     int size,
-    fvm_index_type* is_crossed,
-    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+    arb_index_type* is_crossed,
+    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds);
 
 
 class threshold_watcher {
@@ -45,13 +45,13 @@ public:
     threshold_watcher(const execution_context& ctx): stack_(ctx.gpu) {}
 
     threshold_watcher(
-        const fvm_index_type* cv_to_intdom,
-        const fvm_index_type* src_to_spike,
+        const arb_index_type* cv_to_intdom,
+        const arb_index_type* src_to_spike,
         const array* t_before,
         const array* t_after,
-        const fvm_size_type num_cv,
-        const std::vector<fvm_index_type>& detector_cv_idx,
-        const std::vector<fvm_value_type>& thresholds,
+        const arb_size_type num_cv,
+        const std::vector<arb_index_type>& detector_cv_idx,
+        const std::vector<arb_value_type>& thresholds,
         const execution_context& ctx
     ):
         cv_to_intdom_(cv_to_intdom),
@@ -110,7 +110,6 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test(array* time_since_spike) {
-        arb_assert(values_);
 
         if (size()>0) {
             test_thresholds_impl(
@@ -136,9 +135,9 @@ private:
     /// Non-owning pointers to cv-to-intdom map,
     /// the values for to test against thresholds,
     /// and pointers to the time arrays
-    const fvm_index_type* cv_to_intdom_ = nullptr;
-    const fvm_value_type* values_ = nullptr;
-    const fvm_index_type* src_to_spike_ = nullptr;
+    const arb_index_type* cv_to_intdom_ = nullptr;
+    const arb_value_type* values_ = nullptr;
+    const arb_index_type* src_to_spike_ = nullptr;
     const array* t_before_ptr_ = nullptr;
     const array* t_after_ptr_ = nullptr;
 

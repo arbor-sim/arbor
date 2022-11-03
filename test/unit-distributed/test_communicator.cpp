@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "test.hpp"
 
 #include <tuple>
@@ -201,7 +201,7 @@ namespace {
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
-                return arb::cable_cell(arb::morphology(tree), {}, decor);
+                return arb::cable_cell(arb::morphology(tree), decor);
             }
             return arb::lif_cell("src", "tgt");
         }
@@ -274,7 +274,7 @@ namespace {
             decor.set_default(arb::cv_policy_fixed_per_branch(10));
             decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
             decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), arb::synapse("expsyn"), "tgt");
-            return arb::cable_cell(arb::morphology(tree), {}, decor);
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable;
@@ -352,7 +352,7 @@ namespace {
                 decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10}, "detectors_0");
                 decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10}, "detectors_1");
             }
-            return arb::cable_cell(arb::morphology(tree), {}, decor);
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -531,8 +531,8 @@ TEST(communicator, ring)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids(local_sources);
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets), *g_context);
-
+    auto C = communicator(R, D, *g_context);
+    C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets));
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
     // last cell in each domain fires
@@ -638,16 +638,17 @@ TEST(communicator, all2all)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}), *g_context);
+    auto C = communicator(R, D, *g_context);
+    C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}));
     auto connections = C.connections();
 
     for (auto i: util::make_span(0, n_global)) {
-        for (unsigned j = 0; j < n_local; ++j) {
+        for (auto j: util::make_span(0, n_local)) {
             auto c = connections[i*n_local+j];
-            EXPECT_EQ(i, c.source().gid);
-            EXPECT_EQ(0u, c.source().index);
-            EXPECT_EQ(i, c.destination());
-            EXPECT_LT(c.index_on_domain(), n_local);
+            EXPECT_EQ(i, c.source.gid);
+            EXPECT_EQ(0u, c.source.index);
+            EXPECT_EQ(i, c.destination);
+            EXPECT_LT(c.index_on_domain, n_local);
         }
     }
 
@@ -684,12 +685,13 @@ TEST(communicator, mini_network)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
-    auto C = communicator(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}), *g_context);
+    auto C = communicator(R, D, *g_context);
+    C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
 
     // sort connections by source then target
     auto connections = C.connections();
     util::sort(connections, [](const connection& lhs, const connection& rhs) {
-      return std::forward_as_tuple(lhs.source(), lhs.index_on_domain(), lhs.destination()) < std::forward_as_tuple(rhs.source(), rhs.index_on_domain(), rhs.destination());
+      return std::forward_as_tuple(lhs.source, lhs.index_on_domain, lhs.destination) < std::forward_as_tuple(rhs.source, rhs.index_on_domain, rhs.destination);
     });
 
     // Expect one set of 22 connections from every rank: these have been sorted.
@@ -701,9 +703,9 @@ TEST(communicator, mini_network)
         std::vector<cell_gid_type> ex_source_gids(22u, i*3 + 1);
         for (unsigned j = 0; j < 22u; ++j) {
             auto c = connections[i*22 + j];
-            EXPECT_EQ(ex_source_gids[j], c.source().gid);
-            EXPECT_EQ(ex_source_lids[j], c.source().index);
-            EXPECT_EQ(ex_target_lids[i%2][j], c.destination());
+            EXPECT_EQ(ex_source_gids[j], c.source.gid);
+            EXPECT_EQ(ex_source_lids[j], c.source.index);
+            EXPECT_EQ(ex_target_lids[i%2][j], c.destination);
         }
     }
 }

@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
         // This is where the voltage samples will be stored as (time, value) pairs
         std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells());
 
-        // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
+        // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
         unsigned j=0;
         for (auto g : decomp.groups()) {
             for (auto i : g.gids) {
@@ -275,37 +275,21 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     double dend_rad = 3./2; // μm
     tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
-    arb::decor decor;
-
-    decor.set_default(arb::axial_resistivity{100});       // [Ω·cm]
-    decor.set_default(arb::membrane_capacitance{0.018});  // [F/m²]
-
-    // Define the density channels and their parameters.
-    arb::mechanism_desc nax("nax");
-    nax["gbar"] = 0.04;
-    nax["sh"] = 10;
-
-    arb::mechanism_desc kdrmt("kdrmt");
-    kdrmt["gbar"] = 0.0001;
-
-    arb::mechanism_desc kamt("kamt");
-    kamt["gbar"] = 0.004;
-
-    arb::mechanism_desc pas("pas/e=-65.0");
-    pas["g"] =  1.0/12000.0;
-
-    // Paint density channels on all parts of the cell
-    decor.paint("(all)"_reg, arb::density{nax});
-    decor.paint("(all)"_reg, arb::density{kdrmt});
-    decor.paint("(all)"_reg, arb::density{kamt});
-    decor.paint("(all)"_reg, arb::density{pas});
-
-    // Add a spike detector to the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
-
-    // Add two gap junction sites.
-    decor.place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1");
-    decor.place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0");
+    auto decor = arb::decor{}
+        .set_default(arb::axial_resistivity{100})       // [Ω·cm]
+        .set_default(arb::membrane_capacitance{0.018})  // [F/m²]
+        // Paint density channels on all parts of the cell
+        .paint("(all)"_reg, arb::density{"nax", {{"gbar", 0.04}, {"sh", 10}}})
+        .paint("(all)"_reg, arb::density{"kdrmt", {{"gbar", 0.0001}}})
+        .paint("(all)"_reg, arb::density{"kamt", {{"gbar", 0.004}}})
+        .paint("(all)"_reg, arb::density{"pas/e=-65", {{"g", 1.0/12000.0}}})
+        // Add a spike detector to the soma.
+        .place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector")
+        // Add two gap junction sites.
+        .place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1")
+        .place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0")
+        // Add a synapse to the mid point of the first dendrite.
+        .place(arb::mlocation{0, 0.5}, arb::synapse{"expsyn"}, "syn");
 
     // Attach a stimulus to the first cell of the first group
     if (!gid) {
@@ -313,11 +297,8 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
         decor.place(arb::mlocation{0, 0.5}, stim, "stim");
     }
 
-    // Add a synapse to the mid point of the first dendrite.
-    decor.place(arb::mlocation{0, 0.5}, arb::synapse{"expsyn"}, "syn");
-
     // Create the cell and set its electrical properties.
-    return arb::cable_cell(tree, {}, decor);
+    return arb::cable_cell(tree, decor);
 }
 
 gap_params read_options(int argc, char** argv) {

@@ -11,6 +11,8 @@ inline std::string to_string(symbolKind k) {
             return std::string("indexed variable");
         case symbolKind::local_variable:
             return std::string("local");
+        case symbolKind::white_noise:
+            return std::string("white noise");
         case symbolKind::procedure:
             return std::string("procedure");
         case symbolKind::function:
@@ -73,6 +75,15 @@ std::string LocalVariable::to_string() const {
     if(is_indexed()) {
         s += " -> " + yellow(external_->name());
     }
+    return s;
+}
+
+/*******************************************************************************
+  WhiteNoise
+*******************************************************************************/
+
+std::string WhiteNoise::to_string() const {
+    std::string s = blue("White Noise") + " " + yellow(name());
     return s;
 }
 
@@ -1006,6 +1017,9 @@ void Symbol::accept(Visitor *v) {
     v->visit(this);
 }
 void LocalVariable::accept(Visitor *v) {
+    v->visit(this);
+}
+void WhiteNoise::accept(Visitor *v) {
     v->visit(this);
 }
 void IdentifierExpression::accept(Visitor *v) {

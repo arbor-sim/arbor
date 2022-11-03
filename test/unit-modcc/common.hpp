@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include "expression.hpp"
 #include "parser.hpp"
