@@ -14,6 +14,7 @@ target_include_directories(ou PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/ou"
 target_link_libraries(ou PRIVATE arbor arborio ou-catalogue)
 if (ARB_USE_BUNDLED_FMT)
     target_include_directories(ou PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../ext/fmt/include")
+    target_compile_definitions(ou PRIVATE FMT_HEADER_ONLY)
 else()
     find_package(fmt REQUIRED)
     target_link_libraries(ou PRIVATE fmt::fmt-header-only)
