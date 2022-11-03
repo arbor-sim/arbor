@@ -212,7 +212,7 @@ void test_statistics(const std::vector<T>& ordered_samples, double mu, double si
 using namespace arb;
 using namespace arborio::literals;
 
-// forward declarations
+// forward declaration
 class sde_recipe;
 
 // global variables used in overriden advance methods
