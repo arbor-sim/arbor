@@ -117,11 +117,13 @@ set(unit_sources
     test_piecewise.cpp
     test_pp_util.cpp
     test_probe.cpp
+    test_rand.cpp
     test_range.cpp
     test_recipe.cpp
     test_ratelem.cpp
     test_schedule.cpp
     test_scope_exit.cpp
+    test_sde.cpp
     test_segment_tree.cpp
     test_simd.cpp
     test_simulation.cpp
@@ -143,7 +145,6 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
-    test_sde.cpp
 
     # unit test driver
     test.cpp
