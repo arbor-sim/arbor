@@ -53,8 +53,8 @@ class Arbor(CMakePackage, CudaPackage):
     )
 
     # https://docs.arbor-sim.org/en/latest/install/build_install.html#compilers
-    conflicts("%gcc@:8.3")
-    conflicts("%clang@:7")
+    conflicts("%gcc@:8")
+    conflicts("%clang@:9")
     # Cray compiler v9.2 and later is Clang-based.
     conflicts("%cce@:9.1")
     conflicts("%intel")
@@ -63,10 +63,13 @@ class Arbor(CMakePackage, CudaPackage):
 
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
+    depends_on("fmt@9.1:", when="@0.7.1:")
     depends_on("nlohmann-json")
     depends_on("random123")
-    depends_on("cuda@10:", when="+cuda")
     depends_on("libxml2", when="+neuroml")
+    with when("+cuda"):
+        depends_on("cuda@10:")
+        depends_on("cuda@11:", when="@0.7.1:")
 
     # mpi
     depends_on("mpi", when="+mpi")
@@ -79,7 +82,7 @@ class Arbor(CMakePackage, CudaPackage):
     with when("+python"):
         depends_on("py-pybind11@2.6:", type=("build"))
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type=("build"))
-        depends_on("py-pybind11@2.10.0:", when="@0.7.1:", type=("build"))
+        depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type=("build"))
 
     # sphinx based documentation
     depends_on("python@3.7:", when="+doc", type="build")
