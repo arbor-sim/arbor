@@ -1,4 +1,4 @@
-# The modcc compiler is split into a staric library and driver;
+# The modcc compiler is split into a static library and driver;
 # unit tests for the driver also use this library.
 
 set(libmodcc_sources
@@ -76,5 +76,7 @@ else()
 endif()
 
 target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
-set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL OFF)
-install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
+if (NOT ARB_WITH_EXTERNAL_MODCC)
+    install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
