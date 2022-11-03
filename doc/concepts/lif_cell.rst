@@ -25,7 +25,9 @@ The LIF cell's time dynamics are this:
 
 0. :math:`U_\mathrm{m}(0) = V_\mathrm{0}`,
 1. If the cell is in its refractory state :math:`U_\mathrm{m}(t) = E_\mathrm{R}`
-2. Otherwise :math:`U'_\mathrm{m}(t) = \sum\limits_\mathrm{spike} w_\mathrm{spike} \cdot\delta(t - t_\mathrm{spike}) - \frac{1}{\tau_\mathrm{m}}\left(U_\mathrm{m}(t)) - E_\mathrm{L}\right)`
+2. Otherwise
+   :math:`U'_\mathrm{m}(t) = \sum\limits_\mathrm{spike} w_\mathrm{spike}\cdot\delta(t - t_\mathrm{spike}) - \frac{1}{\tau_\mathrm{m}}\left(U_\mathrm{m}(t)) - E_\mathrm{L}\right)`
+   where :math:`w_\mathrm{spike}` represents the weight of the synaptic connection associated with the given spike event.
 3. If :math:`U_\mathrm{m}(t_0) \geq U_\mathrm{threshold}`: emit spike and enter refractory period until :math:`t = t_0 + t_\mathrm{ref}`
 
 LIF cells can be probed to obtain their current membrane potential, see :ref:`probesample`.
