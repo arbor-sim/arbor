@@ -26,8 +26,8 @@ jobs:
       - name: Python Formatting
         uses: psf/black@stable
         with:
-          options: --check
-          src: scripts/build-catalogue.in .
+          options: --check --extend-exclude '/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
+          src: .
       - name: Python analysis
         run: |
-          flake8 scripts/build-catalogue.in .
+          flake8 .

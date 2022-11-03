@@ -54,6 +54,10 @@ A full list of dependencies and minimum versions supported thereof is maintained
    :widths: 10, 20, 10, 70, 1
    :header-rows: 1
 
+Note, that while we consider these to be our minimally supported versions, Arbor
+might still compile and work fine using older versions. We will, however, not
+offer much support for these versions, nor will we fix issues specific to them.
+
 Minimum requirements
 --------------------
 
@@ -161,8 +165,8 @@ them to the base exception types ``arbor_exception`` and
 Documentation
 ~~~~~~~~~~~~~~
 
-To build a local copy of the html documentation that you are reading now, you will need to
-install ``Sphinx <http://www.sphinx-doc.org/en/master/>`_.
+To build a local copy of the html documentation that you are reading now, you
+will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
@@ -552,7 +556,7 @@ component ``neuroml``. The corresponding CMake library target is ``arbor::arbori
    # ...
    target_link_libraries(myapp arbor::arborio)
 
-.. install-profiling:
+.. _install-profiling:
 
 Profiling
 ---------
@@ -605,7 +609,7 @@ on your target system that are not covered here, please make an issue on the
 Arbor `Github issues <https://github.com/arbor-sim/arbor/issues>`_ page.
 We will do our best to help you directly, and update this guide to help other users.
 
-.. warn::
+.. warning::
 
    On many HPC systems a tool called ``module`` or ``ml`` is installed, which
    use the ``CPATH`` environment variable to set up include paths for building.
@@ -662,6 +666,22 @@ using the supplied MPI compiler wrappers in preference.
         $ CC --version
         g++ (GCC) 6.2.0 20160822 (Cray Inc.)
 
+
+Heterogeneous systems
+---------------------
+
+Some HPC clusters offer different types of nodes, with different hardware and
+where some may have GPUs. In order for the compilers to correctly target the
+intended hardware and link to the appropriate libraries it may be necessary to
+load a top-level module for cross-compiling. For example, on the hybrid Piz
+Daint system, one would execute:
+
+.. code-block:: bash
+
+    module load daint-gpu
+
+This loads the required dependencies for the GPU node architecture.
+
 Cray systems
 ------------
 
@@ -669,6 +689,11 @@ The compiler used by the MPI wrappers is set using a "programming environment" m
 The first thing to do is change this module, which by default is set to the Cray
 programming environment, to a compiler that can compile Arbor.
 For example, to use the GCC compilers, select the GNU programming environment:
+
+.. note::
+
+   While the specific versions mentioned here may be outdated, the general workflow
+   is still correct.
 
 .. code-block:: bash
 
@@ -683,12 +708,11 @@ then choose GCC 7.1.0
     $ module avail gcc      # see all available gcc versions
 
     ------------------------- /opt/modulefiles ---------------------------
-    gcc/4.9.3    gcc/6.1.0    gcc/7.1.0    gcc/5.3.0(default)    gcc/6.2.0
+    gcc/8.1.0    gcc/8.3.0    gcc/9.3.0    gcc/10.3.0    gcc/11.2.0(default)
 
-    $ module swap gcc/7.1.0 # swap gcc 5.3.0 for 7.1.0
 
     $ CC --version          # test that the wrapper uses gcc 7.1.0
-    g++ (GCC) 7.1.0 20170502 (Cray Inc.)
+    g++ (GCC) 11.2.0 20210728 (Cray Inc.)
 
     # set compiler wrappers
     $ export CC=`which cc`
@@ -697,6 +721,21 @@ then choose GCC 7.1.0
 Note that the C and C++ compiler wrappers are called ``cc`` and ``CC``
 respectively on Cray systems.
 
+.. note::
+
+    When targeting the cuda backend, the compiler has to be compatible with the
+    respective cuda toolkit version. Thus, it may be necessary to switch the
+    compiler. On Piz Daint, for example, one would do the following at the time
+    of this writing:
+
+    .. code-block:: bash
+
+        $ module load daint-gpu/21.09
+        $ module load craype-accel-nvidia60
+        $ module swap cudatoolkit/21.5_11.3 # switch to newer cuda toolkit
+        $ module swap gcc/9.3.0 # switch to 9.3.0 from 11.2.0
+
+
 CMake detects that it is being run in the Cray programming environment, which makes
 our lives a little bit more difficult (CMake sometimes tries a bit too hard to help).
 To get CMake to correctly link our code, we need to set the ``CRAYPE_LINK_TYPE``
@@ -704,20 +743,15 @@ environment variable to ``dynamic``.
 
 .. code-block:: bash
 
-    export CRAYPE_LINK_TYPE=dynamic
+    $ export CRAYPE_LINK_TYPE=dynamic
 
-Putting it all together, a typical workflow to build Arbor on a Cray system is:
+.. note::
 
-.. code-block:: bash
+    This step is no longer required beginning with the Cray PE 19.06 release, where
+    the default linking mode is dynamic.
 
-    export CRAYPE_LINK_TYPE=dynamic
-    module swap PrgEnv-cray PrgEnv-gnu
-    module swap gcc/7.1.0
-    export CC=`which cc`; export CXX=`which CC`;
-    cmake -DARB_WITH_MPI=ON    # MPI support
-
-.. Note::
-    If ``CRAYPE_LINK_TYPE`` isn't set, there will be warnings like the following when linking:
+    On older systems, if ``CRAYPE_LINK_TYPE`` isn't set, there will be warnings like
+    the following when linking:
 
     .. code-block:: none
 
@@ -726,6 +760,42 @@ Putting it all together, a typical workflow to build Arbor on a Cray system is:
 
     Often the library or executable will work, however if a different glibc is loaded,
     Arbor will crash at runtime with obscure errors that are very difficult to debug.
+
+For building Arbor's Python interface, it may be necessary to load a Python that knows about the target system; in the case of the CSCS Cray system:
+python version, which knows about the Cray system:
+
+.. code-block:: bash
+
+    $ module load cray-python/3.9.4.1 
+
+Putting it all together, a typical workflow to build Arbor on a Cray system is:
+
+.. code-block:: bash
+
+    export CRAYPE_LINK_TYPE=dynamic    # only required if Cray PE version < 19.06
+    
+    # For GPU setup
+    module load daint-gpu/21.09        # system specific
+    module load craype-accel-nvidia60  # system specific
+    module swap cudatoolkit/21.5_11.3  # system specific
+
+    module swap PrgEnv-cray PrgEnv-gnu
+
+    # Load newest or cuda-toolkit compatible compiler
+    module swap gcc/9.3.0
+    export CC=`which cc`; export CXX=`which CC`;
+
+    module load cray-python/3.9.4.1
+
+    # For CPU builds
+    cmake -DARB_WITH_MPI=ON    # MPI support
+
+    # For GPU builds
+    cmake -DARB_WITH_MPI=ON \                  # MPI support
+        -DARB_GPU=cuda \                       # target cuda backend
+        -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \  # use shared cuda libraries
+        -DCUDA_USE_STATIC_CUDA_RUNTIME=OFF
+
 
 
 .. _troubleshooting:

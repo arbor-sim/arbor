@@ -57,7 +57,8 @@ struct recorder_factory_map {
             return map_.at(meta.type())(meta);
         }
         catch (std::out_of_range&) {
-            throw arb::arbor_internal_error("unrecognized probe metadata type");
+            std::string ty = meta.type().name();
+            throw arb::arbor_internal_error("unrecognized probe metadata type " + ty);
         }
     }
 };

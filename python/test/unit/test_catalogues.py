@@ -43,7 +43,7 @@ class TestCatalogues(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             arb.load_catalogue("_NO_EXIST_.so")
 
-    @fixtures.dummy_catalogue
+    @fixtures.dummy_catalogue()
     def test_shared_catalogue(self, dummy_catalogue):
         cat = dummy_catalogue
         nms = [m for m in cat]
