@@ -226,6 +226,8 @@ void register_cells(pybind11::module& m) {
             "Membrane capacitance [pF].")
         .def_readwrite("E_L", &arb::lif_cell::E_L,
             "Resting potential [mV].")
+        .def_readwrite("E_R", &arb::lif_cell::E_R,
+            "Reset potential [mV].")
         .def_readwrite("V_m", &arb::lif_cell::V_m,
             "Initial value of the Membrane potential [mV].")
         .def_readwrite("t_ref", &arb::lif_cell::t_ref,
