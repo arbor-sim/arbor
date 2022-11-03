@@ -1,54 +1,54 @@
-.. _pylifcell:
+.. _cpplifcell:
 
 LIF cells
 ===========
 
-.. currentmodule:: arbor
+.. cpp:namespace:: arb
 
-.. py:class:: lif_cell
+.. cpp:class:: lif_cell
 
     A benchmarking cell (leaky integrate-and-fire), used by Arbor developers to test communication performance,
     with neuronal parameters:
 
-    .. function:: lif_cell(source, target)
+    .. cpp:function:: lif_cell(cell_tag_type source, cell_tag_type target)
 
         Constructor: assigns the label ``source`` to the single built-in source on the cell; and assigns the
         label ``target`` to the single built-in target on the cell.
 
-    .. attribute:: source
+    .. cpp:member:: cell_tag_type source
 
         The label of the single built-in source on the cell. Used for forming connections from the cell in the
-        :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
+        :cpp:class:`recipe` by creating a :cpp:class:`connection`.
 
-    .. attribute:: target
+    .. cpp:member:: cell_tag_type target
 
         The label of the single built-in target on the cell. Used for forming connections to the cell in the
-        :py:class:`arbor.recipe` by creating a :py:class:`arbor.connection`.
+        :cpp:class:`recipe` by creating a :cpp:class:`connection`.
 
-    .. attribute:: tau_m
+    .. cpp:member:: double tau_m
 
         Membrane potential decaying constant [ms].
 
-    .. attribute:: V_th
+    .. cpp:member:: double V_th
 
         Firing threshold [mV].
 
-    .. attribute:: C_m
+    .. cpp:member:: double C_m
 
         Membrane capacitance [pF].
 
-    .. attribute:: E_L
+    .. cpp:member:: double E_L
 
         Resting potential [mV].
 
-    .. attribute:: E_R
+    .. cpp:member:: double E_R
 
         Reset potential [mV].
 
-    .. attribute:: V_m
+    .. cpp:member:: double V_m
 
         Initial value of the Membrane potential [mV].
 
-    .. attribute:: t_ref
+    .. cpp:member:: double t_ref
 
         Refractory period [ms].
