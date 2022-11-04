@@ -26,7 +26,7 @@ option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Specify target architecture.
+# Specify target archiecture.
 
 set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
@@ -394,17 +394,7 @@ endif()
 # Build modcc flags
 #------------------------------------------------
 
-if(ARB_MODCC)
-    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
-    if(NOT modcc)
-        message(FATAL_ERROR "Unable to find modcc executable.")
-    endif()
-    set(ARB_WITH_EXTERNAL_MODCC TRUE)
-else()
-    set(modcc $<TARGET_FILE:modcc>)
-    add_subdirectory(modcc)
-    set(ARB_WITH_EXTERNAL_MODCC FALSE)
-endif()
+set(modcc $<TARGET_FILE:modcc>)
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
@@ -467,6 +457,9 @@ add_subdirectory(arbor/include)
 
 # arbor-sup:
 add_subdirectory(sup)
+
+# modcc, libmodcc:
+add_subdirectory(modcc)
 
 # arbor, arbor-private-headers:
 add_subdirectory(arbor)
