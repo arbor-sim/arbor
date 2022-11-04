@@ -402,6 +402,7 @@ if(ARB_MODCC)
     set(ARB_WITH_EXTERNAL_MODCC TRUE)
 else()
     set(modcc $<TARGET_FILE:modcc>)
+    add_subdirectory(modcc)
     set(ARB_WITH_EXTERNAL_MODCC FALSE)
 endif()
 set(ARB_MODCC_FLAGS)
@@ -466,9 +467,6 @@ add_subdirectory(arbor/include)
 
 # arbor-sup:
 add_subdirectory(sup)
-
-# modcc, libmodcc:
-add_subdirectory(modcc)
 
 # arbor, arbor-private-headers:
 add_subdirectory(arbor)
