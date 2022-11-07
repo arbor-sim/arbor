@@ -395,7 +395,7 @@ endif()
 #------------------------------------------------
 
 if(ARB_MODCC)
-    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH REQUIRED)
     if(NOT modcc)
         message(FATAL_ERROR "Unable to find modcc executable.")
     endif()
