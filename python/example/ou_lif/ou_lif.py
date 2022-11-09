@@ -9,124 +9,129 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def make_catalogue():
+    # build a new catalogue
+    out = subprocess.getoutput("arbor-build-catalogue ou_lif . --cpu True")
+    print(out)
+    # load the new catalogue and extend it with builtin stochastic catalogue
+    cat = arb.load_catalogue("./ou_lif-catalogue.so")
+    cat.extend(arb.stochastic_catalogue(), "")
+    return cat
+
+
+def make_cell():
+
+    # cell morphology
+    # ===============
+
+    tree = arb.segment_tree()
+    radius = 1e-10  # radius of cylinder (in µm)
+    height = 2 * radius  # height of cylinder (in µm)
+    tree.append(
+        arb.mnpos,
+        arb.mpoint(-height / 2, 0, 0, radius),
+        arb.mpoint(height / 2, 0, 0, radius),
+        tag=1,
+    )
+    labels = arb.label_dict({"center": "(location 0 0.5)"})
+
+    # LIF density mechanism
+    # =====================
+
+    # surface area of the cylinder in m^2 (excluding the circle-shaped ends, since Arbor does
+    # not consider current flux there)
+    area_m2 = 2 * np.pi * (radius * 1e-6) * (height * 1e-6)
+    area_cm2 = area_m2 * 1e4
+    # conversion factor from nA to mA/cm^2; for point neurons
+    i_factor = (1e-9 / 1e-3) / area_cm2
+    # neuronal capacitance in F
+    C_mem = 1e-9
+    # specific capacitance in F/m^2, computed from absolute capacitance of point neuron
+    c_mem = C_mem / area_m2
+    # reversal potential in mV
+    V_rev = -65.0
+    # spiking threshold in mV
+    V_th = -55.0
+    # initial synaptic weight in nC
+    h_0 = 4.20075
+    # leak resistance in MOhm
+    R_leak = 10.0
+    # membrane time constant in ms
+    tau_mem = 2.0
+
+    lif = arb.mechanism("lif")
+    lif.set("R_leak", R_leak)
+    lif.set("R_reset", 1e-10)
+    # set to initial value to zero (background input is applied via stochastic ou_bg_mech)
+    lif.set("I_0", 0)
+    lif.set("i_factor", i_factor)
+    lif.set("V_rev", V_rev)
+    lif.set("V_reset", -70.0)
+    lif.set("V_th", V_th)
+    # refractory time in ms
+    lif.set("t_ref", tau_mem)
+
+    # stochastic background input current (point mechanism)
+    # =====================================================
+
+    # synaptic time constant in ms
+    tau_syn = 5.0
+    # mean in nA
+    mu_bg = 0.15
+    # volatility in nA
+    sigma_bg = 0.5
+    # instantiate mechanism
+    ou_bg = arb.mechanism("noisy_expsyn_curr")
+    ou_bg.set("mu", mu_bg)
+    ou_bg.set("sigma", sigma_bg)
+    ou_bg.set("tau", tau_syn)
+
+    # stochastic stimulus input current (point mechanism)
+    # ===================================================
+
+    # number of neurons in the putative population
+    N = 25
+    # firing rate of the putative neurons in Hz
+    f = 100
+    # synaptic weight in nC
+    w_out = h_0 / R_leak
+    # mean in nA
+    mu_stim = N * f * w_out
+    # volatility in nA
+    sigma_stim = np.sqrt((1000.0 * N * f) / (2 * tau_syn)) * w_out
+    # instantiate mechanism
+    ou_stim = arb.mechanism("noisy_expsyn_curr")
+    ou_stim.set("mu", mu_stim)
+    ou_stim.set("sigma", sigma_stim)
+    ou_stim.set("tau", tau_syn)
+
+    # paint and place mechanisms
+    # ==========================
+
+    decor = arb.decor()
+    decor.set_property(Vm=V_rev, cm=c_mem)
+    decor.paint("(all)", arb.density(lif))
+    decor.place('"center"', arb.synapse(ou_stim), "ou_stim")
+    decor.place('"center"', arb.synapse(ou_bg), "ou_bg")
+    decor.place('"center"', arb.threshold_detector(V_th), "spike_detector")
+
+    return arb.cable_cell(tree, decor, labels)
+
+
 class ou_recipe(arb.recipe):
-    def __init__(self):
+    def __init__(self, cell, cat):
         arb.recipe.__init__(self)
 
         # simulation runtime parameters in ms
-        # ===================================
-
         self.runtime = 20000
         self.dt = 0.2
 
         # initialize catalogue and cell properties
-        # ========================================
-
-        self.props = arb.neuron_cable_properties()
-        cat = arb.load_catalogue("./ou_lif-catalogue.so")
-        cat.extend(arb.stochastic_catalogue(), "")
-        self.props.catalogue = cat
-
-        # cell morphology
-        # ===============
-
-        tree = arb.segment_tree()
-        radius = 1e-10  # radius of cylinder (in µm)
-        height = 2 * radius  # height of cylinder (in µm)
-        tree.append(
-            arb.mnpos,
-            arb.mpoint(-height / 2, 0, 0, radius),
-            arb.mpoint(height / 2, 0, 0, radius),
-            tag=1,
-        )
-        labels = arb.label_dict({"center": "(location 0 0.5)"})
-
-        # LIF density mechanism
-        # =====================
-
-        # surface area of the cylinder in m^2 (excluding the circle-shaped ends, since Arbor does
-        # not consider current flux there)
-        area_m2 = 2 * np.pi * (radius * 1e-6) * (height * 1e-6)
-        area_cm2 = area_m2 * 1e4
-        # conversion factor from nA to mA/cm^2; for point neurons
-        i_factor = (1e-9 / 1e-3) / area_cm2
-        # neuronal capacitance in F
-        C_mem = 1e-9
-        # specific capacitance in F/m^2, computed from absolute capacitance of point neuron
-        c_mem = C_mem / area_m2
-        # reversal potential in mV
-        V_rev = -65.0
-        # spiking threshold in mV
-        V_th = -55.0
-        # initial synaptic weight in nC
-        h_0 = 4.20075
-        # leak resistance in MOhm
-        R_leak = 10.0
-        # membrane time constant in ms
-        tau_mem = 2.0
-
-        lif = arb.mechanism("lif")
-        lif.set("R_leak", R_leak)
-        lif.set("R_reset", 1e-10)
-        # set to initial value to zero (background input is applied via stochastic ou_bg_mech)
-        lif.set("I_0", 0)
-        lif.set("i_factor", i_factor)
-        lif.set("V_rev", V_rev)
-        lif.set("V_reset", -70.0)
-        lif.set("V_th", V_th)
-        # refractory time in ms
-        lif.set("t_ref", tau_mem)
-
-        # stochastic background input current (point mechanism)
-        # =====================================================
-
-        # synaptic time constant in ms
-        tau_syn = 5.0
-        # mean in nA
-        mu_bg = 0.15
-        # volatility in nA
-        sigma_bg = 0.5
-        # instantiate mechanism
-        ou_bg = arb.mechanism("noisy_expsyn_curr")
-        ou_bg.set("mu", mu_bg)
-        ou_bg.set("sigma", sigma_bg)
-        ou_bg.set("tau", tau_syn)
-
-        # stochastic stimulus input current (point mechanism)
-        # ===================================================
-
-        # number of neurons in the putative population
-        N = 25
-        # firing rate of the putative neurons in Hz
-        f = 100
-        # synaptic weight in nC
-        w_out = h_0 / R_leak
-        # mean in nA
-        mu_stim = N * f * w_out
-        # volatility in nA
-        sigma_stim = np.sqrt((1000.0 * N * f) / (2 * tau_syn)) * w_out
-        # instantiate mechanism
-        ou_stim = arb.mechanism("noisy_expsyn_curr")
-        ou_stim.set("mu", mu_stim)
-        ou_stim.set("sigma", sigma_stim)
-        ou_stim.set("tau", tau_syn)
-
-        # paint and place mechanisms
-        # ==========================
-
-        decor = arb.decor()
-        decor.set_property(Vm=V_rev, cm=c_mem)
-        decor.paint("(all)", arb.density(lif))
-        decor.place('"center"', arb.synapse(ou_stim), "ou_stim")
-        decor.place('"center"', arb.synapse(ou_bg), "ou_bg")
-        decor.place('"center"', arb.threshold_detector(V_th), "spike_detector")
-
-        # make a cell
-        self.cell_ = arb.cable_cell(tree, decor, labels)
+        self.the_props = arb.neuron_cable_properties()
+        self.the_props.catalogue = cat
+        self.the_cell = cell
 
         # protocol for stimulation
-        # ========================
-
         # "time_start": starting time, "scheme": protocol type
         self.bg_prot = {"time_start": 0, "scheme": "FULL", "label": "ou_bg"}
         self.stim1_prot = {"time_start": 10000, "scheme": "TRIPLET", "label": "ou_stim"}
@@ -140,10 +145,10 @@ class ou_recipe(arb.recipe):
         return arb.cell_kind.cable
 
     def cell_description(self, gid):
-        return self.cell_
+        return self.the_cell
 
     def global_properties(self, kind):
-        return self.props
+        return self.the_props
 
     def num_cells(self):
         return 1
@@ -251,16 +256,13 @@ class ou_recipe(arb.recipe):
 
 if __name__ == "__main__":
 
-    # build_catalogue
-    # ===============
-
-    out = subprocess.getoutput("arbor-build-catalogue ou_lif . --cpu True")
-    print(out)
-
     # set up and run simulation
     # =========================
 
-    recipe = ou_recipe()
+    # create recipe
+    cell = make_cell()
+    cat = make_catalogue()
+    recipe = ou_recipe(cell, cat)
 
     # get random seed
     random_seed = random.getrandbits(64)
