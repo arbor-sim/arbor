@@ -90,6 +90,10 @@ dist
 python/example/*.svg
 python/example/*.csv
 
+# made by direnv
 .direnv
+.envrc
+
+# build/compile caches
 _skbuild
 .ccls-caches
