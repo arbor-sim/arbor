@@ -207,6 +207,12 @@ namespace detail {
         }
 
         template <typename Other>
+        indirect_indexed_expression& operator*=(const Other& s) {
+            compound_indexed_mul(s, p, index, width, constraint);
+            return *this;
+        }
+
+        template <typename Other>
         indirect_indexed_expression& operator-=(const Other& s) {
             compound_indexed_add(neg(s), p, index, width, constraint);
             return *this;

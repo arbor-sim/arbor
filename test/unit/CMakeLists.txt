@@ -143,6 +143,7 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
+    test_v_clamp.cpp
     test_sde.cpp
 
     # unit test driver
@@ -186,7 +187,7 @@ add_dependencies(tests unit)
 make_catalogue_standalone(
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
-    MOD dummy
+    MOD dummy vmech
     CXX
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     VERBOSE ON)

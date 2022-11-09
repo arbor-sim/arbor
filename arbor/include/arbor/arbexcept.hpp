@@ -6,6 +6,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
+#include <arbor/mechanism_abi.h>
 
 // Arbor-specific exception hierarchy.
 
@@ -39,6 +40,11 @@ struct ARB_SYMBOL_VISIBLE bad_cell_probe: arbor_exception {
     bad_cell_probe(cell_kind kind, cell_gid_type gid);
     cell_gid_type gid;
     cell_kind kind;
+};
+
+struct ARB_SYMBOL_VISIBLE invalid_mechanism_kind: arbor_exception {
+    invalid_mechanism_kind(arb_mechanism_kind);
+    arb_mechanism_kind kind;
 };
 
 struct ARB_SYMBOL_VISIBLE bad_cell_description: arbor_exception {

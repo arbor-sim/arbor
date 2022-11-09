@@ -51,15 +51,17 @@ struct ApiFlags {
     bool ppack_iface=true;
     bool use_additive=false;
     bool is_point=false;
+    bool can_write_voltage=false;
 
     ApiFlags& loop(bool v) { cv_loop = v; return *this; }
     ApiFlags& iface(bool v) { ppack_iface = v; return *this; }
     ApiFlags& additive(bool v) { use_additive = v; return *this; }
     ApiFlags& point(bool v) { is_point = v; return *this; }
+    ApiFlags& voltage(bool v) { can_write_voltage = v; return *this; }
 };
 
-const ApiFlags net_recv_flags = {false, false, true, false};
-const ApiFlags post_evt_flags = {false, false, false, false};
+const ApiFlags net_recv_flags = {false, false, true}; // No CV loop, no PPACK, use additive
+const ApiFlags post_evt_flags = {false, false};       // No CV loop, no PPACK
 
 class ARB_LIBMODCC_API SimdPrinter: public Visitor {
 public:

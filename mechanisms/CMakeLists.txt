@@ -17,7 +17,7 @@ make_catalogue(
 
 make_catalogue(
   NAME default
-  MOD exp2syn expsyn expsyn_curr expsyn_stdp hh kamt kdrmt nax nernst pas gj decay inject
+  MOD exp2syn expsyn expsyn_curr expsyn_stdp hh kamt kdrmt nax nernst pas gj decay inject v_clamp v_limit
   VERBOSE ${ARB_CAT_VERBOSE}
   ADD_DEPS ON)
 

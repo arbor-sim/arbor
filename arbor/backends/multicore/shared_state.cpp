@@ -508,7 +508,11 @@ void shared_state::update_prng_state(mechanism& m) {
 // * For indices in the padded tail of node_index_, set index to last valid CV index.
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+unsigned shared_state::instantiate(arb::mechanism& m,
+                                   unsigned id,
+                                   const mechanism_overrides& overrides,
+                                   const mechanism_layout& pos_data,
+                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.
@@ -517,6 +521,11 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     // sizes that are multiples of a width padded to account for SIMD access and per-vector alignment.
 
     util::padded_allocator<> pad(m.data_alignment());
+
+    if (storage.find(id) != storage.end()) {
+        throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
+    }
+    auto& store = storage[id];
 
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
@@ -536,9 +545,6 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
-
-    if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage[id];
 
     // store indices for random number generation
     store.gid_ = pos_data.gid;
@@ -589,6 +595,10 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         for (auto idx: make_span(m.mech_.n_parameters)) {
             m.ppack_.parameters[idx] = writer.fill(m.mech_.parameters[idx].default_value);
         }
+        for (const auto& [k, v]: params) {
+            set_parameter(m, k, v);
+        }
+
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
@@ -659,6 +669,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
+    return id;
 }
 
 } // namespace multicore

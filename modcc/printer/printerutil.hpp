@@ -60,6 +60,7 @@ struct namespace_declaration_close {
 inline const char* module_kind_str(const Module& m) {
     switch (m.kind()) {
     case moduleKind::density:   return "arb_mechanism_kind_density";
+    case moduleKind::voltage:   return "arb_mechanism_kind_voltage";
     case moduleKind::point:     return "arb_mechanism_kind_point";
     case moduleKind::revpot:    return "arb_mechanism_kind_reversal_potential";
     case moduleKind::junction:  return "arb_mechanism_kind_gap_junction";
