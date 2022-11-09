@@ -87,7 +87,7 @@ class ou_recipe(arb.recipe):
         # mean in nA
         mu_bg = 0.15
         # volatility in nA
-        sigma_bg = np.sqrt(1000.0/tau_syn)*0.05
+        sigma_bg = 0.5
         # derive new mechanism
         self.props.catalogue.derive("ou_bg_mech", "noisy_expsyn_curr",
             globals = {'mu' : mu_bg, 'sigma' : sigma_bg, 'tau' : tau_syn})
@@ -105,7 +105,7 @@ class ou_recipe(arb.recipe):
         # mean in nA
         mu_stim = N*f*w_out
         # volatility in nA
-        sigma_stim = np.sqrt((1000.0*N*f)/tau_syn)*w_out
+        sigma_stim = np.sqrt((1000.0*N*f)/(2*tau_syn))*w_out
         # derive new mechanism
         self.props.catalogue.derive("ou_stim_mech", "noisy_expsyn_curr",
             globals = {'mu' : mu_stim, 'sigma' : sigma_stim, 'tau' : tau_syn})

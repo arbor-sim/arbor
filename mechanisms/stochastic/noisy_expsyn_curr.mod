@@ -7,15 +7,15 @@
 : σ     input current volatility (nA)
 : τ     relaxation time (ms)
 :
-: dI_ou/dt = -(1/τ) * (I_ou - μ) + √(1/τ) * σ * W
+: dI_ou/dt = -(1/τ) * (I_ou - μ) + √(2/τ) * σ * W
 :
 : statistic properties:
 :   E[I_ou] = μ - (μ - I_ou_0) * e^(-t/τ)
-: Var[I_ou] = (σ^2 / 2) * (1 - e^(-2 * t/τ))
+: Var[I_ou] = σ^2 * (1 - e^(-2 * t/τ))
 :
 : in the limit t->∞:
 :   E[I_ou] = μ
-: Var[I_ou] = (σ^2 / 2)
+: Var[I_ou] = σ^2
 
 NEURON {
     POINT_PROCESS noisy_expsyn_curr
@@ -52,7 +52,7 @@ INITIAL {
     I_ou   = 0
     active = -1
     alpha  = 1.0/tau
-    beta   = sigma * (1.0/tau)^0.5
+    beta   = sigma * (2.0/tau)^0.5
 }
 
 BREAKPOINT {
