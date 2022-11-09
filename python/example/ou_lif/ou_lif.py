@@ -2,6 +2,7 @@
 
 # adapted from Jannik Luboeinski's example here: https://github.com/jlubo/arbor_ou_lif_example
 
+import random
 import subprocess
 import arbor as arb
 import numpy as np
@@ -215,8 +216,8 @@ if __name__ == '__main__':
 
     recipe = ou_recipe()
     
-    # get random seed from system clock
-    random_seed = int(time.time()*10000)
+    # get random seed
+    random_seed = random.getrandbits(64)
     print("random_seed = " + str(random_seed))
 
     # select one thread and no GPU
@@ -287,5 +288,3 @@ if __name__ == '__main__':
     axes[3].set_ylabel("I_bg (nA)")
     fig.tight_layout()
     fig.savefig("traces.svg", bbox_inches='tight')
-    #fig.savefig("traces.png", dpi=800)
-    #plt.show()
