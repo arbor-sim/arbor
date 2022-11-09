@@ -96,4 +96,4 @@ python/example/*.csv
 
 # build/compile caches
 _skbuild
-.ccls-caches
+.ccls-cache
