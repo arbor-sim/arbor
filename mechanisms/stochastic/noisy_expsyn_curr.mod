@@ -19,7 +19,7 @@
 
 NEURON {
     POINT_PROCESS noisy_expsyn_curr
-    GLOBAL mu, sigma, tau
+    RANGE mu, sigma, tau
     NONSPECIFIC_CURRENT I
 }
 

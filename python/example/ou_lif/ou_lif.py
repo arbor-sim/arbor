@@ -62,10 +62,6 @@ class ou_recipe(arb.recipe):
         R_leak = 10.0
         # membrane time constant in ms
         tau_mem = R_leak*10**9 * C_mem
-        #print("area =", area_m2, "m^2")
-        #print("i_factor =", i_factor, "(mA/cm^2) / (nA)")
-        #print("c_mem =", c_mem, "F/m^2")
-        #print("tau_mem =", tau_mem, "ms")
 
         lif = arb.mechanism("lif")
         lif.set("R_leak", R_leak)
@@ -88,10 +84,11 @@ class ou_recipe(arb.recipe):
         mu_bg = 0.15
         # volatility in nA
         sigma_bg = 0.5
-        # derive new mechanism
-        self.props.catalogue.derive("ou_bg_mech", "noisy_expsyn_curr",
-            globals = {'mu' : mu_bg, 'sigma' : sigma_bg, 'tau' : tau_syn})
-        ou_bg = arb.mechanism("ou_bg_mech")
+        # instantiate mechanism
+        ou_bg = arb.mechanism("noisy_expsyn_curr")
+        ou_bg.set('mu', mu_bg)
+        ou_bg.set('sigma', sigma_bg)
+        ou_bg.set('tau', tau_syn)
 
         # stochastic stimulus input current (point mechanism)
         # ===================================================
@@ -106,10 +103,11 @@ class ou_recipe(arb.recipe):
         mu_stim = N*f*w_out
         # volatility in nA
         sigma_stim = np.sqrt((1000.0*N*f)/(2*tau_syn))*w_out
-        # derive new mechanism
-        self.props.catalogue.derive("ou_stim_mech", "noisy_expsyn_curr",
-            globals = {'mu' : mu_stim, 'sigma' : sigma_stim, 'tau' : tau_syn})
-        ou_stim = arb.mechanism("ou_stim_mech")
+        # instantiate mechanism
+        ou_stim = arb.mechanism("noisy_expsyn_curr")
+        ou_stim.set('mu', mu_stim)
+        ou_stim.set('sigma', sigma_stim)
+        ou_stim.set('tau', tau_syn)
 
         # paint and place mechanisms
         # ==========================
@@ -117,8 +115,8 @@ class ou_recipe(arb.recipe):
         decor = arb.decor()
         decor.set_property(Vm=V_rev, cm=c_mem)
         decor.paint('(all)', arb.density(lif))
-        decor.place('"center"', arb.synapse(ou_bg), "ou_bg")
         decor.place('"center"', arb.synapse(ou_stim), "ou_stim")       
+        decor.place('"center"', arb.synapse(ou_bg), "ou_bg")
         decor.place('"center"', arb.threshold_detector(V_th), "spike_detector")
         
         # make a cell
@@ -148,8 +146,7 @@ class ou_recipe(arb.recipe):
         # probe membrane potential, total current, and external input currents
         return [arb.cable_probe_membrane_voltage('"center"'),
                 arb.cable_probe_total_ion_current_cell(),
-                arb.cable_probe_point_state_cell("ou_bg_mech", "I_ou"),
-                arb.cable_probe_point_state_cell("ou_stim_mech", "I_ou")]
+                arb.cable_probe_point_state_cell("noisy_expsyn_curr", "I_ou")]
 
     def event_generators(self, gid):
         gens = []
@@ -237,8 +234,7 @@ if __name__ == '__main__':
     gid = 0
     handle_mem       = sim.sample((gid, 0), reg_sched) # membrane potential
     handle_tot_curr  = sim.sample((gid, 1), reg_sched) # total current
-    handle_bg_curr   = sim.sample((gid, 2), reg_sched) # stimulus current
-    handle_stim_curr = sim.sample((gid, 3), reg_sched) # background current
+    handle_curr      = sim.sample((gid, 2), reg_sched) # input current
 
     sim.record(arb.spike_recording.all)
     sim.run(tfinal=recipe.runtime, dt=recipe.dt)
@@ -261,19 +257,9 @@ if __name__ == '__main__':
     data_curr.append(np.negative(data_tot_curr[:, 1]))
 
     # get Ornstein-Uhlenbeck currents
-    for handle in [handle_stim_curr, handle_bg_curr]:
-        tmp = None
-        if len(sim.samples(handle)) > 0:
-            data_ou_curr, _ = sim.samples(handle)[loc]
-            if len(data_ou_curr[0]) > 0:
-                tmp = data_ou_curr[:, 1]
-        if tmp is None:
-            if handle == handle_stim_curr:
-                print("No samples for stimulus current.")
-            elif handle == handle_bg_curr:
-                print("No samples for background current.")
-            tmp = np.zeros(len(data[:, 0]))
-        data_curr.append(tmp)
+    data_input_curr, _ = sim.samples(handle_curr)[loc]
+    data_curr.append(data_input_curr[:,1])
+    data_curr.append(data_input_curr[:,2])
 
     # get spikes
     spike_times = sim.spikes()['time']
