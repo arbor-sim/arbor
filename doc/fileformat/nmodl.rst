@@ -158,6 +158,45 @@ Arbor-specific features
   made available through the ``v_peer`` variable while the local membrane potential
   is available through ``v``, as usual.
 
+Voltage Processes
+-----------------
+
+Some cases require direct manipulation of the membrane voltage ``v``; which is
+normally prohibited and for good reason so. For these limited application,
+however, we offer mechanisms that are similar to ``density`` mechanism, but are
+tagged with ``VOLTAGE_PROCESS`` where normally ``SUFFIX`` would be used.
+
+This is both a very sharp tool and a somewhat experimental feature. Depending on
+our experience, it might be changed or removed. Using a ``VOLTAGE_PROCESS``,
+voltage clamping and limiting can be implemented, c.f. relevant examples in the
+``default`` catalogue. Example: limiting membrane voltage from above and below
+
+.. code:: none
+
+    NEURON {
+        VOLTAGE_PROCESS v_limit
+        GLOBAL v_low, v_high
+    }
+
+    PARAMETER {
+        v_high =  20 (mV)
+        v_low  = -70 (mV)
+    }
+
+    BREAKPOINT {
+         v = max(min(v, v_high), v_low)
+    }
+
+As of the current implementation, we note the following details and constraints
+
+* only the ``INITIAL`` and ``BREAKPOINT`` procedures are called.
+* no ``WRITE`` access to ionic quantities is allowed.
+* only one ``VOLTAGE_PROCESS`` maybe present on a single location, adding more
+  results in an exception.
+* the ``BREAKPOINT`` callback will execute _after_ the cable solver. A
+  consequence of this is that if the initial membrane potential :math:`V_0` is
+  unequal to that of a potentially applied voltage clamp :math:`V_c`, the first
+  timestep will observe :math:`V_0`.
 
 .. _format-sde:
 
