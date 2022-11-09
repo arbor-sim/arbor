@@ -325,14 +325,14 @@ consult the :ref:`Arbor-specific NMODL extension <format-sde>`.
 
 .. note::
 
-   While the units of :math:`\textbf{f}(t, \textbf{X}(t))` represent the rate of change (per
-   millisecond),
+   While the units of :math:`\textbf{f}(t, \textbf{X}(t))` represent the deterministic rate of
+   change (per millisecond),
 
    .. math::
 
         \left[\textbf{f}(t, \textbf{X}(t))\right] = \frac{\left[\textbf{X}(t)\right]}{ms},
 
-   the noise terms scale with :math:`t^{-1/2}`,
+   the stochastic terms scale with :math:`t^{-1/2}`,
 
    .. math::
 
@@ -348,8 +348,9 @@ and can be written as
 
 with white noise :math:`W`, and constant model parameters :math:`\tau`, :math:`\mu` and
 :math:`\sigma`. The relaxation time :math:`\tau` determines how fast the process reverts back to its
-mean value :math:`\mu`, and :math:`\sigma` controls the volatility. The expected value and variance
-can be computed analytically and yield
+mean value :math:`\mu`, and :math:`\sigma` controls the volatility (:math:`\mu` and :math:`\sigma`
+have the same units as :math:`X`). The expected value and variance can be computed analytically and
+yield
 
 .. math::
 
