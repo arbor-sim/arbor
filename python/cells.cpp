@@ -837,6 +837,12 @@ void register_cells(pybind11::module& m) {
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
         .def("paint",
+            [](arb::decor& dec, const char* region, const arb::voltage_process& mechanism) {
+                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a voltage process mechanism with a region.")
+        .def("paint",
             [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) {
                 dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
             },

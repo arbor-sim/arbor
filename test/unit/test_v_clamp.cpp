@@ -143,8 +143,6 @@ TEST(v_process, limit) {
     auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
                                   std::size_t n,
                                   const arb::sample_record* samples) {
-        auto* loc = arb::util::any_cast<const arb::mlocation*>(pm.meta);
-        std::cout << *loc << '\n';
         for (int ix = 0; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *arb::util::any_cast<const double*>(v);
@@ -162,12 +160,6 @@ TEST(v_process, limit) {
     auto sim = arb::simulation(recipe{false, true});
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
     sim.run(1.0, 0.005);
-
-    std::cout << std::setprecision(9);
-    std::cout << "SOMA:\n";
-    for (const auto& rec: u_soma) std::cout << "  " << rec << ",\n";
-    std::cout << "DEND:\n";
-    for (const auto& rec: u_dend) std::cout << "  " << rec << ",\n";
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -60 },

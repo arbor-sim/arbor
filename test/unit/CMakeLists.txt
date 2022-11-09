@@ -187,7 +187,7 @@ add_dependencies(tests unit)
 make_catalogue_standalone(
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
-    MOD dummy vmech
+    MOD dummy
     CXX
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     VERBOSE ON)
