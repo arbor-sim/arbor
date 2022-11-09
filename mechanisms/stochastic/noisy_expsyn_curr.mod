@@ -35,8 +35,8 @@ PARAMETER {
 }
 
 STATE {
-    I_ou (nA)        : instantaneous state
-    active           : indicates if the process is currently enabled 
+    I_ou (nA) : instantaneous state
+    active    : indicates if the process is currently enabled 
 }
 
 ASSIGNED {
