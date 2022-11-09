@@ -2,6 +2,8 @@
 : Input current modeled by an Ornstein-Uhlenbeck process
 : Sets non-specific current given mean, volatility and relaxation time
 :
+: Adapted from Jannik Luboeinski's example here: https://github.com/jlubo/arbor_ou_lif_example
+:
 : I_ou  input current (nA)
 : μ     input current mean (nA)
 : σ     input current volatility (nA)
