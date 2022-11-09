@@ -260,7 +260,7 @@ TEST(lif_cell_group, probe) {
                   const sample_record* samples) {
         for (int ix = 0; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
-            double u = *util::any_cast<const double*>(v);
+            double u = *util::any_cast<double*>(v);
             ums[pm.id].push_back({t, u});
         }
     };
