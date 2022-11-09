@@ -77,6 +77,13 @@ Two catalogues are provided that collect mechanisms associated with specific pro
 * ``bbp_catalogue`` For models published by the Blue Brain Project (BBP).
 * ``allen_catalogue`` For models published on the Allen Brain Atlas Database.
 
+A fourth catalogue ``stochasitic_catalogue`` provides mechanisms expressed as stochastic differential
+equations:
+
+* *noisy_expsyn_curr* Synapse mechanism similar to *expsyn_curr*, where the exponential decay is
+  subject to noise due to a Ornstein-Uhlenbeck process.
+
+
 .. _mechanisms_dynamic:
 
 Adding Catalogues to Arbor

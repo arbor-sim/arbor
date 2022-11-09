@@ -19,7 +19,7 @@
 
 NEURON {
     POINT_PROCESS noisy_expsyn_curr
-    RANGE mu, sigma, tau
+    GLOBAL mu, sigma, tau
     NONSPECIFIC_CURRENT I
 }
 
@@ -29,9 +29,9 @@ UNITS {
 }
 
 PARAMETER {
-    mu    = 1 (nA)   : mean of the stochastic process
-    sigma = 1 (nA)   : volatility of the stochastic process
-    tau   = 5.0 (ms) : relaxation time
+    mu    = 1 (nA) : mean of the stochastic process
+    sigma = 1 (nA) : volatility of the stochastic process
+    tau   = 1 (ms) : relaxation time
 }
 
 STATE {
