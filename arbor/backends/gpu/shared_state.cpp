@@ -322,10 +322,10 @@ void shared_state::instantiate(mechanism& m,
                                           [&](const auto& k) { return k.first == param.name; });
             if (it != params.end()) {
                 if (it->second.size() != width) throw arbor_internal_error("mechanism field size mismatch");
-                m.ppack_.parameters[idx] = writer.append_with_padding(it->second, param.default_value);
+                 store.parameters_[idx] = writer.append_with_padding(it->second, param.default_value);
             }
             else {
-                m.ppack_.parameters[idx] = writer.fill(param.default_value);
+                store.parameters_[idx] = writer.fill(param.default_value);
             }
         }
 

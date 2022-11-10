@@ -75,7 +75,7 @@ TEST(v_process, clamp) {
     auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
                                   std::size_t n,
                                   const arb::sample_record* samples) {
-        for (int ix = 0; ix < n; ++ix) {
+        for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *arb::util::any_cast<const double*>(v);
             if (pm.id.index == 0) {
@@ -143,7 +143,7 @@ TEST(v_process, limit) {
     auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
                                   std::size_t n,
                                   const arb::sample_record* samples) {
-        for (int ix = 0; ix < n; ++ix) {
+        for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *arb::util::any_cast<const double*>(v);
             if (pm.id.index == 0) {
