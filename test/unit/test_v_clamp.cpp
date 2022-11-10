@@ -204,3 +204,73 @@ TEST(v_process, limit) {
     ASSERT_TRUE(testing::seq_eq(u_soma, exp_soma));
     ASSERT_TRUE(testing::seq_eq(u_dend, exp_dend));
 }
+
+TEST(v_process, clamp_fine) {
+    auto u_soma = um_s_type{};
+    auto u_dend = um_s_type{};
+    auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
+                                  std::size_t n,
+                                  const arb::sample_record* samples) {
+        for (std::size_t ix = 0ul; ix < n; ++ix) {
+            const auto& [t, v] = samples[ix];
+            double u = *arb::util::any_cast<const double*>(v);
+            if (pm.id.index == 0) {
+                u_soma.push_back({t, u});
+            }
+            else if (pm.id.index == 1) {
+                u_dend.push_back({t, u});
+            }
+            else {
+                throw std::runtime_error{"Unexpected probe id"};
+            }
+        }
+    };
+    auto rec = recipe{true, false};
+    rec.gprop.default_parameters.discretization = arb::cv_policy_max_extent(0.5);
+    auto sim = arb::simulation(rec);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
+    sim.run(1.0, 0.005);
+
+    um_s_type exp_soma{{ 0, -65 },
+                       { 0.05, -42 },
+                       { 0.095, -42 },
+                       { 0.145, -42 },
+                       { 0.2, -42 },
+                       { 0.25, -42 },
+                       { 0.3, -42 },
+                       { 0.35, -42 },
+                       { 0.4, -42 },
+                       { 0.45, -42 },
+                       { 0.5, -42 },
+                       { 0.55, -42 },
+                       { 0.6, -42 },
+                       { 0.65, -42 },
+                       { 0.7, -42 },
+                       { 0.75, -42 },
+                       { 0.8, -42 },
+                       { 0.85, -42 },
+                       { 0.9, -42 },
+                       { 0.95, -42 },};
+    um_s_type exp_dend{{ 0, -65 },
+                       { 0.05, -42.1164544 },
+                       { 0.095, -42.0915289 },
+                       { 0.145, -42.0461939 },
+                       { 0.2, -41.9764002 },
+                       { 0.25, -0.124099713 },
+                       { 0.3, -0.0701885048 },
+                       { 0.35, -0.0519983288 },
+                       { 0.4, -0.0428578593 },
+                       { 0.45, -0.0374010627 },
+                       { 0.5, -0.0338178467 },
+                       { 0.55, -0.0313183138 },
+                       { 0.6, -0.0294990809 },
+                       { 0.65, -0.0281314686 },
+                       { 0.7, -0.0270760611 },
+                       { 0.75, -0.0262432877 },
+                       { 0.8, -0.025573305 },
+                       { 0.85, -0.0250249014 },
+                       { 0.9, -0.0245689972 },
+                       { 0.95, -0.0241846519 },};
+    ASSERT_TRUE(testing::seq_eq(u_soma, exp_soma));
+    ASSERT_TRUE(testing::seq_eq(u_dend, exp_dend));
+}
