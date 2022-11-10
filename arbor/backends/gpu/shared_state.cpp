@@ -315,7 +315,7 @@ void shared_state::instantiate(mechanism& m,
 
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append_with_padding(pos_data.weight, 0);
-        // Set fields
+        // Set parameters to either default or explicit setting
         for (auto idx: make_span(m.mech_.n_parameters)) {
             const auto& param = m.mech_.parameters[idx];
             const auto& it = std::find_if(params.begin(), params.end(),
@@ -328,11 +328,10 @@ void shared_state::instantiate(mechanism& m,
                 store.parameters_[idx] = writer.fill(param.default_value);
             }
         }
-
+        // Make STATE var the default
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
-
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
         for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
