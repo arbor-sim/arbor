@@ -200,7 +200,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive));
+            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()));
             out << popindent << "}\n\n";
         }
     };
