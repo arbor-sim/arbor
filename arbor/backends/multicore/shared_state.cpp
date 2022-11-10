@@ -437,27 +437,6 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 }
 } // anonymous namespace
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
-
-    bool found = false;
-    arb_value_type* data = nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
-        if (key==m.mech_.parameters[i].name) {
-            data = m.ppack_.parameters[i];
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
-
-    if (!m.ppack_.width) return;
-
-    auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);
-    copy_extend(values, util::range_n(data, width_padded), values.back());
-}
-
 const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
     for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
         if (key==m.mech_.state_vars[i].name) {
@@ -508,11 +487,11 @@ void shared_state::update_prng_state(mechanism& m) {
 // * For indices in the padded tail of node_index_, set index to last valid CV index.
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-unsigned shared_state::instantiate(arb::mechanism& m,
-                                   unsigned id,
-                                   const mechanism_overrides& overrides,
-                                   const mechanism_layout& pos_data,
-                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+void shared_state::instantiate(arb::mechanism& m,
+                               unsigned id,
+                               const mechanism_overrides& overrides,
+                               const mechanism_layout& pos_data,
+                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.
@@ -526,10 +505,10 @@ unsigned shared_state::instantiate(arb::mechanism& m,
         throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
     }
     auto& store = storage[id];
-
+    auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
-    m.ppack_.width            = pos_data.cv.size();
+    m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
     m.ppack_.vec_di           = cv_to_intdom.data();
@@ -591,14 +570,20 @@ unsigned shared_state::instantiate(arb::mechanism& m,
 
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append(pos_data.weight, 0);
-        // Set fields
+        // Set parameters: either default, or explicit override
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            m.ppack_.parameters[idx] = writer.fill(m.mech_.parameters[idx].default_value);
+            const auto& param = m.mech_.parameters[idx];
+            const auto& it = std::find_if(params.begin(), params.end(),
+                                          [&](const auto& k) { return k.first == param.name; });
+            if (it != params.end()) {
+                if (it->second.size() != width) throw arbor_internal_error("mechanism field size mismatch");
+                m.ppack_.parameters[idx] = writer.append(it->second, param.default_value);
+            }
+            else {
+                m.ppack_.parameters[idx] = writer.fill(param.default_value);
+            }
         }
-        for (const auto& [k, v]: params) {
-            set_parameter(m, k, v);
-        }
-
+        // Set initial state values
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
@@ -669,7 +654,6 @@ unsigned shared_state::instantiate(arb::mechanism& m,
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
-    return id;
 }
 
 } // namespace multicore

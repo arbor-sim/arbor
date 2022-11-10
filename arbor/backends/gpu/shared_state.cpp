@@ -51,6 +51,17 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
     return util::minmax_value(v_copy);
 }
 
+// Helpers
+int look_up_parameter(const arb_mechanism_type& m, const std::string& key) {
+    int size = m.n_parameters;
+    for (int i = 0; i < size; ++i) {
+        if (key==m.parameters[i].name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // Ion state methods:
 
 ion_state::ion_state(
@@ -218,17 +229,10 @@ shared_state::shared_state(
 
 void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
     if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
-    const auto& store = storage.at(m.mechanism_id());
+    auto idx = lookup_parameter(m.mech_, key);
+    if (idx < 0) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
 
-    arb_value_type* data = nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
-        if (key==m.mech_.parameters[i].name) {
-            data = store.parameters_[i];
-            break;
-        }
-    }
-
-    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
+    auto data = storage.at(m.mechanism_id())[idx];
 
     if (!m.ppack_.width) return;
     memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(data, m.ppack_.width));
@@ -252,7 +256,11 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
-void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+void shared_state::instantiate(mechanism& m,
+                               unsigned id,
+                               const mechanism_overrides& overrides,
+                               const mechanism_layout& pos_data,
+                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
@@ -313,15 +321,25 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     {
         // Allocate bulk storage
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
-        store.data_   = array(count, NAN);
+        store.data_ = array(count, NAN);
         chunk_writer writer(store.data_.data(), width_padded);
 
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append_with_padding(pos_data.weight, 0);
         // Set fields
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            store.parameters_[idx] = writer.fill(m.mech_.parameters[idx].default_value);
+            const auto& param = m.mech_.parameters[idx];
+            const auto& it = std::find_if(params.begin(), params.end(),
+                                          [&](const auto& k) { return k.first == param.name; });
+            if (it != params.end()) {
+                if (it->second.size() != width) throw arbor_internal_error("mechanism field size mismatch");
+                m.ppack_.parameters[idx] = writer.append_with_padding(it->second, param.default_value);
+            }
+            else {
+                m.ppack_.parameters[idx] = writer.fill(param.default_value);
+            }
         }
+
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
