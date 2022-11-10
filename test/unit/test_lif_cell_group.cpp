@@ -256,9 +256,9 @@ struct Um_type {
 TEST(lif_cell_group, probe) {
     auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
-                      std::size_t n,
-                      const sample_record* samples) {
-        for (int ix = 0; ix < n; ++ix) {
+                  std::size_t n,
+                  const sample_record* samples) {
+        for (std::size_t ix = 0; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *util::any_cast<double*>(v);
             ums[pm.id].push_back({t, u});
@@ -684,7 +684,7 @@ std::vector<Um_type> exp = {{ 0, -18 },
     ASSERT_FALSE(testing::seq_eq(ums[{1, 0}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
-    EXPECT_EQ(spikes.size(), 3);
+    EXPECT_EQ(spikes.size(), 3u);
     std::vector<double> sexp{2, 4, 5};
     ASSERT_TRUE(testing::seq_almost_eq<double>(spikes, sexp));
 }

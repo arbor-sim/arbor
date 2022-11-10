@@ -17,6 +17,8 @@ class pimpl
     
     pimpl() noexcept;
 
+    pimpl(T* ptr) noexcept;
+
     template<typename... Args>
     pimpl(Args&&... args);
 
@@ -30,6 +32,8 @@ class pimpl
     const T* operator->() const noexcept;
     T&       operator*() noexcept;
     const T& operator*() const noexcept;
+
+    operator bool() const noexcept { return (bool)m; }
 };
 
 
