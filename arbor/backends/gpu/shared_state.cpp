@@ -227,17 +227,6 @@ shared_state::shared_state(
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
 }
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
-    auto idx = lookup_parameter(m.mech_, key);
-    if (idx < 0) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
-
-    auto data = storage.at(m.mechanism_id())[idx];
-
-    if (!m.ppack_.width) return;
-    memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(data, m.ppack_.width));
-}
-
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
