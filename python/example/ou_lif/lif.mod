@@ -1,4 +1,10 @@
 : Leaky-integrate and fire neuron
+
+: If the threshold potential is crossed, the membrane resistance is set to a very low value
+: to pull the membrane potential towards the reset potential for the duration of the refractory period.
+: After that, the membrane resistance is set to the comparably higher leak resistance again.
+: The threshold potential of Arbor's threshold detector should match the threshold potential here.
+
 : authors: Sebastian Schmitt, Jannik Luboeinski
 : based on the LIF mechanism written by Sebastian Schmitt (https://github.com/tetzlab/FIPPA/blob/main/STDP/mechanisms/lif.mod)
 
