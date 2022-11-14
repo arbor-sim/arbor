@@ -6,7 +6,7 @@
 : The threshold potential of Arbor's threshold detector should match the threshold potential here.
 
 : authors: Sebastian Schmitt, Jannik Luboeinski
-: based on the LIF mechanism written by Sebastian Schmitt (https://github.com/tetzlab/FIPPA/blob/main/STDP/mechanisms/lif.mod)
+: based on https://github.com/tetzlab/FIPPA/blob/main/STDP/mechanisms/lif.mod
 
 NEURON {
 	SUFFIX lif
