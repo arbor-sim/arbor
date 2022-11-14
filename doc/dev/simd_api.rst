@@ -574,6 +574,22 @@ In the following:
       - *S*
       - Lane-wise raise *s* to the power of *t*.
 
+    * - ``sqrt(s)``
+      - *S*
+      - Lane-wise square root of *s*.
+
+    * - ``signum(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``heaviside_right(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``heaviside_left(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+
     * - ``simd_cast<std::array<L, N>>(a)``
       - ``std::array<L, N>``
       - Lane-wise cast of values in *a* to scalar type *L* in ``std::array<L, N>``.

@@ -22,6 +22,7 @@
 // exp      | lane-wise std::exp
 // log      | lane-wise std::log
 // pow      | lane-wise std::pow
+// sqrt     | lane-wise std::sqrt
 // expm1    | lane-wise std::expm1
 // exprelr  | expm1, div, add, cmp_eq, ifelse
 //
@@ -468,6 +469,25 @@ struct implbase {
         return I::ifelse(I::cmp_gt(t, s), t, s);
     }
 
+    static vector_type heaviside_right(const vector_type& s) {
+        vector_type zeros = I::broadcast(0);
+        vector_type ones = I::broadcast(1);
+        return I::ifelse(I::cmp_geq(s,zeros), ones, zeros);
+    }
+
+    static vector_type heaviside_left(const vector_type& s) {
+        vector_type zeros = I::broadcast(0);
+        vector_type ones = I::broadcast(1);
+        return I::ifelse(I::cmp_gt(s,zeros), ones, zeros);
+    }
+
+    static vector_type signum(const vector_type& s) {
+        vector_type zeros = I::broadcast(0);
+        vector_type ones  = I::broadcast(1);
+        return I::sub(I::ifelse(I::cmp_gt(s,zeros), ones, zeros),
+                      I::ifelse(I::cmp_gt(zeros,s), ones, zeros));
+    }
+
     static vector_type sin(const vector_type& s) {
         store a, r;
         I::copy_to(s, a);
@@ -530,6 +550,16 @@ struct implbase {
 
         for (unsigned i = 0; i<width; ++i) {
             r[i] = std::pow(a[i], b[i]);
+        }
+        return I::copy_from(r);
+    }
+
+    static vector_type sqrt(const vector_type& s) {
+        store a, r;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::sqrt(a[i]);
         }
         return I::copy_from(r);
     }

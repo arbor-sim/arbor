@@ -129,6 +129,8 @@ Unsupported features
 * ``LOCAL`` variables outside blocks are not supported.
 * ``INDEPENDENT`` variables are not supported.
 
+.. _arbornmodl:
+
 Arbor-specific features
 -----------------------
 
@@ -158,6 +160,25 @@ Arbor-specific features
   made available through the ``v_peer`` variable while the local membrane potential
   is available through ``v``, as usual.
 
+* Arbor offers a number of additional unary math functions which may offer improved performance
+  compared to hand-rolled solutions (especially with the vectorized and GPU backends).
+  All of the following functions take a single argument `x` and return a
+  floating point value.
+
+  ==================  =====================================  =========
+  Function name       Description                            Semantics
+  ==================  =====================================  =========
+  sqrt(x)             square root                            :math:`\sqrt{x}`
+  heaviside_right(x)  right-continuous heaviside step        :math:`\begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  heaviside_left(x)   left-continuous heaviside step         :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  signum(x)           sign of argument                       :math:`\begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  exprelr(x)          guarded exponential                    :math:`x e^{1-x}`
+  ==================  =====================================  =========
+
+  .. note::
+
+     Hand-rolled versions of ``exprelr`` are common in NMODL files originating from NEURON,
+     where patterns such as ``vtrap(x, y) = y*exprelr(x/y)`` appear frequently.
 
 .. _format-sde:
 
@@ -422,26 +443,8 @@ of this pattern from ``hh.mod`` in the Arbor sources
 Specialised Functions
 ~~~~~~~~~~~~~~~~~~~~~
 
-Another common pattern is the use of a guarded exponential of the form
-
-.. code::
-
-   if (x != 1) {
-     r = x*exp(1 - x)
-   } else {
-     r = x
-   }
-
-This incurs some extra cost on most platforms. However, it can be written in
-Arbor's NMODL dialect as
-
-.. code::
-
-   exprelr(x)
-
-which is more efficient and has the same guarantees. NMODL files originating
-from NEURON often use this or related functions, e.g. ``vtrap(x, y) =
-y*exprelr(x/y)``.
+Some extra cost can be saved by choosing Arbor-specific optimized math functions instead of
+hand-rolled versions. Please consult the table in :ref:`this section <arbornmodl>`.
 
 Small Tips and Micro-Optimisations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

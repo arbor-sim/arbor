@@ -637,6 +637,7 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
 
     for (unsigned i = 0; i<nrounds; ++i) {
         fp epsilon = std::numeric_limits<fp>::epsilon();
+        fp max_value = std::numeric_limits<fp>::max();
         int min_exponent = std::numeric_limits<fp>::min_exponent;
         int max_exponent = std::numeric_limits<fp>::max_exponent;
 
@@ -733,6 +734,43 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         for (unsigned i = 0; i<N; ++i) pow_u_v_int[i] = std::pow(u[i], v[i]);
         pow(simd(u), simd(v)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(pow_u_v_int, r));
+
+        // Sqrt function:
+        fill_random(u, rng, 0., max_value);
+        fp sqrt_fp[N];
+        for (unsigned i = 0; i<N; ++i) sqrt_fp[i] = std::sqrt(u[i]);
+        sqrt(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(sqrt_fp, r));
+
+        // Indicator functions:
+        fill_random(u, rng, 0.01, 10.0);
+        fill_random(v, rng, -10.0, -0.1);
+        v[0] = 0.0;
+        v[1] = -0.0;
+        fp signum_fp[N];
+        fp heaviside_right_fp[N];
+        fp heaviside_left_fp[N];
+        for (unsigned i = 0; i<N; ++i) {
+            signum_fp[i] = -1;
+            heaviside_right_fp[i] = 0;
+            heaviside_left_fp[i] = 0;
+        }
+        signum_fp[0] = 0;
+        signum_fp[1] = 0;
+        heaviside_right_fp[0] = 1;
+        heaviside_right_fp[1] = 1;
+        for (unsigned i = 2; i<2+(N-2)/2; ++i) {
+            v[i] = u[i];
+            signum_fp[i] = 1;
+            heaviside_right_fp[i] = 1;
+            heaviside_left_fp[i] = 1;
+        }
+        signum(simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(signum_fp, r));
+        heaviside_right(simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(heaviside_right_fp, r));
+        heaviside_left(simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(heaviside_left_fp, r));
     }
 
     // The tests can cause floating point exceptions, which may set errno to nonzero

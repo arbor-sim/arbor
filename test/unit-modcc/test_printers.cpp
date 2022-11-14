@@ -58,25 +58,29 @@ TEST(scalar_printer, constants) {
 
 TEST(scalar_printer, statement) {
     std::vector<testcase> testcases = {
-        {"y=x+3",            "y=x+3.0"},
-        {"y=y^z",            "y=pow(y,z)"},
-        {"y=exp((x/2) + 3)", "y=exp(x/2.0+3.0)"},
-        {"z=a/b/c",          "z=a/b/c"},
-        {"z=a/(b/c)",        "z=a/(b/c)"},
-        {"z=(a*b)/c",        "z=a*b/c"},
-        {"z=a-(b+c)",        "z=a-(b+c)"},
-        {"z=(a>0)<(b>0)",    "z=a>0.<(b>0.)"},
-        {"z=a- -2",          "z=a- -2.0"},
-        {"z=fabs(x-z)",      "z=abs(x-z)"},
-        {"z=min(x,y)",       "z=min(x,y)"},
-        {"z=min(max(a,b),y)","z=min(max(a,b),y)"},
+        {"y=x+3",                      "y=x+3.0"},
+        {"y=y^z",                      "y=pow(y,z)"},
+        {"y=exp((x/2) + 3)",           "y=exp(x/2.0+3.0)"},
+        {"z=a/b/c",                    "z=a/b/c"},
+        {"z=a/(b/c)",                  "z=a/(b/c)"},
+        {"z=(a*b)/c",                  "z=a*b/c"},
+        {"z=a-(b+c)",                  "z=a-(b+c)"},
+        {"z=(a>0)<(b>0)",              "z=a>0.<(b>0.)"},
+        {"z=a- -2",                    "z=a- -2.0"},
+        {"z=fabs(x-z)",                "z=abs(x-z)"},
+        {"z=min(x,y)",                 "z=min(x,y)"},
+        {"z=min(max(a,b),y)",          "z=min(max(a,b),y)"},
+        {"y=sqrt((x/2) + 3)",          "y=sqrt(x/2.0+3.0)"},
+        {"y=signum(c-theta)",          "y=((arb_value_type)((0.<(c-theta))-((c-theta)<0.)))"},
+        {"y=heaviside_right(c-theta)", "y=((arb_value_type)((c-theta)>=0.))"},
+        {"y=heaviside_left(c-theta)",  "y=((arb_value_type)((c-theta)>0.))"},
     };
 
     // create a scope that contains the symbols used in the tests
     Scope<Symbol>::symbol_map globals;
     auto scope = std::make_shared<Scope<Symbol>>(globals);
 
-    for (auto var: {"x", "y", "z", "a", "b", "c"}) {
+    for (auto var: {"x", "y", "z", "a", "b", "c", "c", "theta"}) {
         scope->add_local_symbol(var, make_symbol<LocalVariable>(Location(), var, localVariableKind::local));
     }
 

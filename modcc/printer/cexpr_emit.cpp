@@ -63,7 +63,11 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::log,     "log"},
         {tok::abs,     "abs"},
         {tok::exprelr, "exprelr"},
-        {tok::safeinv, "safeinv"}
+        {tok::safeinv, "safeinv"},
+        {tok::sqrt,            "sqrt"},
+        {tok::heaviside_right, "heaviside_right"},
+        {tok::heaviside_left,  "heaviside_left"},
+        {tok::signum,          "signum"}
     };
 
     if (!unaryop_tbl.count(e->op())) {
@@ -79,6 +83,23 @@ void CExprEmitter::visit(UnaryExpression* e) {
     if (e->op()==tok::minus && !inner->is_binary()) {
         out_ << op_spelling;
         inner->accept(this);
+    }
+    else if (e->op()==tok::heaviside_right) {
+        out_ << "((arb_value_type)((";
+        inner->accept(this);
+        out_ << ")>=0.))";
+    }
+    else if (e->op()==tok::heaviside_left) {
+        out_ << "((arb_value_type)((";
+        inner->accept(this);
+        out_ << ")>0.))";
+    }
+    else if (e->op()==tok::signum) {
+        out_ << "((arb_value_type)((0.<(";
+        inner->accept(this);
+        out_ << "))-((";
+        inner->accept(this);
+        out_ << ")<0.)))";
     }
     else {
         emit_as_call(op_spelling, inner);
@@ -188,7 +209,11 @@ void SimdExprEmitter::visit(UnaryExpression* e) {
         {tok::log,     "S::log"},
         {tok::abs,     "S::abs"},
         {tok::exprelr, "S::exprelr"},
-        {tok::safeinv, "safeinv"}
+        {tok::safeinv, "safeinv"},
+        {tok::sqrt,             "S::sqrt"},
+        {tok::heaviside_right,  "S::heaviside_right"},
+        {tok::heaviside_left,   "S::heaviside_left"},
+        {tok::signum,           "S::signum"}
     };
 
     if (!unaryop_tbl.count(e->op())) {

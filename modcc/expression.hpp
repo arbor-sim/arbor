@@ -1338,6 +1338,53 @@ public:
     void accept(Visitor *v) override;
 };
 
+// sqrt unuary expression, i.e. sqrt(x)
+class ARB_LIBMODCC_API SqrtUnaryExpression : public UnaryExpression {
+public:
+    SqrtUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::sqrt, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// heaviside_right unary expression,
+// i.e. heaviside_right(x) = 0, for x < 0
+//                           1, otherwise
+class ARB_LIBMODCC_API HeavisideRightUnaryExpression : public UnaryExpression {
+public:
+    HeavisideRightUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::heaviside_right, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// heaviside_left unary expression,
+// i.e. heaviside_left(x) = 0, for x <= 0
+//                          1, otherwise
+class ARB_LIBMODCC_API HeavisideLeftUnaryExpression : public UnaryExpression {
+public:
+    HeavisideLeftUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::heaviside_left, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// signum unary expression,
+// i.e. signum(x) = -1, for x < 0
+//                   0, for x = 0
+//                  +1, otherwise
+class ARB_LIBMODCC_API SignumUnaryExpression : public UnaryExpression {
+public:
+    SignumUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::signum, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
 ////////////////////////////////////////////////////////////
 // binary expressions
 

@@ -234,6 +234,37 @@ public:
                     std::move(dlhs))));
     }
 
+    void visit(SqrtUnaryExpression* e) override {
+        auto loc = e->location();
+        e->expression()->accept(this);
+        // d(sqrt(f(x)))/dx = 0.5*(f(x))^(-0.5)*d(f(x))/dx
+        result_ = make_expression<MulBinaryExpression>(loc,
+            make_expression<MulBinaryExpression>(loc,
+                make_expression<NumberExpression>(loc, 0.5),
+                make_expression<PowBinaryExpression>(loc,
+                    e->expression()->clone(),
+                    make_expression<NumberExpression>(loc, -0.5))),
+            result());
+    }
+
+    void visit(HeavisideRightUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
+    void visit(HeavisideLeftUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
+    void visit(SignumUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
     void visit(CallExpression* e) override {
         auto loc = e->location();
         result_ = make_expression<PDiffExpression>(loc,
@@ -370,6 +401,18 @@ public:
                 return;
             case tok::log:
                 as_number(loc, std::log(val));
+                return;
+            case tok::sqrt:
+                as_number(loc, std::sqrt(val));
+                return;
+            case tok::heaviside_right:
+                as_number(loc, (val >= 0.));
+                return;
+            case tok::heaviside_left:
+                as_number(loc, (val > 0.));
+                return;
+            case tok::signum:
+                as_number(loc, (0. < val) - (val < 0.));
                 return;
             default: ; // treat opaquely as below
             }

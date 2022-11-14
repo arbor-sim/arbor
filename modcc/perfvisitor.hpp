@@ -97,6 +97,14 @@ public:
         e->expression()->accept(this);
         flops.sin++;
     }
+    void visit(SqrtUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.pow++;
+    }
+    void visit(SignumUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.add++;
+    }
 
     ////////////////////////////////////////////////////
     // specializations for each type of binary expression
