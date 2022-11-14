@@ -4,11 +4,11 @@ This example is taken from [Jannik Luboeinski's repo](https://github.com/jlubo/a
 and adapted for inclusion into Arbor.
 
 The simulation consists of a single compartment cable cell with simple leaky integrate-and-fire (LIF)
-dynamics with Ornstein-Uhlenbeck (OU) input current.  The OU input current can approximate the
-synaptic input from a population of neurons.  This is mathematically based on the diffusion
+dynamics with Ornstein-Uhlenbeck (OU) input current. The OU input current can approximate the
+synaptic input from a population of neurons. This is mathematically based on the diffusion
 approximation, which analytically describes the input current that arises from presynaptic Poisson
 spiking if the spiking activity is sufficiently high and the evoked postsynaptic potentials are
-sufficiently small compared to the threshold potential [1,2].  Moreover, the exponentially decaying
+sufficiently small compared to the threshold potential [1,2]. Moreover, the exponentially decaying
 autocorrelation function of the OU process resembles that of currents evoked by the spiking activity
 of many neocortical neurons [3].
 
