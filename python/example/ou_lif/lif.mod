@@ -1,5 +1,5 @@
 : Leaky-integrate and fire neuron
-: author Yannik Luboeinski
+: authors: Sebastian Schmitt, Jannik Luboeinski
 : based on the LIF mechanism written by Sebastian Schmitt (https://github.com/tetzlab/FIPPA/blob/main/STDP/mechanisms/lif.mod)
 
 NEURON {
