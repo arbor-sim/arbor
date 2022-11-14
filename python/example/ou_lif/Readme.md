@@ -13,8 +13,8 @@ autocorrelation function of the OU process resembles that of currents evoked by 
 of many neocortical neurons [3].
 
 Here, we use the Ornstein-Uhlenbeck process in the following form, `dI/dt = -(1/τ) * (I - μ) +
-√(2/τ) * σ * W`.  Assuming homogeneous Poisson spiking for a population of *N* neurons in the
-putative population, the mean current is `μ = N * f * w_out`, and the volatility (standard
+√(2/τ) * σ * W`.  Assuming homogeneous Poisson spiking at frequency *f* for a putative population of
+*N* neurons, the mean current is `μ = N * f * w_out`, and the volatility (standard
 deviation) is `σ = √(10^3*N*f/(2*τ))*w_out` where *f* is the firing rate in Hertz, *w_out* is the
 synaptic weight in nC, and *τ* is the synaptic time constant in ms (cf. [4, 5]).
 
