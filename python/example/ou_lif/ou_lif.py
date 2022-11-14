@@ -135,7 +135,11 @@ class ou_recipe(arb.recipe):
         # "time_start": starting time, "scheme": protocol type
         self.bg_prot = {"time_start": 0, "scheme": "FULL", "label": "ou_bg"}
         self.stim1_prot = {"time_start": 10000, "scheme": "TRIPLET", "label": "ou_stim"}
-        self.stim2_prot = {"time_start": 15000, "scheme": "ONEPULSE", "label": "ou_stim"}
+        self.stim2_prot = {
+            "time_start": 15000,
+            "scheme": "ONEPULSE",
+            "label": "ou_stim",
+        }
 
     def cell_kind(self, gid):
         return arb.cell_kind.cable
