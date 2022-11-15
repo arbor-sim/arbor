@@ -70,7 +70,7 @@ Update tags/versions and test
 
         python -m venv env && source env/bin/activate
         pip install numpy
-        pip install -i https://test.pypi.org/simple/ arbor #should select the latest build, but doublecheck
+        pip install -i https://test.pypi.org/simple/ arbor #should select the latest build, otherwise e.g. arbor==0.8rc0
         python -c 'import arbor; print(arbor.__config__)'
 
    - Use build flags to test the source package: :ref:`in_python_adv`
