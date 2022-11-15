@@ -247,13 +247,19 @@ public:
             result());
     }
 
-    void visit(HeavisideRightUnaryExpression* e) override {
+    void visit(StepRightUnaryExpression* e) override {
         // ignore singularity
         auto loc = e->location();
         result_ = make_expression<IntegerExpression>(loc, 0);
     }
 
-    void visit(HeavisideLeftUnaryExpression* e) override {
+    void visit(StepLeftUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
+    void visit(StepUnaryExpression* e) override {
         // ignore singularity
         auto loc = e->location();
         result_ = make_expression<IntegerExpression>(loc, 0);
@@ -405,11 +411,14 @@ public:
             case tok::sqrt:
                 as_number(loc, std::sqrt(val));
                 return;
-            case tok::heaviside_right:
+            case tok::step_right:
                 as_number(loc, (val >= 0.));
                 return;
-            case tok::heaviside_left:
+            case tok::step_left:
                 as_number(loc, (val > 0.));
+                return;
+            case tok::step:
+                as_number(loc, 0.5*((0. < val) - (val < 0.) + 1));
                 return;
             case tok::signum:
                 as_number(loc, (0. < val) - (val < 0.));

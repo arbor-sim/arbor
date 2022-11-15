@@ -102,6 +102,11 @@ public:
         e->expression()->accept(this);
         flops.sqrt++;
     }
+    void visit(StepUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.add+=2;
+        flops.mul++;
+    }
     void visit(SignumUnaryExpression *e) override {
         e->expression()->accept(this);
         flops.add++;

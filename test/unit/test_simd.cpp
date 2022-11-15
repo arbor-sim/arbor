@@ -748,29 +748,36 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         v[0] = 0.0;
         v[1] = -0.0;
         fp signum_fp[N];
-        fp heaviside_right_fp[N];
-        fp heaviside_left_fp[N];
+        fp step_right_fp[N];
+        fp step_left_fp[N];
+        fp step_fp[N];
         for (unsigned i = 0; i<N; ++i) {
             signum_fp[i] = -1;
-            heaviside_right_fp[i] = 0;
-            heaviside_left_fp[i] = 0;
+            step_right_fp[i] = 0;
+            step_left_fp[i] = 0;
+            step_fp[i] = 0;
         }
         signum_fp[0] = 0;
         signum_fp[1] = 0;
-        heaviside_right_fp[0] = 1;
-        heaviside_right_fp[1] = 1;
+        step_right_fp[0] = 1;
+        step_right_fp[1] = 1;
+        step_fp[0] = 0.5;
+        step_fp[1] = 0.5;
         for (unsigned i = 2; i<2+(N-2)/2; ++i) {
             v[i] = u[i];
             signum_fp[i] = 1;
-            heaviside_right_fp[i] = 1;
-            heaviside_left_fp[i] = 1;
+            step_right_fp[i] = 1;
+            step_left_fp[i] = 1;
+            step_fp[i] = 1;
         }
         signum(simd(v)).copy_to(r);
         EXPECT_TRUE(testing::seq_eq(signum_fp, r));
-        heaviside_right(simd(v)).copy_to(r);
-        EXPECT_TRUE(testing::seq_eq(heaviside_right_fp, r));
-        heaviside_left(simd(v)).copy_to(r);
-        EXPECT_TRUE(testing::seq_eq(heaviside_left_fp, r));
+        step_right(simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(step_right_fp, r));
+        step_left(simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(step_left_fp, r));
+        step(simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(step_fp, r));
     }
 
     // The tests can cause floating point exceptions, which may set errno to nonzero

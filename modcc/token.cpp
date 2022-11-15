@@ -78,8 +78,9 @@ static Keyword keywords[] = {
     {"CONDUCTANCE",         tok::conductance},
     {"WATCH",               tok::watch},
     {"sqrt",                tok::sqrt},
-    {"heaviside_right",     tok::heaviside_right},
-    {"heaviside_left",      tok::heaviside_left},
+    {"step_right",          tok::step_right},
+    {"step_left",           tok::step_left},
+    {"step",                tok::step},
     {"signum",              tok::signum},
     {nullptr,               tok::reserved},
 };
@@ -162,8 +163,9 @@ static TokenString token_strings[] = {
     {"CONDUCTANCE",         tok::conductance},
     {"WATCH",               tok::watch},
     {"sqrt",                tok::sqrt},
-    {"heaviside_right",     tok::heaviside_right},
-    {"heaviside_left",      tok::heaviside_left},
+    {"step_right",          tok::step_right},
+    {"step_left",           tok::step_left},
+    {"step",                tok::step},
     {"signum",              tok::signum},
     {"error",               tok::reserved},
 };

@@ -1112,10 +1112,13 @@ void SinUnaryExpression::accept(Visitor *v) {
 void SqrtUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
-void HeavisideRightUnaryExpression::accept(Visitor *v) {
+void StepRightUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
-void HeavisideLeftUnaryExpression::accept(Visitor *v) {
+void StepLeftUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void SignumUnaryExpression::accept(Visitor *v) {
@@ -1197,10 +1200,12 @@ ARB_LIBMODCC_API expression_ptr unary_expression( Location loc,
             return make_expression<SafeInvUnaryExpression>(loc, std::move(e));
         case tok::sqrt :
             return make_expression<SqrtUnaryExpression>(loc, std::move(e));
-        case tok::heaviside_right :
-            return make_expression<HeavisideRightUnaryExpression>(loc, std::move(e));
-        case tok::heaviside_left :
-            return make_expression<HeavisideLeftUnaryExpression>(loc, std::move(e));
+        case tok::step_right :
+            return make_expression<StepRightUnaryExpression>(loc, std::move(e));
+        case tok::step_left :
+            return make_expression<StepLeftUnaryExpression>(loc, std::move(e));
+        case tok::step :
+            return make_expression<StepUnaryExpression>(loc, std::move(e));
         case tok::signum :
             return make_expression<SignumUnaryExpression>(loc, std::move(e));
        default :

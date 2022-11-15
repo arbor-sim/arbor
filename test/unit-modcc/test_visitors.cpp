@@ -86,6 +86,14 @@ TEST(FlopVisitor, basic) {
         e->accept(&visitor);
         EXPECT_EQ(visitor.flops.add, 1);
     }
+
+    {
+        FlopVisitor visitor;
+        auto e = parse_expression("step(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 2);
+        EXPECT_EQ(visitor.flops.mul, 1);
+    }
 }
 
 TEST(FlopVisitor, compound) {
@@ -135,7 +143,7 @@ TEST(FlopVisitor, procedure) {
 "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
 "    mtau = 0.6\n"
 "    htau = 1500\n"
-"    rho  = heaviside_left(c-theta) + 1/sqrt(tau)*sigma\n"
+"    rho  = step_left(c-theta) + 1/sqrt(tau)*sigma\n"
 "}";
     FlopVisitor visitor;
     auto e = parse_procedure(expression);

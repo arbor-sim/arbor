@@ -169,8 +169,9 @@ Arbor-specific features
   Function name       Description                            Semantics
   ==================  =====================================  =========
   sqrt(x)             square root                            :math:`\sqrt{x}`
-  heaviside_right(x)  right-continuous heaviside step        :math:`\begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
-  heaviside_left(x)   left-continuous heaviside step         :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  step_right(x)       right-continuous heaviside step        :math:`\begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  step_left(x)        left-continuous heaviside step         :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  step(x)             heaviside step with half value         :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{if} ~x \lt 0, \\ 0.5 & ~~ \text{otherwise}. \end{align*}`
   signum(x)           sign of argument                       :math:`\begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
   exprelr(x)          guarded exponential                    :math:`x e^{1-x}`
   ==================  =====================================  =========

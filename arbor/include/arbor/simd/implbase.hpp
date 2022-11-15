@@ -469,16 +469,26 @@ struct implbase {
         return I::ifelse(I::cmp_gt(t, s), t, s);
     }
 
-    static vector_type heaviside_right(const vector_type& s) {
+    static vector_type step_right(const vector_type& s) {
         vector_type zeros = I::broadcast(0);
         vector_type ones = I::broadcast(1);
         return I::ifelse(I::cmp_geq(s,zeros), ones, zeros);
     }
 
-    static vector_type heaviside_left(const vector_type& s) {
+    static vector_type step_left(const vector_type& s) {
         vector_type zeros = I::broadcast(0);
         vector_type ones = I::broadcast(1);
         return I::ifelse(I::cmp_gt(s,zeros), ones, zeros);
+    }
+
+    static vector_type step(const vector_type& s) {
+        vector_type zeros = I::broadcast(0);
+        vector_type halfs = I::broadcast(0.5);
+        return I::add(
+            I::sub(
+                I::ifelse(I::cmp_gt(s,zeros), halfs, zeros),
+                I::ifelse(I::cmp_gt(zeros,s), halfs, zeros)),
+            halfs);
     }
 
     static vector_type signum(const vector_type& s) {

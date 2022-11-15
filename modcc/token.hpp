@@ -74,9 +74,10 @@ enum class tok {
     exp, sin, cos, log, abs, safeinv,
     exprelr, // equivalent to x/(exp(x)-1) with exprelr(0)=1
     sqrt,
-    heaviside_right,  // right-continuous heaviside step function (H(0) = 1)
-    heaviside_left,   // left-continuous heaviside step function (H(0) = 0)
-    signum,           // sign function {-1, 0, +1}
+    step_right,  // right-continuous heaviside step function (H(0) = 1)
+    step_left,   // left-continuous heaviside step function (H(0) = 0)
+    step,        // heaviside step function (H(0) = 0.5)
+    signum,      // sign function {-1, 0, +1}
 
     // logical keywords
     if_stmt, else_stmt, // add _stmt to avoid clash with c++ keywords

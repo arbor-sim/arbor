@@ -582,11 +582,15 @@ In the following:
       - *S*
       - Lane-wise :math:`x \mapsto \begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
 
-    * - ``heaviside_right(s)``
+    * - ``step(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{if} ~x \lt 0, \\ 0.5 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``step_right(s)``
       - *S*
       - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
 
-    * - ``heaviside_left(s)``
+    * - ``step_left(s)``
       - *S*
       - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
 
