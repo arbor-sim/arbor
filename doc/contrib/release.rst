@@ -86,9 +86,11 @@ Release
 
 #. Tag
 
-   - commit and open a PR for the above changes.
-   - on cmdline: ``git tag -a TAGNAME``
-   - ``git push upstream TAGNAME``
+   - commit and either reuse the draft PR for the RC, or open a new one.
+   - once merged, make and push tag.
+
+      - on cmdline: ``git tag -a TAGNAME``
+      - ``git push upstream TAGNAME``
 
 #. Upload to pypi & verify
 
