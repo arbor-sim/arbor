@@ -33,16 +33,18 @@ the workflow is as follows:
 3. Make a pull request (PR) and refer to the issue(s) that the PR
    addresses. Some tips on how to write a good PR description:
 
-   -  You can use labels to categorize your PR. For very large PRs, it
-      is likely the reviewer will have many questions and comments. It
-      can be helpful to reach out on Gitter, Github Discussions or by email
-      beforehand if you’ve big things planned for Arbor!
-   -  Commit logical units with clear commit messages.
-   -  Add a change summary to the PR message. If you remembered to commit
-      logical units, this could simply be a bulleted list of all commit
-      messages in the PR. If during the review process you make changes
-      to the features in the PR, keep the PR description updated.
-   -  Use text like `fixes #123` in the description to refer to an issue.
+   - You can use labels to categorize your PR. For very large PRs, it
+     is likely the reviewer will have many questions and comments. It
+     can be helpful to reach out on Gitter, Github Discussions or by email
+     beforehand if you’ve big things planned for Arbor!
+   - Commit logical units with clear commit messages.
+   - Add a change summary to the PR message. If you remembered to commit
+     logical units, this could simply be a bulleted list of all commit
+     messages in the PR. If during the review process you make changes
+     to the features in the PR, keep the PR description updated.
+   - Use text like `fixes #123` in the description to refer to an issue.
+   - Prefix your PR title with BUGFIX, BREAKING, FEATURE if it fixes a bug, introduces
+     a breaking change or introduces a (major) new feature respectively.
 
 4. We will accept contributions licensed with the same
    `BSD 3-Clause "New" or "Revised" License <https://github.com/arbor-sim/arbor/blob/master/LICENSE>`_,
