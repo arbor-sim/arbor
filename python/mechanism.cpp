@@ -200,6 +200,7 @@ void register_mechanisms(pybind11::module& m) {
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
     m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
     m.def("bbp_catalogue", [](){return arb::global_bbp_catalogue();});
+    m.def("stochastic_catalogue", [](){return arb::global_stochastic_catalogue();});
     m.def("load_catalogue", [](pybind11::object fn) { return arb::load_catalogue(util::to_string(fn)); });
 
     // arb::mechanism_desc
