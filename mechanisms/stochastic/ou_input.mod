@@ -1,4 +1,3 @@
-: Exponential current-based synapse
 : Input current modeled by an Ornstein-Uhlenbeck process
 : Sets non-specific current given mean, volatility and relaxation time
 :
@@ -20,7 +19,7 @@
 : Var[I_ou] = σ^2
 
 NEURON {
-    POINT_PROCESS noisy_expsyn_curr
+    POINT_PROCESS ou_input
     RANGE mu, sigma, tau
     NONSPECIFIC_CURRENT I
 }

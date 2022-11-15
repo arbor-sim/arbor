@@ -81,7 +81,7 @@ def make_cell():
     # volatility in nA
     sigma_bg = 0.5
     # instantiate mechanism
-    ou_bg = arb.mechanism("noisy_expsyn_curr")
+    ou_bg = arb.mechanism("ou_input")
     ou_bg.set("mu", mu_bg)
     ou_bg.set("sigma", sigma_bg)
     ou_bg.set("tau", tau_syn)
@@ -100,7 +100,7 @@ def make_cell():
     # volatility in nA
     sigma_stim = np.sqrt((1000.0 * N * f) / (2 * tau_syn)) * w_out
     # instantiate mechanism
-    ou_stim = arb.mechanism("noisy_expsyn_curr")
+    ou_stim = arb.mechanism("ou_input")
     ou_stim.set("mu", mu_stim)
     ou_stim.set("sigma", sigma_stim)
     ou_stim.set("tau", tau_syn)
@@ -158,7 +158,7 @@ class ou_recipe(arb.recipe):
         return [
             arb.cable_probe_membrane_voltage('"center"'),
             arb.cable_probe_total_ion_current_cell(),
-            arb.cable_probe_point_state_cell("noisy_expsyn_curr", "I_ou"),
+            arb.cable_probe_point_state_cell("ou_input", "I_ou"),
         ]
 
     def event_generators(self, gid):

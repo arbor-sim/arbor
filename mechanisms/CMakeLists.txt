@@ -23,7 +23,7 @@ make_catalogue(
 
 make_catalogue(
   NAME stochastic
-  MOD noisy_expsyn_curr
+  MOD ou_input
   VERBOSE ${ARB_CAT_VERBOSE}
   ADD_DEPS ON)
 
