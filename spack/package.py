@@ -12,10 +12,15 @@ class Arbor(CMakePackage, CudaPackage):
 
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
-    url = "https://github.com/arbor-sim/arbor/releases/download/v0.7/arbor-v0.7-full.tar.gz"
+    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8/arbor-v0.8-full.tar.gz"
     maintainers = ["bcumming", "brenthuisman", "haampie", "schmitts"]
 
     version("master", branch="master", submodules=True)
+    version(
+        "0.8",
+        sha256="18df5600308841616996a9de93b55a105be0f59692daa5febd3a65aae5bc2c5d",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.8/arbor-v0.8-full.tar.gz",
+    )
     version(
         "0.7",
         sha256="c3a6b7193946aee882bb85f9c38beac74209842ee94e80840968997ba3b84543",
