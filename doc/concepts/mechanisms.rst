@@ -80,8 +80,9 @@ Two catalogues are provided that collect mechanisms associated with specific pro
 A fourth catalogue ``stochastic_catalogue`` provides mechanisms expressed as stochastic differential
 equations:
 
-* *noisy_expsyn_curr* Synapse mechanism similar to *expsyn_curr*, where the exponential decay is
-  subject to noise due to a Ornstein-Uhlenbeck process.
+* *ou_input* Synapse mechanism that can stochastically account for a population of *ou_input*
+  synapses.  The mechanism is similar to *expsyn_curr* but with the exponential decay being subject
+  to noise due to a Ornstein-Uhlenbeck process.
 
 
 .. _mechanisms_dynamic:
