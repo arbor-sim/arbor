@@ -175,11 +175,6 @@ Arbor-specific features
   exprelr(x)          guarded exponential                    :math:`x e^{1-x}`
   ==================  =====================================  =========
 
-  .. note::
-
-     Hand-rolled versions of ``exprelr`` are common in NMODL files originating from NEURON,
-     where patterns such as ``vtrap(x, y) = y*exprelr(x/y)`` appear frequently.
-
 .. _format-sde:
 
 Stochastic Processes
@@ -445,6 +440,25 @@ Specialised Functions
 
 Some extra cost can be saved by choosing Arbor-specific optimized math functions instead of
 hand-rolled versions. Please consult the table in :ref:`this section <arbornmodl>`.
+A common pattern is the use of a guarded exponential of the form
+
+.. code::
+
+   if (x != 1) {
+     r = x*exp(1 - x)
+   } else {
+     r = x
+   }
+
+However, it can be written in Arbor's NMODL dialect as
+
+.. code::
+
+   exprelr(x)
+
+which is more efficient and has the same guarantees. NMODL files originating
+from NEURON often use this or related functions, e.g. ``vtrap(x, y) =
+y*exprelr(x/y)``.
 
 Small Tips and Micro-Optimisations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

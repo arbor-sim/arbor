@@ -80,7 +80,7 @@ TEST(scalar_printer, statement) {
     Scope<Symbol>::symbol_map globals;
     auto scope = std::make_shared<Scope<Symbol>>(globals);
 
-    for (auto var: {"x", "y", "z", "a", "b", "c", "c", "theta"}) {
+    for (auto var: {"x", "y", "z", "a", "b", "c", "theta"}) {
         scope->add_local_symbol(var, make_symbol<LocalVariable>(Location(), var, localVariableKind::local));
     }
 

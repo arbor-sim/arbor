@@ -77,7 +77,7 @@ TEST(FlopVisitor, basic) {
         FlopVisitor visitor;
         auto e = parse_expression("sqrt(x)");
         e->accept(&visitor);
-        EXPECT_EQ(visitor.flops.pow, 1);
+        EXPECT_EQ(visitor.flops.sqrt, 1);
     }
 
     {
@@ -145,7 +145,8 @@ TEST(FlopVisitor, procedure) {
     EXPECT_EQ(visitor.flops.mul, 1);
     EXPECT_EQ(visitor.flops.div, 6);
     EXPECT_EQ(visitor.flops.exp, 2);
-    EXPECT_EQ(visitor.flops.pow, 2);
+    EXPECT_EQ(visitor.flops.pow, 1);
+    EXPECT_EQ(visitor.flops.sqrt, 1);
 }
 
 TEST(FlopVisitor, function) {
@@ -166,6 +167,7 @@ TEST(FlopVisitor, function) {
     EXPECT_EQ(visitor.flops.mul, 1);
     EXPECT_EQ(visitor.flops.div, 7);
     EXPECT_EQ(visitor.flops.exp, 2);
-    EXPECT_EQ(visitor.flops.pow, 2);
+    EXPECT_EQ(visitor.flops.pow, 1);
+    EXPECT_EQ(visitor.flops.sqrt, 1);
 }
 

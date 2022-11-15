@@ -16,9 +16,10 @@ struct FlopAccumulator {
     int cos=0;
     int log=0;
     int pow=0;
+    int sqrt=0;
 
     void reset() {
-        add = neg = mul = div = exp = sin = cos = log = 0;
+        add = neg = mul = div = exp = sin = cos = log = pow = sqrt = 0;
     }
 };
 
@@ -26,8 +27,8 @@ static std::ostream& operator << (std::ostream& os, FlopAccumulator const& f) {
     char buffer[512];
     snprintf(buffer,
              512,
-             "   add   neg   mul   div   exp   sin   cos   log   pow\n%6d%6d%6d%6d%6d%6d%6d%6d%6d",
-             f.add, f.neg, f.mul, f.div, f.exp, f.sin, f.cos, f.log, f.pow);
+             "   add   neg   mul   div   exp   sin   cos   log   pow  sqrt\n%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+             f.add, f.neg, f.mul, f.div, f.exp, f.sin, f.cos, f.log, f.pow, f.sqrt);
 
     os << buffer << std::endl << std::endl;
     os << " add+mul+neg  " << f.add + f.neg + f.mul << std::endl;
@@ -99,7 +100,7 @@ public:
     }
     void visit(SqrtUnaryExpression *e) override {
         e->expression()->accept(this);
-        flops.pow++;
+        flops.sqrt++;
     }
     void visit(SignumUnaryExpression *e) override {
         e->expression()->accept(this);
