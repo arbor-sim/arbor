@@ -17,9 +17,10 @@ on the topic, further functionality will come as requested. https://github.com/a
 
 ## Breaking changes since v0.7:
 
-- A change in API: `arbor.cable_cell` has the labels and decor arguments swapped. I.e.: `(tree, labels, decor)`
+- A change in decor API: `arbor.cable_cell` has the labels and decor arguments swapped. I.e.: `(tree, labels, decor)`
 -> `(tree, decor, label)`. Labels are now optional. https://github.com/arbor-sim/arbor/pull/1978
 - Remove the `generate-catalogue` script.  `modcc` accepts now a list of NMODL files and is able to spit out a catalogue.cpp file. https://github.com/arbor-sim/arbor/pull/1975
+- Mechanism ABI version is bumped to 0.3.1. https://github.com/arbor-sim/arbor/pull/1884
 - Rename spike detector -> threshold detector. https://github.com/arbor-sim/arbor/pull/1976
 - Remove access to time `t` in NMODL. https://github.com/arbor-sim/arbor/pull/1967
 - Major dependency version bumps:
