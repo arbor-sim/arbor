@@ -135,7 +135,7 @@ Post Release
 
    - Spack upstream: `PR here <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_
    - Ebrains Lab: `MR here <https://gitlab.ebrains.eu/technical-coordination/project-internal/devops/platform/ebrains-spack-builds/>`_
-   - OSB: update `dockerfile <https://github.com/OpenSourceBrain/OSBv2/blob/master/applications/jupyterlab/Dockerfile>`_ if needed.
+   - OSB: update `requirementsfile <https://github.com/OpenSourceBrain/OSBv2/blob/master/applications/jupyterlab/requirements.txt>`_ if needed.
 
      - Make sure that `Notebooks <https://www.v2.opensourcebrain.org/repositories/38>`_ work on the version that their image is built with.
 
