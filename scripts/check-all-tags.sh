@@ -13,7 +13,7 @@ PREFIX="${1:-} `pwd`/build/bin"
 cxx=/usr/local/opt/llvm/bin/clang++
 cc=/usr/local/opt/llvm/bin/clang
 
-for tag in v0.4 v0.5.2 v0.6 v0.7
+for tag in v0.4 v0.5.2 v0.6 v0.7 v0.8
 do
     echo "Version=$tag"
     rm -rf ext/*
@@ -54,7 +54,7 @@ check () {
     fi
 }
 
-for tag in "v0.4-79855b66" "v0.5.2-51e35898" "v0.6-930c23eb" "v0.7-d0e424b4"
+for tag in "v0.4-79855b66" "v0.5.2-51e35898" "v0.6-930c23eb" "v0.7-d0e424b4" "v0.8-8e82ec1"
 do
     echo "Version=$tag"
     for simd in ON OFF
