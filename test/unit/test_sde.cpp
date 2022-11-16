@@ -205,9 +205,9 @@ void test_statistics(const std::vector<T>& ordered_samples, double mu, double si
     EXPECT_TRUE(chi_2_test_variance(sigma*sigma, acc.mean(), acc.variance(), acc.n()));
 }
 
-// ===========================
-// Recipe and global variables
-// ===========================
+// =================================
+// Declarations and global variables
+// =================================
 
 using namespace arb;
 using namespace arborio::literals;
@@ -224,6 +224,10 @@ void advance_mean_reverting_stochastic_density_process(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_density_process2(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_process(arb_mechanism_ppack* pp);
 void advance_mean_reverting_stochastic_process2(arb_mechanism_ppack* pp);
+
+// ===========================================
+// Recipe with multiple mechanism replacements
+// ===========================================
 
 // helper macro for replacing a mechanism's advance method
 #define REPLACE_IMPLEMENTATION(MECH)                                                               \
