@@ -829,6 +829,9 @@ void emit_simd_state_update(std::ostream& out,
         }
     }
     else if (write_voltage) {
+        /* For voltage processes we *assign* to the potential field.
+        ** SAFETY: only one V-PROCESS per CV allowed
+        */
         if (d.index_var_kind == index_kind::node) {
             if (constraint == simd_expr_constraint::contiguous) {
                 out << fmt::format("indirect({} + {}, simd_width_) = {};\n",
@@ -836,7 +839,6 @@ void emit_simd_state_update(std::ostream& out,
             }
             else {
                 // We need this instead of simple assignment!
-                // SAFETY: only one V-PROCESS per CV allowed
                 out << fmt::format("{{\n"
                                    "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
                                    "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"

@@ -353,13 +353,12 @@ TEST(segment_tree, tag_roots) {
             EXPECT_EQ((std::vector<arb::msize_t>{3}), arb::tag_roots(tree, 3));
         }
     }
-    /* gnarly tree
-    ** (npos) - 0 - 1 - 4
-    **            \
-    **              2 - 3
-    **                \
-    **                  5
-    */
+    // gnarly tree
+    // (npos) - 0 - 1 - 4
+    //            \
+    //              2 - 3
+    //                \
+    //                  5
     {
         arb::segment_tree tree;
         tree.append(arb::mnpos, {0, 0, 0}, {0, 0, 1}, 1); // 0

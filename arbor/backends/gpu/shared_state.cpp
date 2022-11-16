@@ -51,17 +51,6 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
     return util::minmax_value(v_copy);
 }
 
-// Helpers
-int look_up_parameter(const arb_mechanism_type& m, const std::string& key) {
-    int size = m.n_parameters;
-    for (int i = 0; i < size; ++i) {
-        if (key==m.parameters[i].name) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 // Ion state methods:
 
 ion_state::ion_state(

@@ -295,21 +295,28 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->integrate_diffusion();
         PL();
 
-        // Integrate mechanism state.
-
+        // Integrate mechanism state for density
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
 
         // Update ion concentrations.
-
         PE(advance:integrate:ionupdate);
         update_ion_state();
         PL();
 
-        // Update time and test for spike threshold crossings.
+        // voltage mechs run now; after the cable_solver, but before the
+        // threshold test
+        for (auto& m: voltage_mechanisms_) {
+            m->update_current();
+        }
+        for (auto& m: voltage_mechanisms_) {
+            state_->update_prng_state(*m);
+            m->update_state();
+        }
 
+        // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
         threshold_watcher_.test(&state_->time_since_spike);
         PL();
@@ -321,11 +328,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             }
         }
         PL();
-
-        // voltage mechs run now; after the
-        for (auto& m: voltage_mechanisms_) {
-            m->update_current();
-        }
 
         std::swap(state_->time_to, state_->time);
 
