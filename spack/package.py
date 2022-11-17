@@ -56,10 +56,11 @@ class Arbor(CMakePackage, CudaPackage):
         default=False,
         description="Enable vectorization of computational kernels",
     )
-    variant("gpu_rng",
+    variant(
+        "gpu_rng",
         default=False,
         description="Use GPU generated random numbers -- not bitwise equal to CPU version",
-        when="+cuda"
+        when="+cuda",
     )
 
     # https://docs.arbor-sim.org/en/latest/install/build_install.html#compilers
