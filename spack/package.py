@@ -56,6 +56,11 @@ class Arbor(CMakePackage, CudaPackage):
         default=False,
         description="Enable vectorization of computational kernels",
     )
+    variant("gpu_rng",
+        default=False,
+        description="Use GPU generated random numbers -- not bitwise equal to CPU version",
+        when="+cuda"
+    )
 
     # https://docs.arbor-sim.org/en/latest/install/build_install.html#compilers
     conflicts("%gcc@:8")
@@ -109,6 +114,7 @@ class Arbor(CMakePackage, CudaPackage):
 
         if "+cuda" in self.spec:
             args.append("-DARB_GPU=cuda")
+            args.append(self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"))
 
         # query spack for the architecture-specific compiler flags set by its wrapper
         args.append("-DARB_ARCH=none")
