@@ -163,6 +163,12 @@ std::unordered_multimap<std::string, evaluator> eval_map {
     {"exp", make_call<arb::iexpr>(arb::iexpr::exp, "iexpr with 1 argument: (value:iexpr)")},
     {"exp", make_call<double>(arb::iexpr::exp, "iexpr with 1 argument: (value:double)")},
 
+    {"step_right", make_call<arb::iexpr>(arb::iexpr::step_right, "iexpr with 1 argument: (value:iexpr)")},
+    {"step_right", make_call<double>(arb::iexpr::step_right, "iexpr with 1 argument: (value:double)")},
+
+    {"step_left", make_call<arb::iexpr>(arb::iexpr::step_left, "iexpr with 1 argument: (value:iexpr)")},
+    {"step_left", make_call<double>(arb::iexpr::step_left, "iexpr with 1 argument: (value:double)")},
+
     {"step", make_call<arb::iexpr>(arb::iexpr::step, "iexpr with 1 argument: (value:iexpr)")},
     {"step", make_call<double>(arb::iexpr::step, "iexpr with 1 argument: (value:double)")},
 

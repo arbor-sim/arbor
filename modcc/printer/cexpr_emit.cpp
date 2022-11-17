@@ -56,14 +56,19 @@ void CExprEmitter::visit(UnaryExpression* e) {
     // Place a space in front of minus sign to avoid invalid
     // expressions of the form: (v[i]--67)
     static std::unordered_map<tok, const char*> unaryop_tbl = {
-        {tok::minus,   " -"},
-        {tok::exp,     "exp"},
-        {tok::cos,     "cos"},
-        {tok::sin,     "sin"},
-        {tok::log,     "log"},
-        {tok::abs,     "abs"},
-        {tok::exprelr, "exprelr"},
-        {tok::safeinv, "safeinv"}
+        {tok::minus,      " -"},
+        {tok::exp,        "exp"},
+        {tok::cos,        "cos"},
+        {tok::sin,        "sin"},
+        {tok::log,        "log"},
+        {tok::abs,        "abs"},
+        {tok::exprelr,    "exprelr"},
+        {tok::safeinv,    "safeinv"},
+        {tok::sqrt,       "sqrt"},
+        {tok::step_right, "step_right"},
+        {tok::step_left,  "step_left"},
+        {tok::step,       "step"},
+        {tok::signum,     "signum"}
     };
 
     if (!unaryop_tbl.count(e->op())) {
@@ -79,6 +84,30 @@ void CExprEmitter::visit(UnaryExpression* e) {
     if (e->op()==tok::minus && !inner->is_binary()) {
         out_ << op_spelling;
         inner->accept(this);
+    }
+    else if (e->op()==tok::step_right) {
+        out_ << "((arb_value_type)((";
+        inner->accept(this);
+        out_ << ")>=0.))";
+    }
+    else if (e->op()==tok::step_left) {
+        out_ << "((arb_value_type)((";
+        inner->accept(this);
+        out_ << ")>0.))";
+    }
+    else if (e->op()==tok::step) {
+        out_ << "((arb_value_type)0.5*((0.<(";
+        inner->accept(this);
+        out_ << "))-((";
+        inner->accept(this);
+        out_ << ")<0.)+1))";
+    }
+    else if (e->op()==tok::signum) {
+        out_ << "((arb_value_type)((0.<(";
+        inner->accept(this);
+        out_ << "))-((";
+        inner->accept(this);
+        out_ << ")<0.)))";
     }
     else {
         emit_as_call(op_spelling, inner);
@@ -181,14 +210,19 @@ void SimdExprEmitter::visit(NumberExpression* e) {
 
 void SimdExprEmitter::visit(UnaryExpression* e) {
     static std::unordered_map<tok, const char*> unaryop_tbl = {
-        {tok::minus,   "S::neg"},
-        {tok::exp,     "S::exp"},
-        {tok::cos,     "S::cos"},
-        {tok::sin,     "S::sin"},
-        {tok::log,     "S::log"},
-        {tok::abs,     "S::abs"},
-        {tok::exprelr, "S::exprelr"},
-        {tok::safeinv, "safeinv"}
+        {tok::minus,      "S::neg"},
+        {tok::exp,        "S::exp"},
+        {tok::cos,        "S::cos"},
+        {tok::sin,        "S::sin"},
+        {tok::log,        "S::log"},
+        {tok::abs,        "S::abs"},
+        {tok::exprelr,    "S::exprelr"},
+        {tok::safeinv,    "safeinv"},
+        {tok::sqrt,       "S::sqrt"},
+        {tok::step_right, "S::step_right"},
+        {tok::step_left,  "S::step_left"},
+        {tok::step,       "S::step"},
+        {tok::signum,     "S::signum"}
     };
 
     if (!unaryop_tbl.count(e->op())) {

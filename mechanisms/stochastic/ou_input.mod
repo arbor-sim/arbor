@@ -53,7 +53,7 @@ INITIAL {
     I_ou   = 0
     active = -1
     alpha  = 1.0/tau
-    beta   = sigma * (2.0/tau)^0.5
+    beta   = sigma * sqrt(2.0/tau)
 }
 
 BREAKPOINT {
@@ -62,7 +62,7 @@ BREAKPOINT {
 }
 
 DERIVATIVE state {
-    I_ou' = heaviside(active) * (alpha * (mu - I_ou) + beta * W)
+    I_ou' = step_right(active) * (alpha * (mu - I_ou) + beta * W)
 }
 
 NET_RECEIVE(weight) {
@@ -73,14 +73,5 @@ NET_RECEIVE(weight) {
     else { : indicates that stimulation ends
         I_ou = 0 : switch off the process
         active = -1
-    }
-}
-
-FUNCTION heaviside(x) {
-    if (x >= 0) {
-        heaviside = 1
-    }
-    else {
-        heaviside = 0
     }
 }
