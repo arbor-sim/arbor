@@ -6,6 +6,10 @@ make_catalogue_standalone(
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     VERBOSE ON)
 
+if(ARB_WITH_NVCC)
+    target_compile_options(ou-catalogue PRIVATE -DARB_CUDA)
+endif()
+
 add_executable(ou EXCLUDE_FROM_ALL ou.cpp)
 add_dependencies(ou ou-catalogue)
 target_compile_options(ou PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
