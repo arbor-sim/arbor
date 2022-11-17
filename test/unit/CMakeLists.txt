@@ -194,36 +194,37 @@ if(ARB_WITH_NVCC)
     target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)
 endif()
 
-if(ARB_WITH_CUDA_CLANG)
-    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-
-if(ARB_WITH_HIP_CLANG)
-    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-add_dependencies(unit dummy-catalogue)
-
-if(ARB_WITH_GPU)
-  target_compile_definitions(unit PRIVATE ARB_GPU_ENABLED)
-endif()
-
-if(ARB_WITH_NVCC)
-    target_compile_options(unit PRIVATE -DARB_CUDA)
-endif()
-
-if(ARB_WITH_CUDA_CLANG)
-    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-
-if(ARB_WITH_HIP_CLANG)
-    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-
-target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
+#if(ARB_WITH_CUDA_CLANG)
+#    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+#    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+#endif()
+#
+#if(ARB_WITH_HIP_CLANG)
+#    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+#    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+#endif()
+#add_dependencies(unit dummy-catalogue)
+#
+#if(ARB_WITH_GPU)
+#  target_compile_definitions(unit PRIVATE ARB_GPU_ENABLED)
+#endif()
+#
+#if(ARB_WITH_NVCC)
+#    target_compile_options(unit PRIVATE -DARB_CUDA)
+#endif()
+#
+#if(ARB_WITH_CUDA_CLANG)
+#    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+#    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+#endif()
+#
+#if(ARB_WITH_HIP_CLANG)
+#    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+#    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+#endif()
+#
+#target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
+target_link_libraries(unit PRIVATE arbor-private-deps)
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
