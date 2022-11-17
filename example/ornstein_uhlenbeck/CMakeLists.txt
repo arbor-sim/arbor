@@ -5,7 +5,6 @@ make_catalogue_lib(
     MOD     ornstein_uhlenbeck
     VERBOSE ${ARB_CAT_VERBOSE})
 
-
 add_executable(ou EXCLUDE_FROM_ALL ou.cpp)
 target_link_libraries(ou PRIVATE catalogue-ornstein_uhlenbeck)
 #target_link_libraries(ou PRIVATE arbor-private-deps) # compiler flags, GPU options etc
