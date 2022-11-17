@@ -20,8 +20,6 @@ public:
         // build catalogue with stochastic mechanism
         cell_gprop_.catalogue = global_default_catalogue();
         cell_gprop_.catalogue.import(arb::global_ornstein_uhlenbeck_catalogue(), "");
-        //cell_gprop_.catalogue.import(build_catalogue(), "");
-        //cell_gprop_.catalogue = make_catalogue(global_default_catalogue());
         cell_gprop_.default_parameters = neuron_parameter_defaults;
         
         // paint the process on the whole cell
