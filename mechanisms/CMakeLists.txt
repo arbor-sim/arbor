@@ -23,7 +23,7 @@ make_catalogue(
 
 make_catalogue(
   NAME stochastic
-  MOD ou_input
+  MOD ou_input calcium_based_synapse
   VERBOSE ${ARB_CAT_VERBOSE}
   ADD_DEPS ON)
 
