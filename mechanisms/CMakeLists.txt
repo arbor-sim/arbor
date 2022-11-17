@@ -21,6 +21,12 @@ make_catalogue(
   VERBOSE ${ARB_CAT_VERBOSE}
   ADD_DEPS ON)
 
+make_catalogue(
+  NAME stochastic
+  MOD ou_input
+  VERBOSE ${ARB_CAT_VERBOSE}
+  ADD_DEPS ON)
+
 # This re-exports
 set(arbor-builtin-mechanisms ${arbor-builtin-mechanisms} PARENT_SCOPE)
 

@@ -10,7 +10,7 @@ file formats; see :ref:`cppcablecell-morphology-construction` for details.
 Segment tree
 ------------
 
-A ``segment_tree` is -- as the name implies -- a set of segments arranged in a
+A ``segment_tree`` is -- as the name implies -- a set of segments arranged in a
 tree structure, ie each segment has exactly one parent and no child is the
 parent of any of its ancestors. The tree starts at a *root* segment which has no
 parent. Each segment comprises two points in 3d space together with the radii at
@@ -76,6 +76,11 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
     Join two subtrees at a given id, such that said id becomes the parent
     of the inserted sub-tree.
+
+.. cpp:function:: std::vector<msize_t> tag_roots(const segment_tree& t, int tag)
+
+    Get IDs of roots of a region with specific tag in the segment tree, i.e. segments whose
+    parent is either :data:`mnpos` or a segment with a different tag.
 
 .. cpp:function:: bool equivalent(const segment_tree& l, const segment_tree& r)
 

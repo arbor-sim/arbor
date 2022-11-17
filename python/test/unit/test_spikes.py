@@ -13,7 +13,7 @@ all tests for the simulator wrapper
 
 class TestSpikes(unittest.TestCase):
     # test that all spikes are sorted by time then by gid
-    @fixtures.art_spiking_sim
+    @fixtures.art_spiking_sim()
     def test_spikes_sorted(self, art_spiking_sim):
         sim = art_spiking_sim
         sim.record(A.spike_recording.all)

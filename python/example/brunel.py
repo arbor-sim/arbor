@@ -105,7 +105,6 @@ class brunel_recipe(arbor.recipe):
         cell.C_m = 20
         cell.E_L = 0
         cell.V_m = 0
-        cell.V_reset = 0
         cell.t_ref = 2
         return cell
 

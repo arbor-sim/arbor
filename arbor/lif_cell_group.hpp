@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 
 #include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
@@ -9,6 +10,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
 
+#include "sampler_map.hpp"
 #include "cell_group.hpp"
 #include "label_resolution.hpp"
 
@@ -37,10 +39,21 @@ public:
     virtual void remove_sampler(sampler_association_handle) override;
     virtual void remove_all_samplers() override;
 
+    virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const override;
+
 private:
+    enum class lif_probe_kind { voltage };
+
+    struct lif_probe_info {
+        probe_tag tag;
+        lif_probe_kind kind;
+        lif_probe_metadata metadata;
+    };
+
+
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, pse_vector& event_lane);
+    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane);
 
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
@@ -53,6 +66,16 @@ private:
 
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;
+    // Time when the cell can _next_ be updated;
+    std::vector<time_type> next_time_updatable_;
+
+    // SAFETY: We need to access samplers_ through a mutex since
+    // simulation::add_sampler might be called concurrently.
+    std::mutex sampler_mex_;
+    sampler_association_map samplers_;
+
+    // LIF probe metadata, precalculated to pass to callbacks
+    std::unordered_map<cell_member_type, lif_probe_info> probes_;
 };
 
 cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const lif_cell& c);

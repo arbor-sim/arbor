@@ -33,7 +33,7 @@ void run_cv_geom(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
     const std::size_t ncv_per_branch = state.range(0);
 
-    cable_cell c(from_swc(SWCFILE));
+    cable_cell c(from_swc(SWCFILE), {});
     auto ends = cv_policy_fixed_per_branch(ncv_per_branch).cv_boundary_points(c);
 
     while (state.KeepRunning()) {
@@ -44,7 +44,7 @@ void run_cv_geom(benchmark::State& state) {
 void run_cv_geom_every_segment(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
-    cable_cell c(from_swc(SWCFILE));
+    cable_cell c(from_swc(SWCFILE), {});
     auto ends = cv_policy_every_segment().cv_boundary_points(c);
 
     while (state.KeepRunning()) {
@@ -55,7 +55,7 @@ void run_cv_geom_every_segment(benchmark::State& state) {
 void run_cv_geom_explicit(benchmark::State& state) {
     auto gdflt = neuron_parameter_defaults;
 
-    cable_cell c(from_swc(SWCFILE));
+    cable_cell c(from_swc(SWCFILE), {});
 
     while (state.KeepRunning()) {
         auto ends = cv_policy_every_segment().cv_boundary_points(c);
@@ -74,7 +74,7 @@ void run_discretize(benchmark::State& state) {
     dec.set_default(cv_policy_fixed_per_branch(ncv_per_branch));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, dec}, gdflt));
     }
 }
 
@@ -86,7 +86,7 @@ void run_discretize_every_segment(benchmark::State& state) {
     dec.set_default(cv_policy_every_segment());
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, dec}, gdflt));
     }
 }
 
@@ -95,11 +95,11 @@ void run_discretize_explicit(benchmark::State& state) {
 
     decor dec;
     auto morpho = from_swc(SWCFILE);
-    auto ends = cv_policy_every_segment().cv_boundary_points(cable_cell{morpho});
+    auto ends = cv_policy_every_segment().cv_boundary_points(cable_cell{morpho, {}});
     dec.set_default(cv_policy_explicit(std::move(ends)));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, dec}, gdflt));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, dec}, gdflt));
     }
 }
 
