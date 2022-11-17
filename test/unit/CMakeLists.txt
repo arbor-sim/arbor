@@ -181,7 +181,6 @@ add_executable(unit EXCLUDE_FROM_ALL ${unit_sources})
 target_link_libraries(unit PRIVATE catalogue-testing)
 add_dependencies(tests unit)
 
-
 make_catalogue_standalone(
     NAME dummy
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
@@ -190,9 +189,8 @@ make_catalogue_standalone(
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     VERBOSE ON)
 
-if(ARB_WITH_NVCC)
-    target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)
-endif()
+target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
+add_dependencies(unit dummy-catalogue)
 
 target_link_libraries(unit PRIVATE arbor-private-deps)
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
