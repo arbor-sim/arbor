@@ -41,7 +41,7 @@ struct key_set_pos {
         is_root = lane_id? left_idx!=idx: 1;
 
         // Determine the range this thread contributes to.
-        unsigned roots = ballot(key_mask, is_root);
+        unsigned roots = ballot_sync(key_mask, is_root);
 
         // Find the distance to the lane id one past the end of the run.
         // Take care if this is the last run in the warp.
