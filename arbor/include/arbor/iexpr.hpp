@@ -29,6 +29,8 @@ enum class iexpr_type {
     mul,
     div,
     exp,
+    step_right,
+    step_left,
     step,
     log,
     named
@@ -97,6 +99,10 @@ struct ARB_SYMBOL_VISIBLE iexpr {
     static iexpr div(iexpr left, iexpr right);
 
     static iexpr exp(iexpr value);
+
+    static iexpr step_right(iexpr value);
+
+    static iexpr step_left(iexpr value);
 
     static iexpr step(iexpr value);
 
