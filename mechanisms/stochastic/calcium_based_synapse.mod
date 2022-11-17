@@ -84,18 +84,10 @@ WHITE_NOISE {
 DERIVATIVE state {
     LOCAL hsp
     LOCAL hsd
-    hsp = heaviside(c - theta_p)
-    hsd = heaviside(c - theta_d)
+    hsp = step_right(c - theta_p)
+    hsd = step_right(c - theta_d)
     rho' = (-rho*(1-rho)*(rho_star-rho) + gamma_p*(1-rho)*hsp - gamma_d*rho*hsd)*one_over_tau + (hsp + hsd)^0.5*sigma_over_sqrt_tau*W
     c' = -c*one_over_tau_Ca
-}
-
-FUNCTION heaviside(x) {
-    if (x > 0) {
-      heaviside = 1
-    } else{
-      heaviside = 0
-    }
 }
 
 NET_RECEIVE(weight) {
