@@ -72,8 +72,6 @@ struct single_recipe: public arb::recipe {
             .paint("dend"_lab, arb::density("pas"))
             // Add synapse to last branch.
             .place(arb::mlocation{ morpho.num_branches()-1, 1. }, arb::synapse("exp2syn"), "synapse");
-
-        //
         if (voltage_clamp) decor.paint("soma"_lab, arb::voltage_process("v_clamp"));
 
         return arb::cable_cell(morpho, decor, dict);
