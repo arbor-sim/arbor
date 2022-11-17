@@ -18,7 +18,7 @@ decor = (
     arbor.decor()
     .set_property(Vm=-40)
     .paint('"soma"', arbor.density("hh"))
-    .paint('"soma"', arbor.voltage("v_clamp/v0=-42"))
+    .paint('"soma"', arbor.voltage_process("v_clamp/v0=-42"))
     .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp")
     .place('"midpoint"', arbor.threshold_detector(-10), "detector")
 )
