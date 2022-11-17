@@ -1,5 +1,7 @@
 #include <fmt/format.h>
 
+#include "ornstein_uhlenbeck_catalogue.hpp"
+
 #include <arborio/label_parse.hpp>
 
 #include <arbor/assert.hpp>
@@ -7,9 +9,6 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/simulation.hpp>
-
-// forward declaration
-arb::mechanism_catalogue build_catalogue();
 
 // a single-cell recipe with probes
 class recipe: public arb::recipe {
@@ -20,7 +19,7 @@ public:
 
         // build catalogue with stochastic mechanism
         cell_gprop_.catalogue = global_default_catalogue();
-        cell_gprop_.catalogue.import(build_catalogue(), "");
+        cell_gprop_.catalogue.import(arb::global_ornstein_uhlenbeck_catalogue(), "");
         cell_gprop_.default_parameters = neuron_parameter_defaults;
         
         // paint the process on the whole cell
@@ -152,30 +151,4 @@ int main(int argc, char** argv) {
             dt*t, acc[t].mean(), expected(dt*t).first);
     }
     return 0;
-}
-
-// load mechanisms from library and add to new catalogue
-// =====================================================
-
-extern "C" {
-const void* get_catalogue(int*);
-}
-
-arb::mechanism_catalogue build_catalogue() {
-    arb::mechanism_catalogue cat;
-    int n=0;
-    const void* ptr = get_catalogue(&n);
-    const auto* mechs = reinterpret_cast<const arb_mechanism*>(ptr);
-    for (int i=0; i<n; ++i) {
-        const auto& mech = mechs[i];
-        auto ty = mech.type();
-        auto nm = ty.name;
-        auto ig = mech.i_gpu();
-        auto ic = mech.i_cpu();
-        arb_assert(ic || ig);
-        cat.add(nm, ty);
-        if (ic) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ic));
-        if (ig) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ig));
-    }
-    return cat;
 }
