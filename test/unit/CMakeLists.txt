@@ -48,11 +48,10 @@ set(test_mechanisms
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
-make_catalogue(
+make_catalogue_lib(
     NAME    testing
     MOD     ${test_mechanisms}
-    VERBOSE ${ARB_CAT_VERBOSE}
-    ADD_DEPS OFF)
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 # Unit test sources
 
@@ -176,11 +175,10 @@ endif()
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
-    set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
-add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechanisms})
-add_dependencies(unit catalogue-testing-target)
+add_executable(unit EXCLUDE_FROM_ALL ${unit_sources})
+target_link_libraries(unit PRIVATE catalogue-testing)
 add_dependencies(tests unit)
 
 
