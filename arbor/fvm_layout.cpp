@@ -16,8 +16,6 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
 
-#include <iostream>
-
 #include "fvm_layout.hpp"
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
@@ -316,11 +314,18 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
                 id_map.insert(k, 1.0/v.value);
             }
         }
-        // Fetch defaults, either global or per cell
-        auto gd = *(value_by_key(dflt.ion_data,        ion).value().diffusivity
-                  | value_by_key(global_dflt.ion_data, ion).value().diffusivity);
-        if (gd <= 0.0) {
-            throw cable_cell_error{util::pprintf("Illegal global diffusivity '{}' for ion '{}'.", gd, ion)};
+        arb_value_type def = 0.0;
+        if (auto data = value_by_key(global_dflt.ion_data, ion);
+            data && data->diffusivity) {
+            def = data->diffusivity.value();
+        }
+        if (auto data = value_by_key(dflt.ion_data, ion);
+            data && data->diffusivity) {
+            def = data->diffusivity.value();
+        }
+        if (def <= 0.0) {
+            throw cable_cell_error{util::pprintf("Illegal global diffusivity '{}' for ion '{}'; possibly unset."
+                                                 " Please define a positive global or cell default.", def, ion)};
         }
 
         // Write inverse diffusivity / diffuse resistivity map
@@ -329,7 +334,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         msize_t n_branch = D.geometry.n_branch(0);
         id.reserve(n_branch);
         for (msize_t i = 0; i<n_branch; ++i) {
-            auto pw = pw_over_cable(id_map, mcable{i, 0., 1.}, 1.0/gd);
+            auto pw = pw_over_cable(id_map, mcable{i, 0., 1.}, 1.0/def);
             id[0].push_back(pw);
         }
         // Prepare conductivity map

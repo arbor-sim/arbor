@@ -78,6 +78,11 @@ static Keyword keywords[] = {
     {"safeinv",             tok::safeinv},
     {"CONDUCTANCE",         tok::conductance},
     {"WATCH",               tok::watch},
+    {"sqrt",                tok::sqrt},
+    {"step_right",          tok::step_right},
+    {"step_left",           tok::step_left},
+    {"step",                tok::step},
+    {"signum",              tok::signum},
     {nullptr,               tok::reserved},
 };
 
@@ -159,6 +164,11 @@ static TokenString token_strings[] = {
     {"cnexp",               tok::cnexp},
     {"CONDUCTANCE",         tok::conductance},
     {"WATCH",               tok::watch},
+    {"sqrt",                tok::sqrt},
+    {"step_right",          tok::step_right},
+    {"step_left",           tok::step_left},
+    {"step",                tok::step},
+    {"signum",              tok::signum},
     {"error",               tok::reserved},
 };
 

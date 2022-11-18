@@ -1448,6 +1448,11 @@ expression_ptr Parser::parse_unaryop() {
     case tok::abs:
     case tok::safeinv:
     case tok::exprelr:
+    case tok::sqrt:
+    case tok::step_right:
+    case tok::step_left:
+    case tok::step:
+    case tok::signum:
         get_token(); // consume operator (exp, sin, cos or log)
         if (token_.type != tok::lparen) {
             error("missing parenthesis after call to " + yellow(op.spelling));
