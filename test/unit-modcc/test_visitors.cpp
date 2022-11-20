@@ -72,6 +72,28 @@ TEST(FlopVisitor, basic) {
         e->accept(&visitor);
         EXPECT_EQ(visitor.flops.sin, 1);
     }
+
+    {
+        FlopVisitor visitor;
+        auto e = parse_expression("sqrt(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.sqrt, 1);
+    }
+
+    {
+        FlopVisitor visitor;
+        auto e = parse_expression("signum(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 1);
+    }
+
+    {
+        FlopVisitor visitor;
+        auto e = parse_expression("step(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 2);
+        EXPECT_EQ(visitor.flops.mul, 1);
+    }
 }
 
 TEST(FlopVisitor, compound) {
@@ -121,16 +143,18 @@ TEST(FlopVisitor, procedure) {
 "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
 "    mtau = 0.6\n"
 "    htau = 1500\n"
+"    rho  = step_left(c-theta) + 1/sqrt(tau)*sigma\n"
 "}";
     FlopVisitor visitor;
     auto e = parse_procedure(expression);
     e->accept(&visitor);
-    EXPECT_EQ(visitor.flops.add, 6);
+    EXPECT_EQ(visitor.flops.add, 7);
     EXPECT_EQ(visitor.flops.neg, 0);
-    EXPECT_EQ(visitor.flops.mul, 0);
-    EXPECT_EQ(visitor.flops.div, 5);
+    EXPECT_EQ(visitor.flops.mul, 1);
+    EXPECT_EQ(visitor.flops.div, 6);
     EXPECT_EQ(visitor.flops.exp, 2);
     EXPECT_EQ(visitor.flops.pow, 1);
+    EXPECT_EQ(visitor.flops.sqrt, 1);
 }
 
 TEST(FlopVisitor, function) {
@@ -141,15 +165,17 @@ TEST(FlopVisitor, function) {
 "    minf=1-1/(1+exp((v-vhalfm)/km))\n"
 "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
 "    foo = minf + hinf\n"
+"    rho  = signum(c-theta)/tau + 1/sqrt(tau)*sigma\n"
 "}";
     FlopVisitor visitor;
     auto e = parse_function(expression);
     e->accept(&visitor);
-    EXPECT_EQ(visitor.flops.add, 7);
+    EXPECT_EQ(visitor.flops.add, 10);
     EXPECT_EQ(visitor.flops.neg, 1);
-    EXPECT_EQ(visitor.flops.mul, 0);
-    EXPECT_EQ(visitor.flops.div, 5);
+    EXPECT_EQ(visitor.flops.mul, 1);
+    EXPECT_EQ(visitor.flops.div, 7);
     EXPECT_EQ(visitor.flops.exp, 2);
     EXPECT_EQ(visitor.flops.pow, 1);
+    EXPECT_EQ(visitor.flops.sqrt, 1);
 }
 
