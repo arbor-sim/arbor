@@ -24,15 +24,15 @@ D = 13.7
 # Spike frequency in Hertz
 f = 1.0
 # Number of spike pairs
-num_spikes = 60
+num_spikes = 30
 # time lag resolution
-stdp_dt_step = 5.0
+stdp_dt_step = 20.0
 # Maximum time lag
 stdp_max_dt = 100.0
 # Ensemble size per initial value
-ensemble_per_rho_0 = 1000
+ensemble_per_rho_0 = 100
 # Simulation time step
-dt = 0.025
+dt = 0.1
 # List of initial values for 2 states
 rho_0 = [0] * ensemble_per_rho_0 + [1] * ensemble_per_rho_0
 # We need a synapse for each sample path
@@ -161,24 +161,72 @@ def run(time_lag):
     beta = 0.5
     # Synaptic strength ratio UP to DOWN (w1/w0)
     b = 5
-    # Transition propability form DOWN to UP
-    P_U = numpy.mean(data_down > 0.5)
-    # Transition probability from UP to DOWN
-    P_D = numpy.mean(data_up < 0.5)
+    # Transition indicator form DOWN to UP
+    P_UA = (data_down > 0.5).astype(float)
+    # Transition indicator from UP to DOWN
+    P_DA = (data_up < 0.5).astype(float)
     # Return change in synaptic strength
-    return (
-        (1 - P_U) * beta + P_D * (1 - beta) + b * (P_U * beta + (1 - P_D) * (1 - beta))
+    ds_A = (
+        (1 - P_UA) * beta
+        + P_DA * (1 - beta)
+        + b * (P_UA * beta + (1 - P_DA) * (1 - beta))
     ) / (beta + (1 - beta) * b)
+    return pandas.DataFrame({"ds": ds_A, "ms": time_lag, "type" : "Arbor"})
 
 
 with multiprocessing.Pool() as p:
     results = p.map(run, stdp_dt)
-print(stdp_dt)
-print(results)
+
+ref = numpy.array([
+[-100, 0.9793814432989691],
+[ -95, 0.981715028725338 ],
+[ -90, 0.9932274542583821],
+[ -85, 0.982392230227282 ],
+[ -80, 0.9620761851689686],
+[ -75, 0.9688482001884063],
+[ -70, 0.9512409611378684],
+[ -65, 0.940405737106768 ],
+[ -60, 0.9329565205853866],
+[ -55, 0.9146720800329048],
+[ -50, 0.8896156244609853],
+[ -45, 0.9024824529979171],
+[ -40, 0.8252814817763271],
+[ -35, 0.8171550637530018],
+[ -30, 0.7656877496052755],
+[ -25, 0.7176064429672677],
+[ -20, 0.7582385330838939],
+[ -15, 0.7981934216985763],
+[ -10, 0.8835208109434913],
+[  -5, 0.9390513341028807],
+[   0, 0.9927519271849183],
+[   5, 1.2354639175257733],
+[  10, 1.2255075694250952],
+[  15, 1.1760718597832   ],
+[  20, 1.1862298823123565],
+[  25, 1.1510154042112806],
+[  30, 1.125958948639361 ],
+[  35, 1.1205413366238108],
+[  40, 1.0812636495110723],
+[  45, 1.0717828284838595],
+[  50, 1.0379227533866708],
+[  55, 1.0392771563905585],
+[  60, 1.023024320343908 ],
+[  65, 1.046049171409996 ],
+[  70, 1.040631559394446 ],
+[  75, 1.0257331263516831],
+[  80, 1.0013538722817072],
+[  85, 1.0121890963128077],
+[  90, 1.0013538722817072],
+[  95, 1.0094802903050326],
+[ 100, 0.9918730512544945],
+])
+df_ref = pandas.DataFrame({"ds": ref[:,1], "ms": ref[:,0], "type" : "Reference"})
 
 seaborn.set_theme()
-df = pandas.DataFrame({"ds": results, "ms": stdp_dt})
-plt = seaborn.relplot(kind="line", data=df, x="ms", y="ds")
+df = pandas.concat(results)
+df = pandas.concat([df, df_ref])
+plt = seaborn.relplot(kind="line", data=df, x="ms", y="ds", hue="type")
 plt.set_xlabels("lag time difference (ms)")
 plt.set_ylabels("change in synaptic strenght (after/before)")
+plt._legend.set_title("")
 plt.savefig("calcium_stdp.svg")

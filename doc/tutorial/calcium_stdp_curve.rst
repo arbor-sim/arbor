@@ -157,20 +157,23 @@ transition probabilies from initial DOWN state to final UP state and vice versa.
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 156-171
+   :lines: 156-174
 
 Since we need to run our simulation for each time lag case anew, we spawn a bunch of threads to
 carry out the work in parallel:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 174-175
+   :lines: 177-178
 
 The collected results can then be plotted:
 
 .. figure:: calcium_stdp.svg
     :width: 1600
     :align: center
+
+    Comparison of this simulation with reference simulation [1]_; for a simulation duration
+    of 60 spikes at 1 Hertz, ensemble size of 1000 per initial state and time step dt=0.05 ms.
 
 The full code
 -------------
