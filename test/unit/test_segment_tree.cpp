@@ -358,7 +358,7 @@ TEST(segment_tree, tag_roots) {
     **            \
     **              2 - 3
     **                \
-    **                  5
+    **                 5
     */
     {
         arb::segment_tree tree;

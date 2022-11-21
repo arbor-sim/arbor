@@ -145,6 +145,7 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
+    test_v_clamp.cpp
 
     # unit test driver
     test.cpp

@@ -66,7 +66,7 @@ mechanisms/gpu/*.hpp
 mechanisms/gpu/*.cu
 
 # build path
-build*
+build/*
 
 commit.msg
 
@@ -89,3 +89,11 @@ dist
 # generated image files by Python examples
 python/example/*.svg
 python/example/*.csv
+
+# made by direnv
+.direnv
+.envrc
+
+# build/compile caches
+_skbuild
+.ccls-cache

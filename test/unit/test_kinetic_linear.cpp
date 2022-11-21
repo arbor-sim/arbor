@@ -56,7 +56,7 @@ void run_test(std::string mech_name,
         layout.cv.push_back(i);
     }
 
-    shared_state->instantiate(*test, 0, overrides, layout);
+    shared_state->instantiate(*test, 0, overrides, layout, {});
     shared_state->reset();
 
     test->initialize();

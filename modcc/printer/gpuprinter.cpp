@@ -29,7 +29,7 @@ static std::string scaled(double coeff) {
 
 
 void emit_api_body_cu(std::ostream& out, APIMethod* method, const ApiFlags&);
-void emit_state_read_cu(std::ostream& out, LocalVariable* local);
+void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags&);
 void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, const ApiFlags&);
 
 const char* index_id(Symbol *s);
@@ -200,7 +200,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive));
+            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()));
             out << popindent << "}\n\n";
         }
     };
@@ -411,7 +411,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
         }
 
         for (auto& sym: indexed_vars) {
-            emit_state_read_cu(out, sym);
+            emit_state_read_cu(out, sym, flags);
         }
 
         out << cuprint(body);
@@ -438,10 +438,12 @@ namespace {
     };
 }
 
-void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
+void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags& flags) {
+    auto write_voltage = local->external_variable()->data_source() == sourceKind::voltage
+                      && flags.can_write_voltage;
     out << "arb_value_type " << cuprint(local) << " = ";
     auto d = decode_indexed_variable(local->external_variable());
-    if (local->is_read() || (local->is_write() && d.additive)) {
+    if (local->is_read() || (local->is_write() && d.additive) || write_voltage) {
         if (d.scale != 1) {
             out << as_c_double(d.scale) << "*";
         }
@@ -453,10 +455,15 @@ void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
 }
 
 
-void emit_state_update_cu(std::ostream& out, Symbol* from,
-                          IndexedVariable* external, const ApiFlags& flags) {
+void emit_state_update_cu(std::ostream& out,
+                          Symbol* from,
+                          IndexedVariable* external,
+                          const ApiFlags& flags) {
     if (!external->is_write()) return;
     auto d = decode_indexed_variable(external);
+    auto write_voltage = external->data_source() == sourceKind::voltage
+                      && flags.can_write_voltage;
+    if (write_voltage) d.readonly = false;
     if (d.readonly) {
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
@@ -466,8 +473,8 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto data   = pp_var_pfx + d.data_var;
     auto index  = index_i_name(d.outer_index_var());
     auto var    = deref(d);
-    std::string weight = (d.always_use_weight || !flags.is_point) ? pp_var_pfx + "weight[tid_]" : "1.0";
-    weight = scale + weight;
+    auto use_weight = d.always_use_weight || !flags.is_point;
+    std::string weight = scale + (use_weight ? pp_var_pfx + "weight[tid_]" : "1.0");
 
     if (d.additive && flags.use_additive) {
         out << name << " -= " << var << ";\n";
@@ -477,6 +484,15 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         else {
             out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
         }
+    }
+    else if (write_voltage) {
+        /* SAFETY:
+        ** - Only one V-PROCESS per CV
+        ** - these can never be point mechs
+        ** - they run separatly from density/point mechs
+        */
+        out << name << " -= " << var << ";\n"
+            << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
     }
     else if (d.accumulate) {
         if (flags.is_point) {

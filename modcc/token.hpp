@@ -64,7 +64,7 @@ enum class tok {
     range, local, conserve, compartment,
     solve, method, steadystate,
     threadsafe, global,
-    point_process, junction_process,
+    point_process, junction_process, voltage_process,
     from, to,
 
     // prefix binary operators

@@ -90,6 +90,9 @@ s_expr mksexp(const synapse& j) {
 s_expr mksexp(const density& j) {
     return slist("density"_symbol, mksexp(j.mech));
 }
+s_expr mksexp(const voltage_process& j) {
+    return slist("voltage-process"_symbol, mksexp(j.mech));
+}
 s_expr mksexp(const iexpr& j) {
     std::stringstream s;
     s << j;
@@ -674,6 +677,7 @@ eval_map named_evals{
     {"junction", make_call<arb::mechanism_desc>(make_wrapped_mechanism<junction>, "'junction' with 1 argumnet (m: mechanism)")},
     {"synapse",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<synapse>, "'synapse' with 1 argumnet (m: mechanism)")},
     {"density",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<density>, "'density' with 1 argumnet (m: mechanism)")},
+    {"voltage-process",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<voltage_process>, "'voltage-process' with 1 argumnet (m: mechanism)")},
     {"scaled-mechanism", make_scaled_mechanism_call<arb::density>("'scaled_mechanism' with a density argument, and 0 or more parameter scaling expressions"
         "(d:density (param:string val:iexpr))")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
