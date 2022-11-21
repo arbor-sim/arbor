@@ -81,12 +81,13 @@ std::vector<V> unique_union(const std::vector<V>& a, const std::vector<V>& b) {
     }
     return u;
 }
+
 } // anonymous namespace
 
 
 // Building CV geometry
 // --------------------
-
+//
 // CV geometry
 
 cv_geometry::cv_geometry(const cable_cell& cell, const locset& ls):
@@ -794,6 +795,16 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
     return gj_conns;
 }
 
+std::unordered_map<std::string, fvm_mechanism_config>
+make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
+                              const region_assignment<voltage_process> assignments,
+                              const mechanism_catalogue& catalogue,
+                              iexpr_ptr unit_scale,
+                              unsigned cell_idx,
+                              const fvm_cv_discretization& D,
+                              const concrete_embedding& embedding,
+                              const mprovider& provider);
+
 fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const cable_cell& cell,
@@ -821,6 +832,47 @@ ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     return combined;
 }
 
+
+// Verify mechanism ion usage, parameter values.
+void verify_mechanism(const cable_cell_global_properties& gprop,
+                      const fvm_cv_discretization& D,
+                      const mechanism_info& info,
+                      const mechanism_desc& desc) {
+    const auto& global_ions = gprop.ion_species;
+
+    for (const auto& pv: desc.values()) {
+        if (!info.parameters.count(pv.first)) {
+            throw no_such_parameter(desc.name(), pv.first);
+        }
+        if (!info.parameters.at(pv.first).valid(pv.second)) {
+            throw invalid_parameter_value(desc.name(), pv.first, pv.second);
+        }
+    }
+
+    for (const auto& [ion, dep]: info.ions) {
+        if (!global_ions.count(ion)) {
+            throw cable_cell_error(
+                "mechanism "+desc.name()+" uses ion "+ion+ " which is missing in global properties");
+        }
+
+        if (dep.verify_ion_charge) {
+            if (dep.expected_ion_charge!=global_ions.at(ion)) {
+                throw cable_cell_error(
+                    "mechanism "+desc.name()+" uses ion "+ion+ " expecting a different valence");
+            }
+        }
+
+        if (dep.write_reversal_potential && (dep.write_concentration_int || dep.write_concentration_ext)) {
+            throw cable_cell_error("mechanism "+desc.name()+" writes both reversal potential and concentration");
+        }
+
+        auto is_diffusive = D.diffusive_ions.count(ion);
+        if (dep.access_concentration_diff && !is_diffusive) {
+            throw illegal_diffusive_mechanism(desc.name(), ion);
+        }
+    }
+}
+
 // Construct FVM mechanism data for a single cell.
 
 fvm_mechanism_data fvm_build_mechanism_data(
@@ -834,8 +886,9 @@ fvm_mechanism_data fvm_build_mechanism_data(
     using index_type = arb_index_type;
     using value_type = arb_value_type;
 
-    const mechanism_catalogue& catalogue = gprop.catalogue;
+    const auto& catalogue = gprop.catalogue;
     const auto& embedding = cell.embedding();
+    const auto& provider  = cell.provider();
 
     const auto& global_dflt = gprop.default_parameters;
     const auto& dflt = cell.default_parameters();
@@ -846,43 +899,6 @@ fvm_mechanism_data fvm_build_mechanism_data(
     fvm_mechanism_data M;
 
     const auto& assignments = cell.region_assignments();
-
-    // Verify mechanism ion usage, parameter values.
-    auto verify_mechanism = [&gprop, &D](const mechanism_info& info, const mechanism_desc& desc) {
-        const auto& global_ions = gprop.ion_species;
-
-        for (const auto& pv: desc.values()) {
-            if (!info.parameters.count(pv.first)) {
-                throw no_such_parameter(desc.name(), pv.first);
-            }
-            if (!info.parameters.at(pv.first).valid(pv.second)) {
-                throw invalid_parameter_value(desc.name(), pv.first, pv.second);
-            }
-        }
-
-        for (const auto& [ion, dep]: info.ions) {
-            if (!global_ions.count(ion)) {
-                throw cable_cell_error(
-                    "mechanism "+desc.name()+" uses ion "+ion+ " which is missing in global properties");
-            }
-
-            if (dep.verify_ion_charge) {
-                if (dep.expected_ion_charge!=global_ions.at(ion)) {
-                    throw cable_cell_error(
-                        "mechanism "+desc.name()+" uses ion "+ion+ " expecting a different valence");
-                }
-            }
-
-            if (dep.write_reversal_potential && (dep.write_concentration_int || dep.write_concentration_ext)) {
-                throw cable_cell_error("mechanism "+desc.name()+" writes both reversal potential and concentration");
-            }
-
-            auto is_diffusive = D.diffusive_ions.count(ion);
-            if (dep.access_concentration_diff && !is_diffusive) {
-                throw illegal_diffusive_mechanism(desc.name(), ion);
-            }
-        }
-    };
 
     // Track ion usage of mechanisms so that ions are only instantiated where required.
     std::unordered_map<std::string, std::vector<index_type>> ion_support;
@@ -905,8 +921,22 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
     std::unordered_map<std::string, mcable_map<double>> init_iconc_mask;
     std::unordered_map<std::string, mcable_map<double>> init_econc_mask;
-    iexpr_ptr unit_scale = thingify(iexpr::scalar(1.0), cell.provider());
+    iexpr_ptr unit_scale = thingify(iexpr::scalar(1.0), provider);
 
+    // Voltage mechanisms
+
+    {
+        auto assigns = assignments.get<voltage_process>();
+        auto configs = make_voltage_mechanism_config(gprop,
+                                                     assigns,
+                                                     catalogue,
+                                                     unit_scale,
+                                                     cell_idx,
+                                                     D,
+                                                     embedding,
+                                                     provider);
+        M.mechanisms.insert(configs.begin(), configs.end());
+    }
     // Density mechanisms:
     for (const auto& [name, cables]: assignments.get<density>()) {
         mechanism_info info = catalogue[name];
@@ -941,7 +971,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
             const auto& mech = density_iexpr.first.mech;
             const auto& scale_expr = density_iexpr.second;
 
-            verify_mechanism(info, mech);
+            verify_mechanism(gprop, D, info, mech);
             const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
@@ -969,7 +999,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                       c.branch,
                       pw_over_cable(
                           param_maps[i], c, 0., [&](const mcable &c, const auto& x) {
-                              return x.first * x.second->eval(cell.provider(), c);
+                              return x.first * x.second->eval(provider, c);
                           }));
                 }
             }
@@ -1061,7 +1091,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
         std::size_t offset = 0;
         for (const placed<synapse>& pm: entry.second) {
             const auto& mech = pm.item.mech;
-            verify_mechanism(info, mech);
+            verify_mechanism(gprop, D, info, mech);
 
             synapse_instance in{};
 
@@ -1210,7 +1240,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
 
         for (const placed<junction>& pm: placements) {
             const auto& mech = pm.item.mech;
-            verify_mechanism(info, mech);
+            verify_mechanism(gprop, D, info, mech);
             const auto& set_params = mech.values();
 
             junction_desc per_lid;
@@ -1369,12 +1399,12 @@ fvm_mechanism_data fvm_build_mechanism_data(
         }
 
         if (auto di = D.diffusive_ions.find(ion); di != D.diffusive_ions.end()) {
-            config.is_diffusive          = true;
-            config.face_diffusivity      = di->second.face_diffusivity;
+            config.is_diffusive = true;
+            config.face_diffusivity = di->second.face_diffusivity;
         }
 
-        config.econc_written  = write_xo.count(ion);
-        config.iconc_written  = write_xi.count(ion);
+        config.econc_written = write_xo.count(ion);
+        config.iconc_written = write_xi.count(ion);
         if (!config.cv.empty()) M.ions[ion] = std::move(config);
     }
 
@@ -1391,7 +1421,7 @@ fvm_mechanism_data fvm_build_mechanism_data(
                 throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ revpot.name() +" which has " +arb_mechanism_kind_str(info.kind));
             }
 
-            verify_mechanism(info, revpot);
+            verify_mechanism(gprop, D, info, revpot);
             revpot_specified.insert(ion);
 
             bool writes_this_revpot = false;
@@ -1463,5 +1493,101 @@ fvm_mechanism_data fvm_build_mechanism_data(
     M.target_divs = {0u, M.n_target};
     return M;
 }
+
+std::unordered_map<std::string, fvm_mechanism_config>
+make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
+                              const region_assignment<voltage_process> assignments,
+                              const mechanism_catalogue& catalogue,
+                              iexpr_ptr unit_scale,
+                              unsigned cell_idx,
+                              const fvm_cv_discretization& D,
+                              const concrete_embedding& embedding,
+                              const mprovider& provider) {
+    std::unordered_map<std::string, fvm_mechanism_config> result;
+    std::unordered_set<mcable> voltage_support;
+    for (const auto& [name, cables]: assignments) {
+        auto info = catalogue[name];
+        if (info.kind != arb_mechanism_kind_voltage) {
+            throw cable_cell_error("expected voltage mechanism, got " +name +" which has " +arb_mechanism_kind_str(info.kind));
+        }
+
+        fvm_mechanism_config config;
+        config.kind = arb_mechanism_kind_voltage;
+
+        std::vector<std::string> param_names;
+        assign(param_names, util::keys(info.parameters));
+        sort(param_names);
+
+        std::vector<double> param_dflt;
+        std::size_t n_param = param_names.size();
+        param_dflt.reserve(n_param);
+        config.param_values.reserve(n_param);
+
+        for (std::size_t i = 0; i<n_param; ++i) {
+            const auto& p = param_names[i];
+            config.param_values.emplace_back(p, std::vector<arb_value_type>{});
+            param_dflt.push_back(info.parameters.at(p).default_value);
+        }
+
+        mcable_map<double> support;
+        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps;
+
+        param_maps.resize(n_param);
+
+        for (const auto& [cable, density_iexpr]: cables) {
+            const auto& mech = density_iexpr.mech;
+
+            verify_mechanism(gprop, D, info, mech);
+            const auto& set_params = mech.values();
+
+            support.insert(cable, 1.);
+            for (std::size_t i = 0; i<n_param; ++i) {
+                double value = value_by_key(set_params, param_names[i]).value_or(param_dflt[i]);
+                param_maps[i].insert(cable, {value, unit_scale});
+            }
+        }
+
+        std::vector<double> param_on_cv(n_param);
+
+        for (auto cv: D.geometry.cell_cvs(cell_idx)) {
+            double area = 0;
+            util::fill(param_on_cv, 0.);
+
+            for (mcable c: D.geometry.cables(cv)) {
+                double area_on_cable = embedding.integrate_area(c.branch, pw_over_cable(support, c, 0.));
+                if (!area_on_cable) continue;
+                area += area_on_cable;
+                for (std::size_t i = 0; i<n_param; ++i) {
+                    auto map = param_maps[i];
+                    auto fun = [&](const auto& c, const auto& x) {
+                        return x.first * x.second->eval(provider, c);
+                    };
+                    auto pw = pw_over_cable(map, c, 0., fun);
+                    param_on_cv[i] += embedding.integrate_area(c.branch, pw);
+                }
+            }
+
+            if (area>0) {
+                config.cv.push_back(cv);
+                config.norm_area.push_back(area/D.cv_area[cv]);
+
+                double oo_area = 1./area;
+                for (auto i: count_along(param_on_cv)) {
+                    config.param_values[i].second.push_back(param_on_cv[i]*oo_area);
+                }
+            }
+        }
+
+        for (const auto& [cable, _]: support) {
+            if (voltage_support.count(cable)) {
+                throw cable_cell_error("Multiple voltage processes on a single cable");
+            }
+            voltage_support.insert(cable);
+        }
+        if (!config.cv.empty()) result.emplace(name, std::move(config));
+    }
+    return result;
+}
+
 
 } // namespace arb

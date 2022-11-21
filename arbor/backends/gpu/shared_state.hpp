@@ -177,9 +177,11 @@ struct ARB_ARBOR_API shared_state {
     );
 
     // Setup a mechanism and tie its backing store to this object
-    void instantiate(arb::mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
-
-    void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+    void instantiate(mechanism&,
+                     unsigned,
+                     const mechanism_overrides&,
+                     const mechanism_layout&,
+                     const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
 
     void update_prng_state(mechanism&);
 
