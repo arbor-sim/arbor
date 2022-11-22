@@ -24,15 +24,15 @@ D = 13.7
 # Spike frequency in Hertz
 f = 1.0
 # Number of spike pairs
-num_spikes = 60
+num_spikes = 30
 # time lag resolution
-stdp_dt_step = 5.0
+stdp_dt_step = 20.0
 # Maximum time lag
 stdp_max_dt = 100.0
 # Ensemble size per initial value
-ensemble_per_rho_0 = 1000
+ensemble_per_rho_0 = 100
 # Simulation time step
-dt = 0.01
+dt = 0.1
 # List of initial values for 2 states
 rho_0 = [0] * ensemble_per_rho_0 + [1] * ensemble_per_rho_0
 # We need a synapse for each sample path

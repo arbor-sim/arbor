@@ -97,8 +97,8 @@ The time lag resolution, together with the maximum time lag, determine the numbe
 to simulate. For each such case, however, we need to run many simulations in order to get a
 statistically meaningful result. The number of simulations per case is given by the ensemble size
 and the initial conditions. In our case, we have to inital states, :math:`\rho(0)=0` and
-:math:`\rho(0)=1`, and for each initial state we want to run :math:`1000` simulations. This can
-easiest be achieved by placing :math:`1000` synapses per initial state onto the cell.
+:math:`\rho(0)=1`, and for each initial state we want to run :math:`100` simulations. This can
+easiest be achieved by placing :math:`100` synapses per initial state onto the cell.
 
 Thus, we create a simple cell with a midpoint at which we place our mechanisms:
 
