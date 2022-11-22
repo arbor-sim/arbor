@@ -12,7 +12,7 @@ The synapse is modeled as synaptic efficacy variable, :math:`\rho`, which is a f
 calcium concentration, :math:`c(t)`. There are two stable states at :math:`\rho=0` (DOWN) and
 :math:`\rho=1` (UP), while :math:`\rho=\rho^\ast=0.5` represents a third unstable state between the
 two stable states.  The calcium concentration dynamics are represented by a simplified model which
-ueses a linear sum of individual calcium transients elicited by trains of pre- and postsynaptic
+uses a linear sum of individual calcium transients elicited by trains of pre- and postsynaptic
 action potentials:
 
 .. math::
@@ -30,7 +30,7 @@ action potentials:
         + H\left( c - \theta_d \right)} W.
    \end{align*}
 
-Here, the times sums over :math:`i` and :math:`j` represent the contributions from all pre- and
+Here, the sums over :math:`i` and :math:`j` represent the contributions from all pre- and
 postsynaptic spikes, respectively, with :math:`C_{pre}` and :math:`C_{pre}` denoting the jumps in
 concentration after a spike. The jump after the presynaptic spike is delayed by :math:`D`.  The
 Calcium decay time is assumed to be much faster than the synaptic time scale,
@@ -174,6 +174,7 @@ The collected results can then be plotted:
 
     Comparison of this simulation with reference simulation [1]_; for a simulation duration
     of 60 spikes at 1 Hertz, ensemble size of 1000 per initial state and time step dt=0.05 ms.
+    The shaded region indicates the 95\% confidence interval.
 
 The full code
 -------------
