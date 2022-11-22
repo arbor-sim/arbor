@@ -44,15 +44,16 @@ void run_test(std::string mech_name,
         std::vector<arb_value_type> t0_values,
         std::vector<arb_value_type> t1_values,
         arb_value_type dt) {
-    // Load an instance of the mechanism from the unit test catalogue.
+
     auto cat = make_unit_test_catalogue();
-    auto instance = cat.instance(backend::kind, mech_name);
-    auto& mech = instance.mech;
 
     // Create a single compartment cell
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
+
+    auto instance = cat.instance(backend::kind, mech_name);
+    auto& mech = instance.mech;
 
     std::vector<arb_value_type> temp(ncv, 300.);
     std::vector<arb_value_type> diam(ncv, 1.);
@@ -71,7 +72,7 @@ void run_test(std::string mech_name,
         layout.cv.push_back(i);
     }
 
-    shared_state->instantiate(*test, 0, overrides, layout, {});
+    shared_state->instantiate(*mech, 0, overrides, layout, {});
     shared_state->reset();
 
     mech->initialize();
