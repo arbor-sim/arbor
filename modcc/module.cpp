@@ -604,6 +604,9 @@ bool Module::semantic() {
         post_events_api.first->body(post_events_api.second->body()->clone());
     }
 
+    // check voltage mechanisms before rev pot ... otherwise we are in trouble
+    check_voltage_mechanism();
+
     // Are we writing an ionic reversal potential? If so, change the moduleKind to
     // `revpot` and assert that the mechanism is 'pure': it has no state variables;
     // it contributes to no currents, ionic or otherwise; it isn't a point mechanism;
@@ -651,12 +654,13 @@ void Module::add_variables_to_symbols() {
         return symbols_[token.spelling] = make_symbol<WhiteNoise>(token.location, token.spelling);
     };
 
-    sourceKind current_kind = kind_==moduleKind::density? sourceKind::current_density: sourceKind::current;
-    sourceKind conductance_kind = kind_==moduleKind::density? sourceKind::conductivity: sourceKind::conductance;
+    auto current_kind     = kind_ == moduleKind::density ? sourceKind::current_density : sourceKind::current;
+    auto conductance_kind = kind_ == moduleKind::density ? sourceKind::conductivity    : sourceKind::conductance;
+    auto v_access         = kind_ == moduleKind::voltage ? accessKind::write : accessKind::read;
 
     create_indexed_variable("current_", current_kind, accessKind::write, "", Location());
     create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
-    create_indexed_variable("v",      sourceKind::voltage, accessKind::read,  "", Location());
+    create_indexed_variable("v",      sourceKind::voltage, v_access,  "", Location());
     create_indexed_variable("v_peer", sourceKind::peer_voltage, accessKind::read,  "", Location());
     //create_indexed_variable("dt",     sourceKind::dt, accessKind::read,  "", Location());
     create_variable(Token{tok::identifier, "dt", Location()},
@@ -1013,4 +1017,21 @@ void Module::check_revpot_mechanism() {
     }
 
     kind_ = moduleKind::revpot;
+}
+
+void Module::check_voltage_mechanism() {
+    if (kind_ != moduleKind::voltage) return;
+
+    auto impure = neuron_block_.has_nonspecific_current();
+    for (const auto& ion: neuron_block_.ions) {
+        impure |= ion.writes_concentration_int();
+        impure |= ion.writes_concentration_ext();
+        impure |= ion.writes_current();
+        impure |= ion.writes_rev_potential();
+    }
+
+    if (impure) {
+        error("Voltage mechanisms may not write ionic quantities..");
+        return;
+    }
 }

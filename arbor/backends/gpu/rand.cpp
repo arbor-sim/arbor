@@ -15,13 +15,17 @@ namespace gpu {
 
 void random_numbers::instantiate(mechanism& m, std::size_t value_width_padded,
     const mechanism_layout& pos_data, arb_seed_type seed) {
-
     using util::make_span;
+
+    // bail out if there are no random variables
+    if (m.mech_.n_random_variables == 0) return;
 
     // Allocate view pointers for random nubers
     std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
     std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
-    for (auto& v : random_numbers_) v.resize(num_random_numbers_per_cv);
+    for (auto& v : random_numbers_) {
+        v.resize(num_random_numbers_per_cv);
+    }
 
     // Allocate bulk storage
     std::size_t count = random_number_storage*value_width_padded;
@@ -44,6 +48,9 @@ void random_numbers::instantiate(mechanism& m, std::size_t value_width_padded,
 }
 
 void random_numbers::update(mechanism& m) {
+    // bail out if there are no random variables
+    if (!impl_) return;
+
     // Assign new random numbers by selecting the next cache
     const auto counter = random_number_update_counter_++;
     const auto cache_idx = cbprng::cache_index(counter);

@@ -288,3 +288,64 @@ TEST(diffusion, decay_by_event) {
                     { 0.100000,  0.900000,  0.000000}};
     EXPECT_TRUE(run(rec, exp));
 }
+
+TEST(diffusion, setting_diffusivity) {
+    // Skeleton recipe
+    struct R: public recipe {
+            R() {
+                gprop.default_parameters = neuron_parameter_defaults;
+                // make a two region tree
+                tree.append(mnpos, { -1, 0, 0, 3}, {1, 0, 0, 3}, 1);
+                tree.append(0, { -1, 0, 0, 3}, {1, 0, 0, 3}, 2);
+                // Utilise diffusive ions
+                dec.place("(location 0 0.5)"_ls, synapse("inject/x=bla", {{"alpha", 200.0}}), "Zap");
+                dec.paint("(all)"_reg, density("decay/x=bla"));
+            }
+
+            cell_size_type num_cells()                                   const override { return 1; }
+            cell_kind get_cell_kind(cell_gid_type)                       const override { return cell_kind::cable; }
+            std::any get_global_properties(cell_kind)                    const override { return gprop; }
+            util::unique_any get_cell_description(cell_gid_type)         const override { return cable_cell({tree}, dec); }
+
+            cable_cell_global_properties gprop;
+            segment_tree tree;
+            decor dec;
+    };
+
+    // BAD: Trying to use a diffusive ion, but b=0.
+    {
+        R r;
+        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        EXPECT_THROW(simulation(r).run(1, 1), illegal_diffusive_mechanism);
+    }
+    // BAD: Trying to use a partially diffusive ion
+    {
+        R r;
+        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        EXPECT_THROW(simulation(r).run(1, 1), cable_cell_error);
+    }
+    // OK: Using the global default
+    {
+        R r;
+        r.gprop.add_ion("bla", 1, 23, 42, 0, 8);
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        EXPECT_NO_THROW(simulation(r).run(1, 1));
+    }
+    // OK: Using the cell default
+    {
+        R r;
+        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        r.dec.set_default(ion_diffusivity{"bla", 8});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        EXPECT_NO_THROW(simulation(r).run(1, 1));
+    }
+    // BAD: Using an unknown species
+    {
+        R r;
+        r.dec.set_default(ion_diffusivity{"bla", 8});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        EXPECT_THROW(simulation(r).run(1, 1), cable_cell_error);
+    }
+
+}

@@ -130,8 +130,8 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
 
 std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}, V_reset {}>",
-        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref, c.V_reset);
+        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
+        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref);
 }
 
 
@@ -226,12 +226,12 @@ void register_cells(pybind11::module& m) {
             "Membrane capacitance [pF].")
         .def_readwrite("E_L", &arb::lif_cell::E_L,
             "Resting potential [mV].")
+        .def_readwrite("E_R", &arb::lif_cell::E_R,
+            "Reset potential [mV].")
         .def_readwrite("V_m", &arb::lif_cell::V_m,
             "Initial value of the Membrane potential [mV].")
         .def_readwrite("t_ref", &arb::lif_cell::t_ref,
             "Refractory period [ms].")
-        .def_readwrite("V_reset", &arb::lif_cell::V_reset,
-            "Reset potential [mV].")
         .def_readwrite("source", &arb::lif_cell::source,
             "Label of the single build-in source on the cell.")
         .def_readwrite("target", &arb::lif_cell::target,
@@ -466,8 +466,6 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& i, double v) -> arb::ion_diffusivity { return {i, v}; }))
         .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + std::to_string(d.value);});
 
-    // arb::density
-
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
     density
         .def(pybind11::init([](const std::string& name) {return arb::density(name);}))
@@ -477,6 +475,16 @@ void register_cells(pybind11::module& m) {
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
+
+    pybind11::class_<arb::voltage_process> voltage_process(m, "voltage_process", "For painting a voltage_process mechanism on a region.");
+    voltage_process
+        .def(pybind11::init([](const std::string& name) {return arb::voltage_process(name);}))
+        .def(pybind11::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
+        .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
+        .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
 
     // arb::scaled_mechanism<arb::density>
 
@@ -828,6 +836,12 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
+        .def("paint",
+            [](arb::decor& dec, const char* region, const arb::voltage_process& mechanism) {
+                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a voltage process mechanism with a region.")
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) {
                 dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);

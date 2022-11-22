@@ -82,7 +82,7 @@ typename detail::simd_impl<Impl>::simd_mask name(const typename detail::simd_imp
 
 ARB_PP_FOREACH(ARB_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
 ARB_PP_FOREACH(ARB_BINARY_COMPARISON_, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt)
-ARB_PP_FOREACH(ARB_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, exprelr)
+ARB_PP_FOREACH(ARB_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, exprelr, sqrt, step_right, step_left, step, signum)
 
 #undef ARB_BINARY_ARITHMETIC_
 #undef ARB_BINARY_COMPARISON__
@@ -203,6 +203,12 @@ namespace detail {
         template <typename Other>
         indirect_indexed_expression& operator+=(const Other& s) {
             compound_indexed_add(s, p, index, width, constraint);
+            return *this;
+        }
+
+        template <typename Other>
+        indirect_indexed_expression& operator*=(const Other& s) {
+            compound_indexed_mul(s, p, index, width, constraint);
             return *this;
         }
 
@@ -677,7 +683,7 @@ namespace detail {
 
         ARB_PP_FOREACH(ARB_DECLARE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min, cmp_eq)
         ARB_PP_FOREACH(ARB_DECLARE_BINARY_COMPARISON_, cmp_eq, cmp_neq, cmp_lt, cmp_leq, cmp_gt, cmp_geq)
-        ARB_PP_FOREACH(ARB_DECLARE_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, exprelr)
+        ARB_PP_FOREACH(ARB_DECLARE_UNARY_ARITHMETIC_,  neg, abs, sin, cos, exp, log, expm1, exprelr, sqrt, step_right, step_left, step, signum)
 
         #undef ARB_DECLARE_UNARY_ARITHMETIC_
         #undef ARB_DECLARE_BINARY_ARITHMETIC_

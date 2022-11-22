@@ -600,8 +600,8 @@ TEST(fvm_lowered, ionic_concentrations) {
             ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
-    shared_state->instantiate(*read_cai_mech, 0, overrides, layout);
-    shared_state->instantiate(*write_cai_mech, 1, overrides, layout);
+    shared_state->instantiate(*read_cai_mech, 0, overrides, layout, {});
+    shared_state->instantiate(*write_cai_mech, 1, overrides, layout, {});
 
     shared_state->reset();
 

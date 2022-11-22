@@ -1338,6 +1338,66 @@ public:
     void accept(Visitor *v) override;
 };
 
+// sqrt unuary expression, i.e. sqrt(x)
+class ARB_LIBMODCC_API SqrtUnaryExpression : public UnaryExpression {
+public:
+    SqrtUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::sqrt, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// step_right unary expression,
+// i.e. step_right(x) = 0, for x < 0
+//                      1, otherwise
+class ARB_LIBMODCC_API StepRightUnaryExpression : public UnaryExpression {
+public:
+    StepRightUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::step_right, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// step_left unary expression,
+// i.e. step_left(x) = 0, for x <= 0
+//                     1, otherwise
+class ARB_LIBMODCC_API StepLeftUnaryExpression : public UnaryExpression {
+public:
+    StepLeftUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::step_left, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// step unary expression,
+// i.e. step(x) =   0, for x < 0
+//                  1, for x > 0
+//                0.5, otherwise
+class ARB_LIBMODCC_API StepUnaryExpression : public UnaryExpression {
+public:
+    StepUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::step, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// signum unary expression,
+// i.e. signum(x) = -1, for x < 0
+//                   0, for x = 0
+//                  +1, otherwise
+class ARB_LIBMODCC_API SignumUnaryExpression : public UnaryExpression {
+public:
+    SignumUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::signum, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
 ////////////////////////////////////////////////////////////
 // binary expressions
 

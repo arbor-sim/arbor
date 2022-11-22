@@ -117,11 +117,13 @@ set(unit_sources
     test_piecewise.cpp
     test_pp_util.cpp
     test_probe.cpp
+    test_rand.cpp
     test_range.cpp
     test_recipe.cpp
     test_ratelem.cpp
     test_schedule.cpp
     test_scope_exit.cpp
+    test_sde.cpp
     test_segment_tree.cpp
     test_simd.cpp
     test_simulation.cpp
@@ -143,7 +145,7 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
-    test_sde.cpp
+    test_v_clamp.cpp
 
     # unit test driver
     test.cpp
@@ -227,4 +229,4 @@ target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
-target_link_libraries(unit PRIVATE ext-gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE ext-gtest ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
