@@ -173,7 +173,7 @@ The collected results can then be plotted:
     :align: center
 
     Comparison of this simulation with reference simulation [1]_; for a simulation duration
-    of 60 spikes at 1 Hertz, ensemble size of 1000 per initial state and time step dt=0.05 ms.
+    of 60 spikes at 1 Hertz, ensemble size of 2000 per initial state and time step dt=0.01 ms.
     The shaded region indicates the 95\% confidence interval.
 
 The full code
