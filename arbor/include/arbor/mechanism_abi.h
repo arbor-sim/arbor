@@ -94,8 +94,8 @@ typedef struct arb_mechanism_ppack {
     arb_index_type  n_detectors;                 // Number of spike detectors.
     arb_index_type* vec_ci;
     arb_index_type* vec_di;
-    arb_value_type t;
-    arb_value_type dt;
+    arb_value_type  t;
+    arb_value_type  dt;
     arb_value_type* vec_v;
     arb_value_type* vec_i;
     arb_value_type* vec_g;

@@ -66,13 +66,6 @@ public:
 
     value_type time() const override { return state_->time; }
 
-    // Generates intdom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
-    // Fills cell_to_intdom map; returns number of intdoms
-    arb_size_type fvm_intdom(
-        const recipe& rec,
-        const std::vector<cell_gid_type>& gids,
-        std::vector<arb_index_type>& cell_to_intdom);
-
     //Exposed for testing purposes
     std::vector<mechanism_ptr>& mechanisms() {
         return mechanisms_;
@@ -207,14 +200,21 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     PL();
 
-    while (state_->time<tfinal) {
-        // Set time, dt and time_to for the time step
+    while (state_->time < tfinal) {
+        // Set state's time_to and dt:
+        // dt = { tfinal-time,  if time + dt_max >= tfinal - 1.0e-8
+        //      { dt_max,       otherwise
+        // time_to = time + dt
         state_->update_time_to(dt_max, tfinal);
+
         // Update integration step time information visible to mechanisms.
         for (auto& m: mechanisms_) {
             m->set_time(state_->time, state_->dt);
         }
         for (auto& m: revpot_mechanisms_) {
+            m->set_time(state_->time, state_->dt);
+        }
+        for (auto& m: voltage_mechanisms_) {
             m->set_time(state_->time, state_->dt);
         }
 
@@ -226,19 +226,21 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        PE(advance:integrate:current:zero);
-        state_->zero_currents();
-        PL();
-
-        //PE(advance:integrate:events);
         // Mark all events due before the mid point of this time step for delivery
-        const auto step_midpoint = state_->time+state_->dt/2.;
+        //PE(advance:integrate:events);
+        const auto step_midpoint = state_->time + 0.5*state_->dt;
         state_->deliverable_events.mark_until_after(step_midpoint);
 
         auto ev_state = state_->deliverable_events.marked_events();
         arb_deliverable_event_stream events{
+                // FIXME(TH): This relies on bit-castability
                 (arb_deliverable_event_data*) ev_state.begin_marked,
                 (arb_deliverable_event_data*) ev_state.end_marked};
+        //PL();
+
+        PE(advance:integrate:current:zero);
+        state_->zero_currents();
+        PL();
 
         for (auto& m: mechanisms_) {
             if (ev_state.size()) {
@@ -247,12 +249,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_current();
         }
 
+        //PE(advance:integrate:events);
         state_->deliverable_events.drop_marked_events();
         //PL();
 
         // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we want to
-        // use mean current contributions as opposed to point sample.)
+        // (Note: performed after dt, time_to calculation, in case we
+        // want to use mean current contributions as opposed to point
+        // sample.)
 
         PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
@@ -261,7 +265,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Take samples at cell time if sample time in this step interval.
 
         PE(advance:integrate:samples);
-        //sample_events_.mark_until(state_->time_to);
         sample_events_.mark_until_after(step_midpoint);
         state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
         sample_events_.drop_marked_events();
@@ -663,47 +666,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     reset();
 
     return fvm_info;
-}
-
-template <typename Backend>
-arb_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
-        const recipe& rec,
-        const std::vector<cell_gid_type>& gids,
-        std::vector<arb_index_type>& cell_to_intdom) {
-
-    cell_to_intdom.resize(gids.size());
-
-    std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
-    for (auto i: util::count_along(gids)) {
-        gid_to_loc[gids[i]] = i;
-    }
-
-    std::unordered_set<cell_gid_type> visited;
-    std::queue<cell_gid_type> intdomq;
-    cell_size_type intdom_id = 0;
-
-    for (auto gid: gids) {
-        if (visited.count(gid)) continue;
-        visited.insert(gid);
-
-        intdomq.push(gid);
-        while (!intdomq.empty()) {
-            auto g = intdomq.front();
-            intdomq.pop();
-
-            cell_to_intdom[gid_to_loc[g]] = intdom_id;
-
-            for (const auto& gj: rec.gap_junctions_on(g)) {
-                if (!visited.count(gj.peer.gid)) {
-                    visited.insert(gj.peer.gid);
-                    intdomq.push(gj.peer.gid);
-                }
-            }
-        }
-        intdom_id++;
-    }
-
-    return intdom_id;
 }
 
 // Resolution of probe addresses into a specific fvm_probe_data draws upon data
