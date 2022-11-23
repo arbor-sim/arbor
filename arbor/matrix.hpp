@@ -29,53 +29,31 @@ public:
            const std::vector<arb_index_type>& ci,
            const std::vector<arb_value_type>& cv_capacitance,
            const std::vector<arb_value_type>& face_conductance,
-           const std::vector<arb_value_type>& cv_area):
-        parent_index_(pi.begin(), pi.end()),
-        cell_index_(ci.begin(), ci.end()),
-        state_(pi, ci, cv_capacitance, face_conductance, cv_area)
+           const std::vector<arb_value_type>& cv_area,
+           const std::vector<arb_index_type>& cell_to_intdom):
+        num_cells_{ci.size() - 1},
+        state_(pi, ci, cv_capacitance, face_conductance, cv_area, cell_to_intdom)
     {
         arb_assert(cell_index()[num_cells()] == arb_index_type(parent_index().size()));
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
-    std::size_t size() const {
-        return state_.size();
-    }
-
+    std::size_t size() const { return state_.size(); }
     /// the number of cell matrices that have been packed together
-    std::size_t num_cells() const {
-        return parent_index_.size();
-    }
-
+    std::size_t num_cells() const { return num_cells_; }
     /// the vector holding the parent index
-    const iarray& parent_index() const {
-        return state_.parent_index;
-    }
-
+    const iarray& parent_index() const { return state_.parent_index; }
     /// the partition of the parent index over the cells
-    const iarray& cell_index() const {
-        return state_.cell_cv_divs;
-    }
-
+    const iarray& cell_index() const { return state_.cell_cv_divs; }
     /// Solve the linear system into a given solution storage.
-    void solve(array& to) {
-        state_.solve(to);
-    }
-
+    void solve(array& to) { state_.solve(to); }
     /// Assemble the matrix for given dt
-    void assemble(const arb_value_type& dt, const_view& U, const_view& I, const_view& g) {
-        state_.assemble(dt, U, I, g);
-    }
+    void assemble(const_view& dt, const_view& U, const_view& I, const_view& g) { state_.assemble(dt, U, I, g); }
 
 private:
-    /// the parent indice that describe matrix structure
-    iarray parent_index_;
-
-    /// indexes that point to the start of each cell in the index
-    iarray cell_index_;
+   std::size_t num_cells_ = 0;
 
 public:
-
     // Provide via public interface to make testing much easier. If you modify
     // this directly without knowing what you are doing, you get what you
     // deserve.

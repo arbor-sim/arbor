@@ -110,10 +110,6 @@ private:
     // Throw if absolute value of membrane voltage exceeds bounds.
     void assert_voltage_bounded(arb_value_type bound);
 
-    static unsigned dt_steps(value_type t0, value_type t1, value_type dt) {
-        return t0>=t1? 0: 1+(unsigned)((t1-t0)/dt);
-    }
-
     // Sets the GPU used for CUDA calls from the thread that calls it.
     // The GPU will be the one in the execution context context_.
     // If not called, the thread may attempt to launch on a different GPU,
@@ -139,6 +135,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
 
     for (auto& m: voltage_mechanisms_) {
+        m->set_time(state_->time, state_->dt);
         m->initialize();
     }
 
@@ -197,7 +194,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     auto& events = state_->deliverable_events;
     events.init(std::move(staged_events));
     sample_events_.init(std::move(staged_samples));
-
     PL();
 
     while (state_->time < tfinal) {
@@ -219,7 +215,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Update any required reversal potentials based on ionic concentrations
-
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
