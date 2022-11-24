@@ -392,8 +392,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     staged_events_.clear();
 
     // Skip event handling if nothing to deliver.
-    if(auto total_events = util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
-    //if (total_events) {
+    if (auto total_events = util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         staged_events_.reserve(total_events);
         auto lid = 0;
         for (auto& lane: event_lanes) {

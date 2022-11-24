@@ -221,8 +221,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        // Mark all events due before the mid point of this time step for delivery
         //PE(advance:integrate:events);
+        // Mark all events due before the mid point of this time step for delivery
         const auto step_midpoint = state_->time + 0.5*state_->dt;
         state_->deliverable_events.mark_until_after(step_midpoint);
 

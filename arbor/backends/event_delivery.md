@@ -18,9 +18,7 @@ the lowered cell, and is passed by reference as a parameter to the mechanism
 
 Target handles are used by the lowered cell implementation to identify a particular mechanism
 instance that can receive events — ultimately via `net_receive` — and corresponding simulated
-cell. The cell information is given as an index into the cell group collection of cells,
-and is used to group events by integration domain (we have one domain per cell in each cell
-group).
+cell. The cell information is given as an index into the cell group collection of cells.
 
 Target handles are represented by the `target_handle` struct, opaque to `mc_cell_group`,
 but created in the `fvm_multicell` for each point mechanism (synapse) in the cell group.
@@ -33,34 +31,25 @@ a `target_handle` describing their destination, and a weight.
 
 ### Back-end event streams
 
-`backend::event_stream` represents a set (one per cell/integration domain)
-of event streams. There is one `event_stream` per lowered cell.
-
+`backend::event_stream` represents a per-cell (one per lowered cell) event stream.
 From the perspective of the lowered cell, it must support the methods below.
-In the following, `time` is a `view` or `const_view` of an array with one
-element per stream.
 
-*  `void init(const std::vector<deliverable_event>& staged_events)`
+*  `void init(const std::vector<event_type> staged_events)`
 
    Take a copy of the staged events (which must be ordered by increasing event time)
-   and initialize the streams by gathering the events by cell.
+   and initialize the stream.
 
 *  `bool empty() const`
 
-   Return true if and only if there are no un-retired events left in any stream.
+   Return true if and only if there are no un-retired events left in the stream.
 
 *  `void clear()`
 
    Retire all events, leaving the `event_stream` in an empty state.
 
-*  `void mark_until_after(const_view time)`
+*  `void mark_until_after(arb_value_type t_until)`
 
-   For all streams, mark events for delivery in the _i_ th stream with event time ≤ _time[i]_.
-
-*  `void event_times_if_before(view time) const`
-
-   For each stream, set _time[i]_ to the time of the next event time in the _i_ th stream
-   if such an event exists and has time less than _time[i]_.
+   Mark events for delivery with event time ≤ `t_until`.
 
 *  `void drop_marked_events()`
 

@@ -38,12 +38,13 @@ public:
 
     void clear() {
         ev_data_.clear();
+        ev_time_.clear();
 
         span_begin_ = 0;
         span_end_ = 0;
     }
 
-    // Initialize event streams from a vector of events, sorted by time.
+    // Initialize event stream from a vector of events, sorted by time.
     void init(std::vector<Event> staged) {
         using ::arb::event_time;
         using ::arb::event_data;
@@ -60,22 +61,11 @@ public:
 
     // Designate for processing events `ev` at head of the event stream
     // until `event_time(ev)` > `t_until`.
-    void mark_until_after(const arb_value_type& t_until) {
+    void mark_until_after(arb_value_type t_until) {
         using ::arb::event_time;
 
         const index_type end = ev_time_.size();
         while (span_end_!=end && !(ev_time_[span_end_]>t_until)) {
-            ++span_end_;
-        }
-    }
-
-    // Designate for processing events `ev` at head the stream
-    // while `t_until` > `event_time(ev)`.
-    void mark_until(const arb_value_type& t_until) {
-        using ::arb::event_time;
-
-        const index_type end = ev_time_.size();
-        while (span_end_!=end && t_until>ev_time_[span_end_]) {
             ++span_end_;
         }
     }

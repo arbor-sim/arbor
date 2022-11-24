@@ -101,10 +101,6 @@ TEST(event_stream, mark) {
     m.drop_marked_events();
     EXPECT_EQ(m.marked_events().size(), 0u);
 
-    // test that mark until will not include events with delivery time equal to t_until
-    m.mark_until(5.0);
-    EXPECT_EQ(m.marked_events().size(), 0u);
-
     m.mark_until_after(5.0);
     {
         auto marked = m.marked_events();
