@@ -218,8 +218,7 @@ shared_state::shared_state(
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
-    cbprng_seed(cbprng_seed_),
-    deliverable_events()
+    cbprng_seed(cbprng_seed_)
 {
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());

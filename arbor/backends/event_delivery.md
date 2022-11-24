@@ -34,7 +34,7 @@ a `target_handle` describing their destination, and a weight.
 `backend::event_stream` represents a per-cell (one per lowered cell) event stream.
 From the perspective of the lowered cell, it must support the methods below.
 
-*  `void init(const std::vector<event_type> staged_events)`
+*  `void init(std::vector<event_type> staged_events)`
 
    Take a copy of the staged events (which must be ordered by increasing event time)
    and initialize the stream.
