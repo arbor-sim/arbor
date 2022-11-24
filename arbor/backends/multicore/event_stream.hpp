@@ -65,7 +65,7 @@ public:
         using ::arb::event_time;
 
         const index_type end = ev_time_.size();
-        while (span_end_!=end && !(ev_time_[span_end_]>t_until)) {
+        while (span_end_!=end && ev_time_[span_end_]<=t_until) {
             ++span_end_;
         }
     }
