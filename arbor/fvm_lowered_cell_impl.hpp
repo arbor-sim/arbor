@@ -225,17 +225,17 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Mark all events due before the mid point of this time step for delivery
         const auto step_midpoint = state_->time + 0.5*state_->dt;
         state_->deliverable_events.mark_until_after(step_midpoint);
+        //PL();
+
+        PE(advance:integrate:current:zero);
+        state_->zero_currents();
+        PL();
 
         auto ev_state = state_->deliverable_events.marked_events();
         arb_deliverable_event_stream events{
                 // FIXME(TH): This relies on bit-castability
                 (arb_deliverable_event_data*) ev_state.begin_marked,
                 (arb_deliverable_event_data*) ev_state.end_marked};
-        //PL();
-
-        PE(advance:integrate:current:zero);
-        state_->zero_currents();
-        PL();
 
         for (auto& m: mechanisms_) {
             if (ev_state.size()) {
