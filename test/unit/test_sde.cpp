@@ -404,55 +404,55 @@ void advance_mean_reverting_stochastic_process2(arb_mechanism_ppack* pp) {
 // Tests
 // =====
 
-//// compares generated random numbers against reference
-//TEST(sde, reproducibility) {
-//    // simulation parameters
-//    unsigned ncells = 4;
-//    unsigned ncvs = 2;
-//    double const dt = 0.5;
-//    unsigned nsteps = 6;
-//
-//    // Decorations with a bunch of stochastic processes
-//    // Duplicate mechanisms added on purpose in order test generation of unique random values
-//    decor dec;
-//    dec.paint("(all)"_reg , density("hh"));
-//    dec.paint("(all)"_reg , density("mean_reverting_stochastic_density_process"));
-//
-//    // instantiate recipe
-//    simple_sde_recipe rec(ncells, ncvs, dec);
-//
-//    // calculate storage needs
-//    // - 1 density processes with 1 random variable
-//    std::size_t n_rv_densities = ncells*ncvs;
-//    std::size_t n_rv_per_dt = n_rv_densities;
-//    std::size_t n_rv = n_rv_per_dt*(nsteps+1);
-//
-//    // setup storage
-//    std::vector<arb_value_type> data;
-//    archive<arb_value_type> arch(n_rv);
-//    archive_ptr = &arch;
-//
-//    // single-threaded, one cell per thread
-//    {
-//        auto context = make_context({1, -1});
-//        simulation sim = simulation::create(rec)
-//            .set_context(context)
-//            .set_seed(137);
-//        sim.run(nsteps*dt, dt);
-//
-//        std::vector<int> expected = {
-//             -6534072,  7261817,  -641850,   4092657,  -1067250,  2352727,  -2680902, -19692138,
-//             -8714527, -4122414, -3796966,   1058017, -10698136, -5570209, -14479632,   4171456,
-//              6466273,  1740511, -3643118, -12153758,  -7461799, -1951705,   8674744,  15065297,
-//            -11844118,  2182788, -8865947,   8012095,  17129332,   143349, -11931417, -23979743,
-//              5414307, -9862772, -4009503,  -6752908, -16568842, 15534309,  20943571,   2316269,
-//             -2390096, -4104010, -1970710,   2156172,   4260317,  7019241, -10162286,  -7631898 };
-//
-//        for (std::size_t i=0; i<expected.size(); ++i) {
-//            EXPECT_EQ(expected[i], (int)(arch.data_[i]*10000000));
-//        }
-//    }
-//}
+// compares generated random numbers against reference
+TEST(sde, reproducibility) {
+    // simulation parameters
+    unsigned ncells = 4;
+    unsigned ncvs = 2;
+    double const dt = 0.5;
+    unsigned nsteps = 6;
+
+    // Decorations with a bunch of stochastic processes
+    // Duplicate mechanisms added on purpose in order test generation of unique random values
+    decor dec;
+    dec.paint("(all)"_reg , density("hh"));
+    dec.paint("(all)"_reg , density("mean_reverting_stochastic_density_process"));
+
+    // instantiate recipe
+    simple_sde_recipe rec(ncells, ncvs, dec);
+
+    // calculate storage needs
+    // - 1 density processes with 1 random variable
+    std::size_t n_rv_densities = ncells*ncvs;
+    std::size_t n_rv_per_dt = n_rv_densities;
+    std::size_t n_rv = n_rv_per_dt*(nsteps);
+
+    // setup storage
+    std::vector<arb_value_type> data;
+    archive<arb_value_type> arch(n_rv);
+    archive_ptr = &arch;
+
+    // single-threaded, one cell per thread
+    {
+        auto context = make_context({1, -1});
+        simulation sim = simulation::create(rec)
+            .set_context(context)
+            .set_seed(137);
+        sim.run(nsteps*dt, dt);
+
+        std::vector<int> expected = {
+             -6534072,  7261817,  -641850,   4092657,  -1067250,  2352727,  -2680902, -19692138,
+             -8714527, -4122414, -3796966,   1058017, -10698136, -5570209, -14479632,   4171456,
+              6466273,  1740511, -3643118, -12153758,  -7461799, -1951705,   8674744,  15065297,
+            -11844118,  2182788, -8865947,   8012095,  17129332,   143349, -11931417, -23979743,
+              5414307, -9862772, -4009503,  -6752908, -16568842, 15534309,  20943571,   2316269,
+             -2390096, -4104010, -1970710,   2156172,   4260317,  7019241, -10162286,  -7631898 };
+
+        for (std::size_t i=0; i<expected.size(); ++i) {
+            EXPECT_EQ(expected[i], (int)(arch.data_[i]*10000000));
+        }
+    }
+}
 
 // generate a label dictionary with locations for synapses
 label_dict make_label_dict(unsigned nsynapse) {
