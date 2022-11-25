@@ -17,6 +17,7 @@
 #include <arborio/neuroml.hpp>
 
 #include "nml_parse_morphology.hpp"
+#include "xml.hpp"
 
 using std::optional;
 using arb::region;
@@ -397,35 +398,7 @@ static arb::stitched_morphology construct_morphology(const neuroml_segment_tree&
     return arb::stitched_morphology(std::move(builder));
 }
 
-template<typename T>
-T get_attr(const pugi::xml_node& n,
-           const std::string& a,
-           std::optional<T> d={}) {
-    auto attr = n.attribute(a.data());
-    if (attr.empty()) {
-        if (!d) throw std::runtime_error("EMPTY REQUIRED ATTRIBUTE " + a);
-        return *d;
-    }
-    std::string val = attr.value();
-    if constexpr (std::is_same_v<T, double>) {
-        return std::stod(val);
-    }
-    if constexpr (std::is_same_v<T, std::string>) {
-        return val;
-    }
-    if constexpr (std::is_unsigned_v<T>) {
-        std::size_t n = 0;
-        long long int i = std::stoull(val, &n);
-        // Either we didn't consume all chars -- eg 1.6 -- or we consumed all, but the result is negative.
-        // This _should_ be considered a bug in std::toull...
-        if (n != val.size() || i < 0) throw nml_parse_error("Couldn't parse unsigned integer: " + val);
-        return i;
-    }
-    throw std::runtime_error{"Not implemented"};
-}
-
-
-nml_morphology_data nml_parse_morphology_element(const pugi::xml_node& morph,
+nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
                                                  enum neuroml_options::values options) {
     using namespace neuroml_options;
     nml_morphology_data M;

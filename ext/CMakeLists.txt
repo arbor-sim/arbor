@@ -79,7 +79,9 @@ function(add_external_cmake_project)
     endif()
 endfunction()
 
-add_subdirectory(pugixml)
+add_library(ext-pugixml INTERFACE)
+target_include_directories(ext-pugixml INTERFACE pugixml/src)
+target_sources(ext-pugixml INTERFACE pugixml/src/pugixml.cpp)
 
 # Google benchmark for microbenchmarks:
 

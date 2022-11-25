@@ -1,3 +1,7 @@
+# Horrible trickery to get CMake off our backs.
+get_target_property(xml-headers ext-pugixml INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(xml-sources ext-pugixml INTERFACE_SOURCES)
+
 set(arborio-sources
     asc_lexer.cpp
     neurolucida.cpp
@@ -6,9 +10,12 @@ set(arborio-sources
     cv_policy_parse.cpp
     label_parse.cpp
     neuroml.cpp
-    nml_parse_morphology.cpp)
+    nml_parse_morphology.cpp
+    ${xml-sources})
 
 add_library(arborio ${arborio-sources})
+
+target_include_directories(arborio PRIVATE ${xml-headers})
 
 add_library(arborio-public-headers INTERFACE)
 add_library(arborio-private-headers INTERFACE)
@@ -25,7 +32,7 @@ target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
 list(APPEND arbor_supported_components "neuroml")
 set(arbor_supported_components "${arbor_supported_components}" PARENT_SCOPE)
 
-target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps pugixml)
+target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
 
 export_visibility(arborio)
 
