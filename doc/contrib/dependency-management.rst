@@ -7,7 +7,7 @@ Arbor relies on a (small) number of dependencies. We can distinguish three kinds
 
 0. Source management dependencies: Git.
 1. Build dependencies. E.g. CMake, compilers like GCC or CUDA.
-2. Linking dependencies. E.g. MPI, libxml2.
+2. Linking dependencies. E.g. MPI.
 3. Source dependencies. These are present as `git submodules <https://git-scm.com/docs/git-submodule>`_ or as copy in ``ext/``. Their use is optional: users who need integration with their package manager (e.g. apt, spack, yum) can link to those versions instead.
 
 Note that the actual dependencies of your build configuration may vary.

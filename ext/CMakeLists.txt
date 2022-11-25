@@ -79,6 +79,8 @@ function(add_external_cmake_project)
     endif()
 endfunction()
 
+add_subdirectory(pugixml)
+
 # Google benchmark for microbenchmarks:
 
 # Set up google benchmark as an external project.

@@ -13,8 +13,6 @@
 
 set -e -u -x
 
-yum -y install libxml2-devel
-
 rm -rf /src_dir/arbor/_skbuild
 rm -rf /opt/python/cp36-cp36m # Python build toolchain does not work on Py3.6
 

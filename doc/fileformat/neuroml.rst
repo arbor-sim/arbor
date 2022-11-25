@@ -8,12 +8,10 @@ NeuroML2
 
    "NeuroML2", "``nml``", "✓", "✗"
 
-Arbor offers limited support for models described in `NeuroML version 2 <https://neuroml.org/neuromlv2>`_.
-This is not built by default (see :ref:`NeuroML support <install-neuroml>` for instructions on how
-to build Arbor with NeuroML).
-
-Once support is enabled, Arbor is able to parse and check the validity of morphologies described in NeuroML files,
-and present the encoded data to the user.  This is more than a simple `segment tree`.
+Arbor offers limited support for models described in `NeuroML version 2
+<https://neuroml.org/neuromlv2>`_. Arbor is able to parse and check the validity
+of morphologies described in NeuroML files, and present the encoded data to the
+user. This is more than a simple `segment tree`.
 
 NeuroML can encode in the same file multiple top-level morphologies, as well as cells:
 
