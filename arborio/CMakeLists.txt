@@ -11,14 +11,11 @@ set(arborio-sources
 add_library(arborio ${arborio-sources})
 
 if (ARB_USE_BUNDLED_PUGIXML)
-    # Horrible trickery to get CMake off our backs.
-    get_target_property(xml-headers ext-pugixml INTERFACE_INCLUDE_DIRECTORIES)
-    get_target_property(xml-sources ext-pugixml INTERFACE_SOURCES)
-    target_include_directories(arborio PRIVATE ${xml-headers})
-    target_sources(arborio PRIVATE ${xml-sources})
+    target_include_directories(arborio PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/pugixml/src>)
+    target_compile_definitions(arborio PRIVATE PUGIXML_HEADER_ONLY)
 else()
-    find_package(PugiXML)
-    target_link_libraries(arborio PRIVATE PugiXML::PugiXML)
+    find_package(pugixml)
+    target_link_libraries(arborio PUBLIC pugixml::pugixml)
 endif()
 
 add_library(arborio-public-headers INTERFACE)

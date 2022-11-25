@@ -79,13 +79,6 @@ function(add_external_cmake_project)
     endif()
 endfunction()
 
-# PUGIXML for neuroml support
-if (ARB_USE_BUNDLED_PUGIXML)
-    add_library(ext-pugixml INTERFACE)
-    target_include_directories(ext-pugixml INTERFACE pugixml/src)
-    target_sources(ext-pugixml INTERFACE pugixml/src/pugixml.cpp)
-endif()
-
 # Google benchmark for microbenchmarks:
 
 # Set up google benchmark as an external project.
