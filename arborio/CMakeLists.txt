@@ -14,7 +14,7 @@ if (ARB_USE_BUNDLED_PUGIXML)
     target_include_directories(arborio PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/pugixml/src>)
     target_compile_definitions(arborio PRIVATE PUGIXML_HEADER_ONLY)
 else()
-    find_package(pugixml)
+    find_package(pugixml REQUIRED)
     target_link_libraries(arborio PUBLIC pugixml::pugixml)
 endif()
 
