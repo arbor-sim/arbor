@@ -1,25 +1,25 @@
 [submodule "google-benchmark"]
 	path = ext/google-benchmark
 	url = https://github.com/google/benchmark.git
-	branch = main
+	branch = v1.7.1
 [submodule "ext/fmt"]
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt.git
-	branch = master
+	branch = 9.1.0	
 [submodule "ext/random123"]
 	path = ext/random123
 	url = https://github.com/DEShawResearch/random123.git
-	branch = main
+	branch = v1.14.0
 [submodule "ext/json"]
 	path = ext/json
 	url = https://github.com/nlohmann/json.git
-	branch = master
+	branch = v3.11.2
 [submodule "ext/pybind11"]
 	path = ext/pybind11
 	url = https://github.com/pybind/pybind11.git
-	branch = master
+	branch = v2.10.1
 [submodule "ext/googletest"]
 	path = ext/googletest
 	url = https://github.com/google/googletest.git	
-	branch = main
+	branch = release-1.12.1
 
