@@ -69,7 +69,7 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
-    depends_on("pugixml@1.10:", when="@0.7.1:")
+    depends_on("pugixml@1.11:", when="@0.7.1:")
     depends_on("nlohmann-json")
     depends_on("random123")
     with when("+cuda"):

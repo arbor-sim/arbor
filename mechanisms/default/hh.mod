@@ -12,7 +12,7 @@ UNITS {
 }
 
 PARAMETER {
-    gnabar :=   0.12   (S/cm2)
+    gnabar =   0.12   (S/cm2)
     gkbar  =   0.036  (S/cm2)
     gl     =   0.0003 (S/cm2)
     el     = -54.3    (mV)
