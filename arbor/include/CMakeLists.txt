@@ -38,10 +38,8 @@ if(ARB_WITH_GPU)
     # define ARB_GPU_ENABLED in version.hpp
     list(APPEND arb_features GPU)
 endif()
-if(ARB_WITH_NEUROML)
-    # define ARB_NEUROML_ENABLED in version.hpp
-    list(APPEND arb_features NEUROML)
-endif()
+# This is provided for legacy reasons, now always on.
+list(APPEND arb_features NEUROML)
 if(ARB_WITH_PROFILING)
     # define ARB_PROFILE_ENABLED in version.hpp
     list(APPEND arb_features PROFILE)

@@ -8,7 +8,6 @@ with_mpi = False
 with_gpu = "none"
 with_vec = False
 arch = "none"
-with_nml = True
 use_libs = True
 build_type = "Release"  # this is ok even for debugging, as we always produce info
 
@@ -20,7 +19,6 @@ setup(
         f"-DARB_VECTORIZE={with_vec}",
         f"-DARB_ARCH={arch}",
         f"-DARB_GPU={with_gpu}",
-        f"-DARB_WITH_NEUROML={with_nml}",
         f"-DARB_USE_BUNDLED_LIBS={use_libs}",
         f"-DCMAKE_BUILD_TYPE={build_type}",
     ],

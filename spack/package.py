@@ -44,7 +44,6 @@ class Arbor(CMakePackage, CudaPackage):
     )
     variant("doc", default=False, description="Build documentation.")
     variant("mpi", default=False, description="Enable MPI support")
-    variant("neuroml", default=True, description="Build NeuroML support library.")
     variant("python", default=True, description="Enable Python frontend support")
     variant(
         "vectorize",
@@ -70,9 +69,9 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
+    depends_on("pugixml@1.11:", when="@0.7.1:")
     depends_on("nlohmann-json")
     depends_on("random123")
-    depends_on("libxml2", when="+neuroml")
     with when("+cuda"):
         depends_on("cuda@10:")
         depends_on("cuda@11:", when="@0.7.1:")
@@ -103,7 +102,6 @@ class Arbor(CMakePackage, CudaPackage):
         args = [
             self.define_from_variant("ARB_WITH_ASSERTIONS", "assertions"),
             self.define_from_variant("ARB_WITH_MPI", "mpi"),
-            self.define_from_variant("ARB_WITH_NEUROML", "neuroml"),
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
         ]

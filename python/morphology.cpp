@@ -16,10 +16,7 @@
 #include <arborio/label_parse.hpp>
 #include <arborio/swcio.hpp>
 #include <arborio/neurolucida.hpp>
-
-#ifdef ARB_NEUROML_ENABLED
 #include <arborio/neuroml.hpp>
-#endif
 
 #include "util.hpp"
 #include "error.hpp"
@@ -388,8 +385,6 @@ void register_morphology(py::module& m) {
         pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
         "Load a morphology or segment_tree and meta data from a Neurolucida ASCII .asc file.");
 
-
-#ifdef ARB_NEUROML_ENABLED
     // arborio::morphology_data
     py::class_<arborio::nml_morphology_data> nml_morph_data(m, "neuroml_morph_data");
     nml_morph_data
@@ -473,7 +468,6 @@ void register_morphology(py::module& m) {
                 }
             }, "cell_id"_a, "allow_spherical_root"_a=false,
             "Retrieve nml_morph_data associated with cell_id.");
-#endif // def ARB_NEUROML_ENABLED
 }
 
 } // namespace pyarb
