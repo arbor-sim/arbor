@@ -58,6 +58,13 @@ BSD License.
 
 http://llvm.org/
 
+# PugiXML 
+
+A simple and fast C++ XML processing library.
+MIT License.
+
+https://github.com/zeux/pugixml
+
 ## Transcendentals intrinsics
 
 The numerical algorithms for the transcendentals intrinsics are based on the
