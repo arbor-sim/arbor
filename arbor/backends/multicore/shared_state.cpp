@@ -299,6 +299,12 @@ void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     dt = time_to - time;
 }
 
+void shared_state::mark_events(arb_value_type t) {
+    for (auto& s : storage) {
+        s.second.deliverable_events_.mark_until_after(t);
+    }
+}
+
 void shared_state::add_stimulus_current() {
      stim_data.add_current(time, current_density);
 }
@@ -312,14 +318,17 @@ void shared_state::take_samples(
     array& sample_time,
     array& sample_value)
 {
-    auto begin = s.begin_marked;
-    auto end = s.end_marked;
+    if (s.size()) {
+        arb_assert(s.kinds == 1);
+        auto begin = s.data + s.begin_marked[0];
+        auto end = s.data + s.end_marked[0];
 
-    // Null handles are explicitly permitted, and always give a sample of zero.
-    // (Note: probably not worth explicitly vectorizing this.)
-    for (auto p = begin; p<end; ++p) {
-        sample_time[p->offset] = time;
-        sample_value[p->offset] = p->handle? *p->handle: 0;
+        // Null handles are explicitly permitted, and always give a sample of zero.
+        // (Note: probably not worth explicitly vectorizing this.)
+        for (auto p = begin; p<end; ++p) {
+            sample_time[p->offset] = time;
+            sample_value[p->offset] = p->handle? *p->handle: 0;
+        }
     }
 }
 
@@ -391,6 +400,28 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
         }
     }
     return nullptr;
+}
+
+void shared_state::register_events(
+    const std::map<cell_local_size_type, std::vector<deliverable_event>>& staged_event_map) {
+    for (auto& [mech_id, store] : storage) {
+        if (auto it = staged_event_map.find(mech_id);
+            it != staged_event_map.end() && it->second.size()) {
+            store.deliverable_events_.init(it->second);
+        }
+    }
+}
+
+void shared_state::deliver_events(mechanism& m) {
+    if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
+        auto& deliverable_events = it->second.deliverable_events_;
+        if (auto es_state = deliverable_events.marked_events(); es_state.size()) {
+            arb_deliverable_event_stream ess{
+                es_state.data, es_state.begin_marked, es_state.end_marked, es_state.kinds};
+            m.deliver_events(ess);
+        }
+        deliverable_events.drop_marked_events();
+    }
 }
 
 void shared_state::update_prng_state(mechanism& m) {

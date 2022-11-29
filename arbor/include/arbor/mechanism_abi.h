@@ -65,15 +65,16 @@ typedef struct arb_ion_state {
 
 // Event; consumed by `apply_event`
 typedef struct arb_deliverable_event_data {
-    arb_size_type   mech_id;       // Mechanism type identifier (per cell group).
     arb_size_type   mech_index;    // Instance of the mechanism.
     arb_weight_type weight;
 } arb_deliverable_event_data;
 
 // A range of events to be consumed
 typedef struct arb_deliverable_event_stream {
-    const arb_deliverable_event_data* begin;     // beginning of marked events.
-    const arb_deliverable_event_data* end;       // end of marked events.
+    const arb_deliverable_event_data* data;      // pointer to marked events
+    const arb_size_type* begin_marked;           // begin index of marked events.
+    const arb_size_type* end_marked;             // end index of marked events.
+    arb_size_type kinds;                         // number of different event kinds
 }  arb_deliverable_event_stream;
 
 // Constraints for use in SIMD implementations, see there.

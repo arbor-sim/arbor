@@ -229,26 +229,17 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "void apply_events(arb_mechanism_ppack params_, arb_deliverable_event_stream stream) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    if(tid_<1) {{\n"
-                                       "        auto begin = stream.begin;\n"
-                                       "        auto end   = stream.end;\n"
+                                       "    const auto n = stream.kinds;\n"
+                                       "    if (tid_<n) {{\n"
+                                       "        auto begin = stream.data + stream.begin_marked[tid_];\n"
+                                       "        auto end   = stream.data + stream.end_marked[tid_];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
-                                       "            if (p->mech_id=={1}mechanism_id) {{\n"
-                                       "                auto tid_ = p->mech_index;\n"
-                                       "                auto {0} = p->weight;\n"),
-                           //          "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                           //          "    if(tid_<stream.n_streams) {{\n"
-                           //          "        auto begin = stream.events + stream.begin[tid_];\n"
-                           //          "        auto end   = stream.events + stream.end[tid_];\n"
-                           //          "        for (auto p = begin; p<end; ++p) {{\n"
-                           //          "            if (p->mech_id=={1}mechanism_id) {{\n"
-                           //          "                auto tid_ = p->mech_index;\n"
-                           //          "                auto {0} = p->weight;\n"),
-                           net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name(),
-                           pp_var_pfx);
-        out << indent << indent << indent << indent;
+                                       "            auto tid_ = p->mech_index;\n"
+                                       "            auto {0} = p->weight;\n"),
+                           net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
+        out << indent << indent << indent;
         emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
-        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
+        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     }
 
     // event delivery
@@ -329,11 +320,9 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{"), class_name, api_name);
         if(!net_receive_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
-                                         //"    auto n = stream_ptr->n_streams;\n"
-                                         //"    unsigned block_dim = 128;\n"
-                                         //"    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                         //"    {}<<<grid_dim, block_dim>>>(*p, *stream_ptr);\n"),
-                                           "    {}<<<1, 1>>>(*p, *stream_ptr);\n"),
+                                           "    unsigned block_dim = 128;\n"
+                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(stream_ptr->kinds, block_dim);\n"
+                                           "    {}<<<grid_dim, block_dim>>>(*p, *stream_ptr);\n"),
                                api_name);
         }
         out << "}\n\n";

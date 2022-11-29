@@ -315,13 +315,15 @@ void run_expsyn_g_probe_test(context ctx) {
         // Integrate to 3 ms, with one event at 1ms to first expsyn weight 0.5,
         // and another at 2ms to second, weight 1.
 
-        std::vector<deliverable_event> evs = {
-            {1.0, targets[0], 0.5},
-            {2.0, targets[1], 1.0}
+        arb_assert(targets[0].mech_id == targets[1].mech_id);
+        const auto mech_id = targets[0].mech_id;
+        std::map<cell_local_size_type, std::vector<deliverable_event>> ev_map = {
+            {mech_id, {{1.0, targets[0], 0.5},
+                       {2.0, targets[1], 1.0}}}
         };
         const double tfinal = 3.0;
         const double dt = 0.001;
-        lcell.integrate(tfinal, dt, evs, {});
+        lcell.integrate(tfinal, dt, ev_map, {});
 
         arb_value_type g0 = deref(p0);
         arb_value_type g1 = deref(p1);
@@ -402,17 +404,17 @@ void run_expsyn_g_cell_probe_test(context ctx) {
         // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
         // integrate for a tiny time step.
 
-        std::vector<deliverable_event> events;
+        std::map<cell_local_size_type, std::vector<deliverable_event>> event_map;
         for (unsigned i: {0u, 1u}) {
             // Cells have the same number of targets, so the offset for cell 1 is exactly...
             cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
 
             for (auto target_id: util::keys(expsyn_target_loc_map)) {
                 deliverable_event ev{0., targets.at(target_id+cell_offset), float(target_id+100*i)};
-                events.push_back(ev);
+                event_map[targets.at(target_id+cell_offset).mech_id].push_back(ev);
             }
         }
-        (void)lcell.integrate(1e-5, 1e-5, events, {});
+        (void)lcell.integrate(1e-5, 1e-5, event_map, {});
 
         // Independently get cv geometry to compute CV indices.
 

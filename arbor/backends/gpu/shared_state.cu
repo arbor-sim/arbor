@@ -31,8 +31,8 @@ __global__ void take_samples_impl(
     arb_value_type* __restrict__ const sample_value)
 {
     const unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    const auto begin = s.begin_marked;
-    const auto end = s.end_marked;
+    const auto begin = s.data + s.begin_marked[0];
+    const auto end = s.data + s.end_marked[0];
     const unsigned nsamples = end - begin;
     if (i<nsamples) {
         auto p = begin+i;
@@ -58,7 +58,7 @@ void take_samples_impl(
     const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value)
 {
     constexpr int block_dim = 128;
-    const int nsamples = s.end_marked - s.begin_marked;
+    const int nsamples = s.end_marked[0] - s.begin_marked[0];
     if (nsamples) {
         const int nblock = block_count(nsamples, block_dim);
         kernel::take_samples_impl<<<nblock, block_dim>>>(s, time, sample_time, sample_value);

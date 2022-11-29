@@ -47,6 +47,11 @@ auto event_data(const Event& ev) {
     return ev.data;
 }
 
+template <typename Event>
+auto event_kind(const Event& ev) {
+    return ev.kind;
+}
+
 struct event_time_less {
     template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (T l, const Event& r) {
@@ -64,12 +69,16 @@ namespace impl {
 
     using ::arb::event_time;
     using ::arb::event_data;
+    using ::arb::event_kind;
 
     template <typename Event>
     using event_time_type = decltype(event_time(std::declval<Event>()));
 
     template <typename Event>
     using event_data_type = decltype(event_data(std::declval<Event>()));
+
+    template <typename Event>
+    using event_kind_type = decltype(event_kind(std::declval<Event>()));
 }
 
 template <typename Event>
@@ -77,6 +86,9 @@ using event_time_type = impl::event_time_type<Event>;
 
 template <typename Event>
 using event_data_type = impl::event_data_type<Event>;
+
+template <typename Event>
+using event_kind_type = impl::event_kind_type<Event>;
 
 } // namespace arb
 

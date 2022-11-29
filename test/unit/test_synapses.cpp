@@ -148,22 +148,17 @@ TEST(synapses, syn_basic_state) {
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
 
-    std::vector<deliverable_event> events = {
-        {0., {0, 1}, 3.14f},
-        {0., {0, 3}, 1.41f},
-        {0., {1, 0}, 2.71f},
-        {0., {1, 2}, 0.07f}
+    std::map<cell_local_size_type, std::vector<deliverable_event>> event_map = {
+        {0, {{0., {0, 1}, 3.14f},
+             {0., {0, 3}, 1.41f}}},
+        {1, {{0., {1, 0}, 2.71f},
+             {0., {1, 2}, 0.07f}}}
     };
-    state.deliverable_events.init(events);
-    state.deliverable_events.mark_until_after(state.time);
+    state.register_events(event_map);
+    state.mark_events(state.time);
 
-    auto marked = state.deliverable_events.marked_events();
-    arb_deliverable_event_stream evts{};
-    evts.begin     = (arb_deliverable_event_data*)marked.begin_marked;
-    evts.end       = (arb_deliverable_event_data*)marked.end_marked;
-
-    expsyn->deliver_events(evts);
-    exp2syn->deliver_events(evts);
+    state.deliver_events(*expsyn);
+    state.deliver_events(*exp2syn);
 
     using fvec = std::vector<arb_value_type>;
 

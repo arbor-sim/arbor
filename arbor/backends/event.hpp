@@ -1,7 +1,11 @@
 #pragma once
 
+#include <map>
+#include <vector>
+
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/mechanism_abi.h>
 
 // Structures for the representation of event delivery targets and
 // staged events.
@@ -29,20 +33,16 @@ struct deliverable_event {
         time(time), weight(weight), handle(handle) {}
 };
 
-//ARB_DEFINE_LEXICOGRAPHIC_ORDERING(deliverable_event, (a.handle.mech_id, a.handle.mech_index, a.time), (b.handle.mech_id, b.handle.mech_index, b.time));
-
-// Subset of event information required for mechanism delivery.
-struct deliverable_event_data {
-    cell_local_size_type mech_id;    // same as target_handle::mech_id
-    cell_local_size_type mech_index; // same as target_handle::mech_index
-    float weight;
-};
+using event_map = std::map<cell_local_size_type, std::vector<deliverable_event>>;
 
 // Delivery data accessor function for event_stream:
-inline deliverable_event_data event_data(const deliverable_event& ev) {
-    return {ev.handle.mech_id, ev.handle.mech_index, ev.weight};
+inline arb_deliverable_event_data event_data(const deliverable_event& ev) {
+    return {ev.handle.mech_index, ev.weight};
 }
 
+inline std::size_t event_kind(const deliverable_event& ev) {
+    return ev.handle.mech_index;
+}
 
 // Sample events (raw values from back-end state).
 
@@ -60,6 +60,10 @@ struct sample_event {
 
 inline raw_probe_info event_data(const sample_event& ev) {
     return ev.raw;
+}
+
+inline std::size_t event_kind(const sample_event& ev) {
+    return 0u;
 }
 
 } // namespace arb

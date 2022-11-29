@@ -134,6 +134,8 @@ struct ARB_ARBOR_API shared_state {
         std::vector<arb_size_type> gid_;
         std::vector<arb_size_type> idx_;
         cbprng::counter_type random_number_update_counter_ = 0u;
+
+        deliverable_event_stream deliverable_events_;
     };
 
     cable_solver solver;
@@ -164,7 +166,6 @@ struct ARB_ARBOR_API shared_state {
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-    deliverable_event_stream deliverable_events;
     std::unordered_map<unsigned, mech_storage> storage;
 
     shared_state() = default;
@@ -189,6 +190,13 @@ struct ARB_ARBOR_API shared_state {
                      const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
 
     void update_prng_state(mechanism&);
+
+    void register_events(const std::map<cell_local_size_type, std::vector<deliverable_event>>&
+        staged_event_map);
+
+    void mark_events(arb_value_type t);
+
+    void deliver_events(mechanism& m);
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 

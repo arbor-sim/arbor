@@ -191,8 +191,7 @@ shared_state::shared_state(
     diam_um(make_const_view(diam)),
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
-    cbprng_seed(cbprng_seed_),
-    deliverable_events()
+    cbprng_seed(cbprng_seed_)
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
@@ -214,6 +213,28 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
         }
     }
     return nullptr;
+}
+
+void shared_state::register_events(
+    const std::map<cell_local_size_type, std::vector<deliverable_event>>& staged_event_map) {
+    for (auto& [mech_id, store] : storage) {
+        if (auto it = staged_event_map.find(mech_id);
+            it != staged_event_map.end() && it->second.size()) {
+            store.deliverable_events_.init(it->second);
+        }
+    }
+}
+
+void shared_state::deliver_events(mechanism& m) {
+    if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
+        auto& deliverable_events = it->second.deliverable_events_;
+        if (auto es_state = deliverable_events.marked_events(); es_state.size()) {
+            arb_deliverable_event_stream ess{
+                es_state.data, es_state.begin_marked, es_state.end_marked, es_state.kinds};
+            m.deliver_events(ess);
+        }
+        deliverable_events.drop_marked_events();
+    }
 }
 
 void shared_state::instantiate(mechanism& m,
@@ -431,6 +452,12 @@ void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     dt = time_to - time;
 }
 
+void shared_state::mark_events(arb_value_type t) {
+    for (auto& s : storage) {
+        s.second.deliverable_events_.mark_until_after(t);
+    }
+}
+
 void shared_state::add_stimulus_current() {
     stim_data.add_current(time, current_density);
 }
@@ -440,7 +467,10 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 }
 
 void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
-    take_samples_impl(s, time, sample_time.data(), sample_value.data());
+    if (s.size()) {
+        arb_assert(s.kinds == 1);
+        take_samples_impl(s, time, sample_time.data(), sample_value.data());
+    }
 }
 
 // Debug interface

@@ -16,8 +16,6 @@
 #include "backends/event.hpp"
 #include "cell_group.hpp"
 #include "epoch.hpp"
-#include "event_binner.hpp"
-#include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "sampler_map.hpp"
@@ -77,11 +75,11 @@ private:
     // Spikes that are generated.
     std::vector<spike> spikes_;
 
-    // List of events to deliver
-    std::vector<deliverable_event> staged_events_;
+    // List of events to deliver, mapped by mechanism id
+    event_map staged_event_map_;
 
-    // Pending samples to be taken.
-    event_queue<sample_event> sample_events_;
+    // List of samples to be taken
+    std::vector<sample_event> sample_events_;
 
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles_;

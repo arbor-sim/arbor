@@ -704,7 +704,7 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Ionic current should be ica_nA/soma_area after integrating past event time.
     const double time = 0.5; // [ms]
-    (void)fvcell.integrate(time, 0.01, {ev}, {});
+    (void)fvcell.integrate(time, 0.01, {{0, {ev}}}, {});
 
     double expected_iX = ica_nA*1e-9/soma_area_m2;
     EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);

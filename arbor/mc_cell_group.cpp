@@ -72,7 +72,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 void mc_cell_group::reset() {
     spikes_.clear();
 
-    sample_events_.clear();
     for (auto &entry: sampler_map_) {
         entry.second.sched.reset();
     }
@@ -389,26 +388,29 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // Bin and collate deliverable events from event lanes.
 
     PE(advance:eventsetup);
-    staged_events_.clear();
+    sample_events_.clear();
+    for (auto& [mech_index, event_vec] : staged_event_map_) {
+        event_vec.clear();
+    }
 
     // Skip event handling if nothing to deliver.
-    if (auto total_events = util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
-        staged_events_.reserve(total_events);
+    if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         auto lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
                 if (e.time>=ep.t1) break;
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
-                auto ev = deliverable_event(e.time, h, e.weight);
-                staged_events_.push_back(ev);
+                staged_event_map_[h.mech_id].emplace_back(e.time, h, e.weight);
             }
             ++lid;
         }
     }
-    // TODO: sort the events so that processing can be optimised later
-    //util::sort(staged_events_);
-    //util::sort_by(staged_events_, [](auto& l, auto& r) {return });
-    //ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
+    // Sort the events so that processing can be optimised later
+    for (auto& [mech_id, event_vec] : staged_event_map_) {
+        arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
+            [](const auto& a, const auto& b) { return a.time < b.time; }));
+        util::stable_sort_by(event_vec, [](const auto& ev) { return ev.handle.mech_index; });
+    }
     PL();
 
     // Create sample events and delivery information.
@@ -427,7 +429,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PE(advance:samplesetup);
     std::vector<sampler_call_info> call_info;
 
-    std::vector<sample_event> sample_events;
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
@@ -457,7 +458,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                     for (auto t: sample_times) {
                         for (probe_handle h: pdata.raw_handle_range()) {
                             sample_event ev{t, {h, n_samples++}};
-                            sample_events.push_back(ev);
+                            sample_events_.push_back(ev);
                         }
                         if (sa.policy==sampling_policy::exact) {
                             target_handle h(-1, 0);
@@ -470,30 +471,31 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         }
     }
 
-    // Sort exact sampling events into staged events for delivery.
-    if (exact_sampling_events.size()) {
-        auto event_less =
-            [](const auto& a, const auto& b) {
-                 return event_time(a)<event_time(b);
-            };
+    // TODO: what to do with exact sampling???
+    //// Sort exact sampling events into staged events for delivery.
+    //if (exact_sampling_events.size()) {
+    //    auto event_less =
+    //        [](const auto& a, const auto& b) {
+    //             return event_time(a)<event_time(b);
+    //        };
 
-        util::sort(exact_sampling_events, event_less);
+    //    util::sort(exact_sampling_events, event_less);
 
-        std::vector<deliverable_event> merged;
-        merged.reserve(staged_events_.size()+exact_sampling_events.size());
+    //    std::vector<deliverable_event> merged;
+    //    merged.reserve(staged_events_.size()+exact_sampling_events.size());
 
-        std::merge(staged_events_.begin(), staged_events_.end(),
-                   exact_sampling_events.begin(), exact_sampling_events.end(),
-                   std::back_inserter(merged), event_less);
-        std::swap(merged, staged_events_);
-    }
+    //    std::merge(staged_events_.begin(), staged_events_.end(),
+    //               exact_sampling_events.begin(), exact_sampling_events.end(),
+    //               std::back_inserter(merged), event_less);
+    //    std::swap(merged, staged_events_);
+    //}
 
     // Sample events must be ordered by time for the lowered cell.
-    util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
+    util::sort_by(sample_events_, [](const sample_event& ev) { return event_time(ev); });
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.t1, dt, staged_events_, std::move(sample_events));
+    auto result = lowered_->integrate(ep.t1, dt, staged_event_map_, sample_events_);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

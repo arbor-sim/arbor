@@ -61,8 +61,8 @@ public:
     fvm_integration_result integrate(
         value_type tfinal,
         value_type max_dt,
-        std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples) override;
+        const event_map& staged_event_map,
+        const std::vector<sample_event>& staged_samples) override;
 
     value_type time() const override { return state_->time; }
 
@@ -176,8 +176,8 @@ template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tfinal,
     value_type dt_max,
-    std::vector<deliverable_event> staged_events,
-    std::vector<sample_event> staged_samples)
+    const event_map& staged_event_map,
+    const std::vector<sample_event>& staged_samples)
 {
     set_gpu();
 
@@ -191,9 +191,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_value_ = array(n_samples);
     }
 
-    auto& events = state_->deliverable_events;
-    events.init(std::move(staged_events));
-    sample_events_.init(std::move(staged_samples));
+    state_->register_events(staged_event_map);
+    sample_events_.init(staged_samples);
     PL();
 
     while (state_->time < tfinal) {
@@ -202,6 +201,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         //      { dt_max,       otherwise
         // time_to = time + dt
         state_->update_time_to(dt_max, tfinal);
+        const auto step_midpoint = state_->time + 0.5*state_->dt;
 
         // Update integration step time information visible to mechanisms.
         for (auto& m: mechanisms_) {
@@ -221,32 +221,20 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        //PE(advance:integrate:events);
         // Mark all events due before the mid point of this time step for delivery
-        const auto step_midpoint = state_->time + 0.5*state_->dt;
-        state_->deliverable_events.mark_until_after(step_midpoint);
-        //PL();
+        PE(advance:integrate:events);
+        state_->mark_events(step_midpoint);
+        PL();
 
         PE(advance:integrate:current:zero);
         state_->zero_currents();
         PL();
 
-        auto ev_state = state_->deliverable_events.marked_events();
-        arb_deliverable_event_stream events{
-                // FIXME(TH): This relies on bit-castability
-                (arb_deliverable_event_data*) ev_state.begin_marked,
-                (arb_deliverable_event_data*) ev_state.end_marked};
-
         for (auto& m: mechanisms_) {
-            if (ev_state.size()) {
-                m->deliver_events(events);
-            }
+            // apply the events and drop them afterwards
+            state_->deliver_events(*m);
             m->update_current();
         }
-
-        //PE(advance:integrate:events);
-        state_->deliverable_events.drop_marked_events();
-        //PL();
 
         // Add stimulus current contributions.
         // (Note: performed after dt, time_to calculation, in case we

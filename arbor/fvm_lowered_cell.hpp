@@ -223,8 +223,8 @@ struct fvm_lowered_cell {
     virtual fvm_integration_result integrate(
         arb_value_type tfinal,
         arb_value_type max_dt,
-        std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples) = 0;
+        const event_map& staged_event_map,
+        const std::vector<sample_event>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;
 
