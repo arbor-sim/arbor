@@ -579,39 +579,8 @@ NeuroML
 -------
 
 Arbor offers limited support for models described in `NeuroML version 2
-<https://neuroml.org/neuromlv2>`_. This is not built by default, but can be
-enabled by providing the `-DARB_WITH_NEUROML=ON` argument to CMake at configuration
-time (see :ref:`install-neuroml`). This will build the ``arborio`` libray with
-neuroml support.
-
-The ``arborio`` library uses `libxml2 <http://xmlsoft.org/>`_ for XML parsing.
-Applications using NeuroML through ``arborio`` will need to link against
-``libxml2`` in addition, though this is performed implicitly within CMake
-projects that add ``arbor::arborio`` as a link library.
-
-All classes and functions provided by the ``arborio`` library are provided in
-the ``arborio`` namespace.
-
-Libxml2 interface
-^^^^^^^^^^^^^^^^^
-
-Libxml2 offers threadsafe XML parsing, but not by default. If the application
-uses NeuromML support from ``arborio`` in an unthreaded context, or has already
-explicitly initialized ``libxml2``, nothing more needs to be done. Otherwise,
-the ``libxml2`` function ``xmlInitParser()`` must be called explicitly.
-
-``arborio`` provides a helper guard object for this purpose, defined
-in ``arborio/xml.hpp``:
-
-.. cpp:namespace:: arborio
-
-.. cpp:class:: with_xml
-
-   An RAII guard object that calls ``xmlInitParser()`` upon construction, and
-   ``xmlCleanupParser()`` upon destruction. The constructor takes no parameters.
-
-Unhandleable exceptions from ``libxml2`` are forwarded via an exception
-``xml_error``, derived from ``std::runtime_error``.
+<https://neuroml.org/neuromlv2>`_. All classes and functions provided by the
+``arborio`` library are provided in the ``arborio`` namespace.
 
 NeuroML2 morphology support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -624,7 +593,7 @@ An implementation limitation restricts valid segment id values to
 those which can be represented by an ``unsigned long long`` value.
 
 ``arborio::neuroml`` methods can throw an ``arborio::xml_error`` in the instance that
-the underlying libxml2 library reports a problem that cannot be handled by the ``arborio``
+the underlying XML library reports a problem that cannot be handled by the ``arborio``
 library. Otherwise, exceptions derived from ``aborio::neuroml_exception`` can be thrown
 when encountering problems interpreting the NeuroML document (see :ref:`cppneuromlexceptions` below).
 

@@ -27,7 +27,6 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_GPU_ENABLED``
     * ``ARB_VECTORIZE``
     * ``ARB_WITH_PROFILING``
-    * ``ARB_WITH_NEUROML``
     * ``ARB_USE_BUNDLED_LIBS``
     * ``ARB_VERSION``
     * ``ARB_ARCH``
@@ -39,7 +38,7 @@ Helper functions for checking cmake or environment variables, as well as configu
             import arbor
             arbor.config()
 
-            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'neuroml': True, 'bundled': True, 'version': '0.5.3-dev', 'arch': 'native'}
+            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'bundled': True, 'version': '0.5.3-dev', 'arch': 'native'}
 
 .. function:: mpi_init()
 

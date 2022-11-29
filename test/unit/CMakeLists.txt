@@ -153,6 +153,9 @@ set(unit_sources
     mech_private_field_access.cpp
     stats.cpp
     unit_test_catalogue.cpp
+
+    # neuroml
+    test_nml_morphology.cpp
 )
 
 if(ARB_WITH_GPU)
@@ -166,10 +169,6 @@ if(ARB_WITH_GPU)
         test_spikes_gpu.cpp
         test_vector_gpu.cpp
     )
-endif()
-
-if(ARB_WITH_NEUROML)
-    list(APPEND unit_sources test_nml_morphology.cpp)
 endif()
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
