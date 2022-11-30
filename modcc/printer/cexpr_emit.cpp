@@ -68,7 +68,10 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::step_right, "step_right"},
         {tok::step_left,  "step_left"},
         {tok::step,       "step"},
-        {tok::signum,     "signum"}
+        {tok::signum,     "signum"},
+        {tok::tanh,       "tanh"},
+        {tok::sigmoid,    "sigmoid"},
+        {tok::relu,       "relu"}
     };
 
     if (!unaryop_tbl.count(e->op())) {
@@ -108,6 +111,11 @@ void CExprEmitter::visit(UnaryExpression* e) {
         out_ << "))-((";
         inner->accept(this);
         out_ << ")<0.)))";
+    }
+    else if (e->op()==tok::relu) {
+        out_ << "((arb_value_type)(max(0,";
+        inner->accept(this);
+        out_ << ")))";
     }
     else {
         emit_as_call(op_spelling, inner);
