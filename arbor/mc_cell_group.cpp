@@ -27,7 +27,6 @@
 namespace arb {
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index),(b.mech_id,b.mech_index))
-//ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
 
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
@@ -424,8 +423,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
-    //std::vector<deliverable_event> exact_sampling_events;
-
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
 
@@ -452,35 +449,12 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                             sample_event ev{t, {h, n_samples++}};
                             sample_events_.push_back(ev);
                         }
-                        //if (sa.policy==sampling_policy::exact) {
-                        //    target_handle h(-1, 0);
-                        //    exact_sampling_events.push_back({t, h, 0.f});
-                        //}
                     }
                 }
             }
             arb_assert(n_samples==call_info.back().end_offset);
         }
     }
-
-    // TODO: what to do with exact sampling???
-    //// Sort exact sampling events into staged events for delivery.
-    //if (exact_sampling_events.size()) {
-    //    auto event_less =
-    //        [](const auto& a, const auto& b) {
-    //             return event_time(a)<event_time(b);
-    //        };
-
-    //    util::sort(exact_sampling_events, event_less);
-
-    //    std::vector<deliverable_event> merged;
-    //    merged.reserve(staged_events_.size()+exact_sampling_events.size());
-
-    //    std::merge(staged_events_.begin(), staged_events_.end(),
-    //               exact_sampling_events.begin(), exact_sampling_events.end(),
-    //               std::back_inserter(merged), event_less);
-    //    std::swap(merged, staged_events_);
-    //}
 
     // Sample events must be ordered by time for the lowered cell.
     util::sort_by(sample_events_, [](const sample_event& ev) { return event_time(ev); });
