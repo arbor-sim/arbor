@@ -27,7 +27,6 @@ public:
 
     virtual cell_kind get_cell_kind() const override;
     virtual void reset() override;
-    virtual void set_binning_policy(binning_kind policy, time_type bin_interval) override;
     virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events) override;
 
     virtual const std::vector<spike>& spikes() const override;

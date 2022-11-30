@@ -100,10 +100,6 @@ public:
         return sim_->run(tfinal, dt);
     }
 
-    void set_binning_policy(arb::binning_kind policy, arb::time_type bin_interval) {
-        sim_->set_binning_policy(policy, bin_interval);
-    }
-
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
             auto old_size = spike_record_.size();
@@ -242,9 +238,6 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, "dt"_a=0.025)
-        .def("set_binning_policy", &simulation_shim::set_binning_policy,
-            "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
-             "policy"_a, "bin_interval"_a)
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

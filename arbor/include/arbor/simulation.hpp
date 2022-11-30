@@ -67,9 +67,6 @@ public:
 
     std::size_t num_spikes() const;
 
-    // Set event binning policy on all our groups.
-    void set_binning_policy(binning_kind policy, time_type bin_interval);
-
     // Register a callback that will perform a export of the global
     // spike vector.
     void set_global_spike_callback(spike_export_function = spike_export_function{});

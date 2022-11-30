@@ -16,7 +16,6 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
                                cell_label_range& cg_sources,
                                cell_label_range& cg_targets):
     gids_(gids) {
-    lif_cell_group::set_binning_policy(binning_kind::none, 0);
 
     for (auto gid: gids_) {
         const auto& cell = util::any_cast<lif_cell>(rec.get_cell_description(gid));
@@ -88,10 +87,6 @@ void lif_cell_group::remove_sampler(sampler_association_handle h) {
 void lif_cell_group::remove_all_samplers() {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     samplers_.clear();
-}
-
-// TODO: implement binner_
-void lif_cell_group::set_binning_policy(binning_kind policy, time_type bin_interval) {
 }
 
 void lif_cell_group::reset() {

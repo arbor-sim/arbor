@@ -13,7 +13,6 @@
 
 #include "backends/event.hpp"
 #include "cell_group.hpp"
-#include "event_binner.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "mc_cell_group.hpp"
@@ -37,9 +36,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
-    // Default to no binning of events
-    mc_cell_group::set_binning_policy(binning_kind::none, 0);
-
     // Build lookup table for gid to local index.
     for (auto i: util::count_along(gids_)) {
         gid_index_map_[gids_[i]] = i;
@@ -77,10 +73,6 @@ void mc_cell_group::reset() {
     }
 
     lowered_->reset();
-}
-
-void mc_cell_group::set_binning_policy(binning_kind policy, time_type bin_interval) {
-    // TODO: check that a valid binning policy (i.e. one that enforces fixed dt) is requested.
 }
 
 // Probe-type specific sample data marshalling.

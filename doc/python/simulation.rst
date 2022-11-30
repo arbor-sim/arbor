@@ -98,14 +98,6 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
         :param dt: The time step size [ms].
 
-    .. function:: set_binning_policy(policy, bin_interval)
-
-        Set the binning ``policy`` for event delivery, and the binning time interval ``bin_interval`` if applicable [ms].
-
-        :param policy: The binning policy of type :py:class:`binning`.
-
-        :param bin_interval: The binning time interval [ms].
-
     **Recording spike data:**
 
     .. function:: record(policy)
@@ -175,22 +167,6 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         Print a progress bar during simulation, with elapsed milliseconds and percentage of simulation completed.
 
 **Types:**
-
-.. class:: binning
-
-    Enumeration for event time binning policy.
-
-    .. attribute:: none
-
-        No binning policy.
-
-    .. attribute:: regular
-
-        Round time down to multiple of binning interval.
-
-    .. attribute:: following
-
-        Round times down to previous event if within binning interval.
 
 .. class:: spike_recording
 

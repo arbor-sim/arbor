@@ -22,8 +22,6 @@ public:
 
     void reset() override;
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
-
     const std::vector<spike>& spikes() const override;
 
     void clear_spikes() override;

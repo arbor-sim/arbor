@@ -38,8 +38,6 @@ public:
 
     void reset() override;
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override;
-
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override;
 
     const std::vector<spike>& spikes() const override {

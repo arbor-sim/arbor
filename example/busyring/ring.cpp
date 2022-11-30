@@ -249,7 +249,6 @@ int main(int argc, char** argv) {
         // Run the simulation.
         if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
         if (root) std::cout << "running simulation\n" << std::endl;
-        sim.set_binning_policy(arb::binning_kind::regular, params.dt);
         sim.run(params.duration, params.dt);
 
         meters.checkpoint("model-run", context);
