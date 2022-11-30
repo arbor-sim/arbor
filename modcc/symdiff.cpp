@@ -265,6 +265,48 @@ public:
         result_ = make_expression<IntegerExpression>(loc, 0);
     }
 
+    void visit(TanHUnaryExpression* e) override {
+        // 1 - tanh(f(x))^2 * df(x)/dx
+        auto loc = e->location();
+        e->expression()->accept(this);
+        result_ = make_expression<MulBinaryExpression>(loc,
+                        make_expression<SubBinaryExpression>(loc,
+                            make_expression<NumberExpression>(loc, 1.0), // 1.0
+                            // - 
+                            // tanh(x)^2
+                            make_expression<PowBinaryExpression>(loc,
+                                make_expression<TanHUnaryExpression>(loc, e->expression()->clone()),
+                                make_expression<NumberExpression>(loc, 2.0))
+                            ),
+                        result()
+                );
+    }
+
+    void visit(SigmoidUnaryExpression* e) override {
+        // s'(x) = s(x) * (1 - s(x)) * x'
+        auto loc = e->location();
+        e->expression()->accept(this);
+        result_ = make_expression<MulBinaryExpression>(loc,
+                make_expression<MulBinaryExpression>(loc,
+                    make_expression<SigmoidUnaryExpression>(loc, e->expression()->clone()),
+                    make_expression<SubBinaryExpression>(loc,
+                        make_expression<NumberExpression>(loc, 1.0),
+                        make_expression<SigmoidUnaryExpression>(loc, e->expression()->clone())
+                        )
+                    ),
+                result()
+                );
+    }
+
+    void visit(ReLuUnaryExpression* e) override {
+        auto loc = e->location();
+        e->expression()->accept(this);
+        result_ = make_expression<MulBinaryExpression>(loc,
+                make_expression<StepUnaryExpression>(loc, e->expression()->clone()),
+                result()
+        );
+    }
+
     void visit(SignumUnaryExpression* e) override {
         // ignore singularity
         auto loc = e->location();
