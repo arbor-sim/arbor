@@ -10,7 +10,7 @@
 #include "io/sepval.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
-#include "backends/event_stream_state.hpp"
+#include "backends/multi_event_stream_state.hpp"
 #include "backends/gpu/chunk_writer.hpp"
 #include "memory/copy.hpp"
 #include "memory/gpu_wrappers.hpp"
@@ -30,7 +30,7 @@ namespace gpu {
 // CUDA implementation entry points:
 
 void take_samples_impl(
-    const event_stream_state<raw_probe_info>& s,
+    const multi_event_stream_state<raw_probe_info>& s,
     const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value);
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
@@ -228,9 +228,12 @@ void shared_state::register_events(
 void shared_state::deliver_events(mechanism& m) {
     if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
         auto& deliverable_events = it->second.deliverable_events_;
-        if (auto es_state = deliverable_events.marked_events(); es_state.size()) {
+        if (auto es_state = deliverable_events.marked_events(); es_state.n_marked()) {
             arb_deliverable_event_stream ess{
-                es_state.data, es_state.begin_marked, es_state.end_marked, es_state.kinds};
+                es_state.n_streams(),
+                es_state.ev_data,
+                es_state.begin_offset,
+                es_state.end_offset};
             m.deliver_events(ess);
         }
         deliverable_events.drop_marked_events();
@@ -467,8 +470,8 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 }
 
 void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
-    if (s.size()) {
-        arb_assert(s.kinds == 1);
+    if (s.n_marked()) {
+        arb_assert(s.n_streams() == 1);
         take_samples_impl(s, time, sample_time.data(), sample_value.data());
     }
 }

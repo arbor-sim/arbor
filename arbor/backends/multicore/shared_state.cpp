@@ -421,7 +421,6 @@ void shared_state::deliver_events(mechanism& m) {
                 es_state.ev_data,
                 es_state.begin_offset,
                 es_state.end_offset};
-                //es_state.data, es_state.begin_marked, es_state.end_marked, es_state.kinds};
             m.deliver_events(ess);
         }
         deliverable_events.drop_marked_events();

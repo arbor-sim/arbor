@@ -1,15 +1,15 @@
 #pragma once
 
-#include "backends/event_stream.hpp"
+#include "backends/multi_event_stream.hpp"
 #include "memory/memory.hpp"
 
 namespace arb {
 namespace gpu {
 
 template <typename Event>
-class event_stream : public ::arb::event_stream<Event> {
+class multi_event_stream : public ::arb::multi_event_stream<Event> {
 public:
-    using base = ::arb::event_stream<Event>;
+    using base = ::arb::multi_event_stream<Event>;
     using event_data_type = typename base::event_data_type;
     using state = typename base::state;
 
@@ -20,8 +20,7 @@ public:
     }
 
     state marked_events() const {
-        return {device_ev_data_.data(), base::span_begin_vec_.data(), base::span_end_vec_.data(),
-            (arb_size_type)base::ev_kind_.size(), base::marked_};
+        return {base::n_streams(), base::n_marked(), device_ev_data_.data(), base::span_begin_.data(), base::span_end_.data()};
     }
 
 private:
