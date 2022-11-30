@@ -55,7 +55,7 @@ public:
     // which called the `run` method.
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
+        schedule sched, sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 

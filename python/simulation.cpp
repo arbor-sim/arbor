@@ -140,7 +140,7 @@ public:
         return result;
     }
 
-    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched, arb::sampling_policy policy) {
+    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched) {
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
         for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
@@ -151,7 +151,7 @@ public:
         // is kept in sampler_map_; the two copies share the same recorder data.
 
         sampler_callback cb{std::move(recorders)};
-        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb, policy);
+        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb);
         sampler_map_.insert({sah, cb});
 
         return sah;
@@ -183,10 +183,6 @@ public:
 
 void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
     using namespace pybind11::literals;
-
-    py::enum_<arb::sampling_policy>(m, "sampling_policy")
-       .value("lax", arb::sampling_policy::lax)
-       .value("exact", arb::sampling_policy::exact);
 
     py::enum_<spike_recording>(m, "spike_recording")
        .value("off", spike_recording::off)
@@ -248,7 +244,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("sample", &simulation_shim::sample,
             "Record data from probes with given probeset_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
-            "probeset_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
+            "probeset_id"_a, "schedule"_a)
         .def("samples", &simulation_shim::samples,
             "Retrieve sample data as a list, one element per probe associated with the query.",
             "handle"_a)

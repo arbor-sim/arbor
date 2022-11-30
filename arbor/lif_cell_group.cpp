@@ -67,15 +67,13 @@ void lif_cell_group::clear_spikes() {
 void lif_cell_group::add_sampler(sampler_association_handle h,
                                  cell_member_predicate probeset_ids,
                                  schedule sched,
-                                 sampler_function fn,
-                                 sampling_policy policy) {
+                                 sampler_function fn) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     std::vector<cell_member_type> probeset =
         util::assign_from(util::filter(util::keys(probes_), probeset_ids));
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
-                                          std::move(probeset),
-                                          policy};
+                                          std::move(probeset)};
     auto result = samplers_.insert({h, std::move(assoc)});
     arb_assert(result.second);
 }
@@ -134,7 +132,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
             }
             if (delta == 0) continue;
             n_values += delta;
-            // only exact sampling: ignore lax and never look at policy
+            // only exact sampling
             for (auto t: times) samples.emplace_back(t, hdl);
         }
     }

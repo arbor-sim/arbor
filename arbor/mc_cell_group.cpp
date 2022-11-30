@@ -424,7 +424,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
-    std::vector<deliverable_event> exact_sampling_events;
+    //std::vector<deliverable_event> exact_sampling_events;
 
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
@@ -452,10 +452,10 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                             sample_event ev{t, {h, n_samples++}};
                             sample_events_.push_back(ev);
                         }
-                        if (sa.policy==sampling_policy::exact) {
-                            target_handle h(-1, 0);
-                            exact_sampling_events.push_back({t, h, 0.f});
-                        }
+                        //if (sa.policy==sampling_policy::exact) {
+                        //    target_handle h(-1, 0);
+                        //    exact_sampling_events.push_back({t, h, 0.f});
+                        //}
                     }
                 }
             }
@@ -516,7 +516,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 }
 
 void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                                schedule sched, sampler_function fn, sampling_policy policy)
+                                schedule sched, sampler_function fn)
 {
     std::lock_guard<std::mutex> guard(sampler_mex_);
 
@@ -524,7 +524,7 @@ void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predic
         util::assign_from(util::filter(util::keys(probe_map_.tag), probeset_ids));
 
     if (!probeset.empty()) {
-        auto result = sampler_map_.insert({h, sampler_association{std::move(sched), std::move(fn), std::move(probeset), policy}});
+        auto result = sampler_map_.insert({h, sampler_association{std::move(sched), std::move(fn), std::move(probeset)}});
         arb_assert(result.second);
     }
 }

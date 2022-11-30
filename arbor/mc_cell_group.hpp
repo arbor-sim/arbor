@@ -49,7 +49,7 @@ public:
     }
 
     void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                     schedule sched, sampler_function fn, sampling_policy policy) override;
+                     schedule sched, sampler_function fn) override;
 
     void remove_sampler(sampler_association_handle h) override;
 

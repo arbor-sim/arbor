@@ -38,7 +38,7 @@ public:
     // Sampler association methods below should be thread-safe, as they might be invoked
     // from a sampler call back called from a different cell group running on a different thread.
 
-    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) = 0;
+    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) = 0;
     virtual void remove_sampler(sampler_association_handle) = 0;
     virtual void remove_all_samplers() = 0;
 

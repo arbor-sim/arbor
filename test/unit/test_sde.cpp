@@ -747,13 +747,13 @@ TEST(sde, solver) {
 
         // add sampler
         sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
-            sampler_m1, sampling_policy::exact);
+            sampler_m1);
         sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
-            sampler_m2, sampling_policy::exact);
+            sampler_m2);
         sim.add_sampler([](cell_member_type pid) { return (pid.index==2); }, regular_schedule(dt),
-            sampler_m3, sampling_policy::exact);
+            sampler_m3);
         sim.add_sampler([](cell_member_type pid) { return (pid.index==3); }, regular_schedule(dt),
-            sampler_m4, sampling_policy::exact);
+            sampler_m4);
         
         // run the simulation
         sim.run(nsteps*dt, dt);
@@ -887,9 +887,9 @@ TEST(sde, coupled) {
 
         // add sampler
         sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
-            sampler_P, sampling_policy::exact);
+            sampler_P);
         sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
-            sampler_sigma, sampling_policy::exact);
+            sampler_sigma);
 
         // run the simulation
         sim.run(nsteps*dt, dt);
