@@ -43,10 +43,6 @@ inline arb_deliverable_event_data event_data(const deliverable_event& ev) {
     return {ev.handle.mech_index, ev.weight};
 }
 
-//inline std::size_t event_kind(const deliverable_event& ev) {
-//    return ev.handle.mech_index;
-//}
-
 using event_map = std::map<cell_local_size_type, std::vector<deliverable_event>>;
 
 // Sample events (raw values from back-end state).
@@ -71,8 +67,5 @@ inline cell_local_size_type event_index(const sample_event& ev) {
     return 0u;
 }
 
-//inline std::size_t event_kind(const sample_event& ev) {
-//    return 0u;
-//}
 
 } // namespace arb

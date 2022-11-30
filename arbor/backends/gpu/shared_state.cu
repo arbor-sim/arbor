@@ -31,11 +31,8 @@ __global__ void take_samples_impl(
     arb_value_type* __restrict__ const sample_value)
 {
     const unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
-    const auto begin = s.ev_data + s.begin_offset[0];
-    const auto end = s.ev_data + s.end_offset[0];
-    const unsigned nsamples = end - begin;
-    if (i<nsamples) {
-        auto p = begin+i;
+    if (i<s.m) {
+        auto p = s.ev_data + s.begin_offset[0] + i;
         sample_time[p->offset] = time;
         sample_value[p->offset] = p->handle? *p->handle: 0;
     }
