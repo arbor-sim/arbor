@@ -755,7 +755,7 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         EXPECT_TRUE(testing::seq_almost_eq<fp>(tanh_fp, r));
         fill_random(u, rng, 0., max_value);
         fp relu_fp[N];
-        for (unsigned i = 0; i<N; ++i) relu_fp[i] = std::max(0, u[i]);
+        for (unsigned i = 0; i<N; ++i) relu_fp[i] = u[i] > 0 ? u[i] : 0;
         relu(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(relu_fp, r));
 

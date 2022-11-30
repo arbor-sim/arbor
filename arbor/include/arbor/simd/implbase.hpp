@@ -575,13 +575,8 @@ struct implbase {
     }
 
     static vector_type relu(const vector_type& s) {
-        store a, r;
-        I::copy_to(s, a);
-
-        for (unsigned i = 0; i<width; ++i) {
-            r[i] = std::max(0, a[i]);
-        }
-        return I::copy_from(r);
+        vector_type zeros = I::broadcast(0);
+        return I::ifelse(I::cmp_gt(s, zeros), s, zeros);
     }
 
     static vector_type sigmoid(const vector_type& s) {
