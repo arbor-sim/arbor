@@ -1,7 +1,6 @@
 #include <vector>
 #include <gtest/gtest.h>
 
-#include "arbor/common_types.hpp"
 #include "backends/event.hpp"
 #include "backends/multicore/multi_event_stream.hpp"
 #include "util/rangeutil.hpp"
@@ -10,9 +9,7 @@ using namespace arb;
 
 namespace {
     auto evtime = [](deliverable_event e) { return event_time(e); };
-}
 
-namespace {
     constexpr cell_local_size_type mech = 13u;
 
     target_handle handle[4] = {
