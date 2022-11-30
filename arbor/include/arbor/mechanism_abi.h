@@ -71,10 +71,10 @@ typedef struct arb_deliverable_event_data {
 
 // A range of events to be consumed
 typedef struct arb_deliverable_event_stream {
-    const arb_deliverable_event_data* data;      // pointer to marked events
-    const arb_size_type* begin_marked;           // begin index of marked events.
-    const arb_size_type* end_marked;             // end index of marked events.
-    arb_size_type kinds;                         // number of different event kinds
+    arb_size_type                     n_streams; // Number of streams.
+    const arb_deliverable_event_data* events;    // Array of event data items.
+    const arb_size_type*              begin;     // Array of offsets to beginning of marked events.
+    const arb_size_type*              end;       // Array of offsets to end of marked events.
 }  arb_deliverable_event_stream;
 
 // Constraints for use in SIMD implementations, see there.

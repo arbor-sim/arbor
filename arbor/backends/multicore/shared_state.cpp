@@ -24,7 +24,7 @@
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
-#include "event_stream.hpp"
+#include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
 
@@ -318,10 +318,10 @@ void shared_state::take_samples(
     array& sample_time,
     array& sample_value)
 {
-    if (s.size()) {
-        arb_assert(s.kinds == 1);
-        auto begin = s.data + s.begin_marked[0];
-        auto end = s.data + s.end_marked[0];
+    if (s.n_marked()) {
+        arb_assert(s.n_streams() == 1);
+        auto begin = s.begin_marked(0);
+        auto end = s.end_marked(0);
 
         // Null handles are explicitly permitted, and always give a sample of zero.
         // (Note: probably not worth explicitly vectorizing this.)
@@ -415,9 +415,13 @@ void shared_state::register_events(
 void shared_state::deliver_events(mechanism& m) {
     if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
         auto& deliverable_events = it->second.deliverable_events_;
-        if (auto es_state = deliverable_events.marked_events(); es_state.size()) {
+        if (auto es_state = deliverable_events.marked_events(); es_state.n_marked()) {
             arb_deliverable_event_stream ess{
-                es_state.data, es_state.begin_marked, es_state.end_marked, es_state.kinds};
+                es_state.n_streams(),
+                es_state.ev_data,
+                es_state.begin_offset,
+                es_state.end_offset};
+                //es_state.data, es_state.begin_marked, es_state.end_marked, es_state.kinds};
             m.deliver_events(ess);
         }
         deliverable_events.drop_marked_events();

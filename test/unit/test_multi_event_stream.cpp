@@ -3,7 +3,7 @@
 
 #include "arbor/common_types.hpp"
 #include "backends/event.hpp"
-#include "backends/multicore/event_stream.hpp"
+#include "backends/multicore/multi_event_stream.hpp"
 #include "util/rangeutil.hpp"
 
 using namespace arb;
@@ -37,10 +37,10 @@ namespace {
     }
 }
 
-TEST(event_stream, init) {
-    using event_stream = multicore::event_stream<deliverable_event>;
+TEST(multi_event_stream, init) {
+    using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
 
-    event_stream m;
+    multi_event_stream m;
 
     ASSERT_TRUE(std::is_sorted(common_events.begin(), common_events.end(),
         [](const auto& a, const auto& b) {
@@ -55,10 +55,10 @@ TEST(event_stream, init) {
     EXPECT_TRUE(m.empty());
 }
 
-TEST(event_stream, mark) {
-    using event_stream = multicore::event_stream<deliverable_event>;
+TEST(multi_event_stream, mark) {
+    using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
 
-    event_stream m;
+    multi_event_stream m;
 
     const auto& events = common_events;
     m.init(events);
@@ -66,91 +66,91 @@ TEST(event_stream, mark) {
     // stream is not empty
     EXPECT_FALSE(m.empty());
     // 4 different mech indices
-    EXPECT_EQ(m.kind_count(), 4u);
+    EXPECT_EQ(m.n_streams(), 4u);
     // 5 events in total
-    EXPECT_EQ(m.remaining_count(), 5u);
+    EXPECT_EQ(m.n_remaining(), 5u);
     // 0 marked events so far
-    EXPECT_EQ(m.marked_count(), 0u);
+    EXPECT_EQ(m.n_marked(), 0u);
 
     // Expect no marked events initially
     {
         auto marked = m.marked_events();
-        EXPECT_EQ(marked.kinds, 4u);
-        EXPECT_EQ(marked.marked, 0u);
-        for (arb_size_type i=0; i<marked.kinds; ++i) {
-            EXPECT_EQ(marked.begin_marked[i], marked.end_marked[i]);
+        EXPECT_EQ(marked.n_streams(), 4u);
+        EXPECT_EQ(marked.n_marked(), 0u);
+        for (arb_size_type i=0; i<marked.n_streams(); ++i) {
+            EXPECT_EQ(marked.begin_marked(i), marked.end_marked(i));
         }
     }
 
     m.mark_until_after(2.5);
     EXPECT_FALSE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 5u);
-    EXPECT_EQ(m.marked_count(), 1u);
-    EXPECT_EQ(m.marked_events().marked, 1u);
+    EXPECT_EQ(m.n_remaining(), 5u);
+    EXPECT_EQ(m.n_marked(), 1u);
+    EXPECT_EQ(m.marked_events().n_marked(), 1u);
     {
         auto marked = m.marked_events();
-        const auto B = marked.data;
-        EXPECT_EQ(marked.marked, 1u);
-        EXPECT_EQ(marked.end_marked[1] - marked.begin_marked[1], 1u);
-        EXPECT_EQ(marked.data + marked.begin_marked[1], B + 1);
+        const auto B = marked.ev_data;
+        EXPECT_EQ(marked.n_marked(), 1u);
+        EXPECT_EQ(marked.end_marked(1) - marked.begin_marked(1), 1u);
+        EXPECT_EQ(marked.begin_marked(1), B + 1);
         EXPECT_TRUE(event_matches(*(B + 1), 1));
     }
 
     m.drop_marked_events();
     EXPECT_FALSE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 4u);
-    EXPECT_EQ(m.marked_count(), 0u);
-    EXPECT_EQ(m.marked_events().marked, 0u);
+    EXPECT_EQ(m.n_remaining(), 4u);
+    EXPECT_EQ(m.n_marked(), 0u);
+    EXPECT_EQ(m.marked_events().n_marked(), 0u);
 
     m.mark_until_after(2.75);
     EXPECT_FALSE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 4u);
-    EXPECT_EQ(m.marked_count(), 0u);
-    EXPECT_EQ(m.marked_events().marked, 0u);
+    EXPECT_EQ(m.n_remaining(), 4u);
+    EXPECT_EQ(m.n_marked(), 0u);
+    EXPECT_EQ(m.marked_events().n_marked(), 0u);
 
     m.mark_until_after(4.0);
     EXPECT_FALSE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 4u);
-    EXPECT_EQ(m.marked_count(), 2u);
-    EXPECT_EQ(m.marked_events().marked, 2u);
+    EXPECT_EQ(m.n_remaining(), 4u);
+    EXPECT_EQ(m.n_marked(), 2u);
+    EXPECT_EQ(m.marked_events().n_marked(), 2u);
     {
         auto marked = m.marked_events();
-        const auto B = marked.data;
-        EXPECT_EQ(marked.marked, 2u);
-        EXPECT_EQ(marked.end_marked[0] - marked.begin_marked[0], 1u);
-        EXPECT_EQ(marked.data + marked.begin_marked[0], B + 0);
+        const auto B = marked.ev_data;
+        EXPECT_EQ(marked.n_marked(), 2u);
+        EXPECT_EQ(marked.end_marked(0) - marked.begin_marked(0), 1u);
+        EXPECT_EQ(marked.begin_marked(0), B + 0);
         EXPECT_TRUE(event_matches(*(B + 0), 0));
-        EXPECT_EQ(marked.end_marked[2] - marked.begin_marked[2], 1u);
-        EXPECT_EQ(marked.data + marked.begin_marked[2], B + 3);
+        EXPECT_EQ(marked.end_marked(2) - marked.begin_marked(2), 1u);
+        EXPECT_EQ(marked.begin_marked(2), B + 3);
         EXPECT_TRUE(event_matches(*(B + 3), 3));
     }
 
     m.drop_marked_events();
     EXPECT_FALSE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 2u);
-    EXPECT_EQ(m.marked_count(), 0u);
-    EXPECT_EQ(m.marked_events().marked, 0u);
+    EXPECT_EQ(m.n_remaining(), 2u);
+    EXPECT_EQ(m.n_marked(), 0u);
+    EXPECT_EQ(m.marked_events().n_marked(), 0u);
 
     m.mark_until_after(5.0);
     EXPECT_FALSE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 2u);
-    EXPECT_EQ(m.marked_count(), 2u);
-    EXPECT_EQ(m.marked_events().marked, 2u);
+    EXPECT_EQ(m.n_remaining(), 2u);
+    EXPECT_EQ(m.n_marked(), 2u);
+    EXPECT_EQ(m.marked_events().n_marked(), 2u);
     {
         auto marked = m.marked_events();
-        const auto B = marked.data;
-        EXPECT_EQ(marked.marked, 2u);
-        EXPECT_EQ(marked.end_marked[1] - marked.begin_marked[1], 1u);
-        EXPECT_EQ(marked.data + marked.begin_marked[1], B + 2);
+        const auto B = marked.ev_data;
+        EXPECT_EQ(marked.n_marked(), 2u);
+        EXPECT_EQ(marked.end_marked(1) - marked.begin_marked(1), 1u);
+        EXPECT_EQ(marked.begin_marked(1), B + 2);
         EXPECT_TRUE(event_matches(*(B + 2), 2));
-        EXPECT_EQ(marked.end_marked[3] - marked.begin_marked[3], 1u);
-        EXPECT_EQ(marked.data + marked.begin_marked[3], B + 4);
+        EXPECT_EQ(marked.end_marked(3) - marked.begin_marked(3), 1u);
+        EXPECT_EQ(marked.begin_marked(3), B + 4);
         EXPECT_TRUE(event_matches(*(B + 4), 4));
     }
 
     m.drop_marked_events();
     EXPECT_TRUE(m.empty());
-    EXPECT_EQ(m.remaining_count(), 0u);
-    EXPECT_EQ(m.marked_count(), 0u);
-    EXPECT_EQ(m.marked_events().marked, 0u);
+    EXPECT_EQ(m.n_remaining(), 0u);
+    EXPECT_EQ(m.n_marked(), 0u);
+    EXPECT_EQ(m.marked_events().n_marked(), 0u);
 }

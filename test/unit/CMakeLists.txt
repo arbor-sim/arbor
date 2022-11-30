@@ -106,7 +106,7 @@ set(unit_sources
     test_morph_place.cpp
     test_morph_primitives.cpp
     test_morph_stitch.cpp
-    test_event_stream.cpp
+    test_multi_event_stream.cpp
     test_ordered_forest.cpp
     test_padded.cpp
     test_partition.cpp

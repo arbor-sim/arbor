@@ -18,7 +18,7 @@
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
-#include "event_stream.hpp"
+#include "multi_event_stream.hpp"
 #include "threshold_watcher.hpp"
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"

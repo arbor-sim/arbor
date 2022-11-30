@@ -323,10 +323,10 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    const auto kinds = stream_ptr->kinds;\n"
-                                       "    for (arb_size_type _k_=0; _k_<kinds; ++_k_) {{\n"
-                                       "        auto begin = stream_ptr->data + stream_ptr->begin_marked[_k_];\n"
-                                       "        auto end = stream_ptr->data + stream_ptr->end_marked[_k_];\n"
+                                       "    const auto n = stream_ptr->n_streams;\n"
+                                       "    for (arb_size_type _k_=0; _k_<n; ++_k_) {{\n"
+                                       "        auto begin = stream_ptr->events + stream_ptr->begin[_k_];\n"
+                                       "        auto end = stream_ptr->events + stream_ptr->end[_k_];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            auto i_     = p->mech_index;\n"
                                        "            auto {1} = p->weight;\n"),

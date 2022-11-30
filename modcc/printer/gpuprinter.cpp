@@ -229,10 +229,10 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "void apply_events(arb_mechanism_ppack params_, arb_deliverable_event_stream stream) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    const auto n = stream.kinds;\n"
+                                       "    const auto n = stream.n_streams;\n"
                                        "    if (tid_<n) {{\n"
-                                       "        auto begin = stream.data + stream.begin_marked[tid_];\n"
-                                       "        auto end   = stream.data + stream.end_marked[tid_];\n"
+                                       "        auto begin = stream.events + stream.begin[tid_];\n"
+                                       "        auto end   = stream.events + stream.end[tid_];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            auto tid_ = p->mech_index;\n"
                                        "            auto {0} = p->weight;\n"),
@@ -321,7 +321,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         if(!net_receive_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "    unsigned block_dim = 128;\n"
-                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(stream_ptr->kinds, block_dim);\n"
+                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(stream_ptr->n_streams, block_dim);\n"
                                            "    {}<<<grid_dim, block_dim>>>(*p, *stream_ptr);\n"),
                                api_name);
         }
