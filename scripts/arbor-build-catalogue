@@ -221,7 +221,7 @@ set(arbor_DIR {pakdir})
 find_package(arbor REQUIRED)
 {gpu_support}
 set(CMAKE_BUILD_TYPE release)
-set(CMAKE_CXX_COMPILER  ${{ARB_CXX}})
+set(CMAKE_CXX_COMPILER  ${{{args["cxx"]}}}})
 set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 
 include(BuildModules.cmake)
