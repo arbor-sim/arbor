@@ -457,7 +457,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     }
 
     // Sample events must be ordered by time for the lowered cell.
-    util::sort_by(sample_events_, [](const sample_event& ev) { return event_time(ev); });
+    util::stable_sort_by(sample_events_, [](const sample_event& ev) { return event_time(ev); });
     PL();
 
     // Run integration and collect samples, spikes.
