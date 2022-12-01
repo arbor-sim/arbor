@@ -13,33 +13,47 @@ import sysconfig
 
 
 config = A.config()
-prefix = Path(config['prefix'])
+prefix = Path(config["prefix"])
 CXX = Path(config["CXX"])
 if not prefix.exists():
     try:
         # Example <>/lib/python3.10/site-packages/arbor
         altern = Path(sysconfig.get_paths()["platlib"]).parent.parent.parent
-        print(f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.", file=sys.stderr)
+        print(
+            f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.",
+            file=sys.stderr,
+        )
         prefix = altern
     except:
-        print(f"Error: Neither prefix '{prefix}' nor fallback '{altern}' exist; giving up.", file=sys.stderr)
+        print(
+            f"Error: Neither prefix '{prefix}' nor fallback '{altern}' exist. Please specify the prefix where you keep your Python libraries with --prefix.",
+            file=sys.stderr,
+        )
         exit(-1)
 if not CXX.exists():
     try:
         # Example <>/lib/python3.10/site-packages/arbor
         altern = "c++"
-        print(f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.", file=sys.stderr)
+        print(
+            f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.",
+            file=sys.stderr,
+        )
         CXX = altern
     except:
-        print(f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist; giving up.", file=sys.stderr)
+        print(
+            f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --CXX",
+            file=sys.stderr,
+        )
         exit(-1)
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Generate dynamic catalogue and build it into a shared object.",
         usage="%(prog)s catalogue_name mod_source_dir",
         add_help=False,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     parser.add_argument("name", metavar="name", type=str, help="Catalogue name.")
 
@@ -65,9 +79,7 @@ enabled) must be present in the target directory.""",
 
     parser.add_argument("-q", "--quiet", action="store_true", help="Less output.")
 
-    parser.add_argument("--cpu",
-                        default=True,
-                        help="Enable CPU support.")
+    parser.add_argument("--cpu", default=True, help="Enable CPU support.")
 
     parser.add_argument(
         "--debug",
@@ -76,7 +88,7 @@ enabled) must be present in the target directory.""",
         const=True,
         default=None,
         help="Don't clean up the generated temp cpp code."
-            +" Can be a target path for the generated code.",
+        + " Can be a target path for the generated code.",
     )
 
     parser.add_argument(
@@ -91,7 +103,7 @@ enabled) must be present in the target directory.""",
         "--cxx",
         metavar="cxx",
         default=CXX,
-        help='Use this C++ compiler.',
+        help="Use this C++ compiler.",
     )
 
     parser.add_argument(
@@ -138,11 +150,11 @@ mods = [f[:-4] for f in os.listdir(mod_dir) if f.endswith(".mod")]
 quiet = args["quiet"]
 verbose = args["verbose"] and not quiet
 if verbose:
-    print("="*80)
+    print("=" * 80)
     print(f"{os.path.basename(__file__)} called with the following arguments:")
-    for k,v in args.items():
-        print(k,v)
-    print("="*80)
+    for k, v in args.items():
+        print(k, v)
+    print("=" * 80)
 debug = args["debug"]
 raw = args["raw"]
 gpu = args["gpu"]
