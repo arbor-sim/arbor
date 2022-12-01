@@ -288,6 +288,8 @@ public:
 
 // overriden advance method dispatches to custom implementation and then to original method
 void advance_process(arb_mechanism_ppack* pp) {
+    //std::cout << "mech id = " << pp->mechanism_id << std::endl;
+    EXPECT_EQ(0u, pp->mechanism_id);
     const auto width = pp->width;
     arb_value_type* ptr = archive_ptr->claim(width);
     for (arb_size_type i=0; i<width; ++i) {
@@ -415,7 +417,7 @@ TEST(sde, reproducibility) {
     // Decorations with a bunch of stochastic processes
     // Duplicate mechanisms added on purpose in order test generation of unique random values
     decor dec;
-    dec.paint("(all)"_reg , density("hh"));
+    //dec.paint("(all)"_reg , density("hh"));
     dec.paint("(all)"_reg , density("mean_reverting_stochastic_density_process"));
 
     // instantiate recipe
