@@ -42,7 +42,7 @@ if not CXX.exists():
         CXX = altern
     except:
         print(
-            f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --CXX",
+            f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --cxx",
             file=sys.stderr,
         )
         exit(-1)
