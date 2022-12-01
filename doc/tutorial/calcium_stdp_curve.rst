@@ -5,7 +5,7 @@ Spike Timing-dependent Plasticity Curve
 
 This tutorial uses a single cell and reproduces `this Brian2 example
 <https://brian2.readthedocs.io/en/latest/examples/frompapers.Graupner_Brunel_2012.html>`_.  We aim
-to reproduce a spike timing-dependent plastivity curve which arises form stochastic calcium-based
+to reproduce a spike timing-dependent plastivity curve which arises from stochastic calcium-based
 synapse dynamics described in Graupner and Brunel [1]_.
 
 The synapse is modeled as synaptic efficacy variable, :math:`\rho`, which is a function of the
@@ -30,10 +30,10 @@ action potentials:
         + H\left( c - \theta_d \right)} W.
    \end{align*}
 
-Here, the sums over :math:`i` and :math:`j` represent the contributions from all pre- and
+Here, the sums over :math:`i` and :math:`j` represent the contributions from all pre and
 postsynaptic spikes, respectively, with :math:`C_{pre}` and :math:`C_{pre}` denoting the jumps in
 concentration after a spike. The jump after the presynaptic spike is delayed by :math:`D`.  The
-Calcium decay time is assumed to be much faster than the synaptic time scale,
+calcium decay time is assumed to be much faster than the synaptic time scale,
 :math:`\tau_{Ca} \ll \tau`. The subscripts :math:`p` and :math:`d` represent potentiation (increase
 in synaptic efficacy) and depression (decrease in synaptic efficacy), respectively, with
 :math:`\gamma` and :math:`\theta` being the corresponding rates and thresholds. :math:`H(x)` is the
@@ -50,8 +50,9 @@ Implementation of a Stochastic Mechanism
 ----------------------------------------
 
 Implementing a stochastic mechanism which is given by a stochastic differential equation (SDE) as
-above is straightforward to implement in Arbor's NMODL dialect. Let's examine the mechanism code 
-in the `Arbor repository <https://github.com/arbor-sim/arbor/mechanisms/stochastic/calcium_based_synapse.mod>`_.
+above is straightforward to implement in :ref:`Arbor's NMODL dialect <format-sde>`. Let's examine
+the mechanism code in the `Arbor repository
+<https://github.com/arbor-sim/arbor/mechanisms/stochastic/calcium_based_synapse.mod>`_.
 
 The main difference compared to a deterministic (ODE) description is the additional `WHITE_NOISE`
 block,
@@ -62,7 +63,7 @@ block,
        W
    }
 
-which declares the white noise process :math:`W`, and the specification pf the `stochastic` solver
+which declares the white noise process :math:`W`, and the specification of the `stochastic` solver
 method,
 
 .. code:: none
@@ -71,7 +72,9 @@ method,
        SOLVE state METHOD stochastic
    }
 
-This is sufficient to inform Arbor about the stochasticity of the mechanism.
+This is sufficient to inform Arbor about the stochasticity of the mechanism. For more information
+about Arbor's strategy to solve SDEs, please consult :ref:`this overview <mechanisms-sde>`, while
+details about the numerical solver can be found in the :ref:`developers guide <sde>`.
 
 
 The Model
@@ -96,9 +99,12 @@ Next we set the simulation parameters in order to reproduce the plasticity curve
 The time lag resolution, together with the maximum time lag, determine the number of cases we want
 to simulate. For each such case, however, we need to run many simulations in order to get a
 statistically meaningful result. The number of simulations per case is given by the ensemble size
-and the initial conditions. In our case, we have to inital states, :math:`\rho(0)=0` and
-:math:`\rho(0)=1`, and for each initial state we want to run :math:`100` simulations. This can
-easiest be achieved by placing :math:`100` synapses per initial state onto the cell.
+and the initial conditions. In our case, we have two inital states, :math:`\rho(0)=0` and
+:math:`\rho(0)=1`, and for each initial state we want to run :math:`100` simulations. We note, that
+the stochastic synapse mechanism does not alter the state of the cell, but couples one-way only by
+reacting to spikes. Therefore, we are allowed to simply place math:`100` synapses per initial state
+onto the cell without worrying about interference. Moreover, this has the benefit of exposing
+parallelism that Arbor can take advantage of.
 
 Thus, we create a simple cell with a midpoint at which we place our mechanisms:
 
@@ -135,7 +141,8 @@ The pre- and postsynaptic events are generated at explicit schedules, where the 
 is shifted in time by :math:`D -\text{time lag}` with respect to the presynaptic event, which in
 turn is generated regularly with the frequency :math:`f`. The postsynaptic events are driven by the
 deterministic synapse with weight `1.0`, while the presynaptic events are generated at the
-stochastic calcium synapses.
+stochastic calcium synapses. The postsynaptic weight can be set arbitrarily as long as it is large
+enough to trigger the spikes.
 
 Thus, we have all ingredients to create the recipe
 
@@ -152,7 +159,7 @@ Now, we need to initialize the simulation, register a probe and run the simulati
 Since we are interested in the long-term average value, we only query the probe at the end of the
 simulation.
 
-After the simulation is finished, we caclculate the change in synaptic strength by evaluating the
+After the simulation is finished, we calculate the change in synaptic strength by evaluating the
 transition probabilies from initial DOWN state to final UP state and vice versa.
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
