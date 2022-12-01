@@ -102,7 +102,7 @@ statistically meaningful result. The number of simulations per case is given by 
 and the initial conditions. In our case, we have two inital states, :math:`\rho(0)=0` and
 :math:`\rho(0)=1`, and for each initial state we want to run :math:`100` simulations. We note, that
 the stochastic synapse mechanism does not alter the state of the cell, but couples one-way only by
-reacting to spikes. Therefore, we are allowed to simply place math:`100` synapses per initial state
+reacting to spikes. Therefore, we are allowed to simply place :math:`100` synapses per initial state
 onto the cell without worrying about interference. Moreover, this has the benefit of exposing
 parallelism that Arbor can take advantage of.
 
