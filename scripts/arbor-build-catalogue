@@ -9,7 +9,6 @@ from pathlib import Path
 import shutil
 import argparse
 import re
-import sysconfig
 
 
 config = A.config()
@@ -19,7 +18,6 @@ if not prefix.exists():
     try:
         # Example <>/lib/python3.10/site-packages/arbor
         altern = Path(A.__path__[0]).parent.parent.parent.parent
-        # altern = Path(sysconfig.get_paths()["platlib"]).parent.parent.parent
         print(
             f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.",
             file=sys.stderr,
