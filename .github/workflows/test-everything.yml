@@ -198,7 +198,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04, ubuntu-22.04]
         python-version: [3.7, 3.11]
     steps:
       - uses: actions/setup-python@v4
