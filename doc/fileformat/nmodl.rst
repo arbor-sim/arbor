@@ -174,7 +174,7 @@ Arbor-specific features
   signum(x)           sign of argument                       :math:`\begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
   exprelr(x)          guarded exponential                    :math:`x e^{1-x}`
   sigmoid(x)          sigmoidal function                     :math:`1/(1+e^{-x})`
-  relu(x)             rectified linear function              :math:`max(0, 1)
+  relu(x)             rectified linear function              :math:`max(0, x)`
   tanh(x)             hyperbolic tangent                     :math:`tanh(x)`
   ==================  =====================================  =========
 
