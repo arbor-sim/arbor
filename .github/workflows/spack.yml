@@ -26,6 +26,7 @@ jobs:
         with:
           path: ~/.spack-cache
           key: arbor-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: arbor-cache-${{ matrix.os }}-
 
       - name: Build Arbor's Spack package against the develop branch
         run: arbor/scripts/build_spack_package.sh arbor develop
