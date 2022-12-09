@@ -539,20 +539,53 @@ public:
         e->rhs()->accept(this);
         expression_ptr rhs = result();
 
+        double
+            lval = expr_value(lhs),
+            rval = expr_value(rhs);
+
+        double rint = NAN;
+        double rfrac = std::modf(rval, &rint);
+
         if (is_number(lhs) && is_number(rhs)) {
-            as_number(loc, std::pow(expr_value(lhs),expr_value(rhs)));
+            as_number(loc, std::pow(lval, rval));
         }
-        else if (expr_value(lhs)==0) {
+        else if (lval == 0) {
             as_number(loc, 0);
         }
-        else if (expr_value(rhs)==0 || expr_value(lhs)==1) {
+        else if (rval == 0 || lval == 1) {
             as_number(loc, 1);
         }
-        else if (expr_value(rhs)==1) {
+        else if (rval == 1) {
             result_ = std::move(lhs);
         }
+        else if (rval == -1) {
+            result_ = make_expression<DivBinaryExpression>(loc,
+                                                           make_expression<NumberExpression>(loc, 1.0),
+                                                           std::move(lhs));
+        }
+        else if (rfrac == 0.0 && rint <= 5.0) { // NOTE somewhat arbitray cut-off; but in line with GCC AFAIR
+            result_ = make_expression<MulBinaryExpression>(loc,
+                                                           lhs->clone(),
+                                                           lhs->clone());
+            // NOTE rint is at least 2 here, since we eliminated -1, 0, and 1 above.                                                                                             //
+            for (int ix = 2; ix < std::abs(rint); ++ix) {
+                result_ = make_expression<MulBinaryExpression>(loc,
+                                                               lhs->clone(),
+                                                               std::move(result_));
+            }
+            if (rval < 0.0) {
+                result_ = make_expression<DivBinaryExpression>(loc,
+                                                               make_expression<NumberExpression>(loc, 1.0),
+                                                               std::move(result_));
+            }
+        }
         else {
-            result_ = make_expression<PowBinaryExpression>(loc, std::move(lhs), std::move(rhs));
+            // result_ = make_expression<PowBinaryExpression>(loc, std::move(lhs), std::move(rhs));
+            result_ = make_expression<ExpUnaryExpression>(loc,
+                                                          make_expression<MulBinaryExpression>(loc,
+                                                                                               make_expression<LogUnaryExpression>(loc,
+                                                                                                                                   std::move(lhs)),
+                                                                                               std::move(rhs)));
         }
     }
 
