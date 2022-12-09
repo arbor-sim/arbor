@@ -567,7 +567,7 @@ public:
             result_ = make_expression<MulBinaryExpression>(loc,
                                                            lhs->clone(),
                                                            lhs->clone());
-            // NOTE rint is at least 2 here, since we eliminated -1, 0, and 1 above.                                                                                             //
+            // NOTE rint is at least 2 here, since we eliminated -1, 0, and 1 above.
             for (int ix = 2; ix < std::abs(rint); ++ix) {
                 result_ = make_expression<MulBinaryExpression>(loc,
                                                                lhs->clone(),
@@ -580,7 +580,6 @@ public:
             }
         }
         else {
-            // result_ = make_expression<PowBinaryExpression>(loc, std::move(lhs), std::move(rhs));
             result_ = make_expression<ExpUnaryExpression>(loc,
                                                           make_expression<MulBinaryExpression>(loc,
                                                                                                make_expression<LogUnaryExpression>(loc,
