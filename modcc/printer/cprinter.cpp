@@ -174,6 +174,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         "using ::std::pow;\n"
         "using ::std::sin;\n"
         "using ::std::sqrt;\n"
+        "using ::std::tanh;\n"
         "\n";
 
     if (with_simd) {
