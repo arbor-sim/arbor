@@ -266,14 +266,12 @@ public:
     }
 
     void visit(TanHUnaryExpression* e) override {
-        // 1 - tanh(f(x))^2 * df(x)/dx
+        // (1 - tanh(f(x))^2) * df(x)/dx
         auto loc = e->location();
         e->expression()->accept(this);
         result_ = make_expression<MulBinaryExpression>(loc,
                         make_expression<SubBinaryExpression>(loc,
-                            make_expression<NumberExpression>(loc, 1.0), // 1.0
-                            // - 
-                            // tanh(x)^2
+                            make_expression<NumberExpression>(loc, 1.0),
                             make_expression<PowBinaryExpression>(loc,
                                 make_expression<TanHUnaryExpression>(loc, e->expression()->clone()),
                                 make_expression<NumberExpression>(loc, 2.0))
@@ -464,6 +462,15 @@ public:
                 return;
             case tok::signum:
                 as_number(loc, (0. < val) - (val < 0.));
+                return;
+            case tok::tanh:
+                as_number(loc, std::tanh(val));
+                return;
+            case tok::relu:
+                as_number(loc, std::max(0.0, val));
+                return;
+            case tok::sigmoid:
+                as_number(loc, 1.0 / (1.0 + std::exp(-val)));
                 return;
             default: ; // treat opaquely as below
             }

@@ -580,13 +580,8 @@ struct implbase {
     }
 
     static vector_type sigmoid(const vector_type& s) {
-        store a, r;
-        I::copy_to(s, a);
-
-        for (unsigned i = 0; i<width; ++i) {
-            r[i] = 1.0 / (1.0 + std::exp(-a[i]));
-        }
-        return I::copy_from(r);
+        vector_type ones = I::broadcast(1);
+        return div(ones, add(ones, exp(neg(s))));
     }
 
     static vector_type tanh(const vector_type& s) {

@@ -173,7 +173,7 @@ Arbor-specific features
   step(x)             heaviside step with half value         :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{if} ~x \lt 0, \\ 0.5 & ~~ \text{otherwise}. \end{align*}`
   signum(x)           sign of argument                       :math:`\begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
   exprelr(x)          guarded exponential                    :math:`x e^{1-x}`
-  sigmoid(x)          sigmoidal function                     :math:`1/(1+e^{-x})`
+  sigmoid(x)          sigmoidal function                     :math:`\frac{1}{1+e^{-x}}`
   relu(x)             rectified linear function              :math:`max(0, x)`
   tanh(x)             hyperbolic tangent                     :math:`tanh(x)`
   ==================  =====================================  =========

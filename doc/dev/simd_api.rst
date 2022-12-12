@@ -600,11 +600,11 @@ In the following:
 
     * - ``relu(s)``
       - *S*
-      - Lane-wise :math:`x \mapsto relu(x)`
+      - Lane-wise :math:`x \mapsto max(0, x)`
 
     * - ``sigmoid(s)``
       - *S*
-      - Lane-wise :math:`x \mapsto sigmoid(x)`
+      - Lane-wise :math:`x \mapsto \frac{1}{1+e^{-x}}`
 
     * - ``simd_cast<std::array<L, N>>(a)``
       - ``std::array<L, N>``

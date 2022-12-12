@@ -116,7 +116,7 @@ void CExprEmitter::visit(UnaryExpression* e) {
         out_ << "max(0.0, ("; inner->accept(this); out_ << "))";
     }
     else if (e->op()==tok::sigmoid) {
-        out_ << "1.0/(1.0 - exp(-("; inner->accept(this); out_ << ")))";
+        out_ << "1.0/(1.0 + exp(-("; inner->accept(this); out_ << ")))";
     }
     else if (e->op()==tok::tanh) {
         out_ << "tanh("; inner->accept(this); out_ << ")";
