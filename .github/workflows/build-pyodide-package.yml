@@ -64,6 +64,7 @@ jobs:
         ABS_ARBOR_PYLIB_OUTPUT=$(pwd)/$ARBOR_PYLIB_OUTPUT
         mkdir -p arbor_src/build_python_lib_em
         cd arbor_src/build_python_lib_em
+        source emsdk-main/emsdk_env.sh
         time em++ \
             ../python/*.cpp \
             -I ../ext/pybind11/include/ \
