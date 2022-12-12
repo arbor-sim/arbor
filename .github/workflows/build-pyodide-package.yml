@@ -1,0 +1,103 @@
+name: Build pyodide arbor
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PYODIDE_VERSION: 0.22.0a3
+      PYODIDE_RELEASE_URL: "https://github.com/pyodide/pyodide/releases/download"
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        path: arbor_src
+    - name: get-xbuildenv
+      run: |
+        XBUILDENV_BASENAME=xbuildenv-${PYODIDE_VERSION}.tar.bz2
+        wget -nc "${PYODIDE_RELEASE_URL}/${PYODIDE_VERSION}/${XBUILDENV_BASENAME}"
+        tar -xvf ${XBUILDENV_BASENAME}
+        rm ${XBUILDENV_BASENAME}
+    - name: read-makefile
+      run: |
+        make -f xbuildenv/pyodide-root/Makefile.envs .output_vars | grep 'PY' | tee -a $GITHUB_ENV
+    - name: get-emsdk
+      run: |
+        wget https://github.com/emscripten-core/emsdk/archive/refs/heads/main.zip
+        unzip main.zip
+        rm main.zip
+    - name: setup-emsdk
+      run: |
+        ./emsdk-main/emsdk install ${{env.PYODIDE_EMSCRIPTEN_VERSION}}
+        ./emsdk-main/emsdk activate ${{env.PYODIDE_EMSCRIPTEN_VERSION}}
+    - name: build-modcc-host
+      run: |
+        mkdir -p arbor_src/build_modcc_host
+        cd arbor_src/build_modcc_host
+        cmake .. -DARB_USE_BUNDLED_LIBS=ON
+        make modcc -j 8
+    - name: build-libarbor-emscripten
+      run: |
+        ABS_TOOLCHAIN=$(realpath emsdk-main/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake)
+        ABS_MODCC=$(realpath arbor_src/build_modcc_host/bin/modcc)
+        sed -i.bak -E \
+            '/only been tested|nonexistent_file|unbalanced brace/d' \
+            arbor_src/ext/random123/include/Random123/features/gccfeatures.h
+        mkdir -p arbor_src/build_arborlib_em
+        cd arbor_src/build_arborlib_em
+        cmake .. \
+            --toolchain "${ABS_TOOLCHAIN}" \
+            -DCMAKE_INSTALL_PREFIX=$(realpath prefix) \
+            -DARB_USE_BUNDLED_LIBS=ON \
+            -DARB_MODCC="${ABS_MODCC}" \
+            -DARB_ARCH=generic
+        make -j 8
+        make install
+    - name: build-arbor-python-so-emscripten
+      run: |
+        ABS_XBUILDENV_INCLUDE=$(realpath xbuildenv/pyodide-root${{ env.CPYTHONINSTALL }}/include/python${{ env.PYMAJOR }}.${{ env.PYMINOR }})
+        ABS_EM_ARBOR=$(realpath arbor_src/build_arborlib_em/prefix)
+        PY_VERSION_FLAT=${{ env.PYMAJOR }}${{ env.PYMINOR }}
+        ARBOR_PYLIB_OUTPUT=arbor/_arbor.cpython-${PY_VERSION_FLAT}-wasm32-emscripten.so
+        ABS_ARBOR_PYLIB_OUTPUT=$(realpath "${ARBOR_PYLIB_OUTPUT}")
+            mkdir -p arbor_src/build_python_lib_em
+        cd arbor_src/build_python_lib_em
+        time em++ \
+            ../python/*.cpp \
+            -I ../ext/pybind11/include/ \
+            -I "${ABS_XBUILDENV_INCLUDE}" \
+            -I "${ABS_EM_ARBOR}/include" \
+            -std=c++20 \
+            -I "${ABS_EM_ARBOR}/lib/libarbor*" \
+            -o "${ABS_ARBOR_PYLIB_OUTPUT}" \
+            -shared -fPIC \
+            -s ALLOW_MEMORY_GROWTH=1 \
+            -s FORCE_FILESYSTEM=1 \
+            -s LINKABLE=1 \
+            -s USE_SDL=0 \
+            -s SIDE_MODULE=1 \
+            -s MODULARIZE=1 \
+            -s WASM_BIGINT=1 \
+            '-DARB_PREFIX="/dev/null"' \
+            '-DARB_BINARY="/dev/null"' \
+            '-DARB_LIB="/dev/null"' \
+            '-DARB_CXX_COMPILER="/dev/null"' \
+            '-DARB_DATA="/dev/null"' \
+            -g0 \
+            -O2
+    - name: build-python-wheel-emscripten
+      run: |
+        cp -v arbor_src/VERSION arbor
+        cp -v dist_files/__init__.py arbor
+        cp -v dist_files/WHEEL arbor.dist-info
+        sed "s/ARBOR_VERSION/$(cat arbor_src/VERSION)/" dist_files/METADATA > arbor.dist-info/METADATA
+        WHEEL_FILE="arbor-$(cat arbor_src/VERSION)-py$(getvar PYMAJOR)-none-any.whl"
+        echo "$WHEEL_FILE" | tee -a $GITHUB_ENV
+        zip -r "WHEEL_FILE=${WHEEL_FILE}" arbor arbor.dist-info
+    - name: save-python-wheel
+      uses: actions/upload-artifact@v3
+      with:
+        name: Arbor Emscripten Wheel
+        path: ${{ env.WHEEL_FILE }}
