@@ -61,8 +61,8 @@ jobs:
         ABS_EM_ARBOR=$(realpath arbor_src/build_arborlib_em/prefix)
         PY_VERSION_FLAT=${{ env.PYMAJOR }}${{ env.PYMINOR }}
         ARBOR_PYLIB_OUTPUT=arbor/_arbor.cpython-${PY_VERSION_FLAT}-wasm32-emscripten.so
-        ABS_ARBOR_PYLIB_OUTPUT=$(realpath "${ARBOR_PYLIB_OUTPUT}")
-            mkdir -p arbor_src/build_python_lib_em
+        ABS_ARBOR_PYLIB_OUTPUT=$(pwd)/$ARBOR_PYLIB_OUTPUT
+        mkdir -p arbor_src/build_python_lib_em
         cd arbor_src/build_python_lib_em
         time em++ \
             ../python/*.cpp \
