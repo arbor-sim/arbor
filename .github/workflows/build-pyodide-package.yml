@@ -72,7 +72,7 @@ jobs:
         mkdir -p arbor_src/build_modcc_host
         cd arbor_src/build_modcc_host
         cmake .. -DARB_USE_BUNDLED_LIBS=ON
-        make modcc -j 8
+        make modcc -j 2
     - name: build-libarbor-emscripten
       # Here we instruct CMake/make to build the arbor static
       # libraries (libarbor*.a) using the emscripten toolchain.
@@ -92,7 +92,7 @@ jobs:
             -DARB_USE_BUNDLED_LIBS=ON \
             -DARB_MODCC="${ABS_MODCC}" \
             -DARB_ARCH=generic
-        make -j 8
+        make -j 2
         make install
     - name: build-arbor-python-so-emscripten
       # Finally, we can use emscripten to build the python module .so
