@@ -62,9 +62,9 @@ jobs:
         PY_VERSION_FLAT=${{ env.PYMAJOR }}${{ env.PYMINOR }}
         ARBOR_PYLIB_OUTPUT=arbor/_arbor.cpython-${PY_VERSION_FLAT}-wasm32-emscripten.so
         ABS_ARBOR_PYLIB_OUTPUT=$(pwd)/$ARBOR_PYLIB_OUTPUT
+        source emsdk-main/emsdk_env.sh
         mkdir -p arbor_src/build_python_lib_em
         cd arbor_src/build_python_lib_em
-        source emsdk-main/emsdk_env.sh
         time em++ \
             ../python/*.cpp \
             -I ../ext/pybind11/include/ \
