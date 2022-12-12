@@ -11,20 +11,22 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         python-version: [3.8]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
             path: arbor
-
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Spack cache
         uses: actions/cache@v3
         with:
           path: ~/.spack-cache
-          key: arbor-cache-${{ github.run_id }}
-          restore-keys: arbor-cache-
+          key: arbor-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: arbor-cache-${{ matrix.os }}-
 
       - name: Build Arbor's Spack package against the develop branch
         run: arbor/scripts/build_spack_package.sh arbor develop
