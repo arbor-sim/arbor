@@ -1,4 +1,4 @@
-name: Build pyodide arbor
+name: Build Pyodide Arbor module
 
 on:
   workflow_dispatch:
@@ -7,38 +7,77 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      # Main configuration variable
+      # Should be kept up to date with the latest Pyodide
+      # Although automatically selecting the latest version
+      # might lead to breaking changes, so manual updating
+      # is preferred for now
+      # If you to use the exported arbor module,
+      # you must use this exact Pyodide version or
+      # annoying type errors will appear
       PYODIDE_VERSION: 0.22.0a3
-      PYODIDE_RELEASE_URL: "https://github.com/pyodide/pyodide/releases/download"
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
         path: arbor_src
     - name: get-xbuildenv
+      # The xbuildenv allows us to build Pyodide packages out-of-tree
+      # i.e. without comping Pyodide from source. All important build
+      # variables are stored in the Makefile.envs variable, and we also
+      # use exported CPython headers
       run: |
+        PYODIDE_RELEASE_URL: "https://github.com/pyodide/pyodide/releases/download"
         XBUILDENV_BASENAME=xbuildenv-${PYODIDE_VERSION}.tar.bz2
         wget -nc "${PYODIDE_RELEASE_URL}/${PYODIDE_VERSION}/${XBUILDENV_BASENAME}"
         tar -xvf ${XBUILDENV_BASENAME}
         rm ${XBUILDENV_BASENAME}
     - name: read-makefile
+      # Here, we read out all Pyodide xbuildend environment variables.
+      # This contains the entire environment and some extra stuff in
+      # K=V form (like a normal `env` invocation). We filter out
+      # all PYthon related variables and put these in the worker environment
       run: |
         make -f xbuildenv/pyodide-root/Makefile.envs .output_vars | grep 'PY' | tee -a $GITHUB_ENV
     - name: get-emsdk
+      # When we compile arbor, we *must* match the emscripten version to
+      # the one used when building Pyodide, as (among other), this determines
+      # the libc API. A wrong emscripten version leads to (or at least when
+      # I did that) type errors. The emsdk allows us to select a specific
+      # emscripten version
       run: |
         wget https://github.com/emscripten-core/emsdk/archive/refs/heads/main.zip
         unzip main.zip
         rm main.zip
     - name: setup-emsdk
+      # Here, we read out the emscripten version of Pyodide and install
+      # that version using emsdk. To actually use these, we need to tell
+      # cmake where the toolchain file is or from a shell script
+      # you need to source the activation script. This needs to be done
+      # for each gh worker separately
       run: |
         ./emsdk-main/emsdk install ${{env.PYODIDE_EMSCRIPTEN_VERSION}}
         ./emsdk-main/emsdk activate ${{env.PYODIDE_EMSCRIPTEN_VERSION}}
     - name: build-modcc-host
+      # Our first build builds just arbor modcc in the native
+      # binary format. By default an arbor build would compile
+      # modcc, then call modcc to convert builtin nmodl files
+      # and then compile those using the toolchain.
+      # Because out goal is to (cross-)compile arbor with the
+      # emscripten toolchain, we would generate an modcc as
+      # js/wasm file which doesn't fit in the build process.
+      # To be able to use modcc without much trouble, we
+      # must compile it as a native binary
       run: |
         mkdir -p arbor_src/build_modcc_host
         cd arbor_src/build_modcc_host
         cmake .. -DARB_USE_BUNDLED_LIBS=ON
         make modcc -j 8
     - name: build-libarbor-emscripten
+      # Here we instruct CMake/make to build the arbor static
+      # libraries (libarbor*.a) using the emscripten toolchain.
+      # As such, we must point to towards our previously build
+      # modcc binary.
       run: |
         ABS_TOOLCHAIN=$(realpath emsdk-main/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake)
         ABS_MODCC=$(realpath arbor_src/build_modcc_host/bin/modcc)
@@ -56,6 +95,19 @@ jobs:
         make -j 8
         make install
     - name: build-arbor-python-so-emscripten
+      # Finally, we can use emscripten to build the python module .so
+      # file using the pybind11 binding files from the arbor source
+      # code and the previously generated libarbor*.a files.
+      # Ideally, this would happen automatically in the previous step,
+      # but due to the large amount of extra command line flags
+      # and targeting a non-standard platorm (eg no site-packages dir),
+      # we call emscripten by hand. This will take a while.
+      # Importantly, we must point the compiler to the cpython header
+      # files that Pyodide uses. Then there are some flags that are
+      # required for any Pyodide python module. Finally we set the
+      # arbor config variables (PREFIX,BINARY,... etc..) to /dev/null.
+      # These are not actually used unless one calls arbor-build-catalogue,
+      # which is not possible in the browser anyway.
       run: |
         ABS_XBUILDENV_INCLUDE=$(realpath xbuildenv/pyodide-root${{ env.CPYTHONINSTALL }}/include/python${{ env.PYMAJOR }}.${{ env.PYMINOR }})
         ABS_EM_ARBOR=$(realpath arbor_src/build_arborlib_em/prefix)
@@ -90,6 +142,8 @@ jobs:
             -g0 \
             -O2
     - name: build-python-wheel-emscripten
+      # The last step wraps up everything into a wheel file
+      # Sorry for the hardcodes __init__.py/WHEEL/METADATA files
       run: |
         cp -v arbor_src/VERSION arbor
         echo IyBUaGUgUHl0aG9uIHdyYXBwZXIgZ2VuZXJhdGVkIHVzaW5nIHB5YmluZDExIGlzIGEgY29tcGlsZWQgZHluYW1pYyBsaWJyYXJ5LAojIHdpdGggYSBuYW1lIGxpa2UgX2FyYm9yLmNweXRob24tMzgteDg2XzY0LWxpbnV4LWdudS5zbwojCiMgVGhlIGxpYnJhcnkgd2lsbCBiZSBpbnN0YWxsZWQgaW4gdGhlIHNhbWUgcGF0aCBhcyB0aGlzIGZpbGUsIHdoaWNoIHdpbGwgaW1wb3J0cwojIHRoZSBjb21waWxlZCBwYXJ0IG9mIHRoZSB3cmFwcGVyIGZyb20gdGhlIF9hcmJvciBuYW1lc3BhY2UuCgpmcm9tIC5fYXJib3IgaW1wb3J0ICogICMgbm9xYTogRjQwMwoKCiMgUGFyc2UgVkVSU0lPTiBmaWxlIGZvciB0aGUgQXJib3IgdmVyc2lvbiBzdHJpbmcuCmRlZiBnZXRfdmVyc2lvbigpOgogICAgaW1wb3J0IG9zCgogICAgaGVyZSA9IG9zLnBhdGguYWJzcGF0aChvcy5wYXRoLmRpcm5hbWUoX19maWxlX18pKQogICAgd2l0aCBvcGVuKG9zLnBhdGguam9pbihoZXJlLCAiVkVSU0lPTiIpKSBhcyB2ZXJzaW9uX2ZpbGU6CiAgICAgICAgcmV0dXJuIHZlcnNpb25fZmlsZS5yZWFkKCkuc3RyaXAoKQoKCl9fdmVyc2lvbl9fID0gZ2V0X3ZlcnNpb24oKQpfX2NvbmZpZ19fID0gY29uZmlnKCkgICMgbm9xYTpGNDA1CgojIFJlbW92ZSBnZXRfdmVyc2lvbiBmcm9tIGFyYm9yIG1vZHVsZS4KZGVsIGdldF92ZXJzaW9uCg== \
