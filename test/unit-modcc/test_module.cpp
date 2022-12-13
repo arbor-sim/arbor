@@ -123,6 +123,15 @@ TEST(Module, read_write_ion) {
     EXPECT_TRUE(m.semantic());
 }
 
+TEST(Module, v_process) {
+    Module m(io::read_all(DATADIR "/mod_files/test_v_process.mod"), "test_v_process.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+    EXPECT_TRUE(m.semantic());
+}
+
 // Regression test in #1893 we found that the solver segfaults when handed a
 // naked comparison statement.
 TEST(Module, solver_bug_1893) {

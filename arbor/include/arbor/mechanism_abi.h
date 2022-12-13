@@ -18,8 +18,6 @@ extern "C" {
 #define ARB_NO_ALIAS restrict
 #endif
 
-
-
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
 #define ARB_MECH_ABI_VERSION_MINOR 3
@@ -35,6 +33,7 @@ typedef uint32_t arb_mechanism_kind;
 #define arb_mechanism_kind_density 2
 #define arb_mechanism_kind_reversal_potential 3
 #define arb_mechanism_kind_gap_junction 4
+#define arb_mechanism_kind_voltage 5
 
 typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_nil 0
@@ -46,6 +45,8 @@ inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
         case arb_mechanism_kind_density: return "density mechanism kind";
         case arb_mechanism_kind_point:   return "point mechanism kind";
         case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
+        case arb_mechanism_kind_gap_junction: return "gap junction mechanism kind";
+        case arb_mechanism_kind_voltage: return "voltage mechanism kind";
         default: return "unknown mechanism kind";
     }
 }

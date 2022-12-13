@@ -281,6 +281,32 @@ struct exp: public iexpr_interface {
     iexpr_ptr value;
 };
 
+struct step_right: public iexpr_interface {
+    step_right(iexpr_ptr v): value(std::move(v)) {}
+
+    double eval(const mprovider& p, const mcable& c) const override {
+        double x = value->eval(p, c);
+        // x <  0:  0
+        // x >= 0:  1
+        return (x >= 0.);
+    }
+
+    iexpr_ptr value;
+};
+
+struct step_left: public iexpr_interface {
+    step_left(iexpr_ptr v): value(std::move(v)) {}
+
+    double eval(const mprovider& p, const mcable& c) const override {
+        double x = value->eval(p, c);
+        // x <= 0:  0
+        // x >  0:  1
+        return (x > 0.);
+    }
+
+    iexpr_ptr value;
+};
+
 struct step: public iexpr_interface {
     step(iexpr_ptr v): value(std::move(v)) {}
 
@@ -416,6 +442,10 @@ iexpr iexpr::div(iexpr left, iexpr right) {
 
 iexpr iexpr::exp(iexpr value) { return iexpr(iexpr_type::exp, std::make_tuple(std::move(value))); }
 
+iexpr iexpr::step_right(iexpr value) { return iexpr(iexpr_type::step_right, std::make_tuple(std::move(value))); }
+
+iexpr iexpr::step_left(iexpr value) { return iexpr(iexpr_type::step_left, std::make_tuple(std::move(value))); }
+
 iexpr iexpr::step(iexpr value) { return iexpr(iexpr_type::step, std::make_tuple(std::move(value))); }
 
 iexpr iexpr::log(iexpr value) { return iexpr(iexpr_type::log, std::make_tuple(std::move(value))); }
@@ -503,6 +533,12 @@ iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
             thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
     case iexpr_type::exp:
         return iexpr_ptr(new iexpr_impl::exp(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+    case iexpr_type::step_right:
+        return iexpr_ptr(new iexpr_impl::step_right(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+    case iexpr_type::step_left:
+        return iexpr_ptr(new iexpr_impl::step_left(
             thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
     case iexpr_type::step:
         return iexpr_ptr(new iexpr_impl::step(
@@ -598,6 +634,14 @@ std::ostream& operator<<(std::ostream& o, const iexpr& e) {
     }
     case iexpr_type::exp: {
         o << "exp " << std::get<0>(std::any_cast<const std::tuple<iexpr>&>(e.args()));
+        break;
+    }
+    case iexpr_type::step_right: {
+        o << "step_right " << std::get<0>(std::any_cast<const std::tuple<iexpr>&>(e.args()));
+        break;
+    }
+    case iexpr_type::step_left: {
+        o << "step_left " << std::get<0>(std::any_cast<const std::tuple<iexpr>&>(e.args()));
         break;
     }
     case iexpr_type::step: {

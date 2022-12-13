@@ -114,3 +114,19 @@ function("make_catalogue_standalone")
     target_link_libraries(${MK_CAT_NAME}-catalogue PRIVATE arbor::arbor)
   endif()
 endfunction()
+
+function("make_catalogue_lib")
+  cmake_parse_arguments(MK_CAT "" "NAME;VERBOSE" "MOD;CXX" ${ARGN})
+  set(MK_CAT_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/${MK_CAT_NAME}")
+  make_catalogue(
+      NAME ${MK_CAT_NAME}
+      MOD ${MK_CAT_MOD}
+      VERBOSE ${MK_CAT_VERBOSE}
+      ADD_DEPS OFF)
+  if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${catalogue-${MK_CAT_NAME}-mechanisms} PROPERTIES LANGUAGE CXX)
+  endif()
+  add_library(catalogue-${MK_CAT_NAME} STATIC EXCLUDE_FROM_ALL ${catalogue-${MK_CAT_NAME}-mechanisms})
+  target_link_libraries(catalogue-${MK_CAT_NAME} PRIVATE arbor arbor-private-deps)
+  target_include_directories(catalogue-${MK_CAT_NAME} INTERFACE ${MK_CAT_OUT_DIR})
+endfunction()

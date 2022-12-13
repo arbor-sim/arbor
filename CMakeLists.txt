@@ -26,7 +26,7 @@ option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Specify target archiecture.
+# Specify target architecture.
 
 set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
@@ -81,12 +81,6 @@ option(ARB_WITH_MPI "build with MPI support" OFF)
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
-
-#----------------------------------------------------------
-# NeuroML support library:
-#----------------------------------------------------------
-
-option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
 
 #----------------------------------------------------------
 # Python front end for Arbor:
@@ -227,6 +221,7 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
@@ -394,7 +389,16 @@ endif()
 # Build modcc flags
 #------------------------------------------------
 
-set(modcc $<TARGET_FILE:modcc>)
+if(ARB_MODCC)
+    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH REQUIRED)
+    if(NOT modcc)
+        message(FATAL_ERROR "Unable to find modcc executable.")
+    endif()
+    set(ARB_WITH_EXTERNAL_MODCC TRUE)
+else()
+    set(modcc $<TARGET_FILE:modcc>)
+    set(ARB_WITH_EXTERNAL_MODCC FALSE)
+endif()
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")

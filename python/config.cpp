@@ -46,11 +46,7 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("profiling")] = pybind11::bool_(false);
 #endif
-#ifdef ARB_NEUROML_ENABLED
     dict[pybind11::str("neuroml")] = pybind11::bool_(true);
-#else
-    dict[pybind11::str("neuroml")] = pybind11::bool_(false);
-#endif
 #ifdef ARB_BUNDLED_ENABLED
     dict[pybind11::str("bundled")] = pybind11::bool_(true);
 #else

@@ -148,11 +148,9 @@ Python package is recommended. See :ref:`install-python` for more information.
 NeuroML
 ~~~~~~~
 
-Arbor supports reading cell morphologies defined in NeuroML version 2 through
-an additional support library ``arborio``. This library requires
-`libxml2 <http://xmlsoft.org>`_ for the parsing of NeuroML2 XML, if it is built
-with NeuroML support enabled.
-See :ref:`install-neuroml` for more information.
+Arbor supports reading cell morphologies defined in NeuroML version 2 through an
+additional support library ``arborio``. See :ref:`install-neuroml` for more
+information.
 
 Boost
 ~~~~~
@@ -534,14 +532,9 @@ NeuroML support
 ---------------
 
 Arbor has limited support for NeuroML version 2 through an additional library
-``arborio``. This library will be built with NeuroML support if the option
-``-DARB_WITH_NEUROML=ON`` is passed to CMake at configuration time.
-``arborio`` depends upon the the ``libxml2`` library for XML parsing.
-
-Arbor will additionally install the static library ``libarborio.a``.
-Applications using this functionality will need to link
-against this library in addition to the main Arbor library and ``libxml2``.
-For example:
+``arborio``. Arbor will additionally install the static library
+``libarborio.a``. Applications using this functionality will need to link
+against this library in addition to the main Arbor library. For example:
 
 .. code-block:: bash
 

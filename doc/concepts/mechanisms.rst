@@ -77,6 +77,14 @@ Two catalogues are provided that collect mechanisms associated with specific pro
 * ``bbp_catalogue`` For models published by the Blue Brain Project (BBP).
 * ``allen_catalogue`` For models published on the Allen Brain Atlas Database.
 
+A fourth catalogue ``stochastic_catalogue`` provides mechanisms expressed as stochastic differential
+equations:
+
+* *ou_input* Synapse mechanism that can stochastically account for a population of *ou_input*
+  synapses.  The mechanism is similar to *expsyn_curr* but with the exponential decay being subject
+  to noise due to a Ornstein-Uhlenbeck process.
+
+
 .. _mechanisms_dynamic:
 
 Adding Catalogues to Arbor
@@ -316,6 +324,50 @@ Euler-Maruyama method.
 For specifics about the notation to define stochastic processes, please
 consult the :ref:`Arbor-specific NMODL extension <format-sde>`.
 
+.. note::
+
+   While the units of :math:`\textbf{f}(t, \textbf{X}(t))` represent the deterministic rate of
+   change (per millisecond),
+
+   .. math::
+
+        \left[\textbf{f}(t, \textbf{X}(t))\right] = \frac{\left[\textbf{X}(t)\right]}{ms},
+
+   the stochastic terms scale with :math:`t^{-1/2}`,
+
+   .. math::
+
+        \left[\textbf{l}_i(t, \textbf{X}(t))\right] = \frac{\left[\textbf{X}(t)\right]}{\sqrt{ms}}.
+
+
+**Example:** The popular Ornstein-Uhlenbeck process is described by a scalar linear mean-reverting SDE
+and can be written as
+
+.. math::
+
+    X^\prime = -\frac{1}{\tau} (X - \mu) + \sqrt{\frac{2}{τ}}  \sigma W,
+
+with white noise :math:`W`, and constant model parameters :math:`\tau`, :math:`\mu` and
+:math:`\sigma`. The relaxation time :math:`\tau` determines how fast the process reverts back to its
+mean value :math:`\mu`, and :math:`\sigma` controls the volatility (:math:`\mu` and :math:`\sigma`
+have the same units as :math:`X`). The expected value and variance can be computed analytically and
+yield
+
+.. math::
+
+    \begin{align*}
+    E[X]   &= \mu - \left( \mu - X_0\right) e^{-t/\tau}, \\
+    Var[X] &= \sigma^2 \left( 1 - e^{-2 t/\tau} \right),
+    \end{align*}
+
+which in the limit :math:`t \rightarrow \infty` converge to
+
+.. math::
+
+    \begin{align*}
+    E[X]   &= \mu, \\
+    Var[X] &= \sigma^2.
+    \end{align*}
 
 API
 ---

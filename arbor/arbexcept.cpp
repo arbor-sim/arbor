@@ -37,6 +37,11 @@ bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     kind(kind)
 {}
 
+invalid_mechanism_kind::invalid_mechanism_kind(arb_mechanism_kind kind):
+    arbor_exception(pprintf("Invalid mechanism kind: {})", kind)),
+    kind(kind)
+{}
+
 bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
     arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are only {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
     gid(gid), src_gid(src_gid), num_cells(num_cells)

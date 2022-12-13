@@ -27,4 +27,4 @@ Here we document internal components of Arbor. These pages can be useful if you'
    mechanism_abi
    util
    version
-.. numerics
+   numerics
