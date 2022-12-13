@@ -14,7 +14,7 @@ on:
 jobs:
   get_timestamp:
     name: Prep VERSION
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Get Arbor
