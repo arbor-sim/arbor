@@ -18,3 +18,5 @@ Mechanisms
 Exponential Euler `cnexp`.
 
 Implicit Euler `sparse`.
+
+Euler-Maruyama (explicit Euler) `stochastic`
