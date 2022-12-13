@@ -75,4 +75,4 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /proj
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
