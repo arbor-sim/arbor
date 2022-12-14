@@ -134,7 +134,6 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                    "auto  {0}width             __attribute__((unused)) = params_.width;\\\n"
                                    "auto  {0}n_detectors       __attribute__((unused)) = params_.n_detectors;\\\n"
                                    "auto* {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
-                                   "auto* {0}vec_di            __attribute__((unused)) = params_.vec_di;\\\n"
                                    "auto* {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
                                    "auto* {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
                                    "auto* {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"

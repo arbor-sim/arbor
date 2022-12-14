@@ -251,7 +251,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "[[maybe_unused]] auto {0}width                                                 = pp->width;\\\n"
                                    "[[maybe_unused]] auto {0}n_detectors                                           = pp->n_detectors;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}vec_ci                       = pp->vec_ci;\\\n"
-                                   "[[maybe_unused]] arb_index_type * __restrict__ {0}vec_di                       = pp->vec_di;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_dt                       = pp->vec_dt;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_v                        = pp->vec_v;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_i                        = pp->vec_i;\\\n"
