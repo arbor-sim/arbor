@@ -20,8 +20,7 @@ using util::make_span;
 namespace {
     // Check whether a string describes a valid profiler region name.
     bool is_valid_region_string(const std::string& s) {
-        if (s.size()==0u || s.front()==':' || s.back()==':') return false;
-        return s.find("__") == s.npos;
+        return (s.size()!=0u) && (s.front()!=':') && (s.back()!=':');
     }
 
     //
