@@ -203,7 +203,7 @@ TEST(symbolic_pdiff, nonlinear) {
         { "sin(x)",      "cos(x)" },
         { "exp(2*x)",    "2*exp(2*x)" },
         { "x^2",         "2*x" },
-        { "a^x",         "log(a)*a^x" }
+        { "a^x",         "log(a)*exp(log(a) * x)" }
     };
 
     for (const auto& item: tests) {
