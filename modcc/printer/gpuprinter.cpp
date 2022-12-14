@@ -133,22 +133,21 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "auto  {0}width             __attribute__((unused)) = params_.width;\\\n"
                                    "auto  {0}n_detectors       __attribute__((unused)) = params_.n_detectors;\\\n"
-                                   "auto* {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
-                                   "auto* {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
-                                   "auto* {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
-                                   "auto* {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"
-                                   "auto* {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
-                                   "auto* {0}temperature_degC  __attribute__((unused)) = params_.temperature_degC;\\\n"
-                                   "auto* {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
-                                   "auto* {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
-                                   "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
-                                   "auto* {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
-                                   "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
-                                   "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
-                                   "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"
+                                   "arb_index_type * __restrict__ {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
+                                   "arb_value_type * __restrict__ {0}temperature_degC  __attribute__((unused)) = params_.temperature_degC;\\\n"
+                                   "arb_value_type * __restrict__ {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
+                                   "arb_value_type * __restrict__ {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
+                                   "arb_index_type * __restrict__ {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
+                                   "arb_index_type * __restrict__ {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
+                                   "arb_index_type * __restrict__ {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
+                                   "arb_value_type * __restrict__ {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
+                                   "arb_value_type * __restrict__ {0}weight            __attribute__((unused)) = params_.weight;\\\n"
                                    "auto& {0}events            __attribute__((unused)) = params_.events;\\\n"
-                                   "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"
-                                   "auto& {0}index_constraints __attribute__((unused)) = params_.index_constraints;\\\n"),
+                                   "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"),
                        pp_var_pfx);
 
     const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
@@ -162,21 +161,21 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     out << fmt::format("auto const * const * {}random_numbers  __attribute__((unused)) = params_.random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
         state++;
     }
     for (const auto& array: assigned_ids) {
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
         state++;
     }
     for (const auto& array: param_ids) {
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.parameters[{}];\\\n", pp_var_pfx, array.name(), param);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.parameters[{}];\\\n", pp_var_pfx, array.name(), param);
         param++;
     }
     auto idx = 0;
     for (const auto& ion: module_.ion_deps()) {
         out << fmt::format("auto& {}{} __attribute__((unused)) = params_.ion_states[{}];\\\n",       pp_var_pfx, ion_field(ion), idx);
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
         idx++;
     }
     out << "//End of IFACEBLOCK\n\n";
