@@ -97,7 +97,21 @@ public:
     }
 
     arb::time_type run(arb::time_type tfinal, arb::time_type dt) {
-        return sim_->run(tfinal, dt);
+        arb::time_type tepoch = 0;
+        while (true) {
+            if (PyErr_CheckSignals() != 0) {
+                throw py::error_already_set();
+            }
+            tepoch += dt * 1000;
+            arb::time_type res;
+            {
+                pybind11::gil_scoped_release guard;
+                res = sim_->run(std::min(tepoch, tfinal), dt);
+            }
+            if (tepoch >= tfinal) {
+                return res;
+            }
+        }
     }
 
     void set_binning_policy(arb::binning_kind policy, arb::time_type bin_interval) {
@@ -239,7 +253,6 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              pybind11::call_guard<pybind11::gil_scoped_release>(),
              "Clearing spike and sample information. restoring memory")
         .def("run", &simulation_shim::run,
-            pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, "dt"_a=0.025)
         .def("set_binning_policy", &simulation_shim::set_binning_policy,
