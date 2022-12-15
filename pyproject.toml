@@ -58,7 +58,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 build-frontend = "build"
-build = ["cp3*-manylinux_x86_64","cp3*-macosx_universal2","cp3*-musllinux_x86_64","cp3*-musllinux_aarch64"]
+build = ["cp3*-manylinux_x86_64","cp3*-macosx_universal2"]#,"cp3*-musllinux_x86_64","cp3*-musllinux_aarch64"]
 skip = "cp36-*"
 test-command = "python3 -m unittest discover -v -s {project}/python"
 
@@ -75,4 +75,3 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /proj
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
