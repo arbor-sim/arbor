@@ -52,6 +52,14 @@ Probes
 
    probe_lfpykit
 
+Stochastic Mechanisms
+---------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   calcium_stdp_curve
+
 Hardware
 --------
 
