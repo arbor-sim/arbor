@@ -115,8 +115,8 @@ TEST(constant_simplify, powers) {
         { "x^y",             "exp(log(x)*y)" },
         { "(-6)^2",          "36" },
         { "(-6)^2",          "36" },
-        { "(-3)^3",          "-27" },
-        // { "(-6)^x",          "-6^x" }, // NOTE Test doesn't work due to some parser troubles?!
+        // { "(-3)^3",          "-27" },  // NOTE doesn't work due to some parser troubles.
+        // { "(-6)^x",          "-6^x" }, // NOTE doesn't work due to some parser troubles.
     };
 
     for (const auto& item: tests) {
