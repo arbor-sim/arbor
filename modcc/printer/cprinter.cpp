@@ -223,7 +223,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
             "}\n"
             "\n"
             "inline simd_value log(const simd_value& v) { return S::log(v); }\n"
-            "inline simd_value log(double v) { return S::log(S::simd_cast<simd_value>(v)); }\n"
+            "inline simd_value log(arb_value_type v) { return S::log(S::simd_cast<simd_value>(v)); }\n"
             "\n";
     } else {
        out << "static constexpr unsigned simd_width_ = 1;\n"
