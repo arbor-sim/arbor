@@ -14,7 +14,7 @@ on:
 jobs:
   get_timestamp:
     name: Prep VERSION
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Get Arbor
@@ -35,7 +35,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, macos-latest]
 
     steps:
       - name: Get Arbor
@@ -62,7 +62,7 @@ jobs:
   build_sdist:
     name: Build sdist
     needs: get_timestamp
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Get packages
@@ -94,7 +94,7 @@ jobs:
 
   upload_test_pypi:
     name: upload to test pypi
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [build_binary_wheels, build_sdist]
     steps:
       - uses: actions/download-artifact@v3

@@ -46,8 +46,8 @@ jobs:
         - {
             name:  "Linux Max GCC",
             os:    "ubuntu-22.04",
-            cc:    "gcc-11",
-            cxx:   "g++-11",
+            cc:    "gcc-12",
+            cxx:   "g++-12",
             py:    "3.10",
             cmake: "3.22.x",
             mpi:   "ON",
@@ -56,8 +56,8 @@ jobs:
         - {
             name:  "Linux SIMD",
             os:    "ubuntu-22.04",
-            cc:    "gcc-11",
-            cxx:   "g++-11",
+            cc:    "gcc-12",
+            cxx:   "g++-12",
             py:    "3.10",
             cmake: "3.22.x",
             mpi:   "OFF",
@@ -183,10 +183,10 @@ jobs:
         run: scripts/run_cpp_examples.sh "mpirun -n 4 -oversubscribe"
       - name: Run python tests
         run: |
-          python3 -m unittest discover -v -s python
+          python -m unittest discover -v -s python
       - if:   ${{ matrix.config.mpi == 'ON' }}
         name: Run python+MPI tests
-        run:  mpirun -n 4 -oversubscribe python3 -m unittest discover -v -s python
+        run:  mpirun -n 4 -oversubscribe python -m unittest discover -v -s python
       # - name: Run Python examples (plotting leads to time outs on macos, the step under testpip is enough)
       #   run: scripts/run_python_examples.sh
       - name: Build and test a catalogue
@@ -195,18 +195,32 @@ jobs:
           ./scripts/test-catalogue.py ./default-catalogue.so
   testpip:
     name: "Pip build test + Python examples test"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        python-version: [3.7]
     steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Clone w/ submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Debug info Python
+        run: |
+          which python
+          python --version
+          pip --version
       - name: Build and install Arbor using pip + build flags
-        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python3 -m pip install .
+        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python -m pip install .
       - name: Check that build flags match
         run: |
-          python3 -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
+          python -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
       - name: Run Python tests
-        run: python3 -m unittest discover -v -s python
+        run: python -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
