@@ -42,3 +42,5 @@ of the model over the locally available computational resources.
 
 In order to visualize the result of detected spikes a spike recorder can be used, and to analyse Arbor's performance a
 meter manager is available.
+
+:ref:`probesample` shows how to extract data from simulations.

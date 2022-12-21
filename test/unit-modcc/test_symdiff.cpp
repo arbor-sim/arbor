@@ -102,6 +102,35 @@ TEST(constant_simplify, constants) {
     }
 }
 
+TEST(constant_simplify, powers) {
+    // Expect simplification of 'before' expression matches parse of 'after'.
+    // Use output string representation of expression for easy comparison.
+
+    struct { const char* before; const char* after; } tests[] = {
+        { "x^-1",            "1/x" },
+        { "x^1",             "x" },
+        { "x^2",             "x*x" },
+        { "x^-2",            "1/(x*x)" },
+        { "2^4",             "16" },
+        { "x^y",             "exp(log(x)*y)" },
+        { "(-6)^2",          "36" },
+        { "(-6)^2",          "36" },
+        // { "(-3)^3",          "-27" },  // NOTE doesn't work due to some parser troubles.
+        // { "(-6)^x",          "-6^x" }, // NOTE doesn't work due to some parser troubles.
+    };
+
+    for (const auto& item: tests) {
+        SCOPED_TRACE(std::string("expressions: ")+item.before+"; "+item.after);
+        std::cerr << item.before << " => " << item.after << '\n';
+        auto before = Parser{item.before}.parse_expression();
+        auto after = Parser{item.after}.parse_expression();
+        ASSERT_TRUE(before);
+        ASSERT_TRUE(after);
+        EXPECT_EXPR_EQ(after, constant_simplify(before));
+    }
+}
+
+
 TEST(constant_simplify, simplified_expr) {
     // Expect simplification of 'before' expression matches parse of 'after'.
     // Use output string representation of expression for easy comparison.
@@ -203,7 +232,7 @@ TEST(symbolic_pdiff, nonlinear) {
         { "sin(x)",      "cos(x)" },
         { "exp(2*x)",    "2*exp(2*x)" },
         { "x^2",         "2*x" },
-        { "a^x",         "log(a)*a^x" }
+        { "a^x",         "log(a)*exp(log(a) * x)" }
     };
 
     for (const auto& item: tests) {

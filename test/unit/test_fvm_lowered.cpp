@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arborio/label_parse.hpp>
 
@@ -367,7 +367,7 @@ TEST(fvm_lowered, ac_stimulus) {
 
     // Envelope is linear ramp from 0 to max_time.
     dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase), "clamp");
-    std::vector<cable_cell> cells = {cable_cell(tree, {}, dec)};
+    std::vector<cable_cell> cells = {cable_cell(tree, dec)};
 
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
@@ -608,8 +608,8 @@ TEST(fvm_lowered, ionic_concentrations) {
             ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
-    shared_state->instantiate(*read_cai_mech, 0, overrides, layout);
-    shared_state->instantiate(*write_cai_mech, 1, overrides, layout);
+    shared_state->instantiate(*read_cai_mech, 0, overrides, layout, {});
+    shared_state->instantiate(*write_cai_mech, 1, overrides, layout, {});
 
     shared_state->reset();
 
@@ -877,7 +877,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             }
             decor.place(arb::mlocation{0, 0.5}, synapse_, "syanpse");
 
-            return arb::cable_cell(arb::morphology(tree), {}, decor);
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -969,7 +969,7 @@ TEST(fvm_lowered, label_data) {
                 decor.place(uniform(all(), 4, 4, 42), arb::synapse("expsyn"), "1_synapse");
                 decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
 
-                cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
             {
                 arb::decor decor;
@@ -979,7 +979,7 @@ TEST(fvm_lowered, label_data) {
                 decor.place(uniform(all(), 5, 6, 24), arb::junction("gj"), "2_gap_junctions");
                 decor.place(uniform(all(), 7, 7, 24), arb::junction("gj"), "1_gap_junction");
 
-                cells_.push_back(arb::cable_cell(arb::morphology(tree), {}, decor));
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
         }
 

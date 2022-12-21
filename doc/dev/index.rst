@@ -19,6 +19,7 @@ Here we document internal components of Arbor. These pages can be useful if you'
    communication
    debug
    matrix_solver
+   sde
    simd_api
    shared_state
    export
@@ -26,4 +27,4 @@ Here we document internal components of Arbor. These pages can be useful if you'
    mechanism_abi
    util
    version
-.. numerics
+   numerics

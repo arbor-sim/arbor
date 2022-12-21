@@ -1,4 +1,4 @@
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <vector>
 
@@ -16,7 +16,7 @@
 #include "util/strprintf.hpp"
 
 #include "common.hpp"
-#include "common_cells.hpp"
+#include "../common_cells.hpp"
 #include "morph_pred.hpp"
 
 using namespace arb;

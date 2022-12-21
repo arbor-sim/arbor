@@ -31,3 +31,5 @@ $PREFIX python python/example/network_ring_gpu.py # by default, gpu_id=None
 $PREFIX python python/example/network_two_cells_gap_junctions.py
 $PREFIX python python/example/diffusion.py
 $PREFIX python python/example/plasticity.py
+$PREFIX python python/example/v-clamp.py
+$PREFIX python python/example/calcium_stdp.py

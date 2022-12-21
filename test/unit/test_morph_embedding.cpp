@@ -10,9 +10,9 @@
 
 #include "util/piecewise.hpp"
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 #include "common.hpp"
-#include "common_cells.hpp"
+#include "../common_cells.hpp"
 #include "morph_pred.hpp"
 
 using namespace arb;

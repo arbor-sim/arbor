@@ -79,6 +79,16 @@ TEST(Parser, full_file) {
     EXPECT_EQ(p.status(), lexerStatus::happy);
 }
 
+TEST(Parser, v_proc) {
+    Module m(io::read_all(DATADIR "/mod_files/test_v_process.mod"), "v_process.mod");
+    if (m.buffer().size() == 0) {
+        std::cout << "skipping Parser.full_file test because unable to open input file" << std::endl;
+        return;
+    }
+    Parser p(m);
+    EXPECT_EQ(p.status(), lexerStatus::happy);
+}
+
 TEST(Parser, procedure) {
     std::vector<const char*> calls = {
         "PROCEDURE foo(x, y) {\n"
@@ -728,6 +738,32 @@ TEST(Parser, parse_state_block) {
         p.parse_state_block();
         EXPECT_EQ(lexerStatus::happy, p.status());
         verbose_print(null, p, text);
+    }
+}
+
+TEST(Parser, parse_white_noise_block) {
+    const char* white_noise_blocks[] = {
+        "WHITE_NOISE {\n"
+        "    a b c\n"
+        "}",
+        "WHITE_NOISE {\n"
+        "    a\n"
+        "    b c\n"
+        "}",
+        "WHITE_NOISE {\n"
+        "    a b\n"
+        "    c\n"
+        "}"};
+
+    expression_ptr null;
+    for (const auto& text: white_noise_blocks) {
+        Module m(text, text + std::strlen(text), "");
+        Parser p(m, false);
+        p.parse_white_noise_block();
+        EXPECT_EQ(lexerStatus::happy, p.status());
+        verbose_print(null, p, text);
+        EXPECT_EQ(m.white_noise_block().parameters.size(), 3u);
+        EXPECT_EQ(m.white_noise_block().used.size(), 0u);
     }
 }
 

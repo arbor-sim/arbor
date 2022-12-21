@@ -4,6 +4,7 @@ Cable cell probing and sampling
 ===============================
 
 .. module:: arbor
+   :noindex:
 
 .. figure:: probe_sample-diag.svg
     :width: 800
@@ -79,7 +80,7 @@ Example
       .paint('"soma"', arbor.density("hh"))
       .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp"))
 
-   cell = arbor.cable_cell(tree, labels, decor)
+   cell = arbor.cable_cell(tree, decor)
 
    class single_recipe(arbor.recipe):
       def __init__(self):
@@ -297,3 +298,12 @@ Ionic external concentration
 
    Kind: :term:`vector probe`.
 
+LIF Cell probing
+================
+
+Membrane voltage
+   .. py:function:: lif_probe_voltage()
+
+   Current cell membrane potential (mV).
+
+   Metadata: none

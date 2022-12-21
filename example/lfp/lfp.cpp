@@ -94,7 +94,7 @@ private:
             .paint("(tag 4)"_reg, density("pas/e=-70.0"))
             // Add exponential synapse at centre of soma.
             .place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
-        cell_ = cable_cell(tree, {}, dec);
+        cell_ = cable_cell(tree, dec);
     }
 };
 

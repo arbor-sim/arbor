@@ -14,7 +14,7 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
-#include "common_cells.hpp"
+#include "../common_cells.hpp"
 #include "common_morphologies.hpp"
 #include "morph_pred.hpp"
 
@@ -38,7 +38,8 @@ TEST(cv_policy, single) {
     // the extremal points of the completions of the components of the
     // supplied region.
 
-    cable_cell cell(m_mlt_b6);
+
+    cable_cell cell(m_mlt_b6, {});
     for (region reg:
             {reg::all(), reg::branch(2), reg::cable(3, 0.25, 1.),
              join(reg::cable(1, 0.75, 1), reg::branch(3), reg::cable(2, 0, 0.5)),
@@ -57,7 +58,7 @@ TEST(cv_policy, explicit_policy) {
 
     cv_policy pol = cv_policy_explicit(lset);
     for (auto& m: {m_reg_b6, m_mlt_b6}) {
-        cable_cell cell(m);
+        cable_cell cell(m, {});
 
         locset result = pol.cv_boundary_points(cell);
         locset expected = join(ls::boundary(reg::all()), lset);
@@ -71,7 +72,7 @@ TEST(cv_policy, explicit_policy) {
     region b12 = join(reg::branch(1), reg::branch(2));
     pol = cv_policy_explicit(lset, b12);
     for (auto& m: {m_reg_b6, m_mlt_b6}) {
-        cable_cell cell(m);
+        cable_cell cell(m, {});
 
         locset result = pol.cv_boundary_points(cell);
         locset expected = as_locset(L{1, 0}, L{1, 0.5}, L{1, 1}, L{2, 0}, L{2, 1});
@@ -83,7 +84,7 @@ TEST(cv_policy, explicit_policy) {
 
     pol = cv_policy_explicit(lset, reg::complete(b12));
     for (auto& m: {m_mlt_b6}) {
-        cable_cell cell(m);
+        cable_cell cell(m, {});
 
         locset result = pol.cv_boundary_points(cell);
         locset expected = as_locset(L{0, 1}, L{1, 0.5}, L{1, 1}, L{2, 1});
@@ -106,7 +107,8 @@ TEST(cv_policy, empty_morphology) {
         cv_policy_explicit(ls::location(0, 0))
     };
 
-    cable_cell cell(m_empty);
+
+    cable_cell cell(m_empty, {});
 
     for (auto& pol: policies) {
         EXPECT_TRUE(locset_eq(cell.provider(), ls::nil(), pol.cv_boundary_points(cell)));
@@ -119,7 +121,7 @@ TEST(cv_policy, fixed_per_branch) {
 
     // Root branch only:
     {
-        cable_cell cell(m_reg_b1);
+        cable_cell cell(m_reg_b1, {});
         {
             // boundary fork points
             cv_policy pol = cv_policy_fixed_per_branch(4);
@@ -138,8 +140,7 @@ TEST(cv_policy, fixed_per_branch) {
     // Multiple top level branches:
     // top level branches are 0 and 3, terminal branches are 1, 2, 4 and 5.
     {
-        cable_cell cell(m_mlt_b6);
-
+        cable_cell cell(m_mlt_b6, {});
         {
             // With boundary fork points:
             cv_policy pol = cv_policy_fixed_per_branch(2);
@@ -167,7 +168,7 @@ TEST(cv_policy, fixed_per_branch) {
     // Restrict to an incomplete subtree (distal half of branch 0 and all of branch 2)
     // in m_mlt_b6 morphology.
     {
-        cable_cell cell(m_mlt_b6);
+        cable_cell cell(m_mlt_b6, {});
         region reg = mcable_list{{0, 0.5, 1.}, {2, 0., 1.}};
         {
             // With two per branch and fork points as boundaries, expect to see:
@@ -204,7 +205,7 @@ TEST(cv_policy, max_extent) {
 
     // Root branch only:
     {
-        cable_cell cell(m_reg_b1);
+        cable_cell cell(m_reg_b1, {});
         ASSERT_EQ(1.0, cell.embedding().branch_length(0));
 
         {
@@ -238,7 +239,7 @@ TEST(cv_policy, max_extent) {
 
     // Cell with varying branch lengths; extent not exact fraction:
     {
-        cable_cell cell(m_mlt_b6);
+        cable_cell cell(m_mlt_b6, {});
         ASSERT_EQ(1.0, cell.embedding().branch_length(0));
         ASSERT_EQ(1.0, cell.embedding().branch_length(1));
         ASSERT_EQ(2.0, cell.embedding().branch_length(2));
@@ -285,7 +286,7 @@ TEST(cv_policy, every_segment) {
 
     // Including all samples:
     {
-        cable_cell cell(m);
+        cable_cell cell(m, {});
         cv_policy pol = cv_policy_every_segment();
 
         mlocation_list expected = {
@@ -298,7 +299,7 @@ TEST(cv_policy, every_segment) {
     }
     // Restricting to the two child branches (disconnected):
     {
-        cable_cell cell(m);
+        cable_cell cell(m, {});
         region reg = join(reg::branch(1), reg::branch(2));
         cv_policy pol = cv_policy_every_segment(reg);
 
@@ -321,7 +322,7 @@ TEST(cv_policy, domain) {
     region reg1 = join(reg::branch(1), reg::cable(2, 0, 0.5));
     region reg2 = join(reg::branch(1), reg::cable(2, 0.5, 1), reg::cable(4, 0, 1));
 
-    cable_cell cell(m_mlt_b6);
+    cable_cell cell(m_mlt_b6, {});
 
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_single(reg1).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_fixed_per_branch(3, reg1).domain()));
@@ -337,7 +338,7 @@ TEST(cv_policy, domain) {
 TEST(cv_policy, combinators) {
     auto unique_sum = [](auto... a) { return ls::support(sum(locset(a)...)); };
 
-    cable_cell cell(m_reg_b6);
+    cable_cell cell(m_reg_b6, {});
     auto eval_locset_eq = [&cell](const locset& a, const cv_policy& p) {
         return locset_eq(cell.provider(), a, p.cv_boundary_points(cell));
     };

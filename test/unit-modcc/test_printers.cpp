@@ -58,25 +58,30 @@ TEST(scalar_printer, constants) {
 
 TEST(scalar_printer, statement) {
     std::vector<testcase> testcases = {
-        {"y=x+3",            "y=x+3.0"},
-        {"y=y^z",            "y=pow(y,z)"},
-        {"y=exp((x/2) + 3)", "y=exp(x/2.0+3.0)"},
-        {"z=a/b/c",          "z=a/b/c"},
-        {"z=a/(b/c)",        "z=a/(b/c)"},
-        {"z=(a*b)/c",        "z=a*b/c"},
-        {"z=a-(b+c)",        "z=a-(b+c)"},
-        {"z=(a>0)<(b>0)",    "z=a>0.<(b>0.)"},
-        {"z=a- -2",          "z=a- -2.0"},
-        {"z=fabs(x-z)",      "z=abs(x-z)"},
-        {"z=min(x,y)",       "z=min(x,y)"},
-        {"z=min(max(a,b),y)","z=min(max(a,b),y)"},
+        {"y=x+3",                 "y=x+3.0"},
+        {"y=y^z",                 "y=pow(y,z)"},
+        {"y=exp((x/2) + 3)",      "y=exp(x/2.0+3.0)"},
+        {"z=a/b/c",               "z=a/b/c"},
+        {"z=a/(b/c)",             "z=a/(b/c)"},
+        {"z=(a*b)/c",             "z=a*b/c"},
+        {"z=a-(b+c)",             "z=a-(b+c)"},
+        {"z=(a>0)<(b>0)",         "z=a>0.<(b>0.)"},
+        {"z=a- -2",               "z=a- -2.0"},
+        {"z=fabs(x-z)",           "z=abs(x-z)"},
+        {"z=min(x,y)",            "z=min(x,y)"},
+        {"z=min(max(a,b),y)",     "z=min(max(a,b),y)"},
+        {"y=sqrt((x/2) + 3)",     "y=sqrt(x/2.0+3.0)"},
+        {"y=signum(c-theta)",     "y=((arb_value_type)((0.<(c-theta))-((c-theta)<0.)))"},
+        {"y=step_right(c-theta)", "y=((arb_value_type)((c-theta)>=0.))"},
+        {"y=step_left(c-theta)",  "y=((arb_value_type)((c-theta)>0.))"},
+        {"y=step(c-theta)",       "y=((arb_value_type)0.5*((0.<(c-theta))-((c-theta)<0.)+1))"},
     };
 
     // create a scope that contains the symbols used in the tests
     Scope<Symbol>::symbol_map globals;
     auto scope = std::make_shared<Scope<Symbol>>(globals);
 
-    for (auto var: {"x", "y", "z", "a", "b", "c"}) {
+    for (auto var: {"x", "y", "z", "a", "b", "c", "theta"}) {
         scope->add_local_symbol(var, make_symbol<LocalVariable>(Location(), var, localVariableKind::local));
     }
 
@@ -290,13 +295,19 @@ TEST(SimdPrinter, simd_if_else) {
             "indirect(_pp_var_s+i_, simd_width_) = S::where(S::logical_and(S::logical_not(mask_1_), mask_input_),simd_cast<simd_value>((double)42.0));\n"
             "indirect(_pp_var_s+i_, simd_width_) = S::where(mask_input_, u);"
             ,
+            "simd_value r_0_;"
             "simd_mask mask_2_ = S::cmp_gt(simd_cast<simd_value>(indirect(_pp_var_g+i_, simd_width_)), (double)2.0);\n"
             "simd_mask mask_3_ = S::cmp_gt(simd_cast<simd_value>(indirect(_pp_var_g+i_, simd_width_)), (double)3.0);\n"
             "S::where(S::logical_and(mask_2_,mask_3_),i) = (double)0.;\n"
             "S::where(S::logical_and(mask_2_,S::logical_not(mask_3_)),i) = (double)1.0;\n"
             "simd_mask mask_4_ = S::cmp_lt(simd_cast<simd_value>(indirect(_pp_var_g+i_, simd_width_)), (double)1.0);\n"
             "indirect(_pp_var_s+i_, simd_width_) = S::where(S::logical_and(S::logical_not(mask_2_),mask_4_),simd_cast<simd_value>((double)2.0));\n"
-            "rates(i_, S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)), i);"
+            // This is the inlined call rates(pp, i_, S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)), i);
+            "simd_maskmask_5_=S::cmp_gt(i,(double)2.0);"
+            "S::where(S::logical_and(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),mask_5_),r_0_)=(double)7.0;"
+            "S::where(S::logical_and(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),S::logical_not(mask_5_)),r_0_)=(double)5.0;"
+            "indirect(_pp_var_s+i_,simd_width_)=S::where(S::logical_and(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),S::logical_not(mask_5_)),simd_cast<simd_value>((double)42.0));"
+            "indirect(_pp_var_s+i_,simd_width_)=S::where(S::logical_and(S::logical_not(mask_2_),S::logical_not(mask_4_)),r_0_);"
     };
 
     Module m(io::read_all(DATADIR "/mod_files/test7.mod"), "test7.mod");

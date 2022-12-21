@@ -175,7 +175,7 @@ public:
         expression_ptr dlhs = std::move(result_);
 
         e->rhs()->accept(this);
-        result_ = make_expression<SubBinaryExpression>(loc, move(dlhs), result());
+        result_ = make_expression<SubBinaryExpression>(loc, std::move(dlhs), result());
     }
 
     void visit(MulBinaryExpression* e) override {
@@ -234,6 +234,43 @@ public:
                     std::move(dlhs))));
     }
 
+    void visit(SqrtUnaryExpression* e) override {
+        auto loc = e->location();
+        e->expression()->accept(this);
+        // d(sqrt(f(x)))/dx = 0.5*(f(x))^(-0.5)*d(f(x))/dx
+        result_ = make_expression<MulBinaryExpression>(loc,
+            make_expression<MulBinaryExpression>(loc,
+                make_expression<NumberExpression>(loc, 0.5),
+                make_expression<PowBinaryExpression>(loc,
+                    e->expression()->clone(),
+                    make_expression<NumberExpression>(loc, -0.5))),
+            result());
+    }
+
+    void visit(StepRightUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
+    void visit(StepLeftUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
+    void visit(StepUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
+    void visit(SignumUnaryExpression* e) override {
+        // ignore singularity
+        auto loc = e->location();
+        result_ = make_expression<IntegerExpression>(loc, 0);
+    }
+
     void visit(CallExpression* e) override {
         auto loc = e->location();
         result_ = make_expression<PDiffExpression>(loc,
@@ -263,7 +300,7 @@ private:
 };
 
 ARB_LIBMODCC_API double expr_value(Expression* e) {
-    return e && e->is_number()? e->is_number()->value(): NAN;
+    return e && e->is_number()? e->is_number()->value(): std::nan("");
 }
 
 class ConstantSimplifyVisitor: public Visitor {
@@ -370,6 +407,21 @@ public:
                 return;
             case tok::log:
                 as_number(loc, std::log(val));
+                return;
+            case tok::sqrt:
+                as_number(loc, std::sqrt(val));
+                return;
+            case tok::step_right:
+                as_number(loc, (val >= 0.));
+                return;
+            case tok::step_left:
+                as_number(loc, (val > 0.));
+                return;
+            case tok::step:
+                as_number(loc, 0.5*((0. < val) - (val < 0.) + 1));
+                return;
+            case tok::signum:
+                as_number(loc, (0. < val) - (val < 0.));
                 return;
             default: ; // treat opaquely as below
             }
@@ -483,24 +535,53 @@ public:
     void visit(PowBinaryExpression* e) override {
         auto loc = e->location();
         e->lhs()->accept(this);
-        expression_ptr lhs = result();
+        auto lhs = result();
         e->rhs()->accept(this);
-        expression_ptr rhs = result();
+        auto rhs = result();
+        auto lval = expr_value(lhs);
+        auto rval = expr_value(rhs);
+
+        auto rint  = std::nan("");
+        auto rfrac = std::modf(rval, &rint);
+
+        auto mk_f64 = [loc](double v) { return make_expression<NumberExpression>(loc, v); };
 
         if (is_number(lhs) && is_number(rhs)) {
-            as_number(loc, std::pow(expr_value(lhs),expr_value(rhs)));
+            as_number(loc, std::pow(lval, rval));
         }
-        else if (expr_value(lhs)==0) {
+        else if (lval == 0) {
             as_number(loc, 0);
         }
-        else if (expr_value(rhs)==0 || expr_value(lhs)==1) {
+        else if (lval == 1) {
             as_number(loc, 1);
         }
-        else if (expr_value(rhs)==1) {
-            result_ = std::move(lhs);
+        else if (rval == 0) {
+            as_number(loc, 1);
+        }
+        else if (rfrac == 0.0 && std::abs(rint) <= 5.0) { // NOTE somewhat arbitray cut-off; but in line with GCC AFAIR
+            result_ = lhs->clone();
+            for (int ix = 1; ix < std::abs(rint); ++ix) {
+                result_ = make_expression<MulBinaryExpression>(loc,
+                                                               lhs->clone(),
+                                                               std::move(result_));
+            }
+            if (rval < 0.0) {
+                result_ = make_expression<DivBinaryExpression>(loc,
+                                                               mk_f64(1.0),
+                                                               std::move(result_));
+            }
+        }
+        else if (lval < 0.0) {
+            result_ = make_expression<PowBinaryExpression>(loc,
+                                                           mk_f64(lval),
+                                                           std::move(rhs));
         }
         else {
-            result_ = make_expression<PowBinaryExpression>(loc, std::move(lhs), std::move(rhs));
+            result_ = make_expression<ExpUnaryExpression>(loc,
+                                                          make_expression<MulBinaryExpression>(loc,
+                                                                                               make_expression<LogUnaryExpression>(loc,
+                                                                                                                                   std::move(lhs)),
+                                                                                               std::move(rhs)));
         }
     }
 
@@ -682,7 +763,10 @@ ARB_LIBMODCC_API linear_test_result linear_test(Expression* e, const std::vector
             return res;
         }
         if (!coef) return linear_test_result{};
-        if (!is_zero(coef)) result.coef[id] = std::move(coef);
+        if (!is_zero(coef)){
+            result.coef[id] = std::move(coef);
+            result.is_constant = false;
+        }
         result.constant = substitute(result.constant, id, zero());
     }
 
@@ -714,4 +798,3 @@ done:
 
     return result;
 }
-

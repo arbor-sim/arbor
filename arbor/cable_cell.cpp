@@ -55,6 +55,9 @@ std::string show(const paintable& item) {
             else if constexpr (std::is_same_v<density, T>) {
                 os << "density:" << p.mech.name();
             }
+            else if constexpr (std::is_same_v<voltage_process, T>) {
+                os << "voltage-process:" << p.mech.name();
+            }
         },
         item);
     return os.str();
@@ -134,6 +137,10 @@ struct cable_cell_impl {
     template <typename T>
     mcable_map<T>& get_region_map(const T&) {
         return region_map.get<T>();
+    }
+
+    mcable_map<voltage_process>& get_region_map(const voltage_process& v) {
+        return region_map.get<voltage_process>()[v.mech.name()];
     }
 
     mcable_map<std::pair<density, iexpr_map>> &
@@ -222,7 +229,7 @@ void cable_cell_impl::init(const decor& d) {
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const label_dict& dictionary, const decor& decorations):
+cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
     impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
 {}
 

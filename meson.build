@@ -129,15 +129,17 @@ endif
 if arb_with_bundled_libs
   dep_libjson   = declare_dependency(include_directories: 'ext/json/single_include')
   dep_libfmt    = declare_dependency(include_directories: 'ext/fmt/include')
+  dep_random123 = declare_dependency(include_directories: 'ext/random123/include')
 else
   dep_libjson   = dependency('nlohmann_json', required : true)
   dep_libfmt    = dependency('fmt', required : true)
+  #dep_random123 = dependency('random123', required : true)
+  dep_random123 = declare_dependency(include_directories: '/home/bcumming/spack/opt/spack/linux-archrolling-x86_64_v4/gcc-12.2.0/random123-1.14.0-64ho7ztkgvxlzlas4kmzkqfjh2duw2ho/include')
 endif
 if arb_with_neuroml
   dep_libxml2 = dependency('libxml2', required: true)
 endif
 
-dep_random123 = declare_dependency(include_directories: 'ext/random123/include')
 dep_tinyopt   = declare_dependency(include_directories: 'ext/tinyopt/include')
 
 inc_arb_private = include_directories('arbor')

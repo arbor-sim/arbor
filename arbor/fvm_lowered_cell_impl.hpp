@@ -46,7 +46,11 @@ public:
     using index_type = arb_index_type;
     using size_type = arb_size_type;
 
-    fvm_lowered_cell_impl(execution_context ctx): context_(ctx), threshold_watcher_(ctx) {};
+    fvm_lowered_cell_impl(execution_context ctx, arb_seed_type seed = 0):
+        context_(ctx),
+        threshold_watcher_(ctx),
+        seed_{seed}
+    {};
 
     void reset() override;
 
@@ -94,9 +98,13 @@ private:
     value_type tmin_ = 0;
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
+    std::vector<mechanism_ptr> voltage_mechanisms_;
 
     // Optional non-physical voltage check threshold
     std::optional<double> check_voltage_mV_;
+
+    // random number generator seed value
+    arb_seed_type seed_;
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
@@ -159,6 +167,10 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
     set_tmin(0);
 
+    for (auto& m: voltage_mechanisms_) {
+        m->initialize();
+    }
+
     for (auto& m: revpot_mechanisms_) {
         m->initialize();
     }
@@ -178,6 +190,10 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     }
 
     for (auto& m: mechanisms_) {
+        m->initialize();
+    }
+
+    for (auto& m: voltage_mechanisms_) {
         m->initialize();
     }
 
@@ -216,7 +232,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // TODO: Consider devolving more of this to back-end routines (e.g.
     // per-compartment dt probably not a win on GPU), possibly rumbling
     // complete fvm state into shared state object.
-
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
 
@@ -280,20 +295,28 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->integrate_diffusion();
         PL();
 
-        // Integrate mechanism state.
-
+        // Integrate mechanism state for density
         for (auto& m: mechanisms_) {
+            state_->update_prng_state(*m);
             m->update_state();
         }
 
         // Update ion concentrations.
-
         PE(advance:integrate:ionupdate);
         update_ion_state();
         PL();
 
-        // Update time and test for spike threshold crossings.
+        // voltage mechs run now; after the cable_solver, but before the
+        // threshold test
+        for (auto& m: voltage_mechanisms_) {
+            m->update_current();
+        }
+        for (auto& m: voltage_mechanisms_) {
+            state_->update_prng_state(*m);
+            m->update_state();
+        }
 
+        // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
         threshold_watcher_.test(&state_->time_since_spike);
         PL();
@@ -485,6 +508,11 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         cv_to_cell = D.geometry.cv_to_cell;
     }
 
+    // map control volume ids to global cell ids
+    std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
+    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_gid.begin(),
+        [&gids](auto i){return gids[i]; });
+
     // Create shared cell state.
     // Shared state vectors should accommodate each mechanism's data alignment requests.
 
@@ -495,7 +523,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     state_ = std::make_unique<shared_state>(
                 nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
                 D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
-                data_alignment? data_alignment: 1u);
+                data_alignment? data_alignment: 1u, seed_);
 
     state_->solver =
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
@@ -533,10 +561,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
 
     unsigned mech_id = 0;
-    for (auto& m: mech_data.mechanisms) {
-        auto& name = m.first;
-        auto& config = m.second;
-
+    for (const auto& [name, config]: mech_data.mechanisms) {
         mechanism_layout layout;
         layout.cv = config.cv;
         layout.multiplicity = config.multiplicity;
@@ -550,14 +575,20 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         // contribution in the CV, and F is the scaling factor required
         // to convert from the mechanism current contribution units to A/m².
 
+        arb_size_type idx_offset = 0;
         switch (config.kind) {
         case arb_mechanism_kind_point:
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
+            layout.gid.resize(config.cv.size());
+            layout.idx.resize(layout.gid.size());
             for (auto i: count_along(config.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
+                layout.gid[i] = cv_to_gid[cv];
+                if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
+                layout.idx[i] = i - idx_offset;
 
                 if (config.target.empty()) continue;
 
@@ -581,11 +612,17 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
             break;
+        case arb_mechanism_kind_voltage:
         case arb_mechanism_kind_density:
             // Current density contributions from mechanism are already in [A/m²].
 
+            layout.gid.resize(layout.cv.size());
+            layout.idx.resize(layout.gid.size());
             for (auto i: count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
+                layout.gid[i] = cv_to_gid[i];
+                if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
+                layout.idx[i] = i - idx_offset;
             }
             break;
         case arb_mechanism_kind_reversal_potential:
@@ -594,19 +631,28 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             break;
         }
 
-        auto minst = mech_instance(name);
-        state_->instantiate(*minst.mech, mech_id++, minst.overrides, layout);
-        mechptr_by_name[name] = minst.mech.get();
+        auto [mech, over] = mech_instance(name);
+        state_->instantiate(*mech, mech_id, over, layout, config.param_values);
+        mechptr_by_name[name] = mech.get();
+        ++mech_id;
 
-        for (auto& pv: config.param_values) {
-            state_->set_parameter(*minst.mech, pv.first, pv.second);
-        }
-
-        if (config.kind==arb_mechanism_kind_reversal_potential) {
-            revpot_mechanisms_.emplace_back(minst.mech.release());
-        }
-        else {
-            mechanisms_.emplace_back(minst.mech.release());
+        switch (config.kind) {
+            case arb_mechanism_kind_gap_junction:
+            case arb_mechanism_kind_point:
+            case arb_mechanism_kind_density: {
+                mechanisms_.emplace_back(mech.release());
+                break;
+            }
+            case arb_mechanism_kind_reversal_potential: {
+                revpot_mechanisms_.emplace_back(mech.release());
+                break;
+            }
+            case arb_mechanism_kind_voltage: {
+                voltage_mechanisms_.emplace_back(mech.release());
+                break;
+            }
+            default:;
+                throw invalid_mechanism_kind(config.kind);
         }
     }
 

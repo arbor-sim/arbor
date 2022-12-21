@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "identifier.hpp"
 #include "location.hpp"
@@ -149,9 +150,22 @@ struct ParameterBlock {
     }
 };
 
-// information stored in a NEURON {} block in mod file
+// information stored in a ASSIGNED {} block in mod file
 struct AssignedBlock {
     std::vector<Id> parameters;
+
+    auto begin() -> decltype(parameters.begin()) {
+        return parameters.begin();
+    }
+    auto end() -> decltype(parameters.end()) {
+        return parameters.end();
+    }
+};
+
+// information stored in a WHITE_NOISE {} block in mod file
+struct WhiteNoiseBlock {
+    std::vector<Id> parameters;
+    std::map<std::string, unsigned int> used;
 
     auto begin() -> decltype(parameters.begin()) {
         return parameters.begin();
@@ -182,3 +196,5 @@ ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, UnitsBlock const& U)
 ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, ParameterBlock const& P);
 
 ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, AssignedBlock const& A);
+
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, WhiteNoiseBlock const& W);

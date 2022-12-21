@@ -11,6 +11,8 @@ inline std::string to_string(symbolKind k) {
             return std::string("indexed variable");
         case symbolKind::local_variable:
             return std::string("local");
+        case symbolKind::white_noise:
+            return std::string("white noise");
         case symbolKind::procedure:
             return std::string("procedure");
         case symbolKind::function:
@@ -73,6 +75,15 @@ std::string LocalVariable::to_string() const {
     if(is_indexed()) {
         s += " -> " + yellow(external_->name());
     }
+    return s;
+}
+
+/*******************************************************************************
+  WhiteNoise
+*******************************************************************************/
+
+std::string WhiteNoise::to_string() const {
+    std::string s = blue("White Noise") + " " + yellow(name());
     return s;
 }
 
@@ -1008,6 +1019,9 @@ void Symbol::accept(Visitor *v) {
 void LocalVariable::accept(Visitor *v) {
     v->visit(this);
 }
+void WhiteNoise::accept(Visitor *v) {
+    v->visit(this);
+}
 void IdentifierExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1095,6 +1109,21 @@ void CosUnaryExpression::accept(Visitor *v) {
 void SinUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void SqrtUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepRightUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepLeftUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void SignumUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void BinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1169,6 +1198,16 @@ ARB_LIBMODCC_API expression_ptr unary_expression( Location loc,
             return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
         case tok::safeinv :
             return make_expression<SafeInvUnaryExpression>(loc, std::move(e));
+        case tok::sqrt :
+            return make_expression<SqrtUnaryExpression>(loc, std::move(e));
+        case tok::step_right :
+            return make_expression<StepRightUnaryExpression>(loc, std::move(e));
+        case tok::step_left :
+            return make_expression<StepLeftUnaryExpression>(loc, std::move(e));
+        case tok::step :
+            return make_expression<StepUnaryExpression>(loc, std::move(e));
+        case tok::signum :
+            return make_expression<SignumUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"

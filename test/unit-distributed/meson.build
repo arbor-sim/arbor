@@ -16,7 +16,7 @@ unit_distributed_sources = [
 
 unit_local = executable('unit-local',
                    sources: unit_distributed_sources,
-                   dependencies: [dep_arb, dep_arborenv, dep_arborsup, dep_gtest, dep_tinyopt],
+                   dependencies: [dep_arb, dep_arborenv, dep_arborsup, dep_tinyopt, dep_gtest],
                    include_directories: [inc_arb_private, inc_arb_public],
                    cpp_args: ['-DTEST_LOCAL'] + arbor_private_args,
                    install: false,
@@ -25,7 +25,7 @@ unit_local = executable('unit-local',
 if arb_with_mpi
   unit_mpi = executable('unit-mpi',
                      sources: unit_distributed_sources,
-                     dependencies: [dep_arb, dep_arborenv, dep_arborsup, dep_gtest, dep_tinyopt],
+                     dependencies: [dep_arb, dep_arborenv, dep_arborsup, dep_tinyopt, dep_gtest],
                      include_directories: [inc_arb_private, inc_arb_public],
                      cpp_args: ['-DTEST_MPI'] + arbor_private_args,
                      install: false,

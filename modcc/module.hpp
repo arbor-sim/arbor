@@ -58,6 +58,9 @@ public:
     // Retrieve list of assigned variable ids.
     AssignedBlock const& assigned_block() const {return assigned_block_;}
 
+    // Retrieve list of white noise ids.
+    WhiteNoiseBlock const& white_noise_block() const {return white_noise_block_;}
+
     // Retrieve list of parameter variable ids.
     ParameterBlock const&  parameter_block()  const {return parameter_block_;}
 
@@ -70,6 +73,7 @@ public:
     void units_block(const UnitsBlock& u) { units_block_ = u; }
     void parameter_block(const ParameterBlock& p) { parameter_block_ = p; }
     void assigned_block(const AssignedBlock& a) { assigned_block_ = a; }
+    void white_noise_block(const WhiteNoiseBlock& w) { white_noise_block_ = w; }
 
     // Add global procedure or function, before semantic pass (called from Parser).
     void add_callable(symbol_ptr callable);
@@ -122,6 +126,7 @@ private:
     UnitsBlock units_block_;
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
+    WhiteNoiseBlock white_noise_block_;
     bool linear_;
     bool post_events_;
 
@@ -144,6 +149,9 @@ private:
         auto s = symbols_.find(name);
         return s == symbols_.end() ? false : s->second->kind() == kind;
     }
+
+    // Check requirements for membrane potential manipulation.
+    void check_voltage_mechanism();
 
     // Check requirements for reversal potential setters.
     void check_revpot_mechanism();

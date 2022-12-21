@@ -10,4 +10,3 @@ API
 ---
 
 * :ref:`Python <pybenchcell>`
-* :ref:`C++ <cppbenchcell>`

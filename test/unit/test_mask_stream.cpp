@@ -1,6 +1,6 @@
 #include <sstream>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <sup/ioutil.hpp>
 

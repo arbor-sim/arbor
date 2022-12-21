@@ -52,6 +52,7 @@ class ARB_LIBMODCC_API PostEventExpression;
 class ARB_LIBMODCC_API APIMethod;
 class ARB_LIBMODCC_API IndexedVariable;
 class ARB_LIBMODCC_API LocalVariable;
+class ARB_LIBMODCC_API WhiteNoise;
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
@@ -95,6 +96,7 @@ enum class symbolKind {
     variable,         ///< variable at module scope
     indexed_variable, ///< a variable that is indexed
     local_variable,   ///< variable at local scope
+    white_noise,      ///< white noise variable
 };
 std::string to_string(symbolKind k);
 
@@ -102,6 +104,7 @@ std::string to_string(symbolKind k);
 enum class solverMethod {
     cnexp, // for diagonal linear ODE systems.
     sparse, // for non-diagonal linear ODE systems.
+    stochastic, // for systems of SDEs
     none
 };
 
@@ -111,10 +114,11 @@ enum class solverVariant {
 };
 
 static std::string to_string(solverMethod m) {
-    switch(m) {
-        case solverMethod::cnexp:  return std::string("cnexp");
-        case solverMethod::sparse: return std::string("sparse");
-        case solverMethod::none:   return std::string("none");
+    switch (m) {
+        case solverMethod::cnexp:      return std::string("cnexp");
+        case solverMethod::sparse:     return std::string("sparse");
+        case solverMethod::stochastic: return std::string("stochastic");
+        case solverMethod::none:       return std::string("none");
     }
     return std::string("<error : undefined solverMethod>");
 }
@@ -254,6 +258,7 @@ public :
     virtual APIMethod*            is_api_method()        {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
+    virtual WhiteNoise*           is_white_noise()       {return nullptr;}
 
 private :
     std::string name_;
@@ -643,6 +648,26 @@ private :
     localVariableKind kind_;
 };
 
+class ARB_LIBMODCC_API WhiteNoise : public Symbol {
+public:
+    WhiteNoise(Location loc, std::string name)
+    :   Symbol(std::move(loc), std::move(name), symbolKind::white_noise)
+    {}
+    
+    ~WhiteNoise() {}
+
+    WhiteNoise* is_white_noise() override {return this; }
+
+    std::string to_string() const override;
+    void accept(Visitor *v) override;
+
+    unsigned int index() const noexcept { return index_; }
+
+    void set_index(unsigned int i) noexcept { index_ = i; }
+
+private:
+    unsigned int index_ = 0;
+};
 
 // a SOLVE statement
 class ARB_LIBMODCC_API SolveExpression : public Expression {
@@ -1308,6 +1333,66 @@ class ARB_LIBMODCC_API SinUnaryExpression : public UnaryExpression {
 public:
     SinUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::sin, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// sqrt unuary expression, i.e. sqrt(x)
+class ARB_LIBMODCC_API SqrtUnaryExpression : public UnaryExpression {
+public:
+    SqrtUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::sqrt, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// step_right unary expression,
+// i.e. step_right(x) = 0, for x < 0
+//                      1, otherwise
+class ARB_LIBMODCC_API StepRightUnaryExpression : public UnaryExpression {
+public:
+    StepRightUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::step_right, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// step_left unary expression,
+// i.e. step_left(x) = 0, for x <= 0
+//                     1, otherwise
+class ARB_LIBMODCC_API StepLeftUnaryExpression : public UnaryExpression {
+public:
+    StepLeftUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::step_left, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// step unary expression,
+// i.e. step(x) =   0, for x < 0
+//                  1, for x > 0
+//                0.5, otherwise
+class ARB_LIBMODCC_API StepUnaryExpression : public UnaryExpression {
+public:
+    StepUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::step, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// signum unary expression,
+// i.e. signum(x) = -1, for x < 0
+//                   0, for x = 0
+//                  +1, otherwise
+class ARB_LIBMODCC_API SignumUnaryExpression : public UnaryExpression {
+public:
+    SignumUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::signum, std::move(e))
     {}
 
     void accept(Visitor *v) override;

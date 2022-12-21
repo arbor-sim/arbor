@@ -19,7 +19,7 @@ TEST(Module, open) {
 
 TEST(Module, ion_deps) {
     Module m(io::read_all(DATADIR "/mod_files/test0.mod"), "test0.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
@@ -55,7 +55,7 @@ TEST(Module, ion_deps) {
 
 TEST(Module, identifiers) {
     Module m(io::read_all(DATADIR "/mod_files/test0.mod"), "test0.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
@@ -106,7 +106,7 @@ TEST(Module, linear_mechanisms) {
 TEST(Module, breakpoint) {
     // Test function call in BREAKPOINT block
     Module m(io::read_all(DATADIR "/mod_files/test8.mod"), "test8.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
@@ -116,7 +116,16 @@ TEST(Module, breakpoint) {
 
 TEST(Module, read_write_ion) {
     Module m(io::read_all(DATADIR "/mod_files/test-rw-ion.mod"), "test-rw-ion.mod");
-    EXPECT_NE(m.buffer().size(), 0);
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+    EXPECT_TRUE(m.semantic());
+}
+
+TEST(Module, v_process) {
+    Module m(io::read_all(DATADIR "/mod_files/test_v_process.mod"), "test_v_process.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
 
     Parser p(m, false);
     EXPECT_TRUE(p.parse());
@@ -128,7 +137,7 @@ TEST(Module, read_write_ion) {
 TEST(Module, solver_bug_1893) {
     {
         Module m(io::read_all(DATADIR "/mod_files/bug-1893.mod"), "bug-1893.mod");
-        EXPECT_NE(m.buffer().size(), 0);
+        EXPECT_NE(m.buffer().size(), 0u);
 
         Parser p(m, false);
         EXPECT_TRUE(p.parse());
@@ -136,10 +145,46 @@ TEST(Module, solver_bug_1893) {
     }
     {
         Module m(io::read_all(DATADIR "/mod_files/bug-1893-bad.mod"), "bug-1893.mod");
-        EXPECT_NE(m.buffer().size(), 0);
+        EXPECT_NE(m.buffer().size(), 0u);
 
         Parser p(m, false);
         EXPECT_TRUE(p.parse());
         EXPECT_FALSE(m.semantic());
     }
+}
+
+TEST(Module, stochastic_point) {
+    Module m(io::read_all(DATADIR "/mod_files/test9.mod"), "test9.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    auto const & wnb = m.white_noise_block();
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+
+    EXPECT_TRUE(m.semantic());
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 1u);
+}
+
+TEST(Module, stochastic_density) {
+    Module m(io::read_all(DATADIR "/mod_files/test10.mod"), "test10.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    auto const & wnb = m.white_noise_block();
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+
+    EXPECT_TRUE(m.semantic());
+
+    EXPECT_EQ(wnb.parameters.size(), 2u);
+    EXPECT_EQ(wnb.used.size(), 2u);
 }

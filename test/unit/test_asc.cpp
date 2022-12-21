@@ -7,7 +7,7 @@
 
 #include <arborio/neurolucida.hpp>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "arbor/arbexcept.hpp"
 
 TEST(asc, file_not_found) {

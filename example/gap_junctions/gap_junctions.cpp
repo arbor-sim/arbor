@@ -298,7 +298,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     }
 
     // Create the cell and set its electrical properties.
-    return arb::cable_cell(tree, {}, decor);
+    return arb::cable_cell(tree, decor);
 }
 
 gap_params read_options(int argc, char** argv) {

@@ -60,6 +60,7 @@ struct namespace_declaration_close {
 inline const char* module_kind_str(const Module& m) {
     switch (m.kind()) {
     case moduleKind::density:   return "arb_mechanism_kind_density";
+    case moduleKind::voltage:   return "arb_mechanism_kind_voltage";
     case moduleKind::point:     return "arb_mechanism_kind_point";
     case moduleKind::revpot:    return "arb_mechanism_kind_reversal_potential";
     case moduleKind::junction:  return "arb_mechanism_kind_gap_junction";
@@ -96,6 +97,7 @@ struct public_variable_ids_t {
     std::vector<Id> state_ids;
     std::vector<Id> global_parameter_ids;
     std::vector<Id> range_parameter_ids;
+    std::vector<std::pair<Id,unsigned int>> white_noise_ids;
 };
 
 // Public module variables by role.

@@ -39,15 +39,19 @@ set(test_mechanisms
     write_eX
     write_multiple_eX
     write_Xi_Xo
+    mean_reverting_stochastic_process
+    mean_reverting_stochastic_process2
+    mean_reverting_stochastic_density_process
+    mean_reverting_stochastic_density_process2
+    stochastic_volatility
 )
 
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
-make_catalogue(
+make_catalogue_lib(
     NAME    testing
     MOD     ${test_mechanisms}
-    VERBOSE ${ARB_CAT_VERBOSE}
-    ADD_DEPS OFF)
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 # Unit test sources
 
@@ -112,11 +116,13 @@ set(unit_sources
     test_piecewise.cpp
     test_pp_util.cpp
     test_probe.cpp
+    test_rand.cpp
     test_range.cpp
     test_recipe.cpp
     test_ratelem.cpp
     test_schedule.cpp
     test_scope_exit.cpp
+    test_sde.cpp
     test_segment_tree.cpp
     test_simd.cpp
     test_simulation.cpp
@@ -138,6 +144,7 @@ set(unit_sources
     test_unique_any.cpp
     test_vector.cpp
     test_version.cpp
+    test_v_clamp.cpp
 
     # unit test driver
     test.cpp
@@ -146,6 +153,9 @@ set(unit_sources
     mech_private_field_access.cpp
     stats.cpp
     unit_test_catalogue.cpp
+
+    # neuroml
+    test_nml_morphology.cpp
 )
 
 if(ARB_WITH_GPU)
@@ -163,19 +173,13 @@ if(ARB_WITH_GPU)
     )
 endif()
 
-if(ARB_WITH_NEUROML)
-    list(APPEND unit_sources test_nml_morphology.cpp)
-endif()
-
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
-    set_source_files_properties(${test_mech_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
-add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${catalogue-testing-mechanisms})
-add_dependencies(unit catalogue-testing-target)
+add_executable(unit EXCLUDE_FROM_ALL ${unit_sources})
+target_link_libraries(unit PRIVATE catalogue-testing)
 add_dependencies(tests unit)
-
 
 make_catalogue_standalone(
     NAME dummy
@@ -185,42 +189,12 @@ make_catalogue_standalone(
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
     VERBOSE ON)
 
-if(ARB_WITH_NVCC)
-    target_compile_options(dummy-catalogue PRIVATE -DARB_CUDA)
-endif()
-
-if(ARB_WITH_CUDA_CLANG)
-    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-
-if(ARB_WITH_HIP_CLANG)
-    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
+target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
 
-if(ARB_WITH_GPU)
-  target_compile_definitions(unit PRIVATE ARB_GPU_ENABLED)
-endif()
-
-if(ARB_WITH_NVCC)
-    target_compile_options(unit PRIVATE -DARB_CUDA)
-endif()
-
-if(ARB_WITH_CUDA_CLANG)
-    set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-
-if(ARB_WITH_HIP_CLANG)
-    set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
-    target_compile_options(unit PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
-endif()
-
-target_compile_options(unit PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
+target_link_libraries(unit PRIVATE arbor-private-deps)
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
-target_link_libraries(unit PRIVATE gtest arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE ext-gtest ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

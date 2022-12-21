@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>

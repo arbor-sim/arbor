@@ -129,6 +129,8 @@ Unsupported features
 * ``LOCAL`` variables outside blocks are not supported.
 * ``INDEPENDENT`` variables are not supported.
 
+.. _arbornmodl:
+
 Arbor-specific features
 -----------------------
 
@@ -157,6 +159,99 @@ Arbor-specific features
   of a gap-junction connection as well as the local site. The peer membrane potential is
   made available through the ``v_peer`` variable while the local membrane potential
   is available through ``v``, as usual.
+* Arbor offers a number of additional unary math functions which may offer improved performance
+  compared to hand-rolled solutions (especially with the vectorized and GPU backends).
+  All of the following functions take a single argument `x` and return a
+  floating point value.
+
+  ==================  ========================================  =========
+  Function name       Description                               Semantics
+  ==================  ========================================  =========
+  sqrt(x)             square root                               :math:`\sqrt{x}`
+  step_right(x)       right-continuous heaviside step           :math:`\begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  step_left(x)        left-continuous heaviside step            :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  step(x)             heaviside step with half value            :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{if} ~x \lt 0, \\ 0.5 & ~~ \text{otherwise}. \end{align*}`
+  signum(x)           sign of argument                          :math:`\begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+  exprelr(x)          smooth continuation over :math:`x=0` of   :math:`x/(1 - e^{-x})`
+  ==================  ========================================  =========
+  
+Voltage Processes
+-----------------
+
+Some cases require direct manipulation of the membrane voltage ``v``; which is
+normally prohibited and for good reason so. For these limited application,
+however, we offer mechanisms that are similar to ``density`` mechanism, but are
+tagged with ``VOLTAGE_PROCESS`` where normally ``SUFFIX`` would be used.
+
+This is both a very sharp tool and a somewhat experimental feature. Depending on
+our experience, it might be changed or removed. Using a ``VOLTAGE_PROCESS``,
+voltage clamping and limiting can be implemented, c.f. relevant examples in the
+``default`` catalogue. Example: limiting membrane voltage from above and below
+
+.. code:: none
+
+    NEURON {
+        VOLTAGE_PROCESS v_limit
+        GLOBAL v_low, v_high
+    }
+
+    PARAMETER {
+        v_high =  20 (mV)
+        v_low  = -70 (mV)
+    }
+
+    BREAKPOINT {
+         v = max(min(v, v_high), v_low)
+    }
+
+As of the current implementation, we note the following details and constraints
+
+* only the ``INITIAL`` and ``BREAKPOINT`` procedures are called.
+* no ``WRITE`` access to ionic quantities is allowed.
+* only one ``VOLTAGE_PROCESS`` maybe present on a single location, adding more
+  results in an exception.
+* the ``BREAKPOINT`` callback will execute _after_ the cable solver. A
+  consequence of this is that if the initial membrane potential :math:`V_0` is
+  unequal to that of a potentially applied voltage clamp :math:`V_c`, the first
+  timestep will observe :math:`V_0`.
+
+.. _format-sde:
+
+Stochastic Processes
+--------------------
+
+Arbor supports :ref:`stochastic processes <mechanisms-sde>` in the form of stochastic differential
+equations. The *white noise* sources can be defined in the model files using a ``WHITE_NOISE`` block:
+
+.. code:: none
+
+   WHITE_NOISE {
+       a b 
+       c
+   }
+
+Arbitrary white noise variables can be declared (``a, b, c`` in the example above). The
+noise will be appropriately scaled with the numerical time step and can be considered unitless. In
+order to influence the white noise generation, a seed value can be set at the level of the
+simulation through the optional constructor argument ``seed``
+(see :ref:`here <pysimulation>` or :ref:`here <cppsimulation>`).
+
+If the state is updated by involving at least one of the declared white noise variables
+the system is considered to be stochastic:
+
+.. code:: none
+
+   DERIVATIVE state {
+       s' = f + g*a
+   }
+
+The solver method must then accordingly set to ``stochastic``:
+
+.. code:: none
+
+   BREAKPOINT {
+       SOLVE state METHOD stochastic
+   }
 
 Nernst
 ------
@@ -335,21 +430,67 @@ Note that we do not lose accuracy here, since Arbor does not support
 higher-order ODEs and thus will treat ``g`` as a constant across
 a single timestep even if ``g`` actually depends on ``v``.
 
-Specialised Functions
-~~~~~~~~~~~~~~~~~~~~~
+Using Memory versus Computation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Another common pattern is the use of a guarded exponential of the form
+Commonly ion channels need to correct for temperature differences, which yields
+a term similar to
 
 .. code::
 
-   if (x != 1) {
-     r = x*exp(1 - x)
-   } else {
-     r = x
+   q = 3^(0.1*celsius - 0.63)
+
+Here, we find that the cost of the exponential when computing ``q`` in the
+``DERIVATIVE`` block is high enough to make pre-computing ``q`` in ``INITIAL``
+and loading the value later an optimisation. Shown below is a simplified version
+of this pattern from ``hh.mod`` in the Arbor sources
+
+.. code::
+
+   NEURON {
+     ...
+     RANGE ..., q
    }
 
-This incurs some extra cost on most platforms. However, it can be written in
-Arbor's NMODL dialect as
+   ASSIGNED { q }
+
+   PARAMETER {
+       ...
+       celsius (degC)
+   }
+
+   STATE { ... }
+
+   BREAKPOINT {
+       SOLVE dS METHOD cnexp
+       ...
+   }
+
+   INITIAL {
+      q = 3^(0.1*celsius - 0.63)
+      ...
+   }
+
+   DERIVATIVE states {
+      ... : uses q
+   }
+
+Specialised Functions
+~~~~~~~~~~~~~~~~~~~~~
+
+Some extra cost can be saved by choosing Arbor-specific optimized math functions instead of
+hand-rolled versions. Please consult the table in :ref:`this section <arbornmodl>`.
+A common pattern is the use of a guarded exponential of the form
+
+.. code::
+
+   if (x != 0) {
+     r = a*x/(exp(-x) - 1)
+   } else {
+     r = a
+   }
+
+However, it can be written in Arbor's NMODL dialect as
 
 .. code::
 

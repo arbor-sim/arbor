@@ -103,6 +103,9 @@ bool Parser::parse() {
         case tok::assigned:
             parse_assigned_block();
             break;
+        case tok::white_noise:
+            parse_white_noise_block();
+            break;
         // INITIAL, KINETIC, DERIVATIVE, PROCEDURE, NET_RECEIVE and BREAKPOINT blocks
         // are all lowered to ProcedureExpression
         case tok::net_receive:
@@ -233,17 +236,19 @@ void Parser::parse_neuron_block() {
 
         case tok::suffix:
         case tok::point_process:
+        case tok::voltage_process:
         case tok::junction_process:
             neuron_block.kind = (token_.type == tok::suffix) ? moduleKind::density :
+                                (token_.type == tok::voltage_process) ? moduleKind::voltage :
                                 (token_.type == tok::point_process) ? moduleKind::point : moduleKind::junction;
 
-            // set the modul kind
+            // set the module kind
             module_->kind(neuron_block.kind);
 
             get_token(); // consume SUFFIX / POINT_PROCESS
             // assert that a valid name for the Neuron has been specified
             if (token_.type != tok::identifier) {
-                error(pprintf("invalid name for SUFFIX, found '%'", token_.spelling));
+                error(pprintf("invalid name for mechanism, found '%'", token_.spelling));
                 return;
             }
             neuron_block.name = token_.spelling;
@@ -661,6 +666,66 @@ ass_exit:
     // only write error message if one hasn't already been logged by the lexer
     if (!success && status_ == lexerStatus::happy) {
         error(pprintf("ASSIGNED block unexpected symbol '%'", token_.spelling));
+    }
+    return;
+}
+
+void Parser::parse_white_noise_block() {
+    WhiteNoiseBlock block;
+
+    get_token();
+
+    // assert that the block starts with a curly brace
+    if (token_.type != tok::lbrace) {
+        error(pprintf("WHITE_NOISE block must start with a curly brace {, found '%'", token_.spelling));
+        return;
+    }
+
+    int success = 1;
+
+    // there are no use cases for curly brace in an WHITE_NOISE block, so we don't have to count them
+    get_token();
+    while (token_.type != tok::rbrace && token_.type != tok::eof) {
+        int line = location_.line;
+        std::vector<Token> variables; // we can have more than one variable on a line
+
+        // the first token must be ...
+        if (token_.type != tok::identifier) {
+            success = 0;
+            goto wn_exit;
+        }
+        // read all of the identifiers until we run out of identifiers or reach a new line
+        while (token_.type == tok::identifier && line == location_.line) {
+            variables.push_back(token_);
+            get_token();
+        }
+
+        // there must be no paramters at the end of the line
+        if (line == location_.line && token_.type == tok::lparen) {
+            success = 0;
+            goto wn_exit;
+        }
+        else {
+            for (auto const& t: variables) {
+                block.parameters.push_back(Id(t, "", {}));
+            }
+        }
+    }
+
+    // error if EOF before closing curly brace
+    if (token_.type == tok::eof) {
+        error("WHITE_NOISE block must have closing '}'");
+        goto wn_exit;
+    }
+
+    get_token(); // consume closing brace
+
+    module_->white_noise_block(block);
+
+wn_exit:
+    // only write error message if one hasn't already been logged by the lexer
+    if (!success && status_ == lexerStatus::happy) {
+        error(pprintf("WHITE_NOISE block unexpected symbol '%'", token_.spelling));
     }
     return;
 }
@@ -1383,6 +1448,11 @@ expression_ptr Parser::parse_unaryop() {
     case tok::abs:
     case tok::safeinv:
     case tok::exprelr:
+    case tok::sqrt:
+    case tok::step_right:
+    case tok::step_left:
+    case tok::step:
+    case tok::signum:
         get_token(); // consume operator (exp, sin, cos or log)
         if (token_.type != tok::lparen) {
             error("missing parenthesis after call to " + yellow(op.spelling));
@@ -1590,6 +1660,9 @@ expression_ptr Parser::parse_solve() {
             break;
         case tok::sparse:
             method = solverMethod::sparse;
+            break;
+        case tok::stochastic:
+            method = solverMethod::stochastic;
             break;
         default:
             goto solve_statement_error;

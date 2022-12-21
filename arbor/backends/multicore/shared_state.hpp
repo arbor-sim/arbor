@@ -14,6 +14,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/rand_fwd.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
@@ -122,11 +123,17 @@ struct ARB_ARBOR_API shared_state {
     struct mech_storage {
         array data_;
         iarray indices_;
+        std::size_t value_width_padded;
         constraint_partition constraints_;
         std::vector<arb_value_type>  globals_;
         std::vector<arb_value_type*> parameters_;
         std::vector<arb_value_type*> state_vars_;
         std::vector<arb_ion_state>   ion_states_;
+
+        std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
+        std::vector<arb_size_type> gid_;
+        std::vector<arb_size_type> idx_;
+        cbprng::counter_type random_number_update_counter_ = 0u;
     };
 
     cable_solver solver;
@@ -155,6 +162,8 @@ struct ARB_ARBOR_API shared_state {
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
 
+    arb_seed_type cbprng_seed; // random number generator seed
+
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
@@ -172,12 +181,17 @@ struct ARB_ARBOR_API shared_state {
         const std::vector<arb_value_type>& temperature_K,
         const std::vector<arb_value_type>& diam,
         const std::vector<arb_index_type>& src_to_spike,
-        unsigned align
+        unsigned align,
+        arb_seed_type cbprng_seed_ = 0u
     );
 
-    void instantiate(mechanism&, unsigned, const mechanism_overrides&, const mechanism_layout&);
+    void instantiate(mechanism&,
+                     unsigned,
+                     const mechanism_overrides&,
+                     const mechanism_layout&,
+                     const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
 
-    void set_parameter(mechanism&, const std::string&, const std::vector<arb_value_type>&);
+    void update_prng_state(mechanism&);
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 

@@ -27,7 +27,6 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_GPU_ENABLED``
     * ``ARB_VECTORIZE``
     * ``ARB_WITH_PROFILING``
-    * ``ARB_WITH_NEUROML``
     * ``ARB_USE_BUNDLED_LIBS``
     * ``ARB_VERSION``
     * ``ARB_ARCH``
@@ -39,7 +38,7 @@ Helper functions for checking cmake or environment variables, as well as configu
             import arbor
             arbor.config()
 
-            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'neuroml': True, 'bundled': True, 'version': '0.5.3-dev', 'arch': 'native'}
+            {'mpi': True, 'mpi4py': True, 'gpu': False, 'vectorize': True, 'profiling': True, 'bundled': True, 'version': '0.5.3-dev', 'arch': 'native'}
 
 .. function:: mpi_init()
 
@@ -51,14 +50,14 @@ Helper functions for checking cmake or environment variables, as well as configu
 
 .. class:: mpi_comm
 
-    .. function:: mpi_comm()
+    .. method:: mpi_comm()
 
         By default sets MPI_COMM_WORLD as communicator.
 
-    .. function:: mpi_comm(object)
+    .. method:: mpi_comm(object)
         :noindex:
 
-        Converts a Python object to an MPI Communicator.
+        :param object: Converts a Python object to an MPI Communicator.
 
 .. function:: mpi_finalize()
 
@@ -67,6 +66,7 @@ Helper functions for checking cmake or environment variables, as well as configu
 .. function:: mpi_is_finalized()
 
     Check if MPI is finalized.
+    :rtype: bool
 
 Env: Helper functions
 ---------------------
@@ -97,13 +97,15 @@ The Python wrapper provides an API for:
     Enumerates the computational resources on a node to be used for a simulation,
     specifically the number of threads and identifier of a GPU if available.
 
-    .. function:: proc_allocation([threads=1, gpu_id=None])
+    .. method:: proc_allocation([threads=1, gpu_id=None])
 
-        Constructor that sets the number of :attr:`threads` and the id :attr:`gpu_id` of the available GPU.
+        :param int threads: Number of threads.
+        :param int gpu_id: Device ID.
 
     .. attribute:: threads
 
         The number of CPU threads available, 1 by default. Must be set to 1 at minimum.
+
     .. attribute:: gpu_id
 
         The identifier of the GPU to use.
@@ -115,7 +117,7 @@ The Python wrapper provides an API for:
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
 
-    .. cpp:function:: has_gpu()
+    .. method:: has_gpu()
 
         Indicates whether a GPU is selected (i.e., whether :attr:`gpu_id` is ``None``).
 
@@ -145,43 +147,37 @@ The Python wrapper provides an API for:
     provided by :class:`context`, instead they configure contexts, which are passed to
     Arbor interfaces for domain decomposition and simulation.
 
-    .. function:: context(threads, gpu_id, mpi)
-        :noindex:
+    .. method:: context(threads, gpu_id, mpi)
+        
+        Create a distributed context.
 
-        Create a context that uses a set number of :attr:`threads` and gpu identifier :attr:`gpu_id` and MPI communicator :attr:`mpi` for distributed calculation.
-
-        .. attribute:: threads
-
-            The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.
-            Passing ``"avail_threads"`` (as string) will query and use the maximum number of threads the system makes available.
-
-        .. attribute:: gpu_id
-
-            The identifier of the GPU to use, ``None`` by default.
-            Must be ``None``, or a non-negative integer.
+        :param int threads:
+            The number of threads available locally for execution.
+            Must be set to 1 at minimum. 1 by default.
+            Passing ``"avail_threads"`` (as string) will query and use the maximum number
+            of threads the system makes available.
+        :param int gpu_id:
+            The non-negative identifier of the GPU to use, ``None`` by default.
             Can only be set when Arbor was built with GPU support.
-
-        .. attribute:: mpi
-
-            The MPI communicator (see :class:`mpi_comm`), ``None`` by default.
-            Must be ``None``, or an MPI communicator.
+        :type gpu_id: int or None
+        :param mpi:
+            The MPI communicator, ``None`` by default for distributed calculation.
             Can only be set when Arbor was built with MPI support.
+        :type mpi: :py:class:`arbor.mpi_comm` or None.
 
     .. function:: context(alloc, mpi)
         :noindex:
 
-        Create a distributed context, that uses the local resources described by :class:`proc_allocation`, and
-        uses the MPI communicator for distributed calculation.
+        Create a distributed context.
 
-        .. attribute:: alloc
-
+        :param alloc:
             The computational resources, one thread and no GPU by default.
-
-        .. attribute:: mpi
-
-            The MPI communicator (see :class:`mpi_comm`). ``None`` by default.
-            mpi must be ``None``, or an MPI communicator.
+        :type alloc: :py:class:`proc_allocation`
+        :param mpi:
+            The MPI communicator, ``None`` by default for distributed calculation.
             Can only be set when Arbor was built with MPI support.
+        :type mpi: :py:class:`arbor.mpi_comm` or None.
+
 
     Contexts can be queried for information about which features a context has enabled,
     whether it has a GPU, how many threads are in its thread pool.

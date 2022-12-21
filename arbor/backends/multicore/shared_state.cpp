@@ -16,6 +16,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -203,7 +204,8 @@ shared_state::shared_state(
     const std::vector<arb_value_type>& temperature_K,
     const std::vector<arb_value_type>& diam,
     const std::vector<arb_index_type>& src_to_spike,
-    unsigned align
+    unsigned align,
+    arb_seed_type cbprng_seed_
 ):
     alignment(min_alignment(align)),
     alloc(alignment),
@@ -224,6 +226,7 @@ shared_state::shared_state(
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
+    cbprng_seed(cbprng_seed_),
     deliverable_events(n_intdom)
 {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
@@ -243,20 +246,19 @@ shared_state::shared_state(
 }
 
 void shared_state::integrate_voltage() {
-    solver.assemble(dt_intdom, voltage, current_density, conductivity);
-    solver.solve(voltage);
+    solver.solve(voltage, dt_intdom, current_density, conductivity);
 }
 
 void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
-            data.solver->assemble(dt_intdom,
-                                  data.Xd_,
-                                  voltage,
-                                  data.iX_,
-                                  data.gX_,
-                                  data.charge[0]);
-            data.solver->solve(data.Xd_);
+            data.solver->solve(data.Xd_,
+                               dt_intdom,
+                               voltage,
+                               data.iX_,
+                               data.gX_,
+                               data.charge[0]);
+
         }
     }
 }
@@ -435,27 +437,6 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 }
 } // anonymous namespace
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
-
-    bool found = false;
-    arb_value_type* data = nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
-        if (key==m.mech_.parameters[i].name) {
-            data = m.ppack_.parameters[i];
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
-
-    if (!m.ppack_.width) return;
-
-    auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);
-    copy_extend(values, util::range_n(data, width_padded), values.back());
-}
-
 const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
     for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
         if (key==m.mech_.state_vars[i].name) {
@@ -463,6 +444,31 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
         }
     }
     return nullptr;
+}
+
+void shared_state::update_prng_state(mechanism& m) {
+    if (!m.mech_.n_random_variables) return;
+    const auto mech_id = m.mechanism_id();
+    auto& store = storage[mech_id];
+    const auto counter = store.random_number_update_counter_++;
+    const auto cache_idx = cbprng::cache_index(counter);
+
+    m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
+
+    if (cache_idx == 0) {
+        // Generate random numbers every cbprng::cache_size() iterations:
+        // For each random variable we will generate cbprng::cache_size() values per site
+        // and there are width sites.
+        // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
+        // current site's global cell, the site index within its cell and a counter representing
+        // time.
+        const auto num_rv = store.random_numbers_[cache_idx].size();
+        const auto width_padded = store.value_width_padded;
+        const auto width = m.ppack_.width;
+        arb_value_type* dst = store.random_numbers_[0][0];
+        generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter,
+            store.gid_.data(), store.idx_.data());
+    }
 }
 
 // The derived class (typically generated code from modcc) holds pointers that need
@@ -481,7 +487,11 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
 // * For indices in the padded tail of node_index_, set index to last valid CV index.
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+void shared_state::instantiate(arb::mechanism& m,
+                               unsigned id,
+                               const mechanism_overrides& overrides,
+                               const mechanism_layout& pos_data,
+                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.
@@ -491,9 +501,14 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     util::padded_allocator<> pad(m.data_alignment());
 
+    if (storage.find(id) != storage.end()) {
+        throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
+    }
+    auto& store = storage[id];
+    auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
-    m.ppack_.width            = pos_data.cv.size();
+    m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
     m.ppack_.vec_di           = cv_to_intdom.data();
@@ -510,8 +525,9 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
 
-    if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage[id];
+    // store indices for random number generation
+    store.gid_ = pos_data.gid;
+    store.idx_ = pos_data.idx;
 
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
@@ -538,21 +554,43 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     // Initialize state and parameter vectors with default values.
     {
+        // Allocate view pointers for random nubers
+        std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
+        std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
+        for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+        m.ppack_.random_numbers = store.random_numbers_[0].data();
+
         // Allocate bulk storage
         std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*value_width_padded + m.mech_.n_globals;
+        store.value_width_padded = value_width_padded;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
+            random_number_storage)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
         chunk_writer writer(store.data_.data(), value_width_padded);
 
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append(pos_data.weight, 0);
-        // Set fields
+        // Set parameters: either default, or explicit override
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            m.ppack_.parameters[idx] = writer.fill(m.mech_.parameters[idx].default_value);
+            const auto& param = m.mech_.parameters[idx];
+            const auto& it = std::find_if(params.begin(), params.end(),
+                                          [&](const auto& k) { return k.first == param.name; });
+            if (it != params.end()) {
+                if (it->second.size() != width) throw arbor_internal_error("mechanism field size mismatch");
+                m.ppack_.parameters[idx] = writer.append(it->second, param.default_value);
+            }
+            else {
+                m.ppack_.parameters[idx] = writer.fill(param.default_value);
+            }
         }
+        // Set initial state values
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
+        // Set random numbers
+        for (auto idx_v: make_span(num_random_numbers_per_cv))
+            for (auto idx_c: make_span(cbprng::cache_size()))
+                store.random_numbers_[idx_c][idx_v] = writer.fill(0);
 
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;

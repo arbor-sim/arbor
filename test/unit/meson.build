@@ -136,7 +136,7 @@ unit = executable('unit',
                   include_directories: [inc_arb_public, inc_arb_private, inc_arborio_private],
                   cpp_args: arbor_private_args + arbor_unit_defines,
                   cuda_args: arbor_cuda_private_args,
-                  dependencies: [dep_arb, dep_arborio, dep_arborsup, dep_arborenv, dep_gtest, dep_arb_internal],
+                  dependencies: [dep_arb, dep_arborio, dep_arborsup, dep_arborenv, dep_arb_internal, dep_gtest],
                   link_with: [dummy_catalogue],
                   build_by_default: false,
                   install: false)
