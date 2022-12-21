@@ -168,7 +168,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         "using ::std::abs;\n"
         "using ::std::cos;\n"
         "using ::std::exp;\n"
-        "using ::std::log;\n"
         "using ::std::max;\n"
         "using ::std::min;\n"
         "using ::std::pow;\n"
@@ -222,10 +221,15 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
             "    S::where(mask, x) = simd_cast<simd_value>(DBL_EPSILON);\n"
             "    return S::div(ones, x);\n"
             "}\n"
+            "\n"
+            "inline simd_value log(const simd_value& v) { return S::log(v); }\n"
+            "inline simd_value log(arb_value_type v) { return S::log(S::simd_cast<simd_value>(v)); }\n"
             "\n";
     } else {
        out << "static constexpr unsigned simd_width_ = 1;\n"
-              "static constexpr unsigned min_align_ = std::max(alignof(arb_value_type), alignof(arb_index_type));\n\n";
+              "static constexpr unsigned min_align_ = std::max(alignof(arb_value_type), alignof(arb_index_type));\n"
+              "using ::std::log;\n"
+              "\n";
     }
 
     // Make implementations

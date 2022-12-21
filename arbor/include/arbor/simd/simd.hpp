@@ -46,24 +46,24 @@ typename detail::simd_impl<Impl>::scalar_type sum(const detail::simd_impl<Impl>&
     return a.sum();
 };
 
-#define ARB_UNARY_ARITHMETIC_(name)\
-template <typename Impl>\
-detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a) {\
-    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_));\
+#define ARB_UNARY_ARITHMETIC_(name)                                     \
+template <typename Impl>                                                \
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a) {        \
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_));         \
 };
 
-#define ARB_BINARY_ARITHMETIC_(name)\
-template <typename Impl>\
-detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, detail::simd_impl<Impl> b) {\
-    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, b.value_));\
-};\
-template <typename Impl>\
-detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, typename detail::simd_impl<Impl>::scalar_type b) {\
-    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, Impl::broadcast(b)));\
-};\
-template <typename Impl>\
-detail::simd_impl<Impl> name(const typename detail::simd_impl<Impl>::scalar_type a, detail::simd_impl<Impl> b) {\
-    return detail::simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), b.value_));\
+#define ARB_BINARY_ARITHMETIC_(name)                                                                              \
+template <typename Impl>                                                                                          \
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, detail::simd_impl<Impl> b) {                       \
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, b.value_));                                         \
+};                                                                                                                \
+template <typename Impl>                                                                                          \
+detail::simd_impl<Impl> name(const detail::simd_impl<Impl>& a, typename detail::simd_impl<Impl>::scalar_type b) { \
+    return detail::simd_impl<Impl>::wrap(Impl::name(a.value_, Impl::broadcast(b)));                               \
+};                                                                                                                \
+template <typename Impl>                                                                                          \
+detail::simd_impl<Impl> name(const typename detail::simd_impl<Impl>::scalar_type a, detail::simd_impl<Impl> b) {  \
+    return detail::simd_impl<Impl>::wrap(Impl::name(Impl::broadcast(a), b.value_));                               \
 };
 
 #define ARB_BINARY_COMPARISON_(name)\
@@ -661,9 +661,11 @@ namespace detail {
 
         // Maths functions are implemented as top-level functions; declare as friends for access to `wrap`
 
-        #define ARB_DECLARE_UNARY_ARITHMETIC_(name)\
-        template <typename T>\
-        friend simd_impl<T> arb::simd::name(const simd_impl<T>& a);
+        #define ARB_DECLARE_UNARY_ARITHMETIC_(name)                 \
+        template <typename T>                                       \
+        friend simd_impl<T> arb::simd::name(const simd_impl<T>& a); \
+        template <typename T>                                       \
+        friend simd_impl<T> arb::simd::name(const typename simd_impl<T>::scalar_type a);
 
         #define ARB_DECLARE_BINARY_ARITHMETIC_(name)\
         template <typename T>\

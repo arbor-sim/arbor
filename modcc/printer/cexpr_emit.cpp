@@ -214,7 +214,7 @@ void SimdExprEmitter::visit(UnaryExpression* e) {
         {tok::exp,        "S::exp"},
         {tok::cos,        "S::cos"},
         {tok::sin,        "S::sin"},
-        {tok::log,        "S::log"},
+        {tok::log,        "log"}, // We use an overload to upcast scalars here.
         {tok::abs,        "S::abs"},
         {tok::exprelr,    "S::exprelr"},
         {tok::safeinv,    "safeinv"},
