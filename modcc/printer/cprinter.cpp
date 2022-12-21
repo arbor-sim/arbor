@@ -328,7 +328,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                        "        auto end    = stream_ptr->events + stream_ptr->end[c];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            auto i_     = p->mech_index;\n"
-                                       "            auto {1} = p->weight;\n"
+                                       "            [[maybe_unused]] auto {1} = p->weight;\n"
                                        "            if (p->mech_id=={0}mechanism_id) {{\n"),
                            pp_var_pfx,
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
