@@ -1,4 +1,4 @@
-name: Arbor on Wheels
+name: Produce Arbor release artifacts
 
 on:
   push:
