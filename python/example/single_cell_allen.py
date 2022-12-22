@@ -153,7 +153,9 @@ df_list.append(
     )
 )
 df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", errorbar=None)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", errorbar=None
+)
 plt.scatter(
     model.spikes, [-40] * len(model.spikes), color=seaborn.color_palette()[2], zorder=20
 )

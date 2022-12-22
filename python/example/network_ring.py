@@ -152,6 +152,6 @@ for gid in range(ncells):
     )
 
 df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None).savefig(
-    "network_ring_result.svg"
-)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None
+).savefig("network_ring_result.svg")

@@ -129,5 +129,11 @@ for i in range(len(data)):
     )
 df = pandas.concat(df_list, ignore_index=True)
 seaborn.relplot(
-    data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", errorbar=None
+    data=df,
+    kind="line",
+    x="t/ms",
+    y="U/mV",
+    hue="Location",
+    col="Variable",
+    errorbar=None,
 ).savefig("single_cell_bluepyopt_l5pc_bAP_dend1.svg")
