@@ -119,6 +119,8 @@ Release
 Post Release
 ------------
 
+#. Place the Github generated release notes in ``CHANGELOG``.
+
 #. Start a new release on Zenodo, this allocated a DOI, but you don't have to finish it right away. Add new Zenodo badge/link to docs/README.
 
 #. Update Zenodo with authors and changelog created in previous step and submit.
