@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# This script is included in documentation. Adapt line numbers if touched.
 
 import arbor
 import pandas  # You may have to pip install these.
@@ -45,9 +44,8 @@ else:
 
 # (9) Plot the recorded voltages over time.
 print("Plotting results ...")
-seaborn.set_theme()  # Apply some styling to the plot
 df = pandas.DataFrame({"t/ms": m.traces[0].time, "U/mV": m.traces[0].value})
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", errorbar=None).savefig(
     "v-clamp.svg"
 )
 

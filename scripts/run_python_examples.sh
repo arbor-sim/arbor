@@ -10,7 +10,7 @@ fi
 
 PREFIX=${1:-}
 
-$PREFIX python3 -m pip install -r python/example/example_requirements.txt
+$PREFIX python3 -m pip install -r python/example/example_requirements.txt -U
 
 runpyex () {
   echo "=== Executing $1 ======================================"

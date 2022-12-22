@@ -222,7 +222,7 @@ if __name__ == "__main__":
         )
 
     df = pandas.concat(df_list, ignore_index=True)
-    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Probe", ci=None).set(
+    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Probe", errorbar=None).set(
         xlim=(9, 14)
     ).savefig("single_cell_cable_result.svg")
 
