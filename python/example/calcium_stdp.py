@@ -224,9 +224,8 @@ ref = numpy.array(
 )
 df_ref = pandas.DataFrame({"ds": ref[:, 1], "ms": ref[:, 0], "type": "Reference"})
 
-seaborn.set_theme()
-df = pandas.concat(results)
-df = pandas.concat([df, df_ref])
+df = pandas.concat(results, ignore_index=True)
+df = pandas.concat([df, df_ref], ignore_index=True)
 plt = seaborn.relplot(kind="line", data=df, x="ms", y="ds", hue="type")
 plt.set_xlabels("lag time difference (ms)")
 plt.set_ylabels("change in synaptic strenght (after/before)")
