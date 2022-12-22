@@ -2,7 +2,7 @@
 
 ** 2022 12 20 **
 
-A 🎄 holiday release! Not much has changes in a month, but we'd like to share it all the same. Notably, the [Arbor GUI](https://github.com/arbor-sim/gui/) [is co-released](https://github.com/arbor-sim/gui/releases/tag/v0.8) as of Arbor v0.8, and v0.8.1 will be no different.
+A 🎄 holiday release! Not much has changed in a month, but we'd like to share it all the same. Notably, the [Arbor GUI](https://github.com/arbor-sim/gui/) [is co-released](https://github.com/arbor-sim/gui/releases/tag/v0.8) as of Arbor v0.8, and v0.8.1 will be no different.
 
 ## Major new features
 
