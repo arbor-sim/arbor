@@ -48,8 +48,8 @@ print("Plotting results ...")
 seaborn.set_theme()  # Apply some styling to the plot
 df = pandas.DataFrame({"t/ms": m.traces[0].time, "U/mV": m.traces[0].value})
 seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
-    "single_cell_model_result.svg"
+    "v-clamp.svg"
 )
 
 # (10) Optionally, you can store your results for later processing.
-df.to_csv("single_cell_model_result.csv", float_format="%g")
+df.to_csv("v-clamp.csv", float_format="%g")
