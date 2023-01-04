@@ -70,7 +70,7 @@ public:
     cell_size_type num_cells() const override { return num_cells_; }
     cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-    return complex_cell(gid, params_.cell);
+        return complex_cell(gid, params_.cell);
     }
 
     // Each cell has one incoming connection, from cell with gid-1,
