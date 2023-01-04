@@ -1,3 +1,29 @@
+# v0.8.1
+
+** 2022 12 20 **
+
+A 🎄 holiday release! Not much has changed in a month, but we'd like to share it all the same. Notably, the [Arbor GUI](https://github.com/arbor-sim/gui/) [is co-released](https://github.com/arbor-sim/gui/releases/tag/v0.8) as of Arbor v0.8, and v0.8.1 will be no different.
+
+## Major new features
+
+- Voltage Processes: add the VOLTAGE_PROCESS mechanism kind to modcc, allowing for direct writing to the membrane voltage (#2033)
+- Spack gpu option: added conditional variant for cuda builds to enable GPU-based random number generation (#2043) 
+- SDE Tutorial (#2044) 
+
+## Breaking changes since v0.7
+
+- None 💃!
+
+## Bug fixed
+
+- Fix ornstein_uhlenbeck example on gpu (#2039)
+- Setting ARB_MODCC was broken and nunfunctional. Fixed. (#2029)
+- The `--cxx` flag in `arbor-build-catalogue` is now properly used; falls back to `c++`. (#2051)
+
+## Full commit log
+
+...
+
 # v0.8
 
 ** 2022 11 15 **

@@ -183,7 +183,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     # plot the membrane potentials of the two cells as function of time
-    seaborn.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", ci=None)
+    seaborn.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 
     # area of cells
     area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6

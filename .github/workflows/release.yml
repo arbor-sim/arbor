@@ -1,5 +1,4 @@
-
-name: Arbor on Wheels
+name: Produce Arbor release artifacts
 
 on:
   push:
@@ -107,3 +106,30 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_SECRET }}
+
+  make_release:
+    name: draft new GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-20.04
+    needs: [build_binary_wheels, build_sdist]
+    steps:
+      - name: "Clone w/ submodules"
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: "recursive"
+          path: arbor
+      - name: Make full tarball
+        run: |
+          the_ref=${{ github.ref }}
+          the_tag="${the_ref/refs\/tags\//}"
+          $GITHUB_WORKSPACE/arbor/scripts/create_tarball $GITHUB_WORKSPACE/arbor $the_tag $GITHUB_WORKSPACE/arbor-$the_tag-full.tar.gz
+      - name: "Make Release"
+        uses: ncipollo/release-action@v1
+        with:
+          omitBody: false
+          draft: true
+          prerelease: false
+          generateReleaseNotes: true
+          artifacts: '*.whl,*full.tar.gz'
+          token: ${{ secrets.GITHUB_TOKEN }}

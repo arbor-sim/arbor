@@ -235,7 +235,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "        auto end   = stream.events + stream.end[tid_];\n"
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            auto tid_ = p->mech_index;\n"
-                                       "            auto {0} = p->weight;\n"),
+                                       "            [[maybe_unused]] auto {0} = p->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
         emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
