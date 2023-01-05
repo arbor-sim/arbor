@@ -6,8 +6,8 @@ Arbor
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
 
-.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml
+.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/release.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/release.yml
 
 .. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
     :target: https://gitter.im/arbor-sim/community
