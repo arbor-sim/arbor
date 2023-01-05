@@ -1,6 +1,6 @@
 # v0.8.1
 
-** 2022 12 20 **
+** 2022 12 22 **
 
 A 🎄 holiday release! Not much has changed in a month, but we'd like to share it all the same. Notably, the [Arbor GUI](https://github.com/arbor-sim/gui/) [is co-released](https://github.com/arbor-sim/gui/releases/tag/v0.8) as of Arbor v0.8, and v0.8.1 will be no different.
 
@@ -22,7 +22,24 @@ A 🎄 holiday release! Not much has changed in a month, but we'd like to share 
 
 ## Full commit log
 
-...
+* Post release: add Zenodo entry, add Spack entry, update docs and scripts by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2036
+* BUGFIX: add ARB_CUDA flag to example catalogue by @boeschf in https://github.com/arbor-sim/arbor/pull/2039
+* Additional builtin functions to Arbor's NMODL dialect by @boeschf in https://github.com/arbor-sim/arbor/pull/2035
+* Throw better errors when we cannot look up ion diffusivity by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2040
+* ⚡ Voltage Processes by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2033
+* simplify make catalogue by @boeschf in https://github.com/arbor-sim/arbor/pull/2042
+* spack gpu option by @boeschf in https://github.com/arbor-sim/arbor/pull/2043
+* Remove deprecated spike_detector. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2041
+* make ARB_MODCC functional again by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2029
+* Yank v0.5 from Spack file, it does not build due to change in setting arch by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2037
+* Use pugixml instead of libxml2 by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2048
+* [BUGFIX] a-b-c: actually set compiler, improved default by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2051
+* Sde Tutorial by @boeschf in https://github.com/arbor-sim/arbor/pull/2044
+* Set Python to known version for all CI workflows by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2058
+* consistent mechanism ids by @boeschf in https://github.com/arbor-sim/arbor/pull/2057
+* Fix docs about exprelr. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2064
+* Allow __ in profiler names. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2065
+* CI fixes for wheel building, prep for musllinux, Spack by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2069
 
 # v0.8
 

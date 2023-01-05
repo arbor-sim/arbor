@@ -152,7 +152,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_ASSERTIONS=ON
-          ninja -j4 tests examples pyarb html
+          ninja -j4 tests examples pyarb
           cd -
       - if:   ${{ matrix.variant == 'shared' }}
         name: Build arbor
@@ -161,7 +161,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_ASSERTIONS=ON -DBUILD_SHARED_LIBS=ON
-          ninja -j4 tests examples pyarb html
+          ninja -j4 tests examples pyarb
           cd -
       - name: Install arbor
         run: |
@@ -224,3 +224,34 @@ jobs:
         run: python -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
+  testdocs:
+    name: "Docs build test"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        python-version: [3.7]
+    steps:
+      - name: Set up cmake
+        uses: jwlawson/actions-setup-cmake@v1.13
+        with:
+          cmake-version: ${{ matrix.config.cmake }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Clone w/ submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Python packages
+        run: python3 -m pip install -r doc/requirements.txt -U
+      - name: Build Arbor Docs
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_USE_BUNDLED_LIBS=ON
+          make html
+        
