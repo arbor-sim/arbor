@@ -154,7 +154,7 @@ Then, we extract Arbor's output, accessible after the simulation ran at
   The careful observer notices that this trace does not match the experimental data shown on the Allen website
   (or in the ``488683423.nwb`` file). Sweep 35 clearly has 5 spikes, not 4. That is because in the Allen SDK,
   the axon in the ``swc`` file is replaced with a stub, see
-  `here <https://www.biorxiv.org/content/10.1101/2020.04.09.030239v1.full>`_ and `here <https://github.com/AllenInstitute/AllenSDK/issues/1683>`_.
+  `this paper <https://www.biorxiv.org/content/10.1101/2020.04.09.030239v1.full>`_ and `this AllenSDK Issue <https://github.com/AllenInstitute/AllenSDK/issues/1683>`_.
   However, that adapted morphology is not exportable back to a modified ``swc`` file. When we tried to mimic
   the procedure, we did not obtain the experimental trace.
 
