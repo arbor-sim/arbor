@@ -68,7 +68,10 @@ void CExprEmitter::visit(UnaryExpression* e) {
         {tok::step_right, "step_right"},
         {tok::step_left,  "step_left"},
         {tok::step,       "step"},
-        {tok::signum,     "signum"}
+        {tok::signum,     "signum"},
+        {tok::tanh,       "tanh"},
+        {tok::sigmoid,    "sigmoid"},
+        {tok::relu,       "relu"}
     };
 
     if (!unaryop_tbl.count(e->op())) {
@@ -108,6 +111,15 @@ void CExprEmitter::visit(UnaryExpression* e) {
         out_ << "))-((";
         inner->accept(this);
         out_ << ")<0.)))";
+    }
+    else if (e->op()==tok::relu) {
+        out_ << "max(0.0, ("; inner->accept(this); out_ << "))";
+    }
+    else if (e->op()==tok::sigmoid) {
+        out_ << "1.0/(1.0 + exp(-("; inner->accept(this); out_ << ")))";
+    }
+    else if (e->op()==tok::tanh) {
+        out_ << "tanh("; inner->accept(this); out_ << ")";
     }
     else {
         emit_as_call(op_spelling, inner);
@@ -222,7 +234,10 @@ void SimdExprEmitter::visit(UnaryExpression* e) {
         {tok::step_right, "S::step_right"},
         {tok::step_left,  "S::step_left"},
         {tok::step,       "S::step"},
-        {tok::signum,     "S::signum"}
+        {tok::signum,     "S::signum"},
+        {tok::sigmoid,    "S::sigmoid"},
+        {tok::relu,       "S::relu"},
+        {tok::tanh,       "S::tanh"}
     };
 
     if (!unaryop_tbl.count(e->op())) {

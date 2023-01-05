@@ -82,6 +82,9 @@ static Keyword keywords[] = {
     {"step_right",          tok::step_right},
     {"step_left",           tok::step_left},
     {"step",                tok::step},
+    {"tanh",                tok::tanh},
+    {"sigmoid",             tok::sigmoid},
+    {"relu",                tok::relu},
     {"signum",              tok::signum},
     {nullptr,               tok::reserved},
 };
@@ -168,6 +171,9 @@ static TokenString token_strings[] = {
     {"step_right",          tok::step_right},
     {"step_left",           tok::step_left},
     {"step",                tok::step},
+    {"tanh",                tok::tanh},
+    {"sigmoid",             tok::sigmoid},
+    {"relu",                tok::relu},
     {"signum",              tok::signum},
     {"error",               tok::reserved},
 };
