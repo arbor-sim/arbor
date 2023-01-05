@@ -1398,6 +1398,33 @@ public:
     void accept(Visitor *v) override;
 };
 
+class ARB_LIBMODCC_API TanHUnaryExpression : public UnaryExpression {
+public:
+    TanHUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::tanh, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+class ARB_LIBMODCC_API SigmoidUnaryExpression : public UnaryExpression {
+public:
+    SigmoidUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::sigmoid, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+class ARB_LIBMODCC_API ReLuUnaryExpression : public UnaryExpression {
+public:
+    ReLuUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::relu, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
 ////////////////////////////////////////////////////////////
 // binary expressions
 

@@ -53,6 +53,9 @@ public:
     virtual void visit(StepRightUnaryExpression *e) { visit((UnaryExpression*) e); }
     virtual void visit(StepLeftUnaryExpression *e)  { visit((UnaryExpression*) e); }
     virtual void visit(StepUnaryExpression *e)      { visit((UnaryExpression*) e); }
+    virtual void visit(SigmoidUnaryExpression *e)   { visit((UnaryExpression*) e); }
+    virtual void visit(ReLuUnaryExpression *e)      { visit((UnaryExpression*) e); }
+    virtual void visit(TanHUnaryExpression *e)      { visit((UnaryExpression*) e); }
     virtual void visit(SignumUnaryExpression *e)    { visit((UnaryExpression*) e); }
 
     virtual void visit(BinaryExpression *e) = 0;

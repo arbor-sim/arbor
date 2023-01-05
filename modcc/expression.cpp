@@ -1121,6 +1121,15 @@ void StepLeftUnaryExpression::accept(Visitor *v) {
 void StepUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void ReLuUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void TanHUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void SigmoidUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void SignumUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1208,6 +1217,12 @@ ARB_LIBMODCC_API expression_ptr unary_expression( Location loc,
             return make_expression<StepUnaryExpression>(loc, std::move(e));
         case tok::signum :
             return make_expression<SignumUnaryExpression>(loc, std::move(e));
+        case tok::sigmoid :
+            return make_expression<SigmoidUnaryExpression>(loc, std::move(e));
+        case tok::relu :
+            return make_expression<ReLuUnaryExpression>(loc, std::move(e));
+        case tok::tanh :
+            return make_expression<TanHUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"
