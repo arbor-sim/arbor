@@ -426,7 +426,7 @@ bool Module::semantic() {
         // Calculate linearity, homogeneity and stochasticity of the statements in the derivative block.
         bool linear = true;
         bool homogeneous = true;
-        bool needs_substitution = false;
+        std::vector<expression_ptr> substitution;
         for (auto& s: solve_body->is_block()->statements()) {
             // loop over declared white noise variables
             if (!white_noise_vars.empty()) {
@@ -447,8 +447,9 @@ bool Module::semantic() {
             }
             if(s->is_assignment() && !state_vars.empty()) {
                 linear_test_result r = linear_test(s->is_assignment()->rhs(), state_vars);
-                if (!s->is_assignment()->lhs()->is_derivative() && !r.is_constant)
-                    needs_substitution = true;
+                if (!s->is_assignment()->lhs()->is_derivative() && !r.is_constant) {
+                    substitution.push_back(s->clone());
+                }
                 linear &= r.is_linear;
                 homogeneous &= r.is_homogeneous;
             }
@@ -472,8 +473,9 @@ bool Module::semantic() {
         std::unique_ptr<SolverVisitorBase> solver;
         switch(solve_expression->method()) {
         case solverMethod::cnexp:
-            if (needs_substitution)
-                warning("Assignments to local variables containing state variables will not be integrated in time");
+            for (const auto& s: substitution) {
+                warning("Assignments to local variable containing state variables will not be integrated in time: " + s->to_string(), s->location());
+            }
             solver = std::make_unique<CnexpSolverVisitor>();
             break;
         case solverMethod::sparse: {

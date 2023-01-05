@@ -131,7 +131,7 @@
         <div class="header-title-wrap">
             <a class="header-title" href="{{ pathto(master_doc) }}">{{ project }}</a>{% if READTHEDOCS %} v: {{ current_version }}{% endif %}
         </div>
-        <a class="logo-link" target="_blank" href="{{ pathto(master_doc) }}"><img src="{{ pathto('_static/' + logo, 1) }}" class="logo" alt="{{ project }}"/></a>
+        <a class="logo-link" target="_blank" href="{{ pathto(master_doc) }}"><img src="{{ pathto(logo_url,1) }}" class="logo" alt="{{ project }}"/></a>
     </div>
 
           {% include "breadcrumbs.html" %}
