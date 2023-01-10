@@ -228,18 +228,28 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         out << fmt::format(FMT_COMPILE("__global__\n"
                                        "void apply_events(arb_mechanism_ppack params_, arb_deliverable_event_stream stream) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
+                                       "    auto target_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
                                        "    const auto n = stream.n_streams;\n"
-                                       "    if (tid_<n) {{\n"
-                                       "        auto begin = stream.events + stream.begin[tid_];\n"
-                                       "        auto end   = stream.events + stream.end[tid_];\n"
-                                       "        for (auto p = begin; p<end; ++p) {{\n"
+                                       "    if (target_<n) {{\n"
+                                       "        const auto* times_ = stream.times;\n"
+                                       "        const auto t_start_ = stream.t_start;\n"
+                                       "        const auto t_end_ = stream.t_end;\n"
+                                       "        const auto first_ = stream.begin[target_];\n"
+                                       "        const auto last_  = stream.end[target_];\n"
+                                       "        unsigned shift_ = 0;\n"
+                                       "        for (auto ii_ = first_; ii_ < last_; ++ii_) {{\n"
+                                       "            if (times_[ii_] > t_end_) break;\n"
+                                       "            ++shift_;\n"
+                                       "            if (times_[ii_] <= t_start_) continue;\n"
+                                       "            const auto p = stream.events + ii_;\n"
                                        "            auto tid_ = p->mech_index;\n"
                                        "            [[maybe_unused]] auto {0} = p->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
         emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
-        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
+        out << popindent << "}\n";
+        out << "stream.begin[target_] += shift_;\n";
+        out << popindent << "}\n" << popindent << "}\n";
     }
 
     // event delivery

@@ -11,11 +11,14 @@ template <typename EvData>
 struct multi_event_stream_state {
     using value_type = EvData;
 
-    const arb_size_type n;                // number of streams
-    const arb_size_type m;                // total number of marked elements
-    const value_type* ev_data;            // array of event data items
-    const arb_size_type* begin_offset;    // array of offsets to beginning of marked events
-    const arb_size_type* end_offset;      // array of offsets to end of marked events
+    arb_size_type            n;            // number of streams
+    arb_size_type            m;            // total number of marked elements
+    const value_type*        ev_data;      // array of event data items
+    /*const*/ arb_size_type* begin_offset; // array of offsets to beginning of marked events
+    const arb_size_type*     end_offset;   // array of offsets to end of marked events
+    const double*            times;        // array of event times
+    double                   t_start;      // start time of interval (exclusive)
+    double                   t_end;        // end time of interval (inclusive)
 
     arb_size_type n_streams() const {
         return n;

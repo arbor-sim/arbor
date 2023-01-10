@@ -17,32 +17,28 @@ public:
     void init(const std::vector<Event>& staged) {
         base::init(staged);
         device_ev_data_ = memory::on_gpu(base::ev_data_);
+        device_ev_time_ = memory::on_gpu(base::ev_time_);
         device_span_begin_ = memory::on_gpu(base::span_begin_);
-        device_span_end_ = memory::on_gpu(base::span_end_);
+        std::vector<size_type> tmp(base::offsets_.begin()+1, base::offsets_.end());
+        device_span_end_ = memory::on_gpu(tmp);
     }
 
-    void mark_until_after(arb_value_type t_until) {
-        base::mark_until_after(t_until);
-        device_span_end_ = memory::on_gpu(base::span_end_);
-    }
-
-    void drop_marked_events() {
-        base::drop_marked_events();
-        device_span_begin_ = memory::on_gpu(base::span_begin_);
-    }
-
-    state marked_events() const {
+    state marked_events() /*const*/ {
         return {
             base::n_streams(),
             base::n_marked(),
             device_ev_data_.data(),
             device_span_begin_.data(),
-            device_span_end_.data()
+            device_span_end_.data(),
+            device_ev_time_.data(),
+            base::t_start_,
+            base::t_end_
         };
     }
 
 private:
     memory::device_vector<event_data_type> device_ev_data_;
+    memory::device_vector<double> device_ev_time_;
     memory::device_vector<size_type> device_span_begin_;
     memory::device_vector<size_type> device_span_end_;
 };

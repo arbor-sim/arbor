@@ -233,7 +233,10 @@ void shared_state::deliver_events(mechanism& m) {
                 es_state.n_streams(),
                 es_state.ev_data,
                 es_state.begin_offset,
-                es_state.end_offset};
+                es_state.end_offset,
+                es_state.times,
+                es_state.t_start,
+                es_state.t_end};
             m.deliver_events(ess);
         }
         deliverable_events.drop_marked_events();

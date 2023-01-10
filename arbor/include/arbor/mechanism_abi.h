@@ -76,8 +76,11 @@ typedef struct arb_deliverable_event_data {
 typedef struct arb_deliverable_event_stream {
     arb_size_type                     n_streams; // Number of streams.
     const arb_deliverable_event_data* events;    // Array of event data items.
-    const arb_size_type*              begin;     // Array of offsets to beginning of marked events.
+    /*const*/ arb_size_type*          begin;     // Array of offsets to beginning of marked events.
     const arb_size_type*              end;       // Array of offsets to end of marked events.
+    const double*                     times;
+    double                            t_start;
+    double                            t_end;
 }  arb_deliverable_event_stream;
 
 // Constraints for use in SIMD implementations, see there.

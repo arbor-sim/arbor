@@ -6,6 +6,7 @@
 #include <ostream>
 #include <utility>
 #include <vector>
+#include <type_traits>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -30,6 +31,8 @@ public:
     using event_time_type = ::arb::event_time_type<Event>;
     using event_data_type = ::arb::event_data_type<Event>;
     using event_index_type = ::arb::event_index_type<Event>;
+    static_assert(std::is_convertible<event_time_type, double>::value,
+        "event time type needs to be convertible to double");
 
     using state = multi_event_stream_state<event_data_type>;
 
@@ -52,6 +55,8 @@ public:
         offsets_.clear();
         remaining_ = 0;
         marked_ = 0;
+        t_start_ = -1;
+        t_end_ = -1;
     }
 
     // Initialize event streams from a vector of events, sorted by index and then by time.
@@ -97,6 +102,8 @@ public:
     // Designate for processing events `ev` at head of each event stream
     // until `event_time(ev)` > `t_until`.
     void mark_until_after(arb_value_type t_until) {
+        arb_assert(t_until > t_end_);
+        t_end_ = t_until;
         for (size_type i=0; i<n_streams(); ++i) {
             const size_type end = offsets_[i+1];
             while (span_end_[i]!=end && ev_time_[span_end_[i]]<=t_until) {
@@ -108,6 +115,7 @@ public:
 
     // Remove marked events from front of each event stream.
     void drop_marked_events() {
+        t_start_ = t_end_;
         for (size_type i=0; i<n_streams(); ++i) {
             span_begin_[i] = span_end_[i];
         }
@@ -116,8 +124,17 @@ public:
     }
 
     // Interface for access to marked events by mechanisms/kernels:
-    state marked_events() const {
-        return {n_streams(), n_marked(), ev_data_.data(), span_begin_.data(), span_end_.data()};
+    state marked_events() /*const*/ {
+        return {
+            n_streams(),
+            n_marked(),
+            ev_data_.data(),
+            span_begin_.data(),
+            span_end_.data(),
+            ev_time_.data(),
+            t_start_,
+            t_end_
+        };
     }
 
     friend std::ostream& operator<<(std::ostream& out, const multi_event_stream<Event>& m) {
@@ -144,7 +161,7 @@ public:
     }
 
 protected:
-    std::vector<event_time_type> ev_time_;
+    std::vector<double> ev_time_;
     std::vector<event_index_type> ev_index_;
     std::vector<event_data_type> ev_data_;
     std::vector<size_type> span_begin_;
@@ -152,6 +169,8 @@ protected:
     std::vector<size_type> offsets_;
     size_type remaining_ = 0;
     size_type marked_ = 0;
+    double t_start_ = -1;
+    double t_end_ = -1;
 };
 
 } // namespace arb
