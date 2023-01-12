@@ -306,35 +306,72 @@ const std::vector<std::string>& profiler::regions() const {
     return region_names_;
 }
 
-void print(std::ostream& o,
-           profile_node& n,
-           float wall_time,
-           unsigned nthreads,
-           float thresh,
-           std::string indent="")
-{
+struct prof_line {
+    std::string name;
+    std::string count;
+    std::string time;
+    std::string thread;
+    std::string percent;
+};
+
+void print_lines(std::vector<prof_line>& lines,
+                 profile_node& n,
+                 float wall_time,
+                 unsigned nthreads,
+                 float thresh,
+                 std::string indent) {
     static char buf[80];
 
-    auto name = indent + n.name;
     float per_thread_time = n.time/nthreads;
     float proportion = n.time/wall_time*100;
 
     // If the percentage of overall time for this region is below the
     // threashold, stop drawing this branch.
-    if (proportion<thresh) return;
+    if (proportion < thresh) return;
 
-    if (n.count==profile_node::npos) {
-        snprintf(buf, std::size(buf), "_p_ %-20s%12s%12.3f%12.3f%8.1f",
-               name.c_str(), "-", float(n.time), per_thread_time, proportion);
-    }
-    else {
-        snprintf(buf, std::size(buf), "_p_ %-20s%12lu%12.3f%12.3f%8.1f",
-               name.c_str(), n.count, float(n.time), per_thread_time, proportion);
-    }
-    o << "\n" << buf;
-
+    prof_line res;
+    res.name =  indent + n.name;
+    res.count = (n.count==profile_node::npos) ? "-" : std::to_string(n.count);
+    snprintf(buf, std::size(buf), "%12.3f", float(n.time));
+    res.time = buf;
+    snprintf(buf, std::size(buf), "%12.3f", float(per_thread_time));
+    res.thread = buf;
+    snprintf(buf, std::size(buf), "%8.1f", float(proportion));
+    res.percent = buf;
+    lines.push_back(res);
     // print each of the children in turn
-    for (auto& c: n.children) print(o, c, wall_time, nthreads, thresh, indent+"  ");
+    for (auto& c: n.children) print_lines(lines, c, wall_time, nthreads, thresh, indent + "  ");
+};
+
+void print(std::ostream& os,
+           profile_node& n,
+           float wall_time,
+           unsigned nthreads,
+           float thresh) {
+    std::vector<prof_line> lines{{"REGION", "CALLS", "THREAD", "WALL", "\%"}};
+    print_lines(lines, n, wall_time, nthreads, thresh, "");
+    // fixing up lengths here
+    std::size_t max_len_name = 0;
+    std::size_t max_len_count = 0;
+    std::size_t max_len_thread = 0;
+    std::size_t max_len_time = 0;
+    std::size_t max_len_percent = 0;
+    for (const auto& line: lines) {
+        max_len_name = std::max(max_len_name, line.name.size());
+        max_len_count = std::max(max_len_count, line.count.size());
+        max_len_time = std::max(max_len_time, line.time.size());
+        max_len_thread = std::max(max_len_thread, line.thread.size());
+        max_len_percent = std::max(max_len_percent, line.percent.size());
+    }
+
+    auto pad = [](const std::string& s, std::size_t n) { return std::string(n - s.size() + 4, ' '); };
+
+    for (const auto& line: lines) os << line.name << pad(line.name, max_len_name)
+                                     << line.count << pad(line.count, max_len_count)
+                                     << line.thread << pad(line.thread, max_len_thread)
+                                     << line.time << pad(line.time, max_len_time)
+                                     << line.percent
+                                     << '\n';
 };
 
 //
@@ -362,13 +399,8 @@ ARB_ARBOR_API void profiler_initialize(context ctx) {
 
 // Print profiler statistics to an ostream
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile& prof) {
-    char buf[80];
-
     auto tree = make_profile_tree(prof);
-
-    snprintf(buf, std::size(buf), "_p_ %-20s%12s%12s%12s%8s", "REGION", "CALLS", "THREAD", "WALL", "\%");
-    o << buf;
-    print(o, tree, tree.time, prof.num_threads, 0, "");
+    print(o, tree, tree.time, prof.num_threads, 0);
     return o;
 }
 
@@ -376,6 +408,13 @@ ARB_ARBOR_API profile profiler_summary() {
     return profiler::get_global_profiler().results();
 }
 
+ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limit) {
+    auto prof = profiler_summary();
+    auto tree = make_profile_tree(prof);
+    print(os, tree, tree.time, prof.num_threads, limit);
+    return os;
+}
+    
 #else
 
 ARB_ARBOR_API void profiler_leave() {}
@@ -384,6 +423,8 @@ ARB_ARBOR_API profile profiler_summary();
 ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
+ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
+
 
 #endif // ARB_HAVE_PROFILING
 
