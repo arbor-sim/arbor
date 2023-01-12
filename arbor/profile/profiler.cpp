@@ -332,11 +332,11 @@ void print_lines(std::vector<prof_line>& lines,
     prof_line res;
     res.name =  indent + n.name;
     res.count = (n.count==profile_node::npos) ? "-" : std::to_string(n.count);
-    snprintf(buf, std::size(buf), "%12.3f", float(n.time));
+    snprintf(buf, std::size(buf), "%.3f", float(n.time));
     res.time = buf;
-    snprintf(buf, std::size(buf), "%12.3f", float(per_thread_time));
+    snprintf(buf, std::size(buf), "%.3f", float(per_thread_time));
     res.thread = buf;
-    snprintf(buf, std::size(buf), "%8.1f", float(proportion));
+    snprintf(buf, std::size(buf), "%.1f", float(proportion));
     res.percent = buf;
     lines.push_back(res);
     // print each of the children in turn
@@ -359,18 +359,19 @@ void print(std::ostream& os,
     for (const auto& line: lines) {
         max_len_name = std::max(max_len_name, line.name.size());
         max_len_count = std::max(max_len_count, line.count.size());
-        max_len_time = std::max(max_len_time, line.time.size());
         max_len_thread = std::max(max_len_thread, line.thread.size());
+        max_len_time = std::max(max_len_time, line.time.size());
         max_len_percent = std::max(max_len_percent, line.percent.size());
     }
 
-    auto pad = [](const std::string& s, std::size_t n) { return std::string(n - s.size() + 4, ' '); };
+    auto lpad = [](const std::string& s, std::size_t n) { return std::string(n - s.size(), ' ') + s + "    "; };
+    auto rpad = [](const std::string& s, std::size_t n) { return s + std::string(n - s.size(), ' ') + "    "; };
 
-    for (const auto& line: lines) os << line.name << pad(line.name, max_len_name)
-                                     << line.count << pad(line.count, max_len_count)
-                                     << line.thread << pad(line.thread, max_len_thread)
-                                     << line.time << pad(line.time, max_len_time)
-                                     << line.percent
+    for (const auto& line: lines) os << rpad(line.name, max_len_name)
+                                     << lpad(line.count, max_len_count)
+                                     << lpad(line.thread, max_len_thread)
+                                     << lpad(line.time, max_len_time)
+                                     << lpad(line.percent, max_len_percent)
                                      << '\n';
 };
 
