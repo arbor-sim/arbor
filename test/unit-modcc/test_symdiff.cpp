@@ -87,7 +87,11 @@ TEST(constant_simplify, constants) {
         { "log(exp(2))+cos(0)", 3. },
         { "0/17-1",             -1. },
         { "2.5*(34/17-1.0e2)",  -245. },
-        { "-sin(0.523598775598298873077107230546583814)", -0.5 }
+        { "-sin(0.523598775598298873077107230546583814)", -0.5 },
+        { "sigmoid(0.0)", 0.5 },
+        { "relu(2.0)", 2.0 },
+        { "relu(-2.0)", 0.0 },
+        { "tanh(0.0)", 0.0 },
     };
 
     for (const auto& item: tests) {
@@ -101,6 +105,35 @@ TEST(constant_simplify, constants) {
         EXPECT_NEAR(item.value, value, 1e-8);
     }
 }
+
+TEST(constant_simplify, powers) {
+    // Expect simplification of 'before' expression matches parse of 'after'.
+    // Use output string representation of expression for easy comparison.
+
+    struct { const char* before; const char* after; } tests[] = {
+        { "x^-1",            "1/x" },
+        { "x^1",             "x" },
+        { "x^2",             "x*x" },
+        { "x^-2",            "1/(x*x)" },
+        { "2^4",             "16" },
+        { "x^y",             "exp(log(x)*y)" },
+        { "(-6)^2",          "36" },
+        { "(-6)^2",          "36" },
+        // { "(-3)^3",          "-27" },  // NOTE doesn't work due to some parser troubles.
+        // { "(-6)^x",          "-6^x" }, // NOTE doesn't work due to some parser troubles.
+    };
+
+    for (const auto& item: tests) {
+        SCOPED_TRACE(std::string("expressions: ")+item.before+"; "+item.after);
+        std::cerr << item.before << " => " << item.after << '\n';
+        auto before = Parser{item.before}.parse_expression();
+        auto after = Parser{item.after}.parse_expression();
+        ASSERT_TRUE(before);
+        ASSERT_TRUE(after);
+        EXPECT_EXPR_EQ(after, constant_simplify(before));
+    }
+}
+
 
 TEST(constant_simplify, simplified_expr) {
     // Expect simplification of 'before' expression matches parse of 'after'.

@@ -1,4 +1,5 @@
 # pip requirements file
+numpy!=1.24.0 # See https://github.com/numpy/numpy/issues/22826
 LFPykit>=0.3
 pandas
 seaborn

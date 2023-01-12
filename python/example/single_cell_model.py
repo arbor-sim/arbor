@@ -46,7 +46,7 @@ else:
 print("Plotting results ...")
 seaborn.set_theme()  # Apply some styling to the plot
 df = pandas.DataFrame({"t/ms": m.traces[0].time, "U/mV": m.traces[0].value})
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", errorbar=None).savefig(
     "single_cell_model_result.svg"
 )
 
