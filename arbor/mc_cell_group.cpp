@@ -384,23 +384,31 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         event_vec.clear();
     }
 
+    epoch_interval interval(ep, dt);
+    const auto cutoff = interval.last_midpoint();
+
     // Skip event handling if nothing to deliver.
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         auto lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
-                if (e.time>=ep.t1) break;
+                if (e.time>=ep.t1) break; // are we sure about this? ok, is conservative
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
                 staged_event_map_[h.mech_id].emplace_back(e.time, h, e.weight);
             }
             ++lid;
         }
     }
+
     // Sort the events so that processing can be optimised later
     for (auto& [mech_id, event_vec] : staged_event_map_) {
         arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
             [](const auto& a, const auto& b) { return a.time < b.time; }));
         util::stable_sort_by(event_vec, [](const auto& ev) { return ev.handle.mech_index; });
+        //std::stable_sort(event_vec.begin(), event_vec.end(),
+        //    [&interval](const auto& a, const auto& b) {
+        //        return (interval.index(a.time) < interval.index(b.time)) ||
+        //           ((interval.index(a.time) == interval.index(b.time)) && (a.handle.mech_index < b.handle.mech_index));});
     }
     PL();
 
