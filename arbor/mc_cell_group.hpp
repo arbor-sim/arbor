@@ -19,6 +19,7 @@
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "sampler_map.hpp"
+#include "timestep_range.hpp"
 
 namespace arb {
 
@@ -72,6 +73,9 @@ private:
 
     // Spikes that are generated.
     std::vector<spike> spikes_;
+
+    // Range of timesteps within current epoch
+    timestep_range timesteps_;
 
     // List of events to deliver, mapped by mechanism id
     event_map staged_event_map_;

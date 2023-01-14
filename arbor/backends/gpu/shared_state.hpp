@@ -9,6 +9,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
+#include "timestep_range.hpp"
 
 #include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
@@ -204,8 +205,8 @@ struct ARB_ARBOR_API shared_state {
 
     void ions_init_concentration();
 
-    // Set time_to to earliest of time+dt_step and tmax and set dt
-    void update_time_to(arb_value_type dt_step, arb_value_type tmax);
+    // Set time_to and dt
+    void update_time_to(const timestep_range::timestep& ts);
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();

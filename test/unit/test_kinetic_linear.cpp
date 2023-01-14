@@ -88,8 +88,8 @@ void run_test(std::string mech_name,
 
     // TODO: here is the gotcha!
     // Perform time step
-    shared_state->update_time_to(dt, dt);
-    mech->set_time(0, dt);
+    shared_state->update_time_to(timestep_range(dt, dt)[0]);
+    mech->set_time(shared_state->time, shared_state->dt);
 
     mech->update_state();
 

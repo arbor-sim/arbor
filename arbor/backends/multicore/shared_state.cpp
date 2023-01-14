@@ -24,7 +24,6 @@
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 
-#include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
 
@@ -292,16 +291,14 @@ void shared_state::ions_init_concentration() {
     }
 }
 
-void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
-    auto tnext = std::min(time+dt_step, tmax);
-    // round up target time if it is very close to tmax
-    time_to = tnext+(1e-8*dt_step) >= tmax ? tmax: tnext;
-    dt = time_to - time;
+void shared_state::update_time_to(const timestep_range::timestep& ts) {
+    time_to = ts.t1();
+    dt = ts.dt();
 }
 
 void shared_state::mark_events(arb_value_type t) {
     for (auto& s : storage) {
-        s.second.deliverable_events_.mark_until_after(t);
+        s.second.deliverable_events_.mark_until(t);
     }
 }
 
@@ -318,10 +315,9 @@ void shared_state::take_samples(
     array& sample_time,
     array& sample_value)
 {
-    if (s.n_marked()) {
-        arb_assert(s.n_streams() == 1);
-        auto begin = s.begin_marked(0);
-        auto end = s.end_marked(0);
+    if (!s.empty()) {
+        const auto begin = s.begin_marked;
+        const auto end = s.end_marked;
 
         // Null handles are explicitly permitted, and always give a sample of zero.
         // (Note: probably not worth explicitly vectorizing this.)
@@ -415,15 +411,10 @@ void shared_state::register_events(
 void shared_state::deliver_events(mechanism& m) {
     if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
         auto& deliverable_events = it->second.deliverable_events_;
-        if (auto es_state = deliverable_events.marked_events(); es_state.n_marked()) {
+        if (auto es_state = deliverable_events.marked_events(); !es_state.empty()) {
             arb_deliverable_event_stream ess{
-                es_state.n_streams(),
-                es_state.ev_data,
-                es_state.begin_offset,
-                es_state.end_offset,
-                es_state.times,
-                es_state.t_start,
-                es_state.t_end
+                es_state.begin_marked,
+                es_state.end_marked
             };
             m.deliver_events(ess);
         }

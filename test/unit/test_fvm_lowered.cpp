@@ -207,7 +207,7 @@ TEST(fvm_lowered, matrix_init)
 
     // Test that the matrix is initialized with sensible values
 
-    fvcell.integrate(0.01, 0.01, {}, {});
+    fvcell.integrate({0.01, 0.01}, {}, {});
 
     auto n = J.size();
 
@@ -667,7 +667,7 @@ TEST(fvm_lowered, ionic_currents) {
 
     // Integration should be (effectively) exact, so check for linear response.
     const double time = 0.2; // [ms]
-    (void)fvcell.integrate(time, 0.1, {}, {});
+    (void)fvcell.integrate({time, 0.1}, {}, {});
     double expected_Xi = -time*coeff*jca;
     EXPECT_NEAR(expected_Xi, ion.Xi_[0], 1e-6);
 }
@@ -704,7 +704,7 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Ionic current should be ica_nA/soma_area after integrating past event time.
     const double time = 0.5; // [ms]
-    (void)fvcell.integrate(time, 0.01, {{0, {ev}}}, {});
+    (void)fvcell.integrate({time, 0.01}, {{0, {ev}}}, {});
 
     double expected_iX = ica_nA*1e-9/soma_area_m2;
     EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);

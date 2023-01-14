@@ -187,7 +187,7 @@ void run_v_i_probe_test(context ctx) {
     // After an integration step, expect voltage probe values
     // to differ from resting, and for there to be a non-zero current.
 
-    lcell.integrate(0.01, 0.0025, {}, {});
+    lcell.integrate({0.01, 0.0025}, {}, {});
 
     EXPECT_NE(resting, deref(p0a));
     EXPECT_NE(resting, deref(p0b));
@@ -323,7 +323,7 @@ void run_expsyn_g_probe_test(context ctx) {
         };
         const double tfinal = 3.0;
         const double dt = 0.001;
-        lcell.integrate(tfinal, dt, ev_map, {});
+        lcell.integrate({tfinal, dt}, ev_map, {});
 
         arb_value_type g0 = deref(p0);
         arb_value_type g1 = deref(p1);
@@ -414,7 +414,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
                 event_map[targets.at(target_id+cell_offset).mech_id].push_back(ev);
             }
         }
-        (void)lcell.integrate(1e-5, 1e-5, event_map, {});
+        (void)lcell.integrate({1e-5, 1e-5}, event_map, {});
 
         // Independently get cv geometry to compute CV indices.
 

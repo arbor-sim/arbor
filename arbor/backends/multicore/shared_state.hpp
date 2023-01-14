@@ -15,10 +15,11 @@
 
 #include "backends/event.hpp"
 #include "backends/rand_fwd.hpp"
+#include "timestep_range.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
-#include "multi_event_stream.hpp"
+#include "event_stream.hpp"
 #include "threshold_watcher.hpp"
 #include "fvm_layout.hpp"
 #include "multicore_common.hpp"
@@ -214,8 +215,8 @@ struct ARB_ARBOR_API shared_state {
 
     void ions_nernst_reversal_potential(arb_value_type temperature_K);
 
-    // Set time_to to earliest of time+dt_step and tmax and set dt
-    void update_time_to(arb_value_type dt_step, arb_value_type tmax);
+    // Set time_to and dt
+    void update_time_to(const timestep_range::timestep& ts);
 
     // Update stimulus state and add current contributions.
     void add_stimulus_current();

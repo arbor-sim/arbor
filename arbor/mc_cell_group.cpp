@@ -384,15 +384,16 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         event_vec.clear();
     }
 
-    epoch_interval interval(ep, dt);
-    const auto cutoff = interval.last_midpoint();
+    // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
+    timesteps_.reset(ep, dt);
 
     // Skip event handling if nothing to deliver.
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         auto lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
-                if (e.time>=ep.t1) break; // are we sure about this? ok, is conservative
+                // Events coinciding with epoch's upper boundary belong to next epoch
+                if (e.time>=ep.t1) break;
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
                 staged_event_map_[h.mech_id].emplace_back(e.time, h, e.weight);
             }
@@ -400,15 +401,18 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         }
     }
 
-    // Sort the events so that processing can be optimised later
+    // Sort the events so that processing can be optimised later. Sort by
+    // 1) timestep index
+    // 2) within a timestep: by mech_index (target)
+    // 3) within a mech_index: by time (guranteed by stable sorting)
     for (auto& [mech_id, event_vec] : staged_event_map_) {
         arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
             [](const auto& a, const auto& b) { return a.time < b.time; }));
-        util::stable_sort_by(event_vec, [](const auto& ev) { return ev.handle.mech_index; });
-        //std::stable_sort(event_vec.begin(), event_vec.end(),
-        //    [&interval](const auto& a, const auto& b) {
-        //        return (interval.index(a.time) < interval.index(b.time)) ||
-        //           ((interval.index(a.time) == interval.index(b.time)) && (a.handle.mech_index < b.handle.mech_index));});
+        std::stable_sort(event_vec.begin(), event_vec.end(),
+            [this](const auto& a, const auto& b) {
+                const auto ia = timesteps_.index(a.time);
+                const auto ib = timesteps_.index(b.time);
+                return (ia < ib) || ((ia == ib) && (a.handle.mech_index < b.handle.mech_index)); });
     }
     PL();
 
@@ -469,7 +473,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.t1, dt, staged_event_map_, sample_events_);
+    auto result = lowered_->integrate(timesteps_, staged_event_map_, sample_events_);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

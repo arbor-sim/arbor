@@ -59,8 +59,7 @@ public:
         const recipe& rec) override;
 
     fvm_integration_result integrate(
-        value_type tfinal,
-        value_type max_dt,
+        const timestep_range& dts,
         const event_map& staged_event_map,
         const std::vector<sample_event>& staged_samples) override;
 
@@ -174,11 +173,11 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
-    value_type tfinal,
-    value_type dt_max,
+    const timestep_range& dts,
     const event_map& staged_event_map,
     const std::vector<sample_event>& staged_samples)
 {
+    arb_assert(state_->time == dts.t0());
     set_gpu();
 
     // Integration setup
@@ -191,17 +190,15 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         sample_value_ = array(n_samples);
     }
 
+    // initialize events and samples
     state_->register_events(staged_event_map);
     sample_events_.init(staged_samples);
     PL();
 
-    while (state_->time < tfinal) {
-        // Set state's time_to and dt:
-        // dt = { tfinal-time,  if time + dt_max >= tfinal - 1.0e-8
-        //      { dt_max,       otherwise
-        // time_to = time + dt
-        state_->update_time_to(dt_max, tfinal);
-        const auto step_midpoint = state_->time + 0.5*state_->dt;
+    // loop over timesteps
+    for (auto ts : dts) {
+        state_->update_time_to(ts);
+        arb_assert(state_->time == ts.t0());
 
         // Update integration step time information visible to mechanisms.
         for (auto& m: mechanisms_) {
@@ -221,9 +218,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        // Mark all events due before the mid point of this time step for delivery
+        // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
         PE(advance:integrate:events);
-        state_->mark_events(step_midpoint);
+        state_->mark_events(state_->time_to);
         PL();
 
         PE(advance:integrate:current:zero);
@@ -245,10 +242,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->add_stimulus_current();
         PL();
 
-        // Take samples at cell time if sample time in this step interval.
+        // Take samples at cell time if sample time in this step interval (not including the end)
 
         PE(advance:integrate:samples);
-        sample_events_.mark_until_after(step_midpoint);
+        sample_events_.mark_until(state_->time_to);
         state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
         sample_events_.drop_marked_events();
         PL();

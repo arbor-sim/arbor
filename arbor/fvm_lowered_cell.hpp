@@ -20,6 +20,7 @@
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
+#include "timestep_range.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/transform.hpp"
@@ -221,8 +222,7 @@ struct fvm_lowered_cell {
         const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(
-        arb_value_type tfinal,
-        arb_value_type max_dt,
+        const timestep_range& dts,
         const event_map& staged_event_map,
         const std::vector<sample_event>& staged_samples) = 0;
 
