@@ -191,8 +191,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     }
 
     // initialize events and samples
-    state_->register_events(staged_event_map);
-    sample_events_.init(staged_samples);
+    state_->register_events(staged_event_map, dts);
+    sample_events_.init(staged_samples, dts);
     PL();
 
     // loop over timesteps
@@ -220,7 +220,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
         PE(advance:integrate:events);
-        state_->mark_events(state_->time_to);
+        state_->mark_events();
         PL();
 
         PE(advance:integrate:current:zero);
@@ -245,9 +245,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Take samples at cell time if sample time in this step interval (not including the end)
 
         PE(advance:integrate:samples);
-        sample_events_.mark_until(state_->time_to);
+        sample_events_.mark();
         state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
-        sample_events_.drop_marked_events();
         PL();
 
         // Integrate voltage / solve cable eq

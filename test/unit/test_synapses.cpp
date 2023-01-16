@@ -100,7 +100,8 @@ TEST(synapses, syn_basic_state) {
 
     state.reset();
     fill(state.current_density, 1.0);
-    state.update_time_to(timestep_range(0.1, 0.1)[0]);
+    const auto dts = timestep_range(0.1, 0.1);
+    state.update_time_to(dts[0]);
 
     std::vector<index_type> syn_cv(num_syn, 0);
     std::vector<index_type> syn_mult(num_syn, 1);
@@ -154,8 +155,8 @@ TEST(synapses, syn_basic_state) {
         {1, {{0., {1, 0}, 2.71f},
              {0., {1, 2}, 0.07f}}}
     };
-    state.register_events(event_map);
-    state.mark_events(state.time_to);
+    state.register_events(event_map, dts);
+    state.mark_events();
 
     state.deliver_events(*expsyn);
     state.deliver_events(*exp2syn);

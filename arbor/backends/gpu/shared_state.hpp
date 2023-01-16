@@ -184,9 +184,9 @@ struct ARB_ARBOR_API shared_state {
     void update_prng_state(mechanism&);
 
     void register_events(const std::map<cell_local_size_type, std::vector<deliverable_event>>&
-        staged_event_map);
+        staged_event_map, const timestep_range& dts);
 
-    void mark_events(arb_value_type t);
+    void mark_events();
 
     void deliver_events(mechanism& m);
 

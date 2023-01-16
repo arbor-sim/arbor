@@ -296,9 +296,9 @@ void shared_state::update_time_to(const timestep_range::timestep& ts) {
     dt = ts.dt();
 }
 
-void shared_state::mark_events(arb_value_type t) {
+void shared_state::mark_events() {
     for (auto& s : storage) {
-        s.second.deliverable_events_.mark_until(t);
+        s.second.deliverable_events_.mark();
     }
 }
 
@@ -399,11 +399,12 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
 }
 
 void shared_state::register_events(
-    const std::map<cell_local_size_type, std::vector<deliverable_event>>& staged_event_map) {
+    const std::map<cell_local_size_type, std::vector<deliverable_event>>& staged_event_map,
+    const timestep_range& dts) {
     for (auto& [mech_id, store] : storage) {
         if (auto it = staged_event_map.find(mech_id);
             it != staged_event_map.end() && it->second.size()) {
-            store.deliverable_events_.init(it->second);
+            store.deliverable_events_.init(it->second, dts);
         }
     }
 }
@@ -418,7 +419,6 @@ void shared_state::deliver_events(mechanism& m) {
             };
             m.deliver_events(ess);
         }
-        deliverable_events.drop_marked_events();
     }
 }
 

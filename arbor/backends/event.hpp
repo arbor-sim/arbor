@@ -63,9 +63,4 @@ inline raw_probe_info event_data(const sample_event& ev) {
     return ev.raw;
 }
 
-inline cell_local_size_type event_index(const sample_event& ev) {
-    return 0u;
-}
-
-
 } // namespace arb

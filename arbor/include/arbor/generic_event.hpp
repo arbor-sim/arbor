@@ -48,16 +48,6 @@ auto event_time(const Event& ev) {
     return ev.time;
 }
 
-template <typename Event>
-auto event_index(const Event& ev) {
-    return ev.index;
-}
-
-template <typename Event>
-auto event_data(const Event& ev) {
-    return ev.data;
-}
-
 struct event_time_less {
     template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (T l, const Event& r) {
@@ -74,8 +64,6 @@ namespace impl {
     // Wrap in `impl::` namespace to obtain correct ADL for return type.
 
     using ::arb::event_time;
-    using ::arb::event_index;
-    using ::arb::event_data;
 
     template <typename Event>
     using event_time_type = decltype(event_time(std::declval<Event>()));
@@ -95,6 +83,13 @@ using event_index_type = impl::event_index_type<Event>;
 
 template <typename Event>
 using event_data_type = impl::event_data_type<Event>;
+
+template<typename Event, typename = void>
+struct has_event_index : public std::false_type {};
+
+template<typename Event>
+struct has_event_index<Event, std::void_t<event_index_type<Event>>> : public std::true_type {};
+
 
 } // namespace arb
 

@@ -401,18 +401,13 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         }
     }
 
-    // Sort the events so that processing can be optimised later. Sort by
-    // 1) timestep index
-    // 2) within a timestep: by mech_index (target)
-    // 3) within a mech_index: by time (guranteed by stable sorting)
     for (auto& [mech_id, event_vec] : staged_event_map_) {
-        arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
-            [](const auto& a, const auto& b) { return a.time < b.time; }));
-        std::stable_sort(event_vec.begin(), event_vec.end(),
-            [this](const auto& a, const auto& b) {
-                const auto ia = timesteps_.index(a.time);
-                const auto ib = timesteps_.index(b.time);
-                return (ia < ib) || ((ia == ib) && (a.handle.mech_index < b.handle.mech_index)); });
+        //arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
+        //    [](const auto& a, const auto& b) { return a.time < b.time; }));
+        if (!(std::is_sorted(event_vec.begin(), event_vec.end(),
+            [](const auto& a, const auto& b) { return a.time < b.time; }))) {
+            throw arbor_internal_error("invalid sorting in event times");
+        }
     }
     PL();
 
