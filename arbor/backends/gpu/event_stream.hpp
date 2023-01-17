@@ -27,9 +27,8 @@ public:
     }
 
     state marked_events() const {
-        if (base::ev_data_.empty()) return {device_ev_data_.data(), device_ev_data_.data()};
-        return {device_ev_data_.data()+base::offsets_[base::index_-1],
-            device_ev_data_.data()+base::offsets_[base::index_]};
+        if (base::empty()) return {nullptr, nullptr};
+        return {device_ev_data_.data()+base::offsets_[base::index_-1], device_ev_data_.data()+base::offsets_[base::index_]};
     }
 
 private:

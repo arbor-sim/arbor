@@ -181,14 +181,17 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
+        arb::partition_hint hint;
+        hint.prefer_gpu = true;
+        //hint.cpu_group_size = 16;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
-        //resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
+        resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
         root = arb::rank(context) == 0;
 #else
-        //resources.gpu_id = arbenv::default_gpu();
+        resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
 #endif
 
@@ -212,7 +215,7 @@ int main(int argc, char** argv) {
         //cell_stats stats(recipe);
         //if (root) std::cout << stats << "\n";
 
-        auto decomp = arb::partition_load_balance(recipe, context);
+        auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, hint}});
 
         // Construct the model.
         arb::simulation sim(recipe, context, decomp);
