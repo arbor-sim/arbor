@@ -120,6 +120,7 @@ set(unit_sources
     test_range.cpp
     test_recipe.cpp
     test_ratelem.cpp
+    test_serdes.cpp
     test_schedule.cpp
     test_scope_exit.cpp
     test_sde.cpp

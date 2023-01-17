@@ -231,6 +231,8 @@ else()
   unset(nlohmann_json_DIR CACHE)
 endif()
 
+target_link_libraries(arbor-public-deps INTERFACE ${json_library_name})
+
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 add_library(ext-random123 INTERFACE)
 if(NOT ARB_USE_BUNDLED_RANDOM123)
