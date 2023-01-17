@@ -5,7 +5,6 @@
 #include <iosfwd>
 #include <limits>
 #include <utility>
-#include <iostream>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
@@ -34,7 +33,7 @@ public:
 
     event_stream() {}
 
-    bool empty() const { return index_ == offsets_.size(); }
+    bool empty() const { return ev_data_.empty() || index_ >= offsets_.size(); }
 
     void clear() {
         tmp_.clear();
@@ -80,14 +79,16 @@ public:
             tmp_.push_back(ev);
         }
         append_tmp();
+
+        arb_assert(ev_data_.size() == staged.size());
     }
 
     void mark() {
-        ++index_;
+        index_ += (index_ < offsets_.size() ? 1 : 0);
     }
 
     state marked_events() const {
-        if (ev_data_.empty()) return {ev_data_.data(), ev_data_.data()};
+        if (empty()) return {nullptr, nullptr};
         return {ev_data_.data()+offsets_[index_-1], ev_data_.data()+offsets_[index_]};
     }
 

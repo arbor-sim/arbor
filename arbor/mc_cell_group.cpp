@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <variant>
 #include <vector>
+#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -395,20 +396,23 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (e.time>=ep.t1) break;
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
-                staged_event_map_[h.mech_id].emplace_back(e.time, h, e.weight);
+                auto& vec = staged_event_map_[h.mech_id];
+                vec.emplace_back(e.time, h, e.weight);
+                std::inplace_merge(vec.begin(), vec.end()-1, vec.end(),
+                    [](const auto& a, const auto& b){ return a.time < b.time; });
             }
             ++lid;
         }
     }
 
-    for (auto& [mech_id, event_vec] : staged_event_map_) {
-        //arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
-        //    [](const auto& a, const auto& b) { return a.time < b.time; }));
-        if (!(std::is_sorted(event_vec.begin(), event_vec.end(),
-            [](const auto& a, const auto& b) { return a.time < b.time; }))) {
-            throw arbor_internal_error("invalid sorting in event times");
-        }
-    }
+    //for (auto& [mech_id, event_vec] : staged_event_map_) {
+    //    //arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
+    //    //    [](const auto& a, const auto& b) { return a.time < b.time; }));
+    //    if (!(std::is_sorted(event_vec.begin(), event_vec.end(),
+    //        [](const auto& a, const auto& b) { return a.time < b.time; }))) {
+    //        throw arbor_internal_error("invalid sorting in event times");
+    //    }
+    //}
     PL();
 
     // Create sample events and delivery information.
