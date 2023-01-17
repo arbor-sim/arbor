@@ -71,7 +71,7 @@ We can now export the model to a given target directory using the ``create_acc``
 
 .. code-block:: python
 
-   ephys.create_acc.output_acc('path/to/exported/l5pc', cell_model, param_values)
+   cell_model.write_acc('path/to/exported/l5pc', param_values)
 
 This exports a model in a mixed JSON/ACC format analogous to that in the example directory of Arbor at ``python/example/single_cell_bluepyopt/l5pc``. The whole set of steps to construct and export the model is automated in the script `generate_acc.py <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/l5pc/generate_acc.py>`_, part of BluePyOpt.
 
