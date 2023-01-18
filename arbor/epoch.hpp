@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <arbor/assert.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/common_types.hpp>
 
 namespace arb {
@@ -47,6 +48,7 @@ struct epoch {
         *this = epoch();
     }
 
+    ARB_SERDES_ENABLE(id, t0, t1);
 };
 
 } // namespace arb

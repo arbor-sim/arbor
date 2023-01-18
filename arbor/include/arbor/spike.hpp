@@ -4,6 +4,7 @@
 #include <type_traits>
 
 #include <arbor/common_types.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -23,6 +24,8 @@ struct basic_spike {
     friend bool operator==(const basic_spike& l, const basic_spike& r) {
         return l.time==r.time && l.source==r.source;
     }
+
+    ARB_SERDES_ENABLE(source, time);
 };
 
 /// Standard specialization:

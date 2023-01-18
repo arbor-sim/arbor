@@ -12,6 +12,7 @@
 #include <iosfwd>
 #include <string>
 #include <type_traits>
+#include <arbor/serdes.hpp>
 
 #include <arbor/util/lexcmp_def.hpp>
 #include <arbor/util/hash_def.hpp>
@@ -54,6 +55,8 @@ using cell_local_size_type = std::make_unsigned_t<cell_lid_type>;
 struct cell_member_type {
     cell_gid_type gid;
     cell_lid_type index;
+
+    ARB_SERDES_ENABLE(gid, index);
 };
 
 // Pair of indexes that describe range of local indices.
@@ -84,6 +87,19 @@ struct cell_local_label_type {
 
     cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent):
         tag(std::move(tag)), policy(policy) {}
+
+
+    void serialize(serdes::serializer& ser) const {
+        ARB_SERDES_WRITE(tag);
+        ser.write("policy", static_cast<long long>(policy));
+    }
+
+    void deserialize(serdes::serializer& ser) {
+        ARB_SERDES_READ(tag);
+        long long tmp;
+        ser.read("policy", tmp);
+        policy = static_cast<lid_selection_policy>(tmp);
+    }
 };
 
 // For referring to a labeled placement on a cell identified by gid.
@@ -95,6 +111,8 @@ struct cell_global_label_type {
     cell_global_label_type(cell_gid_type gid, cell_local_label_type label): gid(gid), label(std::move(label)) {}
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag): gid(gid), label(std::move(tag)) {}
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
+
+    ARB_SERDES_ENABLE(gid, label);
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))

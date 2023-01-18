@@ -12,6 +12,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/util/extra_traits.hpp>
 #include <arbor/export.hpp>
+#include <arbor/serdes.hpp>
 
 // Time schedules for probe–sampler associations.
 
@@ -56,6 +57,9 @@ public:
     }
 
     void reset() { impl_->reset(); }
+
+    void serialize(serdes::serializer& ser) const { throw std::runtime_error{"Unimplemented: schedule."}; }
+    void deserialize(serdes::serializer& ser) { throw std::runtime_error{"Unimplemented: schedule."}; }
 
 private:
     struct interface {

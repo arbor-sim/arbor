@@ -4,12 +4,11 @@
 #include <map>
 #include <unordered_map>
 
+#include <arbor/serdes.hpp>
 
 #include <gtest/gtest.h>
 
 #include <nlohmann/json.hpp>
-
-#include "serdes.hpp"
 
 using json = nlohmann::json;
 

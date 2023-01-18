@@ -17,6 +17,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -88,6 +89,9 @@ public:
     void inject_events(const cse_vector& events);
 
     ~simulation();
+
+    void serialize(serdes::serializer& ser) const;
+    void deserialize(serdes::serializer& ser);
 
 private:
     std::unique_ptr<simulation_state> impl_;
