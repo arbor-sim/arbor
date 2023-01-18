@@ -31,7 +31,7 @@ public:
 
     using state = event_stream_state<event_data_type>;
 
-    event_stream() {}
+    event_stream() = default;
 
     bool empty() const { return ev_data_.empty() || index_ >= offsets_.size(); }
 

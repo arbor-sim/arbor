@@ -398,21 +398,14 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
                 auto& vec = staged_event_map_[h.mech_id];
                 vec.emplace_back(e.time, h, e.weight);
-                std::inplace_merge(vec.begin(), vec.end()-1, vec.end(),
-                    [](const auto& a, const auto& b){ return a.time < b.time; });
             }
             ++lid;
         }
     }
 
-    //for (auto& [mech_id, event_vec] : staged_event_map_) {
-    //    //arb_assert(std::is_sorted(event_vec.begin(), event_vec.end(),
-    //    //    [](const auto& a, const auto& b) { return a.time < b.time; }));
-    //    if (!(std::is_sorted(event_vec.begin(), event_vec.end(),
-    //        [](const auto& a, const auto& b) { return a.time < b.time; }))) {
-    //        throw arbor_internal_error("invalid sorting in event times");
-    //    }
-    //}
+    for (auto& [mech_id, event_vec] : staged_event_map_) {
+        util::stable_sort_by(event_vec, [](const auto& ev) { return event_index(ev); });
+    }
     PL();
 
     // Create sample events and delivery information.

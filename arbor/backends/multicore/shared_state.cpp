@@ -412,12 +412,8 @@ void shared_state::register_events(
 void shared_state::deliver_events(mechanism& m) {
     if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
         auto& deliverable_events = it->second.deliverable_events_;
-        if (auto es_state = deliverable_events.marked_events(); !es_state.empty()) {
-            arb_deliverable_event_stream ess{
-                es_state.begin_marked,
-                es_state.end_marked
-            };
-            m.deliver_events(ess);
+        if (auto es_state = deliverable_events.marked_events(); es_state.num_events > 0u) {
+            m.deliver_events(es_state);
         }
     }
 }
