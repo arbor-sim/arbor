@@ -19,3 +19,7 @@ add_subdirectory(unit-modcc)
 # Microbenchmarks.
 # Builds: one executable per microbenchmark under ubench/.
 add_subdirectory(ubench)
+
+# 'check' target executes tests.
+add_custom_target(check COMMAND unit)
+add_dependencies(check tests)
