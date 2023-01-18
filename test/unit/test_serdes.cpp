@@ -74,26 +74,25 @@ TEST(serdes, round_trip) {
     auto serializer = arb::serdes::serializer{serdes};
 
     struct A {
-        std::string s{"bar"};
-        std::unordered_map<std::string, float> u{{"a", 1.0}, {"b", 2.0}};
-        std::map<std::string, float> m{{"a", 1.0}, {"b", 2.0}};
-        std::vector<int> a{1,2,3};
-        std::array<unsigned, 3> k{1,2,3};
+        std::string s;
+        std::unordered_map<std::string, float> u;
+        std::map<std::string, float> m;
+        std::vector<int> a;
+        std::array<unsigned, 3> k{0,0,0};
 
         ARB_SERDES_ENABLE(s, u, m, a, k);
     };
 
     A a;
+    a.s = "bar";
+    a.u = {{"a", 1.0}, {"b", 2.0}};
+    a.m = {{"a", 1.0}, {"b", 2.0}};
+    a.a = {1,2,3};
+    a.k = {1,2,3};
 
     serializer.write("A", a);
 
     A b;
-    b.s.clear();
-    b.u.clear();
-    b.m.clear();
-    b.a.clear();
-    b.k = std::array<unsigned, 3>{0, 0, 0};
-
     serializer.read("A", b);
 
     ASSERT_EQ(a.s, b.s);
