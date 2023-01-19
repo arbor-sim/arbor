@@ -2,6 +2,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/serdes.hpp>
 
 // Structures for the representation of event delivery targets and
 // staged events.
@@ -18,6 +19,7 @@ struct target_handle {
     target_handle() = default;
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type intdom_index):
         mech_id(mech_id), mech_index(mech_index), intdom_index(intdom_index) {}
+    ARB_SERDES_ENABLE(mech_id, mech_index, intdom_index);
 };
 
 struct deliverable_event {
@@ -28,6 +30,8 @@ struct deliverable_event {
     deliverable_event() = default;
     deliverable_event(time_type time, target_handle handle, float weight):
         time(time), weight(weight), handle(handle) {}
+
+    ARB_SERDES_ENABLE(time, weight, handle);
 };
 
 // Stream index accessor function for multi_event_stream:

@@ -124,6 +124,12 @@ struct serializer {
     }
 
     template <typename K, typename V>
+    void read(const K& k, std::shared_ptr<V> v) { read(k, *v); }
+
+    template <typename K, typename V>
+    void read(const K& k, std::unique_ptr<V>& v) { read(k, *v); }
+
+    template <typename K, typename V>
     void read(const K& key, V& v) {
         auto k = to_key(key);
         using T = std::decay_t<V>;
@@ -154,6 +160,7 @@ struct serializer {
               std::unordered_map<Q, V>& kvs) {
         auto k = to_key(key);
         V val;
+        kvs.clear();
         wrapped->begin_read_map(k);
         for (;;) {
             auto k = wrapped->next_key();
@@ -171,6 +178,7 @@ struct serializer {
               typename V>
     void read(const K& key, std::map<Q, V>& kvs) {
         auto k = to_key(key);
+        kvs.clear();
         wrapped->begin_read_map(k);
         for (;;) {
             auto k = wrapped->next_key();
@@ -187,6 +195,7 @@ struct serializer {
     template <typename K, typename V>
     void read(const K& key, std::vector<V>& vs) {
         auto k = to_key(key);
+        vs.clear();
         wrapped->begin_read_array(k);
         for (;;) {
             auto key = wrapped->next_key();

@@ -78,6 +78,12 @@ public:
         return mechanisms_;
     }
 
+    virtual void serialize(serdes::serializer& ser) const override {
+    }
+
+    virtual void deserialize(serdes::serializer& ser) override {
+    }
+
 private:
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;

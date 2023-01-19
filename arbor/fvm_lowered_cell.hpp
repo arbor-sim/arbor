@@ -14,6 +14,7 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/util/any_ptr.hpp>
 
 #include "backends/event.hpp"
@@ -232,6 +233,11 @@ struct fvm_lowered_cell {
     virtual arb_value_type time() const = 0;
 
     virtual ~fvm_lowered_cell() {}
+
+    virtual void serialize(serdes::serializer& ser) const {}
+
+    virtual void deserialize(serdes::serializer& ser) {}
+
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;

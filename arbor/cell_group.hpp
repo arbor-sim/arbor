@@ -52,7 +52,8 @@ public:
         return {};
     }
 
-    virtual void serialize(serdes::serializer& s) const { std::cerr << "SERDES: " << get_cell_kind() << '\n'; }
+    virtual void serialize(serdes::serializer& s) const { std::cerr << "SERDES WRITE: " << get_cell_kind() << '\n'; }
+    virtual void deserialize(serdes::serializer& s) { std::cerr << "SERDES READ: " << get_cell_kind() << '\n'; }
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
