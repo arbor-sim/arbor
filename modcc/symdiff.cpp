@@ -265,6 +265,46 @@ public:
         result_ = make_expression<IntegerExpression>(loc, 0);
     }
 
+    void visit(TanHUnaryExpression* e) override {
+        // (1 - tanh(f(x))^2) * df(x)/dx
+        auto loc = e->location();
+        e->expression()->accept(this);
+        result_ = make_expression<MulBinaryExpression>(loc,
+                        make_expression<SubBinaryExpression>(loc,
+                            make_expression<NumberExpression>(loc, 1.0),
+                            make_expression<PowBinaryExpression>(loc,
+                                make_expression<TanHUnaryExpression>(loc, e->expression()->clone()),
+                                make_expression<NumberExpression>(loc, 2.0))
+                            ),
+                        result()
+                );
+    }
+
+    void visit(SigmoidUnaryExpression* e) override {
+        // s'(x) = s(x) * (1 - s(x)) * x'
+        auto loc = e->location();
+        e->expression()->accept(this);
+        result_ = make_expression<MulBinaryExpression>(loc,
+                make_expression<MulBinaryExpression>(loc,
+                    make_expression<SigmoidUnaryExpression>(loc, e->expression()->clone()),
+                    make_expression<SubBinaryExpression>(loc,
+                        make_expression<NumberExpression>(loc, 1.0),
+                        make_expression<SigmoidUnaryExpression>(loc, e->expression()->clone())
+                        )
+                    ),
+                result()
+                );
+    }
+
+    void visit(ReLuUnaryExpression* e) override {
+        auto loc = e->location();
+        e->expression()->accept(this);
+        result_ = make_expression<MulBinaryExpression>(loc,
+                make_expression<StepUnaryExpression>(loc, e->expression()->clone()),
+                result()
+        );
+    }
+
     void visit(SignumUnaryExpression* e) override {
         // ignore singularity
         auto loc = e->location();
@@ -300,7 +340,7 @@ private:
 };
 
 ARB_LIBMODCC_API double expr_value(Expression* e) {
-    return e && e->is_number()? e->is_number()->value(): NAN;
+    return e && e->is_number()? e->is_number()->value(): std::nan("");
 }
 
 class ConstantSimplifyVisitor: public Visitor {
@@ -423,6 +463,15 @@ public:
             case tok::signum:
                 as_number(loc, (0. < val) - (val < 0.));
                 return;
+            case tok::tanh:
+                as_number(loc, std::tanh(val));
+                return;
+            case tok::relu:
+                as_number(loc, std::max(0.0, val));
+                return;
+            case tok::sigmoid:
+                as_number(loc, 1.0 / (1.0 + std::exp(-val)));
+                return;
             default: ; // treat opaquely as below
             }
         }
@@ -535,24 +584,53 @@ public:
     void visit(PowBinaryExpression* e) override {
         auto loc = e->location();
         e->lhs()->accept(this);
-        expression_ptr lhs = result();
+        auto lhs = result();
         e->rhs()->accept(this);
-        expression_ptr rhs = result();
+        auto rhs = result();
+        auto lval = expr_value(lhs);
+        auto rval = expr_value(rhs);
+
+        auto rint  = std::nan("");
+        auto rfrac = std::modf(rval, &rint);
+
+        auto mk_f64 = [loc](double v) { return make_expression<NumberExpression>(loc, v); };
 
         if (is_number(lhs) && is_number(rhs)) {
-            as_number(loc, std::pow(expr_value(lhs),expr_value(rhs)));
+            as_number(loc, std::pow(lval, rval));
         }
-        else if (expr_value(lhs)==0) {
+        else if (lval == 0) {
             as_number(loc, 0);
         }
-        else if (expr_value(rhs)==0 || expr_value(lhs)==1) {
+        else if (lval == 1) {
             as_number(loc, 1);
         }
-        else if (expr_value(rhs)==1) {
-            result_ = std::move(lhs);
+        else if (rval == 0) {
+            as_number(loc, 1);
+        }
+        else if (rfrac == 0.0 && std::abs(rint) <= 5.0) { // NOTE somewhat arbitray cut-off; but in line with GCC AFAIR
+            result_ = lhs->clone();
+            for (int ix = 1; ix < std::abs(rint); ++ix) {
+                result_ = make_expression<MulBinaryExpression>(loc,
+                                                               lhs->clone(),
+                                                               std::move(result_));
+            }
+            if (rval < 0.0) {
+                result_ = make_expression<DivBinaryExpression>(loc,
+                                                               mk_f64(1.0),
+                                                               std::move(result_));
+            }
+        }
+        else if (lval < 0.0) {
+            result_ = make_expression<PowBinaryExpression>(loc,
+                                                           mk_f64(lval),
+                                                           std::move(rhs));
         }
         else {
-            result_ = make_expression<PowBinaryExpression>(loc, std::move(lhs), std::move(rhs));
+            result_ = make_expression<ExpUnaryExpression>(loc,
+                                                          make_expression<MulBinaryExpression>(loc,
+                                                                                               make_expression<LogUnaryExpression>(loc,
+                                                                                                                                   std::move(lhs)),
+                                                                                               std::move(rhs)));
         }
     }
 

@@ -597,6 +597,9 @@ std::ostream& operator<<(std::ostream& o, const synapse& p) {
 std::ostream& operator<<(std::ostream& o, const density& p) {
     return o << "(density " << p.mech << ')';
 }
+std::ostream& operator<<(std::ostream& o, const voltage_process& p) {
+    return o << "(voltage-process " << p.mech << ')';
+}
 template <typename TaggedMech>
 std::ostream& operator<<(std::ostream& o, const scaled_mechanism<TaggedMech>& p) {
     o << "(scaled-mechanism " << p.t_mech;
@@ -718,6 +721,7 @@ TEST(decor_literals, round_tripping) {
         "(ion-external-concentration \"h\" -50.1)",
         "(ion-reversal-potential \"na\" 30)"};
     auto paint_literals = {
+        "(voltage-process (mechanism \"hh\"))",
         "(density (mechanism \"hh\"))",
         "(density (mechanism \"pas\" (\"g\" 0.02)))",
         "(scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))))",

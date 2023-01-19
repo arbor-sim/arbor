@@ -92,7 +92,7 @@ else:
 print("Plotting results ...")
 
 df = pandas.DataFrame({"t/ms": data[:, 0], "U/mV": data[:, 1]})
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", errorbar=None).savefig(
     "single_cell_recipe_result.svg"
 )
 

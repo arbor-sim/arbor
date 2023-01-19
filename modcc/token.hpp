@@ -64,7 +64,7 @@ enum class tok {
     range, local, conserve, compartment,
     solve, method, steadystate,
     threadsafe, global,
-    point_process, junction_process,
+    point_process, junction_process, voltage_process,
     from, to,
 
     // prefix binary operators
@@ -78,6 +78,11 @@ enum class tok {
     step_left,   // left-continuous heaviside step function (H(0) = 0)
     step,        // heaviside step function (H(0) = 0.5)
     signum,      // sign function {-1, 0, +1}
+
+    // neural (the other neural) functions
+    tanh,
+    sigmoid,
+    relu,
 
     // logical keywords
     if_stmt, else_stmt, // add _stmt to avoid clash with c++ keywords

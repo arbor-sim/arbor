@@ -99,6 +99,7 @@ private:
     value_type tmin_ = 0;
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
+    std::vector<mechanism_ptr> voltage_mechanisms_;
 
     // Optional non-physical voltage check threshold
     std::optional<double> check_voltage_mV_;
@@ -167,6 +168,10 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
     set_tmin(0);
 
+    for (auto& m: voltage_mechanisms_) {
+        m->initialize();
+    }
+
     for (auto& m: revpot_mechanisms_) {
         m->initialize();
     }
@@ -186,6 +191,10 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     }
 
     for (auto& m: mechanisms_) {
+        m->initialize();
+    }
+
+    for (auto& m: voltage_mechanisms_) {
         m->initialize();
     }
 
@@ -287,21 +296,28 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->integrate_diffusion();
         PL();
 
-        // Integrate mechanism state.
-
+        // Integrate mechanism state for density
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
 
         // Update ion concentrations.
-
         PE(advance:integrate:ionupdate);
         update_ion_state();
         PL();
 
-        // Update time and test for spike threshold crossings.
+        // voltage mechs run now; after the cable_solver, but before the
+        // threshold test
+        for (auto& m: voltage_mechanisms_) {
+            m->update_current();
+        }
+        for (auto& m: voltage_mechanisms_) {
+            state_->update_prng_state(*m);
+            m->update_state();
+        }
 
+        // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
         threshold_watcher_.test(&state_->time_since_spike);
         PL();
@@ -540,10 +556,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
 
     unsigned mech_id = 0;
-    for (auto& m: mech_data.mechanisms) {
-        auto& name = m.first;
-        auto& config = m.second;
-
+    for (const auto& [name, config]: mech_data.mechanisms) {
         mechanism_layout layout;
         layout.cv = config.cv;
         layout.multiplicity = config.multiplicity;
@@ -594,6 +607,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
             break;
+        case arb_mechanism_kind_voltage:
         case arb_mechanism_kind_density:
             // Current density contributions from mechanism are already in [A/m²].
 
@@ -612,19 +626,28 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             break;
         }
 
-        auto minst = mech_instance(name);
-        state_->instantiate(*minst.mech, mech_id++, minst.overrides, layout);
-        mechptr_by_name[name] = minst.mech.get();
+        auto [mech, over] = mech_instance(name);
+        state_->instantiate(*mech, mech_id, over, layout, config.param_values);
+        mechptr_by_name[name] = mech.get();
+        ++mech_id;
 
-        for (auto& pv: config.param_values) {
-            state_->set_parameter(*minst.mech, pv.first, pv.second);
-        }
-
-        if (config.kind==arb_mechanism_kind_reversal_potential) {
-            revpot_mechanisms_.emplace_back(minst.mech.release());
-        }
-        else {
-            mechanisms_.emplace_back(minst.mech.release());
+        switch (config.kind) {
+            case arb_mechanism_kind_gap_junction:
+            case arb_mechanism_kind_point:
+            case arb_mechanism_kind_density: {
+                mechanisms_.emplace_back(mech.release());
+                break;
+            }
+            case arb_mechanism_kind_reversal_potential: {
+                revpot_mechanisms_.emplace_back(mech.release());
+                break;
+            }
+            case arb_mechanism_kind_voltage: {
+                voltage_mechanisms_.emplace_back(mech.release());
+                break;
+            }
+            default:;
+                throw invalid_mechanism_kind(config.kind);
         }
     }
 

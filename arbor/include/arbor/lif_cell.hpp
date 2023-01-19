@@ -20,7 +20,7 @@ struct ARB_SYMBOL_VISIBLE lif_cell {
     double t_ref = 2;     // Refractory period [ms].
 
     lif_cell() = delete;
-    lif_cell(cell_tag_type source, cell_tag_type  target): source(std::move(source)), target(std::move(target)) {}
+    lif_cell(cell_tag_type source, cell_tag_type target): source(std::move(source)), target(std::move(target)) {}
 };
 
 // LIF probe metadata, to be passed to sampler callbacks. Intentionally left blank.

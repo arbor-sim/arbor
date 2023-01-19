@@ -466,8 +466,6 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& i, double v) -> arb::ion_diffusivity { return {i, v}; }))
         .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + std::to_string(d.value);});
 
-    // arb::density
-
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
     density
         .def(pybind11::init([](const std::string& name) {return arb::density(name);}))
@@ -477,6 +475,16 @@ void register_cells(pybind11::module& m) {
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
+
+    pybind11::class_<arb::voltage_process> voltage_process(m, "voltage_process", "For painting a voltage_process mechanism on a region.");
+    voltage_process
+        .def(pybind11::init([](const std::string& name) {return arb::voltage_process(name);}))
+        .def(pybind11::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
+        .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
+        .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
 
     // arb::scaled_mechanism<arb::density>
 
@@ -577,14 +585,6 @@ void register_cells(pybind11::module& m) {
             return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);});
 
     // arb::threshold_detector
-    struct spike_detector {};
-    pybind11::class_<spike_detector> sd(m, "spike_detector", "Deprecated, please use 'threshold_detector'");
-    sd.def(pybind11::init(
-               [](pybind11::object) -> spike_detector {
-                   throw arb::arbor_exception{"Deprecated, please use 'threshold_detector' instead."};
-                   return {}; // unreachable
-               }));
-
     pybind11::class_<arb::threshold_detector> detector(m, "threshold_detector",
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
@@ -828,6 +828,12 @@ void register_cells(pybind11::module& m) {
             },
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
+        .def("paint",
+            [](arb::decor& dec, const char* region, const arb::voltage_process& mechanism) {
+                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a voltage process mechanism with a region.")
         .def("paint",
             [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) {
                 dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);

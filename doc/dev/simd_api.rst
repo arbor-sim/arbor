@@ -594,6 +594,18 @@ In the following:
       - *S*
       - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
 
+    * - ``tanh(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto tanh(x)`
+
+    * - ``relu(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto max(0, x)`
+
+    * - ``sigmoid(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \frac{1}{1+e^{-x}}`
+
     * - ``simd_cast<std::array<L, N>>(a)``
       - ``std::array<L, N>``
       - Lane-wise cast of values in *a* to scalar type *L* in ``std::array<L, N>``.

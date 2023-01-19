@@ -5,18 +5,18 @@ set(arborio-sources
     cableio.cpp
     cv_policy_parse.cpp
     label_parse.cpp
-)
-if(ARB_WITH_NEUROML)
-    list(APPEND arborio-sources
-            neuroml.cpp
-            nml_parse_morphology.cpp
-            xml.cpp
-            xmlwrap.cpp)
-    find_package(LibXml2 REQUIRED)
-endif()
-
+    neuroml.cpp
+    nml_parse_morphology.cpp)
 
 add_library(arborio ${arborio-sources})
+
+if (ARB_USE_BUNDLED_PUGIXML)
+    target_include_directories(arborio PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/pugixml/src>)
+    target_compile_definitions(arborio PRIVATE PUGIXML_HEADER_ONLY)
+else()
+    find_package(pugixml REQUIRED)
+    target_link_libraries(arborio PUBLIC pugixml::pugixml)
+endif()
 
 add_library(arborio-public-headers INTERFACE)
 add_library(arborio-private-headers INTERFACE)
@@ -29,15 +29,9 @@ target_include_directories(arborio-public-headers INTERFACE
 target_include_directories(arborio-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
-if(ARB_WITH_NEUROML)
-    target_link_libraries(arborio PUBLIC arbor arborio-public-headers LibXml2::LibXml2)
-    list(APPEND arbor_export_dependencies "LibXml2")
-    set(arbor_export_dependencies "${arbor_export_dependencies}" PARENT_SCOPE)
-    list(APPEND arbor_supported_components "neuroml")
-    set(arbor_supported_components "${arbor_supported_components}" PARENT_SCOPE)
-else ()
-    target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
-endif()
+target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
+list(APPEND arbor_supported_components "neuroml")
+set(arbor_supported_components "${arbor_supported_components}" PARENT_SCOPE)
 
 target_link_libraries(arborio PRIVATE arbor-config-defs arborio-private-deps)
 
