@@ -158,7 +158,7 @@ struct serializer {
                     read(*q, val);
                     std::remove_cv_t<typename T::value_type::first_type> k;
                     from_key(k, *q);
-                    v[k] = val;
+                    v[k] = std::move(val);
                 }
                 wrapped->end_read_map();
             }

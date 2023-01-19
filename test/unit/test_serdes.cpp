@@ -81,8 +81,9 @@ TEST(serdes, round_trip) {
         std::unordered_map<std::string, float> u;
         std::vector<int> a;
         std::array<unsigned, 3> k{0,0,0};
+        bool b = false;
 
-        ARB_SERDES_ENABLE(s, u, m, a, k);
+        ARB_SERDES_ENABLE(s, u, m, a, k, b);
     };
 
     A a;
@@ -91,6 +92,7 @@ TEST(serdes, round_trip) {
     a.m = {{23, 1.0}, {42, 2.0}};
     a.a = {1,2,3};
     a.k = {1,2,3};
+    a.b = true;
 
     serializer.write("A", a);
 
@@ -102,6 +104,7 @@ TEST(serdes, round_trip) {
     ASSERT_EQ(a.u, b.u);
     ASSERT_EQ(a.a, b.a);
     ASSERT_EQ(a.k, b.k);
+    ASSERT_EQ(a.b, b.b);
 }
 
 struct the_recipe: public arb::recipe {
@@ -155,11 +158,14 @@ TEST(serdes, simulation) {
     auto serdes = arb::serdes::json_serdes{};
     auto serializer = arb::serdes::serializer{serdes};
 
-    {
-        auto recipe = the_recipe{};
-        auto simulation = arb::simulation{recipe};
-        simulation.serialize(serializer);
-        simulation.run(50, 0.5);
-    }
+
+    auto recipe = the_recipe{};
+    auto simulation = arb::simulation{recipe};
+    simulation.run(50, 0.5);
+    simulation.serialize(serializer);
+    simulation.run(150, 0.5);
+    simulation.deserialize(serializer);
+    simulation.run(150, 0.5);
+
     std::cerr << serdes.data.dump(4) << '\n';
 }

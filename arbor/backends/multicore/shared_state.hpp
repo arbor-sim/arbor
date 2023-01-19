@@ -44,7 +44,11 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    ARB_SERDES_ENABLE(write_eX_);
+    ARB_SERDES_ENABLE(write_Xi_, write_eX_, write_Xo_,
+                      iX_, eX_, Xi_, Xd_, Xo_, gX_,
+                      init_Xi_, init_Xo_, init_eX_,
+                      reset_Xi_, reset_Xo_,
+                      charge);
 
     unsigned alignment = 1; // Alignment and padding multiple.
 
@@ -123,6 +127,7 @@ struct ARB_ARBOR_API istim_state {
 
 struct ARB_ARBOR_API shared_state {
     struct mech_storage {
+        ARB_SERDES_ENABLE(data_, indices_, random_number_update_counter_);
         array data_;
         iarray indices_;
         std::size_t value_width_padded;
@@ -138,8 +143,18 @@ struct ARB_ARBOR_API shared_state {
         cbprng::counter_type random_number_update_counter_ = 0u;
     };
 
-    ARB_SERDES_ENABLE(cbprng_seed
-                      );
+    ARB_SERDES_ENABLE(cbprng_seed,
+                      ion_data,
+                      storage,
+                      voltage,
+                      current_density,
+                      conductivity,
+                      diam_um,
+                      time_since_spike,
+                      time, time_to,
+                      dt_intdom,
+                      dt_cv,
+                      temperature_degC);
 
     cable_solver solver;
 
