@@ -9,6 +9,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/spike_event.hpp>
+#include <arbor/serdes.hpp>
 
 #include "epoch.hpp"
 #include "event_binner.hpp"
@@ -50,6 +51,8 @@ public:
     virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
         return {};
     }
+
+    virtual void serialize(serdes::serializer& s) const { std::cerr << "SERDES: " << get_cell_kind() << '\n'; }
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

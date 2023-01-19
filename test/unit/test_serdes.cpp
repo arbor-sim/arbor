@@ -5,6 +5,9 @@
 #include <unordered_map>
 
 #include <arbor/serdes.hpp>
+#include <arbor/cable_cell.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/recipe.hpp>
 
 #include <gtest/gtest.h>
 
@@ -74,8 +77,8 @@ TEST(serdes, round_trip) {
 
     struct A {
         std::string s;
+        std::map<int, float> m;
         std::unordered_map<std::string, float> u;
-        std::map<std::string, float> m;
         std::vector<int> a;
         std::array<unsigned, 3> k{0,0,0};
 
@@ -85,7 +88,7 @@ TEST(serdes, round_trip) {
     A a;
     a.s = "bar";
     a.u = {{"a", 1.0}, {"b", 2.0}};
-    a.m = {{"a", 1.0}, {"b", 2.0}};
+    a.m = {{23, 1.0}, {42, 2.0}};
     a.a = {1,2,3};
     a.k = {1,2,3};
 
@@ -99,4 +102,64 @@ TEST(serdes, round_trip) {
     ASSERT_EQ(a.u, b.u);
     ASSERT_EQ(a.a, b.a);
     ASSERT_EQ(a.k, b.k);
+}
+
+struct the_recipe: public arb::recipe {
+    the_recipe() {
+        gprop.default_parameters = arb::neuron_parameter_defaults;
+        arb::segment_tree tree;
+        double l = 5;
+        tree.append(arb::mnpos, { -l, 0, 0, 3}, {l, 0, 0, 3}, 1);
+        tree.append(0, { -l, 0, 0, 3}, {l, 0, 0, 3}, 2);
+        morpho = arb::morphology{tree};
+        gprop.default_parameters.discretization = arb::cv_policy_max_extent(1.0);
+    }
+
+    arb::cell_size_type num_cells() const override { return 1; }
+
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
+        arb::mlocation mid_soma = {0, 0.5};
+        arb::cable_probe_membrane_voltage probe = {mid_soma};
+        return {arb::probe_info{probe, 0}};
+    }
+
+    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
+        return arb::cell_kind::cable;
+    }
+
+    std::any get_global_properties(arb::cell_kind) const override {
+        return gprop;
+    }
+
+    arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
+
+        auto soma = arb::reg::tagged(1);
+        auto dend = arb::join(arb::reg::tagged(2),
+                              arb::reg::tagged(3));
+        auto decor = arb::decor{}
+            // Add HH mechanism to soma, passive channels to dendrites.
+            .paint(soma, arb::density("hh"))
+            .paint(dend, arb::density("pas"))
+            // Add synapse to last branch.
+            .place(arb::mlocation{ morpho.num_branches()-1, 1. }, arb::synapse("exp2syn"), "synapse");
+
+        return arb::cable_cell(morpho, decor);
+    }
+
+    arb::morphology morpho;
+    arb::cable_cell_global_properties gprop;
+};
+
+
+TEST(serdes, simulation) {
+    auto serdes = arb::serdes::json_serdes{};
+    auto serializer = arb::serdes::serializer{serdes};
+
+    {
+        auto recipe = the_recipe{};
+        auto simulation = arb::simulation{recipe};
+        simulation.serialize(serializer);
+        simulation.run(50, 0.5);
+    }
+    std::cerr << serdes.data.dump(4) << '\n';
 }

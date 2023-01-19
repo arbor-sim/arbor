@@ -16,92 +16,105 @@
 namespace arb {
 namespace serdes {
 
-using key_type = std::string_view;
+using key_type = std::string;
 
-template <typename T>
-struct value_type {
-    using type = T;
-};
+template <typename K>
+key_type to_key(K&& key) {
+    using T = std::decay_t<std::remove_cv_t<std::remove_reference_t<K>>>;
+    if constexpr (std::is_same_v<std::string, T>) {
+        return key;
+    }
+    else if constexpr (std::is_same_v<char*, T>) {
+        return std::string{key};
+    }
+    else {
+        return std::to_string(key);
+    }
+}
 
-template <>
-struct value_type<char*> {
-    using type = std::string;
-};
+template <typename K>
+void from_key(K& key, const key_type& k) {
+    using T = std::decay_t<std::remove_cv_t<std::remove_reference_t<K>>>;
+    if constexpr (std::is_same_v<std::string, T>) {
+        key = k;
+    }
+    else if constexpr (std::is_same_v<char*, T>) {
+        key = std::string{k};
+    }
+    else if constexpr (std::is_integral_v<T>) {
+        key = std::stoll(k);
+    }
+    else {
+        throw std::runtime_error{"Stupid key type"};
+    }
+}
 
-template <>
-struct value_type<std::string_view> {
-    using type = std::string;
-};
-
-template <>
-struct value_type<float> {
-    using type = double;
-};
-
-template <>
-struct value_type<int> {
-    using type = long long;
-};
-
-template <>
-struct value_type<unsigned> {
-    using type = long long;
-};
-
-template <>
-struct value_type<unsigned long> {
-    using type = long long;
-};
 
 struct serializer {
     template <typename I>
     serializer(I& i): wrapped{std::make_unique<wrapper<I>>(i)} {}
 
     template <typename K, typename V>
-    void write(const K& k, const std::unordered_map<std::string, V>& qvs) {
+    void write(const K& key, const std::unordered_map<std::string, V>& qvs) {
+        auto k = to_key(key);
         wrapped->begin_write_map(k);
         for (const auto& [q, v]: qvs) write(q, v);
         wrapped->end_write_map();
     }
 
-    template <typename K, typename V>
-    void write(const K& k, const std::map<std::string, V>& qvs) {
+    template <typename K,
+              typename Q,
+              typename V>
+    void write(const K& key, const std::map<Q, V>& qvs) {
+        auto k = to_key(key);
         wrapped->begin_write_map(k);
-        for (const auto& [q, v]: qvs) write(q, v);
+        for (const auto& [q, v]: qvs) write(to_key(q), v);
         wrapped->end_write_map();
     }
 
     template <typename K, typename V>
-    void write(const K& k, const std::vector<V>& vs) {
+    void write(const K& key, const std::vector<V>& vs) {
+        auto k = to_key(key);
         wrapped->begin_write_array(k);
-        for (const auto& v: vs) push(v);
+        for (int ix = 0; ix < vs.size(); ++ix) write(ix, vs[ix]);
         wrapped->end_write_array();
     }
 
     template <typename K, typename V, std::size_t N>
-    void write(const K& k, const std::array<V, N>& vs) {
+    void write(const K& key, const std::array<V, N>& vs) {
+        auto k = to_key(key);
         wrapped->begin_write_array(k);
-        for (const auto& v: vs) push(v);
+        for (int ix = 0; ix < N; ++ix) write(ix, vs[ix]);
         wrapped->end_write_array();
     }
 
     template <typename K, typename V>
-    void write(const K& k, const V& v) {
-        using T = typename std::decay<V>::type;
-        if constexpr (std::is_same<std::string, T>::value) {
+    void write(const K& k, std::shared_ptr<V> v) { write(k, *v); }
+
+    template <typename K, typename V>
+    void write(const K& k, const std::unique_ptr<V>& v) { write(k, *v); }
+
+    template <typename K, typename V>
+    void write(const K& key, const V& v) {
+        auto k = to_key(key);
+        using T = std::decay_t<V>;
+        if constexpr (std::is_same_v<std::string, T>) {
             wrapped->write(k, std::string{v});
         }
-        else if constexpr (std::is_same<char*, T>::value) {
+        else if constexpr (std::is_same_v<char*, T>) {
             wrapped->write(k, std::string{v});
         }
-        else if constexpr (std::is_same<std::string_view, T>::value) {
+        else if constexpr (std::is_same_v<std::string_view, T>) {
             wrapped->write(k, std::string{v});
         }
-        else if constexpr (std::is_floating_point<T>::value) {
+        else if constexpr (std::is_floating_point_v<T>) {
             wrapped->write(k, double{v});
         }
-        else if constexpr (std::is_integral<T>::value) {
+        else if constexpr (std::is_integral_v<T>) {
             wrapped->write(k, static_cast<long long>(v));
+        }
+        else if constexpr (std::is_pointer_v<T>) {
+            write(k, *v);
         }
         else {
             wrapped->begin_write_map(k);
@@ -110,39 +123,19 @@ struct serializer {
         }
     }
 
-    template <typename V>
-    void push(const V& v) {
-        using T = typename std::decay<V>::type;
-
-        if constexpr (std::is_same<std::string, T>::value) {
-            wrapped->push(std::string{v});
-        }
-        else if constexpr (std::is_same<char*, T>::value) {
-            wrapped->push(std::string{v});
-        }
-        else if constexpr (std::is_same<std::string_view, T>::value) {
-            wrapped->push(std::string{v});
-        }
-        else if constexpr (std::is_floating_point<T>::value) {
-            wrapped->push(double{v});
-        }
-        else if constexpr (std::is_integral<T>::value) {
-            wrapped->push(static_cast<long long>(v));
-        }
-    }
-
     template <typename K, typename V>
-    void read(const K& k, V& v) {
-        using T = typename std::decay<V>::type;
-        if constexpr (std::is_same<std::string, T>::value) {
+    void read(const K& key, V& v) {
+        auto k = to_key(key);
+        using T = std::decay_t<V>;
+        if constexpr (std::is_same_v<std::string, T>) {
             wrapped->read(k, v);
         }
-        else if constexpr (std::is_floating_point<T>::value) {
+        else if constexpr (std::is_floating_point_v<T>) {
             double tmp;
             wrapped->read(k, tmp);
             v = tmp;
         }
-        else if constexpr (std::is_integral<T>::value) {
+        else if constexpr (std::is_integral_v<T>) {
             long long tmp;
             wrapped->read(k, tmp);
             v = tmp;
@@ -154,36 +147,48 @@ struct serializer {
         }
     }
 
-    template <typename K, typename V>
-    void read(const K& k, std::unordered_map<std::string, V>& kvs) {
+    template <typename K,
+              typename Q,
+              typename V>
+    void read(const K& key,
+              std::unordered_map<Q, V>& kvs) {
+        auto k = to_key(key);
         V val;
         wrapped->begin_read_map(k);
-        for(;;) {
-            auto key = wrapped->next_key();
-            if (!key) break;
-            read(*key, val);
-            kvs[*key] = val;
+        for (;;) {
+            auto k = wrapped->next_key();
+            if (!k) break;
+            read(*k, val);
+            Q key;
+            from_key(key, *k);
+            kvs[key] = val;
         }
         wrapped->end_read_map();
     }
 
-    template <typename K, typename V>
-    void read(const K& k, std::map<std::string, V>& kvs) {
+    template <typename K,
+              typename Q,
+              typename V>
+    void read(const K& key, std::map<Q, V>& kvs) {
+        auto k = to_key(key);
         wrapped->begin_read_map(k);
-        for(;;) {
-            auto key = wrapped->next_key();
-            if (!key) break;
+        for (;;) {
+            auto k = wrapped->next_key();
+            if (!k) break;
             V val;
-            read(*key, val);
-            kvs[*key] = val;
+            read(*k, val);
+            Q key;
+            from_key(key, *k);
+            kvs[key] = val;
         }
         wrapped->end_read_map();
     }
 
     template <typename K, typename V>
-    void read(const K& k, std::vector<V>& vs) {
+    void read(const K& key, std::vector<V>& vs) {
+        auto k = to_key(key);
         wrapped->begin_read_array(k);
-        for(;;) {
+        for (;;) {
             auto key = wrapped->next_key();
             if (!key) break;
             V val;
@@ -194,9 +199,10 @@ struct serializer {
     }
 
     template <typename K, typename V, std::size_t N>
-    void read(const K& k, std::array<V, N>& vs) {
+    void read(const K& key, std::array<V, N>& vs) {
+        auto k = to_key(key);
         wrapped->begin_read_array(k);
-        for(int ix = 0; ix < N; ++ix) {
+        for (int ix = 0; ix < N; ++ix) {
             auto key = wrapped->next_key();
             if (!key) break;
             V val;
@@ -206,40 +212,36 @@ struct serializer {
         wrapped->end_read_array();
     }
 
-    void begin_write_map(key_type k) { wrapped->begin_write_map(k); }
+    void begin_write_map(const key_type& k) { wrapped->begin_write_map(k); }
     void end_write_map() { wrapped->end_write_map(); }
-    void begin_write_array(key_type k) { wrapped->begin_write_array(k); }
+    void begin_write_array(const key_type& k) { wrapped->begin_write_array(k); }
     void end_write_array() { wrapped->end_write_array(); }
 
-    void begin_read_map(key_type k) { wrapped->begin_read_map(k); }
+    void begin_read_map(const key_type& k) { wrapped->begin_read_map(k); }
     void end_read_map() { wrapped->end_read_map(); }
-    void begin_read_array(key_type k) { wrapped->begin_read_array(k); }
+    void begin_read_array(const key_type& k) { wrapped->begin_read_array(k); }
     void end_read_array() { wrapped->end_read_array(); }
 
 private:
     struct interface {
-        virtual void write(key_type, std::string) = 0;
-        virtual void write(key_type, double) = 0;
-        virtual void write(key_type, long long) = 0;
+        virtual void write(const key_type&, std::string) = 0;
+        virtual void write(const key_type&, double) = 0;
+        virtual void write(const key_type&, long long) = 0;
 
-        virtual void read(key_type, std::string&) = 0;
-        virtual void read(key_type, double&) = 0;
-        virtual void read(key_type, long long&) = 0;
+        virtual void read(const key_type&, std::string&) = 0;
+        virtual void read(const key_type&, double&) = 0;
+        virtual void read(const key_type&, long long&) = 0;
 
-        virtual void push(std::string) = 0;
-        virtual void push(double) = 0;
-        virtual void push(long long) = 0;
+        virtual std::optional<key_type> next_key() = 0;
 
-        virtual std::optional<std::string> next_key() = 0;
-
-        virtual void begin_write_map(key_type) = 0;
+        virtual void begin_write_map(const key_type&) = 0;
         virtual void end_write_map() = 0;
-        virtual void begin_write_array(key_type) = 0;
+        virtual void begin_write_array(const key_type&) = 0;
         virtual void end_write_array() = 0;
 
-        virtual void begin_read_map(key_type) = 0;
+        virtual void begin_read_map(const key_type&) = 0;
         virtual void end_read_map() = 0;
-        virtual void begin_read_array(key_type) = 0;
+        virtual void begin_read_array(const key_type&) = 0;
         virtual void end_read_array() = 0;
 
         virtual ~interface() = default;
@@ -250,30 +252,26 @@ private:
         wrapper(I& i): inner(i) {}
         I& inner;
 
-        void write(key_type k, std::string v) override { inner.write(k, v); }
-        void write(key_type k, double v) override { inner.write(k, v); }
-        void write(key_type k, long long v) override { inner.write(k, v); }
+        void write(const key_type& k, std::string v) override { inner.write(k, v); }
+        void write(const key_type& k, double v) override { inner.write(k, v); }
+        void write(const key_type& k, long long v) override { inner.write(k, v); }
 
-        void read(key_type k, std::string& v) override { inner.read(k, v); };
-        void read(key_type k, long long& v) override { inner.read(k, v); };
-        void read(key_type k, double& v) override { inner.read(k, v); };
+        void read(const key_type& k, std::string& v) override { inner.read(k, v); };
+        void read(const key_type& k, long long& v) override { inner.read(k, v); };
+        void read(const key_type& k, double& v) override { inner.read(k, v); };
 
-        void push(std::string v) override { inner.push(v); }
-        void push(double v) override { inner.push(v); }
-        void push(long long v) override { inner.push(v); }
+        std::optional<key_type> next_key() override { return inner.next_key(); }
 
-        std::optional<std::string> next_key() override { return inner.next_key(); }
-
-        void begin_write_map(key_type k) override { inner.begin_write_map(k); }
+        void begin_write_map(const key_type& k) override { inner.begin_write_map(k); }
         void end_write_map() override { inner.end_write_map(); }
 
-        void begin_write_array(key_type k) override { inner.begin_write_array(k); }
+        void begin_write_array(const key_type& k) override { inner.begin_write_array(k); }
         void end_write_array() override { inner.end_write_array(); }
 
-        void begin_read_map(key_type k) override { inner.begin_read_map(k); }
+        void begin_read_map(const key_type& k) override { inner.begin_read_map(k); }
         void end_read_map() override { inner.end_read_map(); }
 
-        void begin_read_array(key_type k) override { inner.begin_read_array(k); }
+        void begin_read_array(const key_type& k) override { inner.begin_read_array(k); }
         void end_read_array() override { inner.end_read_array(); }
 
         virtual ~wrapper() = default;
@@ -289,32 +287,44 @@ struct json_serdes {
     std::optional<decltype(data.items().end())> stop;
 
     template <typename V>
-    void write(key_type k, const V& v) { data[ptr / std::string(k)] = v; }
+    void write(const key_type& k, const V& v) { data[ptr / std::string(k)] = v; }
 
     template <typename V>
-    void read(key_type k, V& v) { data[ptr / std::string(k)].get_to(v); }
+    void read(const key_type& k, V& v) { data[ptr / std::string(k)].get_to(v); }
 
-    template <typename V>
-    void push(const V& v) { data[ptr].push_back(v); }
-
-    std::optional<std::string> next_key() {
-        if (iter && stop && iter != stop) {
-            auto key = iter.value().key();
+    std::optional<key_type> next_key() {
+        if (iter && iter.value() != stop.value()) {
+            auto key = iter->key();
             iter.value()++;
-            return {key};
+            return key;
         }
         return {};
     }
 
-    void begin_write_map(key_type k) { ptr /= std::string(k); }
+    void begin_write_map(const key_type& k) {
+        ptr /= std::string(k);
+        data[ptr] = nlohmann::json::object();  // NOTE technically not needed, but gives nice output if empty
+    }
     void end_write_map() { ptr.pop_back(); }
-    void begin_write_array(key_type k) {  ptr /= std::string(k); }
+    void begin_write_array(const key_type& k) {
+        ptr /= std::string(k);
+        data[ptr] = nlohmann::json::array(); // NOTE technically not needed, but gives nice output if empty
+    }
     void end_write_array() { ptr.pop_back(); }
 
-    void begin_read_map(key_type k) { ptr /= std::string(k); iter = data[ptr].items().begin(); stop = data[ptr].items().end(); }
-    void end_read_map() { ptr.pop_back(); iter = {}; stop = {}; }
-    void begin_read_array(key_type k) {  ptr /= std::string(k); iter = data[ptr].items().begin(); stop = data[ptr].items().end(); }
-    void end_read_array() { ptr.pop_back(); iter = {}; stop = {}; }
+    void begin_read_map(const key_type& k) {
+        ptr /= k;
+        const auto& items = data[ptr].items();
+        iter = items.begin();
+        stop = items.end();
+    }
+    void end_read_map() {
+        ptr.pop_back();
+        iter = {};
+        stop = {};
+    }
+    void begin_read_array(const key_type& k) { begin_read_map(k); }
+    void end_read_array() { end_read_map(); }
 };
 
 // Macros to (intrusively) (de)serialize a struct; use in the 'public' section
