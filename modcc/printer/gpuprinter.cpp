@@ -320,7 +320,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         if(!net_receive_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "    unsigned block_dim = 128;\n"
-                                           "    if (stream_ptr->num_events == 0u) return;\n"
+                                           "    if (stream_ptr->num_streams == 0u) return;\n"
                                            "    const arb_size_type num_streams = stream_ptr->num_streams;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(num_streams, block_dim);\n"
                                            "    {}<<<grid_dim, block_dim>>>(*p, *stream_ptr);\n"),

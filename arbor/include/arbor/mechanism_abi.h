@@ -78,7 +78,6 @@ typedef struct arb_deliverable_event_range {
 // A set of ranges of events to be consumed
 typedef struct arb_deliverable_event_stream {
     arb_size_type num_streams;
-    arb_size_type num_events;
     const arb_deliverable_event_data* data;
     const arb_deliverable_event_range* ranges;
 }  arb_deliverable_multi_event_stream;

@@ -328,7 +328,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    if (stream_ptr->num_events == 0u) return;\n"
+                                       "    if (stream_ptr->num_streams == 0u) return;\n"
                                        "    const arb_deliverable_event_data* data_ = stream_ptr->data;\n"
                                        "    const arb_size_type num_streams_ = stream_ptr->num_streams;\n"
                                        "    for (arb_size_type s_=0u; s_<num_streams_; ++s_) {{\n"

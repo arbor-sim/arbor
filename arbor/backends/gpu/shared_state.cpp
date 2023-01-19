@@ -229,7 +229,7 @@ void shared_state::register_events(
 void shared_state::deliver_events(mechanism& m) {
     if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
         auto& deliverable_events = it->second.deliverable_events_;
-        if (auto es_state = deliverable_events.marked_events(); es_state.num_events > 0u) {
+        if (auto es_state = deliverable_events.marked_events(); es_state.num_streams > 0u) {
             m.deliver_events(es_state);
         }
     }

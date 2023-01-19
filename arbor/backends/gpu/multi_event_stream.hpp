@@ -25,11 +25,11 @@ public:
     }
 
     arb_deliverable_event_stream marked_events() const {
+        if (base::empty()) return {0, nullptr, nullptr};
         return {
-            base::num_streams_,
-            base::empty()? 0u : base::num_events_[base::index_],
+            base::num_streams_[base::index_],
             device_ev_data_.data(),
-            device_ranges_.data() + base::index_*base::num_streams_
+            device_ranges_.data() + base::stream_lookup_[base::index_]
         };
     }
 

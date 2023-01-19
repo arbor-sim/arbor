@@ -27,16 +27,14 @@ public:
 
     multi_event_stream() = default;
 
-    bool empty() const {
-        return ev_data_.empty() || index_ >= num_events_.size();
-    }
+    bool empty() const { return ev_data_.empty() || index_ >= num_streams_.size(); }
 
     void clear() {
-        num_streams_ = 0u;
         num_dt_ = 0u;
         ranges_.clear();
         ranges_tmp_.clear();
-        num_events_.clear();
+        num_streams_.clear();
+        stream_lookup_.clear();
         ev_data_.clear();
         index_ = 0u;
     }
@@ -52,12 +50,14 @@ public:
 
         if (dts.empty()) return;
         num_dt_ = dts.size();
-        num_events_.assign(num_dt_+1, 0u);
+        num_streams_.assign(num_dt_+1, 0u);
+        stream_lookup_.assign(num_dt_+1, 0u);
 
         if (staged.empty()) return;
         ev_data_.reserve(staged.size());
 
         auto divide = [this, &staged, &dts] (event_index_type idx, size_type begin, size_type end) {
+            arb_size_type i = 0;
             for (auto dt : dts) {
                 ranges_tmp_.push_back(arb_deliverable_event_range{idx,begin,begin});
                 for (; begin<end; ++begin) {
@@ -69,10 +69,15 @@ public:
                         break;
                     }
                 }
+                ++i;
+                const auto n_events = (ranges_tmp_.back().end - ranges_tmp_.back().begin);
+                if (n_events > 0u) {
+                    ++num_streams_[i];
+                }
             }
         };
 
-        num_streams_ = 1u;
+        size_type num_locs = 1u;
         size_type old_i = 0u;
         auto old_index = event_index(staged[0]);
         for (size_type i: util::count_along(staged)) {
@@ -81,30 +86,27 @@ public:
             const auto new_index = event_index(ev);
             if (new_index != old_index) {
                 divide(old_index, old_i, i);
-                ++num_streams_;
+                ++num_locs;
                 old_index = new_index;
                 old_i = i;
             }
         }
         divide(old_index, old_i, staged.size());
-
-        arb_assert(num_streams_*num_dt_ == ranges_tmp_.size());
+        arb_assert(num_locs*num_dt_ == ranges_tmp_.size());
         arb_assert(staged.size() == ev_data_.size());
 
-        // transpose and add empty row at begin
-        ranges_.reserve(ranges_tmp_.size() + num_streams_);
-        for (size_type s = 0u; s < num_streams_; ++s) {
-            ranges_.push_back(arb_deliverable_event_range{0,0,0});
-        }
+        // transpose and filter out empty ranges
+        std::partial_sum(num_streams_.begin()+1, num_streams_.end()-1, stream_lookup_.begin()+2);
+        const auto total_streams = stream_lookup_.back() + num_streams_.back();
+        ranges_.reserve(total_streams);
         for (size_type t = 0u; t < num_dt_; ++t) {
-            size_type n = 0u;
-            for (size_type s = 0u; s < num_streams_; ++s) {
+            for (size_type s = 0u; s < num_locs; ++s) {
                 const auto& r = ranges_tmp_[s*num_dt_+t];
-                ranges_.push_back(r);
-                n += r.end - r.begin;
+                const auto n = r.end - r.begin;
+                if (n > 0u) ranges_.push_back(r);
             }
-            num_events_[t+1] = n;
         }
+        arb_assert(ranges_.size() == total_streams);
     }
     
     void mark() {
@@ -112,20 +114,20 @@ public:
     }
 
     arb_deliverable_event_stream marked_events() const {
+        if (empty()) return {0, nullptr, nullptr};
         return {
-            num_streams_,
-            empty()? 0u : num_events_[index_],
+            num_streams_[index_],
             ev_data_.data(),
-            ranges_.data() + index_*num_streams_
+            ranges_.data() + stream_lookup_[index_]
         };
     }
 
 protected:
-    size_type num_streams_ = 0u;
     size_type num_dt_ = 0u;
     std::vector<arb_deliverable_event_range> ranges_;
     std::vector<arb_deliverable_event_range> ranges_tmp_;
-    std::vector<size_type> num_events_;
+    std::vector<size_type> num_streams_;
+    std::vector<size_type> stream_lookup_;
     std::vector<event_data_type> ev_data_;
     size_type index_ = 0u;
 };
