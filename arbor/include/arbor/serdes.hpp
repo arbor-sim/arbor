@@ -8,6 +8,7 @@
 #include <map>
 #include <unordered_map>
 #include <array>
+#include <type_traits>
 
 #include <iostream>
 
@@ -16,6 +17,35 @@
 namespace arb {
 namespace serdes {
 
+// type traits
+
+// Have we got begin/end?
+template <typename T, typename = void> struct is_iterable: std::false_type {};
+
+template <typename T>
+struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
+                                  decltype(std::end(std::declval<T>()))>>: std::true_type {};
+
+template <typename T> constexpr bool is_iterable_v = is_iterable<T>::value;
+
+// Found a key-value-like thingy?
+template <typename T, typename = void> struct is_pair: std::false_type {};
+
+template <typename T>
+struct is_pair<T, std::void_t<decltype(std::get<0>(std::declval<T>())),
+                              decltype(std::get<1>(std::declval<T>()))>>: std::true_type {};
+
+template <typename T> constexpr bool is_pair_v = is_pair<T>::value;
+
+// Anything we can deref?
+template <typename T, typename = void> struct is_pointerlike: std::false_type {};
+
+template <typename T>
+struct is_pointerlike<T, std::void_t<decltype(*std::declval<T>())>>: std::true_type {};
+
+template <typename T> constexpr bool is_pointerlike_v = is_pointerlike<T>::value;
+
+// Handling keys
 using key_type = std::string;
 
 template <typename K>
@@ -49,63 +79,38 @@ void from_key(K& key, const key_type& k) {
     }
 }
 
-
 struct serializer {
     template <typename I>
     serializer(I& i): wrapped{std::make_unique<wrapper<I>>(i)} {}
 
-    template <typename K, typename V>
-    void write(const K& key, const std::unordered_map<std::string, V>& qvs) {
-        auto k = to_key(key);
-        wrapped->begin_write_map(k);
-        for (const auto& [q, v]: qvs) write(q, v);
-        wrapped->end_write_map();
-    }
-
     template <typename K,
-              typename Q,
               typename V>
-    void write(const K& key, const std::map<Q, V>& qvs) {
-        auto k = to_key(key);
-        wrapped->begin_write_map(k);
-        for (const auto& [q, v]: qvs) write(to_key(q), v);
-        wrapped->end_write_map();
-    }
-
-    template <typename K, typename V>
-    void write(const K& key, const std::vector<V>& vs) {
-        auto k = to_key(key);
-        wrapped->begin_write_array(k);
-        for (int ix = 0; ix < vs.size(); ++ix) write(ix, vs[ix]);
-        wrapped->end_write_array();
-    }
-
-    template <typename K, typename V, std::size_t N>
-    void write(const K& key, const std::array<V, N>& vs) {
-        auto k = to_key(key);
-        wrapped->begin_write_array(k);
-        for (int ix = 0; ix < N; ++ix) write(ix, vs[ix]);
-        wrapped->end_write_array();
-    }
-
-    template <typename K, typename V>
-    void write(const K& k, std::shared_ptr<V> v) { write(k, *v); }
-
-    template <typename K, typename V>
-    void write(const K& k, const std::unique_ptr<V>& v) { write(k, *v); }
-
-    template <typename K, typename V>
     void write(const K& key, const V& v) {
         auto k = to_key(key);
         using T = std::decay_t<V>;
-        if constexpr (std::is_same_v<std::string, T>) {
+        if constexpr ( std::is_same_v<char*, T>
+                    || std::is_same_v<std::string, T>
+                    || std::is_same_v<std::string_view, T>) {
             wrapped->write(k, std::string{v});
         }
-        else if constexpr (std::is_same_v<char*, T>) {
-            wrapped->write(k, std::string{v});
+        else if constexpr (is_iterable_v<T>) {
+            if constexpr (is_pair_v<typename T::value_type>) {
+                wrapped->begin_write_map(k);
+                for (const auto& [q, w]: v) write(q, w);
+                wrapped->end_write_map();
+            }
+            else  {
+                int ix = 0;
+                wrapped->begin_write_array(k);
+                for (const auto& w: v) {
+                    write(ix, w);
+                    ix++;
+                }
+                wrapped->end_write_array();
+            }
         }
-        else if constexpr (std::is_same_v<std::string_view, T>) {
-            wrapped->write(k, std::string{v});
+        else if constexpr (is_pointerlike_v<T>) {
+            write(k, *v);
         }
         else if constexpr (std::is_floating_point_v<T>) {
             wrapped->write(k, double{v});
@@ -113,98 +118,11 @@ struct serializer {
         else if constexpr (std::is_integral_v<T>) {
             wrapped->write(k, static_cast<long long>(v));
         }
-        else if constexpr (std::is_pointer_v<T>) {
-            write(k, *v);
-        }
         else {
             wrapped->begin_write_map(k);
             v.serialize(*this);
             wrapped->end_write_map();
         }
-    }
-
-    template <typename K, typename V>
-    void read(const K& k, std::shared_ptr<V> v) { read(k, *v); }
-
-    template <typename K, typename V>
-    void read(const K& k, std::unique_ptr<V>& v) { read(k, *v); }
-
-    template <typename K, typename V>
-    void read(const K& key, V& v) {
-        auto k = to_key(key);
-        using T = std::decay_t<V>;
-        if constexpr (std::is_same_v<std::string, T>) {
-            wrapped->read(k, v);
-        }
-        else if constexpr (std::is_floating_point_v<T>) {
-            double tmp;
-            wrapped->read(k, tmp);
-            v = tmp;
-        }
-        else if constexpr (std::is_integral_v<T>) {
-            long long tmp;
-            wrapped->read(k, tmp);
-            v = tmp;
-        }
-        else {
-            wrapped->begin_read_map(k);
-            v.deserialize(*this);
-            wrapped->end_read_map();
-        }
-    }
-
-    template <typename K,
-              typename Q,
-              typename V>
-    void read(const K& key,
-              std::unordered_map<Q, V>& kvs) {
-        auto k = to_key(key);
-        V val;
-        kvs.clear();
-        wrapped->begin_read_map(k);
-        for (;;) {
-            auto k = wrapped->next_key();
-            if (!k) break;
-            read(*k, val);
-            Q key;
-            from_key(key, *k);
-            kvs[key] = val;
-        }
-        wrapped->end_read_map();
-    }
-
-    template <typename K,
-              typename Q,
-              typename V>
-    void read(const K& key, std::map<Q, V>& kvs) {
-        auto k = to_key(key);
-        kvs.clear();
-        wrapped->begin_read_map(k);
-        for (;;) {
-            auto k = wrapped->next_key();
-            if (!k) break;
-            V val;
-            read(*k, val);
-            Q key;
-            from_key(key, *k);
-            kvs[key] = val;
-        }
-        wrapped->end_read_map();
-    }
-
-    template <typename K, typename V>
-    void read(const K& key, std::vector<V>& vs) {
-        auto k = to_key(key);
-        vs.clear();
-        wrapped->begin_read_array(k);
-        for (;;) {
-            auto key = wrapped->next_key();
-            if (!key) break;
-            V val;
-            read(*key, val);
-            vs.emplace_back(std::move(val));
-        }
-        wrapped->end_read_array();
     }
 
     template <typename K, typename V, std::size_t N>
@@ -219,6 +137,61 @@ struct serializer {
             vs[ix] = std::move(val);
         }
         wrapped->end_read_array();
+    }
+
+    template <typename K,
+              typename V>
+    void read(const K& key, V& v) {
+        auto skey = to_key(key);
+        using T = std::decay_t<V>;
+        if constexpr (std::is_same_v<std::string, T>) {
+            wrapped->read(skey, v);
+        }
+        else if constexpr (is_iterable_v<T>) {
+            v.clear();
+            if constexpr (is_pair_v<typename T::value_type>) {
+                wrapped->begin_read_map(skey);
+                for (;;) {
+                    auto q = wrapped->next_key();
+                    if (!q) break;
+                    std::remove_cv_t<typename T::value_type::second_type> val;
+                    read(*q, val);
+                    std::remove_cv_t<typename T::value_type::first_type> k;
+                    from_key(k, *q);
+                    v[k] = val;
+                }
+                wrapped->end_read_map();
+            }
+            else  {
+                wrapped->begin_read_array(skey);
+                for (;;) {
+                    auto q = wrapped->next_key();
+                    if (!q) break;
+                    typename V::value_type val;
+                    read(*q, val);
+                    v.emplace_back(std::move(val));
+                }
+                wrapped->end_read_array();
+            }
+        }
+        else if constexpr (is_pointerlike_v<T>) {
+            read(skey, *v);
+        }
+        else if constexpr (std::is_floating_point_v<T>) {
+            double tmp;
+            wrapped->read(skey, tmp);
+            v = tmp;
+        }
+        else if constexpr (std::is_integral_v<T>) {
+            long long tmp;
+            wrapped->read(skey, tmp);
+            v = tmp;
+        }
+        else {
+            wrapped->begin_read_map(skey);
+            v.deserialize(*this);
+            wrapped->end_read_map();
+        }
     }
 
     void begin_write_map(const key_type& k) { wrapped->begin_write_map(k); }

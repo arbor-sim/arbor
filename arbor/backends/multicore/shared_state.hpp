@@ -44,6 +44,8 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
+    ARB_SERDES_ENABLE(write_eX_);
+
     unsigned alignment = 1; // Alignment and padding multiple.
 
     bool write_eX_;          // is eX written?
@@ -135,6 +137,9 @@ struct ARB_ARBOR_API shared_state {
         std::vector<arb_size_type> idx_;
         cbprng::counter_type random_number_update_counter_ = 0u;
     };
+
+    ARB_SERDES_ENABLE(cbprng_seed
+                      );
 
     cable_solver solver;
 

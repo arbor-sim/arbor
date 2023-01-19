@@ -79,9 +79,14 @@ public:
     }
 
     virtual void serialize(serdes::serializer& ser) const override {
+        ARB_SERDES_WRITE(tmin_);
+        ARB_SERDES_WRITE(seed_);
+        ARB_SERDES_WRITE(state_);
     }
 
     virtual void deserialize(serdes::serializer& ser) override {
+        ARB_SERDES_READ(tmin_);
+        ARB_SERDES_READ(seed_);
     }
 
 private:
