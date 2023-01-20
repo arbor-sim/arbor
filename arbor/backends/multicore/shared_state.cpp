@@ -227,8 +227,8 @@ shared_state::shared_state(
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    deliverable_events(n_intdom)
-{
+    sample_events_(n_intdom),
+    deliverable_events(n_intdom) {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
@@ -355,22 +355,19 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return util::minmax_value(voltage);
 }
 
-void shared_state::take_samples(
-    const sample_event_stream::state& s,
-    array& sample_time,
-    array& sample_value)
-{
-    for (arb_size_type i = 0; i<s.n_streams(); ++i) {
-        auto begin = s.begin_marked(i);
-        auto end = s.end_marked(i);
-
+void shared_state::take_samples() {
+    sample_events_.mark_until(time_to);
+    const auto& state = sample_events_.marked_events();
+    for (arb_size_type i = 0; i<state.n_streams(); ++i) {
+        auto begin = state.begin_marked(i);
+        auto end = state.end_marked(i);
         // Null handles are explicitly permitted, and always give a sample of zero.
-        // (Note: probably not worth explicitly vectorizing this.)
         for (auto p = begin; p<end; ++p) {
-            sample_time[p->offset] = time[i];
-            sample_value[p->offset] = p->handle? *p->handle: 0;
+            sample_time_[p->offset] = time[i];
+            sample_value_[p->offset] = p->handle? *p->handle: 0;
         }
     }
+    sample_events_.drop_marked_events();
 }
 
 // (Debug interface only.)
@@ -652,8 +649,26 @@ void shared_state::instantiate(arb::mechanism& m,
         // `peer_index` holds the peer CV of each CV in node_index.
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
-        if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
+        if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
+}
+
+arb_deliverable_event_stream shared_state::mark_deliverable_events() {
+     deliverable_events.mark_until_after(time);
+     auto state = deliverable_events.marked_events();
+     arb_deliverable_event_stream result;
+     result.n_streams = state.n;
+     result.begin     = state.begin_offset;
+     result.end       = state.end_offset;
+     result.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
+     return result;
+}
+
+void shared_state::update_time_step(time_type dt_max, time_type tfinal) {
+    deliverable_events.drop_marked_events();
+    update_time_to(dt_max, tfinal);
+    deliverable_events.event_time_if_before(time_to);
+    set_dt();
 }
 
 } // namespace multicore

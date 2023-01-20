@@ -210,6 +210,7 @@ shared_state::shared_state(
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
     cbprng_seed(cbprng_seed_),
+    sample_events_(n_intdom),
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);
@@ -450,6 +451,24 @@ void shared_state::set_dt() {
     set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
 }
 
+arb_deliverable_event_stream shared_state::mark_deliverable_events() {
+     deliverable_events.mark_until_after(time);
+     auto state = deliverable_events.marked_events();
+     arb_deliverable_event_stream result;
+     result.n_streams = state.n;
+     result.begin     = state.begin_offset;
+     result.end       = state.end_offset;
+     result.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
+     return result;
+}
+
+void shared_state::update_time_step(time_type dt_max, time_type tfinal) {
+    deliverable_events.drop_marked_events();
+    update_time_to(dt_max, tfinal);
+    deliverable_events.event_time_if_before(time_to);
+    set_dt();
+}
+
 void shared_state::add_stimulus_current() {
     stim_data.add_current(time, cv_to_intdom, current_density);
 }
@@ -462,8 +481,10 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 
-void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
-    take_samples_impl(s, time.data(), sample_time.data(), sample_value.data());
+void shared_state::take_samples(const sample_event_stream::state& state) {
+   sample_events_.mark_until(time_to);
+   take_samples_impl(sample_events_.marked_events(), time.data(), sample_time.data(), sample_value.data());
+   sample_events_.drop_marked_events();
 }
 
 // Debug interface

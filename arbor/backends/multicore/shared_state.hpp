@@ -14,6 +14,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/integration_result.hpp"
 #include "backends/rand_fwd.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
@@ -164,6 +165,15 @@ struct ARB_ARBOR_API shared_state {
 
     arb_seed_type cbprng_seed; // random number generator seed
 
+    sample_event_stream sample_events_;
+    array sample_time_;
+    array sample_value_;
+    threshold_watcher threshold_watcher_;
+
+    // Host-side views/copies and local state.
+    util::range<const arb_value_type*> sample_time_host_;
+    util::range<const arb_value_type*> sample_value_host_;
+
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
@@ -230,12 +240,60 @@ struct ARB_ARBOR_API shared_state {
     std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
-    void take_samples(
-        const sample_event_stream::state& s,
-        array& sample_time,
-        array& sample_value);
+    void take_samples();
 
     void reset();
+
+    void begin_epoch(std::vector<deliverable_event> deliverables,
+                    std::vector<sample_event> samples) {
+        // events
+        deliverable_events.init(std::move(deliverables));
+        // samples
+        auto n_samples = samples.size();
+        if (sample_time_.size() < n_samples) {
+            sample_time_ = array(n_samples);
+            sample_value_ = array(n_samples);
+        }
+        sample_events_.init(std::move(samples));
+        // thresholds
+        threshold_watcher_.clear_crossings();
+    }
+
+    void next_epoch() { std::swap(time_to, time); }
+
+    void reset_thresholds() { threshold_watcher_.reset(voltage); }
+
+    arb_deliverable_event_stream mark_deliverable_events();
+
+    void update_time_step(time_type dt_max, time_type tfinal);
+
+    void test_thresholds() { threshold_watcher_.test(&time_since_spike); }
+
+
+
+    fvm_integration_result get_integration_result() {
+        const auto& crossings = threshold_watcher_.crossings();
+        sample_time_host_ = util::range_pointer_view(sample_time_);
+        sample_value_host_ = util::range_pointer_view(sample_value_);
+
+        return { util::range_pointer_view(crossings),
+                 sample_time_host_,
+                 sample_value_host_ };
+    }
+
+    void init_thresholds(const std::vector<arb_index_type>& detector_cv,
+                         const std::vector<arb_value_type>& thresholds,
+                         const execution_context& context) {
+        threshold_watcher_ = threshold_watcher(cv_to_intdom.data(),
+                                               src_to_spike.data(),
+                                               &time,
+                                               &time_to,
+                                               voltage.size(),
+                                               detector_cv,
+                                               thresholds,
+                                               context);
+    }
+
 };
 
 // For debugging only:

@@ -48,7 +48,6 @@ public:
 
     fvm_lowered_cell_impl(execution_context ctx, arb_seed_type seed = 0):
         context_(ctx),
-        threshold_watcher_(ctx),
         seed_{seed}
     {};
 
@@ -82,18 +81,10 @@ private:
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;
     using shared_state        = typename backend::shared_state;
-    using sample_event_stream = typename backend::sample_event_stream;
-    using threshold_watcher   = typename backend::threshold_watcher;
 
     execution_context context_;
 
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
-
-    // TODO: Can we move the backend-dependent data structures below into state_?
-    sample_event_stream sample_events_;
-    array sample_time_;
-    array sample_value_;
-    threshold_watcher threshold_watcher_;
 
     value_type tmin_ = 0;
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
@@ -108,10 +99,6 @@ private:
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
-
-    // Host-side views/copies and local state.
-    decltype(backend::host_view(sample_time_)) sample_time_host_;
-    decltype(backend::host_view(sample_value_)) sample_value_host_;
 
     void update_ion_state();
 
@@ -158,7 +145,7 @@ void fvm_lowered_cell_impl<Backend>::assert_tmin() {
         throw arbor_internal_error("fvm_lowered_cell: inconsistent times across cells");
     }
     if (time_minmax.first != tmin_) {
-        throw arbor_internal_error("fvm_lowered_cell: out of synchronziation with cell state time");
+        throw arbor_internal_error("fvm_lowered_cell: out of synchronization with cell state time");
     }
 }
 
@@ -199,7 +186,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
-    threshold_watcher_.reset(state_->voltage);
+    state_->reset_thresholds();
 }
 
 template <typename Backend>
@@ -213,77 +200,51 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     // Integration setup
     PE(advance:integrate:setup);
-    threshold_watcher_.clear_crossings();
-
-    auto n_samples = staged_samples.size();
-    if (sample_time_.size() < n_samples) {
-        sample_time_ = array(n_samples);
-        sample_value_ = array(n_samples);
-    }
-
-    auto& events = state_->deliverable_events;
-    events.init(std::move(staged_events));
-    sample_events_.init(std::move(staged_samples));
-
+    // Push samples and events down to the state and reset the spike thresholds.
+    state_->begin_epoch(std::move(staged_events), std::move(staged_samples));
     arb_assert((assert_tmin(), true));
     unsigned remaining_steps = dt_steps(tmin_, tfinal, dt_max);
     PL();
 
-    // TODO: Consider devolving more of this to back-end routines (e.g.
-    // per-compartment dt probably not a win on GPU), possibly rumbling
-    // complete fvm state into shared state object.
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
-
+        PE(advance:integrate:revpot);
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
-
-        // Deliver events and accumulate mechanism current contributions.
-
-        PE(advance:integrate:events);
-        state_->deliverable_events.mark_until_after(state_->time);
         PL();
 
         PE(advance:integrate:current:zero);
         state_->zero_currents();
         PL();
-        for (auto& m: mechanisms_) {
-            auto state = events.marked_events();
-            arb_deliverable_event_stream events;
-            events.n_streams = state.n;
-            events.begin     = state.begin_offset;
-            events.end       = state.end_offset;
-            events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-            m->deliver_events(events);
-            m->update_current();
-        }
+
+        // Deliver events and accumulate mechanism current contributions.
 
         PE(advance:integrate:events);
-        events.drop_marked_events();
+        PE(advance:integrate:events:mark);
+        auto deliverable_events = state_->mark_deliverable_events();
+        PL();
+        for (auto& m: mechanisms_) {
+            m->deliver_events(deliverable_events);
+            m->update_current();
+        }
+        PL();
 
         // Update event list and integration step times.
-
-        state_->update_time_to(dt_max, tfinal);
-        events.event_time_if_before(state_->time_to);
-        state_->set_dt();
+        PE(advance:integrate:update_time);
+        state_->update_time_step(dt_max, tfinal);
         PL();
 
         // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we
-        // want to use mean current contributions as opposed to point
-        // sample.)
-
+        // NOTE: performed after dt, time_to calculation, in case we want to
+        // use mean current contributions as opposed to point sample.
         PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
         PL();
 
         // Take samples at cell time if sample time in this step interval.
-
         PE(advance:integrate:samples);
-        sample_events_.mark_until(state_->time_to);
-        state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
-        sample_events_.drop_marked_events();
+        state_->take_samples();
         PL();
 
         // Integrate voltage / solve cable eq
@@ -296,10 +257,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         // Integrate mechanism state for density
+        PE(advance:integrate:density_mechs);
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
+        PL();
 
         // Update ion concentrations.
         PE(advance:integrate:ionupdate);
@@ -308,6 +271,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
+        PE(advance:integrate:v_mechs);
         for (auto& m: voltage_mechanisms_) {
             m->update_current();
         }
@@ -315,10 +279,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             state_->update_prng_state(*m);
             m->update_state();
         }
+        PL();
 
         // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
-        threshold_watcher_.test(&state_->time_since_spike);
+        state_->test_thresholds();
         PL();
 
         PE(advance:integrate:post)
@@ -329,18 +294,17 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         PL();
 
-        std::swap(state_->time_to, state_->time);
+        // Advance epoch by swapping current and next time.
+        state_->next_epoch();
 
         // Check for non-physical solutions:
-
         if (check_voltage_mV_) {
             PE(advance:integrate:physicalcheck);
             assert_voltage_bounded(check_voltage_mV_.value());
             PL();
         }
 
-        // Check for end of integration.
-
+        // At end of epoch, see whether we need additional steps
         PE(advance:integrate:stepsupdate);
         if (!--remaining_steps) {
             tmin_ = state_->time_bounds().first;
@@ -351,15 +315,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     set_tmin(tfinal);
 
-    const auto& crossings = threshold_watcher_.crossings();
-    sample_time_host_ = backend::host_view(sample_time_);
-    sample_value_host_ = backend::host_view(sample_value_);
-
-    return fvm_integration_result{
-        util::range_pointer_view(crossings),
-        util::range_pointer_view(sample_time_host_),
-        util::range_pointer_view(sample_value_host_)
-    };
+    return state_->get_integration_result();
 }
 
 template <typename Backend>
@@ -478,7 +434,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                    [&fvm_info](index_type i){ return fvm_info.cell_to_intdom[i]; });
 
     arb_assert(D.n_cell() == ncell);
-    sample_events_ = sample_event_stream(nintdom);
 
     // Discretize and build gap junction info.
 
@@ -687,7 +642,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
+    state_->init_thresholds(detector_cv, detector_threshold, context_);
 
     reset();
 
