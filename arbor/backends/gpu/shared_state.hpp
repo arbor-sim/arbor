@@ -240,14 +240,14 @@ struct ARB_ARBOR_API shared_state {
     void begin_epoch(std::vector<deliverable_event> deliverables,
                     std::vector<sample_event> samples) {
         // events
-        deliverable_events.init(std::move(events));
+        deliverable_events.init(std::move(deliverables));
         // samples
-        auto n_samples = events.size();
+        auto n_samples = samples.size();
         if (sample_time_.size() < n_samples) {
             sample_time_ = array(n_samples);
             sample_value_ = array(n_samples);
         }
-        sample_events_.init(std::move(events));
+        sample_events_.init(std::move(samples));
         // thresholds
         threshold_watcher_.clear_crossings();
     }
