@@ -11,12 +11,12 @@
 #include "fvm_layout.hpp"
 
 #include "backends/integration_result.hpp"
-
 #include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
 #include "backends/gpu/matrix_state_fine.hpp"
+#include "backends/gpu/threshold_watcher.hpp"
 
 namespace arb {
 namespace gpu {
@@ -232,10 +232,7 @@ struct ARB_ARBOR_API shared_state {
     std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
-    void take_samples(
-        const sample_event_stream::state& s,
-        array& sample_time,
-        array& sample_value);
+    void take_samples();
 
     // Take samples according to marked events in a sample_event_stream.
     void reset();

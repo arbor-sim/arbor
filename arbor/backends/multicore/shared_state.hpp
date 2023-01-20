@@ -13,17 +13,19 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/simd/simd.hpp>
 
-#include "backends/event.hpp"
-#include "backends/integration_result.hpp"
-#include "backends/rand_fwd.hpp"
+#include "fvm_layout.hpp"
+
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
-#include "multi_event_stream.hpp"
-#include "threshold_watcher.hpp"
-#include "fvm_layout.hpp"
-#include "multicore_common.hpp"
-#include "partition_by_constraint.hpp"
+#include "backends/event.hpp"
+#include "backends/integration_result.hpp"
+#include "backends/rand_fwd.hpp"
+
+#include "backends/multicore/multi_event_stream.hpp"
+#include "backends/multicore/threshold_watcher.hpp"
+#include "backends/multicore/multicore_common.hpp"
+#include "backends/multicore/partition_by_constraint.hpp"
 #include "backends/multicore/cable_solver.hpp"
 #include "backends/multicore/diffusion_solver.hpp"
 
