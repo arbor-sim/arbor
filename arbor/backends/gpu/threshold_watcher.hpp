@@ -38,7 +38,7 @@ class threshold_watcher {
 public:
     using stack_type = stack<threshold_crossing>;
 
-    threshold_watcher() = delete;
+    threshold_watcher() = default;
     threshold_watcher(threshold_watcher&& other) = default;
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
