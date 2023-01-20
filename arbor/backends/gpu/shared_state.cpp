@@ -210,7 +210,7 @@ shared_state::shared_state(
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
     cbprng_seed(cbprng_seed_),
-    sample_events_(n_intdom),
+    sample_events(n_intdom),
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);
@@ -482,9 +482,9 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 }
 
 void shared_state::take_samples() {
-   sample_events_.mark_until(time_to);
-   take_samples_impl(sample_events_.marked_events(), time.data(), sample_time.data(), sample_value.data());
-   sample_events_.drop_marked_events();
+   sample_events.mark_until(time_to);
+   take_samples_impl(sample_events.marked_events(), time.data(), sample_time_.data(), sample_value_.data());
+   sample_events.drop_marked_events();
 }
 
 // Debug interface

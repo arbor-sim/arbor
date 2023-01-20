@@ -157,14 +157,14 @@ struct ARB_ARBOR_API shared_state {
 
     arb_seed_type cbprng_seed; // random number generator seed
 
-    sample_event_stream sample_events_;
-    array sample_time_;
-    array sample_value_;
-    threshold_watcher threshold_watcher_;
+    sample_event_stream sample_events;
+    array sample_time;
+    array sample_value;
+    threshold_watcher watcher;
 
     // Host-side views/copies and local state.
-    memory::host_vector<arb_value_type> sample_time_host_;
-    memory::host_vector<arb_value_type> sample_value_host_;
+    memory::host_vector<arb_value_type> sample_time_host;
+    memory::host_vector<arb_value_type> sample_value_host;
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
@@ -243,46 +243,46 @@ struct ARB_ARBOR_API shared_state {
         deliverable_events.init(std::move(deliverables));
         // samples
         auto n_samples = samples.size();
-        if (sample_time_.size() < n_samples) {
-            sample_time_ = array(n_samples);
-            sample_value_ = array(n_samples);
+        if (sample_time.size() < n_samples) {
+            sample_time = array(n_samples);
+            sample_value = array(n_samples);
         }
-        sample_events_.init(std::move(samples));
+        sample_events.init(std::move(samples));
         // thresholds
-        threshold_watcher_.clear_crossings();
+        watcher.clear_crossings();
     }
 
     void next_epoch() { std::swap(time_to, time); }
 
-    void reset_thresholds() { threshold_watcher_.reset(voltage); }
+    void reset_thresholds() { watcher.reset(voltage); }
 
     arb_deliverable_event_stream mark_deliverable_events();
 
     void update_time_step(time_type dt_max, time_type tfinal);
 
-    void test_thresholds() { threshold_watcher_.test(&time_since_spike); }
+    void test_thresholds() { watcher.test(&time_since_spike); }
 
     fvm_integration_result get_integration_result() {
-        const auto& crossings = threshold_watcher_.crossings();
-        sample_time_host_  = memory::on_host(sample_time_);
-        sample_value_host_ = memory::on_host(sample_value_);
+        const auto& crossings = watcher.crossings();
+        sample_time_host  = memory::on_host(sample_time);
+        sample_value_host = memory::on_host(sample_value);
 
         return { util::range_pointer_view(crossings),
-                 util::range_pointer_view(sample_time_host_),
-                 util::range_pointer_view(sample_value_host_) };
+                 util::range_pointer_view(sample_time_host),
+                 util::range_pointer_view(sample_value_host) };
     }
 
     void init_thresholds(const std::vector<arb_index_type>& detector_cv,
                          const std::vector<arb_value_type>& thresholds,
                          const execution_context& context) {
-        threshold_watcher_ = threshold_watcher(cv_to_intdom.data(),
-                                               src_to_spike.data(),
-                                               &time,
-                                               &time_to,
-                                               voltage.size(),
-                                               detector_cv,
-                                               thresholds,
-                                               context);
+        watcher = threshold_watcher(cv_to_intdom.data(),
+                                    src_to_spike.data(),
+                                    &time,
+                                    &time_to,
+                                    voltage.size(),
+                                    detector_cv,
+                                    thresholds,
+                                    context);
     }
 };
 
