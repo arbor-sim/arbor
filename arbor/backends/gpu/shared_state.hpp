@@ -163,8 +163,8 @@ struct ARB_ARBOR_API shared_state {
     threshold_watcher threshold_watcher_;
 
     // Host-side views/copies and local state.
-    util::range<const arb_value_type*> sample_time_host_;
-    util::range<const arb_value_type*> sample_value_host_;
+    memory::host_vector<arb_value_type> sample_time_host_;
+    memory::host_vector<arb_value_type> sample_value_host_;
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
