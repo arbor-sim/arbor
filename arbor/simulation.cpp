@@ -145,8 +145,6 @@ public:
     // - cell_groups contains pointers.
     // - thread_local_storage cannot be assigned to.
     void serialize(serdes::serializer& ser) const {
-        std::cerr << cell_groups_.size() << '\n';
-        // TODO cell_groups
         ARB_SERDES_WRITE(t_interval_);
         ARB_SERDES_WRITE(epoch_);
         ARB_SERDES_WRITE(pending_events_);
@@ -161,11 +159,11 @@ public:
     }
 
     void deserialize(serdes::serializer& ser) {
-        // TODO cell_groups
         ARB_SERDES_READ(t_interval_);
         ARB_SERDES_READ(epoch_);
         ARB_SERDES_READ(pending_events_);
         ARB_SERDES_READ(event_lanes_);
+        ARB_SERDES_READ(cell_groups_);
         // custom deserialization to avoid ill-defined copy construction.
         // TODO check whether is OK in actually multi-threaded environments.
         {

@@ -87,6 +87,7 @@ public:
     virtual void deserialize(serdes::serializer& ser) override {
         ARB_SERDES_READ(tmin_);
         ARB_SERDES_READ(seed_);
+        ARB_SERDES_READ(state_);
     }
 
 private:

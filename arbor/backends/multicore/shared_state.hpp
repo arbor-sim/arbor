@@ -193,19 +193,17 @@ struct ARB_ARBOR_API shared_state {
 
     shared_state() = default;
 
-    shared_state(
-        arb_size_type n_intdom,
-        arb_size_type n_cell,
-        arb_size_type n_detector,
-        const std::vector<arb_index_type>& cv_to_intdom_vec,
-        const std::vector<arb_index_type>& cv_to_cell_vec,
-        const std::vector<arb_value_type>& init_membrane_potential,
-        const std::vector<arb_value_type>& temperature_K,
-        const std::vector<arb_value_type>& diam,
-        const std::vector<arb_index_type>& src_to_spike,
-        unsigned align,
-        arb_seed_type cbprng_seed_ = 0u
-    );
+    shared_state(arb_size_type n_intdom,
+                 arb_size_type n_cell,
+                 arb_size_type n_detector,
+                 const std::vector<arb_index_type>& cv_to_intdom_vec,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
+                 const std::vector<arb_value_type>& init_membrane_potential,
+                 const std::vector<arb_value_type>& temperature_K,
+                 const std::vector<arb_value_type>& diam,
+                 const std::vector<arb_index_type>& src_to_spike,
+                 unsigned align,
+                 arb_seed_type cbprng_seed_ = 0u);
 
     void instantiate(mechanism&,
                      unsigned,
@@ -217,11 +215,10 @@ struct ARB_ARBOR_API shared_state {
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 
-    void add_ion(
-        const std::string& ion_name,
-        int charge,
-        const fvm_ion_config& ion_data,
-        ion_state::solver_ptr solver=nullptr);
+    void add_ion(const std::string& ion_name,
+                 int charge,
+                 const fvm_ion_config& ion_data,
+                 ion_state::solver_ptr solver=nullptr);
 
     void configure_stimulus(const fvm_stimulus_config&);
 

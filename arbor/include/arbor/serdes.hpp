@@ -132,9 +132,7 @@ struct serializer {
         for (int ix = 0; ix < N; ++ix) {
             auto key = wrapped->next_key();
             if (!key) break;
-            V val;
-            read(*key, val);
-            vs[ix] = std::move(val);
+            read(ix, vs[ix]);
         }
         wrapped->end_read_array();
     }
@@ -148,33 +146,47 @@ struct serializer {
             wrapped->read(skey, v);
         }
         else if constexpr (is_iterable_v<T>) {
-            v.clear();
             if constexpr (is_pair_v<typename T::value_type>) {
                 wrapped->begin_read_map(skey);
                 for (;;) {
                     auto q = wrapped->next_key();
                     if (!q) break;
-                    std::remove_cv_t<typename T::value_type::second_type> val;
-                    read(*q, val);
                     std::remove_cv_t<typename T::value_type::first_type> k;
                     from_key(k, *q);
-                    v[k] = std::move(val);
+                    if (v.count(k)) {
+                        // std::cerr << "[MAP] Reading in over an existing val " << skey << "/" << k << std::endl;
+                        read(k, v[k]);
+                    }
+                    else {
+                        // std::cerr << "[MAP] Making a new val " << skey << "/" << k << std::endl;
+                        std::remove_cv_t<typename T::value_type::second_type> val;
+                        read(k, val);
+                        v[k] = std::move(val);
+                    }
                 }
                 wrapped->end_read_map();
             }
-            else  {
+            else {
                 wrapped->begin_read_array(skey);
-                for (;;) {
+                for (int ix = 0;; ++ix) {
                     auto q = wrapped->next_key();
                     if (!q) break;
-                    typename V::value_type val;
-                    read(*q, val);
-                    v.emplace_back(std::move(val));
+                    if (ix < v.size()) {
+                        read(ix, v[ix]);
+                        // std::cerr << "[ARR] Reading in over an existing val " << skey << "/" << ix << std::endl;
+                    }
+                    else {
+                        // std::cerr << "[ARR] Making a new val " << skey << "/" << ix << std::endl;
+                        typename V::value_type val;
+                        read(ix, val);
+                        v.emplace_back(std::move(val));
+                    }
                 }
                 wrapped->end_read_array();
             }
         }
         else if constexpr (is_pointerlike_v<T>) {
+            if (!v) throw std::runtime_error("Cannot deref a null at key " + skey);
             read(skey, *v);
         }
         else if constexpr (std::is_floating_point_v<T>) {
@@ -265,8 +277,11 @@ private:
 struct json_serdes {
     nlohmann::json data;
     nlohmann::json::json_pointer ptr{""};
-    std::optional<decltype(data.items().begin())> iter;
-    std::optional<decltype(data.items().end())> stop;
+    struct range {
+        decltype(data.items().begin()) begin;
+        decltype(data.items().end()) end;
+    };
+    std::vector<range> iter;
 
     template <typename V>
     void write(const key_type& k, const V& v) { data[ptr / std::string(k)] = v; }
@@ -275,12 +290,12 @@ struct json_serdes {
     void read(const key_type& k, V& v) { data[ptr / std::string(k)].get_to(v); }
 
     std::optional<key_type> next_key() {
-        if (iter && iter.value() != stop.value()) {
-            auto key = iter->key();
-            iter.value()++;
-            return key;
-        }
-        return {};
+        if (iter.empty()) return {};
+        auto& [it, end] = iter.back();
+        if (it == end) return {};
+        auto key = it.key();
+        it++;
+        return key;
     }
 
     void begin_write_map(const key_type& k) {
@@ -296,14 +311,12 @@ struct json_serdes {
 
     void begin_read_map(const key_type& k) {
         ptr /= k;
-        const auto& items = data[ptr].items();
-        iter = items.begin();
-        stop = items.end();
+        auto items = data[ptr].items();
+        iter.push_back(range{items.begin(), items.end()});
     }
     void end_read_map() {
         ptr.pop_back();
-        iter = {};
-        stop = {};
+        iter.pop_back();
     }
     void begin_read_array(const key_type& k) { begin_read_map(k); }
     void end_read_array() { end_read_map(); }

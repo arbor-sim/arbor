@@ -235,9 +235,7 @@ struct fvm_lowered_cell {
     virtual ~fvm_lowered_cell() {}
 
     virtual void serialize(serdes::serializer& ser) const {}
-
-    virtual void deserialize(serdes::serializer& ser) {}
-
+    virtual void deserialize(serdes::serializer& ser) { std::cerr << "[!!] fvm_lowered_cell\n"; }
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
