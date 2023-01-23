@@ -41,6 +41,8 @@ inline cell_size_type event_index(const deliverable_event& ev) {
 
 // Subset of event information required for mechanism delivery.
 struct deliverable_event_data {
+    ARB_SERDES_ENABLE(mech_id, mech_index, weight);
+
     cell_local_size_type mech_id;    // same as target_handle::mech_id
     cell_local_size_type mech_index; // same as target_handle::mech_index
     float weight;

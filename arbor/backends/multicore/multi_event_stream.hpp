@@ -195,6 +195,12 @@ public:
         return out;
     }
 
+    ARB_SERDES_ENABLE(remaining_,
+                      ev_time_, ev_data_,
+                      span_begin_, span_end_,
+                      mark_);
+
+
 private:
     std::vector<event_time_type> ev_time_;
     std::vector<index_type> span_begin_;

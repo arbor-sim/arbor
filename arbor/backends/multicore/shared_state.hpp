@@ -44,6 +44,7 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
+    // TODO thin this out, we might get away with less
     ARB_SERDES_ENABLE(write_Xi_, write_eX_, write_Xo_,
                       iX_, eX_, Xi_, Xd_, Xo_, gX_,
                       init_Xi_, init_Xo_, init_eX_,
@@ -154,7 +155,8 @@ struct ARB_ARBOR_API shared_state {
                       time, time_to,
                       dt_intdom,
                       dt_cv,
-                      temperature_degC);
+                      temperature_degC,
+                      deliverable_events);
 
     cable_solver solver;
 
