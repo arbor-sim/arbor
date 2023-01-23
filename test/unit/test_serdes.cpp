@@ -111,7 +111,7 @@ TEST(serdes, round_trip) {
 }
 
 struct serdes_recipe: public arb::recipe {
-    arb::cell_size_type num_cells() const override { return 1; }
+    arb::cell_size_type num_cells() const override { return num; }
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
         return {{arb::cable_probe_membrane_voltage{arb::ls::location(0, 0.5)}, 0}};
     }
@@ -143,13 +143,19 @@ struct serdes_recipe: public arb::recipe {
         return arb::cable_cell({tree}, decor);
     }
 
-    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
         if (num <= 1) return {};
-        cell_gid_type src = (gid ? gid : num) - 1;
+        auto src = (gid ? gid : num) - 1;
         return {{{src, "detector"},
                  {"synapse"},
-                 event_weight_,
-                 min_delay_};
+                 0.5,
+                 0.125}};
+    }
+
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        std::vector<arb::event_generator> res;
+        if (!gid) res.push_back(arb::regular_generator({"synapse"}, 1, 0.5, 0.73));
+        return {};
     }
 
     arb::cell_size_type num = 1;
@@ -170,7 +176,7 @@ void sampler(arb::probe_metadata pm,
     }
 }
 
-TEST(serdes, simulation) {
+TEST(serdes, single_cell) {
     double dt = 0.5;
     double T  = 5;
 
@@ -185,6 +191,48 @@ TEST(serdes, simulation) {
 
     // Set up the simulation.
     auto model = serdes_recipe{};
+    auto simulation = arb::simulation{model};
+    simulation.add_sampler(arb::all_probes,
+                           arb::regular_schedule(dt),
+                           sampler,
+                           arb::sampling_policy::lax);
+
+    // Run simulation forward && snapshot
+    output = &result_pre;
+    simulation.run(T, dt);
+    simulation.serialize(serializer);
+
+    // Then run some more, ...
+    output = &result_v1;
+    simulation.run(2*T, dt);
+
+    // ... rewind ...
+    simulation.deserialize(serializer);
+
+    // ... and run the same segment again.
+    output = &result_v2;
+    simulation.run(2*T, dt);
+
+    // Now compare the two segments [T, 2T)
+    ASSERT_EQ(result_v1, result_v2);
+}
+
+TEST(serdes, network) {
+    double dt = 0.5;
+    double T  = 5;
+
+    // Result
+    std::vector<double> result_pre;
+    std::vector<double> result_v1;
+    std::vector<double> result_v2;
+
+    // Storage
+    auto serdes = arb::serdes::json_serdes{};
+    auto serializer = arb::serdes::serializer{serdes};
+
+    // Set up the simulation.
+    auto model = serdes_recipe{};
+    model.num = 2;
     auto simulation = arb::simulation{model};
     simulation.add_sampler(arb::all_probes,
                            arb::regular_schedule(dt),
