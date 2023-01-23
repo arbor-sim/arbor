@@ -124,15 +124,17 @@ struct serdes_recipe: public arb::recipe {
     }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
-        auto soma = arb::reg::tagged(1);
-        auto dend = arb::join(arb::reg::tagged(2), arb::reg::tagged(3));
         auto decor = arb::decor{}
-            .paint(soma, arb::density("hh"))
-            .paint(dend, arb::density("pas"))
+            .paint(arb::reg::tagged(1),
+                   arb::density("hh"))
+            .paint(arb::join(arb::reg::tagged(2), arb::reg::tagged(3)),
+                   arb::density("pas"))
+            .place(arb::mlocation{0, 0.0},
+                   arb::threshold_detector{10},
+                   "detector")
             .place(arb::mlocation{0, 1.0},
                    arb::synapse("exp2syn"),
                    "synapse");
-
         double l = 5;
         arb::segment_tree tree;
         tree.append(arb::mnpos, { -l, 0, 0, 3}, {l, 0, 0, 3}, 1);
@@ -140,6 +142,17 @@ struct serdes_recipe: public arb::recipe {
 
         return arb::cable_cell({tree}, decor);
     }
+
+    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        if (num <= 1) return {};
+        cell_gid_type src = (gid ? gid : num) - 1;
+        return {{{src, "detector"},
+                 {"synapse"},
+                 event_weight_,
+                 min_delay_};
+    }
+
+    arb::cell_size_type num = 1;
 };
 
 static std::vector<arb_value_type>* output;
