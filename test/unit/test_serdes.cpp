@@ -232,7 +232,7 @@ TEST(serdes, network) {
 
     // Set up the simulation.
     auto model = serdes_recipe{};
-    model.num = 2;
+    model.num = 10;
     auto simulation = arb::simulation{model};
     simulation.add_sampler(arb::all_probes,
                            arb::regular_schedule(dt),
