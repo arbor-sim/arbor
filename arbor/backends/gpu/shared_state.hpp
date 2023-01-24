@@ -115,9 +115,6 @@ struct ARB_ARBOR_API istim_state {
 };
 
 struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
-
-    unsigned alignment = 1;   // Alignment and padding multiple.
-
     struct mech_storage {
         array data_;
         iarray indices_;
