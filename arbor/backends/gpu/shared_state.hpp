@@ -194,9 +194,6 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     void update_prng_state(mechanism&);
 
-    // Note: returned pointer points to device memory.
-    const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
-
     void add_ion(const std::string& ion_name,
                  int charge,
                  const fvm_ion_config& ion_data,
