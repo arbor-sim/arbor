@@ -254,7 +254,7 @@ struct ARB_ARBOR_API shared_state {
     void test_thresholds();
 
     // Package the integration for fvm_lowered_cell
-    fvm_integration_result get_integration_result() const;
+    fvm_integration_result get_integration_result();
 };
 
 // For debugging only
