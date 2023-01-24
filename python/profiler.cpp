@@ -59,11 +59,14 @@ void register_profiler(pybind11::module& m) {
     m.def("profiler_initialize", [](context_shim& ctx) {
         arb::profile::profiler_initialize(ctx.context);
     });
-    m.def("profiler_summary", [](){
-        std::stringstream stream;
-        stream << arb::profile::profiler_summary();
-        return stream.str();
-    });
+    m.def("profiler_summary",
+          [](double limit){
+              std::stringstream stream;
+              arb::profile::print_profiler_summary(stream, limit);
+              return stream.str();
+          },
+          pybind11::arg_v("limit", 0.0, "Print contributions above <limit> percent. Defaults to showing all.")
+    );
 #endif
 }
 
