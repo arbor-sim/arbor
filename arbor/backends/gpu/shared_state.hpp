@@ -194,11 +194,6 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     void update_prng_state(mechanism&);
 
-    void add_ion(const std::string& ion_name,
-                 int charge,
-                 const fvm_ion_config& ion_data,
-                 ion_state::solver_ptr solver=nullptr);
-
     void zero_currents();
 
     // Set time_to to earliest of time+dt_step and tmax.
