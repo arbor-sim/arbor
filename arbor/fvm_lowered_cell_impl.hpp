@@ -138,6 +138,7 @@ private:
         const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
 };
 
+
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::assert_tmin() {
     auto time_minmax = state_->time_bounds();
@@ -339,6 +340,23 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound
         v_minmax.first<-bound? v_minmax.first: v_minmax.second);
 }
 
+inline
+fvm_detector_info get_detector_info(arb_size_type max,
+                                    arb_size_type ncell,
+                                    const std::vector<cable_cell>& cells,
+                                    const fvm_cv_discretization& D,
+                                    execution_context ctx) {
+    std::vector<arb_index_type> cv;
+    std::vector<arb_value_type> threshold;
+    for (auto cell_idx: util::make_span(ncell)) {
+        for (auto entry: cells[cell_idx].detectors()) {
+            cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
+            threshold.push_back(entry.item.threshold);
+        }
+    }
+    return { max, std::move(cv), std::move(threshold), ctx };
+}
+
 template <typename Backend>
 fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     const std::vector<cell_gid_type>& gids,
@@ -475,11 +493,17 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(
-                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
-                D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
-                data_alignment? data_alignment: 1u, seed_);
+    auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
 
+    state_ = std::make_unique<shared_state>(nintdom,
+                                            ncell,
+                                            cv_to_intdom,
+                                            std::move(cv_to_cell),
+                                            D.init_membrane_potential, D.temperature_K, D.diam_um,
+                                            std::move(src_to_spike),
+                                            d_info,
+                                            data_alignment? data_alignment: 1u,
+                                            seed_);
     state_->solver =
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
 
@@ -612,19 +636,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     }
 
 
-    std::vector<index_type> detector_cv;
-    std::vector<value_type> detector_threshold;
     std::vector<fvm_probe_data> probe_data;
 
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
-
-        // Collect detectors, probe handles.
-        for (auto entry: cells[cell_idx].detectors()) {
-            detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
-            detector_threshold.push_back(entry.item.threshold);
-        }
-
         std::vector<probe_info> rec_probes = rec.get_probes(gid);
         for (cell_lid_type i: count_along(rec_probes)) {
             probe_info& pi = rec_probes[i];
@@ -642,10 +657,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    state_->init_thresholds(detector_cv, detector_threshold, context_);
-
     reset();
-
     return fvm_info;
 }
 

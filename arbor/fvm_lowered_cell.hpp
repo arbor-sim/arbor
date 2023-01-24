@@ -17,7 +17,7 @@
 #include <arbor/util/any_ptr.hpp>
 
 #include "backends/event.hpp"
-#include "backends/integration_result.hpp"
+#include "backends/common_types.hpp"
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"

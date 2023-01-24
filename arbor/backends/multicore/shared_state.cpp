@@ -194,23 +194,21 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
 // shared_state methods:
 
-shared_state::shared_state(
-    arb_size_type n_intdom,
-    arb_size_type n_cell,
-    arb_size_type n_detector,
-    const std::vector<arb_index_type>& cv_to_intdom_vec,
-    const std::vector<arb_index_type>& cv_to_cell_vec,
-    const std::vector<arb_value_type>& init_membrane_potential,
-    const std::vector<arb_value_type>& temperature_K,
-    const std::vector<arb_value_type>& diam,
-    const std::vector<arb_index_type>& src_to_spike,
-    unsigned align,
-    arb_seed_type cbprng_seed_
-):
+shared_state::shared_state(arb_size_type n_intdom,
+                           arb_size_type n_cell,
+                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           const std::vector<arb_index_type>& cv_to_cell_vec,
+                           const std::vector<arb_value_type>& init_membrane_potential,
+                           const std::vector<arb_value_type>& temperature_K,
+                           const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_index_type>& src_to_spike,
+                           const fvm_detector_info& detector,
+                           unsigned align,
+                           arb_seed_type cbprng_seed_):
     alignment(min_alignment(align)),
     alloc(alignment),
     n_intdom(n_intdom),
-    n_detector(n_detector),
+    n_detector(detector.count),
     n_cv(cv_to_intdom_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
@@ -228,6 +226,14 @@ shared_state::shared_state(
     src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
     sample_events(n_intdom),
+    watcher{cv_to_intdom.data(),
+            src_to_spike.data(),
+            &time,
+            &time_to,
+            static_cast<arb_size_type>(voltage.size()),
+            detector.cv,
+            detector.threshold,
+            detector.ctx},
     deliverable_events(n_intdom) {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {

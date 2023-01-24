@@ -53,11 +53,10 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 
 // Ion state methods:
 
-ion_state::ion_state(
-    int charge,
-    const fvm_ion_config& ion_data,
-    unsigned, // alignment/padding ignored.
-    solver_ptr ptr):
+ion_state::ion_state(int charge,
+                     const fvm_ion_config& ion_data,
+                     unsigned, // alignment/padding ignored.
+                     solver_ptr ptr):
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
@@ -179,21 +178,19 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
 // Shared state methods:
 
-shared_state::shared_state(
-    arb_size_type n_intdom,
-    arb_size_type n_cell,
-    arb_size_type n_detector,
-    const std::vector<arb_index_type>& cv_to_intdom_vec,
-    const std::vector<arb_index_type>& cv_to_cell_vec,
-    const std::vector<arb_value_type>& init_membrane_potential,
-    const std::vector<arb_value_type>& temperature_K,
-    const std::vector<arb_value_type>& diam,
-    const std::vector<arb_index_type>& src_to_spike,
-    unsigned, // alignment parameter ignored.
-    arb_seed_type cbprng_seed_
-    ):
+shared_state::shared_state(arb_size_type n_intdom,
+                           arb_size_type n_cell,
+                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           const std::vector<arb_index_type>& cv_to_cell_vec,
+                           const std::vector<arb_value_type>& init_membrane_potential,
+                           const std::vector<arb_value_type>& temperature_K,
+                           const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_index_type>& src_to_spike,
+                           const fvm_detector_info& detector,
+                           unsigned, // alignment parameter ignored.
+                           arb_seed_type cbprng_seed_):
     n_intdom(n_intdom),
-    n_detector(n_detector),
+    n_detector(detector.count),
     n_cv(cv_to_intdom_vec.size()),
     cv_to_intdom(make_const_view(cv_to_intdom_vec)),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
@@ -211,6 +208,14 @@ shared_state::shared_state(
     src_to_spike(make_const_view(src_to_spike)),
     cbprng_seed(cbprng_seed_),
     sample_events(n_intdom),
+    watcher{cv_to_intdom.data(),
+            src_to_spike.data(),
+            &time,
+            &time_to,
+            static_cast<arb_size_type>(voltage.size()),
+            detector.cv,
+            detector.threshold,
+            detector.ctx},
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);

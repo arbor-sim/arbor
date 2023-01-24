@@ -19,7 +19,7 @@
 #include "util/rangeutil.hpp"
 
 #include "backends/event.hpp"
-#include "backends/integration_result.hpp"
+#include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 
 #include "backends/multicore/multi_event_stream.hpp"
@@ -186,13 +186,13 @@ struct ARB_ARBOR_API shared_state {
     shared_state(
         arb_size_type n_intdom,
         arb_size_type n_cell,
-        arb_size_type n_detector,
         const std::vector<arb_index_type>& cv_to_intdom_vec,
         const std::vector<arb_index_type>& cv_to_cell_vec,
         const std::vector<arb_value_type>& init_membrane_potential,
         const std::vector<arb_value_type>& temperature_K,
         const std::vector<arb_value_type>& diam,
         const std::vector<arb_index_type>& src_to_spike,
+        const fvm_detector_info& detector_info,
         unsigned align,
         arb_seed_type cbprng_seed_ = 0u
     );
@@ -280,20 +280,6 @@ struct ARB_ARBOR_API shared_state {
                  sample_time_host,
                  sample_value_host };
     }
-
-    void init_thresholds(const std::vector<arb_index_type>& detector_cv,
-                         const std::vector<arb_value_type>& thresholds,
-                         const execution_context& context) {
-        watcher = threshold_watcher(cv_to_intdom.data(),
-                                    src_to_spike.data(),
-                                    &time,
-                                    &time_to,
-                                    voltage.size(),
-                                    detector_cv,
-                                    thresholds,
-                                    context);
-    }
-
 };
 
 // For debugging only:
