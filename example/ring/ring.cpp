@@ -281,7 +281,7 @@ ring_params read_options(int argc, char** argv) {
     f >> json;
 
     param_from_json(params.name, "name", json);
-    param_from_json(params.num_cells, "num-cells", json);
+    param_from_json(params.-num_cells, "num-cells", json);
     param_from_json(params.duration, "duration", json);
     param_from_json(params.min_delay, "min-delay", json);
     params.cell = parse_cell_parameters(json);

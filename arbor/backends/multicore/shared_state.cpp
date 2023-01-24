@@ -201,7 +201,7 @@ shared_state::shared_state(arb_size_type n_intdom,
                            const std::vector<arb_value_type>& init_membrane_potential,
                            const std::vector<arb_value_type>& temperature_K,
                            const std::vector<arb_value_type>& diam,
-                           const std::vector<arb_index_type>& src_to_spike,
+                           const std::vector<arb_index_type>& src_to_spike_,
                            const fvm_detector_info& detector,
                            unsigned align,
                            arb_seed_type cbprng_seed_):
@@ -223,7 +223,7 @@ shared_state::shared_state(arb_size_type n_intdom,
     temperature_degC(n_cv, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
-    src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
+    src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
     sample_events(n_intdom),
     watcher{cv_to_intdom.data(),
@@ -240,6 +240,7 @@ shared_state::shared_state(arb_size_type n_intdom,
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
         std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
     }
+
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
@@ -249,6 +250,8 @@ shared_state::shared_state(arb_size_type n_intdom,
     for (unsigned i = 0; i<n_cv; ++i) {
         temperature_degC[i] = temperature_K[i] - 273.15;
     }
+
+    reset_thresholds();
 }
 
 void shared_state::reset() {

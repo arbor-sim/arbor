@@ -82,7 +82,7 @@ struct shared_state_base {
 
     void test_thresholds() {
         auto d = static_cast<D*>(this);
-        d->watcher.test(&(d->time_since_spike));
+        d->watcher.test(d->time_since_spike);
     }
 
     void configure_stimulus(const fvm_stimulus_config& stims) {

@@ -9,6 +9,8 @@ import numpy as np
 import arbor as arb
 from .. import fixtures
 
+print(arb.__path__)
+
 """
 Tests for multiple connections onto the same postsynaptic label and for one
 connection that has the same net impact as the multiple-connection paradigm,
