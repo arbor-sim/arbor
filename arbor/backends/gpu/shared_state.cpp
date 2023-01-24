@@ -492,6 +492,37 @@ void shared_state::take_samples() {
    sample_events.drop_marked_events();
 }
 
+void shared_state::begin_epoch(std::vector<deliverable_event> deliverables,
+                std::vector<sample_event> samples) {
+    // events
+    deliverable_events.init(std::move(deliverables));
+    // samples
+    auto n_samples = samples.size();
+    if (sample_time.size() < n_samples) {
+        sample_time = array(n_samples);
+        sample_value = array(n_samples);
+    }
+    sample_events.init(std::move(samples));
+    // thresholds
+    watcher.clear_crossings();
+}
+
+void shared_state::next_epoch() { std::swap(time_to, time); }
+
+void shared_state::reset_thresholds() { watcher.reset(voltage); }
+
+void shared_state::test_thresholds() { watcher.test(&time_since_spike); }
+
+fvm_integration_result shared_state::get_integration_result() {
+    const auto& crossings = watcher.crossings();
+    sample_time_host  = memory::on_host(sample_time);
+    sample_value_host = memory::on_host(sample_value);
+
+    return { util::range_pointer_view(crossings),
+             util::range_pointer_view(sample_time_host),
+             util::range_pointer_view(sample_value_host) };
+}
+
 // Debug interface
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " cv_to_intdom " << s.cv_to_intdom << "\n";

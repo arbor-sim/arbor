@@ -183,19 +183,17 @@ struct ARB_ARBOR_API shared_state {
 
     shared_state() = default;
 
-    shared_state(
-        arb_size_type n_intdom,
-        arb_size_type n_cell,
-        const std::vector<arb_index_type>& cv_to_intdom_vec,
-        const std::vector<arb_index_type>& cv_to_cell_vec,
-        const std::vector<arb_value_type>& init_membrane_potential,
-        const std::vector<arb_value_type>& temperature_K,
-        const std::vector<arb_value_type>& diam,
-        const std::vector<arb_index_type>& src_to_spike,
-        const fvm_detector_info& detector_info,
-        unsigned align,
-        arb_seed_type cbprng_seed_ = 0u
-    );
+    shared_state(arb_size_type n_intdom,
+                 arb_size_type n_cell,
+                 const std::vector<arb_index_type>& cv_to_intdom_vec,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
+                 const std::vector<arb_value_type>& init_membrane_potential,
+                 const std::vector<arb_value_type>& temperature_K,
+                 const std::vector<arb_value_type>& diam,
+                 const std::vector<arb_index_type>& src_to_spike,
+                 const fvm_detector_info& detector_info,
+                 unsigned align,
+                 arb_seed_type cbprng_seed_ = 0u);
 
     void instantiate(mechanism&,
                      unsigned,
@@ -207,11 +205,10 @@ struct ARB_ARBOR_API shared_state {
 
     const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
 
-    void add_ion(
-        const std::string& ion_name,
-        int charge,
-        const fvm_ion_config& ion_data,
-        ion_state::solver_ptr solver=nullptr);
+    void add_ion(const std::string& ion_name,
+                 int charge,
+                 const fvm_ion_config& ion_data,
+                 ion_state::solver_ptr solver=nullptr);
 
     void configure_stimulus(const fvm_stimulus_config&);
 
@@ -230,9 +227,8 @@ struct ARB_ARBOR_API shared_state {
     // Update stimulus state and add current contributions.
     void add_stimulus_current();
 
-    // Integrate by matrix solve.
-    void integrate_voltage();
-    void integrate_diffusion();
+    // Integrate voltage and diffusion by matrix solve.
+    void integrate_cable_state();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<arb_value_type, arb_value_type> time_bounds() const;
@@ -244,42 +240,30 @@ struct ARB_ARBOR_API shared_state {
     // Take samples according to marked events in a sample_event_stream.
     void take_samples();
 
+    // Reset internal state
     void reset();
 
+    // Setup an epoch
     void begin_epoch(std::vector<deliverable_event> deliverables,
-                    std::vector<sample_event> samples) {
-        // events
-        deliverable_events.init(std::move(deliverables));
-        // samples
-        auto n_samples = samples.size();
-        if (sample_time.size() < n_samples) {
-            sample_time = array(n_samples);
-            sample_value = array(n_samples);
-        }
-        sample_events.init(std::move(samples));
-        // thresholds
-        watcher.clear_crossings();
-    }
+                    std::vector<sample_event> samples);
 
-    void next_epoch() { std::swap(time_to, time); }
+    // Proceed to next step in epoch
+    void next_time_step();
 
-    void reset_thresholds() { watcher.reset(voltage); }
+    // Clear threshold crossing
+    void reset_thresholds();
 
+    // Prepare internal event storag for delivery
     arb_deliverable_event_stream mark_deliverable_events();
 
+    //
     void update_time_step(time_type dt_max, time_type tfinal);
 
-    void test_thresholds() { watcher.test(&time_since_spike); }
+    // Check if any CV passed the threshold
+    void test_thresholds();
 
-    fvm_integration_result get_integration_result() {
-        const auto& crossings = watcher.crossings();
-        sample_time_host = util::range_pointer_view(sample_time);
-        sample_value_host = util::range_pointer_view(sample_value);
-
-        return { util::range_pointer_view(crossings),
-                 sample_time_host,
-                 sample_value_host };
-    }
+    // Package the integration for fvm_lowered_cell
+    fvm_integration_result get_integration_result();
 };
 
 // For debugging only:

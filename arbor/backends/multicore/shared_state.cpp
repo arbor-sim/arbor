@@ -251,11 +251,8 @@ shared_state::shared_state(arb_size_type n_intdom,
     }
 }
 
-void shared_state::integrate_voltage() {
+void shared_state::integrate_cable_state() {
     solver.solve(voltage, dt_intdom, current_density, conductivity);
-}
-
-void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
             data.solver->solve(data.Xd_,
@@ -675,6 +672,37 @@ void shared_state::update_time_step(time_type dt_max, time_type tfinal) {
     update_time_to(dt_max, tfinal);
     deliverable_events.event_time_if_before(time_to);
     set_dt();
+}
+
+void shared_state::begin_epoch(std::vector<deliverable_event> deliverables,
+                std::vector<sample_event> samples) {
+    // events
+    deliverable_events.init(std::move(deliverables));
+    // samples
+    auto n_samples = samples.size();
+    if (sample_time.size() < n_samples) {
+        sample_time = array(n_samples);
+        sample_value = array(n_samples);
+    }
+    sample_events.init(std::move(samples));
+    // thresholds
+    watcher.clear_crossings();
+}
+
+void shared_state::next_time_step() { std::swap(time_to, time); }
+
+void shared_state::reset_thresholds() { watcher.reset(voltage); }
+
+void shared_state::test_thresholds() { watcher.test(&time_since_spike); }
+
+fvm_integration_result shared_state::get_integration_result() {
+    const auto& crossings = watcher.crossings();
+    sample_time_host = util::range_pointer_view(sample_time);
+    sample_value_host = util::range_pointer_view(sample_value);
+
+    return { util::range_pointer_view(crossings),
+             sample_time_host,
+             sample_value_host };
 }
 
 } // namespace multicore

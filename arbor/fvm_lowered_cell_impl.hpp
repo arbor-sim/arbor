@@ -248,13 +248,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->take_samples();
         PL();
 
-        // Integrate voltage / solve cable eq
-        PE(advance:integrate:voltage);
-        state_->integrate_voltage();
-        PL();
-        // Compute ionic diffusion effects
-        PE(advance:integrate:diffusion);
-        state_->integrate_diffusion();
+        // Integrate voltage and diffusion
+        PE(advance:integrate:cable);
+        state_->integrate_cable_state();
         PL();
 
         // Integrate mechanism state for density
@@ -296,7 +292,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         // Advance epoch by swapping current and next time.
-        state_->next_epoch();
+        state_->next_time_step();
 
         // Check for non-physical solutions:
         if (check_voltage_mV_) {
