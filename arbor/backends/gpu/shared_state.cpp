@@ -386,12 +386,9 @@ void shared_state::instantiate(mechanism& m,
     store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
 }
 
-void shared_state::integrate_voltage() {
+void shared_state::integrate_cable_state() {
     solver.assemble(dt_intdom, voltage, current_density, conductivity);
     solver.solve(voltage);
-}
-
-void shared_state::integrate_diffusion() {
     for (auto& [ion, data]: ion_data) {
         if (data.solver) {
             data.solver->assemble(dt_intdom,
@@ -507,7 +504,7 @@ void shared_state::begin_epoch(std::vector<deliverable_event> deliverables,
     watcher.clear_crossings();
 }
 
-void shared_state::next_epoch() { std::swap(time_to, time); }
+void shared_state::next_time_step() { std::swap(time_to, time); }
 
 void shared_state::reset_thresholds() { watcher.reset(voltage); }
 
