@@ -109,7 +109,7 @@ struct ARB_ARBOR_API istim_state {
     std::size_t size() const;
 
     // Construct state from i_clamp data; references to shared state vectors are used to initialize ppack.
-    istim_state(const fvm_stimulus_config& stim_data);
+    istim_state(const fvm_stimulus_config& stim_data, unsigned);
 
     istim_state() = default;
 };

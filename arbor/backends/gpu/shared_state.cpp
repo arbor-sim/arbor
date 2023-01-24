@@ -100,7 +100,7 @@ void ion_state::reset() {
 
 // istim_state methods:
 
-istim_state::istim_state(const fvm_stimulus_config& stim) {
+istim_state::istim_state(const fvm_stimulus_config& stim, unsigned) {
     using util::assign;
 
     // Translate instance-to-CV index from stim to istim_state index vectors.
