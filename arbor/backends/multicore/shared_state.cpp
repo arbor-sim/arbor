@@ -251,21 +251,6 @@ shared_state::shared_state(arb_size_type n_intdom,
     }
 }
 
-void shared_state::integrate_cable_state() {
-    solver.solve(voltage, dt_intdom, current_density, conductivity);
-    for (auto& [ion, data]: ion_data) {
-        if (data.solver) {
-            data.solver->solve(data.Xd_,
-                               dt_intdom,
-                               voltage,
-                               data.iX_,
-                               data.gX_,
-                               data.charge[0]);
-
-        }
-    }
-}
-
 void shared_state::reset() {
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
     util::fill(current_density, 0);

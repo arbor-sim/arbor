@@ -375,22 +375,6 @@ void shared_state::instantiate(mechanism& m,
     store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
 }
 
-void shared_state::integrate_cable_state() {
-    solver.assemble(dt_intdom, voltage, current_density, conductivity);
-    solver.solve(voltage);
-    for (auto& [ion, data]: ion_data) {
-        if (data.solver) {
-            data.solver->assemble(dt_intdom,
-                                  data.Xd_,
-                                  voltage,
-                                  data.iX_,
-                                  data.gX_,
-                                  data.charge[0]);
-            data.solver->solve(data.Xd_);
-        }
-    }
-}
-
 void shared_state::reset() {
     memory::copy(init_voltage, voltage);
     memory::fill(current_density, 0);

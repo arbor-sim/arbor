@@ -202,9 +202,6 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     // Set the per-intdom and per-compartment dt from time_to - time.
     void set_dt();
 
-    // Integrate voltage and diffusion by matrix solve.
-    void integrate_cable_state();
-
     // Return minimum and maximum time value [ms] across cells.
     std::pair<arb_value_type, arb_value_type> time_bounds() const;
 

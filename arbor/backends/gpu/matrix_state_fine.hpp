@@ -451,6 +451,13 @@ public:
         packed_to_flat(rhs, to);
     }
 
+
+    void solve(array& to,
+               const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
+        assemble(dt_intdom, voltage, current, conductivity);
+        solve(to);
+    }
+
     std::size_t size() const { return matrix_size; }
 
 private:

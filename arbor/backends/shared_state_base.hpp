@@ -101,6 +101,21 @@ struct shared_state_base {
             i.second.init_concentration();
         }
     }
+
+    void integrate_cable_state() {
+        auto d = static_cast<D*>(this);
+        d->solver.solve(d->voltage, d->dt_intdom, d->current_density, d->conductivity);
+        for (auto& [ion, data]: d->ion_data) {
+            if (data.solver) {
+                data.solver->solve(data.Xd_,
+                                   d->dt_intdom,
+                                   d->voltage,
+                                   data.iX_,
+                                   data.gX_,
+                                   data.charge[0]);
+            }
+        }
+    }
 };
 
 }
