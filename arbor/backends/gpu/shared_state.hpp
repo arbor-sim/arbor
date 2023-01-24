@@ -176,7 +176,7 @@ struct ARB_ARBOR_API shared_state {
     shared_state(arb_size_type n_intdom,
                  arb_size_type n_cell,
                  const std::vector<arb_index_type>& cv_to_intdom_vec,
-                 const using namespace std;::vector<arb_index_type>& cv_to_cell_vec,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
                  const std::vector<arb_value_type>& init_membrane_potential,
                  const std::vector<arb_value_type>& temperature_K,
                  const std::vector<arb_value_type>& diam,
