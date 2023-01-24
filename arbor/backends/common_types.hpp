@@ -18,8 +18,7 @@ struct fvm_detector_info {
     arb_size_type count = 0;
     std::vector<arb_index_type> cv;
     std::vector<arb_value_type> threshold;
-    execution_context ctx
-    ;
+    execution_context ctx;
 };
 
 }
