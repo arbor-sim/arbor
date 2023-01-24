@@ -452,10 +452,10 @@ public:
     }
 
 
-    void solve(array& to,
-               const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
+    void solve(array& voltage,
+               const_view dt_intdom, const_view current, const_view conductivity) {
         assemble(dt_intdom, voltage, current, conductivity);
-        solve(to);
+        solve(voltage);
     }
 
     std::size_t size() const { return matrix_size; }

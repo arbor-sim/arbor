@@ -442,9 +442,14 @@ public:
         packed_to_flat(rhs, to);
     }
 
-    void solve(array& to, const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
+    void solve(array& concentration,
+               const_view dt_intdom,
+               const_view voltage,
+               const_view current,
+               const_view conductivity,
+               arb_value_type q) {
         assemble(dt_intdom, concentration, voltage, current, conductivity, q);
-        solve(to);
+        solve(concentration);
     }
 
     std::size_t size() const { return matrix_size; }
