@@ -483,7 +483,7 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples() {
    sample_events.mark_until(time_to);
-   take_samples_impl(sample_events.marked_events(), time.data(), sample_time_.data(), sample_value_.data());
+   take_samples_impl(sample_events.marked_events(), time.data(), sample_time.data(), sample_value.data());
    sample_events.drop_marked_events();
 }
 
