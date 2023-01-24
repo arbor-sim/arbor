@@ -229,17 +229,6 @@ void shared_state::update_prng_state(mechanism& m) {
     store.random_numbers_.update(m);
 }
 
-const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    const auto& store = storage.at(m.mechanism_id());
-
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            return store.state_vars_[i];
-        }
-    }
-    return nullptr;
-}
-
 void shared_state::instantiate(mechanism& m,
                                unsigned id,
                                const mechanism_overrides& overrides,
@@ -402,20 +391,6 @@ void shared_state::integrate_cable_state() {
     }
 }
 
-void shared_state::add_ion(
-    const std::string& ion_name,
-    int charge,
-    const fvm_ion_config& ion_info,
-    ion_state::solver_ptr ptr) {
-    ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(ion_name),
-                     std::forward_as_tuple(charge, ion_info, 1u, std::move(ptr)));
-}
-
-void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
-    stim_data = istim_state(stims);
-}
-
 void shared_state::reset() {
     memory::copy(init_voltage, voltage);
     memory::fill(current_density, 0);
@@ -439,40 +414,12 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-void shared_state::ions_init_concentration() {
-    for (auto& i: ion_data) {
-        i.second.init_concentration();
-    }
-}
-
 void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     update_time_to_impl(n_intdom, time_to.data(), time.data(), dt_step, tmax);
 }
 
 void shared_state::set_dt() {
     set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
-}
-
-arb_deliverable_event_stream shared_state::mark_deliverable_events() {
-     deliverable_events.mark_until_after(time);
-     auto state = deliverable_events.marked_events();
-     arb_deliverable_event_stream result;
-     result.n_streams = state.n;
-     result.begin     = state.begin_offset;
-     result.end       = state.end_offset;
-     result.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-     return result;
-}
-
-void shared_state::update_time_step(time_type dt_max, time_type tfinal) {
-    deliverable_events.drop_marked_events();
-    update_time_to(dt_max, tfinal);
-    deliverable_events.event_time_if_before(time_to);
-    set_dt();
-}
-
-void shared_state::add_stimulus_current() {
-    stim_data.add_current(time, cv_to_intdom, current_density);
 }
 
 std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
@@ -488,27 +435,6 @@ void shared_state::take_samples() {
    take_samples_impl(sample_events.marked_events(), time.data(), sample_time.data(), sample_value.data());
    sample_events.drop_marked_events();
 }
-
-void shared_state::begin_epoch(std::vector<deliverable_event> deliverables,
-                std::vector<sample_event> samples) {
-    // events
-    deliverable_events.init(std::move(deliverables));
-    // samples
-    auto n_samples = samples.size();
-    if (sample_time.size() < n_samples) {
-        sample_time = array(n_samples);
-        sample_value = array(n_samples);
-    }
-    sample_events.init(std::move(samples));
-    // thresholds
-    watcher.clear_crossings();
-}
-
-void shared_state::next_time_step() { std::swap(time_to, time); }
-
-void shared_state::reset_thresholds() { watcher.reset(voltage); }
-
-void shared_state::test_thresholds() { watcher.test(&time_since_spike); }
 
 fvm_integration_result shared_state::get_integration_result() {
     const auto& crossings = watcher.crossings();

@@ -116,6 +116,8 @@ struct ARB_ARBOR_API istim_state {
 
 struct ARB_ARBOR_API shared_state {
 
+    unsigned alignment = 1;   // Alignment and padding multiple.
+
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -197,26 +199,18 @@ struct ARB_ARBOR_API shared_state {
     // Note: returned pointer points to device memory.
     const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
 
-    void add_ion(
-        const std::string& ion_name,
-        int charge,
-        const fvm_ion_config& ion_data,
-        ion_state::solver_ptr solver=nullptr);
-
-    void configure_stimulus(const fvm_stimulus_config&);
+    void add_ion(const std::string& ion_name,
+                 int charge,
+                 const fvm_ion_config& ion_data,
+                 ion_state::solver_ptr solver=nullptr);
 
     void zero_currents();
-
-    void ions_init_concentration();
 
     // Set time_to to earliest of time+dt_step and tmax.
     void update_time_to(arb_value_type dt_step, arb_value_type tmax);
 
     // Set the per-intdom and per-compartment dt from time_to - time.
     void set_dt();
-
-    // Update stimulus state and add current contributions.
-    void add_stimulus_current();
 
     // Integrate voltage and diffusion by matrix solve.
     void integrate_cable_state();
@@ -233,25 +227,6 @@ struct ARB_ARBOR_API shared_state {
 
     // Reset internal state
     void reset();
-
-    // Setup an epoch
-    void begin_epoch(std::vector<deliverable_event> deliverables,
-                    std::vector<sample_event> samples);
-
-    // Proceed to next step in epoch
-    void next_time_step();
-
-    // Clear threshold crossing
-    void reset_thresholds();
-
-    // Prepare internal event storag for delivery
-    arb_deliverable_event_stream mark_deliverable_events();
-
-    //
-    void update_time_step(time_type dt_max, time_type tfinal);
-
-    // Check if any CV passed the threshold
-    void test_thresholds();
 
     // Package the integration for fvm_lowered_cell
     fvm_integration_result get_integration_result();

@@ -21,6 +21,7 @@
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
+#include "backends/shared_state_base.hpp"
 
 #include "backends/multicore/multi_event_stream.hpp"
 #include "backends/multicore/threshold_watcher.hpp"
@@ -122,7 +123,7 @@ struct ARB_ARBOR_API istim_state {
     istim_state() = default;
 };
 
-struct ARB_ARBOR_API shared_state {
+struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
     struct mech_storage {
         array data_;
         iarray indices_;
@@ -203,18 +204,7 @@ struct ARB_ARBOR_API shared_state {
 
     void update_prng_state(mechanism&);
 
-    const arb_value_type* mechanism_state_data(const mechanism&, const std::string&);
-
-    void add_ion(const std::string& ion_name,
-                 int charge,
-                 const fvm_ion_config& ion_data,
-                 ion_state::solver_ptr solver=nullptr);
-
-    void configure_stimulus(const fvm_stimulus_config&);
-
     void zero_currents();
-
-    void ions_init_concentration();
 
     void ions_nernst_reversal_potential(arb_value_type temperature_K);
 
@@ -223,9 +213,6 @@ struct ARB_ARBOR_API shared_state {
 
     // Set the per-integration domain and per-compartment dt from time_to - time.
     void set_dt();
-
-    // Update stimulus state and add current contributions.
-    void add_stimulus_current();
 
     // Integrate voltage and diffusion by matrix solve.
     void integrate_cable_state();
@@ -242,25 +229,6 @@ struct ARB_ARBOR_API shared_state {
 
     // Reset internal state
     void reset();
-
-    // Setup an epoch
-    void begin_epoch(std::vector<deliverable_event> deliverables,
-                    std::vector<sample_event> samples);
-
-    // Proceed to next step in epoch
-    void next_time_step();
-
-    // Clear threshold crossing
-    void reset_thresholds();
-
-    // Prepare internal event storag for delivery
-    arb_deliverable_event_stream mark_deliverable_events();
-
-    //
-    void update_time_step(time_type dt_max, time_type tfinal);
-
-    // Check if any CV passed the threshold
-    void test_thresholds();
 
     // Package the integration for fvm_lowered_cell
     fvm_integration_result get_integration_result();
