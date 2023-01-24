@@ -11,6 +11,7 @@
 #include "fvm_layout.hpp"
 
 #include "backends/common_types.hpp"
+#include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
