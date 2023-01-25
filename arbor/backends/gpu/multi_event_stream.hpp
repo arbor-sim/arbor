@@ -43,7 +43,7 @@ private:
         if (d.size() < s) {
             d = D(s);
         }
-        memory::copy(h, memory::make_view(d)(0u, s));
+        memory::copy_async(h, memory::make_view(d)(0u, s));
     }
 
 private:

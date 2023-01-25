@@ -232,6 +232,28 @@ public:
         static_assert(true, "device_coordinator: unable to copy from other Coordinator");
     }
 
+    template<typename LHS, typename RHS>
+    void copy_async(LHS&& lhs, RHS&& rhs) {
+        copy(std::forward<LHS>(lhs), std::forward<RHS>(rhs));
+    }
+
+    // copy memory from host to gpu
+    template <class Alloc>
+    void copy_async(
+        const_array_view<value_type, host_coordinator<value_type, Alloc>> from,
+        view_type to)
+    {
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<device_coordinator>::print()
+                  << util::blue("::copy_async") << "(size=" << from.size() << ") "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
+        #endif
+        arb_assert(from.size()==to.size());
+
+        gpu_memcpy_h2d_async(to.data(), from.data(), from.size()*sizeof(value_type));
+    }
+
     // fill memory
     void set(view_type &rng, value_type value) {
         if (rng.size()) {
