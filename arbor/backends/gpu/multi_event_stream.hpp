@@ -17,11 +17,13 @@ public:
     using event_data_type = typename base::event_data_type;
     using event_index_type = typename base::event_index_type;
 
+    using device_ranges_array = memory::device_vector<arb_deliverable_event_range>;
+    using device_data_array = memory::device_vector<event_data_type>;
 
     void init(const std::vector<event_type>& staged, const timestep_range& dts) {
         base::init(staged, dts);
-        device_ranges_ = memory::make_view(base::ranges_);
-        device_ev_data_ = memory::make_view(base::ev_data_);
+        copy(base::ranges_, device_ranges_);
+        copy(base::ev_data_, device_ev_data_);
     }
 
     arb_deliverable_event_stream marked_events() const {
@@ -34,8 +36,19 @@ public:
     }
 
 private:
-    memory::device_vector<arb_deliverable_event_range> device_ranges_;
-    memory::device_vector<event_data_type> device_ev_data_;
+    template<typename H, typename D>
+    static void copy(const H& h, D& d) {
+        const auto s = h.size();
+        // resize if necessary
+        if (d.size() < s) {
+            d = D(s);
+        }
+        memory::copy(h, memory::make_view(d)(0u, s));
+    }
+
+private:
+    device_ranges_array device_ranges_;
+    device_data_array device_ev_data_;
 };
 
 } // namespace gpu
