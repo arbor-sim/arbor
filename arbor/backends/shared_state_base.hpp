@@ -3,6 +3,12 @@
 #include <arbor/mechanism_abi.h>
 #include <arbor/common_types.hpp>
 
+#include "backends/event.hpp"
+#include "backends/common_types.hpp"
+#include "fvm_layout.hpp"
+
+#include "util/rangeutil.hpp"
+
 namespace arb {
 
 // Common functionality for CPU/GPU shared state.
@@ -115,6 +121,16 @@ struct shared_state_base {
                                    data.charge[0]);
             }
         }
+    }
+
+    fvm_integration_result get_integration_result() {
+        auto d = static_cast<D*>(this);
+        const auto& crossings = d->watcher.crossings();
+        d->update_sample_views();
+
+        return { util::range_pointer_view(crossings),
+                 util::range_pointer_view(d->sample_time_host),
+                 util::range_pointer_view(d->sample_value_host) };
     }
 };
 

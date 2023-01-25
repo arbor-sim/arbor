@@ -247,10 +247,9 @@ shared_state::shared_state(arb_size_type n_intdom,
     }
 
     util::fill(time_since_spike, -1.0);
-    for (unsigned i = 0; i<n_cv; ++i) {
-        temperature_degC[i] = temperature_K[i] - 273.15;
-    }
-
+    std::transform(temperature_K.begin(), temperature_K.end(),
+                   temperature_degC.begin(),
+                   [](auto T) { return T - 273.15; });
     reset_thresholds();
 }
 
@@ -609,16 +608,6 @@ void shared_state::instantiate(arb::mechanism& m,
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
-}
-
-fvm_integration_result shared_state::get_integration_result() {
-    const auto& crossings = watcher.crossings();
-    sample_time_host = util::range_pointer_view(sample_time);
-    sample_value_host = util::range_pointer_view(sample_value);
-
-    return { util::range_pointer_view(crossings),
-             sample_time_host,
-             sample_value_host };
 }
 
 } // namespace multicore

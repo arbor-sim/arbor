@@ -420,16 +420,6 @@ void shared_state::take_samples() {
    sample_events.drop_marked_events();
 }
 
-fvm_integration_result shared_state::get_integration_result() {
-    const auto& crossings = watcher.crossings();
-    sample_time_host  = memory::on_host(sample_time);
-    sample_value_host = memory::on_host(sample_value);
-
-    return { util::range_pointer_view(crossings),
-             util::range_pointer_view(sample_time_host),
-             util::range_pointer_view(sample_value_host) };
-}
-
 // Debug interface
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
     o << " cv_to_intdom " << s.cv_to_intdom << "\n";

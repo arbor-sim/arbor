@@ -227,8 +227,10 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     // Reset internal state
     void reset();
 
-    // Package the integration for fvm_lowered_cell
-    fvm_integration_result get_integration_result();
+    void update_sample_views() {
+        sample_time_host = util::range_pointer_view(sample_time);
+        sample_value_host = util::range_pointer_view(sample_value);
+    }
 };
 
 // For debugging only:
