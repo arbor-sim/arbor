@@ -215,9 +215,7 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
     return nullptr;
 }
 
-void shared_state::register_events(
-    const std::map<cell_local_size_type, std::vector<deliverable_event>>& staged_event_map,
-    const timestep_range& dts) {
+void shared_state::register_events(const event_map& staged_event_map, const timestep_range& dts) {
     for (auto& [mech_id, store] : storage) {
         if (auto it = staged_event_map.find(mech_id);
             it != staged_event_map.end() && it->second.size()) {

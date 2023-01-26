@@ -379,11 +379,9 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Bin and collate deliverable events from event lanes.
 
-    PE(advance:eventsetup:add);
+    PE(advance:eventsetup);
     sample_events_.clear();
-    for (auto& [mech_index, event_vec] : staged_event_map_) {
-        event_vec.clear();
-    }
+    staged_event_map_.clear();
 
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
@@ -396,16 +394,10 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (e.time>=ep.t1) break;
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
-                staged_event_map_[h.mech_id].emplace_back(e.time, h, e.weight);
+                add_event(staged_event_map_, e.time, h, e.weight);
             }
             ++lid;
         }
-    }
-    PL();
-
-    PE(advance:eventsetup:sort);
-    for (auto& [mech_id, event_vec] : staged_event_map_) {
-        util::stable_sort_by(event_vec, [](const auto& ev) { return event_index(ev); });
     }
     PL();
 

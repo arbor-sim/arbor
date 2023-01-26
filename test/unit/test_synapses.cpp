@@ -149,13 +149,12 @@ TEST(synapses, syn_basic_state) {
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
 
-    std::map<cell_local_size_type, std::vector<deliverable_event>> event_map = {
-        {0, {{0., {0, 1}, 3.14f},
-             {0., {0, 3}, 1.41f}}},
-        {1, {{0., {1, 0}, 2.71f},
-             {0., {1, 2}, 0.07f}}}
-    };
-    state.register_events(event_map, dts);
+    event_map m;
+    add_event(m, 0., {0, 1}, 3.14f);
+    add_event(m, 0., {0, 3}, 1.41f);
+    add_event(m, 0., {1, 0}, 2.71f);
+    add_event(m, 0., {1, 2}, 0.07f);
+    state.register_events(m, dts);
     state.mark_events();
 
     state.deliver_events(*expsyn);

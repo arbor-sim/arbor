@@ -13,9 +13,9 @@
 #include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
 
-#include "backends/event.hpp"
 #include "cell_group.hpp"
 #include "epoch.hpp"
+#include "event_map.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "sampler_map.hpp"

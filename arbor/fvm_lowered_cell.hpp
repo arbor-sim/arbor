@@ -16,8 +16,8 @@
 #include <arbor/recipe.hpp>
 #include <arbor/util/any_ptr.hpp>
 
-#include "backends/event.hpp"
 #include "backends/threshold_crossing.hpp"
+#include "event_map.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
 #include "timestep_range.hpp"
