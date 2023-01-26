@@ -73,7 +73,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 void mc_cell_group::reset() {
     spikes_.clear();
 
-    sample_events_.clear();
     for (auto &entry: sampler_map_) {
         entry.second.sched.reset();
     }
