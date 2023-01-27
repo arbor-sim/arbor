@@ -51,11 +51,7 @@ cell_label_range get_sources(cell_gid_type gid, const recipe& rec) {
         get_sources(result, util::any_cast<benchmark_cell>(cell));
     }
     else if (kind == cell_kind::cable) {
-        auto c = util::any_cast<cable_cell>(cell);
-        result.add_cell();
-        for (const auto& [label, range]: c.detector_ranges()) {
-            result.add_label(label, range);
-        }
+        get_sources(result, util::any_cast<cable_cell>(cell));
     }
     else {
         throw arbor_internal_error("Unknown cell kind");
