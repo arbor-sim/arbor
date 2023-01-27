@@ -83,7 +83,6 @@ cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
 void cable_cell_group::reset() {
     spikes_.clear();
 
-    sample_events_.clear();
     for (auto &entry: sampler_map_) {
         entry.second.sched.reset();
     }
