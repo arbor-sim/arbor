@@ -13,7 +13,6 @@ template<
     class Key,
     class Container,
     class Compare = std::less<Key>
-    //class Allocator = std::allocator<std::pair<const Key, T>
 >
 class container_map
 {

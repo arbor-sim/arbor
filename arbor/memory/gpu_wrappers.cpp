@@ -5,14 +5,13 @@
 #include <arbor/version.hpp>
 
 #include "util.hpp"
-#include "util/unwind.hpp"
 
 #ifdef ARB_GPU_ENABLED
 
 #include <arbor/gpu/gpu_api.hpp>
 
 #define HANDLE_GPU_ERROR(error, msg)\
-    throw arbor_exception("GPU memory:: "+std::string(__func__)+" "+std::string((msg))+": "+error.description());
+throw arbor_exception("GPU memory:: "+std::string(__func__)+" "+std::string((msg))+": "+error.description());
 
 namespace arb {
 namespace memory {

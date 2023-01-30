@@ -27,8 +27,6 @@
 
 namespace arb {
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index),(b.mech_id,b.mech_index))
-
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
                              cell_label_range& cg_sources,
