@@ -23,12 +23,24 @@ public:
 
     void init(const std::vector<Event>& staged, const timestep_range& dts) {
         base::init(staged, dts);
-        device_ev_data_ = memory::make_view(base::ev_data_);
+        // copy to GPU
+        copy(base::ev_data_, device_ev_data_);
     }
 
     state marked_events() const {
         if (base::empty()) return {nullptr, nullptr};
         return {device_ev_data_.data()+base::offsets_[base::index_-1], device_ev_data_.data()+base::offsets_[base::index_]};
+    }
+
+private:
+    template<typename H, typename D>
+    static void copy(const H& h, D& d) {
+        const auto s = h.size();
+        // resize if necessary
+        if (d.size() < s) {
+            d = D(s);
+        }
+        memory::copy(h, memory::make_view(d)(0u, s));
     }
 
 private:
