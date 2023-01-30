@@ -92,56 +92,6 @@ public:
         return {ev_data_.data()+offsets_[index_-1], ev_data_.data()+offsets_[index_]};
     }
 
-    //// Designate for processing events `ev` at head of the event stream
-    //// until `event_time(ev)` > `t_until`.
-    //void mark_until_after(arb_value_type t_until) {
-    //    using ::arb::event_time;
-    //    const auto end = ev_time_.size();
-    //    while (span_end_!=end && ev_time_[span_end_]<=t_until) {
-    //        ++span_end_;
-    //    }
-    //}
-
-    //// Designate for processing events `ev` at head the stream
-    //// while `t_until` > `event_time(ev)`.
-    //void mark_until(arb_value_type t_until) {
-    //    using ::arb::event_time;
-    //    const auto end = ev_time_.size();
-    //    while (span_end_!=end && ev_time_[span_end_]<t_until) {
-    //        ++span_end_;
-    //    }
-    //}
-
-    //// Remove marked events from front of the event stream.
-    //void drop_marked_events() {
-    //    span_begin_ = span_end_;
-    //}
-
-    //// Interface for access to marked events by mechanisms/kernels:
-    //state marked_events() const {
-    //    return {ev_data_.data()+span_begin_, ev_data_.data()+span_end_};
-    //}
-
-    //template<class CharT, class Traits = std::char_traits<CharT>>
-    //friend std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& out, const event_stream<Event>& m) {
-    //    const auto n_ev = m.ev_data_.size();
-
-    //    out << "[";
-
-    //    for (size_type ev_i = 0; ev_i<n_ev; ++ev_i) {
-    //        bool discarded = ev_i<m.span_begin_;
-    //        bool marked = !discarded && ev_i<m.span_end_;
-
-    //        if (discarded) {
-    //            out << "        x";
-    //        }
-    //        else {
-    //            out << util::strprintf(" % 7.3f%c", m.ev_time_[ev_i], marked?'*':' ');
-    //        }
-    //    }
-    //    return out << "]";
-    //}
-
 protected:
     std::vector<Event> tmp_;
     std::vector<event_data_type> ev_data_;
