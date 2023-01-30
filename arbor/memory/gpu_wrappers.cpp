@@ -5,13 +5,14 @@
 #include <arbor/version.hpp>
 
 #include "util.hpp"
+#include "util/unwind.hpp"
 
 #ifdef ARB_GPU_ENABLED
 
 #include <arbor/gpu/gpu_api.hpp>
 
 #define HANDLE_GPU_ERROR(error, msg)\
-throw arbor_exception("GPU memory:: "+std::string(__func__)+" "+std::string((msg))+": "+error.description());
+    throw arbor_exception("GPU memory:: "+std::string(__func__)+" "+std::string((msg))+": "+error.description());
 
 namespace arb {
 namespace memory {
@@ -35,6 +36,13 @@ void gpu_memcpy_d2h(void* dest, const void* src, std::size_t n) {
 
 void gpu_memcpy_h2d(void* dest, const void* src, std::size_t n) {
     auto status = device_memcpy(dest, src, n, gpuMemcpyHostToDevice);
+    if (!status) {
+        HANDLE_GPU_ERROR(status, "n="+to_string(n));
+    }
+}
+
+void gpu_memcpy_h2d_async(void* dest, const void* src, std::size_t n) {
+    auto status = device_memcpy_async(dest, src, n, gpuMemcpyHostToDevice);
     if (!status) {
         HANDLE_GPU_ERROR(status, "n="+to_string(n));
     }
@@ -89,6 +97,10 @@ void gpu_memcpy_d2h(void* dest, const void* src, std::size_t n) {
 }
 
 void gpu_memcpy_h2d(void* dest, const void* src, std::size_t n) {
+    NOGPU;
+}
+
+void gpu_memcpy_h2d_async(void* dest, const void* src, std::size_t n) {
     NOGPU;
 }
 
