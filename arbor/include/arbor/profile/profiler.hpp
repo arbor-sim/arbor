@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sys/resource.h>
+#include <iostream>
+
 #include <cstdint>
 #include <ostream>
 #include <unordered_map>
@@ -12,6 +15,14 @@
 namespace arb {
 
 namespace profile {
+
+inline
+ARB_ARBOR_API void print_hwm_mem_at(const std::string& here,
+                                    const std::string& tag="") {
+    rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    std::cout << "RSS:" << here << tag << ":" << usage.ru_maxrss << '\n';
+}
 
 // type used for region identifiers
 using region_id_type = std::size_t;

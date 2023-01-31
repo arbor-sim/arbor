@@ -61,41 +61,8 @@ struct gap_junction_connection {
         peer(std::move(peer)), local(std::move(local)), weight(g) {}
 };
 
-struct ARB_ARBOR_API has_gap_junctions {
-    virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
-        return {};
-    }
-    virtual ~has_gap_junctions() {}
-};
-
-struct ARB_ARBOR_API has_synapses {
-    virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
-        return {};
-    }
-    virtual ~has_synapses() {}
-};
-
-struct ARB_ARBOR_API has_probes {
-    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
-        return {};
-    }
-    virtual ~has_probes() {}
-};
-
-struct ARB_ARBOR_API has_generators {
-    virtual std::vector<event_generator> event_generators(cell_gid_type) const {
-        return {};
-    }
-    virtual ~has_generators() {}
-};
-
-// Toppings allow updating a simulation
-struct ARB_ARBOR_API connectivity: public has_synapses, has_generators {
-    virtual ~connectivity() {}
-};
-
 // Recipes allow building a simulation by lazy queries
-struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity {
+struct ARB_ARBOR_API recipe {
     // number of cells to build
     virtual cell_size_type num_cells() const = 0;
     // Cell description type will be specific to cell kind of cell with given gid.
@@ -104,6 +71,14 @@ struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity 
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
+    // list of gap junctions incoming to this gid
+    virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const { return {}; }
+    // list of synapses incoming to this gid
+    virtual std::vector<cell_connection> connections_on(cell_gid_type) const { return {}; }
+    // list of probes on this gid
+    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const { return {}; }
+    // list of generators on this gid
+    virtual std::vector<event_generator> event_generators(cell_gid_type) const { return {}; }
 
     virtual ~recipe() {}
 };

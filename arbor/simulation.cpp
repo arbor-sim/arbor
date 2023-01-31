@@ -196,6 +196,7 @@ simulation_state::simulation_state(
     task_system_(ctx->thread_pool),
     local_spikes_({thread_private_spike_store(ctx->thread_pool),
                   thread_private_spike_store(ctx->thread_pool)}) {
+    profile::print_hwm_mem_at(__FUNCTION__, ":Start");
     // Generate the cell groups in parallel, with one task per cell group.
     auto num_groups = decomp.num_groups();
     cell_groups_.resize(num_groups);
@@ -217,6 +218,7 @@ simulation_state::simulation_state(
     communicator_ = communicator(rec, ddc_, *ctx_);
     update(rec);
     epoch_.reset();
+    profile::print_hwm_mem_at(__FUNCTION__, ":Stop");
 }
 
 void simulation_state::update(const recipe& rec) {

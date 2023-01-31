@@ -130,9 +130,9 @@ void communicator::update_connections(const recipe& rec,
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
     auto source_labels = std::unordered_map<cell_gid_type, std::unique_ptr<label_resolution_map>>{};
+    auto source_resolvers = std::unordered_map<cell_gid_type, resolver>{};
     for (const auto& cell: gid_infos) {
         auto index = cell.index_on_domain;
-        auto source_resolvers = std::unordered_map<cell_gid_type, resolver>{};
         for (const auto& c: cell.conns) {
             auto sgid = c.source.gid;
             if (!source_labels.count(sgid)) {
