@@ -1,13 +1,18 @@
 # Niels Lohmann's json library (single-header version).
 
 if(ARB_USE_BUNDLED_JSON)
-  add_library(ext-json INTERFACE)
-  target_include_directories(ext-json INTERFACE json/single_include)
-  set(json_library_name ext-json PARENT_SCOPE)
+  set(JSON_BuildTests OFF CACHE INTERNAL "")
+  add_subdirectory(json)
+  install(TARGETS nlohmann_json EXPORT arbor-targets)
+  message(STATUS "Using internal JSON = ${nlohmann_json_VERSION}")
+else()
+  find_package(nlohmann_json 3.11.2 REQUIRED)
+  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
 endif()
 
 # Random123 (DE Shaw Research) counter-based random number generators (header-only)
 
+add_library(ext-random123 INTERFACE)
 if(ARB_USE_BUNDLED_RANDOM123)
     check_git_submodule(random123 random123)
     if(NOT random123_avail)
@@ -15,7 +20,12 @@ if(ARB_USE_BUNDLED_RANDOM123)
     endif()
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/random123/include)
     message(STATUS "Using Random123 submodule: ${CMAKE_CURRENT_SOURCE_DIR}>/random123")
+    install(TARGETS ext-random123 EXPORT arbor-targets)
+else()
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
+
 
 # tinyopt command line parsing libary (header-only).
 

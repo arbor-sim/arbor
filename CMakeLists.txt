@@ -218,36 +218,25 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
-# Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
+# Creates interface libraries ext-tinyopt` and `ext-random123`
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
-if(NOT ARB_USE_BUNDLED_JSON)
-  find_package(nlohmann_json)
-  set(json_library_name nlohmann_json::nlohmann_json)
-else()
-  unset(nlohmann_json_DIR CACHE)
-endif()
-
-target_link_libraries(arbor-public-deps INTERFACE ${json_library_name})
 
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-add_library(ext-random123 INTERFACE)
-if(NOT ARB_USE_BUNDLED_RANDOM123)
-    find_package(Random123 REQUIRED)
-    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
-endif()
-
-add_subdirectory(ext)
-
-install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
 
 set(arbor_export_dependencies)
+
+# Pull in 3rd party dependencies
+add_subdirectory(ext)
+
+target_link_libraries(arbor-public-deps INTERFACE nlohmann_json::nlohmann_json)
+target_link_libraries(arbor-private-deps INTERFACE nlohmann_json::nlohmann_json)
 
 # Keep track of which 'components' of arbor are included (this is
 # currently just 'MPI' support and 'neuroml' for NeuroML support in
