@@ -30,6 +30,7 @@ struct profile {
 
     // Maximum Resident Set Size up to this region's end.
     std::vector<long> max_rss;
+    std::vector<long> fst_rss;
 
     // the number of threads for which profiling information was recorded.
     std::size_t num_threads;
