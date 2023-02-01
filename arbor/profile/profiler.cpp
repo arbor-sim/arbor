@@ -10,6 +10,8 @@
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
 
+#include <sys/resource.h>
+
 namespace arb {
 namespace profile {
 
@@ -46,6 +48,7 @@ namespace {
 // Holds the accumulated number of calls and time spent in a region.
 struct profile_accumulator {
     std::size_t count=0;
+    long max_rss = 0;
     double time=0.;
 };
 
@@ -127,11 +130,12 @@ struct profile_node {
     std::string name;
     double time = 0;
     region_id_type count = npos;
+    long max_rss = -1;
     std::vector<profile_node> children;
 
     profile_node() = default;
-    profile_node(std::string n, double t, region_id_type c):
-        name(std::move(n)), time(t), count(c) {}
+    profile_node(std::string n, double t, region_id_type c, long rss):
+        name(std::move(n)), time(t), count(c), max_rss{rss} {}
     profile_node(std::string n):
         name(std::move(n)), time(0), count(npos) {}
 };
@@ -154,14 +158,26 @@ void recorder::enter(region_id_type index) {
 }
 
 void recorder::leave() {
+    long max_rss = 0;
+
+    rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    max_rss = usage.ru_maxrss;
+#ifdef __APPLE__
+    max_rss /= 1024; // Because MacOS >= 10.11 reports in B, not kB
+#endif
+
+
     // calculate the elapsed time before any other steps, to increase accuracy.
     auto delta = timer_type::toc(start_time_);
 
     if (index_==npos) {
         throw std::runtime_error("recorder::leave without matching recorder::enter");
     }
-    accumulators_[index_].count++;
-    accumulators_[index_].time += delta;
+    auto& acc = accumulators_[index_];
+    acc.count++;
+    acc.time += delta;
+    acc.max_rss = std::max(acc.max_rss, max_rss);
     index_ = npos;
 }
 
@@ -235,13 +251,14 @@ profile profiler::results() const {
 
     profile p;
     p.names = region_names_;
-
+    p.max_rss = std::vector<long>(nregions);
     p.times = std::vector<double>(nregions);
     p.counts = std::vector<region_id_type>(nregions);
     for (auto& r: recorders_) {
         auto& accumulators = r.accumulators();
         for (auto i: make_span(0, accumulators.size())) {
             p.times[i]  += accumulators[i].time;
+            p.max_rss[i] = std::max(p.max_rss[i], accumulators[i].max_rss);
             p.counts[i] += accumulators[i].count;
         }
     }
@@ -257,9 +274,11 @@ profile profiler::results() const {
         std::swap(p.counts[i], p.counts.back());
         std::swap(p.times[i],  p.times.back());
         std::swap(p.names[i],  p.names.back());
+        std::swap(p.max_rss[i],  p.max_rss.back());
         p.counts.pop_back();
         p.times.pop_back();
         p.names.pop_back();
+        p.max_rss.pop_back();
     }
 
     return p;
@@ -295,7 +314,7 @@ profile_node make_profile_tree(const profile& p) {
                 node = &(*child);
             }
         }
-        node->children.emplace_back(names[idx].back(), p.times[idx], p.counts[idx]);
+        node->children.emplace_back(names[idx].back(), p.times[idx], p.counts[idx], p.max_rss[idx]);
     }
     sort_profile_tree(tree);
 
@@ -312,6 +331,7 @@ struct prof_line {
     std::string time;
     std::string thread;
     std::string percent;
+    std::string max_rss;
 };
 
 void print_lines(std::vector<prof_line>& lines,
@@ -338,6 +358,7 @@ void print_lines(std::vector<prof_line>& lines,
     res.thread = buf;
     snprintf(buf, std::size(buf), "%.1f", float(proportion));
     res.percent = buf;
+    res.max_rss = (n.max_rss == -1) ? "-" : std::to_string(n.max_rss);
     lines.push_back(res);
     // print each of the children in turn
     for (auto& c: n.children) print_lines(lines, c, wall_time, nthreads, thresh, indent + "  ");
@@ -348,7 +369,7 @@ void print(std::ostream& os,
            float wall_time,
            unsigned nthreads,
            float thresh) {
-    std::vector<prof_line> lines{{"REGION", "CALLS", "THREAD", "WALL", "\%"}};
+    std::vector<prof_line> lines{{"REGION", "CALLS", "THREAD/s", "WALL/s", "\%", "MAX_RSS/kB"}};
     print_lines(lines, n, wall_time, nthreads, thresh, "");
     // fixing up lengths here
     std::size_t max_len_name = 0;
@@ -356,12 +377,14 @@ void print(std::ostream& os,
     std::size_t max_len_thread = 0;
     std::size_t max_len_time = 0;
     std::size_t max_len_percent = 0;
+    std::size_t max_len_rss = 0;
     for (const auto& line: lines) {
         max_len_name = std::max(max_len_name, line.name.size());
         max_len_count = std::max(max_len_count, line.count.size());
         max_len_thread = std::max(max_len_thread, line.thread.size());
         max_len_time = std::max(max_len_time, line.time.size());
         max_len_percent = std::max(max_len_percent, line.percent.size());
+        max_len_rss = std::max(max_len_rss, line.max_rss.size());
     }
 
     auto lpad = [](const std::string& s, std::size_t n) { return std::string(n - s.size(), ' ') + s + "    "; };
@@ -372,6 +395,7 @@ void print(std::ostream& os,
                                      << lpad(line.thread, max_len_thread)
                                      << lpad(line.time, max_len_time)
                                      << lpad(line.percent, max_len_percent)
+                                     << lpad(line.max_rss, max_len_rss)
                                      << '\n';
 };
 

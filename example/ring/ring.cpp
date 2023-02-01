@@ -47,7 +47,7 @@ struct ring_params {
     std::string name = "default";
     unsigned num_cells = 100;
     double min_delay = 10;
-    double duration = 1000;
+    double duration = 10;
     cell_parameters cell;
 };
 
