@@ -20,7 +20,6 @@ def make_catalogue():
 
 
 def make_cell():
-
     # cell morphology
     # ===============
 
@@ -176,7 +175,6 @@ class ou_recipe(arb.recipe):
     # Here, if the value of the 'weight' parameter is 1, stimulation is switched on,
     # whereas if it is -1, stimulation is switched off.
     def get_generators(self, protocol):
-
         prot_name = protocol["scheme"]  # name of the protocol (defining its structure)
         start_time = protocol["time_start"]  # time at which the stimulus starts in s
         label = protocol["label"]  # target synapse (mechanism label)
@@ -255,7 +253,6 @@ class ou_recipe(arb.recipe):
 
 
 if __name__ == "__main__":
-
     # set up and run simulation
     # =========================
 

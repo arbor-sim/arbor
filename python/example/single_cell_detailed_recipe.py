@@ -73,7 +73,6 @@ cell = arbor.cable_cell(morph, decor, labels)
 
 # (5) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
-
     # (5.1) Define the class constructor
     def __init__(self):
         # The base C++ class constructor must be called first, to ensure that

@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 
 
 def make_cable_cell(gid):
-
     # Build a segment tree
     tree = arbor.segment_tree()
 
