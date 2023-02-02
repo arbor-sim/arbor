@@ -121,6 +121,17 @@ void communicator::update_connections(const recipe& rec,
         }
     }
 
+    struct label_map {
+        std::unique_ptr<label_resolution_map> map;
+        resolver res;
+
+        label_map(cell_gid_type gid, const recipe& rec):
+            map{std::make_unique<label_resolution_map>(cell_labels_and_gids{get_sources(gid, rec), {gid}})},
+            res{map.get()}
+                {}
+        cell_lid_type resolve(const cell_global_label_type& lbl) { return res.resolve(lbl); }
+    };
+
     // Construct the connections.
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
@@ -129,20 +140,13 @@ void communicator::update_connections(const recipe& rec,
     auto offsets = connection_part_; // Copy, as we use this as the list of current target indices to write into
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
-    auto source_labels = std::unordered_map<cell_gid_type, std::unique_ptr<label_resolution_map>>{};
-    auto source_resolvers = std::unordered_map<cell_gid_type, resolver>{};
     for (const auto& cell: gid_infos) {
         auto index = cell.index_on_domain;
+        auto sources = std::unordered_map<cell_gid_type, label_map>{};
         for (const auto& c: cell.conns) {
             auto sgid = c.source.gid;
-            if (!source_labels.count(sgid)) {
-                auto sources = cell_labels_and_gids{get_sources(sgid, rec), {sgid}};
-                source_labels.emplace(sgid, std::make_unique<label_resolution_map>(sources));
-            }
-            if (!source_resolvers.count(sgid)) {
-                source_resolvers.emplace(sgid, source_labels.at(sgid).get());
-            }
-            auto src_lid = source_resolvers.at(sgid).resolve(c.source);
+            if (!sources.count(sgid)) sources.emplace(sgid, label_map{sgid, rec});
+            auto src_lid = sources.at(sgid).resolve(c.source);
             auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
