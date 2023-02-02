@@ -13,11 +13,15 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arborio/json_serdes.hpp>
+
 using json = nlohmann::json;
+using io = arborio::json_serdes;
+using serdes = arb::serdes::serializer;
 
 TEST(serdes, simple) {
-    auto writer = arb::serdes::json_serdes{};
-    auto serializer = arb::serdes::serializer{writer};
+    auto writer = io{};
+    auto serializer = serdes{writer};
 
     serializer.write("foo", 42.0);
     serializer.write("bar", "bing");
@@ -30,8 +34,8 @@ TEST(serdes, simple) {
 }
 
 TEST(serdes, containers) {
-    auto writer = arb::serdes::json_serdes{};
-    auto serializer = arb::serdes::serializer{writer};
+    auto writer = io{};
+    auto serializer = serdes{writer};
 
     serializer.write("vector", std::vector<float>{1.0, 2.0, 3.0});
     serializer.write("umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
@@ -58,8 +62,8 @@ TEST(serdes, macro) {
         ARB_SERDES_ENABLE(a, b, vs);
     };
 
-    auto writer = arb::serdes::json_serdes{};
-    auto serializer = arb::serdes::serializer{writer};
+    auto writer = io{};
+    auto serializer = serdes{writer};
 
     A{"foo", 42}.serialize(serializer);
 
@@ -72,8 +76,8 @@ TEST(serdes, macro) {
 }
 
 TEST(serdes, round_trip) {
-    auto serdes = arb::serdes::json_serdes{};
-    auto serializer = arb::serdes::serializer{serdes};
+    auto writer = io{};
+    auto serializer = serdes{writer};
 
     struct A {
         std::string s;
@@ -186,8 +190,8 @@ TEST(serdes, single_cell) {
     std::vector<double> result_v2;
 
     // Storage
-    auto serdes = arb::serdes::json_serdes{};
-    auto serializer = arb::serdes::serializer{serdes};
+    auto writer = io{};
+    auto serializer = serdes{writer};
 
     // Set up the simulation.
     auto model = serdes_recipe{};
@@ -227,8 +231,8 @@ TEST(serdes, network) {
     std::vector<double> result_v2;
 
     // Storage
-    auto serdes = arb::serdes::json_serdes{};
-    auto serializer = arb::serdes::serializer{serdes};
+    auto writer = io{};
+    auto serializer = serdes{writer};
 
     // Set up the simulation.
     auto model = serdes_recipe{};

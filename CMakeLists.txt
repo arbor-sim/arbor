@@ -235,9 +235,6 @@ set(arbor_export_dependencies)
 # Pull in 3rd party dependencies
 add_subdirectory(ext)
 
-target_link_libraries(arbor-public-deps INTERFACE nlohmann_json::nlohmann_json)
-target_link_libraries(arbor-private-deps INTERFACE nlohmann_json::nlohmann_json)
-
 # Keep track of which 'components' of arbor are included (this is
 # currently just 'MPI' support and 'neuroml' for NeuroML support in
 # libarborio.)
