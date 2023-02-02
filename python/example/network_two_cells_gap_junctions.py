@@ -113,7 +113,6 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Two cells connected via a gap junction"
     )
@@ -197,7 +196,7 @@ if __name__ == "__main__":
     si_gj_R = 1 / si_gj_g
 
     # indicate the expected equilibrium potentials
-    for (i, j) in [[0, 1], [1, 0]]:
+    for i, j in [[0, 1], [1, 0]]:
         weighted_potential = args.Vms[i] + (
             (args.Vms[j] - args.Vms[i]) * (si_gj_R + cell_R)
         ) / (2 * cell_R + si_gj_R)

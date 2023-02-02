@@ -149,7 +149,6 @@ def get_tmax(data):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Cable")
 
     parser.add_argument(

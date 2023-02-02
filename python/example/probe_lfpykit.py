@@ -162,6 +162,7 @@ I_m = I_c_samples[:, 1:] + I_m_samples[:, 1:]  # (nA)
 # Compute extracellular potentials
 ###############################################################################
 
+
 # ## Compute extracellular potentials
 # First we define a couple of classes to interface the LFPykit
 # library (https://LFPykit.readthedocs.io, https://github.com/LFPy/LFPykit):
@@ -334,15 +335,9 @@ def get_cv_polycollection(cell_geometry, V_m, vlims=[-66, -64], cmap="viridis"):
         inds = cell_geometry._CV_ind == i
         zips.append(
             create_polygon(
-                cell_geometry.x[
-                    inds,
-                ].flatten(),
-                cell_geometry.y[
-                    inds,
-                ].flatten(),
-                cell_geometry.d[
-                    inds,
-                ].flatten(),
+                cell_geometry.x[inds,].flatten(),
+                cell_geometry.y[inds,].flatten(),
+                cell_geometry.d[inds,].flatten(),
             )
         )
     polycol = PolyCollection(zips, edgecolors=colors, facecolors=colors, linewidths=0.0)
