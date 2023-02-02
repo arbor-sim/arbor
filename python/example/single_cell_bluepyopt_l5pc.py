@@ -50,7 +50,6 @@ probe = arbor.cable_probe_membrane_voltage('"dend1"')
 
 # (6) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
-
     # (6.1) Define the class constructor
     def __init__(self, cell, probes):
         # The base C++ class constructor must be called first, to ensure that

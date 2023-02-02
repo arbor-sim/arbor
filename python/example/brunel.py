@@ -45,7 +45,6 @@ class brunel_recipe(arbor.recipe):
         poiss_lambda,
         seed=42,
     ):
-
         arbor.recipe.__init__(self)
 
         # Make sure that in_degree_prop in the interval (0, 1]
@@ -115,7 +114,6 @@ class brunel_recipe(arbor.recipe):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Brunel model miniapp.")
     parser.add_argument(
         "-n",
