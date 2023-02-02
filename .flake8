@@ -2,7 +2,7 @@
 max-line-length = 88
 extend-ignore =
               # for black
-              E203,
+              E203, E231,
               # zealous line lengths
               E501,
               # inconsistent ruling on newlines before bin op

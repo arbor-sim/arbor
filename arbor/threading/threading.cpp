@@ -1,4 +1,5 @@
 #include <atomic>
+#include <stdexcept>
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>

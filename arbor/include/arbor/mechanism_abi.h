@@ -20,8 +20,8 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 3
-#define ARB_MECH_ABI_VERSION_PATCH 1
+#define ARB_MECH_ABI_VERSION_MINOR 4
+#define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
@@ -98,7 +98,6 @@ typedef struct arb_mechanism_ppack {
     arb_size_type   width;                       // Number of CVs.
     arb_index_type  n_detectors;                 // Number of spike detectors.
     arb_index_type* vec_ci;
-    arb_index_type* vec_di;
     arb_value_type* vec_dt;
     arb_value_type* vec_v;
     arb_value_type* vec_i;
