@@ -6,7 +6,7 @@ if(ARB_USE_BUNDLED_JSON)
   install(TARGETS nlohmann_json EXPORT arbor-targets)
   message(STATUS "Using internal JSON = ${nlohmann_json_VERSION}")
 else()
-  find_package(nlohmann_json 3.11.2 REQUIRED)
+  find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
   message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
 endif()
 
