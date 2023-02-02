@@ -249,24 +249,30 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
     const auto& assigned_ids = module_.assigned_block().parameters;
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
-                                   "[[maybe_unused]] auto  {0}width             = pp->width;\\\n"
-                                   "[[maybe_unused]] auto  {0}n_detectors       = pp->n_detectors;\\\n"
-                                   "[[maybe_unused]] auto* {0}vec_ci            = pp->vec_ci;\\\n"
-                                   "[[maybe_unused]] auto* {0}vec_di            = pp->vec_di;\\\n"
-                                   "[[maybe_unused]] auto* {0}vec_dt            = pp->vec_dt;\\\n"
-                                   "[[maybe_unused]] auto* {0}vec_v             = pp->vec_v;\\\n"
-                                   "[[maybe_unused]] auto* {0}vec_i             = pp->vec_i;\\\n"
-                                   "[[maybe_unused]] auto* {0}vec_g             = pp->vec_g;\\\n"
-                                   "[[maybe_unused]] auto* {0}temperature_degC  = pp->temperature_degC;\\\n"
-                                   "[[maybe_unused]] auto* {0}diam_um           = pp->diam_um;\\\n"
-                                   "[[maybe_unused]] auto* {0}time_since_spike  = pp->time_since_spike;\\\n"
-                                   "[[maybe_unused]] auto* {0}node_index        = pp->node_index;\\\n"
-                                   "[[maybe_unused]] auto* {0}peer_index        = pp->peer_index;\\\n"
-                                   "[[maybe_unused]] auto* {0}multiplicity      = pp->multiplicity;\\\n"
-                                   "[[maybe_unused]] auto* {0}weight            = pp->weight;\\\n"
-                                   "[[maybe_unused]] auto& {0}events            = pp->events;\\\n"
-                                   "[[maybe_unused]] auto& {0}mechanism_id      = pp->mechanism_id;\\\n"
-                                   "[[maybe_unused]] auto& {0}index_constraints = pp->index_constraints;\\\n"),
+                                   "[[maybe_unused]] auto {0}width                                                 = pp->width;\\\n"
+                                   "[[maybe_unused]] auto {0}n_detectors                                           = pp->n_detectors;\\\n"
+                                   "[[maybe_unused]] arb_index_type * __restrict__ {0}vec_ci                       = pp->vec_ci;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_dt                       = pp->vec_dt;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_v                        = pp->vec_v;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_i                        = pp->vec_i;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_g                        = pp->vec_g;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}temperature_degC             = pp->temperature_degC;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}diam_um                      = pp->diam_um;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}time_since_spike             = pp->time_since_spike;\\\n"
+                                   "[[maybe_unused]] arb_index_type * __restrict__ {0}node_index                   = pp->node_index;\\\n"
+                                   "[[maybe_unused]] arb_index_type * __restrict__ {0}peer_index                   = pp->peer_index;\\\n"
+                                   "[[maybe_unused]] arb_index_type * __restrict__ {0}multiplicity                 = pp->multiplicity;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}weight                       = pp->weight;\\\n"
+                                   "[[maybe_unused]] auto& {0}events                                               = pp->events;\\\n"
+                                   "[[maybe_unused]] auto {0}mechanism_id                                          = pp->mechanism_id;\\\n"
+                                   "[[maybe_unused]] arb_size_type {0}index_constraints_n_contiguous               = pp->index_constraints.n_contiguous;\\\n"
+                                   "[[maybe_unused]] arb_size_type {0}index_constraints_n_constant                 = pp->index_constraints.n_constant;\\\n"
+                                   "[[maybe_unused]] arb_size_type {0}index_constraints_n_independent              = pp->index_constraints.n_independent;\\\n"
+                                   "[[maybe_unused]] arb_size_type {0}index_constraints_n_none                     = pp->index_constraints.n_none;\\\n"
+                                   "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_contiguous  = pp->index_constraints.contiguous;\\\n"
+                                   "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_constant    = pp->index_constraints.constant;\\\n"
+                                   "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_independent = pp->index_constraints.independent;\\\n"
+                                   "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_none        = pp->index_constraints.none;\\\n"),
                        pp_var_pfx);
     auto global = 0;
     for (const auto& scalar: global_ids) {
@@ -276,21 +282,21 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << fmt::format("[[maybe_unused]] auto const * const * {}random_numbers = pp->random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
-        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        out << fmt::format("[[maybe_unused]] arb_value_type* __restrict__ {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
         state++;
     }
     for (const auto& array: assigned_ids) {
-        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        out << fmt::format("[[maybe_unused]] arb_value_type* __restrict__ {}{} = pp->state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
         state++;
     }
     for (const auto& array: param_ids) {
-        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->parameters[{}];\\\n", pp_var_pfx, array.name(), param);
+        out << fmt::format("[[maybe_unused]] arb_value_type* __restrict__ {}{} = pp->parameters[{}];\\\n", pp_var_pfx, array.name(), param);
         param++;
     }
     auto idx = 0;
     for (const auto& ion: module_.ion_deps()) {
         out << fmt::format("[[maybe_unused]] auto& {}{} = pp->ion_states[{}];\\\n",       pp_var_pfx, ion_field(ion), idx);
-        out << fmt::format("[[maybe_unused]] auto* {}{} = pp->ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
+        out << fmt::format("[[maybe_unused]] auto* __restrict__ {}{} = pp->ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
         idx++;
     }
     out << "//End of IFACEBLOCK\n\n"
@@ -981,8 +987,8 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const ApiFlags& flags) {
     ENTER(out);
     out << fmt::format("constraint_category_ = index_constraint::{1};\n"
-                       "for (auto i_ = 0ul; i_ < {0}index_constraints.n_{1}; i_++) {{\n"
-                       "    arb_index_type index_ = {0}index_constraints.{1}[i_];\n",
+                       "for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
+                       "    arb_index_type index_ = {0}index_constraints_{1}[i_];\n",
                        pp_var_pfx,
                        underlying_constraint_name)
         << indent
