@@ -49,6 +49,7 @@ public:
     /// calling, because the values are used to determine the initial state
     void reset(const array& values) {
         values_ = values.data();
+        std::copy(values.begin(), values.end(), v_prev_.begin());
         clear_crossings();
         for (arb_size_type i = 0; i<n_cv_; ++i) {
             is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
@@ -79,7 +80,6 @@ public:
 
             if (!time_since_spike.empty()) {
                 spike_idx = src_to_spike_[i];
-                std::cerr << "index[" << i << "] = " << spike_idx << '\n';
                 time_since_spike[spike_idx] = -1.0;
             }
 

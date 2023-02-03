@@ -138,7 +138,6 @@ private:
         const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
 };
 
-
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::assert_tmin() {
     auto time_minmax = state_->time_bounds();
