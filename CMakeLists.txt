@@ -242,6 +242,8 @@ set(arbor_export_dependencies)
 # Pull in 3rd party dependencies
 add_subdirectory(ext)
 
+install(TARGETS ext-random123 EXPORT arbor-targets)
+
 # Keep track of which 'components' of arbor are included (this is
 # currently just 'MPI' support and 'neuroml' for NeuroML support in
 # libarborio.)

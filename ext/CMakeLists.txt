@@ -17,9 +17,7 @@ if(ARB_USE_BUNDLED_RANDOM123)
     endif()
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/random123/include)
     message(STATUS "Using Random123 submodule: ${CMAKE_CURRENT_SOURCE_DIR}>/random123")
-    install(TARGETS ext-random123 EXPORT arbor-targets)
 endif()
-
 
 # tinyopt command line parsing libary (header-only).
 
