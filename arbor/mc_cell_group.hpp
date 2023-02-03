@@ -86,9 +86,6 @@ private:
     // List of events to deliver
     std::vector<deliverable_event> staged_events_;
 
-    // Pending samples to be taken.
-    event_queue<sample_event> sample_events_;
-
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles_;
 

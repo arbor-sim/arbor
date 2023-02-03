@@ -107,7 +107,6 @@ class stdp_recipe(arbor.recipe):
 
 
 def run(time_lag):
-
     # Time between stimuli
     T = 1000.0 / f
 

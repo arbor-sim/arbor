@@ -465,7 +465,6 @@ void shared_state::instantiate(arb::mechanism& m,
     m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    m.ppack_.vec_di           = cv_to_intdom.data();
     m.ppack_.vec_dt           = dt_cv.data();
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();

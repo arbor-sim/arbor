@@ -28,7 +28,6 @@ NOTE: In principle, a plasticity (STDP) mechanism is employed here to test if a
 
 
 class TestMultipleConnections(unittest.TestCase):
-
     # Constructor (overridden)
     def __init__(self, args):
         super(TestMultipleConnections, self).__init__(args)
