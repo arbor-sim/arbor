@@ -152,11 +152,9 @@ struct serializer {
                     std::remove_cv_t<typename T::value_type::first_type> k;
                     from_key(k, *q);
                     if (v.count(k)) {
-                        // std::cerr << "[MAP] Reading in over an existing val " << skey << "/" << k << std::endl;
                         read(k, v[k]);
                     }
                     else {
-                        // std::cerr << "[MAP] Making a new val " << skey << "/" << k << std::endl;
                         std::remove_cv_t<typename T::value_type::second_type> val;
                         read(k, val);
                         v[k] = std::move(val);
@@ -171,10 +169,8 @@ struct serializer {
                     if (!q) break;
                     if (ix < v.size()) {
                         read(ix, v[ix]);
-                        // std::cerr << "[ARR] Reading in over an existing val " << skey << "/" << ix << std::endl;
                     }
                     else {
-                        // std::cerr << "[ARR] Making a new val " << skey << "/" << ix << std::endl;
                         typename V::value_type val;
                         read(ix, val);
                         v.emplace_back(std::move(val));

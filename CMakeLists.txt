@@ -224,9 +224,16 @@ cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BU
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
+if(NOT ARB_USE_BUNDLED_JSON)
+  find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
+  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
+endif()
 
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-
+if(NOT ARB_USE_BUNDLED_RANDOM123)
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
 
