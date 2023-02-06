@@ -255,6 +255,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
+    m.ppack_.dt               = dt;
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
     m.ppack_.vec_g            = conductivity.data();
@@ -262,8 +263,6 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.diam_um          = diam_um.data();
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
-    m.ppack_.dt               = dt;
-    m.ppack_.t                = 0;
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage[id];

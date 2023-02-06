@@ -134,17 +134,14 @@ void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
 
     for (auto& m: voltage_mechanisms_) {
-        m->set_time(state_->time, state_->dt);
         m->initialize();
     }
 
     for (auto& m: revpot_mechanisms_) {
-        m->set_time(state_->time, state_->dt);
         m->initialize();
     }
 
     for (auto& m: mechanisms_) {
-        m->set_time(state_->time, state_->dt);
         m->initialize();
     }
 
@@ -202,13 +199,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Update integration step time information visible to mechanisms.
         for (auto& m: mechanisms_) {
-            m->set_time(state_->time, state_->dt);
+            m->set_dt(state_->dt);
         }
         for (auto& m: revpot_mechanisms_) {
-            m->set_time(state_->time, state_->dt);
+            m->set_dt(state_->dt);
         }
         for (auto& m: voltage_mechanisms_) {
-            m->set_time(state_->time, state_->dt);
+            m->set_dt(state_->dt);
         }
 
         // Update any required reversal potentials based on ionic concentrations

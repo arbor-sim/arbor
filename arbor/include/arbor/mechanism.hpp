@@ -58,11 +58,9 @@ public:
     // the result must be instantiated.
     mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
+    void set_dt(arb_value_type dt) { ppack_.dt = dt; }
+
     // Forward to interface methods
-    void set_time(arb_value_type time, arb_value_type dt) {
-        ppack_.t = time;
-        ppack_.dt = dt;
-    }
 
     void initialize() {
         iface_.init_mechanism(&ppack_);
