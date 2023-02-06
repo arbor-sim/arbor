@@ -61,8 +61,11 @@ void run_test(std::string mech_name,
     std::vector<arb_index_type> src_to_spike = {};
 
     // Create the fvm shared state for the simple cell.
-    auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, mech->data_alignment());
+    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncv, cv_to_cell,
+                                                                         vinit, temp, diam,
+                                                                         src_to_spike,
+                                                                         fvm_detector_info{},
+                                                                         mech->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;

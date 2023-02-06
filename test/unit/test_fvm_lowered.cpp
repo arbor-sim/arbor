@@ -596,8 +596,11 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto& read_cai_mech  = read_cai.mech;
     auto& write_cai_mech = write_cai.mech;
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, read_cai_mech->data_alignment());
+    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncv, cv_to_cell,
+                                                                         vinit, temp, diam,
+                                                                         src_to_spike,
+                                                                         fvm_detector_info{},
+                                                                         read_cai_mech->data_alignment());
     shared_state->add_ion("ca", 2, ion_config);
 
     shared_state->instantiate(*read_cai_mech, 0, overrides, layout, {});

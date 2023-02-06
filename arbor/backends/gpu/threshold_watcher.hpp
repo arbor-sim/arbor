@@ -46,19 +46,17 @@ class threshold_watcher {
 public:
     using stack_type = stack<threshold_crossing>;
 
-    threshold_watcher() = delete;
+    threshold_watcher() = default;
     threshold_watcher(threshold_watcher&& other) = default;
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
     threshold_watcher(const execution_context& ctx): stack_(ctx.gpu) {}
 
-    threshold_watcher(
-        const arb_size_type num_cv,
-        const arb_index_type* src_to_spike,
-        const std::vector<arb_index_type>& cv_index,
-        const std::vector<arb_value_type>& thresholds,
-        const execution_context& context
-    ):
+    threshold_watcher(const arb_size_type num_cv,
+                      const arb_index_type* src_to_spike,
+                      const std::vector<arb_index_type>& cv_index,
+                      const std::vector<arb_value_type>& thresholds,
+                      const execution_context& context):
         src_to_spike_(src_to_spike),
         n_detectors_(cv_index.size()),
         cv_index_(memory::make_const_view(cv_index)),
@@ -112,18 +110,20 @@ public:
     /// Crossing events are recorded for each threshold that has been
     /// crossed since current time t, and the last time the test was
     /// performed.
-    void test(array* time_since_spike, const arb_value_type& t_before, const arb_value_type& t_after) {
+    void test(array& time_since_spike,
+              const arb_value_type& t_before,
+              const arb_value_type& t_after) {
         arb_assert(values_);
 
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
                 t_after, t_before,
-                src_to_spike_, time_since_spike->data(),
+                src_to_spike_, time_since_spike.data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
                 cv_index_.data(), values_, thresholds_.data(),
-                !time_since_spike->empty());
+                !time_since_spike.empty());
 
             // Check that the number of spikes has not exceeded capacity.
             arb_assert(!stack_.overflow());

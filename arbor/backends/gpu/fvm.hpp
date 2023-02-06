@@ -48,20 +48,6 @@ struct backend {
 
     using shared_state = arb::gpu::shared_state;
     using ion_state = arb::gpu::ion_state;
-
-    static threshold_watcher voltage_watcher(
-        shared_state& state,
-        const std::vector<index_type>& detector_cv,
-        const std::vector<value_type>& thresholds,
-        const execution_context& context)
-    {
-        return threshold_watcher(
-            state.voltage.size(),
-            state.src_to_spike.data(),
-            detector_cv,
-            thresholds,
-            context);
-    }
 };
 
 } // namespace gpu

@@ -71,7 +71,12 @@ struct diffusion_solver {
     //   diff. concentration
     //    * will be overwritten by the solution
     template<typename T>
-    void solve(T& concentration, value_type dt, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
+    void solve(T& concentration,
+               value_type dt,
+               const_view voltage,
+               const_view current,
+               const_view conductivity,
+               arb_value_type q) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
         // loop over submatrices

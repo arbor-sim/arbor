@@ -7,6 +7,7 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/version.hpp>
 
+#include "backends/common_types.hpp"
 #include "backends/multicore/shared_state.hpp"
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/shared_state.hpp"
@@ -44,16 +45,15 @@ TEST(abi, multicore_initialisation) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
-    arb_size_type ndetector = 0;
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncv, ndetector,
-                                              cv_to_cell,
+    arb::multicore::shared_state shared_state(ncell, ncv, cv_to_cell,
                                               vinit, temp, diam, src_to_spike,
+                                              arb::fvm_detector_info{},
                                               mech.data_alignment());
 
     arb::mechanism_layout layout;
@@ -123,16 +123,15 @@ TEST(abi, multicore_null) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 5;
-    arb_size_type ndetector = 0;
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncv, ndetector,
-                                              cv_to_cell,
+    arb::multicore::shared_state shared_state(ncell, ncv, cv_to_cell,
                                               vinit, temp, diam, src_to_spike,
+                                              arb::fvm_detector_info{},
                                               mech.data_alignment());
 
     arb::mechanism_layout layout;
@@ -191,16 +190,15 @@ TEST(abi, gpu_initialisation) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 5;
-    arb_size_type ndetector = 0;
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::gpu::shared_state shared_state(ncell, ncv, ndetector,
-                                        cv_to_cell,
+    arb::gpu::shared_state shared_state(ncell, ncv, cv_to_cell,
                                         vinit, temp, diam, src_to_spike,
+                                        arb::fvm_detector_info{},
                                         1);
 
     arb::mechanism_layout layout;
@@ -269,16 +267,15 @@ TEST(abi, gpu_null) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 0;
-    arb_size_type ndetector = 0;
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::gpu::shared_state shared_state(ncell, ncv, ndetector,
-                                        cv_to_cell,
+    arb::gpu::shared_state shared_state(ncell, ncv, cv_to_cell,
                                         vinit, temp, diam, src_to_spike,
+                                        arb::fvm_detector_info{},
                                         1);
 
     arb::mechanism_layout layout;

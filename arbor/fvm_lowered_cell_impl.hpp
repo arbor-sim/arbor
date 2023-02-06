@@ -48,7 +48,6 @@ public:
 
     fvm_lowered_cell_impl(execution_context ctx, arb_seed_type seed = 0):
         context_(ctx),
-        threshold_watcher_(ctx),
         seed_{seed}
     {};
 
@@ -74,18 +73,10 @@ private:
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;
     using shared_state        = typename backend::shared_state;
-    using sample_event_stream = typename backend::sample_event_stream;
-    using threshold_watcher   = typename backend::threshold_watcher;
 
     execution_context context_;
 
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
-
-    // TODO: Can we move the backend-dependent data structures below into state_?
-    sample_event_stream sample_events_;
-    array sample_time_;
-    array sample_value_;
-    threshold_watcher threshold_watcher_;
 
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
@@ -99,10 +90,6 @@ private:
 
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
-
-    // Host-side views/copies and local state.
-    decltype(backend::host_view(sample_time_)) sample_time_host_;
-    decltype(backend::host_view(sample_value_)) sample_value_host_;
 
     void update_ion_state();
 
@@ -168,7 +155,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
-    threshold_watcher_.reset(state_->voltage);
+    state_->reset_thresholds();
 }
 
 template <typename Backend>
@@ -182,17 +169,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     // Integration setup
     PE(advance:integrate:setup);
-    threshold_watcher_.clear_crossings();
-
-    auto n_samples = staged_samples.size();
-    if (sample_time_.size() < n_samples) {
-        sample_time_ = array(n_samples);
-        sample_value_ = array(n_samples);
-    }
-
-    // initialize events and samples
-    state_->register_events(staged_event_map, dts);
-    sample_events_.init(staged_samples, dts);
+    // Push samples and events down to the state and reset the spike thresholds.
+    state_->begin_epoch(staged_event_map, staged_samples, dts);
     PL();
 
     // loop over timesteps
@@ -212,58 +190,55 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Update any required reversal potentials based on ionic concentrations
+        PE(advance:integrate:revpot);
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
-
-        // Deliver events and accumulate mechanism current contributions.
-
-        // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
-        PE(advance:integrate:events);
-        state_->mark_events();
         PL();
 
         PE(advance:integrate:current:zero);
         state_->zero_currents();
         PL();
 
+        // Deliver events and accumulate mechanism current contributions.
+
+        // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
+        PE(advance:integrate:events:mark);
+        state_->mark_events();
+        PL();
+
+        PE(advance:integrate:events:deliver);
         for (auto& m: mechanisms_) {
             // apply the events and drop them afterwards
             state_->deliver_events(*m);
             m->update_current();
         }
+        PL();
 
         // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we
-        // want to use mean current contributions as opposed to point
-        // sample.)
-
+        // NOTE: performed after dt, time_to calculation, in case we want to
+        // use mean current contributions as opposed to point sample.
         PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
         PL();
 
-        // Take samples at cell time if sample time in this step interval (not including the end)
-
+        // Take samples at cell time if sample time in this step interval.
         PE(advance:integrate:samples);
-        sample_events_.mark();
-        state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
+        state_->take_samples();
         PL();
 
-        // Integrate voltage / solve cable eq
-        PE(advance:integrate:voltage);
-        state_->integrate_voltage();
-        PL();
-
-        // Compute ionic diffusion effects
-        PE(advance:integrate:diffusion);
-        state_->integrate_diffusion();
+        // Integrate voltage and diffusion
+        PE(advance:integrate:cable);
+        state_->integrate_cable_state();
         PL();
 
         // Integrate mechanism state for density
+        PE(advance:integrate:density_mechs);
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
+        PL();
 
         // Update ion concentrations.
         PE(advance:integrate:ionupdate);
@@ -272,6 +247,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
+        PE(advance:integrate:v_mechs);
         for (auto& m: voltage_mechanisms_) {
             m->update_current();
         }
@@ -279,10 +255,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             state_->update_prng_state(*m);
             m->update_state();
         }
+        PL();
 
         // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
-        threshold_watcher_.test(&state_->time_since_spike, state_->time, state_->time_to);
+        state_->test_thresholds();
         PL();
 
         PE(advance:integrate:post)
@@ -293,7 +270,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         PL();
 
-        state_->time = state_->time_to;
+        // Advance epoch by swapping current and next time.
+        state_->next_time_step();
 
         // Check for non-physical solutions:
         if (check_voltage_mV_) {
@@ -303,15 +281,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
     }
 
-    const auto& crossings = threshold_watcher_.crossings();
-    sample_time_host_ = backend::host_view(sample_time_);
-    sample_value_host_ = backend::host_view(sample_value_);
-
-    return fvm_integration_result{
-        util::range_pointer_view(crossings),
-        util::range_pointer_view(sample_time_host_),
-        util::range_pointer_view(sample_value_host_)
-    };
+    return state_->get_integration_result();
 }
 
 template <typename Backend>
@@ -332,6 +302,23 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound
     throw range_check_failure(
         util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
         v_minmax.first<-bound? v_minmax.first: v_minmax.second);
+}
+
+inline
+fvm_detector_info get_detector_info(arb_size_type max,
+                                    arb_size_type ncell,
+                                    const std::vector<cable_cell>& cells,
+                                    const fvm_cv_discretization& D,
+                                    execution_context ctx) {
+    std::vector<arb_index_type> cv;
+    std::vector<arb_value_type> threshold;
+    for (auto cell_idx: util::make_span(ncell)) {
+        for (auto entry: cells[cell_idx].detectors()) {
+            cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
+            threshold.push_back(entry.item.threshold);
+        }
+    }
+    return { max, std::move(cv), std::move(threshold), ctx };
 }
 
 template <typename Backend>
@@ -424,8 +411,6 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     arb_assert(D.n_cell() == ncell);
 
-    sample_events_ = sample_event_stream();
-
     // Discretize and build gap junction info.
 
     auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
@@ -466,19 +451,18 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
+    auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
     const auto ncv = D.size();
-    state_ = std::make_unique<shared_state>(
-                ncell,
-                ncv,
-                max_detector,
-                std::move(cv_to_cell),
-                D.init_membrane_potential,
-                D.temperature_K,
-                D.diam_um,
-                std::move(src_to_spike),
-                data_alignment? data_alignment: 1u,
-                seed_);
-
+    state_ = std::make_unique<shared_state>(ncell,
+                                            ncv,
+                                            std::move(cv_to_cell),
+                                            D.init_membrane_potential,
+                                            D.temperature_K,
+                                            D.diam_um,
+                                            std::move(src_to_spike),
+                                            d_info,
+                                            data_alignment? data_alignment: 1u,
+                                            seed_);
     state_->solver =
         {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area};
 
@@ -610,19 +594,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     }
 
 
-    std::vector<index_type> detector_cv;
-    std::vector<value_type> detector_threshold;
     std::vector<fvm_probe_data> probe_data;
 
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
-
-        // Collect detectors, probe handles.
-        for (auto entry: cells[cell_idx].detectors()) {
-            detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
-            detector_threshold.push_back(entry.item.threshold);
-        }
-
         std::vector<probe_info> rec_probes = rec.get_probes(gid);
         for (cell_lid_type i: count_along(rec_probes)) {
             probe_info& pi = rec_probes[i];
@@ -640,10 +615,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
-
     reset();
-
     return fvm_info;
 }
 

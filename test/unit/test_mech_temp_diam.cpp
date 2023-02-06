@@ -4,6 +4,7 @@
 #include <arbor/version.hpp>
 
 #include "backends/multicore/fvm.hpp"
+#include "backends/common_types.hpp"
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/fvm.hpp"
 #endif
@@ -35,8 +36,11 @@ void run_celsius_test() {
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(
-        ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
+    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncv, cv_to_cell,
+                                                                         vinit, temp, diam,
+                                                                         src_to_spike,
+                                                                         fvm_detector_info{},
+                                                                         celsius_test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;
@@ -92,9 +96,11 @@ void run_diam_test() {
         layout.cv.push_back(i);
     }
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncv, 0, cv_to_cell, vinit, temp, diam, src_to_spike, celsius_test->data_alignment());
-
+    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncv, cv_to_cell,
+                                                                         vinit, temp, diam,
+                                                                         src_to_spike,
+                                                                         fvm_detector_info{},
+                                                                         celsius_test->data_alignment());
 
     shared_state->instantiate(*celsius_test, 0, overrides, layout, {});
     shared_state->reset();

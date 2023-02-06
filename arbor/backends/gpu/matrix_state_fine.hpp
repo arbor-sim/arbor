@@ -439,6 +439,13 @@ public:
         packed_to_flat(rhs, to);
     }
 
+
+    void solve(array& voltage,
+               const T& dt, const_view current, const_view conductivity) {
+        assemble(dt, voltage, current, conductivity);
+        solve(voltage);
+    }
+
     std::size_t size() const { return matrix_size; }
 
 private:

@@ -192,74 +192,45 @@ void istim_state::add_current(const arb_value_type& time, array& current_density
 
 // shared_state methods:
 
-shared_state::shared_state(
-    arb_size_type n_cell,
-    arb_size_type n_cv,
-    arb_size_type n_detector,
-    const std::vector<arb_index_type>& cv_to_cell_vec,
-    const std::vector<arb_value_type>& init_membrane_potential,
-    const std::vector<arb_value_type>& temperature_K,
-    const std::vector<arb_value_type>& diam,
-    const std::vector<arb_index_type>& src_to_spike,
-    unsigned align,
-    arb_seed_type cbprng_seed_
-):
+shared_state::shared_state(arb_size_type n_cell,
+                           arb_size_type n_cv_,
+                           const std::vector<arb_index_type>& cv_to_cell_vec,
+                           const std::vector<arb_value_type>& init_membrane_potential,
+                           const std::vector<arb_value_type>& temperature_K,
+                           const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_index_type>& src_to_spike_,
+                           const fvm_detector_info& detector,
+                           unsigned align,
+                           arb_seed_type cbprng_seed_):
     alignment(min_alignment(align)),
     alloc(alignment),
-    n_detector(n_detector),
-    n_cv(n_cv),
+    n_detector(detector.count),
+    n_cv(n_cv_),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
-    voltage(n_cv, pad(alignment)),
-    current_density(n_cv, pad(alignment)),
-    conductivity(n_cv, pad(alignment)),
+    voltage(n_cv_, pad(alignment)),
+    current_density(n_cv_, pad(alignment)),
+    conductivity(n_cv_, pad(alignment)),
     init_voltage(init_membrane_potential.begin(), init_membrane_potential.end(), pad(alignment)),
-    temperature_degC(n_cv, pad(alignment)),
+    temperature_degC(n_cv_, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
-    src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
-    cbprng_seed(cbprng_seed_)
-{
+    src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
+    cbprng_seed(cbprng_seed_),
+    watcher{n_cv_,
+            src_to_spike.data(),
+            detector.cv,
+            detector.threshold,
+            detector.ctx} {
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
     }
 
     util::fill(time_since_spike, -1.0);
-    for (unsigned i = 0; i<n_cv; ++i) {
-        temperature_degC[i] = temperature_K[i] - 273.15;
-    }
-}
-
-void shared_state::integrate_voltage() {
-    solver.solve(voltage, dt, current_density, conductivity);
-}
-
-void shared_state::integrate_diffusion() {
-    for (auto& [ion, data]: ion_data) {
-        if (data.solver) {
-            data.solver->solve(data.Xd_,
-                               dt,
-                               voltage,
-                               data.iX_,
-                               data.gX_,
-                               data.charge[0]);
-
-        }
-    }
-}
-
-void shared_state::add_ion(
-    const std::string& ion_name,
-    int charge,
-    const fvm_ion_config& ion_info,
-    ion_state::solver_ptr ptr) {
-    ion_data.emplace(std::piecewise_construct,
-                     std::forward_as_tuple(ion_name),
-                     std::forward_as_tuple(charge, ion_info, alignment, std::move(ptr)));
-}
-
-void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
-    stim_data = istim_state(stims, alignment);
+    std::transform(temperature_K.begin(), temperature_K.end(),
+                   temperature_degC.begin(),
+                   [](auto T) { return T - 273.15; });
+    reset_thresholds();
 }
 
 void shared_state::reset() {
@@ -285,42 +256,17 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-void shared_state::ions_init_concentration() {
-    for (auto& i: ion_data) {
-        i.second.init_concentration();
-    }
-}
-
-void shared_state::update_time_to(const timestep_range::timestep& ts) {
-    time_to = ts.t1();
-    dt = ts.dt();
-}
-
-void shared_state::mark_events() {
-    for (auto& s : storage) {
-        s.second.deliverable_events_.mark();
-    }
-}
-
-void shared_state::add_stimulus_current() {
-     stim_data.add_current(time, current_density);
-}
-
 std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return util::minmax_value(voltage);
 }
 
-void shared_state::take_samples(
-    const sample_event_stream::state& s,
-    array& sample_time,
-    array& sample_value)
-{
-    if (!s.empty()) {
-        const auto begin = s.begin_marked;
-        const auto end = s.end_marked;
-
+void shared_state::take_samples() {
+    sample_events.mark();
+    const auto& state = sample_events.marked_events();
+    if (!state.empty()) {
+        const auto begin = state.begin_marked;
+        const auto end = state.end_marked;
         // Null handles are explicitly permitted, and always give a sample of zero.
-        // (Note: probably not worth explicitly vectorizing this.)
         for (auto p = begin; p<end; ++p) {
             sample_time[p->offset] = time;
             sample_value[p->offset] = p->handle? *p->handle: 0;
@@ -388,33 +334,6 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
     return math::round_up(width, m);
 }
 } // anonymous namespace
-
-const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            return m.ppack_.state_vars[i];
-        }
-    }
-    return nullptr;
-}
-
-void shared_state::register_events(const event_map& staged_event_map, const timestep_range& dts) {
-    for (auto& [mech_id, store] : storage) {
-        if (auto it = staged_event_map.find(mech_id);
-            it != staged_event_map.end() && it->second.size()) {
-            store.deliverable_events_.init(it->second, dts);
-        }
-    }
-}
-
-void shared_state::deliver_events(mechanism& m) {
-    if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
-        auto& deliverable_events = it->second.deliverable_events_;
-        if (auto es_state = deliverable_events.marked_events(); es_state.num_streams > 0u) {
-            m.deliver_events(es_state);
-        }
-    }
-}
 
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
@@ -622,7 +541,7 @@ void shared_state::instantiate(arb::mechanism& m,
         // `peer_index` holds the peer CV of each CV in node_index.
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
-        if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
+        if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }
 

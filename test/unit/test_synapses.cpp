@@ -87,16 +87,15 @@ TEST(synapses, syn_basic_state) {
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
-    shared_state state(
-        num_cells,
-        num_comp,
-        0,
-        std::vector<index_type>(num_comp, 0),
-        std::vector<value_type>(num_comp, -65),
-        std::vector<value_type>(num_comp, temp_K),
-        std::vector<value_type>(num_comp, 1.),
-        std::vector<index_type>(0),
-        align);
+    shared_state state(num_cells,
+                       num_comp,
+                       std::vector<index_type>(num_comp, 0),
+                       std::vector<value_type>(num_comp, -65),
+                       std::vector<value_type>(num_comp, temp_K),
+                       std::vector<value_type>(num_comp, 1.),
+                       std::vector<index_type>(0),
+                       fvm_detector_info{},
+                       align);
 
     state.reset();
     fill(state.current_density, 1.0);
@@ -154,7 +153,7 @@ TEST(synapses, syn_basic_state) {
     add_event(m, 0., {0, 3}, 1.41f);
     add_event(m, 0., {1, 0}, 2.71f);
     add_event(m, 0., {1, 2}, 0.07f);
-    state.register_events(m, dts);
+    state.begin_epoch(m, {}, dts);
     state.mark_events();
 
     state.deliver_events(*expsyn);

@@ -87,7 +87,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test again at t=1, with unchanged values
     //  - nothing should change
     time_after = 1.;
-    watch.test(&time_since_spike, time_before, time_after);
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -103,7 +103,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0.);
     time_before = time_after;
     time_after = 2.;
-    watch.test(&time_since_spike, time_before, time_after);
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -114,7 +114,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 4.);
     time_before = time_after;
     time_after = 3.0;
-    watch.test(&time_since_spike, time_before, time_after);
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
@@ -138,7 +138,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0.);
     time_before = time_after;
     time_after = 4;
-    watch.test(&time_since_spike, time_before, time_after);
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -154,7 +154,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     values[index[2]] = 6.;
     time_before = time_after;
     time_after = 5;
-    watch.test(&time_since_spike, time_before, time_after);
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
