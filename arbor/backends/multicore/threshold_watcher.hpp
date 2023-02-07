@@ -73,8 +73,6 @@ public:
             if (!time_since_spike.empty()) {
                 spike_idx = src_to_spike_[i];
                 time_since_spike[spike_idx] = -1.0;
-                std::cerr << "index[" << i << "] = " << spike_idx << '\n';
-                time_since_spike[spike_idx] = -1.0;
             }
 
             if (!is_crossed_[i]) {
