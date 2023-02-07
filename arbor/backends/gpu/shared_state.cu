@@ -49,7 +49,7 @@ void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v) {
 
     constexpr int block_dim = 128;
     const int nblock = block_count(n, block_dim);
-    kernel::add_scalar<<<nblock, block_dim>>>(n, data, v);
+    launch(nblock, block_dim, kernel::add_scalar<arb_value_type>, n, data, v);
 }
 
 void take_samples_impl(
@@ -60,7 +60,7 @@ void take_samples_impl(
     const int nsamples = s.size();
     if (nsamples) {
         const int nblock = block_count(nsamples, block_dim);
-        kernel::take_samples_impl<<<nblock, block_dim>>>(s.begin_marked, s.end_marked, time, sample_time, sample_value);
+        launch(nblock, block_dim, kernel::take_samples_impl, s.begin_marked, s.end_marked, time, sample_time, sample_value);
     }
 }
 

@@ -56,7 +56,7 @@ ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp) {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(n, block_dim);
     if (!grid_dim) return;
-    kernel::istim_add_current_impl<<<grid_dim, block_dim>>>(n, pp);
+    launch(grid_dim, block_dim, kernel::istim_add_current_impl, n, pp);
 }
 
 } // namespace gpu

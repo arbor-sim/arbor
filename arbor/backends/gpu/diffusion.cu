@@ -212,7 +212,7 @@ ARB_ARBOR_API void assemble_diffusion(
     const unsigned block_dim = 128;
     const unsigned num_blocks = impl::block_count(n, block_dim);
 
-    kernels::assemble_diffusion<<<num_blocks, block_dim>>>(
+    launch(num_blocks, block_dim, kernels::assemble_diffusion<arb_value_type, arb_index_type>,
         d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area,
         dt, perm, n);
 }
@@ -247,7 +247,7 @@ ARB_ARBOR_API void solve_diffusion(
     unsigned num_blocks,                   // number of blocks
     unsigned blocksize)                    // size of each block
 {
-    kernels::solve_diffusion<<<num_blocks, blocksize>>>(
+    launch(num_blocks, blocksize, kernels::solve_diffusion<arb_value_type>,
         rhs, d, u, level_meta, level_lengths, level_parents, block_index,
         num_cells);
 }

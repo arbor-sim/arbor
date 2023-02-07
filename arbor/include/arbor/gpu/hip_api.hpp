@@ -36,6 +36,14 @@ struct ARB_SYMBOL_VISIBLE api_error_type {
     }
 };
 
+inline api_error_type get_last_error() {
+    return hipGetLastError();
+}
+
+inline api_error_type device_synchronize() {
+    return hipDeviceSynchronize();
+}
+
 constexpr auto gpuMemcpyDeviceToHost = hipMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = hipMemcpyHostToDevice;
 constexpr auto gpuMemcpyDeviceToDevice = hipMemcpyDeviceToDevice;

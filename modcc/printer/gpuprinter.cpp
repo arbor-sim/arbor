@@ -270,7 +270,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    auto n = p->{};\n"
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {}<<<grid_dim, block_dim>>>(*p);\n"),
+                                           "    ::arb::gpu::launch(grid_dim, block_dim, {}, *p);\n"),
                                width,
                                api_name);
         }
@@ -293,9 +293,9 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    auto n = p->{0};\n"
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {1}<<<grid_dim, block_dim>>>(*p);\n"
+                                           "    ::arb::gpu::launch(grid_dim, block_dim, {1}, *p);\n"
                                            "    if (!p->multiplicity) return;\n"
-                                           "    multiply<<<dim3{{grid_dim, {2}}}, block_dim>>>(*p);\n"),
+                                           "    ::arb::gpu::launch({{grid_dim, {2}}}, block_dim, multiply, *p);\n"),
                                "width",
                                api_name,
                                n);
@@ -320,7 +320,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    if (stream_ptr->num_streams == 0u) return;\n"
                                            "    const arb_size_type num_streams = stream_ptr->num_streams;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(num_streams, block_dim);\n"
-                                           "    {}<<<grid_dim, block_dim>>>(*p, *stream_ptr);\n"),
+                                           "    ::arb::gpu::launch(grid_dim, block_dim, {}, *p, *stream_ptr);\n"),
                                api_name);
         }
         out << "}\n\n";

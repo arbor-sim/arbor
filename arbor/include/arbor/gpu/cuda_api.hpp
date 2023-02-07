@@ -37,6 +37,14 @@ struct ARB_SYMBOL_VISIBLE api_error_type {
     }
 };
 
+inline api_error_type get_last_error() {
+    return cudaGetLastError();
+}
+
+inline api_error_type device_synchronize() {
+    return cudaDeviceSynchronize();
+}
+
 constexpr auto gpuMemcpyDeviceToHost = cudaMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = cudaMemcpyHostToDevice;
 constexpr auto gpuMemcpyDeviceToDevice = cudaMemcpyDeviceToDevice;
