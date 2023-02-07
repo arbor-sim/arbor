@@ -37,6 +37,7 @@ public:
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
         state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
         current_prof_id = profile::profiler_region_id("advance:integrate:current:"+internal_name());
+        deliver_prof_id = profile::profiler_region_id("advance:integrate:event:"+internal_name());
     }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
@@ -87,7 +88,9 @@ public:
     }
 
     void deliver_events(arb_deliverable_event_stream& stream) {
+        prof_enter(deliver_prof_id);
         iface_.apply_events(&ppack_, &stream);
+        prof_exit();
     }
 
     // Per-cell group identifier for an instantiated mechanism.
@@ -111,6 +114,7 @@ private:
 #endif
     profile::region_id_type state_prof_id;
     profile::region_id_type current_prof_id;
+    profile::region_id_type deliver_prof_id;
 };
 
 struct mechanism_layout {

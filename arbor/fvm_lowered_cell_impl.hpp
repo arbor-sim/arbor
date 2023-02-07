@@ -187,11 +187,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Update any required reversal potentials based on ionic concentrations
-        PE(advance:integrate:revpot);
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
-        PL();
 
         PE(advance:integrate:current:zero);
         state_->zero_currents();
@@ -200,17 +198,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Deliver events and accumulate mechanism current contributions.
 
         // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
-        PE(advance:integrate:events:mark);
         state_->mark_events();
-        PL();
 
-        PE(advance:integrate:events:deliver);
         for (auto& m: mechanisms_) {
             // apply the events and drop them afterwards
             state_->deliver_events(*m);
             m->update_current();
         }
-        PL();
 
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
@@ -230,12 +224,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         // Integrate mechanism state for density
-        PE(advance:integrate:density_mechs);
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
-        PL();
 
         // Update ion concentrations.
         PE(advance:integrate:ionupdate);
@@ -244,7 +236,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
-        PE(advance:integrate:v_mechs);
         for (auto& m: voltage_mechanisms_) {
             m->update_current();
         }
@@ -252,7 +243,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             state_->update_prng_state(*m);
             m->update_state();
         }
-        PL();
 
         // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
