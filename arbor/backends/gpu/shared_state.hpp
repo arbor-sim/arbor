@@ -44,7 +44,7 @@ struct ARB_ARBOR_API ion_state {
     array Xi_;          // (mM) internal concentration
     array Xd_;          // (mM) diffusive concentration
     array Xo_;          // (mM) external concentration
-    array gX_;             // (kS/m²) per-species conductivity
+    array gX_;          // (kS/m²) per-species conductivity
 
     array init_Xi_;     // (mM) area-weighted initial internal concentration
     array init_Xo_;     // (mM) area-weighted initial external concentration
