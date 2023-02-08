@@ -256,7 +256,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         PL();
 
-        // Advance epoch by swapping current and next time.
+        // Advance epoch
         state_->next_time_step();
 
         // Check for non-physical solutions:

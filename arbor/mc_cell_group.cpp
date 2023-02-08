@@ -3,7 +3,6 @@
 #include <unordered_set>
 #include <variant>
 #include <vector>
-#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>

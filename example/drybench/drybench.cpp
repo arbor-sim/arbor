@@ -44,7 +44,7 @@ struct bench_params {
     int num_threads = 1;             // Number of threads per rank.
     std::string name = "default";    // Name of the model.
     unsigned num_cells = 100;        // Number of cells _per rank_.
-    arb::time_type duration = 1000;   // Simulation duration in ms.
+    arb::time_type duration = 100;   // Simulation duration in ms.
 
     cell_params cell;                // Cell parameters for all cells in model.
     network_params network;          // Description of the network.
