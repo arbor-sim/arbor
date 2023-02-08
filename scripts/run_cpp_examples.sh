@@ -26,7 +26,7 @@ check () {
     fi
 }
 
-for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v" plasticity ou voltage-clamp
+for ex in bench brunel gap_junctions generators lfp ring busyring single-cell "probe-demo v" plasticity ou voltage-clamp
 do
     echo "   - $ex"
     dir=`echo $ex | tr ' ' '_'`
@@ -40,6 +40,7 @@ done
 check brunel 6998
 check bench 972
 check ring 94
+check busyring 33
 check gap_junctions 30
 
 exit $ok

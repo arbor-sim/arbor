@@ -29,10 +29,10 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 1000;
+    unsigned num_cells = 50;
     unsigned ring_size = 10;
     double min_delay = 5;
-    double duration = 50;
+    double duration = 30;
     double dt = 0.025;
     bool record_voltage = false;
     std::string odir = ".";
