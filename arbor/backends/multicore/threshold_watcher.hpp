@@ -57,9 +57,7 @@ public:
     /// Tests each target for changed threshold state
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
-    void test(array& time_since_spike,
-              const arb_value_type& t_before,
-              const arb_value_type& t_after) {
+    void test(array& time_since_spike, const arb_value_type& t_before, const arb_value_type& t_after) {
         arb_assert(values_!=nullptr);
 
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector

@@ -179,7 +179,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_value_type>& temperature_K,
                  const std::vector<arb_value_type>& diam,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector_info,
+                 const fvm_detector_info& detector,
                  unsigned, // align parameter ignored
                  arb_seed_type cbprng_seed_ = 0u);
 
