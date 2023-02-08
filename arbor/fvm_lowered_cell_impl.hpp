@@ -199,7 +199,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
         state_->mark_events();
-
         for (auto& m: mechanisms_) {
             // apply the events and drop them afterwards
             state_->deliver_events(*m);
