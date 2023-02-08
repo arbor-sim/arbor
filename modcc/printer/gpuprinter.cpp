@@ -144,7 +144,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                    "arb_index_type * __restrict__ {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
                                    "arb_index_type * __restrict__ {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
                                    "arb_index_type * __restrict__ {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
-                                   "arb_value_type * __restrict__ {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
+                                   "arb_value_type ** __restrict__ {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
                                    "arb_value_type * __restrict__ {0}weight            __attribute__((unused)) = params_.weight;\\\n"
                                    "auto& {0}events            __attribute__((unused)) = params_.events;\\\n"
                                    "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"),
@@ -175,7 +175,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     auto idx = 0;
     for (const auto& ion: module_.ion_deps()) {
         out << fmt::format("auto& {}{} __attribute__((unused)) = params_.ion_states[{}];\\\n",       pp_var_pfx, ion_field(ion), idx);
-        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
+        out << fmt::format("arb_index_type * __restrict__ {}{} __attribute__((unused)) = params_.ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
         idx++;
     }
     out << "//End of IFACEBLOCK\n\n";
