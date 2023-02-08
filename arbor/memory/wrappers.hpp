@@ -5,6 +5,8 @@
 
 #include <memory/memory.hpp>
 
+#include <arbor/serdes.hpp>
+
 namespace arb {
 namespace memory {
 
@@ -150,6 +152,64 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
     using T = typename C::value_type;
     return device_vector<T>(make_const_view(c));
 }
+
+template<typename K,
+         typename T>
+void write(::arb::serdes::serializer ser, const K& k, const host_vector<T>& hvs) {
+    ser.begin_write_array(to_key(k));
+    for (int ix = 0; ix < hvs.size(); ++ix) write(ser, ix, hvs[ix]);
+    ser.end_write_array();
+}
+
+template<typename K,
+         typename T>
+void write(::arb::serdes::serializer ser, const K& k, const device_vector<T>& vs) {
+    auto hvs = on_host(vs);
+    ser.begin_write_array(to_key(k));
+    for (int ix = 0; ix < hvs.size(); ++ix) write(ser, ix, hvs[ix]);
+    ser.end_write_array();
+}
+
+template<typename K,
+         typename V>
+void read(::arb::serdes::serializer ser, const K& k, host_vector<V>& hvs) {
+    ser.begin_read_array(to_key(k));
+    for (int ix = 0;; ++ix) {
+        auto q = ser.next_key();
+        if (!q) break;
+        if (ix < hvs.size()) {
+            read(ser, ix, hvs[ix]);
+        }
+        else {
+            V val;
+            read(ser, ix, val);
+            hvs.emplace_back(std::move(val));
+        }
+    }
+    ser.end_read_array();
+}
+
+template<typename K,
+         typename V>
+void read(::arb::serdes::serializer ser, const K& k, device_vector<V>& vs) {
+    auto hvs = on_host(vs);
+    ser.begin_read_array(to_key(k));
+    for (int ix = 0;; ++ix) {
+        auto q = ser.next_key();
+        if (!q) break;
+        if (ix < hvs.size()) {
+            read(ser, ix, hvs[ix]);
+        }
+        else {
+            V val;
+            read(ser, ix, val);
+            hvs.emplace_back(std::move(val));
+        }
+    }
+    ser.end_read_array();
+    vs = on_gpu(hvs);
+}
+
 
 } // namespace memory
 } // namespace arb

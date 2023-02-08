@@ -195,7 +195,8 @@ public:
         return out;
     }
 
-    ARB_SERDES_ENABLE(remaining_,
+    ARB_SERDES_ENABLE(multi_event_stream,
+                      remaining_,
                       ev_time_, ev_data_,
                       span_begin_, span_end_,
                       mark_);

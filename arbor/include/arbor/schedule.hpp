@@ -58,9 +58,6 @@ public:
 
     void reset() { impl_->reset(); }
 
-    void serialize(serdes::serializer& ser) const { throw std::runtime_error{"Unimplemented: schedule."}; }
-    void deserialize(serdes::serializer& ser) { throw std::runtime_error{"Unimplemented: schedule."}; }
-
 private:
     struct interface {
         virtual time_event_span events(time_type t0, time_type t1) = 0;

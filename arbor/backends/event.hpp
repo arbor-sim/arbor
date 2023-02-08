@@ -19,7 +19,7 @@ struct target_handle {
     target_handle() = default;
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type intdom_index):
         mech_id(mech_id), mech_index(mech_index), intdom_index(intdom_index) {}
-    ARB_SERDES_ENABLE(mech_id, mech_index, intdom_index);
+    ARB_SERDES_ENABLE(target_handle, mech_id, mech_index, intdom_index);
 };
 
 struct deliverable_event {
@@ -31,7 +31,7 @@ struct deliverable_event {
     deliverable_event(time_type time, target_handle handle, float weight):
         time(time), weight(weight), handle(handle) {}
 
-    ARB_SERDES_ENABLE(time, weight, handle);
+    ARB_SERDES_ENABLE(deliverable_event, time, weight, handle);
 };
 
 // Stream index accessor function for multi_event_stream:
@@ -41,7 +41,7 @@ inline cell_size_type event_index(const deliverable_event& ev) {
 
 // Subset of event information required for mechanism delivery.
 struct deliverable_event_data {
-    ARB_SERDES_ENABLE(mech_id, mech_index, weight);
+    ARB_SERDES_ENABLE(deliverable_event_data, mech_id, mech_index, weight);
 
     cell_local_size_type mech_id;    // same as target_handle::mech_id
     cell_local_size_type mech_index; // same as target_handle::mech_index

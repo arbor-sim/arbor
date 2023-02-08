@@ -17,6 +17,7 @@ struct local_spike_store_type {
 
     void serialize(serdes::serializer& ser) const { throw std::runtime_error{"Unimplemented: tls spike."}; }
     void deserialize(serdes::serializer& ser) { throw std::runtime_error{"Unimplemented: tls spike."}; }
+
 };
 
 thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t):
@@ -37,9 +38,6 @@ std::vector<spike> thread_private_spike_store::gather() const {
     std::for_each(bs.begin(), bs.end(), [&spikes] (const auto& b) { spikes.insert(spikes.end(), b.begin(), b.end()); });
     return spikes;
 }
-
-void thread_private_spike_store::serialize(serdes::serializer& ser) const  { impl_->serialize(ser); }
-void thread_private_spike_store::deserialize(serdes::serializer& ser) { impl_->deserialize(ser); }
 
 std::vector<spike>& thread_private_spike_store::get() {
     return impl_->buffers_.local();

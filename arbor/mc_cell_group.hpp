@@ -61,23 +61,12 @@ public:
 
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const override;
 
-    // We won't serialize anything related to sampling, internal invariants (like gid -> intdom)
-    virtual void serialize(serdes::serializer& ser) const override { // override, so no ARB_SERDES_ENABLE
-        ARB_SERDES_WRITE(gids_); // NOTE strictly _not_ needed, since we rely on a combination of recipe and serdes!
-        ARB_SERDES_WRITE(spikes_);
-        ARB_SERDES_WRITE(staged_events_);
-        ARB_SERDES_WRITE(target_handles_);
-        ARB_SERDES_WRITE(lowered_);
-    }
+    ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, staged_events_, target_handles_, lowered_);
 
-    virtual void deserialize(serdes::serializer& ser) override { // override, so no ARB_SERDES_ENABLE
-        ARB_SERDES_READ(gids_); // NOTE strictly _not_ needed, since we rely on a combination of recipe and serdes!
-        ARB_SERDES_READ(spikes_);
-        ARB_SERDES_READ(staged_events_);
-        ARB_SERDES_READ(target_handles_);
-        ARB_SERDES_READ(lowered_);
-    }
-
+    virtual void serialize(serdes::serializer& ser,
+                           const std::string& k) const override;
+    virtual void deserialize(serdes::serializer& ser,
+                             const std::string& k) override;
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;

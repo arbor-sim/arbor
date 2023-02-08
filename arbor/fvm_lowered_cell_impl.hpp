@@ -78,17 +78,10 @@ public:
         return mechanisms_;
     }
 
-    virtual void serialize(serdes::serializer& ser) const override {
-        ARB_SERDES_WRITE(tmin_);
-        ARB_SERDES_WRITE(seed_);
-        ARB_SERDES_WRITE(state_);
-    }
+    ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, tmin_, seed_, state_);
 
-    virtual void deserialize(serdes::serializer& ser) override {
-        ARB_SERDES_READ(tmin_);
-        ARB_SERDES_READ(seed_);
-        ARB_SERDES_READ(state_);
-    }
+    void serialize(serdes::serializer& ser, const std::string& k) const override { write(ser, k, *this); }
+    void deserialize(serdes::serializer& ser, const std::string& k) override { read(ser, k, *this); }
 
 private:
     // Host or GPU-side back-end dependent storage.
@@ -246,7 +239,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // complete fvm state into shared state object.
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
-
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }

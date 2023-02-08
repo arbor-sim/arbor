@@ -141,41 +141,47 @@ public:
     // - Data extraction
     //   ===============
     //   Might be required to change.
+    //
     // NOTE(TH): We cannot use ARB_SERDES_ENABLE here for two reasons:
-    // - cell_groups contains pointers.
+    // - cell_groups contains polymorphic pointers.
     // - thread_local_storage cannot be assigned to.
-    void serialize(serdes::serializer& ser) const {
+    friend void write(serdes::serializer& ser, const std::string& k, const simulation_state& t) {
         ARB_SERDES_WRITE(t_interval_);
         ARB_SERDES_WRITE(epoch_);
         ARB_SERDES_WRITE(pending_events_);
         ARB_SERDES_WRITE(event_lanes_);
-        ARB_SERDES_WRITE(cell_groups_);
-        {
-            ser.begin_write_map("local_spikes_");
-            ser.write("0", local_spikes_[0].gather());
-            ser.write("1", local_spikes_[1].gather());
-            ser.end_write_map();
+        ser.begin_write_array("cell_groups_");
+        for (int ix = 0; ix < t.cell_groups_.size(); ++ix) {
+            write(ser, std::to_string(ix), t.cell_groups_[ix]);
         }
+        ser.end_write_array();
+        // ARB_SERDES_WRITE(cell_groups_);
+        ser.begin_write_array("local_spikes_");
+        write(ser, "0", t.local_spikes_[0].gather());
+        write(ser, "1", t.local_spikes_[1].gather());
+        ser.end_write_array();
     }
 
-    void deserialize(serdes::serializer& ser) {
+    friend void read(serdes::serializer& ser, const std::string& k, simulation_state& t) {
         ARB_SERDES_READ(t_interval_);
         ARB_SERDES_READ(epoch_);
         ARB_SERDES_READ(pending_events_);
         ARB_SERDES_READ(event_lanes_);
-        ARB_SERDES_READ(cell_groups_);
+        ser.begin_read_array("cell_groups_");
+        for (int ix = 0; ix < t.cell_groups_.size(); ++ix) {
+            read(ser, std::to_string(ix), t.cell_groups_[ix]);
+        }
+        ser.end_read_array();
         // custom deserialization to avoid ill-defined copy construction.
         // TODO check whether is OK in actually multi-threaded environments.
-        {
-            ser.begin_read_map("local_spikes_");
-            std::vector<spike> tmp;
-            ser.read("0", tmp);
-            local_spikes_[0].insert(tmp);
-            tmp.clear();
-            ser.read("1", tmp);
-            local_spikes_[1].insert(tmp);
-            ser.end_read_map();
-        }
+        ser.begin_read_array("local_spikes_");
+        std::vector<spike> tmp;
+        read(ser, "0", tmp);
+        t.local_spikes_[0].insert(tmp);
+        tmp.clear();
+        read(ser, "1", tmp);
+        t.local_spikes_[1].insert(tmp);
+        ser.end_read_array();
     }
 
 private:
@@ -320,9 +326,6 @@ void simulation_state::update(const connectivity& rec) {
     event_lanes_[0].resize(num_local_cells);
     event_lanes_[1].resize(num_local_cells);
 }
-
-void simulation::serialize(serdes::serializer& ser) const { impl_->serialize(ser); }
-void simulation::deserialize(serdes::serializer& ser) { impl_->deserialize(ser); }
 
 void simulation_state::reset() {
     epoch_ = epoch();
@@ -676,5 +679,14 @@ ARB_ARBOR_API epoch_function epoch_progress_bar() {
 
     return impl{};
 }
+
+void write(serdes::serializer& s, const std::string& k, const simulation& v) {
+    write(s, k, v.impl_);
+}
+
+void read(serdes::serializer& s, const std::string& k, simulation& v) {
+    read(s, k, v.impl_);
+}
+
 
 } // namespace arb

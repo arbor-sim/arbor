@@ -36,7 +36,7 @@ struct json_serdes {
 
     void begin_write_map(const key_type& k) {
         ptr /= std::string(k);
-        data[ptr] = json::object();  // NOTE technically not needed, but gives nice output if empty
+        data[ptr] = json::object();  // NOTE we need this in case someone writes out an integer keyed map, lest we get an array!
     }
     void end_write_map() { ptr.pop_back(); }
     void begin_write_array(const key_type& k) {

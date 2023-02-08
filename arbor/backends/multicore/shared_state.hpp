@@ -44,12 +44,16 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    // TODO thin this out, we might get away with less
-    ARB_SERDES_ENABLE(write_Xi_, write_eX_, write_Xo_,
-                      iX_, eX_, Xi_, Xd_, Xo_, gX_,
-                      init_Xi_, init_Xo_, init_eX_,
-                      reset_Xi_, reset_Xo_,
-                      charge);
+    // ARB_SERDES_ENABLE(ion_state,
+                      // node_index_,
+                      // write_Xi_, write_eX_, write_Xo_,
+                      // iX_, eX_, Xi_, Xd_, Xo_, gX_,
+                      // init_Xi_, init_Xo_, init_eX_,
+                      // reset_Xi_, reset_Xo_,
+                      // charge);
+
+    // Xd and gX are the only things that persists
+    ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
 
     unsigned alignment = 1; // Alignment and padding multiple.
 
@@ -126,37 +130,53 @@ struct ARB_ARBOR_API istim_state {
     istim_state() = default;
 };
 
+struct mech_storage {
+    array data_;
+    iarray indices_;
+    std::size_t value_width_padded;
+    constraint_partition constraints_;
+    std::vector<arb_value_type>  globals_;
+    std::vector<arb_value_type*> parameters_;
+    std::vector<arb_value_type*> state_vars_;
+    std::vector<arb_ion_state>   ion_states_;
+
+    std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
+    std::vector<arb_size_type> gid_;
+    std::vector<arb_size_type> idx_;
+    cbprng::counter_type random_number_update_counter_ = 0u;
+
+    ARB_SERDES_ENABLE(mech_storage, value_width_padded, data_, indices_, constraints_, random_number_update_counter_);
+};
+
 struct ARB_ARBOR_API shared_state {
-    struct mech_storage {
-        ARB_SERDES_ENABLE(data_, indices_, random_number_update_counter_);
-        array data_;
-        iarray indices_;
-        std::size_t value_width_padded;
-        constraint_partition constraints_;
-        std::vector<arb_value_type>  globals_;
-        std::vector<arb_value_type*> parameters_;
-        std::vector<arb_value_type*> state_vars_;
-        std::vector<arb_ion_state>   ion_states_;
+    // ARB_SERDES_ENABLE(shared_state,
+                      // cbprng_seed,
+                      // ion_data,
+                      // storage,
+                      // voltage,
+                      // current_density,
+                      // conductivity,
+                      // diam_um,
+                      // time_since_spike,
+                      // time, time_to,
+                      // dt_intdom,
+                      // dt_cv,
+                      // temperature_degC,
+                      // deliverable_events);
 
-        std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
-        std::vector<arb_size_type> gid_;
-        std::vector<arb_size_type> idx_;
-        cbprng::counter_type random_number_update_counter_ = 0u;
-    };
-
-    ARB_SERDES_ENABLE(cbprng_seed,
+    // A bit more light-weight
+    ARB_SERDES_ENABLE(shared_state,
+                      cbprng_seed,
                       ion_data,
                       storage,
                       voltage,
-                      current_density,
                       conductivity,
-                      diam_um,
                       time_since_spike,
                       time, time_to,
                       dt_intdom,
                       dt_cv,
-                      temperature_degC,
                       deliverable_events);
+
 
     cable_solver solver;
 

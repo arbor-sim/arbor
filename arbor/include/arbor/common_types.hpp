@@ -56,7 +56,7 @@ struct cell_member_type {
     cell_gid_type gid;
     cell_lid_type index;
 
-    ARB_SERDES_ENABLE(gid, index);
+    ARB_SERDES_ENABLE(cell_member_type, gid, index);
 };
 
 // Pair of indexes that describe range of local indices.
@@ -77,6 +77,8 @@ enum class lid_selection_policy {
     assert_univalent // throw if the range of possible lids is wider than 1
 };
 
+ARB_SERDES_ENABLE_ENUM(lid_selection_policy)
+
 // For referring to a labeled placement on an unspecified cell.
 // The placement may be associated with multiple locations, the policy
 // is used to select a specific location.
@@ -88,18 +90,7 @@ struct cell_local_label_type {
     cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent):
         tag(std::move(tag)), policy(policy) {}
 
-
-    void serialize(serdes::serializer& ser) const {
-        ARB_SERDES_WRITE(tag);
-        ser.write("policy", static_cast<long long>(policy));
-    }
-
-    void deserialize(serdes::serializer& ser) {
-        ARB_SERDES_READ(tag);
-        long long tmp;
-        ser.read("policy", tmp);
-        policy = static_cast<lid_selection_policy>(tmp);
-    }
+    ARB_SERDES_ENABLE(cell_local_label_type, tag, policy);
 };
 
 // For referring to a labeled placement on a cell identified by gid.
@@ -112,7 +103,7 @@ struct cell_global_label_type {
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag): gid(gid), label(std::move(tag)) {}
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
 
-    ARB_SERDES_ENABLE(gid, label);
+    ARB_SERDES_ENABLE(cell_global_label_type, gid, label);
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
@@ -138,6 +129,8 @@ enum class backend_kind {
     gpu          //  Use gpu back-end when supported by cell_group implementation.
 };
 
+ARB_SERDES_ENABLE_ENUM(backend_kind)
+
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
@@ -147,6 +140,8 @@ enum class ARB_SYMBOL_VISIBLE cell_kind {
     spike_source,     // Cell that generates spikes at a user-supplied sequence of time points.
     benchmark,        // Proxy cell used for benchmarking.
 };
+
+ARB_SERDES_ENABLE_ENUM(cell_kind)
 
 // Enumeration for event time binning policy.
 

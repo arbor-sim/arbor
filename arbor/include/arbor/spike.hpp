@@ -25,7 +25,7 @@ struct basic_spike {
         return l.time==r.time && l.source==r.source;
     }
 
-    ARB_SERDES_ENABLE(source, time);
+    ARB_SERDES_ENABLE(basic_spike, source, time);
 };
 
 /// Standard specialization:

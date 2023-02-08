@@ -28,20 +28,7 @@ struct group_description {
         kind(k), gids(std::move(g)), backend(b)
     {}
 
-    void serialize(serdes::serializer& ser) const {
-        ser.write("kind", static_cast<int>(kind));
-        ARB_SERDES_WRITE(gids);
-        ser.write("backend", static_cast<int>(backend));
-    }
-
-    void deserialize(serdes::serializer& ser) {
-        int tmp;
-        ser.read("kind", tmp);
-        kind = {tmp};
-        ARB_SERDES_READ(gids);
-        ser.read("backend", tmp);
-        backend = {tmp};
-    }
+    ARB_SERDES_ENABLE(group_description, kind, gids, backend);
 };
 
 /// Meta data that describes a domain decomposition.

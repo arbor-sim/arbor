@@ -18,13 +18,15 @@
 using json = nlohmann::json;
 using io = arborio::json_serdes;
 using serdes = arb::serdes::serializer;
+using arb::serdes::write;
+using arb::serdes::read;
 
 TEST(serdes, simple) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    serializer.write("foo", 42.0);
-    serializer.write("bar", "bing");
+    arb::serdes::write(serializer, "foo", 42.0);
+    arb::serdes::write(serializer, "bar", "bing");
 
     auto exp = json{};
     exp["foo"] = 42.0;
@@ -37,11 +39,11 @@ TEST(serdes, containers) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    serializer.write("vector", std::vector<float>{1.0, 2.0, 3.0});
-    serializer.write("umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
-    serializer.write("map_s->f", std::map<std::string, double>{{"c", 23.0}, {"d", 42.0}});
-    serializer.write("array", std::array<int, 3>{1, 2, 3});
-    serializer.write("bar", "bing");
+    arb::serdes::write(serializer, "vector", std::vector<float>{1.0, 2.0, 3.0});
+    arb::serdes::write(serializer, "umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
+    arb::serdes::write(serializer, "map_s->f", std::map<std::string, double>{{"c", 23.0}, {"d", 42.0}});
+    arb::serdes::write(serializer, "array", std::array<int, 3>{1, 2, 3});
+    arb::serdes::write(serializer, "bar", "bing");
 
     auto exp = json{};
     exp["vector"] = std::vector<float>{1.0, 2.0, 3.0};
@@ -53,43 +55,46 @@ TEST(serdes, containers) {
     ASSERT_EQ(exp, writer.data);
 }
 
+struct T {
+    std::string a;
+    double b;
+    std::vector<float> vs{1.0, 2.0, 3.0};
+
+    ARB_SERDES_ENABLE(T, a, b, vs);
+};
+
+
 TEST(serdes, macro) {
-    struct A {
-        std::string a;
-        double b;
-        std::vector<float> vs{1.0, 2.0, 3.0};
-
-        ARB_SERDES_ENABLE(a, b, vs);
-    };
-
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    A{"foo", 42}.serialize(serializer);
+    write(serializer, "t", T{"foo", 42});
 
     auto exp = json{};
-    exp["a"] = "foo";
-    exp["b"] = 42.0;
-    exp["vs"] = std::vector<float>{1.0, 2.0, 3.0};
+
+    exp["t"]["a"] = "foo";
+    exp["t"]["b"] = 42.0;
+    exp["t"]["vs"] = std::vector<float>{1.0, 2.0, 3.0};
 
     ASSERT_EQ(exp, writer.data);
 }
 
+struct A {
+    std::string s = "baz";
+    std::map<int, std::vector<float>> m{{42, {1.0, 2.0}}};
+    std::unordered_map<std::string, float> u;
+    std::vector<int> a;
+    std::vector<int> d {1, 2, 3};
+    std::array<unsigned, 3> k{0,0,0};
+    bool b = false;
+
+    ARB_SERDES_ENABLE(A, s, u, m, a, k, b, d);
+};
+
+
 TEST(serdes, round_trip) {
     auto writer = io{};
     auto serializer = serdes{writer};
-
-    struct A {
-        std::string s;
-        std::map<int, std::vector<float>> m{{42, {1.0, 2.0}}};
-        std::unordered_map<std::string, float> u;
-        std::vector<int> a;
-        std::vector<int> d {1, 2, 3};
-        std::array<unsigned, 3> k{0,0,0};
-        bool b = false;
-
-        ARB_SERDES_ENABLE(s, u, m, a, k, b, d);
-    };
 
     A a;
     a.s = "bar";
@@ -100,10 +105,10 @@ TEST(serdes, round_trip) {
     a.d = {4,5,6,7};
     a.b = true;
 
-    serializer.write("A", a);
+    write(serializer, "A", a);
 
     A b;
-    serializer.read("A", b);
+    read(serializer, "A", b);
 
     ASSERT_EQ(a.s, b.s);
     ASSERT_EQ(a.m, b.m);
@@ -204,14 +209,14 @@ TEST(serdes, single_cell) {
     // Run simulation forward && snapshot
     output = &result_pre;
     simulation.run(T, dt);
-    simulation.serialize(serializer);
+    write(serializer, "sim", simulation);
 
     // Then run some more, ...
     output = &result_v1;
     simulation.run(2*T, dt);
 
     // ... rewind ...
-    simulation.deserialize(serializer);
+    read(serializer, "sim", simulation);
 
     // ... and run the same segment again.
     output = &result_v2;
@@ -246,14 +251,14 @@ TEST(serdes, network) {
     // Run simulation forward && snapshot
     output = &result_pre;
     simulation.run(T, dt);
-    simulation.serialize(serializer);
+    write(serializer, "sim", simulation);
 
     // Then run some more, ...
     output = &result_v1;
     simulation.run(2*T, dt);
 
     // ... rewind ...
-    simulation.deserialize(serializer);
+    read(serializer, "sim", simulation);
 
     // ... and run the same segment again.
     output = &result_v2;

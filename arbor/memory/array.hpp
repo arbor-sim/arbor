@@ -19,8 +19,6 @@
 #include "allocator.hpp"
 #include "array_view.hpp"
 
-#include <arbor/serdes.hpp>
-
 namespace arb {
 namespace memory {
 
@@ -249,10 +247,6 @@ public:
     using base::size;
 
     using base::alignment;
-
-    void serialize(serdes::serializer& ser) const {
-        const_array_view<T, host_coordinator<T>> view(base::begin(), size());
-    }
 };
 
 } // namespace memory

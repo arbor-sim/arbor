@@ -25,7 +25,7 @@ struct spike_event {
         return std::tie(l.time, l.target, l.weight) < std::tie(r.time, r.target, r.weight);
     }
 
-    ARB_SERDES_ENABLE(target, time, weight);
+    ARB_SERDES_ENABLE(spike_event, target, time, weight);
 };
 
 using pse_vector = std::vector<spike_event>;

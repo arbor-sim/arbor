@@ -48,7 +48,7 @@ struct epoch {
         *this = epoch();
     }
 
-    ARB_SERDES_ENABLE(id, t0, t1);
+    ARB_SERDES_ENABLE(epoch, id, t0, t1);
 };
 
 } // namespace arb

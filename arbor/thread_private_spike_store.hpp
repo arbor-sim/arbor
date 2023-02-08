@@ -44,9 +44,6 @@ public :
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }
 
-    void serialize(serdes::serializer& ser) const;
-    void deserialize(serdes::serializer& ser);
-
 private :
     /// thread private storage for accumulating spikes
     std::unique_ptr<local_spike_store_type> impl_;
