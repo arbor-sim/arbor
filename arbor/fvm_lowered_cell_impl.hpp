@@ -208,11 +208,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
-        PE(advance:integrate:revpot);
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
-        PL();
 
         PE(advance:integrate:current:zero);
         state_->zero_currents();
@@ -220,7 +218,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Deliver events and accumulate mechanism current contributions.
 
-        PE(advance:integrate:events);
         PE(advance:integrate:events:mark);
         auto deliverable_events = state_->mark_deliverable_events();
         PL();
@@ -228,7 +225,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->deliver_events(deliverable_events);
             m->update_current();
         }
-        PL();
 
         // Update event list and integration step times.
         PE(advance:integrate:update_time);
@@ -253,12 +249,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PL();
 
         // Integrate mechanism state for density
-        PE(advance:integrate:density_mechs);
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
-        PL();
 
         // Update ion concentrations.
         PE(advance:integrate:ionupdate);
