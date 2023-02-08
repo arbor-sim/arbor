@@ -31,7 +31,7 @@ public:
     using index_type = arb_index_type;
     using size_type  = arb_size_type;
 
-    mechanism(const arb_mechanism_type m,
+    mechanism(const arb_mechanism_type& m,
               const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
         state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());

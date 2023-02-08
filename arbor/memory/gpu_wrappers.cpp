@@ -5,7 +5,6 @@
 #include <arbor/version.hpp>
 
 #include "util.hpp"
-#include "util/unwind.hpp"
 
 #ifdef ARB_GPU_ENABLED
 
