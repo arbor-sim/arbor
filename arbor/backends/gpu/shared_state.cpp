@@ -53,11 +53,10 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 
 // Ion state methods:
 
-ion_state::ion_state(
-    int charge,
-    const fvm_ion_config& ion_data,
-    unsigned, // alignment/padding ignored.
-    solver_ptr ptr):
+ion_state::ion_state(int charge,
+                     const fvm_ion_config& ion_data,
+                     unsigned, // alignment/padding ignored.
+                     solver_ptr ptr):
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
@@ -101,7 +100,7 @@ void ion_state::reset() {
 
 // istim_state methods:
 
-istim_state::istim_state(const fvm_stimulus_config& stim) {
+istim_state::istim_state(const fvm_stimulus_config& stim, unsigned) {
     using util::assign;
 
     // Translate instance-to-CV index from stim to istim_state index vectors.
@@ -179,21 +178,19 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
 // Shared state methods:
 
-shared_state::shared_state(
-    arb_size_type n_intdom,
-    arb_size_type n_cell,
-    arb_size_type n_detector,
-    const std::vector<arb_index_type>& cv_to_intdom_vec,
-    const std::vector<arb_index_type>& cv_to_cell_vec,
-    const std::vector<arb_value_type>& init_membrane_potential,
-    const std::vector<arb_value_type>& temperature_K,
-    const std::vector<arb_value_type>& diam,
-    const std::vector<arb_index_type>& src_to_spike,
-    unsigned, // alignment parameter ignored.
-    arb_seed_type cbprng_seed_
-    ):
+shared_state::shared_state(arb_size_type n_intdom,
+                           arb_size_type n_cell,
+                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           const std::vector<arb_index_type>& cv_to_cell_vec,
+                           const std::vector<arb_value_type>& init_membrane_potential,
+                           const std::vector<arb_value_type>& temperature_K,
+                           const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_index_type>& src_to_spike,
+                           const fvm_detector_info& detector,
+                           unsigned, // alignment parameter ignored.
+                           arb_seed_type cbprng_seed_):
     n_intdom(n_intdom),
-    n_detector(n_detector),
+    n_detector(detector.count),
     n_cv(cv_to_intdom_vec.size()),
     cv_to_intdom(make_const_view(cv_to_intdom_vec)),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
@@ -210,6 +207,15 @@ shared_state::shared_state(
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
     cbprng_seed(cbprng_seed_),
+    sample_events(n_intdom),
+    watcher{cv_to_intdom.data(),
+            src_to_spike.data(),
+            &time,
+            &time_to,
+            static_cast<arb_size_type>(voltage.size()),
+            detector.cv,
+            detector.threshold,
+            detector.ctx},
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);
@@ -221,17 +227,6 @@ void shared_state::update_prng_state(mechanism& m) {
     auto const mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
     store.random_numbers_.update(m);
-}
-
-const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    const auto& store = storage.at(m.mechanism_id());
-
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            return store.state_vars_[i];
-        }
-    }
-    return nullptr;
 }
 
 void shared_state::instantiate(mechanism& m,
@@ -379,39 +374,6 @@ void shared_state::instantiate(mechanism& m,
     store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
 }
 
-void shared_state::integrate_voltage() {
-    solver.assemble(dt_intdom, voltage, current_density, conductivity);
-    solver.solve(voltage);
-}
-
-void shared_state::integrate_diffusion() {
-    for (auto& [ion, data]: ion_data) {
-        if (data.solver) {
-            data.solver->assemble(dt_intdom,
-                                  data.Xd_,
-                                  voltage,
-                                  data.iX_,
-                                  data.gX_,
-                                  data.charge[0]);
-            data.solver->solve(data.Xd_);
-        }
-    }
-}
-
-void shared_state::add_ion(
-    const std::string& ion_name,
-    int charge,
-    const fvm_ion_config& ion_info,
-    ion_state::solver_ptr ptr) {
-    ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(ion_name),
-                     std::forward_as_tuple(charge, ion_info, 1u, std::move(ptr)));
-}
-
-void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
-    stim_data = istim_state(stims);
-}
-
 void shared_state::reset() {
     memory::copy(init_voltage, voltage);
     memory::fill(current_density, 0);
@@ -435,22 +397,12 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-void shared_state::ions_init_concentration() {
-    for (auto& i: ion_data) {
-        i.second.init_concentration();
-    }
-}
-
 void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     update_time_to_impl(n_intdom, time_to.data(), time.data(), dt_step, tmax);
 }
 
 void shared_state::set_dt() {
     set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
-}
-
-void shared_state::add_stimulus_current() {
-    stim_data.add_current(time, cv_to_intdom, current_density);
 }
 
 std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
@@ -461,8 +413,10 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 
-void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
-    take_samples_impl(s, time.data(), sample_time.data(), sample_value.data());
+void shared_state::take_samples() {
+   sample_events.mark_until(time_to);
+   take_samples_impl(sample_events.marked_events(), time.data(), sample_time.data(), sample_value.data());
+   sample_events.drop_marked_events();
 }
 
 // Debug interface
