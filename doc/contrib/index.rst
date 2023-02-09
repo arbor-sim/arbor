@@ -1,127 +1,48 @@
 .. _contribindex:
 
-Contributing to Arbor
-=====================
+Contributing
+============
 
-First off, thank you for considering contributing to Arbor! It’s people
+First off, thank you for considering contributing to Arbor! It's people
 like you that make Arbor such a great tool. Feel welcome and read the
 following sections in order to know how to ask questions and how to work
 on something.
-
-.. _contribindex-types:
-
-Types of contributions
-----------------------
 
 There are many ways to contribute: sharing models, writing tutorials or blog posts,
 improving the documentation, helping other users, submitting bug reports
 and feature requests or writing code which can be incorporated into
 Arbor itself.
 
-Use the `Arbor Discussions <https://github.com/arbor-sim/arbor/discussions>`__
-page for support questions.
+Arbor uses Git for version control and Github to host its code repository and nearly
+all of its infrastructure. If you're not familiar with Git or Github, please have at look at
+`this introduction <https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/set-up-git>`_.
+Make sure you have a `GitHub account <https://github.com/signup/free>`_.
 
-.. _contribindex-github:
+You can reach out in the following ways for support or sharing of your work, questions:
 
-Github
+-  `Discussions <https://github.com/arbor-sim/arbor/discussions>`__. Any
+   questions or remarks regarding using Arbor for your research are
+   welcome.
+-  `Gitter <https://gitter.im/arbor-sim/community>`__. If you're interested in
+   developing Arbor itself, get in touch on Gitter.
+-  `Email <mailto:contact@arbor-sim.org>`__.
+
+Howtos
 ------
 
-Arbor uses Git for version control and Github to host its code
-repository and nearly all of its infrastructure.
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
 
--  If you’re not familiar with Git or Github, please have at look at
-   `this introduction <https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/set-up-git>`__.
--  Make sure you have a `GitHub
-   account <https://github.com/signup/free>`__.
-
-.. _contribindex-model:
-
-Model
-~~~~~
-
-Sharing research and findings that used Arbor is the best contribution you can make to the project.
-
-- We encourage the use of our Github Discussions board for public discussions on modelling: `Github Discussions <https://github.com/arbor-sim/arbor/discussions>`_.
-
-- Users can share their models by adding them to the model collection on GitHub at `arbor-contrib <https://github.com/arbor-contrib/>`_.
-
-.. _contribindex-discuss:
-
-Start a discussion
-~~~~~~~~~~~~~~~~~~
-
-You can use the `Arbor
-Discussions <https://github.com/arbor-sim/arbor/discussions>`__ to help
-other users of Arbor, or get help with you own simulations. Also, we’re
-eager to discover what you’re using Arbor for, so don’t hesitate to
-share your Arbor simulations or publications!
-
-.. _contribindex-fileissue:
-
-Filing an issue
-~~~~~~~~~~~~~~~
-
-If you have found a bug or problem in Arbor, or want to request a feature, you
-can use our `issue tracker <https://github.com/arbor-sim/arbor/issues>`__. If
-you issue is not yet filed in the issue tracker, please do so and describe the
-problem, bug or feature as best you can. You can add supporting data, code or
-documents to help make your point. For bugs in particular, stacktraces (either
-from inside a debugger or by enabling ``ARB_BACKTRACE``) are extremely useful.
-
-.. _contribindex-solveissue:
-
-Help solving an Issue
-~~~~~~~~~~~~~~~~~~~~~
-
-If you want to help solve an issue, that’s great! Issue labels can help
-you find an something that fits your expertise or interest, and if
-you’re just getting started, you can look for the “`good 1st
-issue <https://github.com/arbor-sim/arbor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+1st+issue%22>`__”
-label. Don’t hesitate to post a comment to the Issue if you want to ask
-clarifying questions. If you have implemented a fix, you can make a pull
-request.
-
-Write code
-~~~~~~~~~~
-
-Some tips when contributing code:
-
--  Consider the :ref:`contribcodingstyle`.
--  If you add functionality, please update the documentation
-   accordingly.
--  If you add functionality, add tests if applicable. This helps make
-   sure Arbor is stable and functionality does what it’s supposed to
-   do.
--  If you work on the public C++ API, provide Python wrappings.
--  Make sure Arbor compiles and has no new warnings.
-
-Add examples or unit tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-See :ref:`contribexample` and :ref:`contribtest`.
-
-Modify documentation
-~~~~~~~~~~~~~~~~~~~~
-
-See :ref:`contribdoc`.
-
-Making a pull request
-~~~~~~~~~~~~~~~~~~~~~
-
-See :ref:`contribpr`.
-
-.. _contribindex-other:
-
-Other contributions
--------------------
-
-We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
-In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
-and find get in contact with other Arbor users.
-
-We're always happy to hear about Arbor being used! Have you used Arbor to create a model?
-Have you used Arbor in a publication? Do you have a workflow or tool that involves Arbor?
-Get in touch and we'd be very happy to showcase your work through our channels.
+   File an Issue <issue>
+   Make a Pull Request <pr>
+   Share a model <model>
+   Write code <code>
+   Modify documentation <doc>
+   Add examples <example>
+   Add test <test>
+   Make a release <release>
+   dependency-management
 
 .. _contribindex-coc:
 
@@ -132,7 +53,7 @@ We have a brief code of conduct which we ask you to respect:
 
 * We are committed to providing a friendly, safe and welcoming environment for all, regardless of level of experience, gender identity and expression, sexual orientation, disability, personal appearance, body size, race, ethnicity, age, religion, nationality, or any other characteristic.
 * Please avoid using overtly provoking aliases or nicknames that might detract from a friendly, safe and welcoming environment for all.
-* Please be kind and courteous. There’s no need to be mean or rude.
+* Please be kind and courteous. There's no need to be mean or rude.
 * Respect that people have differences of opinion and that every design or implementation choice carries a trade-off and numerous costs.
 * Please keep unstructured critique to a minimum. If you have solid ideas you want to experiment with, make a fork and see how it works.
 
@@ -156,17 +77,3 @@ Arbor is an Ebrains/HBP project. Its policies and recourse options in case of co
 * `ALLEA Code of Conduct <https://allea.org/code-of-conduct>`_
 * `Ebrains Point of registration for ethical concerns <https://www.humanbrainproject.eu/en/social-ethical-reflective/about/register-ethical-concern/>`_
 * `Ebrains Ombudsperson <mailto:research-integrity@ebrains.eu>`_
-
-.. _contribindex-contact:
-
-Get in touch
-------------
-
-You can reach out in the following ways:
-
--  `Discussions <https://github.com/arbor-sim/arbor/discussions>`__. Any
-   questions or remarks regarding using Arbor for your research are
-   welcome.
--  `Gitter <https://gitter.im/arbor-sim/community>`__. If you’re interested in
-   developing Arbor itself, get in touch on Gitter.
--  `Email <mailto:contact@arbor-sim.org>`__.

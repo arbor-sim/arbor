@@ -3,9 +3,9 @@
 Documentation
 =============
 
-The source for `the documentation <https://docs.arbor-sim.org>`__ is
-found in the ``/doc`` subdirectory. You can add your contribution to the documentation
-in the same way you would contribute code, please see the :ref:`contribpr` section.
+The source for `the documentation <https://docs.arbor-sim.org>`__ is found in the ``/doc`` subdirectory.
+We use `Sphinx <https://www.sphinx-doc.org>`_ to build our docs.
+You can add your contribution to the documentation in the same way you would contribute code, please see the :ref:`contribpr` section.
 
 .. _contribdoc-tut:
 
