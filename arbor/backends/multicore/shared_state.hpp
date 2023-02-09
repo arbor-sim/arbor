@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <arbor/export.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
@@ -145,7 +146,7 @@ struct mech_storage {
     std::vector<arb_size_type> idx_;
     cbprng::counter_type random_number_update_counter_ = 0u;
 
-    ARB_SERDES_ENABLE(mech_storage, value_width_padded, data_, indices_, constraints_, random_number_update_counter_);
+    ARB_SERDES_ENABLE(mech_storage, data_, indices_, random_numbers_, random_number_update_counter_);
 };
 
 struct ARB_ARBOR_API shared_state {

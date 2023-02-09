@@ -34,6 +34,17 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
+    // ARB_SERDES_ENABLE(ion_state,
+                      // node_index_,
+                      // write_Xi_, write_eX_, write_Xo_,
+                      // iX_, eX_, Xi_, Xd_, Xo_, gX_,
+                      // init_Xi_, init_Xo_, init_eX_,
+                      // reset_Xi_, reset_Xo_,
+                      // charge);
+
+    // Xd and gX are the only things that persists
+    ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
+
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
     bool write_Xi_;          // is Xi written?
@@ -112,20 +123,48 @@ struct ARB_ARBOR_API istim_state {
     istim_state() = default;
 };
 
-struct ARB_ARBOR_API shared_state {
+struct mech_storage {
+    array data_;
+    iarray indices_;
+    std::vector<arb_value_type>  globals_;
+    std::vector<arb_value_type*> parameters_;
+    std::vector<arb_value_type*> state_vars_;
+    std::vector<arb_ion_state>   ion_states_;
+    memory::device_vector<arb_value_type*> parameters_d_;
+    memory::device_vector<arb_value_type*> state_vars_d_;
+    memory::device_vector<arb_ion_state>   ion_states_d_;
+    random_numbers random_numbers_;
+    ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_);
+};
 
-    struct mech_storage {
-        array data_;
-        iarray indices_;
-        std::vector<arb_value_type>  globals_;
-        std::vector<arb_value_type*> parameters_;
-        std::vector<arb_value_type*> state_vars_;
-        std::vector<arb_ion_state>   ion_states_;
-        memory::device_vector<arb_value_type*> parameters_d_;
-        memory::device_vector<arb_value_type*> state_vars_d_;
-        memory::device_vector<arb_ion_state>   ion_states_d_;
-        random_numbers random_numbers_;
-    };
+struct ARB_ARBOR_API shared_state {
+    // ARB_SERDES_ENABLE(shared_state,
+                      // cbprng_seed,
+                      // ion_data,
+                      // storage,
+                      // voltage,
+                      // current_density,
+                      // conductivity,
+                      // diam_um,
+                      // time_since_spike,
+                      // time, time_to,
+                      // dt_intdom,
+                      // dt_cv,
+                      // temperature_degC,
+                      // deliverable_events);
+
+    // A bit more light-weight
+    ARB_SERDES_ENABLE(shared_state,
+                      cbprng_seed,
+                      ion_data,
+                      storage,
+                      voltage,
+                      conductivity,
+                      time_since_spike,
+                      time, time_to,
+                      dt_intdom,
+                      dt_cv,
+                      deliverable_events);
 
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     cable_solver solver;

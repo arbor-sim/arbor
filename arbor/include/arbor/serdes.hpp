@@ -330,14 +330,8 @@ void deserialize(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
         if (!q) break;
         typename std::remove_cv_t<Q> key;
         from_key(key, *q);
-        if (vs.count(key)) {
-            deserialize(ser, *q, vs[key]);
-        }
-        else {
-            V val;
-            deserialize(ser, *q, val);
-            vs[key] = std::move(val);
-        }
+        if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
+        deserialize(ser, *q, vs[key]);
     }
     ser.end_read_map();
 }
@@ -352,14 +346,8 @@ void deserialize(serializer& ser, const K& k, std::map<Q, V>& vs) {
         if (!q) break;
         typename std::remove_cv_t<Q> key;
         from_key(key, *q);
-        if (vs.count(key)) {
-            deserialize(ser, *q, vs[key]);
-        }
-        else {
-            V val;
-            deserialize(ser, *q, val);
-            vs[key] = std::move(val);
-        }
+        if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
+        deserialize(ser, *q, vs[key]);
     }
     ser.end_read_map();
 }
@@ -372,14 +360,8 @@ void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
     for (std::size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
-        if (ix < vs.size()) {
-            deserialize(ser, ix, vs[ix]);
-        }
-        else {
-            V val;
-            deserialize(ser, ix, val);
-            vs.emplace_back(std::move(val));
-        }
+        if (ix >= vs.size()) vs.emplace_back(); // NOTE Must be default constructible anyhow
+        deserialize(ser, ix, vs[ix]);
     }
     ser.end_read_array();
 }
