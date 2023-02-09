@@ -39,7 +39,7 @@ class stack {
 
 private:
     // pointer in GPU memory
-    storage_type* device_storage_;
+    storage_type* device_storage_ = nullptr;
 
     // copy of the device_storage in host
     storage_type host_storage_;
@@ -63,7 +63,7 @@ public:
 
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
-    stack() = delete;
+    stack() = default;
 
     stack(gpu_context_handle h): gpu_context_(h) {
         host_storage_.data = nullptr;

@@ -10,11 +10,14 @@
 
 #include "fvm_layout.hpp"
 
+#include "backends/common_types.hpp"
+#include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
 #include "backends/gpu/matrix_state_fine.hpp"
+#include "backends/gpu/threshold_watcher.hpp"
 
 namespace arb {
 namespace gpu {
@@ -118,7 +121,7 @@ struct ARB_ARBOR_API istim_state {
     std::size_t size() const;
 
     // Construct state from i_clamp data; references to shared state vectors are used to initialize ppack.
-    istim_state(const fvm_stimulus_config& stim_data);
+    istim_state(const fvm_stimulus_config& stim_data, unsigned);
 
     istim_state() = default;
 };
@@ -137,7 +140,7 @@ struct mech_storage {
     ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_);
 };
 
-struct ARB_ARBOR_API shared_state {
+struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
     // ARB_SERDES_ENABLE(shared_state,
                       // cbprng_seed,
                       // ion_data,
@@ -194,6 +197,15 @@ struct ARB_ARBOR_API shared_state {
 
     arb_seed_type cbprng_seed; // random number generator seed
 
+    sample_event_stream sample_events;
+    array sample_time;
+    array sample_value;
+    threshold_watcher watcher;
+
+    // Host-side views/copies and local state.
+    memory::host_vector<arb_value_type> sample_time_host;
+    memory::host_vector<arb_value_type> sample_value_host;
+
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     deliverable_event_stream deliverable_events;
@@ -201,19 +213,17 @@ struct ARB_ARBOR_API shared_state {
 
     shared_state() = default;
 
-    shared_state(
-        arb_size_type n_intdom,
-        arb_size_type n_cell,
-        arb_size_type n_detector,
-        const std::vector<arb_index_type>& cv_to_intdom_vec,
-        const std::vector<arb_index_type>& cv_to_cell_vec,
-        const std::vector<arb_value_type>& init_membrane_potential,
-        const std::vector<arb_value_type>& temperature_K,
-        const std::vector<arb_value_type>& diam,
-        const std::vector<arb_index_type>& src_to_spike,
-        unsigned, // align parameter ignored
-        arb_seed_type cbprng_seed_ = 0u
-    );
+    shared_state(arb_size_type n_intdom,
+                 arb_size_type n_cell,
+                 const std::vector<arb_index_type>& cv_to_intdom_vec,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
+                 const std::vector<arb_value_type>& init_membrane_potential,
+                 const std::vector<arb_value_type>& temperature_K,
+                 const std::vector<arb_value_type>& diam,
+                 const std::vector<arb_index_type>& src_to_spike,
+                 const fvm_detector_info& detector,
+                 unsigned, // align parameter ignored
+                 arb_seed_type cbprng_seed_ = 0u);
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(mechanism&,
@@ -224,33 +234,13 @@ struct ARB_ARBOR_API shared_state {
 
     void update_prng_state(mechanism&);
 
-    // Note: returned pointer points to device memory.
-    const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
-
-    void add_ion(
-        const std::string& ion_name,
-        int charge,
-        const fvm_ion_config& ion_data,
-        ion_state::solver_ptr solver=nullptr);
-
-    void configure_stimulus(const fvm_stimulus_config&);
-
     void zero_currents();
-
-    void ions_init_concentration();
 
     // Set time_to to earliest of time+dt_step and tmax.
     void update_time_to(arb_value_type dt_step, arb_value_type tmax);
 
     // Set the per-intdom and per-compartment dt from time_to - time.
     void set_dt();
-
-    // Update stimulus state and add current contributions.
-    void add_stimulus_current();
-
-    // Integrate by matrix solve.
-    void integrate_voltage();
-    void integrate_diffusion();
 
     // Return minimum and maximum time value [ms] across cells.
     std::pair<arb_value_type, arb_value_type> time_bounds() const;
@@ -260,12 +250,15 @@ struct ARB_ARBOR_API shared_state {
     std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
-    void take_samples(
-        const sample_event_stream::state& s,
-        array& sample_time,
-        array& sample_value);
+    void take_samples();
 
+    // Reset internal state
     void reset();
+
+    void update_sample_views() {
+        sample_time_host  = memory::on_host(sample_time);
+        sample_value_host = memory::on_host(sample_value);
+    }
 };
 
 // For debugging only

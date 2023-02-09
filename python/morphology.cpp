@@ -8,6 +8,8 @@
 #include <pybind11/stl.h>
 
 #include <arbor/morph/morphology.hpp>
+#include <arbor/morph/mprovider.hpp>
+#include <arbor/morph/region.hpp>
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -206,6 +208,27 @@ void register_morphology(py::module& m) {
             },
             "Find the location on the morphology that is closest to a 3d point. "
             "Returns the location and its distance from the point.");
+
+    // arb::place_pwlin
+    py::class_<arb::mprovider> prov(m, "morphology_provider");
+    prov
+        .def(py::init<const arb::morphology&>(),
+            "morphology"_a,
+            "Construct a morphology provider.")
+        .def("reify_locset",
+             [](const arb::mprovider& p,
+                const std::string& r) {
+                 return thingify(arborio::parse_locset_expression(r).unwrap(), p);
+             },
+             "Turn a locset into a list of locations.")
+        .def("reify_region",
+             [](const arb::mprovider& p,
+                const std::string& r) {
+                 return thingify(arborio::parse_region_expression(r).unwrap(), p);
+             },
+             "Turn a region into an extent.");
+
+
 
     //
     // Higher-level data structures (segment_tree, morphology)
