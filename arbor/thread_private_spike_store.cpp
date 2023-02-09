@@ -14,10 +14,6 @@ struct local_spike_store_type {
     threading::enumerable_thread_specific<std::vector<spike>> buffers_;
 
     local_spike_store_type(const task_system_handle& ts): buffers_(ts) {};
-
-    void serialize(serdes::serializer& ser) const { throw std::runtime_error{"Unimplemented: tls spike."}; }
-    void deserialize(serdes::serializer& ser) { throw std::runtime_error{"Unimplemented: tls spike."}; }
-
 };
 
 thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t):

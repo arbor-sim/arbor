@@ -17,16 +17,14 @@
 
 using json = nlohmann::json;
 using io = arborio::json_serdes;
-using serdes = arb::serdes::serializer;
-using arb::serdes::write;
-using arb::serdes::read;
+using serdes = arb::serializer;
 
 TEST(serdes, simple) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    arb::serdes::write(serializer, "foo", 42.0);
-    arb::serdes::write(serializer, "bar", "bing");
+    arb::serialize(serializer, "foo", 42.0);
+    arb::serialize(serializer, "bar", "bing");
 
     auto exp = json{};
     exp["foo"] = 42.0;
@@ -39,11 +37,11 @@ TEST(serdes, containers) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    arb::serdes::write(serializer, "vector", std::vector<float>{1.0, 2.0, 3.0});
-    arb::serdes::write(serializer, "umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
-    arb::serdes::write(serializer, "map_s->f", std::map<std::string, double>{{"c", 23.0}, {"d", 42.0}});
-    arb::serdes::write(serializer, "array", std::array<int, 3>{1, 2, 3});
-    arb::serdes::write(serializer, "bar", "bing");
+    arb::serialize(serializer, "vector", std::vector<float>{1.0, 2.0, 3.0});
+    arb::serialize(serializer, "umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
+    arb::serialize(serializer, "map_s->f", std::map<std::string, double>{{"c", 23.0}, {"d", 42.0}});
+    arb::serialize(serializer, "array", std::array<int, 3>{1, 2, 3});
+    arb::serialize(serializer, "bar", "bing");
 
     auto exp = json{};
     exp["vector"] = std::vector<float>{1.0, 2.0, 3.0};
@@ -68,7 +66,7 @@ TEST(serdes, macro) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    write(serializer, "t", T{"foo", 42});
+    serialize(serializer, "t", T{"foo", 42});
 
     auto exp = json{};
 
@@ -105,10 +103,10 @@ TEST(serdes, round_trip) {
     a.d = {4,5,6,7};
     a.b = true;
 
-    write(serializer, "A", a);
+    serialize(serializer, "A", a);
 
     A b;
-    read(serializer, "A", b);
+    deserialize(serializer, "A", b);
 
     ASSERT_EQ(a.s, b.s);
     ASSERT_EQ(a.m, b.m);
@@ -209,14 +207,14 @@ TEST(serdes, single_cell) {
     // Run simulation forward && snapshot
     output = &result_pre;
     simulation.run(T, dt);
-    write(serializer, "sim", simulation);
+    serialize(serializer, "sim", simulation);
 
     // Then run some more, ...
     output = &result_v1;
     simulation.run(2*T, dt);
 
     // ... rewind ...
-    read(serializer, "sim", simulation);
+    deserialize(serializer, "sim", simulation);
 
     // ... and run the same segment again.
     output = &result_v2;
@@ -251,14 +249,14 @@ TEST(serdes, network) {
     // Run simulation forward && snapshot
     output = &result_pre;
     simulation.run(T, dt);
-    write(serializer, "sim", simulation);
+    serialize(serializer, "sim", simulation);
 
     // Then run some more, ...
     output = &result_v1;
     simulation.run(2*T, dt);
 
     // ... rewind ...
-    read(serializer, "sim", simulation);
+    deserialize(serializer, "sim", simulation);
 
     // ... and run the same segment again.
     output = &result_v2;

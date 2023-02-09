@@ -234,8 +234,8 @@ struct fvm_lowered_cell {
 
     virtual ~fvm_lowered_cell() {}
 
-    virtual void serialize(serdes::serializer& ser, const std::string& k) const = 0;
-    virtual void deserialize(serdes::serializer& ser, const std::string& k) = 0;
+    virtual void t_serialize(serializer& ser, const std::string& k) const = 0;
+    virtual void t_deserialize(serializer& ser, const std::string& k) = 0;
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
@@ -244,8 +244,8 @@ ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const e
         std::uint64_t seed = 0);
 
 inline
-void write(serdes::serializer& s, const std::string& k, const fvm_lowered_cell& v) { v.serialize(s, k); }
+void serialize(serializer& s, const std::string& k, const fvm_lowered_cell& v) { v.t_serialize(s, k); }
 inline
-void read(serdes::serializer& s, const std::string& k, fvm_lowered_cell& v) { v.deserialize(s, k); }
+void deserialize(serializer& s, const std::string& k, fvm_lowered_cell& v) { v.t_deserialize(s, k); }
 
 } // namespace arb

@@ -20,7 +20,7 @@ with the C++ and Python recipe interfaces:
 
     // Storage
     auto writer = io{};
-    auto serializer = arb::serdes::serializer{writer};
+    auto serializer = arb::serializer{writer};
 
     // Construct a simulation.
     auto model = recipe{};
@@ -30,12 +30,12 @@ with the C++ and Python recipe interfaces:
 
     // Run forwards, snapshot state.
     simulation.run(T, dt);
-    write(serializer, simulation);
+    serialize(serializer, simulation);
     // Then run some more, ...
     simulation.run(2*T, dt);
 
     // ... rewind to time T...
-    read(serializer, simulation);
+    deserialize(serializer, simulation);
     // ... and run the same segment again.
     simulation.run(2*T, dt);
 
@@ -75,12 +75,12 @@ Likewise, your own class hierarchy might need serialization. For a given type
   .. code:: c++
 
     template<typename K>
-    void write(serializer& ser, const K& k, const T& t);
+    void serialize(serializer& ser, const K& k, const T& t);
     template<typename K>
-    void read(serializer& ser, const K& k, const T& t);
+    void deserialize(serializer& ser, const K& k, const T& t);
 
 and the key type ``K`` must be converted to the internal key type
-``arb::serdes::key_type``. A convenience function ``key_type to_key(const K&)`` is
+``arb::key_type``. A convenience function ``key_type to_key(const K&)`` is
 offered which works for integral and string types.
 
 Array like value -- eg vectors and similar -- are stored like this
@@ -90,9 +90,9 @@ Array like value -- eg vectors and similar -- are stored like this
     template <typename K,
               typename V,
               typename A>
-    void write(serializer& ser, const K& k, const std::vector<V, A>& vs) {
+    void serialize(serializer& ser, const K& k, const std::vector<V, A>& vs) {
         ser.begin_write_array(to_key(k));
-        for (int ix = 0; ix < vs.size(); ++ix) write(ser, ix, vs[ix]);
+        for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
         ser.end_write_array();
     }
 
@@ -103,9 +103,9 @@ and similar for map-like types
     template <typename K,
               typename Q,
               typename V>
-    void write(serializer& ser, const K& k, const std::map<Q, V>& v) {
+    void serialize(serializer& ser, const K& k, const std::map<Q, V>& v) {
         ser.begin_write_map(to_key(k));
-        for (const auto& [q, w]: v) write(ser, q, w);
+        for (const auto& [q, w]: v) serialize(ser, q, w);
         ser.end_write_map();
     }
 
@@ -120,17 +120,17 @@ when overwriting values. The sotrage is polled for the next key using
     template <typename K,
               typename V,
               typename A>
-    void read(serializer& ser, const K& k, std::vector<V, A>& vs) {
+    void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
         ser.begin_read_array(to_key(k));
-        for (int ix = 0;; ++ix) {
+        for (std::size_t ix = 0;; ++ix) {
             auto q = ser.next_key();   // Poll next key
             if (!q) break;             // if nil, there's no more data in store.
             if (ix < vs.size()) {      // if the index is already present
-                read(ser, ix, vs[ix]); // hand the value to `read` to be modified
+                deserialize(ser, ix, vs[ix]); // hand the value to `read` to be modified
             }
             else {                     // else create a new one.
                 V val;
-                read(ser, ix, val);
+                deserialize(ser, ix, val);
                 vs.emplace_back(std::move(val));
             }
         }
@@ -165,16 +165,16 @@ Guidelines
     .. code:: c++
 
         struct B {
-            virtual void serialize(serdes::serializer& s, const std::string&) const = 0;
-            virtual void deserialize(serdes::serializer& s, const std::string&) = 0;
+            virtual void serialize(serializer& s, const std::string&) const = 0;
+            virtual void deserialize(serializer& s, const std::string&) = 0;
         };
 
-        void write(serdes::serializer& s, const std::string& k, const B& v) { v.serialize(s, k); }
-        void read(serdes::serializer& s, const std::string& k, B& v) { v.deserialize(s, k); }
+        void serialize(serializer& s, const std::string& k, const B& v) { v.serialize(s, k); }
+        void deserialize(serializer& s, const std::string& k, B& v) { v.deserialize(s, k); }
 
         struct D: B {
             ARB_SERDES_ENABLE(D, ...);
 
-            virtual void serialize(serdes::serializer& s, const std::string&) const override { write(s, k, *this); };
-            virtual void deserialize(serdes::serializer& s, const std::string&) override { read(s, k, *this); };
+            virtual void serialize(serializer& s, const std::string&) const override { serialize(s, k, *this); };
+            virtual void deserialize(serializer& s, const std::string&) override { deserialize(s, k, *this); };
         };

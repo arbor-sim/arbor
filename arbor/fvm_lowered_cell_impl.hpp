@@ -80,8 +80,8 @@ public:
 
     ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, tmin_, seed_, state_);
 
-    void serialize(serdes::serializer& ser, const std::string& k) const override { write(ser, k, *this); }
-    void deserialize(serdes::serializer& ser, const std::string& k) override { read(ser, k, *this); }
+    void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
+    void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
 
 private:
     // Host or GPU-side back-end dependent storage.

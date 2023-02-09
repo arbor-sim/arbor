@@ -90,15 +90,15 @@ public:
 
     ~simulation();
 
-    friend void write(serdes::serializer&, const std::string&, const simulation&);
-    friend void read(serdes::serializer&, const std::string&, simulation&);
+    friend void serialize(serializer&, const std::string&, const simulation&);
+    friend void deserialize(serializer&, const std::string&, simulation&);
 
 private:
     std::unique_ptr<simulation_state> impl_;
 };
 
-void write(serdes::serializer&, const std::string&, const simulation&);
-void read(serdes::serializer&, const std::string&, simulation&);
+void serialize(serializer&, const std::string&, const simulation&);
+void deserialize(serializer&, const std::string&, simulation&);
 
 // Builder pattern for simulation class to help with construction.
 // Simulation constructor arguments can be added through setter functions in any order or left out

@@ -8,12 +8,10 @@
 #include <map>
 #include <unordered_map>
 #include <array>
-#include <type_traits>
 
 #include <iostream>
 
 namespace arb {
-namespace serdes {
 // Handling keys
 using key_type = std::string;
 
@@ -44,7 +42,7 @@ void from_key(K& key, const key_type& k) {
         key = std::stoll(k);
     }
     else {
-        throw std::runtime_error{"Stupid key type"};
+        throw std::runtime_error{"Key type must be integral or string-like."};
     }
 }
 
@@ -138,185 +136,185 @@ private:
 
 // the actual interface
 template<typename K>
-void write(serializer& ser, const K& k, const std::string& v) {
+void serialize(serializer& ser, const K& k, const std::string& v) {
     ser.write(to_key(k), v);
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, std::string_view v) {
+void serialize(serializer& ser, const K& k, std::string_view v) {
     ser.write(to_key(k), std::string{v});
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, const char* v) {
+void serialize(serializer& ser, const K& k, const char* v) {
     ser.write(to_key(k), std::string{v});
 }
 
 template<typename K, typename P>
-void write(serializer& ser, const K& k, P* p) {
+void serialize(serializer& ser, const K& k, P* p) {
     if (!p) throw std::runtime_error("Cannot deref a null at key " + to_key(k));
-    write(ser, to_key(k), *p);
+    serialize(ser, to_key(k), *p);
 }
 
 template<typename K, typename P>
-void write(serializer& ser, const K& k, const std::unique_ptr<P>& p) {
+void serialize(serializer& ser, const K& k, const std::unique_ptr<P>& p) {
     if (!p) throw std::runtime_error("Cannot deref a null at key " + to_key(k));
-    write(ser, k, *p);
+    serialize(ser, k, *p);
 }
 
 template<typename K, typename P>
-void write(serializer& ser, const K& k, const std::shared_ptr<P>& p) {
+void serialize(serializer& ser, const K& k, const std::shared_ptr<P>& p) {
     if (!p) throw std::runtime_error("Cannot deref a null at key " + to_key(k));
-    write(ser, k, *p);
+    serialize(ser, k, *p);
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, long v) {
+void serialize(serializer& ser, const K& k, long v) {
     ser.write(to_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, int v) {
+void serialize(serializer& ser, const K& k, int v) {
     ser.write(to_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, unsigned v) {
+void serialize(serializer& ser, const K& k, unsigned v) {
     ser.write(to_key(k), static_cast<unsigned long long>(v));
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, unsigned long v) {
+void serialize(serializer& ser, const K& k, unsigned long v) {
     ser.write(to_key(k), static_cast<unsigned long long>(v));
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, const float v) {
+void serialize(serializer& ser, const K& k, const float v) {
     ser.write(to_key(k), double{v});
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, const double v) {
+void serialize(serializer& ser, const K& k, const double v) {
     ser.write(to_key(k), v);
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, const bool v) {
+void serialize(serializer& ser, const K& k, const bool v) {
     ser.write(to_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-void write(serializer& ser, const K& k, const unsigned long long v) {
+void serialize(serializer& ser, const K& k, const unsigned long long v) {
     ser.write(to_key(k), v);
 }
 
 template <typename K,
           typename Q,
           typename V>
-void write(serializer& ser, const K& k, const std::unordered_map<Q, V>& v) {
+void serialize(serializer& ser, const K& k, const std::unordered_map<Q, V>& v) {
     ser.begin_write_map(to_key(k));
-    for (const auto& [q, w]: v) write(ser, q, w);
+    for (const auto& [q, w]: v) serialize(ser, q, w);
     ser.end_write_map();
 }
 
 template <typename K,
           typename Q,
           typename V>
-void write(serializer& ser, const K& k, const std::map<Q, V>& v) {
+void serialize(serializer& ser, const K& k, const std::map<Q, V>& v) {
     ser.begin_write_map(to_key(k));
-    for (const auto& [q, w]: v) write(ser, q, w);
+    for (const auto& [q, w]: v) serialize(ser, q, w);
     ser.end_write_map();
 }
 
 template <typename K,
           typename V,
           typename A>
-void write(serializer& ser, const K& k, const std::vector<V, A>& vs) {
+void serialize(serializer& ser, const K& k, const std::vector<V, A>& vs) {
     ser.begin_write_array(to_key(k));
-    for (int ix = 0; ix < vs.size(); ++ix) write(ser, ix, vs[ix]);
+    for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();
 }
 
 template <typename K,
           typename V,
           size_t N>
-void write(serializer& ser, const K& k, const std::array<V, N>& vs) {
+void serialize(serializer& ser, const K& k, const std::array<V, N>& vs) {
     ser.begin_write_array(to_key(k));
-    for (int ix = 0; ix < vs.size(); ++ix) write(ser, ix, vs[ix]);
+    for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();
 }
 
 // Reading
 template<typename K>
-void read(serializer& ser, const K& k, std::string& v) {
+void deserialize(serializer& ser, const K& k, std::string& v) {
     ser.read(to_key(k), v);
 }
 
 template<typename K, typename P>
-void read(serializer& ser, const K& k, P* p) {
+void deserialize(serializer& ser, const K& k, P* p) {
     if (!p) throw std::runtime_error("Cannot deref a null at key " + to_key(k));
-    read(ser, to_key(k), *p);
+    deserialize(ser, to_key(k), *p);
 }
 
 template<typename K, typename P>
-void read(serializer& ser, const K& k, std::unique_ptr<P>& p) {
+void deserialize(serializer& ser, const K& k, std::unique_ptr<P>& p) {
     if (!p) throw std::runtime_error("Cannot deref a null at key " + to_key(k));
-    read(ser, k, *p);
+    deserialize(ser, k, *p);
 }
 
 template<typename K, typename P>
-void read(serializer& ser, const K& k, std::shared_ptr<P>& p) {
+void deserialize(serializer& ser, const K& k, std::shared_ptr<P>& p) {
     if (!p) throw std::runtime_error("Cannot deref a null at key " + to_key(k));
-    read(ser, k, *p);
+    deserialize(ser, k, *p);
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, long& v) {
+void deserialize(serializer& ser, const K& k, long& v) {
     long long tmp;
     ser.read(to_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, int& v) {
+void deserialize(serializer& ser, const K& k, int& v) {
     long long tmp;
     ser.read(to_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, unsigned& v) {
+void deserialize(serializer& ser, const K& k, unsigned& v) {
     unsigned long long tmp;
     ser.read(to_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, unsigned long& v) {
+void deserialize(serializer& ser, const K& k, unsigned long& v) {
     unsigned long long tmp;
     ser.read(to_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, unsigned long long& v) {
+void deserialize(serializer& ser, const K& k, unsigned long long& v) {
     ser.read(to_key(k), v);
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, float& v) {
+void deserialize(serializer& ser, const K& k, float& v) {
     double tmp;
     ser.read(to_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, double& v) {
+void deserialize(serializer& ser, const K& k, double& v) {
     ser.read(to_key(k), v);
 }
 
 template<typename K>
-void read(serializer& ser, const K& k, bool& v) {
+void deserialize(serializer& ser, const K& k, bool& v) {
     long long tmp;
     ser.read(to_key(k), tmp);
     v = tmp;
@@ -325,7 +323,7 @@ void read(serializer& ser, const K& k, bool& v) {
 template <typename K,
           typename Q,
           typename V>
-void read(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
+void deserialize(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
     ser.begin_read_map(to_key(k));
     for (;;) {
         auto q = ser.next_key();
@@ -333,11 +331,11 @@ void read(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
         typename std::remove_cv_t<Q> key;
         from_key(key, *q);
         if (vs.count(key)) {
-            read(ser, *q, vs[key]);
+            deserialize(ser, *q, vs[key]);
         }
         else {
             V val;
-            read(ser, *q, val);
+            deserialize(ser, *q, val);
             vs[key] = std::move(val);
         }
     }
@@ -347,7 +345,7 @@ void read(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
 template <typename K,
           typename Q,
           typename V>
-void read(serializer& ser, const K& k, std::map<Q, V>& vs) {
+void deserialize(serializer& ser, const K& k, std::map<Q, V>& vs) {
     ser.begin_read_map(to_key(k));
     for (;;) {
         auto q = ser.next_key();
@@ -355,11 +353,11 @@ void read(serializer& ser, const K& k, std::map<Q, V>& vs) {
         typename std::remove_cv_t<Q> key;
         from_key(key, *q);
         if (vs.count(key)) {
-            read(ser, *q, vs[key]);
+            deserialize(ser, *q, vs[key]);
         }
         else {
             V val;
-            read(ser, *q, val);
+            deserialize(ser, *q, val);
             vs[key] = std::move(val);
         }
     }
@@ -369,17 +367,17 @@ void read(serializer& ser, const K& k, std::map<Q, V>& vs) {
 template <typename K,
           typename V,
           typename A>
-void read(serializer& ser, const K& k, std::vector<V, A>& vs) {
+void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
     ser.begin_read_array(to_key(k));
-    for (int ix = 0;; ++ix) {
+    for (std::size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < vs.size()) {
-            read(ser, ix, vs[ix]);
+            deserialize(ser, ix, vs[ix]);
         }
         else {
             V val;
-            read(ser, ix, val);
+            deserialize(ser, ix, val);
             vs.emplace_back(std::move(val));
         }
     }
@@ -389,9 +387,9 @@ void read(serializer& ser, const K& k, std::vector<V, A>& vs) {
 template <typename K,
           typename V,
           size_t N>
-void read(serializer& ser, const K& k, std::array<V, N>& vs) {
+void deserialize(serializer& ser, const K& k, std::array<V, N>& vs) {
     ser.begin_read_array(to_key(k));
-    for (int ix = 0; ix < vs.size(); ++ix) read(ser, ix, vs[ix]);
+    for (std::size_t ix = 0; ix < vs.size(); ++ix) deserialize(ser, ix, vs[ix]);
     ser.end_read_array();
 }
 
@@ -441,44 +439,40 @@ void read(serializer& ser, const K& k, std::array<V, N>& vs) {
 #define ARB_SERDES_PUT19(func, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18) ARB_SERDES_PUT2(func, v1) ARB_SERDES_PUT18(func, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18)
 #define ARB_SERDES_PUT20(func, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19) ARB_SERDES_PUT2(func, v1) ARB_SERDES_PUT19(func, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19)
 
-
-
-#define ARB_SERDES_WRITE(v) write(ser, #v, t.v);
-#define ARB_SERDES_READ(v) read(ser, #v, t.v);
+#define ARB_SERDES_WRITE(v) serialize(ser, #v, t.v);
+#define ARB_SERDES_READ(v) deserialize(ser, #v, t.v);
 
 #define ARB_SERDES_ENABLE(T, ...)                                        \
     template <typename K>                                                \
-    friend void write(::arb::serdes::serializer& ser,                    \
+    friend void serialize(::arb::serializer& ser,                        \
                       const K& k,                                        \
                       const T& t) {                                      \
-        ser.begin_write_map(::arb::serdes::to_key(k));                   \
+        ser.begin_write_map(::arb::to_key(k));                           \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_WRITE, __VA_ARGS__)) \
         ser.end_write_map();                                             \
     }                                                                    \
     template <typename K>                                                \
-    friend void read(::arb::serdes::serializer& ser,                     \
-                     const K& k,                                         \
-                     T& t) {                                             \
-        ser.begin_read_map(::arb::serdes::to_key(k));                    \
+    friend void deserialize(::arb::serializer& ser,                      \
+                            const K& k,                                  \
+                            T& t) {                                      \
+        ser.begin_read_map(::arb::to_key(k));                            \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_READ, __VA_ARGS__))  \
         ser.end_read_map();                                              \
     }
 
 #define ARB_SERDES_ENABLE_ENUM(T) \
     template <typename K>                                                \
-    void write(::arb::serdes::serializer& ser,                           \
-               const K& k,                                               \
-               const T& t) {                                             \
-        write(ser, k, static_cast<long long>(t));                        \
+    void serialize(::arb::serializer& ser,                               \
+                   const K& k,                                           \
+                   const T& t) {                                         \
+        serialize(ser, k, static_cast<long long>(t));                    \
     }                                                                    \
     template <typename K>                                                \
-    void read(::arb::serdes::serializer& ser,                            \
-              const K& k,                                                \
-              T& t) {                                                    \
+    void deserialize(::arb::serializer& ser,                             \
+                     const K& k,                                         \
+                     T& t) {                                             \
        long long tmp;                                                    \
-       read(ser, k, tmp);                                                \
+       deserialize(ser, k, tmp);                                         \
        t = static_cast<T>(tmp);                                          \
     }
-
-} // serdes
 } // arb

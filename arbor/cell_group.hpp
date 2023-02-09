@@ -51,16 +51,16 @@ public:
     virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
         return {};
     }
-
-    virtual void serialize(serdes::serializer& s, const std::string&) const { std::cerr << "SERDES WRITE: " << get_cell_kind() << '\n'; }
-    virtual void deserialize(serdes::serializer& s, const std::string&) { std::cerr << "SERDES READ: " << get_cell_kind() << '\n'; }
+    // trampolines for serialization
+    virtual void t_serialize(serializer& s, const std::string&) const { std::cerr << "SERDES WRITE: " << get_cell_kind() << '\n'; }
+    virtual void t_deserialize(serializer& s, const std::string&) { std::cerr << "SERDES READ: " << get_cell_kind() << '\n'; }
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
 
 inline
-void write(serdes::serializer& s, const std::string& k, const cell_group& v) { v.serialize(s, k); }
+void serialize(serializer& s, const std::string& k, const cell_group& v) { v.t_serialize(s, k); }
 inline
-void read(serdes::serializer& s, const std::string& k, cell_group& v) { v.deserialize(s, k); }
+void deserialize(serializer& s, const std::string& k, cell_group& v) { v.t_deserialize(s, k); }
 
 } // namespace arb

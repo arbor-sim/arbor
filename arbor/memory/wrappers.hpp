@@ -155,34 +155,34 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
 
 template<typename K,
          typename T>
-void write(::arb::serdes::serializer ser, const K& k, const host_vector<T>& hvs) {
+void serialize(::arb::serializer ser, const K& k, const host_vector<T>& hvs) {
     ser.begin_write_array(to_key(k));
-    for (int ix = 0; ix < hvs.size(); ++ix) write(ser, ix, hvs[ix]);
+    for (int ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
     ser.end_write_array();
 }
 
 template<typename K,
          typename T>
-void write(::arb::serdes::serializer ser, const K& k, const device_vector<T>& vs) {
+void serialize(::arb::serializer ser, const K& k, const device_vector<T>& vs) {
     auto hvs = on_host(vs);
     ser.begin_write_array(to_key(k));
-    for (int ix = 0; ix < hvs.size(); ++ix) write(ser, ix, hvs[ix]);
+    for (int ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
     ser.end_write_array();
 }
 
 template<typename K,
          typename V>
-void read(::arb::serdes::serializer ser, const K& k, host_vector<V>& hvs) {
+void serialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
     ser.begin_read_array(to_key(k));
     for (int ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < hvs.size()) {
-            read(ser, ix, hvs[ix]);
+            deserialize(ser, ix, hvs[ix]);
         }
         else {
             V val;
-            read(ser, ix, val);
+            deserialize(ser, ix, val);
             hvs.emplace_back(std::move(val));
         }
     }
@@ -191,18 +191,18 @@ void read(::arb::serdes::serializer ser, const K& k, host_vector<V>& hvs) {
 
 template<typename K,
          typename V>
-void read(::arb::serdes::serializer ser, const K& k, device_vector<V>& vs) {
+void deserialize(::arb::serializer ser, const K& k, device_vector<V>& vs) {
     auto hvs = on_host(vs);
     ser.begin_read_array(to_key(k));
     for (int ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < hvs.size()) {
-            read(ser, ix, hvs[ix]);
+            deserialize(ser, ix, hvs[ix]);
         }
         else {
             V val;
-            read(ser, ix, val);
+            deserialize(ser, ix, val);
             hvs.emplace_back(std::move(val));
         }
     }
