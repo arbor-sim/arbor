@@ -61,6 +61,54 @@ Thus, the recommended approach is to treat a simulation 'script' (``.cxx`` /
 ``.py``), the parallel-runtime parameters (think ``mpirun``) and the associated
 snapshots as a single unit.
 
+Intermediate: Writing your own Storage Engine in C++
+----------------------------------------------------
+
+A storage engine is used to construct the serializer and is responsible for
+writing out the data to whatever format and location required. Currently Arbor
+offers a JSON engine in ``arborio/json_serdes.hpp`` which produces a JSON value
+in memory. The serializer is polymorphic in the actual engine, which is only
+require to implement the following interface.
+
+   .. code:: c++
+
+         struct interface {
+             virtual void write(const key_type&, std::string) = 0;
+             virtual void write(const key_type&, double) = 0;
+             virtual void write(const key_type&, long long) = 0;
+             virtual void write(const key_type&, unsigned long long) = 0;
+
+             virtual void read(const key_type&, std::string&) = 0;
+             virtual void read(const key_type&, double&) = 0;
+             virtual void read(const key_type&, long long&) = 0;
+             virtual void read(const key_type&, unsigned long long&) = 0;
+
+             virtual std::optional<key_type> next_key() = 0;
+
+             virtual void begin_write_map(const key_type&) = 0;
+             virtual void end_write_map() = 0;
+             virtual void begin_write_array(const key_type&) = 0;
+             virtual void end_write_array() = 0;
+
+             virtual void begin_read_map(const key_type&) = 0;
+             virtual void end_read_map() = 0;
+             virtual void begin_read_array(const key_type&) = 0;
+             virtual void end_read_array() = 0;
+
+             virtual ~interface() = default;
+         };
+
+The ``read`` and ``write`` methods are responsible for inserting and extracting
+the relevant items. The ``begin_write_array`` and ``end_write_array`` methods
+bracket a write of an array value and announce that the following keyes are to
+be interpreted as integer indices. Analogous for the ``map`` counterparts and
+the associated ``begin_read`` and ``end_read`` methods. Finally, ``next_key`` is
+used during reading of containers to retrieve an optional next key and advanced
+the internal iterator. If empty, the container is exhausted, else the contained
+key can be used to retrieve the associated value. See examples below and the JSON
+interface in ``arborio``.
+
+
 Advanced: Writing your own (De)Serializers in C++
 -------------------------------------------------
 

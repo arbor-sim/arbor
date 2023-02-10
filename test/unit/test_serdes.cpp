@@ -15,7 +15,7 @@
 
 #include <arborio/json_serdes.hpp>
 
-using arb::serialize;
+// using arb::serialize;
 
 using json = nlohmann::json;
 using io = arborio::json_serdes;
@@ -251,7 +251,7 @@ TEST(serdes, network) {
     // Run simulation forward && snapshot
     output = &result_pre;
     simulation.run(T, dt);
-    serialize(serializer, "sim", simulation);
+    arb::serialize(serializer, "sim", simulation);
 
     // Then run some more, ...
     output = &result_v1;
