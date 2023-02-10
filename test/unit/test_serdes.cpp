@@ -15,6 +15,8 @@
 
 #include <arborio/json_serdes.hpp>
 
+using arb::serialize;
+
 using json = nlohmann::json;
 using io = arborio::json_serdes;
 using serdes = arb::serializer;
