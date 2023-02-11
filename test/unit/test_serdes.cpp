@@ -15,7 +15,7 @@
 
 #include <arborio/json_serdes.hpp>
 
-// using arb::serialize;
+using arb::serialize;
 
 using json = nlohmann::json;
 using io = arborio::json_serdes;
@@ -25,8 +25,8 @@ TEST(serdes, simple) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    arb::serialize(serializer, "foo", 42.0);
-    arb::serialize(serializer, "bar", "bing");
+    serialize(serializer, "foo", 42.0);
+    serialize(serializer, "bar", "bing");
 
     auto exp = json{};
     exp["foo"] = 42.0;
@@ -39,11 +39,11 @@ TEST(serdes, containers) {
     auto writer = io{};
     auto serializer = serdes{writer};
 
-    arb::serialize(serializer, "vector", std::vector<float>{1.0, 2.0, 3.0});
-    arb::serialize(serializer, "umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
-    arb::serialize(serializer, "map_s->f", std::map<std::string, double>{{"c", 23.0}, {"d", 42.0}});
-    arb::serialize(serializer, "array", std::array<int, 3>{1, 2, 3});
-    arb::serialize(serializer, "bar", "bing");
+    serialize(serializer, "vector", std::vector<float>{1.0, 2.0, 3.0});
+    serialize(serializer, "umap_s->f", std::unordered_map<std::string, float>{{"a", 1.0}, {"b", 2.0}});
+    serialize(serializer, "map_s->f", std::map<std::string, double>{{"c", 23.0}, {"d", 42.0}});
+    serialize(serializer, "array", std::array<int, 3>{1, 2, 3});
+    serialize(serializer, "bar", "bing");
 
     auto exp = json{};
     exp["vector"] = std::vector<float>{1.0, 2.0, 3.0};
@@ -251,7 +251,7 @@ TEST(serdes, network) {
     // Run simulation forward && snapshot
     output = &result_pre;
     simulation.run(T, dt);
-    arb::serialize(serializer, "sim", simulation);
+    serialize(serializer, "sim", simulation);
 
     // Then run some more, ...
     output = &result_v1;
