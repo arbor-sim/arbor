@@ -47,7 +47,7 @@ struct ring_params {
     std::string name = "default";
     unsigned num_cells = 100;
     double min_delay = 10;
-    double duration = 10;
+    double duration = 1000;
     cell_parameters cell;
 };
 
@@ -125,7 +125,7 @@ private:
 };
 
 int main(int argc, char** argv) {
-    // try {
+    try {
         bool root = true;
 
         arb::proc_allocation resources;
@@ -227,11 +227,11 @@ int main(int argc, char** argv) {
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
-    // }
-    // catch (std::exception& e) {
-        // std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
-        // return 1;
-    // }
+    }
+    catch (std::exception& e) {
+        std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
+        return 1;
+    }
 
     return 0;
 }
