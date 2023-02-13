@@ -688,5 +688,4 @@ void deserialize(serializer& s, const std::string& k, simulation& v) {
     deserialize(s, k, v.impl_);
 }
 
-
 } // namespace arb

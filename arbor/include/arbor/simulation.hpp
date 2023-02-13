@@ -97,9 +97,6 @@ private:
     std::unique_ptr<simulation_state> impl_;
 };
 
-void serialize(serializer&, const std::string&, const simulation&);
-void deserialize(serializer&, const std::string&, simulation&);
-
 // Builder pattern for simulation class to help with construction.
 // Simulation constructor arguments can be added through setter functions in any order or left out
 // entirely, in which case a sane default is chosen. The build member function instantiates the
@@ -165,5 +162,8 @@ private:
 
 // An epoch callback function that prints out a text progress bar.
 ARB_ARBOR_API epoch_function epoch_progress_bar();
+
+void serialize(arb::serializer&, const std::string&, const arb::simulation&);
+void deserialize(arb::serializer&, const std::string&, arb::simulation&);
 
 } // namespace arb
