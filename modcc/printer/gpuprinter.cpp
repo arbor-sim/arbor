@@ -268,9 +268,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         if(!e->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "    auto n = p->{};\n"
-                                           "    unsigned block_dim = 128;\n"
-                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    ::arb::gpu::launch(grid_dim, block_dim, {}, *p);\n"),
+                                           "    ::arb::gpu::launch_1d(n, 128, {}, *p);\n"),
                                width,
                                api_name);
         }
@@ -316,11 +314,9 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{"), class_name, api_name);
         if(!net_receive_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
-                                           "    unsigned block_dim = 128;\n"
-                                           "    if (stream_ptr->num_streams == 0u) return;\n"
                                            "    const arb_size_type num_streams = stream_ptr->num_streams;\n"
-                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(num_streams, block_dim);\n"
-                                           "    ::arb::gpu::launch(grid_dim, block_dim, {}, *p, *stream_ptr);\n"),
+                                           "    if (num_streams == 0u) return;\n"
+                                           "    ::arb::gpu::launch_1d(num_streams, 128, {}, *p, *stream_ptr);\n"),
                                api_name);
         }
         out << "}\n\n";

@@ -168,10 +168,7 @@ ARB_ARBOR_API void assemble_matrix_flat(
         const arb_index_type* cell_to_intdom,
         unsigned n)
 {
-    constexpr unsigned block_dim = 128;
-    const unsigned grid_dim = impl::block_count(n, block_dim);
-
-    launch(grid_dim, block_dim, kernels::assemble_matrix_flat<arb_value_type, arb_index_type>,
+    launch_1d(n, 128, kernels::assemble_matrix_flat<arb_value_type, arb_index_type>,
         d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance,
         area, cv_to_cell, dt_intdom, cell_to_intdom, n);
 }
@@ -198,9 +195,7 @@ void assemble_matrix_interleaved(
     constexpr unsigned block_dim = bd*lw;
 
     // The number of threads is threads_per_matrix*num_mtx
-    const unsigned grid_dim = impl::block_count(num_mtx*lw, block_dim);
-
-    launch(grid_dim, block_dim,
+    launch_1d(num_mtx*lw, block_dim,
         kernels::assemble_matrix_interleaved<arb_value_type, arb_index_type, bd, lw, block_dim>,
         d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area, sizes, starts,
         matrix_to_cell, dt_intdom, cell_to_intdom, padded_size, num_mtx);

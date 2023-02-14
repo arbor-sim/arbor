@@ -112,9 +112,7 @@ void test_thresholds_impl(
     bool record_time_since_spike)
 {
     if (size>0) {
-        constexpr int block_dim = 128;
-        const int grid_dim = impl::block_count(size, block_dim);
-        launch(grid_dim, block_dim, kernel::test_thresholds_impl,
+        launch_1d(size, 128, kernel::test_thresholds_impl,
             size, t_after, t_before, src_to_spike, time_since_spike,
             stack, is_crossed, prev_values, cv_index, values, thresholds, record_time_since_spike);
     }
@@ -125,9 +123,7 @@ void reset_crossed_impl(
     const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds)
 {
     if (size>0) {
-        constexpr int block_dim = 128;
-        const int grid_dim = impl::block_count(size, block_dim);
-        launch(grid_dim, block_dim, kernel::reset_crossed_impl, size, is_crossed, cv_index, values, thresholds);
+        launch_1d(size, 128, kernel::reset_crossed_impl, size, is_crossed, cv_index, values, thresholds);
     }
 }
 

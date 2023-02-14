@@ -59,5 +59,10 @@ void launch(const dim3& blocks, const dim3& threads, Kernel kernel, Args&&... ar
 #endif
 }
 
+template<typename Kernel, typename... Args>
+void launch_1d(unsigned elements, unsigned block_size, Kernel kernel, Args&&... args) {
+    launch(impl::block_count(elements, block_size), block_size, kernel, std::forward<Args>(args)...);
+}
+
 } // namespace gpu
 } // namespace arb

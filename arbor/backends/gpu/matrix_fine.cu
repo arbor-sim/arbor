@@ -220,10 +220,7 @@ ARB_ARBOR_API void assemble_matrix_fine(
     const arb_index_type* perm,
     unsigned n)
 {
-    const unsigned block_dim = 128;
-    const unsigned num_blocks = impl::block_count(n, block_dim);
-
-    launch(num_blocks, block_dim, kernels::assemble_matrix_fine<arb_value_type, arb_index_type>,
+    launch_1d(n, 128, kernels::assemble_matrix_fine<arb_value_type, arb_index_type>,
         d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
         dt, perm, n);
 }
