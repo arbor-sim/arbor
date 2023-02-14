@@ -230,6 +230,7 @@ class serdes_recipe(A.recipe):
     def global_properties(self, kind):
         return self.the_props
 
+
 # Very simple test for SerDes
 class TestSerdes(unittest.TestCase):
     def test_serialize(self):
