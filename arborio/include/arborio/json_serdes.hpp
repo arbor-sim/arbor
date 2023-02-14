@@ -52,6 +52,10 @@ struct ARB_ARBORIO_API json_serdes {
     void end_read_array() { end_read_map(); }
 
     const json& get_json() const { return data; }
+    void set_json(const json& data_) {
+        ptr = json::json_pointer{""};
+        data = data_;
+    }
 
 private:
     json data;

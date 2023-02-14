@@ -185,7 +185,6 @@ class TestSwcNeuronIo(unittest.TestCase):
     def test_pathio(self):
         load_pathio(self.loaders(), swc_neuron, "test.swc")
 
-
 class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
@@ -202,3 +201,36 @@ class TestAscIo(unittest.TestCase):
 
     def test_pathio(self):
         load_pathio(self.loaders(), asc, "test.asc")
+
+class serdes_recipe(A.recipe):
+    def __init__(self):
+        A.recipe.__init__(self)
+        self.the_props = A.neuron_cable_properties()
+        self.the_props.catalogue = A.default_catalogue()
+
+    def num_cells(self):
+        return 1
+
+    def cell_kind(self, _):
+        return A.cell_kind.cable
+
+    def cell_description(self, gid):
+        tree = A.segment_tree()
+        s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
+        _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
+
+        dec = A.decor()
+        dec.paint("(all)", A.density("pas"))
+        dec.discretization(A.cv_policy("(max-extent 1)"))
+
+        return A.cable_cell(tree, dec)
+
+    def global_properties(self, kind):
+        return self.the_props
+
+class TestSerdes(unittest.TestCase):
+
+    def test_serialize(self):
+        rec = serdes_recipe()
+        sim = A.simulation(rec)
+        jsn = sim.serialize()
