@@ -267,3 +267,90 @@ TEST(serdes, network) {
     // Now compare the two segments [T, 2T)
     ASSERT_EQ(result_v1, result_v2);
 }
+
+#ifdef ARB_GPU_ENABLED
+TEST(serdes, single_cell_gpu) {
+    double dt = 0.5;
+    double T  = 5;
+
+    // Result
+    std::vector<double> result_pre;
+    std::vector<double> result_v1;
+    std::vector<double> result_v2;
+
+    // Storage
+    auto writer = io{};
+    auto serializer = serdes{writer};
+
+    // Set up the simulation.
+    auto model = serdes_recipe{};
+    auto ctx = arb::make_context({1, 0}); // one thread, first GPU
+    auto simulation = arb::simulation{model, ctx};
+    simulation.add_sampler(arb::all_probes,
+                           arb::regular_schedule(dt),
+                           sampler,
+                           arb::sampling_policy::lax);
+
+    // Run simulation forward && snapshot
+    output = &result_pre;
+    simulation.run(T, dt);
+    serialize(serializer, "sim", simulation);
+
+    // Then run some more, ...
+    output = &result_v1;
+    simulation.run(2*T, dt);
+
+    // ... rewind ...
+    deserialize(serializer, "sim", simulation);
+
+    // ... and run the same segment again.
+    output = &result_v2;
+    simulation.run(2*T, dt);
+
+    // Now compare the two segments [T, 2T)
+    ASSERT_EQ(result_v1, result_v2);
+}
+
+TEST(serdes, network_gpu) {
+    double dt = 0.5;
+    double T  = 5;
+
+    // Result
+    std::vector<double> result_pre;
+    std::vector<double> result_v1;
+    std::vector<double> result_v2;
+
+    // Storage
+    auto writer = io{};
+    auto serializer = serdes{writer};
+
+    // Set up the simulation.
+    auto model = serdes_recipe{};
+    model.num = 10;
+    auto ctx = arb::make_context({1, 0}); // one thread, first GPU
+    auto simulation = arb::simulation{model, ctx};
+    simulation.add_sampler(arb::all_probes,
+                           arb::regular_schedule(dt),
+                           sampler,
+                           arb::sampling_policy::lax);
+
+    // Run simulation forward && snapshot
+    output = &result_pre;
+    simulation.run(T, dt);
+    serialize(serializer, "sim", simulation);
+
+    // Then run some more, ...
+    output = &result_v1;
+    simulation.run(2*T, dt);
+
+    // ... rewind ...
+    deserialize(serializer, "sim", simulation);
+
+    // ... and run the same segment again.
+    output = &result_v2;
+    simulation.run(2*T, dt);
+
+    // Now compare the two segments [T, 2T)
+    ASSERT_EQ(result_v1, result_v2);
+}
+#endif
