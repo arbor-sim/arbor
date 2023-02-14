@@ -8,7 +8,7 @@
 #include <map>
 #include <unordered_map>
 #include <array>
-#include <exception>
+#include <stdexcept>
 
 #include <arbor/export.hpp>
 
