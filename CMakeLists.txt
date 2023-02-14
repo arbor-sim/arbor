@@ -230,6 +230,7 @@ if(NOT ARB_USE_BUNDLED_JSON)
 endif()
 
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+add_library(ext-random123 INTERFACE)
 if(NOT ARB_USE_BUNDLED_RANDOM123)
     find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
