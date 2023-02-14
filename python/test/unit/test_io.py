@@ -230,13 +230,13 @@ class serdes_recipe(A.recipe):
     def global_properties(self, kind):
         return self.the_props
 
-
+# Very simple test for SerDes
 class TestSerdes(unittest.TestCase):
     def test_serialize(self):
         rec = serdes_recipe()
         sim = A.simulation(rec)
         jsn = sim.serialize()
-        self.AssertEqual(
+        self.assertEqual(
             jsn,
             {
                 "cell_groups_": [
