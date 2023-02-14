@@ -234,3 +234,4 @@ class TestSerdes(unittest.TestCase):
         rec = serdes_recipe()
         sim = A.simulation(rec)
         jsn = sim.serialize()
+        print(jsn)
