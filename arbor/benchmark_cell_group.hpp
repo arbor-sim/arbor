@@ -34,6 +34,11 @@ public:
 
     void remove_all_samplers() override {}
 
+    ARB_SERDES_ENABLE(benchmark_cell_group, cells_, spikes_, gids_);
+
+    virtual void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
+    virtual void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
+
 private:
     std::vector<benchmark_cell> cells_;
     std::vector<spike> spikes_;

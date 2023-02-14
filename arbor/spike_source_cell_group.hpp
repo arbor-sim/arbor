@@ -37,6 +37,11 @@ public:
 
     void remove_all_samplers() override {}
 
+    ARB_SERDES_ENABLE(spike_source_cell_group, spikes_, gids_, time_sequences_);
+
+    virtual void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
+    virtual void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
+
 private:
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;

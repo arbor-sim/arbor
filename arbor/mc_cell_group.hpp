@@ -63,10 +63,8 @@ public:
 
     ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, staged_events_, target_handles_, lowered_);
 
-    virtual void t_serialize(serializer& ser,
-                           const std::string& k) const override;
-    virtual void t_deserialize(serializer& ser,
-                             const std::string& k) override;
+    virtual void t_serialize(serializer& ser, const std::string& k) const override;
+    virtual void t_deserialize(serializer& ser, const std::string& k) override;
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;

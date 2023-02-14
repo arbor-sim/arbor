@@ -163,7 +163,7 @@ private:
 // An epoch callback function that prints out a text progress bar.
 ARB_ARBOR_API epoch_function epoch_progress_bar();
 
-void serialize(arb::serializer&, const std::string&, const arb::simulation&);
-void deserialize(arb::serializer&, const std::string&, arb::simulation&);
+ARB_ARBOR_API void serialize(arb::serializer&, const std::string&, const arb::simulation&);
+ARB_ARBOR_API void deserialize(arb::serializer&, const std::string&, arb::simulation&);
 
 } // namespace arb

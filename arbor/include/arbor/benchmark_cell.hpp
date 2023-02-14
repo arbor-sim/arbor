@@ -19,9 +19,11 @@ struct ARB_SYMBOL_VISIBLE benchmark_cell {
     // If equal to 1, then a single cell can be advanced in realtime 
     double realtime_ratio;
 
-    benchmark_cell() = delete;
+    benchmark_cell() = default;
     benchmark_cell(cell_tag_type source, cell_tag_type target, schedule seq, double ratio):
         source(source), target(target), time_sequence(seq), realtime_ratio(ratio) {};
+
+    ARB_SERDES_ENABLE(benchmark_cell, source, target, time_sequence, realtime_ratio);
 };
 
 } // namespace arb

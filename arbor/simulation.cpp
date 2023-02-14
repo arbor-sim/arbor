@@ -121,8 +121,6 @@ public:
     label_resolution_map source_resolution_map_;
     label_resolution_map target_resolution_map_;
 
-    // TODO(TH) consider writing out ddc and (parts) of context regardless *and*
-    //          check against de-serialised data.
     // We do not serialize:
     // - Infrastructure
     //   + ctx: is unserializable due to MPI comm being a handle
@@ -150,12 +148,7 @@ public:
         ARB_SERDES_WRITE(epoch_);
         ARB_SERDES_WRITE(pending_events_);
         ARB_SERDES_WRITE(event_lanes_);
-        ser.begin_write_array("cell_groups_");
-        for (std::size_t ix = 0; ix < t.cell_groups_.size(); ++ix) {
-            serialize(ser, std::to_string(ix), t.cell_groups_[ix]);
-        }
-        ser.end_write_array();
-        // ARB_SERDES_WRITE(cell_groups_);
+        ARB_SERDES_WRITE(cell_groups_);
         ser.begin_write_array("local_spikes_");
         serialize(ser, "0", t.local_spikes_[0].gather());
         serialize(ser, "1", t.local_spikes_[1].gather());
@@ -167,11 +160,7 @@ public:
         ARB_SERDES_READ(epoch_);
         ARB_SERDES_READ(pending_events_);
         ARB_SERDES_READ(event_lanes_);
-        ser.begin_read_array("cell_groups_");
-        for (std::size_t ix = 0; ix < t.cell_groups_.size(); ++ix) {
-            deserialize(ser, std::to_string(ix), t.cell_groups_[ix]);
-        }
-        ser.end_read_array();
+        ARB_SERDES_READ(cell_groups_);
         // custom deserialization to avoid ill-defined copy construction.
         // TODO check whether is OK in actually multi-threaded environments.
         ser.begin_read_array("local_spikes_");

@@ -32,7 +32,7 @@ TEST(serdes, simple) {
     exp["foo"] = 42.0;
     exp["bar"] = "bing";
 
-    ASSERT_EQ(exp, writer.data);
+    ASSERT_EQ(exp, writer.get_json());
 }
 
 TEST(serdes, containers) {
@@ -52,7 +52,7 @@ TEST(serdes, containers) {
     exp["array"] = std::array<int, 3>{1, 2, 3};
     exp["bar"] = "bing";
 
-    ASSERT_EQ(exp, writer.data);
+    ASSERT_EQ(exp, writer.get_json());
 }
 
 struct T {
@@ -76,7 +76,7 @@ TEST(serdes, macro) {
     exp["t"]["b"] = 42.0;
     exp["t"]["vs"] = std::vector<float>{1.0, 2.0, 3.0};
 
-    ASSERT_EQ(exp, writer.data);
+    ASSERT_EQ(exp, writer.get_json());
 }
 
 struct A {

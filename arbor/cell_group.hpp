@@ -52,15 +52,15 @@ public:
         return {};
     }
     // trampolines for serialization
-    virtual void t_serialize(serializer& s, const std::string&) const { std::cerr << "SERDES WRITE: " << get_cell_kind() << '\n'; }
-    virtual void t_deserialize(serializer& s, const std::string&) { std::cerr << "SERDES READ: " << get_cell_kind() << '\n'; }
+    virtual void t_serialize(serializer& s, const std::string&) const = 0;
+    virtual void t_deserialize(serializer& s, const std::string&)  = 0;
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
 
-inline
-void serialize(serializer& s, const std::string& k, const cell_group& v) { v.t_serialize(s, k); }
-inline
-void deserialize(serializer& s, const std::string& k, cell_group& v) { v.t_deserialize(s, k); }
+template<typename K>
+void serialize(serializer& s, const K& k, const cell_group& v) { v.t_serialize(s, to_key(k)); }
+template<typename K>
+void deserialize(serializer& s, const K& k, cell_group& v) { v.t_deserialize(s, to_key(k)); }
 
 } // namespace arb
