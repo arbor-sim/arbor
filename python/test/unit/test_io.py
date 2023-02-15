@@ -185,6 +185,7 @@ class TestSwcNeuronIo(unittest.TestCase):
     def test_pathio(self):
         load_pathio(self.loaders(), swc_neuron, "test.swc")
 
+
 class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
@@ -201,6 +202,7 @@ class TestAscIo(unittest.TestCase):
 
     def test_pathio(self):
         load_pathio(self.loaders(), asc, "test.asc")
+
 
 class serdes_recipe(A.recipe):
     def __init__(self):
@@ -231,9 +233,8 @@ class serdes_recipe(A.recipe):
 
 # Very simple test for SerDes
 class TestSerdes(unittest.TestCase):
-
     def test_serialize(self):
-        self.maxDiff = 1024*1024
+        self.maxDiff = 1024 * 1024
         rec = serdes_recipe()
         sim = A.simulation(rec)
         jsn = sim.serialize()
