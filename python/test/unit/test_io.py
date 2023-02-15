@@ -233,6 +233,7 @@ class serdes_recipe(A.recipe):
 class TestSerdes(unittest.TestCase):
 
     def test_serialize(self):
+        self.maxDiff = 1024*1024
         rec = serdes_recipe()
         sim = A.simulation(rec)
         jsn = sim.serialize()

@@ -56,10 +56,25 @@ the following constraints apply:
    we cannot validate this, since we'd either stop migration between ranks or
    would have to instantiate and sort every local domain decomposition across
    all ranks.
+3. The hardware configuration must be identical: SIMD, GPU, and Scalar CPU code
+   have different binary layouts which makes serializing across hardware settings
+   invalid.
 
 Thus, the recommended approach is to treat a simulation 'script' (``.cxx`` /
 ``.py``), the parallel-runtime parameters (think ``mpirun``) and the associated
 snapshots as a single unit.
+
+In Python, currently only support for (de)serialization from/to JSON strings is offered.
+
+  .. code:: python
+
+    import arbor as A
+
+    rec = my_recipe()
+    sim = A.simulation(rec)
+    jsn = sim.serialize()
+    sim.deserialize(jsn)
+
 
 Intermediate: Writing your own Storage Engine in C++
 ----------------------------------------------------
