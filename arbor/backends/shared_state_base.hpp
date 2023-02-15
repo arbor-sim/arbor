@@ -5,7 +5,6 @@
 
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
-#include "event_map.hpp"
 #include "fvm_layout.hpp"
 
 #include "util/rangeutil.hpp"
@@ -27,16 +26,17 @@ struct shared_state_base {
         d->time = d->time_to;
     }
 
-    void begin_epoch(const event_map& deliverables,
+    void begin_epoch(//const event_map& deliverables,
+                     const std::vector<deliverable_event>& events,
+                     const std::vector<arb_size_type>& events_per_mech,
                      const std::vector<sample_event>& samples,
                      const timestep_range& dts) {
         auto d = static_cast<D*>(this);
         // events
         auto& storage = d->storage;
         for (auto& [mech_id, store] : storage) {
-            if (auto it = deliverables.find(mech_id);
-                it != deliverables.end() && it->second.size()) {
-                store.deliverable_events_.init(it->second, dts);
+            if (mech_id < events_per_mech.size() && events_per_mech[mech_id]) {
+                store.deliverable_events_.init(events, mech_id, events_per_mech[mech_id], dts);
             }
         }
         // samples

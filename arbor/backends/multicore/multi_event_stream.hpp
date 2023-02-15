@@ -7,8 +7,8 @@
 #include <arbor/generic_event.hpp>
 #include <arbor/mechanism_abi.h>
 
-#include "event_map.hpp"
 #include "timestep_range.hpp"
+#include "backends/event.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -38,27 +38,39 @@ public:
         index_ = 0u;
     }
 
-    //void init(const std::vector<event_type>& staged, const timestep_range& dts) {
-    void init(const mechanism_event_map& staged, const timestep_range& dts) {
+    void init(const std::vector<event_type>& staged, unsigned mech_id, arb_size_type n, const timestep_range& dts) {
         using ::arb::event_time;
 
+        // reset the state
         clear();
 
+        // return if there are no time steps
         if (dts.empty()) return;
-        num_dt_ = dts.size();
 
-        const auto n = staged.aggregate_size();
+        // resize ranges array
+        num_dt_ = dts.size();
+        if (ranges_.size() < num_dt_) ranges_.resize(num_dt_);
+
+        // return if there are no events
         if (!n) return;
+
+        // reserve space for events
         ev_data_.reserve(n);
 
-        if (ranges_.size() < num_dt_) ranges_.resize(num_dt_);
-        // loop over all mech_index
-        for (auto& [mech_index, vec] : staged) {
-            // continue if no events found
-            const auto s = vec.size();
-            if (!s) continue;
+        // loop over all events
+        for (std::size_t i=0; i<staged.size(); ++i) {
+            const auto& first = staged[i];
+            // bail out if event is for antother mechanism
+            if (first.handle.mech_id != mech_id) continue;
+            const auto mech_index = first.handle.mech_index;
+            // find all adjacent events with same index
+            std::size_t s = i+1;
+            while (s < staged.size() &&
+                   staged[s].handle.mech_index == mech_index &&
+                   staged[s].handle.mech_id == mech_id) {
+                ++s;
+            }
             // loop over timestep intervals
-            size_type i = 0;
             for (size_type t=0; t<dts.size(); ++t) {
                 const auto& dt = dts[t];
                 // create empty event range
@@ -66,9 +78,9 @@ public:
                     mech_index,
                     size_type(ev_data_.size()),
                     size_type(ev_data_.size())};
-                // loop over remaining events
-                for (; i<s; ++i) {
-                    const auto& ev = vec[i];
+                // loop over events with same index
+                for (; i < s; ++i) {
+                    const auto& ev = staged[i];
                     // check whether event falls within current timestep interval
                     if (event_time(ev) < dt.t1()) {
                         // add event data and increase event range
@@ -85,12 +97,14 @@ public:
                     ranges_[t].push_back(r);
                 }
                 // bail out if all events have been used
-                if (i>=s) break;
+                if (i >= s) break;
             }
+            // reset loop variable
+            i = s-1;
         }
         arb_assert(n == ev_data_.size());
     }
-    
+
     void mark() {
         index_ += (index_ <= num_dt_ ? 1 : 0);
     }

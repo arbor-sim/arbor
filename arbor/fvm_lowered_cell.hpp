@@ -19,7 +19,6 @@
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "backends/threshold_crossing.hpp"
-#include "event_map.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
 #include "timestep_range.hpp"
@@ -219,7 +218,8 @@ struct fvm_lowered_cell {
 
     virtual fvm_integration_result integrate(
         const timestep_range& dts,
-        const event_map& staged_event_map,
+        const std::vector<deliverable_event>& staged_events,
+        const std::vector<arb_size_type>& events_per_mech,
         const std::vector<sample_event>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;

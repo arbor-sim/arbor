@@ -47,6 +47,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 
     // Store consistent data from fvm_lowered_cell
     target_handles_ = std::move(fvm_info.target_handles);
+    events_per_target_.resize(target_handles_.size());
     probe_map_ = std::move(fvm_info.probe_map);
 
     // Create lookup structure for target ids.
@@ -378,7 +379,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     PE(advance:eventsetup);
     sample_events_.clear();
-    staged_event_map_.clear();
+    std::fill(events_per_target_.begin(), events_per_target_.end(), 0u);
+    std::fill(events_per_mech_.begin(), events_per_mech_.end(), 0u);
 
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
@@ -390,8 +392,35 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             for (auto e: lane) {
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (e.time>=ep.t1) break;
+                ++events_per_target_[target_handle_divisions_[lid]+e.target];
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target];
-                add_event(staged_event_map_, e.time, h, e.weight);
+                const auto mech_id = h.mech_id;
+                if (events_per_mech_.size() <= mech_id) {
+                    events_per_mech_.resize(mech_id+1, 0u);
+                    events_per_mech_[mech_id] = 1u;
+                }
+                else {
+                    ++events_per_mech_[mech_id];
+                }
+            }
+            ++lid;
+        }
+        arb_size_type n_events = events_per_target_.size() ? events_per_target_.back() : 0u;
+        std::exclusive_scan(events_per_target_.begin(), events_per_target_.end(),
+            events_per_target_.begin(), 0u);
+        n_events += events_per_target_.size() ? events_per_target_.back() : 0u;
+        staged_events_.resize(n_events);
+
+        lid = 0;
+        for (auto& lane: event_lanes) {
+            for (auto e: lane) {
+                // Events coinciding with epoch's upper boundary belong to next epoch
+                if (e.time>=ep.t1) break;
+                auto index = events_per_target_[target_handle_divisions_[lid]+e.target]++;
+                staged_events_[index] = deliverable_event{
+                    e.time,
+                    target_handles_[target_handle_divisions_[lid]+e.target],
+                    e.weight};
             }
             ++lid;
         }
@@ -455,7 +484,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(timesteps_, staged_event_map_, sample_events_);
+    auto result = lowered_->integrate(timesteps_, staged_events_, events_per_mech_, sample_events_);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

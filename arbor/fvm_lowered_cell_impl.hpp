@@ -59,7 +59,8 @@ public:
 
     fvm_integration_result integrate(
         const timestep_range& dts,
-        const event_map& staged_event_map,
+        const std::vector<deliverable_event>& staged_events,
+        const std::vector<arb_size_type>& events_per_mech,
         const std::vector<sample_event>& staged_samples) override;
 
     value_type time() const override { return state_->time; }
@@ -158,7 +159,8 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     const timestep_range& dts,
-    const event_map& staged_event_map,
+    const std::vector<deliverable_event>& staged_events,
+    const std::vector<arb_size_type>& events_per_mech,
     const std::vector<sample_event>& staged_samples)
 {
     arb_assert(state_->time == dts.t0());
@@ -167,7 +169,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // Integration setup
     PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
-    state_->begin_epoch(staged_event_map, staged_samples, dts);
+    state_->begin_epoch(staged_events, events_per_mech, staged_samples, dts);
     PL();
 
     // loop over timesteps

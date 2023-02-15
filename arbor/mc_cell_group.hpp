@@ -15,7 +15,6 @@
 
 #include "cell_group.hpp"
 #include "epoch.hpp"
-#include "event_map.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "sampler_map.hpp"
@@ -78,7 +77,9 @@ private:
     timestep_range timesteps_;
 
     // List of events to deliver, mapped by mechanism id
-    event_map staged_event_map_;
+    std::vector<deliverable_event> staged_events_;
+    std::vector<arb_size_type> events_per_target_;
+    std::vector<arb_size_type> events_per_mech_;
 
     // List of samples to be taken
     std::vector<sample_event> sample_events_;
