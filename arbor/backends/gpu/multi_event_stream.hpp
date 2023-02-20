@@ -20,8 +20,8 @@ public:
     using device_ranges_array = memory::device_vector<arb_deliverable_event_range>;
     using device_data_array = memory::device_vector<event_data_type>;
 
-    void init(const mechanism_event_map& staged, const timestep_range& dts) {
-        base::init(staged, dts);
+    void init(const std::vector<event_type>& staged, unsigned mech_id, arb_size_type n, const timestep_range& dts) {
+        base::init(staged, mech_id, n, dts);
         if (!base::ev_data_.size()) return;
 
         // calculate lookup array (exclusive scan over size(base::ranges))
