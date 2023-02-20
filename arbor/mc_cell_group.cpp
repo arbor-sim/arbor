@@ -47,7 +47,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 
     // Store consistent data from fvm_lowered_cell
     target_handles_ = std::move(fvm_info.target_handles);
-    events_per_target_.resize(target_handles_.size());
+    events_per_target_.resize(target_handles_.size(), 0u);
     probe_map_ = std::move(fvm_info.probe_map);
 
     // Create lookup structure for target ids.
@@ -379,7 +379,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     PE(advance:eventsetup1);
     sample_events_.clear();
-    std::fill(events_per_target_.begin(), events_per_target_.end(), 0u);
     std::fill(events_per_mech_.begin(), events_per_mech_.end(), 0u);
     PL();
 
@@ -391,14 +390,15 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // Skip event handling if nothing to deliver.
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         PE(advance:eventsetup3);
+        std::fill(events_per_target_.begin(), events_per_target_.end(), 0u);
         auto lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (e.time>=ep.t1) break;
-                ++events_per_target_[target_handle_divisions_[lid]+e.target];
-                auto h = target_handles_[target_handle_divisions_[lid]+e.target];
-                const auto mech_id = h.mech_id;
+                const auto offset = target_handle_divisions_[lid]+e.target;
+                ++events_per_target_[offset];
+                const auto mech_id = target_handles_[offset].mech_id;
                 if (events_per_mech_.size() <= mech_id) {
                     events_per_mech_.resize(mech_id+1, 0u);
                     events_per_mech_[mech_id] = 1u;
@@ -428,11 +428,9 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             for (auto e: lane) {
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (e.time>=ep.t1) break;
-                auto index = events_per_target_[target_handle_divisions_[lid]+e.target]++;
-                staged_events_[index] = deliverable_event{
-                    e.time,
-                    target_handles_[target_handle_divisions_[lid]+e.target],
-                    e.weight};
+                const auto offset = target_handle_divisions_[lid]+e.target;
+                const auto index = events_per_target_[offset]++;
+                staged_events_[index] = deliverable_event{e.time, target_handles_[offset], e.weight};
             }
             ++lid;
         }
