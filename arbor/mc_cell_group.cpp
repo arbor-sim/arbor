@@ -377,16 +377,20 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Bin and collate deliverable events from event lanes.
 
-    PE(advance:eventsetup);
+    PE(advance:eventsetup1);
     sample_events_.clear();
     std::fill(events_per_target_.begin(), events_per_target_.end(), 0u);
     std::fill(events_per_mech_.begin(), events_per_mech_.end(), 0u);
+    PL();
 
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
+    PE(advance:eventsetup2);
     timesteps_.reset(ep, dt);
+    PL();
 
     // Skip event handling if nothing to deliver.
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
+        PE(advance:eventsetup3);
         auto lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
@@ -405,12 +409,20 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             }
             ++lid;
         }
-        arb_size_type n_events = events_per_target_.size() ? events_per_target_.back() : 0u;
-        std::exclusive_scan(events_per_target_.begin(), events_per_target_.end(),
-            events_per_target_.begin(), 0u);
-        n_events += events_per_target_.size() ? events_per_target_.back() : 0u;
-        staged_events_.resize(n_events);
+        PL();
 
+        PE(advance:eventsetup4);
+        // exclusive scan
+        arb_size_type n_events = 0;
+        for (auto& x : events_per_target_) {
+            n_events += std::exchange(x, n_events);
+        }
+        PL();
+        PE(advance:eventsetup45);
+        staged_events_.resize(n_events);
+        PL();
+
+        PE(advance:eventsetup5);
         lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
@@ -424,8 +436,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             }
             ++lid;
         }
+        PL();
     }
-    PL();
 
     // Create sample events and delivery information.
     //
