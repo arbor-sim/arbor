@@ -163,7 +163,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     const std::vector<arb_size_type>& events_per_mech,
     const std::vector<sample_event>& staged_samples)
 {
-    arb_assert(state_->time == dts.t0());
+    arb_assert(state_->time == dts.t_begin());
     set_gpu();
 
     // Integration setup
@@ -175,7 +175,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // loop over timesteps
     for (auto ts : dts) {
         state_->update_time_to(ts);
-        arb_assert(state_->time == ts.t0());
+        arb_assert(state_->time == ts.t_begin());
 
         // Update integration step time information visible to mechanisms.
         for (auto& m: mechanisms_) {

@@ -82,7 +82,7 @@ public:
                 for (; i < s; ++i) {
                     const auto& ev = staged[i];
                     // check whether event falls within current timestep interval
-                    if (event_time(ev) < dt.t1()) {
+                    if (event_time(ev) < dt.t_end()) {
                         // add event data and increase event range
                         ev_data_.push_back(event_data(ev));
                         ++r.end;

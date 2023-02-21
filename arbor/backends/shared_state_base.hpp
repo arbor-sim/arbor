@@ -17,7 +17,7 @@ struct shared_state_base {
 
     void update_time_to(const timestep_range::timestep& ts) {
         auto d = static_cast<D*>(this);
-        d->time_to = ts.t1();
+        d->time_to = ts.t_end();
         d->dt = ts.dt();
     }
 

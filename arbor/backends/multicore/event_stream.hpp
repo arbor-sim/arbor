@@ -69,8 +69,8 @@ public:
         auto dt = dts[dt_index];
         for (const Event& ev : staged) {
             const auto ev_t = event_time(ev);
-            if (ev_t >= dt.t1()) {
-                while (ev_t >= dt.t1()) {
+            if (ev_t >= dt.t_end()) {
+                while (ev_t >= dt.t_end()) {
                     offsets_[++dt_index] = ev_data_.size()+tmp_.size();
                     dt = dts[dt_index];
                 }
