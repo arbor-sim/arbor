@@ -408,7 +408,7 @@ public:
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
-    void assemble(const T& dt, const_view voltage, const_view current, const_view conductivity) {
+    void assemble(const T dt, const_view voltage, const_view current, const_view conductivity) {
         assemble_matrix_fine(
             d.data(),
             rhs.data(),
@@ -441,7 +441,7 @@ public:
 
 
     void solve(array& voltage,
-               const T& dt, const_view current, const_view conductivity) {
+               const T dt, const_view current, const_view conductivity) {
         assemble(dt, voltage, current, conductivity);
         solve(voltage);
     }

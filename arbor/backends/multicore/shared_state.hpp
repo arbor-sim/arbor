@@ -116,7 +116,7 @@ struct ARB_ARBOR_API istim_state {
     void reset();
 
     // Contribute to current density:
-    void add_current(const arb_value_type& t, array& current_density);
+    void add_current(const arb_value_type t, array& current_density);
 
     // Construct state from i_clamp data:
     istim_state(const fvm_stimulus_config& stim_data, unsigned align);

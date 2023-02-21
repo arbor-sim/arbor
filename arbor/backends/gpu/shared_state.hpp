@@ -105,7 +105,7 @@ struct ARB_ARBOR_API istim_state {
     void reset();
 
     // Contribute to current density:
-    void add_current(const arb_value_type& time, array& current_density);
+    void add_current(const arb_value_type time, array& current_density);
 
     // Number of stimuli:
     std::size_t size() const;

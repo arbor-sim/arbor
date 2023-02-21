@@ -132,7 +132,6 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
             }
             if (delta == 0) continue;
             n_values += delta;
-            // only exact sampling
             for (auto t: times) samples.emplace_back(t, hdl);
         }
     }

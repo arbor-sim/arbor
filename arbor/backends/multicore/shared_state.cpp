@@ -152,7 +152,7 @@ void istim_state::reset() {
     std::copy(envl_divs_.data(), envl_divs_.data()+n, envl_index_.begin());
 }
 
-void istim_state::add_current(const arb_value_type& time, array& current_density) {
+void istim_state::add_current(const arb_value_type time, array& current_density) {
     constexpr double two_pi = 2*math::pi<double>;
 
     // Consider vectorizing...

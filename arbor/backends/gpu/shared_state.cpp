@@ -159,7 +159,7 @@ void istim_state::reset() {
     memory::copy(envl_divs_, envl_index_);
 }
 
-void istim_state::add_current(const arb_value_type& time, array& current_density) {
+void istim_state::add_current(const arb_value_type time, array& current_density) {
     ppack_.time = time;
     ppack_.current_density = current_density.data();
     istim_add_current_impl((int)size(), ppack_);

@@ -25,11 +25,6 @@ TEST(matrix, construct_from_parent_only)
 {
     std::vector<index_type> p = {0,0,1};
     solver_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
-  //cable_solver(const std::vector<index_type>& p,
-  //             const std::vector<index_type>& cell_cv_divs,
-  //             const std::vector<value_type>& cap,
-  //             const std::vector<value_type>& cond,
-  //             const std::vector<value_type>& area):
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
     EXPECT_EQ(p.size(), 3u);

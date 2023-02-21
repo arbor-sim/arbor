@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -49,7 +50,7 @@ public:
 
         // resize ranges array
         num_dt_ = dts.size();
-        if (ranges_.size() < num_dt_) ranges_.resize(num_dt_);
+        ranges_.resize(std::max(num_dt_, (arb_size_type)ranges_.size()));
 
         // return if there are no events
         if (!n) return;
@@ -58,17 +59,18 @@ public:
         ev_data_.reserve(n);
 
         // loop over all events
-        for (std::size_t i=0; i<staged.size(); ++i) {
-            const auto& first = staged[i];
+        const std::size_t size = staged.size();
+        for (std::size_t first=0; first<size; ++first) {
+            const auto& first_ev = staged[first];
             // bail out if event is for antother mechanism
-            if (first.handle.mech_id != mech_id) continue;
-            const auto mech_index = first.handle.mech_index;
+            if (first_ev.handle.mech_id != mech_id) continue;
+            const auto mech_index = first_ev.handle.mech_index;
             // find all adjacent events with same index
-            std::size_t s = i+1;
-            while (s < staged.size() &&
-                   staged[s].handle.mech_index == mech_index &&
-                   staged[s].handle.mech_id == mech_id) {
-                ++s;
+            std::size_t last = first+1;
+            while (last < size &&
+                   staged[last].handle.mech_index == mech_index &&
+                   staged[last].handle.mech_id == mech_id) {
+                ++last;
             }
             // loop over timestep intervals
             for (size_type t=0; t<dts.size(); ++t) {
@@ -79,28 +81,23 @@ public:
                     size_type(ev_data_.size()),
                     size_type(ev_data_.size())};
                 // loop over events with same index
-                for (; i < s; ++i) {
-                    const auto& ev = staged[i];
+                for (; first < last; ++first) {
+                    const auto& ev = staged[first];
                     // check whether event falls within current timestep interval
-                    if (event_time(ev) < dt.t_end()) {
-                        // add event data and increase event range
-                        ev_data_.push_back(event_data(ev));
-                        ++r.end;
-                    }
-                    else {
-                        // bail out if event does not fall within current timestep interval
-                        break;
-                    }
+                    if (event_time(ev) >= dt.t_end()) break;
+                    // add event data and increase event range
+                    ev_data_.push_back(event_data(ev));
+                    ++r.end;
                 }
                 // add event range if it is not empty
                 if (r.end > r.begin) {
                     ranges_[t].push_back(r);
                 }
                 // bail out if all events have been used
-                if (i >= s) break;
+                if (first >= last) break;
             }
             // reset loop variable
-            i = s-1;
+            first = last-1;
         }
         arb_assert(n == ev_data_.size());
     }
