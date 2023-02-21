@@ -26,8 +26,7 @@ struct shared_state_base {
         d->time = d->time_to;
     }
 
-    void begin_epoch(//const event_map& deliverables,
-                     const std::vector<deliverable_event>& events,
+    void begin_epoch(const std::vector<deliverable_event>& events,
                      const std::vector<arb_size_type>& events_per_mech,
                      const std::vector<sample_event>& samples,
                      const timestep_range& dts) {

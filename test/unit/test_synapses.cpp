@@ -148,12 +148,10 @@ TEST(synapses, syn_basic_state) {
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
 
-    event_map m;
-    add_event(m, 0., {0, 1}, 3.14f);
-    add_event(m, 0., {0, 3}, 1.41f);
-    add_event(m, 0., {1, 0}, 2.71f);
-    add_event(m, 0., {1, 2}, 0.07f);
-    state.begin_epoch(m, {}, dts);
+    state.begin_epoch({{0., {0, 1}, 3.14f},
+                       {0., {0, 3}, 1.41f},
+                       {0., {1, 0}, 2.71f},
+                       {0., {1, 2}, 0.07f}}, {2, 2}, {}, dts);
     state.mark_events();
 
     state.deliver_events(*expsyn);

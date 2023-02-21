@@ -43,14 +43,14 @@ TEST(multi_event_stream, mark) {
 
     arb_deliverable_event_stream s;
     arb_deliverable_event_range r;
-    event_map em;
 
     timestep_range dts{0, 6, 1.0};
     EXPECT_EQ(dts.size(), 6u);
 
-    for (const auto& e : common_events) add_event(em, e);
-
-    m.init(em[mech], dts);
+    std::vector<deliverable_event> events(common_events);
+    std::stable_sort(events.begin(), events.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.handle.mech_index < rhs.handle.mech_index; });
+    m.init(events, mech, common_events.size(), dts);
 
     EXPECT_TRUE(m.empty());
     s = m.marked_events();
