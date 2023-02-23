@@ -223,15 +223,16 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     // event delivery
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("__global__\n"
-                                       "void apply_events(arb_mechanism_ppack params_, arb_deliverable_event_stream stream) {{\n"
+                                       "void apply_events(arb_mechanism_ppack params_, const arb_deliverable_event_data* begin_,\n"
+                                       "                  const arb_deliverable_event_data* end_) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto ii_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    if (ii_<stream.num_streams) {{\n"
-                                       "        const arb_deliverable_event_range r = stream.ranges[ii_];\n"
-                                       "        const arb_size_type tid_ = r.mech_index;\n"
-                                       "        const arb_deliverable_event_data* __restrict__ const data_ = stream.data;\n"
-                                       "        for (auto i_=r.begin; i_<r.end; ++i_) {{\n"
-                                       "            [[maybe_unused]] auto {0} = (data_+i_)->weight;\n"),
+                                       "    const auto ii_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
+                                       "    if (ii_ < (end_ - begin_)) {{\n"
+                                       "        const auto tid_ = (begin_ + ii_)->mech_index;\n"
+                                       "        if ((ii_ > 0) && ((begin_ + (ii_ - 1))->mech_index == tid_)) return;\n"
+                                       "        for (auto i_ = begin_ + ii_; i_ < end_; ++i_) {{\n"
+                                       "            if (i_->mech_index != tid_) break;\n"
+                                       "            [[maybe_unused]] auto {0} = i_->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
         emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
@@ -314,9 +315,11 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{"), class_name, api_name);
         if(!net_receive_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
-                                           "    const arb_size_type num_streams = stream_ptr->num_streams;\n"
-                                           "    if (num_streams == 0u) return;\n"
-                                           "    ::arb::gpu::launch_1d(num_streams, 128, {}, *p, *stream_ptr);\n"),
+                                           "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
+                                           "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
+                                           "    const auto n = end - begin;\n"
+                                           "    if (!n) return;\n"
+                                           "    ::arb::gpu::launch_1d(n, 128, {}, *p, begin, end);\n"),
                                api_name);
         }
         out << "}\n\n";

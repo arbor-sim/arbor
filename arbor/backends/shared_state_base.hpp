@@ -26,16 +26,16 @@ struct shared_state_base {
         d->time = d->time_to;
     }
 
-    void begin_epoch(const std::vector<deliverable_event>& events,
-                     const std::vector<arb_size_type>& events_per_mech,
+    void begin_epoch(const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
                      const std::vector<sample_event>& samples,
                      const timestep_range& dts) {
         auto d = static_cast<D*>(this);
         // events
         auto& storage = d->storage;
         for (auto& [mech_id, store] : storage) {
-            if (mech_id < events_per_mech.size() && events_per_mech[mech_id]) {
-                store.deliverable_events_.init(events, mech_id, events_per_mech[mech_id], dts);
+            if (mech_id < staged_events_per_mech_id.size() && staged_events_per_mech_id[mech_id].size())
+            {
+                store.deliverable_events_.init(staged_events_per_mech_id[mech_id], dts);
             }
         }
         // samples
@@ -85,8 +85,9 @@ struct shared_state_base {
         auto& storage = d->storage;
         if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
             auto& deliverable_events = it->second.deliverable_events_;
-            if (auto es_state = deliverable_events.marked_events(); es_state.num_streams > 0u) {
-                m.deliver_events(es_state);
+            if (!deliverable_events.empty()) {
+                auto state = deliverable_events.marked_events();
+                m.deliver_events(state);
             }
         }
     }

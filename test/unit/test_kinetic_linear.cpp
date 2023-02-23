@@ -45,6 +45,8 @@ void run_test(std::string mech_name,
         std::vector<arb_value_type> t1_values,
         arb_value_type dt) {
 
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     auto cat = make_unit_test_catalogue();
 
     // Create a single compartment cell
@@ -61,7 +63,7 @@ void run_test(std::string mech_name,
     std::vector<arb_index_type> src_to_spike = {};
 
     // Create the fvm shared state for the simple cell.
-    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncv, cv_to_cell,
+    auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
                                                                          vinit, temp, diam,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},

@@ -23,4 +23,9 @@ struct event_stream_state {
     }
 };
 
+template <typename EvData>
+inline event_stream_state<EvData> make_event_stream_state(EvData* begin, EvData* end) {
+    return {begin, end};
+}
+
 } // namespace arb

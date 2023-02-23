@@ -41,13 +41,18 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
     // Construct cell implementation, retrieving handles and maps.
     auto fvm_info = lowered_->initialize(gids_, rec);
 
+    for (auto [mech_id, n_targets] : fvm_info.num_targets_per_mech_id) {
+        if (n_targets > 0u && mech_id >= staged_events_per_mech_id_.size()) {
+            staged_events_per_mech_id_.resize(mech_id+1);
+        }
+    }
+
     // Propagate source and target ranges to the simulator object
     cg_sources = std::move(fvm_info.source_data);
     cg_targets = std::move(fvm_info.target_data);
 
     // Store consistent data from fvm_lowered_cell
     target_handles_ = std::move(fvm_info.target_handles);
-    events_per_target_.resize(target_handles_.size(), 0u);
     probe_map_ = std::move(fvm_info.probe_map);
 
     // Create lookup structure for target ids.
@@ -377,61 +382,31 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Bin and collate deliverable events from event lanes.
 
-    PE(advance:eventsetup:reset);
+    PE(advance:eventsetup:clear);
     sample_events_.clear();
-    std::fill(events_per_mech_.begin(), events_per_mech_.end(), 0u);
-
+    for (auto& v : staged_events_per_mech_id_) {
+        v.clear();
+    }
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
     PL();
 
     // Skip event handling if nothing to deliver.
+    PE(advance:eventsetup:push);
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
-        PE(advance:eventsetup:pass1);
-        std::fill(events_per_target_.begin(), events_per_target_.end(), 0u);
         auto lid = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (e.time>=ep.t1) break;
                 const auto offset = target_handle_divisions_[lid]+e.target;
-                ++events_per_target_[offset];
-                const auto mech_id = target_handles_[offset].mech_id;
-                if (events_per_mech_.size() <= mech_id) {
-                    events_per_mech_.resize(mech_id+1, 0u);
-                    events_per_mech_[mech_id] = 1u;
-                }
-                else {
-                    ++events_per_mech_[mech_id];
-                }
+                const auto h = target_handles_[offset];
+                staged_events_per_mech_id_[h.mech_id].emplace_back(e.time, h, e.weight);
             }
             ++lid;
         }
-        PL();
-
-        PE(advance:eventsetup:scan);
-        // exclusive scan
-        arb_size_type n_events = 0;
-        for (auto& x : events_per_target_) {
-            n_events += std::exchange(x, n_events);
-        }
-        staged_events_.resize(n_events);
-        PL();
-
-        PE(advance:eventsetup:pass2);
-        lid = 0;
-        for (auto& lane: event_lanes) {
-            for (auto e: lane) {
-                // Events coinciding with epoch's upper boundary belong to next epoch
-                if (e.time>=ep.t1) break;
-                const auto offset = target_handle_divisions_[lid]+e.target;
-                const auto index = events_per_target_[offset]++;
-                staged_events_[index] = deliverable_event{e.time, target_handles_[offset], e.weight};
-            }
-            ++lid;
-        }
-        PL();
     }
+    PL();
 
     // Create sample events and delivery information.
     //
@@ -490,7 +465,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(timesteps_, staged_events_, events_per_mech_, sample_events_);
+    auto result = lowered_->integrate(timesteps_, staged_events_per_mech_id_, sample_events_);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

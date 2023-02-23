@@ -23,6 +23,7 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
+#include "util/strprintf.hpp"
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
@@ -192,7 +193,8 @@ void istim_state::add_current(const arb_value_type time, array& current_density)
 
 // shared_state methods:
 
-shared_state::shared_state(arb_size_type n_cell,
+shared_state::shared_state(task_system_handle,    // ignored in mc backend
+                           arb_size_type n_cell,
                            arb_size_type n_cv_,
                            const std::vector<arb_index_type>& cv_to_cell_vec,
                            const std::vector<arb_value_type>& init_membrane_potential,
@@ -262,10 +264,8 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples() {
     sample_events.mark();
-    const auto& state = sample_events.marked_events();
-    if (!state.empty()) {
-        const auto begin = state.begin_marked;
-        const auto end = state.end_marked;
+    if (!sample_events.empty()) {
+        const auto [begin, end] = sample_events.marked_events();
         // Null handles are explicitly permitted, and always give a sample of zero.
         for (auto p = begin; p<end; ++p) {
             sample_time[p->offset] = time;

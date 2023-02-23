@@ -73,6 +73,8 @@ TEST(synapses, syn_basic_state) {
     using value_type = arb_value_type;
     using index_type = arb_index_type;
 
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     int num_syn = 4;
     int num_comp = 4;
     int num_cells = 1;
@@ -87,7 +89,8 @@ TEST(synapses, syn_basic_state) {
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
-    shared_state state(num_cells,
+    shared_state state(thread_pool,
+                       num_cells,
                        num_comp,
                        std::vector<index_type>(num_comp, 0),
                        std::vector<value_type>(num_comp, -65),
@@ -148,10 +151,9 @@ TEST(synapses, syn_basic_state) {
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
 
-    state.begin_epoch({{0., {0, 1}, 3.14f},
-                       {0., {0, 3}, 1.41f},
-                       {0., {1, 0}, 2.71f},
-                       {0., {1, 2}, 0.07f}}, {2, 2}, {}, dts);
+    state.begin_epoch({{{0., {0, 1}, 3.14f}, {0., {0, 3}, 1.41f}},  // events for mech_id == 0
+                       {{0., {1, 0}, 2.71f}, {0., {1, 2}, 0.07f}}}, // events for mech_id == 1
+                      {}, dts);
     state.mark_events();
 
     state.deliver_events(*expsyn);

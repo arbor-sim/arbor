@@ -187,7 +187,7 @@ void run_v_i_probe_test(context ctx) {
     // After an integration step, expect voltage probe values
     // to differ from resting, and for there to be a non-zero current.
 
-    lcell.integrate({0.01, 0.0025}, {}, {}, {});
+    lcell.integrate({0.01, 0.0025}, {}, {});
 
     EXPECT_NE(resting, deref(p0a));
     EXPECT_NE(resting, deref(p0b));
@@ -316,14 +316,13 @@ void run_expsyn_g_probe_test(context ctx) {
         // and another at 2ms to second, weight 1.
 
         arb_assert(targets[0].mech_id == targets[1].mech_id);
-        std::vector<deliverable_event> events = {
+        std::vector<std::vector<deliverable_event>> events(targets[0].mech_id+1);
+        events[targets[0].mech_id] = {
             deliverable_event{1.0, targets[0], 0.5},
             deliverable_event{2.0, targets[1], 1.0}};
-        std::vector<arb_size_type> events_per_mech(targets[0].mech_id+1, 0u);
-        events_per_mech.back() = events.size();
         const double tfinal = 3.0;
         const double dt = 0.001;
-        lcell.integrate({tfinal, dt}, events, events_per_mech, {});
+        lcell.integrate({tfinal, dt}, events, {});
 
         arb_value_type g0 = deref(p0);
         arb_value_type g1 = deref(p1);
@@ -404,21 +403,18 @@ void run_expsyn_g_cell_probe_test(context ctx) {
         // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
         // integrate for a tiny time step.
 
-        std::vector<deliverable_event> events;
+        std::vector<std::vector<deliverable_event>> events(2);
         for (unsigned i: {0u, 1u}) {
             // Cells have the same number of targets, so the offset for cell 1 is exactly...
             cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
 
             for (auto target_id: util::keys(expsyn_target_loc_map)) {
-                deliverable_event ev{0., targets.at(target_id+cell_offset), float(target_id+100*i)};
-                events.push_back(ev);
+                auto h = targets.at(target_id+cell_offset);
+                deliverable_event ev{0., h, float(target_id+100*i)};
+                events[h.mech_id].push_back(ev);
             }
         }
-        std::stable_sort(events.begin(), events.end(), [](const auto& lhs, const auto& rhs) {
-            return lhs.handle.mech_index < rhs.handle.mech_index; });
-        std::vector<arb_size_type> events_per_mech(2, 0u);
-        events_per_mech.at(events[0].handle.mech_id) = events.size();
-        (void)lcell.integrate({1e-5, 1e-5}, events, events_per_mech, {});
+        (void)lcell.integrate({1e-5, 1e-5}, events, {});
 
         // Independently get cv geometry to compute CV indices.
 

@@ -207,7 +207,7 @@ TEST(fvm_lowered, matrix_init)
 
     // Test that the matrix is initialized with sensible values
 
-    fvcell.integrate({0.01, 0.01}, {}, {}, {});
+    fvcell.integrate({0.01, 0.01}, {}, {});
 
     auto n = J.size();
 
@@ -561,6 +561,8 @@ TEST(fvm_lowered, read_valence) {
 
 // Test correct scaling of ionic currents in reading and writing
 TEST(fvm_lowered, ionic_concentrations) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     auto cat = make_unit_test_catalogue();
 
     // one cell, one CV:
@@ -596,7 +598,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto& read_cai_mech  = read_cai.mech;
     auto& write_cai_mech = write_cai.mech;
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncv, cv_to_cell,
+    auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
                                                                          vinit, temp, diam,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
@@ -670,7 +672,7 @@ TEST(fvm_lowered, ionic_currents) {
 
     // Integration should be (effectively) exact, so check for linear response.
     const double time = 0.2; // [ms]
-    (void)fvcell.integrate({time, 0.1}, {}, {}, {});
+    (void)fvcell.integrate({time, 0.1}, {}, {});
     double expected_Xi = -time*coeff*jca;
     EXPECT_NEAR(expected_Xi, ion.Xi_[0], 1e-6);
 }
@@ -707,7 +709,7 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Ionic current should be ica_nA/soma_area after integrating past event time.
     const double time = 0.5; // [ms]
-    (void)fvcell.integrate({time, 0.01}, {ev}, {1}, {});
+    (void)fvcell.integrate({time, 0.01}, {{ev}}, {});
 
     double expected_iX = ica_nA*1e-9/soma_area_m2;
     EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);

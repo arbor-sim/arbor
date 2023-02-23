@@ -59,8 +59,7 @@ public:
 
     fvm_integration_result integrate(
         const timestep_range& dts,
-        const std::vector<deliverable_event>& staged_events,
-        const std::vector<arb_size_type>& events_per_mech,
+        const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
         const std::vector<sample_event>& staged_samples) override;
 
     value_type time() const override { return state_->time; }
@@ -159,8 +158,7 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     const timestep_range& dts,
-    const std::vector<deliverable_event>& staged_events,
-    const std::vector<arb_size_type>& events_per_mech,
+    const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
     const std::vector<sample_event>& staged_samples)
 {
     arb_assert(state_->time == dts.t_begin());
@@ -169,7 +167,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // Integration setup
     PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
-    state_->begin_epoch(staged_events, events_per_mech, staged_samples, dts);
+    state_->begin_epoch(staged_events_per_mech_id, staged_samples, dts);
     PL();
 
     // loop over timesteps
@@ -441,7 +439,8 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
     const auto ncv = D.size();
-    state_ = std::make_unique<shared_state>(ncell,
+    state_ = std::make_unique<shared_state>(context_.thread_pool,
+                                            ncell,
                                             ncv,
                                             std::move(cv_to_cell),
                                             D.init_membrane_potential,
@@ -527,6 +526,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                     }
                 }
             }
+            fvm_info.num_targets_per_mech_id[mech_id] = config.target.size();
             break;
         case arb_mechanism_kind_gap_junction:
             // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].

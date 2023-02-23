@@ -333,18 +333,13 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    if (stream_ptr->num_streams == 0u) return;\n"
-                                       "    const arb_deliverable_event_data* data_ = stream_ptr->data;\n"
-                                       "    const arb_size_type num_streams_ = stream_ptr->num_streams;\n"
-                                       "    for (arb_size_type s_=0u; s_<num_streams_; ++s_) {{\n"
-                                       "        auto [i_, begin_, end_] = stream_ptr->ranges[s_];\n"
-                                       "        for (; begin_<end_; ++begin_) {{\n"
-                                       "            const arb_deliverable_event_data* p = data_+begin_;\n"
-                                       "            [[maybe_unused]] auto {0} = p->weight;\n"),
+                                       "    auto [begin_, end_] = *stream_ptr;\n"
+                                       "    for (; begin_<end_; ++begin_) {{\n"
+                                       "        [[maybe_unused]] auto [i_, {0}] = *begin_;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
-        out << indent << indent << indent;
+        out << indent << indent;
         emit_api_body(out, net_receive_api, net_recv_flags);
-        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
+        out << popindent << "}\n" << popindent << "}\n\n";
     } else {
         out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
     }

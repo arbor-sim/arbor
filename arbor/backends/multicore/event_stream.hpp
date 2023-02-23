@@ -15,7 +15,7 @@
 #include "timestep_range.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
-#include "util/strprintf.hpp"
+#include "threading/threading.hpp"
 
 namespace arb {
 namespace multicore {
@@ -25,20 +25,24 @@ class event_stream {
 public:
     using size_type = arb_size_type;
     using event_type = Event;
-
     using event_time_type = ::arb::event_time_type<Event>;
     using event_data_type = ::arb::event_data_type<Event>;
-
-    using state = event_stream_state<event_data_type>;
+    using range = util::range<event_data_type*>;
 
     event_stream() = default;
 
-    bool empty() const { return ev_data_.empty() || index_ >= offsets_.size(); }
+    // returns true if the currently marked time step has no events
+    bool empty() const {
+        return ev_ranges_.empty() ||
+               ev_data_.empty() ||
+               !index_ ||
+               index_ > ev_ranges_.size() ||
+               !ev_ranges_[index_-1].size();
+    }
 
     void clear() {
-        tmp_.clear();
         ev_data_.clear();
-        offsets_.clear();
+        ev_ranges_.clear();
         index_ = 0;
     }
 
@@ -50,52 +54,56 @@ public:
             throw arbor_internal_error("multicore/event_stream: too many events for size type");
         }
 
-        auto append_tmp = [this]() {
-            if (tmp_.empty()) return;
-            if constexpr (has_event_index<Event>::value) {
-                util::stable_sort_by(tmp_, [](const Event& ev) { return event_index(ev); });
-            }
-            for (const auto ev_ : tmp_) {
-                ev_data_.push_back(event_data(ev_));
-            }
-            tmp_.clear();
-        };
-
+        // reset the state
         clear();
+
+        // return if there are no time steps
+        if (dts.empty()) return;
+
+        // reserve space for events
         ev_data_.reserve(staged.size());
-        offsets_.assign(dts.size()+1, staged.size());
-        offsets_[0] = 0u;
-        size_type dt_index = 0u;
-        auto dt = dts[dt_index];
-        for (const Event& ev : staged) {
-            const auto ev_t = event_time(ev);
-            if (ev_t >= dt.t_end()) {
-                while (ev_t >= dt.t_end()) {
-                    offsets_[++dt_index] = ev_data_.size()+tmp_.size();
-                    dt = dts[dt_index];
-                }
-                append_tmp();
+        ev_ranges_.reserve(dts.size());
+
+        auto dt_first = dts.begin();
+        const auto dt_last = dts.end();
+        auto ev_first = staged.begin();
+        const auto ev_last = staged.end();
+        while(dt_first != dt_last) {
+            // dereference iterator to current time step
+            const auto dt = *dt_first;
+            // add empty range for current time step
+            auto ptr = ev_data_.data() + ev_data_.size();
+            ev_ranges_.emplace_back(ptr, ptr);
+            // loop over events
+            for (; ev_first!=ev_last; ++ev_first) {
+                const auto& ev = *ev_first;
+                // check whether event falls within current timestep interval
+                if (event_time(ev) >= dt.t_end()) break;
+                // add event data and increase event range
+                ev_data_.push_back(event_data(ev));
+                ++ev_ranges_.back().right;
             }
-            tmp_.push_back(ev);
+            ++dt_first;
         }
-        append_tmp();
 
         arb_assert(ev_data_.size() == staged.size());
     }
 
     void mark() {
-        index_ += (index_ < offsets_.size() ? 1 : 0);
+        index_ += (index_ <= ev_ranges_.size() ? 1 : 0);
     }
 
-    state marked_events() const {
-        if (empty()) return {nullptr, nullptr};
-        return {ev_data_.data()+offsets_[index_-1], ev_data_.data()+offsets_[index_]};
+    auto marked_events() {
+        if (empty()) {
+            return make_event_stream_state((event_data_type*)nullptr, (event_data_type*)nullptr);
+        } else {
+            return make_event_stream_state(ev_ranges_[index_-1].left, ev_ranges_[index_-1].right);
+        }
     }
 
-protected:
-    std::vector<Event> tmp_;
+private:
     std::vector<event_data_type> ev_data_;
-    std::vector<size_type> offsets_;
+    std::vector<range> ev_ranges_;
     size_type index_ = 0;
 };
 

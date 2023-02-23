@@ -167,7 +167,8 @@ void istim_state::add_current(const arb_value_type time, array& current_density)
 
 // Shared state methods:
 
-shared_state::shared_state(arb_size_type n_cell,
+shared_state::shared_state(task_system_handle tp,
+                           arb_size_type n_cell,
                            arb_size_type n_cv_,
                            const std::vector<arb_index_type>& cv_to_cell_vec,
                            const std::vector<arb_value_type>& init_membrane_potential,
@@ -177,6 +178,7 @@ shared_state::shared_state(arb_size_type n_cell,
                            const fvm_detector_info& detector,
                            unsigned, // align parameter ignored
                            arb_seed_type cbprng_seed_):
+    thread_pool(tp),
     n_detector(detector.count),
     n_cv(n_cv_),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
@@ -189,6 +191,7 @@ shared_state::shared_state(arb_size_type n_cell,
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
+    sample_events(thread_pool),
     watcher{n_cv_,
             src_to_spike.data(),
             detector.cv,
@@ -238,7 +241,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.n_detectors      = n_detector;
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage[id];
+    auto& store = storage.emplace(id, thread_pool).first->second;
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -380,8 +383,8 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples() {
     sample_events.mark();
-    const auto& state = sample_events.marked_events();
-    if (!state.empty()) {
+    if (!sample_events.empty()) {
+        const auto state = sample_events.marked_events();
         take_samples_impl(state, time, sample_time.data(), sample_value.data());
     }
 }

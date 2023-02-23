@@ -65,22 +65,15 @@ typedef struct arb_ion_state {
 
 // Event; consumed by `apply_event`
 typedef struct arb_deliverable_event_data {
+    arb_size_type mech_index;
     arb_weight_type weight;
 } arb_deliverable_event_data;
 
-// A range of events to be consumed by a kernel thread
-typedef struct arb_deliverable_event_range {
-    arb_size_type mech_index;
-    arb_size_type begin;
-    arb_size_type end;
-} arb_deliverable_event_range;
-
-// A set of ranges of events to be consumed
+// A stream of events
 typedef struct arb_deliverable_event_stream {
-    arb_size_type num_streams;
-    const arb_deliverable_event_data* data;
-    const arb_deliverable_event_range* ranges;
-}  arb_deliverable_multi_event_stream;
+    const arb_deliverable_event_data* begin;
+    const arb_deliverable_event_data* end;
+}  arb_deliverable_event_stream;
 
 
 // Constraints for use in SIMD implementations, see there.

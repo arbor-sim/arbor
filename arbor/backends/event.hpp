@@ -3,6 +3,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
+#include <arbor/generic_event.hpp>
 
 // Structures for the representation of event delivery targets and
 // staged events.
@@ -30,14 +31,22 @@ struct deliverable_event {
         time(time), weight(weight), handle(handle) {}
 };
 
+template<>
+struct has_event_index<deliverable_event> : public std::true_type {};
+
 // Stream index accessor function for multi_event_stream:
-inline cell_local_size_type event_index(const deliverable_event& ev) {
-    return ev.handle.mech_index;
+inline cell_local_size_type event_index(const arb_deliverable_event_data& ed) {
+    return ed.mech_index;
 }
 
 // Delivery data accessor function for multi_event_stream:
 inline arb_deliverable_event_data event_data(const deliverable_event& ev) {
-    return {ev.weight};
+    return {ev.handle.mech_index, ev.weight};
+}
+
+inline arb_deliverable_event_stream make_event_stream_state(arb_deliverable_event_data* begin,
+                                                            arb_deliverable_event_data* end) {
+    return {begin, end};
 }
 
 // Sample events (raw values from back-end state).

@@ -193,6 +193,7 @@ struct probe_association_map {
 struct fvm_initialization_data {
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles;
+    std::unordered_map<unsigned, arb_size_type> num_targets_per_mech_id;
 
     // Maps probe ids to probe handles and tags.
     probe_association_map probe_map;
@@ -218,8 +219,7 @@ struct fvm_lowered_cell {
 
     virtual fvm_integration_result integrate(
         const timestep_range& dts,
-        const std::vector<deliverable_event>& staged_events,
-        const std::vector<arb_size_type>& events_per_mech,
+        const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
         const std::vector<sample_event>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;

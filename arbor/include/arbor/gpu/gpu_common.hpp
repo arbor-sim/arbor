@@ -1,9 +1,9 @@
 #pragma once
 
+#include <sstream>
 #include <stdexcept>
 
 #include "gpu_api.hpp"
-#include "util/pprintf.hpp"
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #   define HOST_DEVICE_IF_GPU __host__ __device__
@@ -34,9 +34,10 @@ constexpr inline unsigned block_count(unsigned n, unsigned block_size) {
 }
 
 inline void device_error(const api_error_type& api_error, const char func[], const char file[], int line) {
-    throw std::runtime_error(
-        ::arb::util::pprintf("device error: \"{}\" [{}] in function: {}, location: {}:{}",
-            api_error.description(), api_error.name(), func, file, line));
+    std::ostringstream o;
+    o << "device error: \"" << api_error.description() << "\" [" << api_error.name() << "]"
+      << " in function: " << func << ", location: " << file << ":" << line;
+    throw std::runtime_error(o.str());
 }
 
 } // namespace impl

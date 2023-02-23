@@ -19,12 +19,13 @@
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
+#include "threading/threading.hpp"
+
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 #include "backends/shared_state_base.hpp"
 
-#include "backends/multicore/multi_event_stream.hpp"
 #include "backends/multicore/threshold_watcher.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
@@ -184,7 +185,8 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     shared_state() = default;
 
-    shared_state(arb_size_type n_cell,
+    shared_state(task_system_handle tp,
+                 arb_size_type n_cell,
                  arb_size_type n_cv,
                  const std::vector<arb_index_type>& cv_to_cell_vec,
                  const std::vector<arb_value_type>& init_membrane_potential,

@@ -76,10 +76,8 @@ private:
     // Range of timesteps within current epoch
     timestep_range timesteps_;
 
-    // List of events to deliver, mapped by mechanism id
-    std::vector<deliverable_event> staged_events_;
-    std::vector<arb_size_type> events_per_target_;
-    std::vector<arb_size_type> events_per_mech_;
+    // List of events to deliver per mechanism id
+    std::vector<std::vector<deliverable_event>> staged_events_per_mech_id_;
 
     // List of samples to be taken
     std::vector<sample_event> sample_events_;
