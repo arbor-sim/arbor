@@ -31,29 +31,29 @@ this is all we need to do with it. Store this data as eg ``soma.swc``.
 
 Now we need to load this file. In the GUI:
 
-1. click on 'File' in the top left: |image1|
-2. choose 'Morphology > Load'
-3. navigate to your file using the dialogue: |image2|
-4. pick your file and click 'Load'
+1. Click on 'File' in the top left: |image1|
+2. Choose 'Morphology > Load'
+3. Navigate to your file using the dialogue: |image2|
+4. Pick your file and click 'Load'
 
--  if your file is among many others, you can filter for the ``.swc``
+-  If your file is among many others, you can filter for the ``.swc``
    extension only by choosing that suffix in 'Filter'
 -  SWC data has multiple interpretations; here we use the 'Neuron'
    flavor
 
-5. go to the cell tab and take a look at your cell in 3D
+5. Go to the cell tab and take a look at your cell in 3D
 
--  mouse wheel and +/- zoom the view
--  pressing Shift brings up a rotation handle
--  pressing Ctrl brings up a translation handle
--  right click the cell tab to
+-  Mouse wheel and +/- zoom the view
+-  Pressing Shift brings up a rotation handle
+-  Pressing Ctrl brings up a translation handle
+-  Right click the cell tab to
 
-   -  reset the camera
-   -  manipulate the axes cross
-   -  save a screenshot
-   -  tweak the model rendering resolution, might help performance in
+   -  Reset the camera
+   -  Manipulate the axes cross
+   -  Save a screenshot
+   -  Tweak the model rendering resolution, might help performance in
       complex views
-   -  hover segments to learn some details about the geometry
+   -  Hover segments to learn some details about the geometry
 
 E.g.: |image3| |image4|
 
@@ -138,7 +138,7 @@ Where to go from here
 ---------------------
 
 You can play with the simulation you just made, but beforehand it might
-help the current state (except probes). To do that choose 'File' >
+help to save the current state (except probes). To do that choose 'File' >
 'Cable' > 'Save'.
 
 .. |image0| image:: gui/gui-startup.png

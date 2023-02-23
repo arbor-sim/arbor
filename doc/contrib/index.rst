@@ -13,8 +13,8 @@ improving the documentation, helping other users, submitting bug reports
 and feature requests or writing code which can be incorporated into
 Arbor itself.
 
-Arbor uses Git for version control and Github to host its code repository and nearly
-all of its infrastructure. If you're not familiar with Git or Github, please have at look at
+Arbor uses Git for version control and GitHub to host its code repository and nearly
+all of its infrastructure. If you're not familiar with Git or GitHub, please have at look at
 `this introduction <https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/set-up-git>`_.
 Make sure you have a `GitHub account <https://github.com/signup/free>`_.
 
