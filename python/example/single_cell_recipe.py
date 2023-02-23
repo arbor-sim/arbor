@@ -26,7 +26,7 @@ decor = (
     .place('"midpoint"', arbor.threshold_detector(-10), "detector")
 )
 
-cell = arbor.cable_cell(tree, labels, decor)
+cell = arbor.cable_cell(tree, decor, labels)
 
 # (4) Define a recipe for a single cell and set of probes upon it.
 # This constitutes the corresponding generic recipe version of
@@ -92,7 +92,7 @@ else:
 print("Plotting results ...")
 
 df = pandas.DataFrame({"t/ms": data[:, 0], "U/mV": data[:, 1]})
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", ci=None).savefig(
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", errorbar=None).savefig(
     "single_cell_recipe_result.svg"
 )
 

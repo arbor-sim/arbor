@@ -24,10 +24,17 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("mpi4py")]  = pybind11::bool_(false);
 #endif
-#ifdef ARB_GPU_ENABLED
-    dict[pybind11::str("gpu")]     = pybind11::bool_(true);
-#else
-    dict[pybind11::str("gpu")]     = pybind11::bool_(false);
+#ifdef ARB_NVCC_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::str("cuda");
+#endif
+#ifdef ARB_CUDA_CLANG_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::str("cuda-clang");
+#endif
+#ifdef ARB_HIP_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::str("hip");
+#endif
+#ifndef ARB_GPU_ENABLED
+    dict[pybind11::str("gpu")]     = pybind11::none();
 #endif
 #ifdef ARB_VECTORIZE_ENABLED
     dict[pybind11::str("vectorize")] = pybind11::bool_(true);
@@ -39,19 +46,21 @@ pybind11::dict config() {
 #else
     dict[pybind11::str("profiling")] = pybind11::bool_(false);
 #endif
-#ifdef ARB_NEUROML_ENABLED
     dict[pybind11::str("neuroml")] = pybind11::bool_(true);
-#else
-    dict[pybind11::str("neuroml")] = pybind11::bool_(false);
-#endif
 #ifdef ARB_BUNDLED_ENABLED
     dict[pybind11::str("bundled")] = pybind11::bool_(true);
 #else
     dict[pybind11::str("bundled")] = pybind11::bool_(false);
 #endif
-    dict[pybind11::str("version")] = pybind11::str(ARB_VERSION);
-    dict[pybind11::str("source")]  = pybind11::str(ARB_SOURCE_ID);
-    dict[pybind11::str("arch")]    = pybind11::str(ARB_ARCH);
+
+    dict[pybind11::str("version")]       = pybind11::str(ARB_VERSION);
+    dict[pybind11::str("source")]        = pybind11::str(ARB_SOURCE_ID);
+    dict[pybind11::str("arch")]          = pybind11::str(ARB_ARCH);
+    dict[pybind11::str("prefix")]        = pybind11::str(ARB_PREFIX);
+    dict[pybind11::str("binary_path")]   = pybind11::str(ARB_BINARY);
+    dict[pybind11::str("lib_path")]      = pybind11::str(ARB_LIB);
+    dict[pybind11::str("data_path")]     = pybind11::str(ARB_DATA);
+    dict[pybind11::str("CXX")]           = pybind11::str(ARB_CXX_COMPILER);
     {
 #define mk_tok(x) #x
 #define mk_ver(M, m, p) mk_tok(M) "." mk_tok(m) "." mk_tok(p)

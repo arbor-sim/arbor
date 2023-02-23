@@ -68,7 +68,7 @@ def make_cable_cell(gid):
         .place('"root"', arbor.threshold_detector(-10), "detector")
     )
 
-    return arbor.cable_cell(tree, labels, decor)
+    return arbor.cable_cell(tree, decor, labels)
 
 
 # (5) Create a recipe that generates a network of connected cells.
@@ -152,6 +152,6 @@ for gid in range(ncells):
     )
 
 df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", ci=None).savefig(
-    "network_ring_result.svg"
-)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None
+).savefig("network_ring_result.svg")

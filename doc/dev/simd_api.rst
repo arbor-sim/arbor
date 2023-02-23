@@ -574,6 +574,38 @@ In the following:
       - *S*
       - Lane-wise raise *s* to the power of *t*.
 
+    * - ``sqrt(s)``
+      - *S*
+      - Lane-wise square root of *s*.
+
+    * - ``signum(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``step(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{if} ~x \lt 0, \\ 0.5 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``step_right(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \geq 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``step_left(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
+
+    * - ``tanh(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto tanh(x)`
+
+    * - ``relu(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto max(0, x)`
+
+    * - ``sigmoid(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto \frac{1}{1+e^{-x}}`
+
     * - ``simd_cast<std::array<L, N>>(a)``
       - ``std::array<L, N>``
       - Lane-wise cast of values in *a* to scalar type *L* in ``std::array<L, N>``.
@@ -1060,7 +1092,7 @@ wrap calls to the Intel scalar vector mathematics library (SVML).
 
 Outside of this case, the functions *exp*, *log*, *expm1* and
 *exprelr* use explicit approximations as detailed below. The
-algortihms follow those used in the
+algorithms follow those used in the
 `Cephes library <http://www.netlib.org/cephes/>`_, with
 some accommodations.
 

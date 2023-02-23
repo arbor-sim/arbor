@@ -29,10 +29,10 @@ struct basic_spike {
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
 
-} // namespace arb
-
 // Custom stream operator for printing arb::spike<> values.
 template <typename I>
-std::ostream& operator<<(std::ostream& o, arb::basic_spike<I> const& s) {
+std::ostream& operator<<(std::ostream& o, basic_spike<I> const& s) {
     return o << "S[src " << s.source << ", t " << s.time << "]";
 }
+
+} // namespace arb

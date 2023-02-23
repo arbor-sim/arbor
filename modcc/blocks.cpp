@@ -36,7 +36,15 @@ ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, IonDep const& I) {
 }
 
 ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, moduleKind const& k) {
-    return os << (k==moduleKind::density ? "density" : "point process");
+    switch (k) {
+        case moduleKind::density:  os << "density";  break;
+        case moduleKind::voltage:  os << "voltage";  break;
+        case moduleKind::point:    os << "point";    break;
+        case moduleKind::revpot:   os << "revpot";   break;
+        case moduleKind::junction: os << "junction"; break;
+        default:                   os << "???";      break;
+    }
+    return os;
 }
 
 ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, NeuronBlock const& N) {
@@ -74,6 +82,13 @@ ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, ParameterBlock const
 ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, AssignedBlock const& A) {
     os << blue("AssignedBlock")   << std::endl;
     os << "  parameters : "  << A.parameters << std::endl;
+
+    return os;
+}
+
+ARB_LIBMODCC_API std::ostream& operator<<(std::ostream& os, WhiteNoiseBlock const& W) {
+    os << blue("WhiteNoiseBlock")   << std::endl;
+    os << "  parameters : "  << W.parameters << std::endl;
 
     return os;
 }

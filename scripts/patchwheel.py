@@ -40,11 +40,9 @@ for inwheel in parsed_args.path.glob("*.whl"):
     subprocess.check_call(f"unzip {inwheel} -d {zipdir}", shell=True)
 
     arborn = list(zipdir.glob("**/_arbor.cpython*.so"))[0]
-    libxml2n = list(zipdir.glob("**/libxml2*.so*"))[0]
     subprocess.check_call(
         f"patchelf --set-rpath '$ORIGIN/../arbor.libs' {arborn}", shell=True
     )
-    subprocess.check_call(f"patchelf --set-rpath '$ORIGIN' {libxml2n}", shell=True)
 
     # TODO? correct checksum/bytecounts in *.dist-info/RECORD.
     # So far, Python does not report mismatches

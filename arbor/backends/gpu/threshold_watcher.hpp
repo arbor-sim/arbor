@@ -38,7 +38,7 @@ class threshold_watcher {
 public:
     using stack_type = stack<threshold_crossing>;
 
-    threshold_watcher() = delete;
+    threshold_watcher() = default;
     threshold_watcher(threshold_watcher&& other) = default;
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
@@ -109,18 +109,17 @@ public:
     /// Crossing events are recorded for each threshold that has been
     /// crossed since current time t, and the last time the test was
     /// performed.
-    void test(array* time_since_spike) {
-        arb_assert(values_);
+    void test(array& time_since_spike) {
 
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
                 cv_to_intdom_, t_after_ptr_->data(), t_before_ptr_->data(),
-                src_to_spike_, time_since_spike->data(),
+                src_to_spike_, time_since_spike.data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
                 cv_index_.data(), values_, thresholds_.data(),
-                !time_since_spike->empty());
+                !time_since_spike.empty());
 
             // Check that the number of spikes has not exceeded capacity.
             arb_assert(!stack_.overflow());

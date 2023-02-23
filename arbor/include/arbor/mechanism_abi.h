@@ -7,10 +7,21 @@
 extern "C" {
 #endif
 
+// Marker for non-overlapping arrays/pointers
+#ifdef __cplusplus
+#if defined ( __GNUC__ ) || defined ( __clang__ )
+#define ARB_NO_ALIAS __restrict__
+#else
+#error "Unknown compiler, please add support."
+#endif
+#else
+#define ARB_NO_ALIAS restrict
+#endif
+
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 2
-#define ARB_MECH_ABI_VERSION_PATCH 1
+#define ARB_MECH_ABI_VERSION_MINOR 4
+#define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
@@ -22,6 +33,7 @@ typedef uint32_t arb_mechanism_kind;
 #define arb_mechanism_kind_density 2
 #define arb_mechanism_kind_reversal_potential 3
 #define arb_mechanism_kind_gap_junction 4
+#define arb_mechanism_kind_voltage 5
 
 typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_nil 0
@@ -33,6 +45,8 @@ inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
         case arb_mechanism_kind_density: return "density mechanism kind";
         case arb_mechanism_kind_point:   return "point mechanism kind";
         case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
+        case arb_mechanism_kind_gap_junction: return "gap junction mechanism kind";
+        case arb_mechanism_kind_voltage: return "voltage mechanism kind";
         default: return "unknown mechanism kind";
     }
 }
@@ -81,10 +95,9 @@ typedef struct arb_constraint_partition {
 
 // Parameter Pack
 typedef struct arb_mechanism_ppack {
-    arb_size_type  width;                        // Number of CVs.
+    arb_size_type   width;                       // Number of CVs.
     arb_index_type  n_detectors;                 // Number of spike detectors.
     arb_index_type* vec_ci;
-    arb_index_type* vec_di;
     arb_value_type* vec_dt;
     arb_value_type* vec_v;
     arb_value_type* vec_i;
@@ -105,6 +118,8 @@ typedef struct arb_mechanism_ppack {
     arb_value_type** state_vars;                    // Array of integrable state.      (Array)
     arb_value_type*  globals;                       // Array of global constant state. (Scalar)
     arb_ion_state*   ion_states;                    // Array of views into shared state.
+
+    arb_value_type const * const * random_numbers;  // Array of random numbers
 } arb_mechanism_ppack;
 
 
@@ -190,6 +205,11 @@ typedef struct arb_ion_info {
     int  expected_valence;
 } arb_ion_info;
 
+typedef struct arb_random_variable_info {
+    const char* name;
+    arb_size_type index;
+} arb_random_variable_info;
+
 // Backend independent data
 typedef struct arb_mechanism_type {
     // Metadata
@@ -208,6 +228,8 @@ typedef struct arb_mechanism_type {
     arb_size_type             n_parameters;
     arb_ion_info*             ions;             // Ion properties
     arb_size_type             n_ions;
+    arb_random_variable_info* random_variables; // Random variable properties
+    arb_size_type             n_random_variables;
 } arb_mechanism_type;
 
 // Bundle a type and its interfaces

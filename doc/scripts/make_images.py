@@ -170,7 +170,6 @@ def morph_image(morphs, methods, filename, **kwargs):
 # Handling this case would make rendering regions more complex, but would
 # not bee too hard to support.
 def label_image(morphology, labels, filename, **kwargs):
-
     loc_sc = kwargs.get("loc_sc", 2)
     sc = kwargs.get("sc", 20)
     drawroot = kwargs.get("drawroot", True)
@@ -294,7 +293,6 @@ def label_image(morphology, labels, filename, **kwargs):
 
 
 def generate(path=""):
-
     morph_image(
         [inputs.branch_morph2],
         ["segments"],

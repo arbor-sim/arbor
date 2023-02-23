@@ -1,4 +1,4 @@
-name: Sanitize
+name: Lint
 
 on:
   pull_request:
@@ -20,14 +20,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8
       - name: Clone w/ submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Python Formatting
         uses: psf/black@stable
         with:
-          options: --check
-          src: scripts/build-catalogue.in .
+          options: --check --extend-exclude '/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
+          src: .
       - name: Python analysis
         run: |
-          flake8 scripts/build-catalogue.in .
+          flake8 .

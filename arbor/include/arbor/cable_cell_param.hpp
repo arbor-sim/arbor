@@ -227,6 +227,16 @@ struct ARB_SYMBOL_VISIBLE density {
     }
 };
 
+struct ARB_SYMBOL_VISIBLE voltage_process {
+    mechanism_desc mech;
+    explicit voltage_process(mechanism_desc m): mech(std::move(m)) {}
+    voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) {
+            mech.set(param, value);
+        }
+    }
+};
+
 struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
     std::string ion;
     mechanism_desc method;
@@ -255,6 +265,7 @@ using paintable =
                  init_ext_concentration,
                  init_reversal_potential,
                  density,
+                 voltage_process,
                  scaled_mechanism<density>>;
 
 using placeable =

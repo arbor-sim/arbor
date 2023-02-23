@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arborio/label_parse.hpp>
 
@@ -13,7 +13,7 @@
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
-#include <simple_recipes.hpp>
+#include "../simple_recipes.hpp"
 
 using namespace arb;
 using namespace arborio::literals;
@@ -90,7 +90,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test again at t=1, with unchanged values
     //  - nothing should change
     memory::fill(time_after, 1.);
-    watch.test(&time_since_spike);
+    watch.test(time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -106,7 +106,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
     memory::fill(time_after, 2.);
-    watch.test(&time_since_spike);
+    watch.test(time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -118,7 +118,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::copy(time_after, time_before);
     time_after[0] = 2.5;
     time_after[1] = 3.0;
-    watch.test(&time_since_spike);
+    watch.test(time_since_spike);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
@@ -142,7 +142,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
     memory::fill(time_after, 4.);
-    watch.test(&time_since_spike);
+    watch.test(time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -158,7 +158,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     values[index[2]] = 6.;
     memory::copy(time_after, time_before);
     memory::fill(time_after, 5.);
-    watch.test(&time_since_spike);
+    watch.test(time_since_spike);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
@@ -230,7 +230,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
         decor.place("mid"_lab, arb::i_clamp::box(0.01+i*dt, duration, 0.5), "clamp");
         decor.place("mid"_lab, arb::synapse("expsyn"), "synapse");
 
-        arb::cable_cell cell(morpho, dict, decor);
+        arb::cable_cell cell(morpho, decor, dict);
         cable1d_recipe rec({cell});
 
         auto decomp = arb::partition_load_balance(rec, context);

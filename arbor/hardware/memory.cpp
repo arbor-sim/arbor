@@ -14,9 +14,9 @@ extern "C" {
 namespace arb {
 namespace hw {
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
 memory_size_type allocated_memory() {
-#if defined(__GLIBC__) && (__GLIBC__ > 2 || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 33)))
+#if __GLIBC__ > 2 || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 33))
     auto m = mallinfo2();
 #else
     auto m = mallinfo();

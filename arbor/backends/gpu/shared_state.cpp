@@ -9,6 +9,7 @@
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
 #include "backends/multi_event_stream_state.hpp"
+#include "backends/gpu/chunk_writer.hpp"
 #include "memory/copy.hpp"
 #include "memory/gpu_wrappers.hpp"
 #include "memory/wrappers.hpp"
@@ -52,11 +53,10 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 
 // Ion state methods:
 
-ion_state::ion_state(
-    int charge,
-    const fvm_ion_config& ion_data,
-    unsigned, // alignment/padding ignored.
-    solver_ptr ptr):
+ion_state::ion_state(int charge,
+                     const fvm_ion_config& ion_data,
+                     unsigned, // alignment/padding ignored.
+                     solver_ptr ptr):
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
@@ -100,7 +100,7 @@ void ion_state::reset() {
 
 // istim_state methods:
 
-istim_state::istim_state(const fvm_stimulus_config& stim) {
+istim_state::istim_state(const fvm_stimulus_config& stim, unsigned) {
     using util::assign;
 
     // Translate instance-to-CV index from stim to istim_state index vectors.
@@ -178,20 +178,19 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
 // Shared state methods:
 
-shared_state::shared_state(
-    arb_size_type n_intdom,
-    arb_size_type n_cell,
-    arb_size_type n_detector,
-    const std::vector<arb_index_type>& cv_to_intdom_vec,
-    const std::vector<arb_index_type>& cv_to_cell_vec,
-    const std::vector<arb_value_type>& init_membrane_potential,
-    const std::vector<arb_value_type>& temperature_K,
-    const std::vector<arb_value_type>& diam,
-    const std::vector<arb_index_type>& src_to_spike,
-    unsigned // alignment parameter ignored.
-    ):
+shared_state::shared_state(arb_size_type n_intdom,
+                           arb_size_type n_cell,
+                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           const std::vector<arb_index_type>& cv_to_cell_vec,
+                           const std::vector<arb_value_type>& init_membrane_potential,
+                           const std::vector<arb_value_type>& temperature_K,
+                           const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_index_type>& src_to_spike,
+                           const fvm_detector_info& detector,
+                           unsigned, // alignment parameter ignored.
+                           arb_seed_type cbprng_seed_):
     n_intdom(n_intdom),
-    n_detector(n_detector),
+    n_detector(detector.count),
     n_cv(cv_to_intdom_vec.size()),
     cv_to_intdom(make_const_view(cv_to_intdom_vec)),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
@@ -207,74 +206,34 @@ shared_state::shared_state(
     diam_um(make_const_view(diam)),
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike)),
+    cbprng_seed(cbprng_seed_),
+    sample_events(n_intdom),
+    watcher{cv_to_intdom.data(),
+            src_to_spike.data(),
+            &time,
+            &time_to,
+            static_cast<arb_size_type>(voltage.size()),
+            detector.cv,
+            detector.threshold,
+            detector.ctx},
     deliverable_events(n_intdom)
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
 }
 
-namespace {
-template <typename T>
-struct chunk_writer {
-    T* end; // device ptr
-    const std::size_t stride;
-
-    chunk_writer(T* data, std::size_t stride): end(data), stride(stride) {}
-
-    template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
-    T* append(Seq&& seq) {
-        arb_assert(std::size(seq)==stride);
-        return append_freely(std::forward<Seq>(seq));
-    }
-
-    template <typename Seq, typename = std::enable_if_t<util::is_contiguous_v<Seq>>>
-    T* append_freely(Seq&& seq) {
-        std::size_t n = std::size(seq);
-        memory::copy(memory::host_view<T>(const_cast<T*>(std::data(seq)), n), memory::device_view<T>(end, n));
-        auto p = end;
-        end += n;
-        return p;
-    }
-
-    T* fill(T value) {
-        memory::fill(memory::device_view<T>(end, stride), value);
-        auto p = end;
-        end += stride;
-        return p;
-    }
-};
+void shared_state::update_prng_state(mechanism& m) {
+    if (!m.mech_.n_random_variables) return;
+    auto const mech_id = m.mechanism_id();
+    auto& store = storage[mech_id];
+    store.random_numbers_.update(m);
 }
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism parameter size mismatch");
-    const auto& store = storage.at(m.mechanism_id());
-
-    arb_value_type* data = nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
-        if (key==m.mech_.parameters[i].name) {
-            data = store.parameters_[i];
-            break;
-        }
-    }
-
-    if (!data) throw arbor_internal_error(util::pprintf("no such mechanism parameter '{}'", key));
-
-    if (!m.ppack_.width) return;
-    memory::copy(memory::make_const_view(values), memory::device_view<arb_value_type>(data, m.ppack_.width));
-}
-
-const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    const auto& store = storage.at(m.mechanism_id());
-
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            return store.state_vars_[i];
-        }
-    }
-    return nullptr;
-}
-
-void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+void shared_state::instantiate(mechanism& m,
+                               unsigned id,
+                               const mechanism_overrides& overrides,
+                               const mechanism_layout& pos_data,
+                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
@@ -292,7 +251,6 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    m.ppack_.vec_di           = cv_to_intdom.data();
     m.ppack_.vec_dt           = dt_cv.data();
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
@@ -335,15 +293,25 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
     {
         // Allocate bulk storage
         std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
-        store.data_   = array(count, NAN);
-        chunk_writer writer(store.data_.data(), width);
+        store.data_ = array(count, NAN);
+        chunk_writer writer(store.data_.data(), width_padded);
 
         // First sub-array of data_ is used for weight_
-        m.ppack_.weight = writer.append(pos_data.weight);
-        // Set fields
+        m.ppack_.weight = writer.append_with_padding(pos_data.weight, 0);
+        // Set parameters to either default or explicit setting
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            store.parameters_[idx] = writer.fill(m.mech_.parameters[idx].default_value);
+            const auto& param = m.mech_.parameters[idx];
+            const auto& it = std::find_if(params.begin(), params.end(),
+                                          [&](const auto& k) { return k.first == param.name; });
+            if (it != params.end()) {
+                if (it->second.size() != width) throw arbor_internal_error("mechanism field size mismatch");
+                 store.parameters_[idx] = writer.append_with_padding(it->second, param.default_value);
+            }
+            else {
+                store.parameters_[idx] = writer.fill(param.default_value);
+            }
         }
+        // Make STATE var the default
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
@@ -368,10 +336,10 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
         // Allocate bulk storage
         std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*width_padded);
-        chunk_writer writer(store.indices_.data(), width);
+        chunk_writer writer(store.indices_.data(), width_padded);
 
         // Setup node indices
-        m.ppack_.node_index = writer.append(pos_data.cv);
+        m.ppack_.node_index = writer.append_with_padding(pos_data.cv, 0);
         // Create ion indices
         for (auto idx: make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
@@ -383,14 +351,14 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
             auto ni = memory::on_host(oion->node_index_);
             auto indices = util::index_into(pos_data.cv, ni);
             std::vector<arb_index_type> mech_ion_index(indices.begin(), indices.end());
-            store.ion_states_[idx].index = writer.append(mech_ion_index);
+            store.ion_states_[idx].index = writer.append_with_padding(mech_ion_index, 0);
         }
 
-        m.ppack_.multiplicity = mult_in_place? writer.append(pos_data.multiplicity): nullptr;
+        m.ppack_.multiplicity = mult_in_place? writer.append_with_padding(pos_data.multiplicity, 0): nullptr;
         // `peer_index` holds the peer CV of each CV in node_index.
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
-        m.ppack_.peer_index = peer_indices? writer.append(pos_data.peer_cv): nullptr;
+        m.ppack_.peer_index = peer_indices? writer.append_with_padding(pos_data.peer_cv, 0): nullptr;
     }
 
     // Shift data to GPU, set up pointers
@@ -402,39 +370,8 @@ void shared_state::instantiate(mechanism& m, unsigned id, const mechanism_overri
 
     store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
-}
 
-void shared_state::integrate_voltage() {
-    solver.assemble(dt_intdom, voltage, current_density, conductivity);
-    solver.solve(voltage);
-}
-
-void shared_state::integrate_diffusion() {
-    for (auto& [ion, data]: ion_data) {
-        if (data.solver) {
-            data.solver->assemble(dt_intdom,
-                                  data.Xd_,
-                                  voltage,
-                                  data.iX_,
-                                  data.gX_,
-                                  data.charge[0]);
-            data.solver->solve(data.Xd_);
-        }
-    }
-}
-
-void shared_state::add_ion(
-    const std::string& ion_name,
-    int charge,
-    const fvm_ion_config& ion_info,
-    ion_state::solver_ptr ptr) {
-    ion_data.emplace(std::piecewise_construct,
-        std::forward_as_tuple(ion_name),
-                     std::forward_as_tuple(charge, ion_info, 1u, std::move(ptr)));
-}
-
-void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
-    stim_data = istim_state(stims);
+    store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
 }
 
 void shared_state::reset() {
@@ -460,22 +397,12 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-void shared_state::ions_init_concentration() {
-    for (auto& i: ion_data) {
-        i.second.init_concentration();
-    }
-}
-
 void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
     update_time_to_impl(n_intdom, time_to.data(), time.data(), dt_step, tmax);
 }
 
 void shared_state::set_dt() {
     set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
-}
-
-void shared_state::add_stimulus_current() {
-    stim_data.add_current(time, cv_to_intdom, current_density);
 }
 
 std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
@@ -486,8 +413,10 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 
-void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
-    take_samples_impl(s, time.data(), sample_time.data(), sample_value.data());
+void shared_state::take_samples() {
+   sample_events.mark_until(time_to);
+   take_samples_impl(sample_events.marked_events(), time.data(), sample_time.data(), sample_value.data());
+   sample_events.drop_marked_events();
 }
 
 // Debug interface

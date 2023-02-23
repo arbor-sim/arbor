@@ -16,6 +16,7 @@
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
+#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -193,22 +194,21 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
 // shared_state methods:
 
-shared_state::shared_state(
-    arb_size_type n_intdom,
-    arb_size_type n_cell,
-    arb_size_type n_detector,
-    const std::vector<arb_index_type>& cv_to_intdom_vec,
-    const std::vector<arb_index_type>& cv_to_cell_vec,
-    const std::vector<arb_value_type>& init_membrane_potential,
-    const std::vector<arb_value_type>& temperature_K,
-    const std::vector<arb_value_type>& diam,
-    const std::vector<arb_index_type>& src_to_spike,
-    unsigned align
-):
+shared_state::shared_state(arb_size_type n_intdom,
+                           arb_size_type n_cell,
+                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           const std::vector<arb_index_type>& cv_to_cell_vec,
+                           const std::vector<arb_value_type>& init_membrane_potential,
+                           const std::vector<arb_value_type>& temperature_K,
+                           const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_index_type>& src_to_spike_,
+                           const fvm_detector_info& detector,
+                           unsigned align,
+                           arb_seed_type cbprng_seed_):
     alignment(min_alignment(align)),
     alloc(alignment),
     n_intdom(n_intdom),
-    n_detector(n_detector),
+    n_detector(detector.count),
     n_cv(cv_to_intdom_vec.size()),
     cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
@@ -223,56 +223,34 @@ shared_state::shared_state(
     temperature_degC(n_cv, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
-    src_to_spike(src_to_spike.begin(), src_to_spike.end(), pad(alignment)),
-    deliverable_events(n_intdom)
-{
+    src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
+    cbprng_seed(cbprng_seed_),
+    sample_events(n_intdom),
+    watcher{cv_to_intdom.data(),
+            src_to_spike.data(),
+            &time,
+            &time_to,
+            static_cast<arb_size_type>(voltage.size()),
+            detector.cv,
+            detector.threshold,
+            detector.ctx},
+    deliverable_events(n_intdom) {
     // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
     if (n_cv>0) {
         std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
         std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
     }
+
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
     }
 
     util::fill(time_since_spike, -1.0);
-    for (unsigned i = 0; i<n_cv; ++i) {
-        temperature_degC[i] = temperature_K[i] - 273.15;
-    }
-}
-
-void shared_state::integrate_voltage() {
-    solver.assemble(dt_intdom, voltage, current_density, conductivity);
-    solver.solve(voltage);
-}
-
-void shared_state::integrate_diffusion() {
-    for (auto& [ion, data]: ion_data) {
-        if (data.solver) {
-            data.solver->assemble(dt_intdom,
-                                  data.Xd_,
-                                  voltage,
-                                  data.iX_,
-                                  data.gX_,
-                                  data.charge[0]);
-            data.solver->solve(data.Xd_);
-        }
-    }
-}
-
-void shared_state::add_ion(
-    const std::string& ion_name,
-    int charge,
-    const fvm_ion_config& ion_info,
-    ion_state::solver_ptr ptr) {
-    ion_data.emplace(std::piecewise_construct,
-                     std::forward_as_tuple(ion_name),
-                     std::forward_as_tuple(charge, ion_info, alignment, std::move(ptr)));
-}
-
-void shared_state::configure_stimulus(const fvm_stimulus_config& stims) {
-    stim_data = istim_state(stims, alignment);
+    std::transform(temperature_K.begin(), temperature_K.end(),
+                   temperature_degC.begin(),
+                   [](auto T) { return T - 273.15; });
+    reset_thresholds();
 }
 
 void shared_state::reset() {
@@ -297,12 +275,6 @@ void shared_state::zero_currents() {
         i.second.zero_current();
     }
     stim_data.zero_current();
-}
-
-void shared_state::ions_init_concentration() {
-    for (auto& i: ion_data) {
-        i.second.init_concentration();
-    }
 }
 
 void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
@@ -341,10 +313,6 @@ void shared_state::set_dt() {
     }
 }
 
-void shared_state::add_stimulus_current() {
-     stim_data.add_current(time, cv_to_intdom, current_density);
-}
-
 std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
     return util::minmax_value(time);
 }
@@ -353,22 +321,19 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return util::minmax_value(voltage);
 }
 
-void shared_state::take_samples(
-    const sample_event_stream::state& s,
-    array& sample_time,
-    array& sample_value)
-{
-    for (arb_size_type i = 0; i<s.n_streams(); ++i) {
-        auto begin = s.begin_marked(i);
-        auto end = s.end_marked(i);
-
+void shared_state::take_samples() {
+    sample_events.mark_until(time_to);
+    const auto& state = sample_events.marked_events();
+    for (arb_size_type i = 0; i<state.n_streams(); ++i) {
+        auto begin = state.begin_marked(i);
+        auto end = state.end_marked(i);
         // Null handles are explicitly permitted, and always give a sample of zero.
-        // (Note: probably not worth explicitly vectorizing this.)
         for (auto p = begin; p<end; ++p) {
             sample_time[p->offset] = time[i];
             sample_value[p->offset] = p->handle? *p->handle: 0;
         }
     }
+    sample_events.drop_marked_events();
 }
 
 // (Debug interface only.)
@@ -435,34 +400,29 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 }
 } // anonymous namespace
 
-void shared_state::set_parameter(mechanism& m, const std::string& key, const std::vector<arb_value_type>& values) {
-    if (values.size()!=m.ppack_.width) throw arbor_internal_error("mechanism field size mismatch");
+void shared_state::update_prng_state(mechanism& m) {
+    if (!m.mech_.n_random_variables) return;
+    const auto mech_id = m.mechanism_id();
+    auto& store = storage[mech_id];
+    const auto counter = store.random_number_update_counter_++;
+    const auto cache_idx = cbprng::cache_index(counter);
 
-    bool found = false;
-    arb_value_type* data = nullptr;
-    for (arb_size_type i = 0; i<m.mech_.n_parameters; ++i) {
-        if (key==m.mech_.parameters[i].name) {
-            data = m.ppack_.parameters[i];
-            found = true;
-            break;
-        }
+    m.ppack_.random_numbers = store.random_numbers_[cache_idx].data();
+
+    if (cache_idx == 0) {
+        // Generate random numbers every cbprng::cache_size() iterations:
+        // For each random variable we will generate cbprng::cache_size() values per site
+        // and there are width sites.
+        // The RNG will be seeded by a global seed, the mechanism id, the variable index, the
+        // current site's global cell, the site index within its cell and a counter representing
+        // time.
+        const auto num_rv = store.random_numbers_[cache_idx].size();
+        const auto width_padded = store.value_width_padded;
+        const auto width = m.ppack_.width;
+        arb_value_type* dst = store.random_numbers_[0][0];
+        generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter,
+            store.gid_.data(), store.idx_.data());
     }
-
-    if (!found) throw arbor_internal_error(util::pprintf("no such parameter '{}'", key));
-
-    if (!m.ppack_.width) return;
-
-    auto width_padded = extend_width<arb_value_type>(m, m.ppack_.width);
-    copy_extend(values, util::range_n(data, width_padded), values.back());
-}
-
-const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, const std::string& key) {
-    for (arb_size_type i = 0; i<m.mech_.n_state_vars; ++i) {
-        if (key==m.mech_.state_vars[i].name) {
-            return m.ppack_.state_vars[i];
-        }
-    }
-    return nullptr;
 }
 
 // The derived class (typically generated code from modcc) holds pointers that need
@@ -481,7 +441,11 @@ const arb_value_type* shared_state::mechanism_state_data(const mechanism& m, con
 // * For indices in the padded tail of node_index_, set index to last valid CV index.
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_overrides& overrides, const mechanism_layout& pos_data) {
+void shared_state::instantiate(arb::mechanism& m,
+                               unsigned id,
+                               const mechanism_overrides& overrides,
+                               const mechanism_layout& pos_data,
+                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.
@@ -491,12 +455,16 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     util::padded_allocator<> pad(m.data_alignment());
 
+    if (storage.find(id) != storage.end()) {
+        throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
+    }
+    auto& store = storage[id];
+    auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
-    m.ppack_.width            = pos_data.cv.size();
+    m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    m.ppack_.vec_di           = cv_to_intdom.data();
     m.ppack_.vec_dt           = dt_cv.data();
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
@@ -510,8 +478,9 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
 
-    if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage[id];
+    // store indices for random number generation
+    store.gid_ = pos_data.gid;
+    store.idx_ = pos_data.idx;
 
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
@@ -538,21 +507,43 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
 
     // Initialize state and parameter vectors with default values.
     {
+        // Allocate view pointers for random nubers
+        std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
+        std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
+        for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+        m.ppack_.random_numbers = store.random_numbers_[0].data();
+
         // Allocate bulk storage
         std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*value_width_padded + m.mech_.n_globals;
+        store.value_width_padded = value_width_padded;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
+            random_number_storage)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
         chunk_writer writer(store.data_.data(), value_width_padded);
 
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append(pos_data.weight, 0);
-        // Set fields
+        // Set parameters: either default, or explicit override
         for (auto idx: make_span(m.mech_.n_parameters)) {
-            m.ppack_.parameters[idx] = writer.fill(m.mech_.parameters[idx].default_value);
+            const auto& param = m.mech_.parameters[idx];
+            const auto& it = std::find_if(params.begin(), params.end(),
+                                          [&](const auto& k) { return k.first == param.name; });
+            if (it != params.end()) {
+                if (it->second.size() != width) throw arbor_internal_error("mechanism field size mismatch");
+                m.ppack_.parameters[idx] = writer.append(it->second, param.default_value);
+            }
+            else {
+                m.ppack_.parameters[idx] = writer.fill(param.default_value);
+            }
         }
+        // Set initial state values
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
+        // Set random numbers
+        for (auto idx_v: make_span(num_random_numbers_per_cv))
+            for (auto idx_c: make_span(cbprng::cache_size()))
+                store.random_numbers_[idx_c][idx_v] = writer.fill(0);
 
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
@@ -614,7 +605,7 @@ void shared_state::instantiate(arb::mechanism& m, unsigned id, const mechanism_o
         // `peer_index` holds the peer CV of each CV in node_index.
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
-        if (peer_indices)  m.ppack_.peer_index   = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
+        if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }
 

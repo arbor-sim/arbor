@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 
 
 def make_cable_cell(gid):
-
     # Build a segment tree
     tree = arbor.segment_tree()
 
@@ -55,7 +54,7 @@ def make_cable_cell(gid):
         .place('"root"', arbor.threshold_detector(-10), "detector")
     )
 
-    return arbor.cable_cell(tree, labels, decor)
+    return arbor.cable_cell(tree, decor, labels)
 
 
 # Create a recipe that generates connected chains of cells
@@ -160,5 +159,5 @@ for gid in range(ncells):
     )
 
 df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", ci=None)
+seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 plt.show()

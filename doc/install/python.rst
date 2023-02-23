@@ -42,9 +42,9 @@ You are now ready to use Arbor! You can continue reading these documentation pag
     for any other platforms than listed above, ``pip`` will attempt a build from source and thus require these
     packages as well.
 
-    * Ubuntu/Debian: ``git cmake gcc python3-dev python3-pip libxml2-dev``
-    * Fedora/CentOS/OpenSuse: ``git cmake gcc-c++ python3-devel python3-pip libxml2-devel``
-    * MacOS: get ``brew`` `here <https://brew.sh>`_ and run ``brew install cmake clang python3 libxml2``
+    * Ubuntu/Debian: ``git cmake gcc python3-dev python3-pip``
+    * Fedora/CentOS/OpenSuse: ``git cmake gcc-c++ python3-devel python3-pip``
+    * MacOS: get ``brew`` `at brew.sh <https://brew.sh>`_ and run ``brew install cmake clang python3``
     * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
 
 .. _in_python_custom:
@@ -89,8 +89,6 @@ where you place the arguments separated by space inside the quotes.
 
 The following flags can be used to configure the installation:
 
-* ``ARB_WITH_NEUROML=<ON|OFF>``: Enable support for NeuroML2 morphologies,
-  requires ``libxml2`` library. Default ``OFF``
 * ``ARB_WITH_MPI=<ON|OFF>``: Enable MPI support, requires MPI library. Default
   ``OFF``. If you intend to use ``mpi4py``, you need to install the package before
   building Arbor, as binding it requires access to its headers.
@@ -102,7 +100,7 @@ The following flags can be used to configure the installation:
   documented below, may also have to be set appropriately to generated
   vectorized code. See :ref:`install-architecture` for details.
 * ``ARB_ARCH=<native|*>``: CPU micro-architecture to target. The advised
-  default is ``native``. See `here
+  default is ``native``. See `the GNU GCC documentation
   <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of
   options.
 

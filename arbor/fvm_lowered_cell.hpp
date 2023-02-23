@@ -17,6 +17,7 @@
 #include <arbor/util/any_ptr.hpp>
 
 #include "backends/event.hpp"
+#include "backends/common_types.hpp"
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
@@ -25,12 +26,6 @@
 #include "util/transform.hpp"
 
 namespace arb {
-
-struct fvm_integration_result {
-    util::range<const threshold_crossing*> crossings;
-    util::range<const arb_value_type*> sample_time;
-    util::range<const arb_value_type*> sample_value;
-};
 
 // A sample for a probe may be derived from multiple 'raw' sampled
 // values from the backend.
@@ -236,6 +231,7 @@ struct fvm_lowered_cell {
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx);
+ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx,
+        std::uint64_t seed = 0);
 
 } // namespace arb

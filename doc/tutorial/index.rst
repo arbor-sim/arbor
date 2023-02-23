@@ -24,6 +24,7 @@ Cells
    single_cell_detailed
    single_cell_cable
    single_cell_allen
+   single_cell_bluepyopt
 
 Recipes
 -------
@@ -50,6 +51,14 @@ Probes
    :maxdepth: 1
 
    probe_lfpykit
+
+Stochastic Mechanisms
+---------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   calcium_stdp_curve
 
 Hardware
 --------

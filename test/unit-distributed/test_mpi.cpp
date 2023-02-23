@@ -1,6 +1,6 @@
 #ifdef TEST_MPI
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "test.hpp"
 
 #include <cstring>

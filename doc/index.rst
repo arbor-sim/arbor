@@ -1,16 +1,13 @@
 Arbor
 =====
 
-|ci| |hpcci| |pythonwheels| |zlatest| |gitter|
+|ci| |pythonwheels| |zlatest| |gitter|
 
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
 
-.. |hpcci| image:: https://gitlab.com/cscs-ci/arbor-sim/arbor/badges/master/pipeline.svg
-    :target: https://gitlab.com/cscs-ci/arbor-sim/arbor/-/commits/master
-
-.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/ciwheel.yml
+.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/release.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/release.yml
 
 .. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
     :target: https://gitter.im/arbor-sim/community
@@ -48,6 +45,12 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
+Version 0.8.1
+    |z081|
+
+Version 0.8
+    |z08|
+
 Version 0.7
     |z07|
 
@@ -80,6 +83,12 @@ Cite (Bibtex format)
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
 
+.. |z081| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7473671.svg
+    :target: https://doi.org/10.5281/zenodo.7473671
+    
+.. |z08| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7323982.svg
+    :target: https://doi.org/10.5281/zenodo.7323982
+    
 .. |z07| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6865725.svg
     :target: https://doi.org/10.5281/zenodo.6865725
     
@@ -132,6 +141,7 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/lif_cell
    concepts/spike_source_cell
    concepts/benchmark_cell
+   concepts/probe_sample
 
 .. toctree::
    :caption: Modelling:

@@ -80,7 +80,7 @@ Discretisation splits the segments described by the morphology into *control
 volumes* (CV; sometimes called *compartments*) according to a ``cv_policy``.
 This allows us to construct a system of linear equations, the Hines matrix, to
 describe the evolution of the CV voltages according to the cable equation. Refer
-to :ref:`Discretisation <discretisation>` and :ref:`Cable equation
+to :ref:`Discretisation <morph-cv-policies>` and :ref:`Cable equation
 <cable_equation>`.
 
 Backend-dependent data is stored in ``shared_state`` as per-compartment data and
@@ -103,11 +103,11 @@ axonal/synaptic delays. This works since we know that an event at time :math:`t`
 can have an effect at time :math:`t + T_{min}` at the soonest. The factor of one
 half stems from double-buffering to overlap communication and computation. So,
 Arbor collects all events in an epoch and transmits them in bulk, see
-:ref:`Communication <mpi_comm>` for details.
+:ref:`Communication <communication>` for details.
 
 Integration in Arbor is then split into three parts:
 
-1. apply effect of events to mechanisms :ref:`Event Handling <events>`
+1. apply effect of events to mechanisms :ref:`Event Handling <event_distribution>`
 2. evolve mechanisms and apply currents :ref:`Mechanisms <mechanisms>`
 3. solve voltage equations, see :ref:`Solver <matrix_solver>`
 

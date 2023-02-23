@@ -14,6 +14,7 @@ Cable cell labels
       Create an empty label dictionary
 
    .. method:: label_dict(dictionary)
+      :noindex:
 
       Initialize a label dictionary from a ``dictionary`` with string labels as keys,
       and corresponding string definitions as values.

@@ -68,12 +68,14 @@ struct ARB_ARBOR_API has_gap_junctions {
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
+    virtual ~has_gap_junctions() {}
 };
 
 struct ARB_ARBOR_API has_synapses {
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
         return {};
     }
+    virtual ~has_synapses() {}
 };
 
 struct ARB_ARBOR_API has_external_synapses {
@@ -86,12 +88,14 @@ struct ARB_ARBOR_API has_probes {
     virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
         return {};
     }
+    virtual ~has_probes() {}
 };
 
 struct ARB_ARBOR_API has_generators {
     virtual std::vector<event_generator> event_generators(cell_gid_type) const {
         return {};
     }
+    virtual ~has_generators() {}
 };
 
 // Toppings allow updating a simulation

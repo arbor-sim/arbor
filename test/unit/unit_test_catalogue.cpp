@@ -10,7 +10,7 @@
 
 #include "unit_test_catalogue.hpp"
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #define ADD_MECH(c, x) do {                                             \
     auto mech = make_testing_##x();                                     \

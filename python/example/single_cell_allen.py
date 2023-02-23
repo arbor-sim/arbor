@@ -114,7 +114,7 @@ def make_cell(swc, fit):
     decor.discretization(arbor.cv_policy_max_extent(20))
 
     # (11) Create cell
-    return arbor.cable_cell(morphology, labels, decor), offset
+    return arbor.cable_cell(morphology, decor, labels), offset
 
 
 # (12) Create cell, model
@@ -153,7 +153,9 @@ df_list.append(
     )
 )
 df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", ci=None)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", errorbar=None
+)
 plt.scatter(
     model.spikes, [-40] * len(model.spikes), color=seaborn.color_palette()[2], zorder=20
 )

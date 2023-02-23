@@ -41,6 +41,8 @@ ARB_ARBOR_API void profiler_enter(std::size_t region_id);
 ARB_ARBOR_API void profiler_leave();
 
 ARB_ARBOR_API profile profiler_summary();
+
+ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream&, double limit=0.0);
 ARB_ARBOR_API std::size_t profiler_region_id(const std::string& name);
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const profile&);

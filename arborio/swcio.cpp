@@ -46,7 +46,7 @@ swc_mismatched_tags::swc_mismatched_tags(int record_id):
 {}
 
 swc_unsupported_tag::swc_unsupported_tag(int record_id):
-    swc_error("Only SWC record identifiers of 1, 2, 3 or 4 are supported.", record_id)
+    swc_error("Unsupported SWC record identifier.", record_id)
 {}
 
 // Record I/O:
@@ -225,11 +225,6 @@ ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
             throw swc_mismatched_tags(it->id);
         }
 
-        // No soma: fall back to Arbor interpretation.
-        // Check for tags unsupported by NEURON beforehand.
-        if (auto it=std::find_if(R.begin(), R.end(), [](const auto& r) {return r.tag<1 || r.tag>4;}); it!=R.end()) {
-            throw swc_unsupported_tag(R[std::distance(R.begin(), it)].id);
-        }
         return load_swc_arbor_raw(data);
     }
 

@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 // Pair printer.
 

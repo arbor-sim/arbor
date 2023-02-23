@@ -125,7 +125,7 @@ struct cable_recipe: public arb::recipe {
             .place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp")           // Inject a 1 nA current indefinitely.
             .place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1")   // a synapse
             .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
-        return arb::cable_cell(tree, {}, decor);
+        return arb::cable_cell(tree, decor);
     }
 
     virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
@@ -199,14 +199,14 @@ void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
 
         for (unsigned j = 0; j<n_entities; ++j) {
             std::cout << samples[i].time << ", ";
-			if (cables_ptr) {
-				arb::mcable where = (*cables_ptr)[j];
-				std::cout << where.prox_pos << ", " << where.dist_pos << ", ";
-			} else {
-				arb::mlocation loc = (*point_info_ptr)[j].loc;
-				std::cout << loc.pos << ", ";
-			}
-			std::cout << lo[j] << '\n';
+            if (cables_ptr) {
+                arb::mcable where = (*cables_ptr)[j];
+                std::cout << where.prox_pos << ", " << where.dist_pos << ", ";
+            } else {
+                arb::mlocation loc = (*point_info_ptr)[j].loc;
+                std::cout << loc.pos << ", ";
+            }
+            std::cout << lo[j] << '\n';
         }
     }
 }

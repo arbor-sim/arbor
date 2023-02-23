@@ -130,8 +130,8 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
 
 std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}, V_reset {}>",
-        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref, c.V_reset);
+        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
+        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref);
 }
 
 
@@ -226,12 +226,12 @@ void register_cells(pybind11::module& m) {
             "Membrane capacitance [pF].")
         .def_readwrite("E_L", &arb::lif_cell::E_L,
             "Resting potential [mV].")
+        .def_readwrite("E_R", &arb::lif_cell::E_R,
+            "Reset potential [mV].")
         .def_readwrite("V_m", &arb::lif_cell::V_m,
             "Initial value of the Membrane potential [mV].")
         .def_readwrite("t_ref", &arb::lif_cell::t_ref,
             "Refractory period [ms].")
-        .def_readwrite("V_reset", &arb::lif_cell::V_reset,
-            "Reset potential [mV].")
         .def_readwrite("source", &arb::lif_cell::source,
             "Label of the single build-in source on the cell.")
         .def_readwrite("target", &arb::lif_cell::target,
@@ -466,8 +466,6 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& i, double v) -> arb::ion_diffusivity { return {i, v}; }))
         .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + std::to_string(d.value);});
 
-    // arb::density
-
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
     density
         .def(pybind11::init([](const std::string& name) {return arb::density(name);}))
@@ -477,6 +475,16 @@ void register_cells(pybind11::module& m) {
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
+
+    pybind11::class_<arb::voltage_process> voltage_process(m, "voltage_process", "For painting a voltage_process mechanism on a region.");
+    voltage_process
+        .def(pybind11::init([](const std::string& name) {return arb::voltage_process(name);}))
+        .def(pybind11::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
+        .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
+        .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
+        .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
 
     // arb::scaled_mechanism<arb::density>
 
@@ -577,14 +585,6 @@ void register_cells(pybind11::module& m) {
             return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);});
 
     // arb::threshold_detector
-    struct spike_detector {};
-    pybind11::class_<spike_detector> sd(m, "spike_detector", "Deprecated, please use 'threshold_detector'");
-    sd.def(pybind11::init(
-               [](pybind11::object) -> spike_detector {
-                   throw arb::arbor_exception{"Deprecated, please use 'threshold_detector' instead."};
-                   return {}; // unreachable
-               }));
-
     pybind11::class_<arb::threshold_detector> detector(m, "threshold_detector",
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
@@ -630,6 +630,8 @@ void register_cells(pybind11::module& m) {
         .def("check", [](const arb::cable_cell_global_properties& props) {
                 arb::check_global_properties(props);},
                 "Test whether all default parameters and ion species properties have been set.")
+        .def_readwrite("coalesce_synapses",  &arb::cable_cell_global_properties::coalesce_synapses,
+                "Flag for enabling/disabling linear syanpse coalescing.")
         // set cable properties
         .def_property("membrane_potential",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.init_membrane_potential; },
@@ -827,6 +829,12 @@ void register_cells(pybind11::module& m) {
             "region"_a, "mechanism"_a,
             "Associate a density mechanism with a region.")
         .def("paint",
+            [](arb::decor& dec, const char* region, const arb::voltage_process& mechanism) {
+                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+            },
+            "region"_a, "mechanism"_a,
+            "Associate a voltage process mechanism with a region.")
+        .def("paint",
             [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) {
                 dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
             },
@@ -921,17 +929,23 @@ void register_cells(pybind11::module& m) {
         "tree of one-dimensional cable segments.");
     cable_cell
         .def(pybind11::init(
-            [](const arb::morphology& m, const label_dict_proxy& labels, const arb::decor& d) {
-                return arb::cable_cell(m, labels.dict, d);
+            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
+                if (l) return arb::cable_cell(m, d, l->dict);
+                return arb::cable_cell(m, d);
             }),
-            "morphology"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology, label dictionary and decor.")
+            "morphology"_a,
+             "decor"_a,
+             pybind11::arg_v("labels", pybind11::none(), "Labels"),
+            "Construct with a morphology, decor, and label dictionary.")
         .def(pybind11::init(
-            [](const arb::segment_tree& t, const label_dict_proxy& labels, const arb::decor& d) {
-                return arb::cable_cell(arb::morphology(t), labels.dict, d);
+            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
+                if (l) return arb::cable_cell({t}, d, l->dict);
+                return arb::cable_cell({t}, d);
             }),
-            "segment_tree"_a, "labels"_a, "decor"_a,
-            "Construct with a morphology derived from a segment tree, label dictionary and decor.")
+            "segment_tree"_a,
+             "decor"_a,
+             pybind11::arg_v("labels", pybind11::none(), "Labels"),
+            "Construct with a morphology derived from a segment tree, decor, and label dictionary.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")

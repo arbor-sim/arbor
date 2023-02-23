@@ -2,7 +2,7 @@
 
 // Predicates for morphology testing.
 
-#include "../gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/morphology.hpp>

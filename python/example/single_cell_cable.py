@@ -108,7 +108,7 @@ class Cable(arbor.recipe):
         policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)
 
-        return arbor.cable_cell(tree, labels, decor)
+        return arbor.cable_cell(tree, decor, labels)
 
 
 def get_rm(g):
@@ -149,7 +149,6 @@ def get_tmax(data):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Cable")
 
     parser.add_argument(
@@ -222,9 +221,9 @@ if __name__ == "__main__":
         )
 
     df = pandas.concat(df_list, ignore_index=True)
-    seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Probe", ci=None).set(
-        xlim=(9, 14)
-    ).savefig("single_cell_cable_result.svg")
+    seaborn.relplot(
+        data=df, kind="line", x="t/ms", y="U/mV", hue="Probe", errorbar=None
+    ).set(xlim=(9, 14)).savefig("single_cell_cable_result.svg")
 
     # calculcate the idealized conduction velocity, cf. cable equation
     data = [sim.samples(handle)[0][0] for handle in handles]

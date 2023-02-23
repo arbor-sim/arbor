@@ -10,6 +10,8 @@
 #include "util/span.hpp"
 #include "util/transform.hpp"
 
+using arb::util::make_span;
+
 namespace arb {
 
 struct node_t {
@@ -17,9 +19,9 @@ struct node_t {
     msize_t id;
 };
 
-using node_p = std::function<bool(const node_t&)>;
+using id_p = std::function<bool(msize_t)>;
 
-node_p yes = [](node_t) { return true; };
+id_p yes = [](msize_t) { return true; };
 
 // invert parent <*> child relation, returns a map of parent_id -> [children_id]
 // For predictable ordering we sort the vectors.
@@ -30,52 +32,81 @@ std::map<msize_t, std::vector<msize_t>> tree_to_children(const segment_tree& tre
     for (auto& [k, v]: result) std::sort(v.begin(), v.end());
     return result;
 }
-    
-// Copy a segment tree into a new tree
+
+// Copy a segment subtree into a new tree
 // - tree to be (partially) copied
-// - start={parent, id}: start by attaching segment=`id`` from `tree` to the
-//                       output at `parent`, then its children to it recursively
+// - start={parent, id}: start by attaching segment=`id` from `tree` to the segment
+//                       `parent` of `init`, then its children to it recursively
 // - predicate: if returning false for a given node, we prune that sub-tree starting
-//              at node (inclusive). Can be used to prune trees by parent or id.
+//              at node (inclusive). Can be used to prune trees by segment id.
 // - init: initial tree to append to
-// Note: this is basically a recursive function w/ an explicit stack.
-segment_tree copy_if(const segment_tree& tree,
-                     node_t start,
-                     node_p predicate,
-                     const segment_tree& init={}) {
+// Note: this is an iterative implementation of depth-first traversal with an explicit stack.
+std::pair<segment_tree, std::vector<bool>> copy_subtree_if(const segment_tree& tree,
+                                                           const node_t& start,
+                                                           id_p predicate,
+                                                           const segment_tree& init={}) {
     auto children_of = tree_to_children(tree);
     auto& segments = tree.segments();
     segment_tree result = init;
+    std::vector<bool> copied(segments.size(), false);
     auto todo = std::vector<node_t>{start};
     while (!todo.empty()) {
         auto node = todo.back();
         todo.pop_back();
-        if (!predicate(node)) continue;
+        if (!predicate(node.id)) continue;
+        copied[node.id] = true;
         const auto& segment = segments[node.id];
         auto current = result.append(node.parent, segment.prox, segment.dist, segment.tag);
         for (auto child: children_of[node.id]) {
             todo.push_back({current, child});
         }
     }
-    return result;
+    return {result, copied};
+}
+
+// Filter a segment tree as a graph
+// - tree to be (partially) filtered
+// - predicate: if returning false for a given node, we exclude that node from the
+//              returned tree. Can be used to filter trees by segment id.
+std::pair<segment_tree, std::vector<bool>> copy_fulltree_if(const segment_tree& tree,
+                                                            id_p predicate) {
+    auto& segments = tree.segments();
+    auto& parents = tree.parents();
+
+    segment_tree result;
+    std::vector<bool> copied(segments.size(), false);
+    std::vector<msize_t> new_ids(segments.size(), mnpos);
+
+    for (msize_t id: make_span(0, segments.size())) {
+        if (!predicate(id)) continue;
+        copied[id] = true;
+        const auto& segment = segments[id];
+        auto parent = parents[id];
+        new_ids[id] = result.append(parent != mnpos ? new_ids[parent] : mnpos,
+                                    segment.prox, segment.dist, segment.tag);
+    }
+    return {result, copied};
 }
 
 std::pair<segment_tree, segment_tree>
 split_at(const segment_tree& tree, msize_t at) {
     if (at >= tree.size() || at == mnpos) throw invalid_segment_parent(at, tree.size());
     // span the sub-tree starting at the splitting node
-    segment_tree post = copy_if(tree, {mnpos, at}, yes);
-    // copy the original tree, but skip all nodes in the `post` tree
-    segment_tree pre = copy_if(tree,
-                               {mnpos, 0},
-                               [=](auto& node) { return node.id != at; });
+    const auto& post_copied = copy_subtree_if(tree, {mnpos, at}, yes);
+    auto post = post_copied.first;
+    auto copied = post_copied.second;
+
+    // copy the original segment_tree (as a graph), skipping all nodes in the `post` subtree
+    segment_tree pre = copy_fulltree_if(tree,
+                                        [&](msize_t id) { return !copied[id]; }).first;
+
     return {pre, post};
 }
 
 segment_tree
 join_at(const segment_tree& lhs, msize_t at, const segment_tree& rhs) {
     if (at >= lhs.size() && at != mnpos) throw invalid_segment_parent(at, lhs.size());
-    return copy_if(rhs, {at, 0}, yes, lhs);
+    return copy_subtree_if(rhs, {at, 0}, yes, lhs).first;
 }
 
 bool
@@ -98,7 +129,7 @@ equivalent(const segment_tree& a,
         return segs;
     };
 
-    std::vector<std::pair<arb::msize_t, arb::msize_t>> todo{{arb::mnpos, arb::mnpos}};
+    std::vector<std::pair<msize_t, msize_t>> todo{{arb::mnpos, arb::mnpos}};
     while (!todo.empty()) {
         const auto& [a_cursor, b_cursor] = todo.back();
         auto as = fetch_children(a_cursor, a.segments(), a_children_of);
@@ -199,6 +230,23 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
              << (one_line? ") (": ")\n  (")
              << io::sepval(tstr, ' ') <<  "))";
 }
+
+
+ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& t, int tag) {
+    const auto& segments = t.segments();
+    const auto& parents = t.parents();
+    std::vector<msize_t> tag_roots;
+
+    for (auto i: make_span(0, segments.size())) {
+        auto par = parents[i];
+        if (segments[i].tag == tag && (par == mnpos || segments[par].tag != tag)) {
+            tag_roots.push_back(i);
+        }
+    }
+
+    return tag_roots;
+}
+
 
 } // namespace arb
 

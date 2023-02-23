@@ -69,7 +69,7 @@ def make_cable_cell(gid):
     # Attach a detector with threshold of -10 mV.
     decor.place('"root"', arbor.threshold_detector(-10), "detector")
 
-    cell = arbor.cable_cell(tree, labels, decor)
+    cell = arbor.cable_cell(tree, decor, labels)
 
     return cell
 
@@ -179,6 +179,6 @@ for gid in range(ncells):
     )
 
 df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", ci=None).savefig(
-    "network_ring_gpu_result.svg"
-)
+seaborn.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None
+).savefig("network_ring_gpu_result.svg")

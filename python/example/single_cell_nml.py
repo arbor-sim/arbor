@@ -69,7 +69,7 @@ decor = (
 )
 
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = arbor.cable_cell(morpho, labels, decor)
+cell = arbor.cable_cell(morpho, decor, labels)
 
 print(cell.locations('"axon_end"'))
 
@@ -112,5 +112,11 @@ for t in m.traces:
 df = pandas.concat(df_list, ignore_index=True)
 
 seaborn.relplot(
-    data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", ci=None
+    data=df,
+    kind="line",
+    x="t/ms",
+    y="U/mV",
+    hue="Location",
+    col="Variable",
+    errorbar=None,
 ).savefig("single_cell_nml.svg")

@@ -660,3 +660,19 @@ call the *sampler* callback once for probe in *probe set*, with *n* sample value
 In addition to the ``lax`` sampling policy, ``mc_cell_group`` supports the ``exact``
 policy. Integration steps will be shortened such that any sample times associated
 with an ``exact`` policy can be satisfied precisely.
+
+LIF cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+.. code::
+
+    struct lif_probe_voltage {};
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none

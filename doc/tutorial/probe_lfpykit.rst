@@ -18,7 +18,7 @@ These are signals that mainly stem from transmembrane currents.
    1. Recording of transmembrane currents using :class:`arbor.cable_probe_total_current_cell`
    2. Recording of stimulus currents using :class:`arbor.cable_probe_stimulus_current_cell`
    3. Using the :class:`arbor.place_pwlin` API
-   4. Map recorded transmembrane currents to extracellular potentials by derivinging Arbor specific classes from LFPykit's :class:`lfpykit.LineSourcePotential` and :class:`lfpykit.CellGeometry`
+   4. Map recorded transmembrane currents to extracellular potentials by deriving Arbor specific classes from LFPykit's :class:`lfpykit.LineSourcePotential` and :class:`lfpykit.CellGeometry`
 
 .. _tutorial_lfpykit-linesource:
 
@@ -125,20 +125,20 @@ and returns the corresponding :class:`~arbor.place_pwlin` and :class:`~arbor.cab
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 72-116
+   :lines: 72-114
 
 Store the function output:
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 119-120
+   :lines: 117-118
 
 Next, we instantiate :class:`Recipe`, and execute the model for a few hundred ms,
 sampling the different signals every 1 ms:
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 122-135
+   :lines: 120-133
 
 Extract recorded membrane voltages, electrode and transmembrane currents.
 Note that membrane voltages at branch points and intersections between CVs are dropped as
@@ -146,14 +146,14 @@ we only illustrate membrane voltages of segments with finite lengths.
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 137-152
+   :lines: 135-150
 
 Finally we sum the stimulation and transmembrane currents, allowing the stimuli to mimic a synapse
 current embedded in the membrane itself rather than an intracellular electrode current:
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 154-160
+   :lines: 152-158
 
 .. _tutorial_lfpykit-lfpykit:
 
@@ -171,21 +171,21 @@ Starting with a class inherited from :class:`lfpykit.CellGeometry`:
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 170-202
+   :lines: 168-200
 
 Then, a class inherited from :class:`lfpykit.LineSourcePotential`.
 Other use cases may inherit from any other parent class defined in :mod:`lfpykit.models` in a similar manner:
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 205-253
+   :lines: 202-251
 
 With these two classes one may then compute extracellular potentials from transmembrane
 currents in space with a few lines of code:
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 256-278
+   :lines: 254-276
 
 .. _tutorial_lfpykit-illustration:
 

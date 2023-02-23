@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphexcept.hpp>

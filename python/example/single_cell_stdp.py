@@ -41,7 +41,7 @@ class single_recipe(arbor.recipe):
             )
         )
 
-        return arbor.cable_cell(tree, labels, decor)
+        return arbor.cable_cell(tree, decor, labels)
 
     def event_generators(self, gid):
         """two stimuli: one that makes the cell spike, the other to monitor STDP"""
@@ -100,7 +100,7 @@ def run(dT, n_pairs=1, do_plots=False):
             data, meta = sim.samples(handle)[0]
 
             df = pd.DataFrame({"t/ms": data[:, 0], var: data[:, 1]})
-            sns.relplot(data=df, kind="line", x="t/ms", y=var, ci=None).savefig(
+            sns.relplot(data=df, kind="line", x="t/ms", y=var, errorbar=None).savefig(
                 f"single_cell_stdp_result_{var}.svg"
             )
 
@@ -111,6 +111,6 @@ def run(dT, n_pairs=1, do_plots=False):
 data = np.array([(dT, run(dT)) for dT in np.arange(-20, 20, 0.5)])
 df = pd.DataFrame({"t/ms": data[:, 0], "dw": data[:, 1]})
 print("Plotting results ...")
-sns.relplot(data=df, x="t/ms", y="dw", kind="line", ci=None).savefig(
+sns.relplot(data=df, x="t/ms", y="dw", kind="line", errorbar=None).savefig(
     "single_cell_stdp.svg"
 )

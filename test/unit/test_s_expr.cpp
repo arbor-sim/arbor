@@ -1,7 +1,7 @@
 #include <any>
 #include <typeinfo>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
@@ -269,6 +269,7 @@ TEST(iexpr, round_tripping) {
         "(radius 2.1)",
         "(diameter 2.1)",
         "(exp (scalar 2.1))",
+        "(step (scalar 2.1))",
         "(log (scalar 2.1))",
         "(add (scalar 2.1) (radius 3.2))",
         "(sub (scalar 2.1) (radius 3.2))",
@@ -281,7 +282,7 @@ TEST(iexpr, round_tripping) {
     }
 
     // check double values for input instead of explicit scalar iexpr
-    auto mono_iexpr = {std::string("exp"), std::string("log")};
+    auto mono_iexpr = {std::string("exp"), std::string("step"), std::string("log")};
     auto duo_iexpr = {std::string("add"), std::string("sub"), std::string("mul"), std::string("div")};
     constexpr auto v1 = "1.2";
     constexpr auto v2 = "1.2";
@@ -596,6 +597,9 @@ std::ostream& operator<<(std::ostream& o, const synapse& p) {
 std::ostream& operator<<(std::ostream& o, const density& p) {
     return o << "(density " << p.mech << ')';
 }
+std::ostream& operator<<(std::ostream& o, const voltage_process& p) {
+    return o << "(voltage-process " << p.mech << ')';
+}
 template <typename TaggedMech>
 std::ostream& operator<<(std::ostream& o, const scaled_mechanism<TaggedMech>& p) {
     o << "(scaled-mechanism " << p.t_mech;
@@ -717,6 +721,7 @@ TEST(decor_literals, round_tripping) {
         "(ion-external-concentration \"h\" -50.1)",
         "(ion-reversal-potential \"na\" 30)"};
     auto paint_literals = {
+        "(voltage-process (mechanism \"hh\"))",
         "(density (mechanism \"hh\"))",
         "(density (mechanism \"pas\" (\"g\" 0.02)))",
         "(scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))))",

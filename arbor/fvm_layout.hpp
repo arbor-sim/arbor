@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -290,7 +291,7 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
 
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
-    std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
+    std::map<std::string, fvm_mechanism_config> mechanisms;
 
     // Ion config, indexed by ion name.
     std::unordered_map<std::string, fvm_ion_config> ions;

@@ -1,4 +1,4 @@
-#include "../gtest.h"
+#include <gtest/gtest.h>
 #include "../common_cells.hpp"
 #include "fvm_layout.hpp"
 
@@ -396,6 +396,42 @@ TEST(iexpr, exp) {
 
     auto e = thingify(arb::iexpr::exp(arb::iexpr::radius(3.0)), prov);
     EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.0, 1.0}), std::exp(3.0 * 10.0));
+}
+
+TEST(iexpr, step_right) {
+    segment_tree tree;
+    tree.append(mnpos, {0, 0, 0, 10}, {0, 0, 10, 10}, 1);
+
+    arb::mprovider prov(arb::morphology(std::move(tree)));
+    auto root_dist = arb::iexpr::distance(1.0, arb::mlocation{0, 0.0});
+    auto e = thingify(arb::iexpr::step_right(root_dist-5.0), prov);
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.0, 0.5}), 0.0f); /* step(2.5-5) == 0 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.4, 0.6}), 1.0f); /* step(5.0-5) == 1 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.5, 1.0}), 1.0f); /* step(7.5-5) == 1 */
+}
+
+TEST(iexpr, step_left) {
+    segment_tree tree;
+    tree.append(mnpos, {0, 0, 0, 10}, {0, 0, 10, 10}, 1);
+
+    arb::mprovider prov(arb::morphology(std::move(tree)));
+    auto root_dist = arb::iexpr::distance(1.0, arb::mlocation{0, 0.0});
+    auto e = thingify(arb::iexpr::step_left(root_dist-5.0), prov);
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.0, 0.5}), 0.0f); /* step(2.5-5) == 0 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.4, 0.6}), 0.0f); /* step(5.0-5) == 0 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.5, 1.0}), 1.0f); /* step(7.5-5) == 1 */
+}
+
+TEST(iexpr, step) {
+    segment_tree tree;
+    tree.append(mnpos, {0, 0, 0, 10}, {0, 0, 10, 10}, 1);
+
+    arb::mprovider prov(arb::morphology(std::move(tree)));
+    auto root_dist = arb::iexpr::distance(1.0, arb::mlocation{0, 0.0});
+    auto e = thingify(arb::iexpr::step(root_dist-5.0), prov);
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.0, 0.5}), 0.0f); /* step(2.5-5) == 0 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.4, 0.6}), 0.5f); /* step(5.0-5) == 0.5 */
+    EXPECT_DOUBLE_EQ(e->eval(prov, {0, 0.5, 1.0}), 1.0f); /* step(7.5-5) == 1 */
 }
 
 TEST(iexpr, log) {

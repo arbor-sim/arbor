@@ -14,8 +14,8 @@ run the following commands to apply it:
 
    # Install the formatter if not present
    pip install black
-   # Automatically apply style. If unsure what this does read on.
-   black . scripts/build-catalogue.in
+   # Automatically apply style to a certain file. If unsure what this does read on.
+   black . scripts/arbor/build-catalogue.in
 
 The formatter can also be run with ``--check`` to list offending files and
 ``--diff`` to preview changes. Most editors can `integrate with black

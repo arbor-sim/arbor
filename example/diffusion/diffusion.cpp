@@ -25,6 +25,7 @@ struct linear: public recipe {
      linear(double ext, double dx, double Xi, double beta): l{ext}, d{dx}, i{Xi}, b{beta} {
         gprop.default_parameters = neuron_parameter_defaults;
         gprop.default_parameters.discretization = cv_policy_max_extent{d};
+        gprop.add_ion("bla", 1, 23, 42, 0, 0);
     }
 
     cell_size_type num_cells()                                   const override { return 1; }
@@ -37,13 +38,14 @@ struct linear: public recipe {
         // -----|-----
         segment_tree tree;
         tree.append(mnpos, { -l, 0, 0, 3}, {l, 0, 0, 3}, 1);
+        tree.append(0, { -l, 0, 0, 3}, {l, 0, 0, 3}, 2);
         // Setup
         decor decor;
         decor.set_default(init_int_concentration{"na", i});
-        decor.set_default(ion_diffusivity{"na", b});
-        decor.place("(location 0 0.5)"_ls, synapse("inject/x=na", {{"alpha", 200.0*l}}), "Zap");
-        decor.paint("(all)"_reg, density("decay/x=na"));
-        return cable_cell({tree}, {}, decor);
+        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b});
+        decor.place("(location 0 0.5)"_ls, synapse("inject/x=bla", {{"alpha", 200.0*l}}), "Zap");
+        decor.paint("(all)"_reg, density("decay/x=bla"));
+        return cable_cell({tree}, decor);
     }
 
     cable_cell_global_properties gprop;

@@ -24,16 +24,12 @@ namespace arb {
 
 communicator::communicator(const recipe& rec,
                            const domain_decomposition& dom_dec,
-                           const label_resolution_map& source_resolution_map,
-                           const label_resolution_map& target_resolution_map,
                            execution_context& ctx):  num_total_cells_{rec.num_cells()},
                                                      num_local_cells_{dom_dec.num_local_cells()},
                                                      num_local_groups_{dom_dec.num_groups()},
                                                      num_domains_{(cell_size_type) ctx.distributed->size()},
                                                      distributed_{ctx.distributed},
-                                                     thread_pool_{ctx.thread_pool} {
-    update_connections(rec, dom_dec, source_resolution_map, target_resolution_map);
-}
+                                                     thread_pool_{ctx.thread_pool} {}
 
 void communicator::update_connections(const connectivity& rec,
                                       const domain_decomposition& dom_dec,

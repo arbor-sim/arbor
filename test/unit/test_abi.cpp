@@ -1,12 +1,13 @@
 #include <vector>
 #include <string>
 
-#include "../test/gtest.h"
+#include <gtest/gtest.h>
 
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechanism.hpp>
 #include <arbor/version.hpp>
 
+#include "backends/common_types.hpp"
 #include "backends/multicore/shared_state.hpp"
 #ifdef ARB_GPU_ENABLED
 #include "backends/gpu/shared_state.hpp"
@@ -50,16 +51,17 @@ TEST(abi, multicore_initialisation) {
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell, 0,
+    arb::multicore::shared_state shared_state(ncell, ncell,
                                               cv_to_intdom, cv_to_intdom,
                                               vinit, temp, diam, src_to_spike,
+                                              arb::fvm_detector_info(),
                                               mech.data_alignment());
 
     arb::mechanism_layout layout;
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
 
     {
         ASSERT_EQ(globals.size(), mech.mech_.n_globals);
@@ -128,16 +130,17 @@ TEST(abi, multicore_null) {
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell, 0,
+    arb::multicore::shared_state shared_state(ncell, ncell,
                                               cv_to_intdom, cv_to_intdom,
                                               vinit, temp, diam, src_to_spike,
+                                              arb::fvm_detector_info{},
                                               mech.data_alignment());
 
     arb::mechanism_layout layout;
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
 }
 
 #ifdef ARB_GPU_ENABLED
@@ -193,16 +196,17 @@ TEST(abi, gpu_initialisation) {
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::gpu::shared_state shared_state(ncell, ncell, 0,
+    arb::gpu::shared_state shared_state(ncell, ncell,
                                         cv_to_intdom, cv_to_intdom,
                                         vinit, temp, diam, src_to_spike,
+                                        arb::fvm_detector_info{},
                                         1);
 
     arb::mechanism_layout layout;
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
 
     {
         ASSERT_EQ(globals.size(), mech.mech_.n_globals);
@@ -270,16 +274,17 @@ TEST(abi, gpu_null) {
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::gpu::shared_state shared_state(ncell, ncell, 0,
+    arb::gpu::shared_state shared_state(ncell, ncell,
                                         cv_to_intdom, cv_to_intdom,
                                         vinit, temp, diam, src_to_spike,
+                                        arb::fvm_detector_info{},
                                         1);
 
     arb::mechanism_layout layout;
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout));
+    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
 }
 
 

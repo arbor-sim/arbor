@@ -8,6 +8,7 @@
 #include <arborio/label_parse.hpp>
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
@@ -26,7 +27,7 @@ namespace pyarb {
 // to cable_cell scalar- and vector-valued probes.
 
 template <typename Meta>
-struct recorder_cable_base: sample_recorder {
+struct recorder_base: sample_recorder {
     // Return stride-column array: first column is time, remainder correspond to sample.
 
     py::object samples() const override {
@@ -49,14 +50,14 @@ protected:
     std::vector<double> sample_raw_;
     std::ptrdiff_t stride_;
 
-    recorder_cable_base(const Meta* meta_ptr, std::ptrdiff_t width):
+    recorder_base(const Meta* meta_ptr, std::ptrdiff_t width):
         meta_(*meta_ptr), stride_(1+width)
     {}
 };
 
 template <typename Meta>
-struct recorder_cable_scalar: recorder_cable_base<Meta> {
-    using recorder_cable_base<Meta>::sample_raw_;
+struct recorder_cable_scalar: recorder_base<Meta> {
+    using recorder_base<Meta>::sample_raw_;
 
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
         for (std::size_t i = 0; i<n_sample; ++i) {
@@ -71,12 +72,32 @@ struct recorder_cable_scalar: recorder_cable_base<Meta> {
     }
 
 protected:
-    recorder_cable_scalar(const Meta* meta_ptr): recorder_cable_base<Meta>(meta_ptr, 1) {}
+    recorder_cable_scalar(const Meta* meta_ptr): recorder_base<Meta>(meta_ptr, 1) {}
 };
 
+struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
+    using recorder_base<arb::lif_probe_metadata>::sample_raw_;
+
+    void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
+        for (std::size_t i = 0; i<n_sample; ++i) {
+            if (auto* v_ptr = any_cast<double*>(records[i].data)) {
+                sample_raw_.push_back(records[i].time);
+                sample_raw_.push_back(*v_ptr);
+            }
+            else {
+                std::string ty = records[i].data.type().name();
+                throw arb::arbor_internal_error("LIF recorder: unexpected sample type " + ty);
+            }
+        }
+    }
+
+    recorder_lif(const arb::lif_probe_metadata* meta_ptr): recorder_base<arb::lif_probe_metadata>(meta_ptr, 1) {}
+};
+
+
 template <typename Meta>
-struct recorder_cable_vector: recorder_cable_base<Meta> {
-    using recorder_cable_base<Meta>::sample_raw_;
+struct recorder_cable_vector: recorder_base<Meta> {
+    using recorder_base<Meta>::sample_raw_;
 
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
         for (std::size_t i = 0; i<n_sample; ++i) {
@@ -92,7 +113,7 @@ struct recorder_cable_vector: recorder_cable_base<Meta> {
 
 protected:
     recorder_cable_vector(const Meta* meta_ptr, std::ptrdiff_t width):
-        recorder_cable_base<Meta>(meta_ptr, width) {}
+        recorder_base<Meta>(meta_ptr, width) {}
 };
 
 // Specific recorder classes:
@@ -131,6 +152,8 @@ void register_probe_meta_maps(pyarb_global_ptr g) {
             return py::cast(*any_cast<const Meta*>(meta_ptr));
         });
 }
+
+
 
 // Wrapper functions around cable_cell probe types that return arb::probe_info values:
 // (Probe tag value is implicitly left at zero.)
@@ -211,6 +234,12 @@ arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion) {
     return arb::cable_probe_ion_ext_concentration_cell{ion};
 }
 
+// LIF cell probes
+arb::probe_info lif_probe_voltage() {
+    return arb::lif_probe_voltage{};
+}
+
+
 // Add wrappers to module, recorder factories to global data.
 
 void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
@@ -218,6 +247,9 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     using util::pprintf;
 
     // Probe metadata wrappers:
+
+    py::class_<arb::lif_probe_metadata> lif_probe_metadata(m, "lif_probe_metadata",
+        "Probe metadata associated with a LIF cell probe.");
 
     py::class_<arb::cable_probe_point_info> cable_probe_point_info(m, "cable_probe_point_info",
         "Probe metadata associated with a cable cell probe for point process state.");
@@ -235,6 +267,9 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
             return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);});
 
     // Probe address constructors:
+
+    m.def("lif_probe_voltage", &lif_probe_voltage,
+        "Probe specification for LIF cell membrane voltage.");
 
     m.def("cable_probe_membrane_voltage", &cable_probe_membrane_voltage,
         "Probe specification for cable cell membrane voltage interpolated at points in a location set.",
@@ -314,6 +349,7 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     register_probe_meta_maps<arb::cable_probe_point_info, recorder_cable_scalar_point_info>(global_ptr);
     register_probe_meta_maps<arb::mcable_list, recorder_cable_vector_mcable>(global_ptr);
     register_probe_meta_maps<std::vector<arb::cable_probe_point_info>, recorder_cable_vector_point_info>(global_ptr);
+    register_probe_meta_maps<arb::lif_probe_metadata, recorder_lif>(global_ptr);
 }
 
 } // namespace pyarb
