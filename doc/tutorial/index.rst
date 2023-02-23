@@ -21,6 +21,7 @@ Cells
    :maxdepth: 1
 
    single_cell_model
+   single_cell_gui
    single_cell_detailed
    single_cell_cable
    single_cell_allen
