@@ -256,8 +256,8 @@ struct Um_type {
 TEST(lif_cell_group, probe) {
     auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
-                  std::size_t n,
-                  const sample_record* samples) {
+                      std::size_t n,
+                      const sample_record* samples) {
         for (std::size_t ix = 0; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *util::any_cast<double*>(v);

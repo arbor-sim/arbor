@@ -23,6 +23,7 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
         // set up cell state
         cells_.push_back(cell);
         last_time_updated_.push_back(0.0);
+        last_time_sampled_.push_back(-1.0);
         // tell our caller about this cell's connections
         cg_sources.add_cell();
         cg_targets.add_cell();
@@ -108,7 +109,10 @@ lif_decay(const lif_cell& cell, double t0, double t1) {
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lanes) {
+void lif_cell_group::advance_cell(time_type tfinal,
+                                  time_type dt,
+                                  cell_gid_type lid,
+                                  const event_lane_subrange& event_lanes) {
     const auto gid = gids_[lid];
     auto& cell = cells_[lid];
     // time of last update.
@@ -127,7 +131,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
             // Construct sampling times
-            const auto& times = util::make_range(assoc.sched.events(t, tfinal));
+            const auto& times = util::make_range(assoc.sched.events(last_time_sampled_[lid] + std::numeric_limits<time_type>::epsilon(), tfinal));
             const auto n_times = times.size();
             // Count up the samplers touching _our_ gid
             int delta = 0;
@@ -219,6 +223,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                     }
                 }
             }
+            last_time_sampled_[lid] = time;
         }
         if (!(do_sample || do_event)) {
             throw arbor_internal_error{"LIF cell group: Must select either sample or spike event; got neither."};
@@ -229,11 +234,12 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     // Now we need to call all sampler callbacks with the data we have collected
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
-        for (const auto& [k, vs]: sampled) {
+        for (auto& [k, vs]: sampled) {
             const auto& fun = samplers_[k].sampler;
-            for (const auto& [id, us]: vs) {
+            for (auto& [id, us]: vs) {
                 auto meta = get_probe_metadata(id)[0];
                 fun(meta, us.size(), us.data());
+                us.clear();
             }
         }
     }
