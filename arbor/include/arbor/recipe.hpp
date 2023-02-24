@@ -53,7 +53,7 @@ struct cell_connection_base {
 };
 
 using cell_connection     = cell_connection_base<cell_global_label_type>;
-using ext_cell_connection = cell_connection_base<cell_member_type>;
+using ext_cell_connection = cell_connection_base<cell_remote_label_type>;
 
 struct gap_junction_connection {
     cell_global_label_type peer;

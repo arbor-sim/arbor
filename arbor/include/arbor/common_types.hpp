@@ -97,6 +97,12 @@ struct cell_global_label_type {
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
 };
 
+struct cell_remote_label_type {
+    cell_gid_type rid;     // remote id
+    cell_lid_type index = 0; // index on remote id
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_remote_label_type,(a.rid,a.index),(b.rid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
 

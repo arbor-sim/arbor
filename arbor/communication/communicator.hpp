@@ -38,7 +38,7 @@ public:
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i);
 
     /// The minimum delay of all connections in the global network.
-    time_type min_delay(time_type init=std::numeric_limits<time_type>::max());
+    time_type min_delay();
 
     /// Perform exchange of spikes.
     ///

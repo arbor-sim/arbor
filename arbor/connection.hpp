@@ -17,17 +17,6 @@ struct connection {
 };
 
 inline
-bool is_external(cell_gid_type gid) {
-    auto msb = sizeof(cell_gid_type)*8 - 1;
-    return bool(gid & (1 << msb));
-}
-
-inline
-bool is_external(const connection& c) {
-    return is_external(c.source.gid);
-}
-
-inline
 spike_event make_event(const connection& c, const spike& s) {
     return {c.destination, s.time + c.delay, c.weight};
 }

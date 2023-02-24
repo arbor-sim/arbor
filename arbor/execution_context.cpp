@@ -9,7 +9,7 @@
 #include "threading/threading.hpp"
 
 #ifdef ARB_HAVE_MPI
-#include <mpi.h>
+#include "communication/mpi.hpp"
 #endif
 
 namespace arb {
@@ -35,16 +35,23 @@ execution_context::execution_context(const proc_allocation& resources, MPI_Comm 
 {}
 
 template <>
+execution_context::execution_context(const proc_allocation& resources, MPI_Comm comm, MPI_Comm remote):
+    distributed(make_remote_context(comm, remote)),
+    thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
+    gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
+                           : std::make_shared<gpu_context>())
+{}
+
+template <>
 ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
     return std::make_shared<execution_context>(p, comm);
 }
 
 template <>
-ARB_ARBOR_API void make_remote_connection(context ctx, MPI_Comm comm) {
-    MPI_Comm dupe = MPI_COMM_NULL;
-    MPI_Comm_dup(comm, &dupe);
-    ctx->distributed->connect_to_remote(std::make_any<MPI_Comm>(dupe));
+ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm, MPI_Comm remote) {
+    return std::make_shared<execution_context>(p, comm, remote);
 }
+
 #endif
 template <>
 execution_context::execution_context(

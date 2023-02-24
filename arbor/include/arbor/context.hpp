@@ -65,6 +65,9 @@ ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_alloc
 template <typename Comm>
 ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm);
 
+template <typename Comm>
+ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm, Comm remote);
+
 // Queries for properties of execution resources in a context.
 
 ARB_ARBOR_API std::string distribution_type(context);

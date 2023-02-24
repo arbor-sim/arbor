@@ -53,6 +53,8 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
+    time_type min_delay();
+
     // Note: sampler functions may be invoked from a different thread than that
     // which called the `run` method.
 

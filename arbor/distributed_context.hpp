@@ -12,6 +12,8 @@
 #include "communication/gathered_vector.hpp"
 #include "label_resolution.hpp"
 
+#include "communication/mpi.hpp"
+
 namespace arb {
 
 #define ARB_PUBLIC_COLLECTIVES_(T) \
@@ -56,10 +58,6 @@ public:
     distributed_context(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
-
-    void connect_to_remote(const std::any& hdl) {
-        impl_->connect_to_remote(hdl);
-    }
 
     distributed_context(distributed_context&& other) = default;
     distributed_context& operator=(distributed_context&& other) = default;
@@ -112,7 +110,6 @@ public:
 
 private:
     struct interface {
-        virtual void connect_to_remote(const std::any& hdl) = 0;
         virtual gathered_vector<arb::spike>
         gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual spike_vector
@@ -146,7 +143,6 @@ private:
         remote_gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.remote_gather_spikes(local_spikes);
         }
-        void connect_to_remote(const std::any& hdl) override { return wrapped.connect_to_remote(hdl); }
         gathered_vector<arb::spike>
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
@@ -205,7 +201,6 @@ struct local_context {
     remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
         return {};
     }
-    void connect_to_remote(const std::any&) { throw bad_connection_request{}; }
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;
@@ -265,6 +260,9 @@ ARB_ARBOR_API distributed_context_handle make_dry_run_context(unsigned num_ranks
 // MPI context creation functions only provided if built with MPI support.
 template <typename MPICommType>
 distributed_context_handle make_mpi_context(MPICommType);
+
+template <typename MPICommType>
+distributed_context_handle make_remote_context(MPICommType, MPICommType);
 
 } // namespace arb
 

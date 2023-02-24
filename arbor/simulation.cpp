@@ -117,6 +117,8 @@ public:
 
     void inject_events(const cse_vector& events);
 
+    time_type min_delay() { return communicator_.min_delay(); }
+
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
@@ -232,7 +234,7 @@ simulation_state::simulation_state(
 void simulation_state::update(const connectivity& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
-    t_interval_ = communicator_.min_delay()/2;
+    t_interval_ = min_delay()/2;
 
     const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
@@ -589,6 +591,8 @@ void simulation::inject_events(const cse_vector& events) {
 simulation::simulation(simulation&&) = default;
 
 simulation::~simulation() = default;
+
+time_type simulation::min_delay() { return impl_->min_delay(); }
 
 ARB_ARBOR_API epoch_function epoch_progress_bar() {
     struct impl {

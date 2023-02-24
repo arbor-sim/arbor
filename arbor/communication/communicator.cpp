@@ -31,6 +31,28 @@ communicator::communicator(const recipe& rec,
                                                      distributed_{ctx.distributed},
                                                      thread_pool_{ctx.thread_pool} {}
 
+inline
+bool is_external(cell_gid_type c) {
+    // index of the MSB of cell_gid_type in bits
+    auto msb = 1 << (sizeof(cell_gid_type)*8 - 1);
+    // If set, we are external
+    return bool(c & msb);
+}
+
+inline
+cell_member_type global_cell_of(const cell_remote_label_type& c) {
+    auto msb = 1 << (sizeof(cell_gid_type)*8 - 1);
+    // set the MSB
+    return {(c.rid | msb) ^ msb, c.index};
+}
+
+inline
+cell_member_type global_cell_of(const cell_member_type& c) {
+    auto msb = 1 << (sizeof(cell_gid_type)*8 - 1);
+    // set the MSB
+    return {(c.gid | msb) ^ msb, c.index};
+}
+
 void communicator::update_connections(const connectivity& rec,
                                       const domain_decomposition& dom_dec,
                                       const label_resolution_map& source_resolution_map,
@@ -114,9 +136,9 @@ void communicator::update_connections(const connectivity& rec,
             connections_[offset] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, index};
         }
         for (const auto& c: cell.ext_conns) {
-            arb_assert(is_external(c.source.gid));
+            auto src = global_cell_of(c.source);
             auto tgt_lid = target_resolver.resolve({cell.gid, c.target});
-            ext_connections_[ext] = {c.source, tgt_lid, c.weight, c.delay, index};
+            ext_connections_[ext] = {src, tgt_lid, c.weight, c.delay, index};
             ++ext;
         }
     }
@@ -134,7 +156,7 @@ void communicator::update_connections(const connectivity& rec,
         [&](cell_size_type i) {
             util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
         });
-    // util::sort(ext_connections_.begin(), ext_connections_.end());
+    std::sort(ext_connections_.begin(), ext_connections_.end());
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -142,11 +164,16 @@ std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_s
     return index_part_[i];
 }
 
-time_type communicator::min_delay(time_type init) {
-    auto local_min = std::accumulate(connections_.begin(), connections_.end(),
-                                     init,
-                                     [](auto&& acc, auto&& el) { return std::min(acc, time_type(el.delay)); });
-    return distributed_->min(local_min);
+time_type communicator::min_delay() {
+    time_type res = std::numeric_limits<time_type>::max();
+    res = std::accumulate(connections_.begin(), connections_.end(),
+                                res,
+                                [](auto&& acc, auto&& el) { return std::min(acc, time_type(el.delay)); });
+    res = std::accumulate(ext_connections_.begin(), ext_connections_.end(),
+                                res,
+                                [](auto&& acc, auto&& el) { return std::min(acc, time_type(el.delay)); });
+    res = distributed_->min(res);
+    return res;
 }
 
 std::pair<gathered_vector<spike>,
@@ -163,6 +190,7 @@ communicator::exchange(std::vector<spike> local_spikes) {
     num_spikes_ += global_spikes.size();
     PL();
 
+    // Get remote spikes
     PE(communication:exchange:gather:remote);
     auto remote_spikes = distributed_->remote_gather_spikes(local_spikes);
     PL();
@@ -227,7 +255,12 @@ void communicator::make_event_queues(
                                   queues);
     }
     // Now that all local spikes have been processed; consume the remote events coming in.
-    append_events_from_domain(ext_connections_, external_spikes, queues);
+    // - turn all gids into externals
+    auto spikes = external_spikes;
+    std::for_each(spikes.begin(),
+                  spikes.end(),
+                  [](auto& s) { s.source = global_cell_of(s.source); });
+    append_events_from_domain(ext_connections_, spikes, queues);
 }
 
 std::uint64_t communicator::num_spikes() const {

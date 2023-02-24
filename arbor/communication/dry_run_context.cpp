@@ -19,7 +19,6 @@ struct dry_run_context_impl {
     remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return {};
     }
-    void connect_to_remote(const std::any&) { throw bad_connection_request{}; }
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
         using count_type = typename gathered_vector<spike>::count_type;
