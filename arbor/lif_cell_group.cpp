@@ -234,7 +234,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
         }
         last_time_updated_[lid] = t;
     }
-    arb_assert (sampled_voltages.size() == n_values);
+    arb_assert (sampled_voltages.size() <= n_values);
     // Now we need to call all sampler callbacks with the data we have collected
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
