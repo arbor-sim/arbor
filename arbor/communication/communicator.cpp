@@ -1,3 +1,4 @@
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -39,16 +40,15 @@ void communicator::update_connections(const connectivity& rec,
     connections_.clear();
     connection_part_.clear();
     index_divisions_.clear();
+    index_on_domain_.clear();
 
     // For caching information about each cell
     struct gid_info {
         using connection_list = decltype(std::declval<recipe>().connections_on(0));
         cell_gid_type gid;              // global identifier of cell
-        cell_size_type index_on_domain; // index of cell in this domain
         connection_list conns;          // list of connections terminating at this cell
         gid_info() = default;           // so we can in a std::vector
-        gid_info(cell_gid_type g, cell_size_type di, connection_list c):
-            gid(g), index_on_domain(di), conns(std::move(c)) {}
+        gid_info(cell_gid_type g, connection_list c): gid(g), conns(std::move(c)) {}
     };
 
     // Make a list of local gid with their group index and connections
@@ -60,22 +60,20 @@ void communicator::update_connections(const connectivity& rec,
     // Also the count of presynaptic sources from each domain
     //   -> src_counts: array with one entry for each domain
 
-    // Record all the gid in a flat vector.
-    // These are used to map from local index to gid in the parallel loop
-    // that populates gid_infos.
-    std::vector<cell_gid_type> gids;
-    gids.reserve(num_local_cells_);
-    for (auto g: dom_dec.groups()) {
-        util::append(gids, g.gids);
-    }
-    // Build the connection information for local cells in parallel.
+    // create gid_infos and store their enumeration in a map
     std::vector<gid_info> gid_infos;
-    gid_infos.resize(num_local_cells_);
-    threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
-        [&](cell_size_type i) {
-            auto gid = gids[i];
-            gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
-        });
+    gid_infos.reserve(num_local_cells_);
+    {
+        cell_size_type index = 0;
+        for (const auto& group: dom_dec.groups()) {
+            for (const auto& gid: group.gids) { 
+                index_on_domain_.insert({gid, index++});
+                gid_infos.emplace_back(gid, rec.connections_on(gid));
+            }
+        }
+    }
+
+    // Build the connection information for local cells in parallel.
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
     std::vector<unsigned> src_domains;
@@ -103,14 +101,14 @@ void communicator::update_connections(const connectivity& rec,
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
     for (const auto& cell: gid_infos) {
-        auto index = cell.index_on_domain;
         auto source_resolver = resolver(&source_resolution_map);
         for (const auto& c: cell.conns) {
             auto src_lid = source_resolver.resolve(c.source);
             auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
-            connections_[offset] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, index};
+            connections_[offset] = {
+                {c.source.gid, src_lid}, {cell.gid, tgt_lid}, c.weight, c.delay};
         }
     }
 
@@ -182,7 +180,7 @@ void communicator::make_event_queues(const gathered_vector<spike>& global_spikes
         // number of spikes, and C is the number of connections.
         if (cons.size()<spks.size()) {
             while (cn!=ce && sp!=se) {
-                auto& queue = queues[cn->index_on_domain];
+                auto& queue = queues[index_on_domain_.at(cn->destination.gid)];
                 auto src = cn->source;
                 auto sources = std::equal_range(sp, se, src, spike_pred());
                 for (auto s: util::make_range(sources)) queue.push_back(cn->make_event(s));
@@ -193,7 +191,8 @@ void communicator::make_event_queues(const gathered_vector<spike>& global_spikes
         else {
             while (cn!=ce && sp!=se) {
                 auto targets = std::equal_range(cn, ce, sp->source);
-                for (auto c: util::make_range(targets)) queues[c.index_on_domain].push_back(c.make_event(*sp));
+                for (auto c: util::make_range(targets))
+                    queues[index_on_domain_.at(c.destination.gid)].push_back(c.make_event(*sp));
                 cn = targets.first;
                 ++sp;
             }
