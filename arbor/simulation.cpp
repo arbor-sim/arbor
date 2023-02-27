@@ -24,9 +24,6 @@
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
-#include <mpi.h>
-#include <iostream>
-
 namespace arb {
 
 template <typename Seq, typename Value, typename Less = std::less<>>
