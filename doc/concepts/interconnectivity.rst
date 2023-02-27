@@ -74,6 +74,122 @@ full recipe.
    connectivity where the temptation to store all connections is even larger and
    each call to ``update`` will re-evaluate the corresponding callbacks.
 
+Cross-Simulator Interaction
+===========================
+
+The usual recipe can be used to declare connections to the world outside of
+Arbor similar to how internal (=both source and target are Arbor's
+responsibility) connections are handled.
+
+.. code-block:: c++
+
+    struct recipe(arb::recipe) {
+      // Rest as ever before
+      std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type) const override {
+          return {{arb::cell_remote_label_type{42,  // External GID
+                                               23}, // per-gid tag
+                   arb::cell_local_label_type{"tgt"},
+                   weight,
+                   delay}};
+      }
+    };
+
+Note that Arbor now recognizes two sets of ``GID``: An external and an internal
+set. This allows both Arbor and the coupled simulation to keep their own
+numbering schemes. However, Arbor will tag external cells and spikes by setting
+their ``GID``s' most significant bit. This _halves_ the effecively available
+``GID``s.
+
+To consume external spike events, a specialised ``context`` must be created by
+calling
+
+.. code-block:: c++
+
+    auto ctx = arb::make_context({}, local, inter);
+
+where ``local`` is an MPI intracommunicator and ``inter`` an MPI
+intercommunicator. ``inter`` is required to bridge the Arbor (``local``) and
+external simulator's respective MPI communicators. Note, that the exchange
+protocol _requires_ the semantics of an intercommunicator, passing anything else
+will result in an exception. You can create an intercommunicator in two main
+ways. First by splitting a pre-existing intercommunicator using
+``MPI_Comm_split(4)`` and then calling ``MPI_Intercomm_create(7)`` on the
+result. This approach produces a single binary that goes down two different
+route, one calling Arbor and the other coupled simulation. Our ``remote``
+example works this way. Second, using ``MPI_Comm_connect(5)`` and
+``MPI_Comm_accept(5)`` will result in two completely separate binaries that can
+communicate over the generated intercommunicator. Please consult the MPI
+documentation for more details on these methods.
+
+Data Plane and Spike Exchange
+-----------------------------
+
+The actual communication is performed in two steps, one to collect the number
+spikes from each participating task via ``MPI_Allgather(7)`` and the second to
+transfer the actual payload by ``MPI_Allgatherv(8)``. Note that over an
+intercommunicator, allgather will work slightly unintuitively by concatenating
+all results of a given 'side' of the intercommunicator and broadcasting that to
+the other 'side' and vice-versa. For example, assume Arbor has three MPI tasks,
+sending ``a0``, ``a1``, and ``a2`` respectively and the coupled package has two
+sending ``b0`` and ``b1``. After allgather, each rank of the three ranks of
+Arbor will have ``[b0, b1]`` and the other two ranks will have ``[a0, a1, a2]``.
+We package this in the suplemental header ``arbor/communication/remote.hpp`` as
+``gather_all``.
+
+Please refer to our developer's documentation for the actual spike exchange
+process.
+
+Control Plane and Epochs
+------------------------
+
+Before initiating the actual simulation, Arbor sets the ``epoch`` length to half
+the minimal delay in the global network. The minimal delay can be queried using
+``simulation::min_delay``.
+
+Before the start of each ``epoch``, a control message must be exchanged between
+the root -- ie rank 0 -- process of the Arbor process and that of coupled
+simulation. The control message is transferred by ``MPI_Sendrecv(12)`` of a byte
+buffer of length 1024. The payload comprises
+1. A single byte magic number
+2. A three byte version number
+3. A single byte message tag
+4. A binary representation of a C ``struct`` message
+
+All constants and types are defined in ``arbor/communication/remote.hpp``;
+currently Arbor understands and utilises the following message types:
+
+If ``abort`` is received or sent Arbor will shut down at the next possible
+moment without performing any further work and potentially terminating all
+outstanding communication. An exception will be raised. Note that Arbor might
+terminate even without sending or receiving an ``abort`` message in exceptional
+circumstances.
+
+On ``epoch`` Arbor will commence the next epoch. Note that Arbor may expect the
+last epoch to be shortened, ie when the total runtime is not a multiple of the
+epoch length.
+
+``Done`` signals the sending side is finished with the current simulation
+period. *May* cause the receiving side to quit.
+
+``Null`` does nothing, but reserved for future use, will currently not be sent
+by Arbor.
+
+**Important** This is a synchronous protocol which means an unannounced
+ termination of either side of the coupled simulators can lead to the other
+ getting stuck on a blocking call to MPI. This unlikely to cause issues in
+ scenarios where both sides are launched as a single job (eg via ``SLURM``), but
+ might do so where unrelated jobs are used.
+
+Tying It All Together
+---------------------
+
+We recommend to make use of the facilities offered in
+``arbor/communication/remote.hpp``, as does Arbor internally. Refer to the
+``remote.cpp`` example on how they are used.
+
+Terms and Definitions
+=====================
+
 .. _modelconnections:
 
 .. glossary::

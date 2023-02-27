@@ -21,13 +21,12 @@ struct basic_spike {
         source(std::move(s)), time(t)
     {}
 
-    friend bool operator==(const basic_spike& l, const basic_spike& r) {
-        return l.time==r.time && l.source==r.source;
-    }
 };
 
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(spike, (a.source, a.time), (b.source, b.time));
 
 // Custom stream operator for printing arb::spike<> values.
 template <typename I>

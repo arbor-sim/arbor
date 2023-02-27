@@ -192,11 +192,18 @@ communicator::exchange(std::vector<spike> local_spikes) {
 
     // Get remote spikes
     PE(communication:exchange:gather:remote);
+
     auto remote_spikes = distributed_->remote_gather_spikes(local_spikes);
     PL();
 
+    PE(communication:exchange:gather:remote:sort);
+    std::sort(remote_spikes.begin(), remote_spikes.end());
+    PL();
     return {global_spikes, remote_spikes};
 }
+
+void communicator::remote_ctrl_send_continue() { distributed_->remote_ctrl_send_continue(); }
+void communicator::remote_ctrl_send_done() { distributed_->remote_ctrl_send_done(); }
 
 // Internal helper to append to the event queues
 template<typename S, typename C>

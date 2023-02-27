@@ -70,6 +70,10 @@ public:
 
     void reset();
 
+    // used for commmunicate to coupled simulations
+    void remote_ctrl_send_continue();
+    void remote_ctrl_send_done();
+
     void update_connections(const connectivity& rec,
                             const domain_decomposition& dom_dec,
                             const label_resolution_map& source_resolution_map,

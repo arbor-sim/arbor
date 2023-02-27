@@ -11,6 +11,7 @@
 
 #include <arbor/spike.hpp>
 #include <arbor/util/unique_any.hpp>
+#include <arbor/communication/remote.hpp>
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
@@ -93,6 +94,8 @@ struct mpi_context_impl {
     void barrier() const {
         mpi::barrier(comm_);
     }
+    void remote_ctrl_send_continue() const {}
+    void remote_ctrl_send_done() const {}
 };
 
 template <>
@@ -139,10 +142,15 @@ struct remote_context_impl {
     template <typename T> T max(T value) const { return mpi_.max(value); }
     template <typename T> T sum(T value) const { return mpi_.sum(value); }
     void barrier() const { mpi_.barrier(); }
+    void remote_ctrl_send_continue() const { remote::exchange_ctrl(portal_, remote::msg_epoch{}); }
+    void remote_ctrl_send_done() const { remote::exchange_ctrl(portal_, remote::msg_done{}); }
 };
 
 template <>
 std::shared_ptr<distributed_context> make_remote_context(MPI_Comm comm, MPI_Comm remote) {
+    int is_inter = 0;
+    MPI_Comm_test_inter(remote, &is_inter);
+    if (!is_inter) throw mpi_inter_comm_required{};
     return std::make_shared<distributed_context>(remote_context_impl(comm, remote));
 }
 

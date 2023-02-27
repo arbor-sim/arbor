@@ -6,6 +6,7 @@
 #include <arbor/lif_cell.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
+#include <arbor/communication/remote.hpp>
 
 #ifndef ARB_MPI_ENABLED
 #error "This is an MPI only example. No MPI found."
@@ -43,8 +44,6 @@ struct remote_recipe: public arb::recipe {
 
 };
 
-std::vector<arb::spike> gather_all(const std::vector<arb::spike>& spikes, MPI_Comm comm);
-
 struct mpi_handle {
     MPI_Comm global = MPI_COMM_NULL;      // Global communicator; all processes live here
     int rank = -1, size = -1;             // Global coordinates
@@ -70,14 +69,14 @@ int main() {
         auto rec = remote_recipe();
         auto sim = arb::simulation(rec, ctx);
         double mid = sim.min_delay();
-        std::cerr << "[EXT] Got min delay=" << mid << '\n';
+        std::cerr << "[ARB] Got min delay=" << mid << '\n';
         sim.add_sampler(arb::all_probes,
                         arb::regular_schedule(0.05),
                         sampler);
         sim.run(T, dt);
         std::cout << std::fixed << std::setprecision(4);
-        for (const auto& [t, v]: trace) std::cout << t << " " << v << '\n';
-        exit(0); // Force quit, since the sender doesn't know when to stop.
+        std::cerr << "[ARB] Trace\n";
+        for (const auto& [t, v]: trace) std::cout << " " << t << " " << v << '\n';
     }
     else if (mpi.group == 0) {
         // Simulate external spikes
@@ -85,42 +84,23 @@ int main() {
         // * The time is a function of rank and epoch.
         // * We never stop until the other group kills the process ;)
         for (int ep = 0;; ++ep) {
+            std::cerr << "[EXT] Epoch " << ep << '\n';
             arb::cell_gid_type src = mpi.local_rank;
             auto time = ep*2.0*dt + mpi.local_rank*dt + 0.05;
             std::vector<arb::spike> spikes(10, {{src, 0}, time});
-            auto from_arbor = gather_all(spikes, mpi.inter);
-            std::cerr << "[" << ep << "] spikes from Arbor: " << from_arbor.size() << '\n';
+            std::cerr << "[EXT] Waiting for control message from Arbor\n";
+            auto msg = arb::remote::exchange_ctrl(mpi.inter, arb::remote::msg_epoch{});
+            if(!std::holds_alternative<arb::remote::msg_epoch>(msg)) break;
+            std::cerr << "[EXT] Waiting for spikes from Arbor\n";
+            auto from_arbor = arb::remote::gather_all(spikes, mpi.inter);
+            std::cerr << "[EXT] spikes from Arbor: " << from_arbor.size() << '\n';
         }
+        std::cerr << "[EXT] Arbor asked to quit; EXIT\n";
     }
     else {
         // unreachable
     }
     MPI_Finalize();
-}
-
-std::vector<arb::spike> gather_all(const std::vector<arb::spike>& spikes, MPI_Comm comm) {
-    int size = -1, rank = -1;
-    MPI_Comm_size(comm, &size);
-    MPI_Comm_rank(comm, &rank);
-    int spike_count = spikes.size();
-    std::vector<int> counts(size, 0);
-    std::vector<int> displs(size, 0);
-    MPI_Allgather(&spike_count, 1, MPI_INT, counts.data(), 1, MPI_INT, comm);
-    int recv_bytes = 0;
-    int recv_count = 0;
-    for (int ix = 0; ix < size; ++ix) {
-        recv_count += counts[ix];
-        counts[ix] *= sizeof(arb::spike); // Number of B for rank `ix`
-        displs[ix]  = recv_bytes;         // Offset for rank `ix` in B
-        recv_bytes += counts[ix];         // Total number of items so far
-
-    }
-    std::vector<arb::spike> recv_spikes(recv_count);
-    auto send_bytes = spikes.size()*sizeof(arb::spike);
-    MPI_Allgatherv(spikes.data(),      send_bytes,                   MPI_BYTE, // send buffer
-                   recv_spikes.data(), counts.data(), displs.data(), MPI_BYTE, // recv buffer
-                   comm);
-    return recv_spikes;
 }
 
 // MPI Ceremonies

@@ -106,6 +106,9 @@ public:
         return impl_->name();
     }
 
+    void remote_ctrl_send_continue() const { return impl_->remote_ctrl_send_continue(); }
+    void remote_ctrl_send_done() const { return impl_->remote_ctrl_send_done(); }
+
     ARB_PP_FOREACH(ARB_PUBLIC_COLLECTIVES_, ARB_COLLECTIVE_TYPES_);
 
 private:
@@ -128,6 +131,8 @@ private:
         virtual int size() const = 0;
         virtual void barrier() const = 0;
         virtual std::string name() const = 0;
+        virtual void remote_ctrl_send_continue() const = 0;
+        virtual void remote_ctrl_send_done() const = 0;
 
         ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
 
@@ -180,6 +185,9 @@ private:
             return wrapped.name();
         }
 
+        void remote_ctrl_send_continue() const override { return wrapped.remote_ctrl_send_continue(); }
+        void remote_ctrl_send_done() const override { return wrapped.remote_ctrl_send_done(); }
+
         ARB_PP_FOREACH(ARB_WRAP_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
 
         Impl wrapped;
@@ -209,6 +217,8 @@ struct local_context {
                 {0u, static_cast<count_type>(local_gids.size())}
         );
     }
+    void remote_ctrl_send_continue() const {}
+    void remote_ctrl_send_done() const {}
     std::vector<std::vector<cell_gid_type>>
     gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
         return local_connections;

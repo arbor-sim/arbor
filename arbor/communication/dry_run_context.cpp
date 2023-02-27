@@ -45,7 +45,8 @@ struct dry_run_context_impl {
 
         return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
     }
-
+    void remote_ctrl_send_continue() const {}
+    void remote_ctrl_send_done() const {}
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;

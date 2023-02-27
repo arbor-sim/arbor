@@ -378,6 +378,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PE(communication:exchange:gatherlocal);
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
+        communicator_.remote_ctrl_send_continue();
         // Gather generated spikes across all ranks.
         const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
 
@@ -456,6 +457,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Record current epoch for next run() invocation.
     epoch_ = current;
+    communicator_.remote_ctrl_send_done();
     return current.t1;
 }
 
