@@ -6,12 +6,10 @@
 #include <arbor/lif_cell.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
+
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
 #include <arbor/communication/remote.hpp>
-
-#ifndef ARB_MPI_ENABLED
-#error "This is an MPI only example. No MPI found."
-#endif
-
 #include <arborenv/with_mpi.hpp>
 
 struct remote_recipe: public arb::recipe {
@@ -150,3 +148,11 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
         trace.emplace_back(time, value);
     }
 }
+
+#else
+
+int main() {
+    std::cerr << "This only works with MPI. Please recompile with an MPI version of Arbor.\n";
+}
+
+#endif
