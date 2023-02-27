@@ -7,7 +7,6 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
-#ifdef ARB_MPI_ENABLED
 #include <mpi.h>
 #include <arbor/communication/remote.hpp>
 #include <arborenv/with_mpi.hpp>
@@ -148,11 +147,3 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
         trace.emplace_back(time, value);
     }
 }
-
-#else
-
-int main() {
-    std::cerr << "This only works with MPI. Please recompile with an MPI version of Arbor.\n";
-}
-
-#endif
