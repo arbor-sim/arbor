@@ -12,8 +12,6 @@
 #include "communication/gathered_vector.hpp"
 #include "label_resolution.hpp"
 
-#include "communication/mpi.hpp"
-
 namespace arb {
 
 #define ARB_PUBLIC_COLLECTIVES_(T) \

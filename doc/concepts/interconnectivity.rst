@@ -137,7 +137,8 @@ We package this in the suplemental header ``arbor/communication/remote.hpp`` as
 ``gather_all``.
 
 Please refer to our developer's documentation for the actual spike exchange
-process.
+process. Due to the way MPI define intercommunicators, the exchange is the same
+as with intracommunicators.
 
 Control Plane and Epochs
 ------------------------
