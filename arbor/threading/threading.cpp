@@ -6,6 +6,12 @@
 
 #include "threading/threading.hpp"
 
+#define ARB_HAVE_HWLOC
+
+#ifdef ARB_HAVE_HWLOC
+#include <hwloc.h>
+#endif
+
 using namespace arb::threading::impl;
 using namespace arb::threading;
 using namespace arb;
@@ -87,10 +93,30 @@ void task_system::run(priority_task ptsk) {
     ptsk.run();
 }
 
-void task_system::run_tasks_loop(int i) {
+// If we have found hwloc, pin our thread to a single physical core else noop
+void bind_my_thread(int i, int n) {
+#ifdef ARB_HAVE_HWLOC
+        auto topology = hwloc_topology_t{};                                                   // make the topology
+        hwloc_topology_init(&topology);
+        hwloc_topology_load(topology);
+        auto root = hwloc_get_root_obj(topology);                                             // extract the root
+        auto cpusets = std::vector<hwloc_cpuset_t>(n, {});                                    // set up cpusets
+        // Distribute threads over topology, giving each of them as much private
+        // cache as possible and keeping them locally in number order.
+        hwloc_distrib(topology,
+                      &root, 1,                                                               // single root for the full machine
+                      cpusets.data(), cpusets.size(),                                         // one cpuset for each thread
+                      INT_MAX,                                                                // Go to the maximum available level = Logical Cores
+                      0);                                                                     // No flags
+        hwloc_bitmap_singlify(cpusets[i]);                                                    // Make this a single location
+        hwloc_set_cpubind(topology, cpusets[i], HWLOC_CPUBIND_STRICT | HWLOC_CPUBIND_THREAD); // Now bind thread and let it never move again
+#endif
+}
+
+void task_system::run_tasks_loop(int i, int n) {
     auto guard = util::on_scope_exit([] { current_task_queue_ = -1; });
     current_task_queue_ = i;
-
+    bind_my_thread(i, n);
     while (true) {
         priority_task ptsk;
         // Loop over the levels of priority starting from highest to lowest
@@ -146,7 +172,7 @@ task_system::task_system(int nthreads): count_(nthreads), q_(nthreads) {
     current_task_queue_ = 0;
 
     for (unsigned i = 1; i < count_; i++) {
-        threads_.emplace_back([this, i]{run_tasks_loop(i);});
+        threads_.emplace_back([this, i]{run_tasks_loop(i, count_);});
         tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }

@@ -199,7 +199,7 @@ public:
     // is not executing the run_tasks_loop, but the task_group::wait() loop which
     // doesn't use pop but always try_pop.
     // `i` is the thread idx, used to select the thread's personal notification queue.
-    void run_tasks_loop(int i);
+    void run_tasks_loop(int i, int n);
 
     // Public interface: try to dequeue and run a single task with at least the
     // requested priority level. Will return without executing a task if no tasks
