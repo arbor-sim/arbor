@@ -6,8 +6,6 @@
 
 #include "threading/threading.hpp"
 
-#define ARB_HAVE_HWLOC
-
 #ifdef ARB_HAVE_HWLOC
 #include <hwloc.h>
 #endif
@@ -110,6 +108,8 @@ void bind_my_thread(int i, int n) {
                       0);                                                                     // No flags
         hwloc_bitmap_singlify(cpusets[i]);                                                    // Make this a single location
         hwloc_set_cpubind(topology, cpusets[i], HWLOC_CPUBIND_STRICT | HWLOC_CPUBIND_THREAD); // Now bind thread and let it never move again
+#else
+    #message "HWLOC!";
 #endif
 }
 
