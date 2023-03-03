@@ -32,6 +32,19 @@ T constexpr area_circle(T r) {
     return pi<T> * square(r);
 }
 
+template <typename T, typename U, typename = std::enable_if_t<std::is_unsigned_v<U>>>
+T constexpr pow(T base, U exp) {
+    if (exp == 0) return 1;
+
+    const U exp_half = exp / 2;
+    if (2 * exp_half == exp) {
+        const auto r = ::arb::math::pow<T, U>(base, exp_half);
+        return r * r;
+    }
+
+    return base * ::arb::math::pow<T, U>(base, exp - 1);
+}
+
 // Surface area of conic frustrum excluding the discs at each end,
 // with length L, end radii r1, r2.
 template <typename T>
