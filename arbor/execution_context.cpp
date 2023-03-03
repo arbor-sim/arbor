@@ -16,7 +16,7 @@ namespace arb {
 
 execution_context::execution_context(const proc_allocation& resources):
     distributed(make_local_context()),
-    thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
+    thread_pool(std::make_shared<threading::task_system>(resources.num_threads, resources.bind_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
 {}
@@ -27,22 +27,10 @@ ARB_ARBOR_API context make_context(const proc_allocation& p) {
 
 #ifdef ARB_HAVE_MPI
 
-// Helper to figure out which processes live on this node
-inline
-std::pair<int, int> get_local_mpi_coordinates(MPI_Comm comm) {
-    MPI_Comm local;
-    MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local);
-    int size = -1, rank = -1;
-    MPI_Comm_rank(local, &rank);
-    MPI_Comm_size(local, &size);
-    MPI_Comm_free(&local);
-    return {rank, size};
-}
-
 template <>
 execution_context::execution_context(const proc_allocation& resources, MPI_Comm comm):
-    distributed(make_mpi_context(comm)),
-    thread_pool(std::make_shared<threading::task_system>(resources.num_threads, get_local_mpi_coordinates(comm))),
+    distributed(make_mpi_context(comm, resources.bind_procs)),
+    thread_pool(std::make_shared<threading::task_system>(resources.num_threads, resources.bind_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
 {}
@@ -57,7 +45,7 @@ execution_context::execution_context(
         const proc_allocation& resources,
         dry_run_info d):
         distributed(make_dry_run_context(d.num_ranks, d.num_cells_per_rank)),
-        thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
+        thread_pool(std::make_shared<threading::task_system>(resources.num_threads, resources.bind_threads)),
         gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                                : std::make_shared<gpu_context>())
 {}

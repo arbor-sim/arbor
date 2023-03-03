@@ -11,10 +11,15 @@
 #include <mpi.h>
 
 #include <arbor/spike.hpp>
+#include <arbor/util/scope_exit.hpp>
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
 #include "label_resolution.hpp"
+
+#ifdef ARB_HAVE_HWLOC
+#include <hwloc.h>
+#endif
 
 namespace arb {
 
@@ -24,9 +29,48 @@ struct mpi_context_impl {
     int rank_;
     MPI_Comm comm_;
 
-    explicit mpi_context_impl(MPI_Comm comm): comm_(comm) {
+    explicit mpi_context_impl(MPI_Comm comm, bool bind=false): comm_(comm) {
         size_ = mpi::size(comm_);
         rank_ = mpi::rank(comm_);
+
+#define HWLOC(exp, msg) if (-1 == exp) throw arbor_internal_error(std::string{"HWLOC Process failed at: "} + msg);
+#ifdef ARB_HAVE_HWLOC
+        if (bind) {
+            MPI_Comm local;
+            MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, rank_, MPI_INFO_NULL, &local);
+            auto mpi_guard = util::on_scope_exit([&] { MPI_Comm_free(&local); });
+            int local_rank = -1, local_size = -1;
+            MPI_Comm_rank(local, &local_rank);
+            MPI_Comm_size(local, &local_size);
+
+            // Create the topology and ensure we don't leak it
+            auto topology = hwloc_topology_t{};
+            auto hlw_guard = util::on_scope_exit([&] { hwloc_topology_destroy(topology); });
+            HWLOC(hwloc_topology_init(&topology), "Topo init");
+            HWLOC(hwloc_topology_load(topology), "Topo load");
+            // Fetch our current restrictions and apply them to our topology
+            // NOTE: This is questionable, no?
+            hwloc_cpuset_t proc_cpus{};
+            HWLOC(hwloc_get_cpubind(topology, proc_cpus, HWLOC_CPUBIND_PROCESS), "Getting our cpuset.");
+            HWLOC(hwloc_topology_restrict(topology, proc_cpus, 0), "Topo restriction.");
+            // Extract the root object describing the full local node
+            auto root = hwloc_get_root_obj(topology);
+            // Allocate one set per rank on this node
+            auto cpusets = std::vector<hwloc_cpuset_t>(local_size, {});
+            // Distribute threads over topology, giving each of them as much private
+            // cache as possible and keeping them locally in number order.
+            HWLOC(hwloc_distrib(topology,
+                                &root, 1,                        // single root for the full machine
+                                cpusets.data(), cpusets.size(),  // one cpuset for each rank
+                                INT_MAX,                         // maximum available level = Logical Cores
+                                0),                              // No flags
+                  "Distribute");
+            // Now bind thread
+            HWLOC(hwloc_set_cpubind(topology, cpusets[local_rank], HWLOC_CPUBIND_PROCESS),
+                  "Binding");
+        }
+#endif
+#undef HWLOC
     }
 
     gathered_vector<arb::spike>
@@ -91,8 +135,8 @@ struct mpi_context_impl {
 };
 
 template <>
-std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm) {
-    return std::make_shared<distributed_context>(mpi_context_impl(comm));
+std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm, bool bind) {
+    return std::make_shared<distributed_context>(mpi_context_impl(comm, bind));
 }
 
 } // namespace arb

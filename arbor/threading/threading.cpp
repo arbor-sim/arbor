@@ -3,6 +3,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
+#include <arbor/arbexcept.hpp>
 
 #include "threading/threading.hpp"
 
@@ -93,37 +94,36 @@ void task_system::run(priority_task ptsk) {
     ptsk.run();
 }
 
-#define HWLOC(exp, msg)                         \
-    if (-1 == exp) {                            \
-        std::cerr << msg;                       \
-        return;                                 \
-    }
+#define HWLOC(exp, msg) if (-1 == exp) throw arbor_internal_error(std::string{"HWLOC Thread failed at: "} + msg);
 
 // If we have found hwloc, pin our thread to a single physical core else noop
-void bind_my_thread(int index, int threads_per_proc, int rank, int size) {
+void bind_my_thread(int index, int n_threads) {
 #ifdef ARB_HAVE_HWLOC
-    int threads_on_node = size*threads_per_proc;
-    int index_on_node = rank*threads_per_proc + index;
-    auto topology = hwloc_topology_t{};                                         // make the topology
-    auto guard = util::on_scope_exit([&] { hwloc_topology_destroy(topology); }); // ensure we don't leak it
+    // Create the topology and ensure we don't leak it
+    auto topology = hwloc_topology_t{};
+    auto guard = util::on_scope_exit([&] { hwloc_topology_destroy(topology); });
     HWLOC(hwloc_topology_init(&topology), "Topo init");
     HWLOC(hwloc_topology_load(topology), "Topo load");
-    auto root = hwloc_get_root_obj(topology);                                   // extract the root
-    if (0 == root->depth) return;                                               // topology has nothing in it. Mac?
-    auto cpusets = std::vector<hwloc_cpuset_t>(threads_on_node, {});            // set up one set per local thread
+    // Fetch our current restrictions and apply them to our topology
+    hwloc_cpuset_t thread_cpus{};
+    HWLOC(hwloc_get_cpubind(topology, thread_cpus, HWLOC_CPUBIND_PROCESS), "Getting our cpuset.");
+    HWLOC(hwloc_topology_restrict(topology, thread_cpus, 0), "Topo restriction.");
+    // Extract the root object describing the full local node
+    auto root = hwloc_get_root_obj(topology);
+    // Allocate one set per thread
+    auto cpusets = std::vector<hwloc_cpuset_t>(n_threads, {});
     // Distribute threads over topology, giving each of them as much private
     // cache as possible and keeping them locally in number order.
     HWLOC(hwloc_distrib(topology,
-                        &root, 1,                                               // single root for the full machine
-                        cpusets.data(), cpusets.size(),                         // one cpuset for each thread
-                        INT_MAX,                                                // maximum available level = Logical Cores
-                        0),                                                     // No flags
+                        &root, 1,                        // single root for the full machine
+                        cpusets.data(), cpusets.size(),  // one cpuset for each thread
+                        INT_MAX,                         // maximum available level = Logical Cores
+                        0),                              // No flags
           "Distribute");
-    HWLOC(hwloc_bitmap_singlify(cpusets[index_on_node]), "Singlify");           // Make this a single location
-    // Now bind thread and let it never move again
-    HWLOC(hwloc_set_cpubind(topology,
-                            cpusets[index_on_node],
-                            HWLOC_CPUBIND_STRICT | HWLOC_CPUBIND_THREAD),
+    // Bind threads to a single PU.
+    HWLOC(hwloc_bitmap_singlify(cpusets[index]), "Singlify");
+    // Now bind thread
+    HWLOC(hwloc_set_cpubind(topology, cpusets[index], HWLOC_CPUBIND_THREAD),
           "Binding");
 #endif
 }
@@ -133,7 +133,7 @@ void bind_my_thread(int index, int threads_per_proc, int rank, int size) {
 void task_system::run_tasks_loop(int index) {
     auto guard = util::on_scope_exit([] { current_task_queue_ = -1; });
     current_task_queue_ = index;
-    bind_my_thread(index, count_, local_rank_, local_size_);
+    if (bind_) bind_my_thread(index, count_);
     while (true) {
         priority_task ptsk;
         // Loop over the levels of priority starting from highest to lowest
@@ -175,10 +175,9 @@ thread_local unsigned task_system::current_task_queue_ = -1;
 // Default construct with one thread.
 task_system::task_system(): task_system(1) {}
 
-task_system::task_system(int nthreads, const std::pair<int, int> local):
+task_system::task_system(int nthreads, bool bind):
     count_(nthreads),
-    local_rank_{std::get<0>(local)},
-    local_size_{std::get<1>(local)},
+    bind_(bind),
     q_(nthreads) {
     if (nthreads <= 0)
         throw std::runtime_error("Non-positive number of threads in thread pool");
@@ -193,7 +192,7 @@ task_system::task_system(int nthreads, const std::pair<int, int> local):
     current_task_queue_ = 0;
 
     // Bind the master thread
-    bind_my_thread(0, count_, local_rank_, local_size_);
+    if (bind_) bind_my_thread(0, count_);
 
     for (unsigned i = 1; i < count_; i++) {
         threads_.emplace_back([this, i]{run_tasks_loop(i);});
