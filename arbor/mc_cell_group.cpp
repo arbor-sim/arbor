@@ -439,27 +439,27 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
-    {
+    if (!sampler_map_.empty()) { // NOTE: We avoid the lock here as often as possible
+        // SAFETY: We need the lock here, as _schedule_ is not reentrant.
         std::lock_guard<std::mutex> guard(sampler_mex_);
-
-        for (auto& sm_entry: sampler_map_) {
-            // Ignore sampler_association_handle, just need the association itself.
-            sampler_association& sa = sm_entry.second;
-
+        for (auto& [sk, sa]: sampler_map_) {
+            if (sa.probeset_ids.empty()) continue; // No need to make any schedule
             auto sample_times = util::make_range(sa.sched.events(tstart, ep.t1));
-            if (sample_times.empty()) {
-                continue;
-            }
-
             sample_size_type n_times = sample_times.size();
+            if (n_times == 0) continue;
             max_samples_per_call = std::max(max_samples_per_call, n_times);
-
-            for (cell_member_type pid: sa.probeset_ids) {
+            for (const cell_member_type& pid: sa.probeset_ids) {
                 probe_tag tag = probe_map_.tag.at(pid);
                 unsigned index = 0;
                 for (const fvm_probe_data& pdata: probe_map_.data_on(pid)) {
-                    call_info.push_back({sa.sampler, pid, tag, index++, &pdata, n_samples, n_samples + n_times*pdata.n_raw()});
-
+                    call_info.push_back({sa.sampler,
+                                         pid,
+                                         tag,
+                                         index,
+                                         &pdata,
+                                         n_samples,
+                                         n_samples + n_times*pdata.n_raw()});
+                    index++;
                     for (auto t: sample_times) {
                         auto it = timesteps_.find(t);
                         arb_assert(it != timesteps_.end());
@@ -501,7 +501,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // global index for spike communication.
 
     for (auto c: result.crossings) {
-        spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
+        spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }
 }
 

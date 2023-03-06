@@ -63,7 +63,6 @@ void lif_cell_group::clear_spikes() {
     spikes_.clear();
 }
 
-// TODO: implement sampler
 void lif_cell_group::add_sampler(sampler_association_handle h,
                                  cell_member_predicate probeset_ids,
                                  schedule sched,
@@ -116,9 +115,10 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     // samples to process
     std::size_t n_values = 0;
     std::vector<std::pair<time_type, sampler_association_handle>> samples;
-    {
+    if (!samplers_.empty()) {
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
+            if (assoc.probeset_ids.empty()) continue; // No need to generate events
             // Construct sampling times
             const auto& times = util::make_range(assoc.sched.events(t, tfinal));
             const auto n_times = times.size();
