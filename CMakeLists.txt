@@ -246,7 +246,7 @@ if(HWLOC_FOUND)
     message("hwloc ${HWLOC_LIBRARY_DIRS} ${HWLOC_LIBRARIES}")
     target_link_directories(ext-hwloc INTERFACE ${HWLOC_LIBRARY_DIRS})
     target_link_libraries(ext-hwloc INTERFACE ${HWLOC_LIBRARIES})
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_HWLOC)
+    target_compile_definitions(arbor-public-deps INTERFACE ARB_HAVE_HWLOC)
 endif()
 
 add_subdirectory(ext)
