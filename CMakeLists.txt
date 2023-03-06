@@ -239,7 +239,7 @@ if(NOT ARB_USE_BUNDLED_RANDOM123)
 endif()
 
 # in the event we can find hwloc, just add it
-find_package(HWLOC REQUIRED)
+find_package(HWLOC)
 add_library(ext-hwloc INTERFACE)
 if(HWLOC_FOUND)
     target_include_directories(ext-hwloc INTERFACE ${HWLOC_INCLUDE_DIRS})
