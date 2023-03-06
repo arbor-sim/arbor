@@ -182,7 +182,7 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # Interface library `arbor-private-deps` collects dependencies, options etc.
 # for the arbor library.
 add_library(arbor-private-deps INTERFACE)
-target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-hwloc ext-random123 ${CMAKE_DL_LIBS})
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS})
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
@@ -239,14 +239,15 @@ if(NOT ARB_USE_BUNDLED_RANDOM123)
 endif()
 
 # in the event we can find hwloc, just add it
-find_package(HWLOC)
+find_package(HWLOC QUIET)
 add_library(ext-hwloc INTERFACE)
 if(HWLOC_FOUND)
     target_include_directories(ext-hwloc INTERFACE ${HWLOC_INCLUDE_DIRS})
     message("hwloc ${HWLOC_LIBRARY_DIRS} ${HWLOC_LIBRARIES}")
-    target_link_directories(ext-hwloc INTERFACE ${HWLOC_LIBRARY_DIRS})
+    target_link_directories(ext-hwloc INTERFACE $<BUILD_INTERFACE:${HWLOC_LIB_DIR}>)
     target_link_libraries(ext-hwloc INTERFACE ${HWLOC_LIBRARIES})
-    target_compile_definitions(arbor-public-deps INTERFACE ARB_HAVE_HWLOC)
+    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_HWLOC)
+    target_link_libraries(arbor-public-deps INTERFACE ext-hwloc)
 endif()
 
 add_subdirectory(ext)

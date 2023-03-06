@@ -134,6 +134,17 @@ endif()
 
 # Library target:
 add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
+
+if(HWLOC_FOUND)
+    target_include_directories(ext-hwloc INTERFACE ${HWLOC_INCLUDE_DIRS})
+    message("hwloc ${HWLOC_LIBRARY_DIRS} ${HWLOC_LIBRARIES}")
+    target_link_directories(ext-hwloc INTERFACE ${HWLOC_LIBRARY_DIRS})
+    target_link_libraries(ext-hwloc INTERFACE ${HWLOC_LIBRARIES})
+    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_HWLOC)
+    target_link_libraries(arbor INTERFACE ext-hwloc)
+endif()
+
+
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
@@ -150,4 +161,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
