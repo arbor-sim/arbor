@@ -219,8 +219,8 @@ struct fvm_lowered_cell {
 
     virtual fvm_integration_result integrate(
         const timestep_range& dts,
-        const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
-        const std::vector<sample_event>& staged_samples) = 0;
+        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+        const std::vector<std::vector<sample_event>>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;
 

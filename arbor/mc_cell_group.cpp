@@ -383,25 +383,37 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // Bin and collate deliverable events from event lanes.
 
     PE(advance:eventsetup:clear);
-    sample_events_.clear();
-    for (auto& v : staged_events_per_mech_id_) {
-        v.clear();
-    }
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
+    for (auto& vv : staged_events_per_mech_id_) {
+        vv.resize(timesteps_.size());
+        for (auto& v : vv) {
+            v.clear();
+        }
+    }
+    sample_events_.resize(timesteps_.size());
+    for (auto& v : sample_events_) {
+        v.clear();
+    }
     PL();
 
     // Skip event handling if nothing to deliver.
     PE(advance:eventsetup:push);
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         auto lid = 0;
+        arb_size_type timestep_index = 0;
         for (auto& lane: event_lanes) {
             for (auto e: lane) {
                 // Events coinciding with epoch's upper boundary belong to next epoch
-                if (e.time>=ep.t1) break;
+                const auto time = e.time;
+                if (time >= ep.t1) break;
+                while(time >= timesteps_[timestep_index].t_end()) {
+                    ++timestep_index;
+                }
+                arb_assert(timestep_index < timesteps_.size());
                 const auto offset = target_handle_divisions_[lid]+e.target;
                 const auto h = target_handles_[offset];
-                staged_events_per_mech_id_[h.mech_id].emplace_back(e.time, h, e.weight);
+                staged_events_per_mech_id_[h.mech_id][timestep_index].emplace_back(e.time, h, e.weight);
             }
             ++lid;
         }
@@ -449,9 +461,12 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                     call_info.push_back({sa.sampler, pid, tag, index++, &pdata, n_samples, n_samples + n_times*pdata.n_raw()});
 
                     for (auto t: sample_times) {
+                        auto it = timesteps_.find(t);
+                        arb_assert(it != timesteps_.end());
+                        const auto timestep_index = it - timesteps_.begin();
                         for (probe_handle h: pdata.raw_handle_range()) {
                             sample_event ev{t, {h, n_samples++}};
-                            sample_events_.push_back(ev);
+                            sample_events_[timestep_index].push_back(ev);
                         }
                     }
                 }
@@ -459,9 +474,6 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             arb_assert(n_samples==call_info.back().end_offset);
         }
     }
-
-    // Sample events must be ordered by time for the lowered cell.
-    util::stable_sort_by(sample_events_, [](const sample_event& ev) { return event_time(ev); });
     PL();
 
     // Run integration and collect samples, spikes.

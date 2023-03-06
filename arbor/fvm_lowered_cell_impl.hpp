@@ -59,8 +59,8 @@ public:
 
     fvm_integration_result integrate(
         const timestep_range& dts,
-        const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
-        const std::vector<sample_event>& staged_samples) override;
+        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+        const std::vector<std::vector<sample_event>>& staged_samples) override;
 
     value_type time() const override { return state_->time; }
 
@@ -158,8 +158,8 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     const timestep_range& dts,
-    const std::vector<std::vector<deliverable_event>>& staged_events_per_mech_id,
-    const std::vector<sample_event>& staged_samples)
+    const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+    const std::vector<std::vector<sample_event>>& staged_samples)
 {
     arb_assert(state_->time == dts.t_begin());
     set_gpu();
@@ -171,7 +171,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     PL();
 
     // loop over timesteps
-    for (auto ts : dts) {
+    for (const auto& ts : dts) {
         state_->update_time_to(ts);
         arb_assert(state_->time == ts.t_begin());
 

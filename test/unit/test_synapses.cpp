@@ -151,8 +151,8 @@ TEST(synapses, syn_basic_state) {
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
 
-    state.begin_epoch({{{0., {0, 1}, 3.14f}, {0., {0, 3}, 1.41f}},  // events for mech_id == 0
-                       {{0., {1, 0}, 2.71f}, {0., {1, 2}, 0.07f}}}, // events for mech_id == 1
+    state.begin_epoch({{{{0., {0, 1}, 3.14f}, {0., {0, 3}, 1.41f}}},  // events for mech_id == 0
+                       {{{0., {1, 0}, 2.71f}, {0., {1, 2}, 0.07f}}}}, // events for mech_id == 1
                       {}, dts);
     state.mark_events();
 

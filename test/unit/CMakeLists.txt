@@ -136,6 +136,7 @@ set(unit_sources
     test_s_expr.cpp
     test_thread.cpp
     test_threading_exceptions.cpp
+    test_timestep_range.cpp
     test_tree.cpp
     test_transform.cpp
     test_uninitialized.cpp

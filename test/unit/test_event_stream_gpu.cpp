@@ -1,14 +1,12 @@
-#include <cstdio>
-#include <random>
 #include <vector>
-
 #include <gtest/gtest.h>
 
-#include <backends/event.hpp>
-#include <backends/gpu/event_stream.hpp>
-#include <memory/memory.hpp>
-#include <memory/gpu_wrappers.hpp>
-#include <util/rangeutil.hpp>
+#include "timestep_range.hpp"
+#include "backends/event.hpp"
+#include "backends/gpu/event_stream.hpp"
+#include "memory/memory.hpp"
+#include "memory/gpu_wrappers.hpp"
+#include "util/rangeutil.hpp"
 
 using namespace arb;
 
@@ -50,16 +48,19 @@ TEST(event_stream_gpu, mark) {
 
     event_stream m(thread_pool);
 
-    ASSERT_TRUE(std::is_sorted(common_events.begin(), common_events.end(),
-        [](const auto& a, const auto& b) { return event_time(a) < event_time(b);}));
-
     arb_deliverable_event_stream s;
     arb_deliverable_event_data d;
 
     timestep_range dts{0, 6, 1.0};
     EXPECT_EQ(dts.size(), 6u);
 
-    m.init(common_events, dts);
+    std::vector<std::vector<deliverable_event>> events(dts.size());
+    for (const auto& ev : common_events) {
+        events[dts.find(event_time(ev))-dts.begin()].push_back(ev);
+    }
+    arb_assert(util::sum_by(events, [] (const auto& v) {return v.size();}) == common_events.size());
+
+    m.init(events);
 
     EXPECT_TRUE(m.empty());
     s = m.marked_events();

@@ -77,10 +77,10 @@ private:
     timestep_range timesteps_;
 
     // List of events to deliver per mechanism id
-    std::vector<std::vector<deliverable_event>> staged_events_per_mech_id_;
+    std::vector<std::vector<std::vector<deliverable_event>>> staged_events_per_mech_id_;
 
     // List of samples to be taken
-    std::vector<sample_event> sample_events_;
+    std::vector<std::vector<sample_event>> sample_events_;
 
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles_;

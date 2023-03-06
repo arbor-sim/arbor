@@ -1,6 +1,7 @@
 #include <vector>
 #include <gtest/gtest.h>
 
+#include "timestep_range.hpp"
 #include "backends/event.hpp"
 #include "backends/multicore/event_stream.hpp"
 #include "util/rangeutil.hpp"
@@ -38,15 +39,18 @@ TEST(event_stream, mark) {
 
     event_stream m;
 
-    ASSERT_TRUE(std::is_sorted(common_events.begin(), common_events.end(),
-        [](const auto& a, const auto& b) { return event_time(a) < event_time(b);}));
-
     arb_deliverable_event_stream s;
 
     timestep_range dts{0, 6, 1.0};
     EXPECT_EQ(dts.size(), 6u);
 
-    m.init(common_events, dts);
+    std::vector<std::vector<deliverable_event>> events(dts.size());
+    for (const auto& ev : common_events) {
+        events[dts.find(event_time(ev))-dts.begin()].push_back(ev);
+    }
+    arb_assert(util::sum_by(events, [] (const auto& v) {return v.size();}) == common_events.size());
+
+    m.init(events);
 
     EXPECT_TRUE(m.empty());
     s = m.marked_events();

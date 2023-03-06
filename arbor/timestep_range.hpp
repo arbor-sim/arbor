@@ -5,6 +5,7 @@
 #include <limits>
 
 #include <arbor/assert.hpp>
+#include <util/iterutil.hpp>
 
 #include "epoch.hpp"
 
@@ -29,88 +30,39 @@ public: // member types
     using value_type = timestep;
     using size_type = unsigned;
 
-    // Iterator-like class which dereferences to a timestep object. Note, that it does not return a
-    // refrences but values. This means only by-value range loops, such as
-    // `for (timestep t : r) {...}` are allowed.
-    class const_iterator {
+private: // members
+    time_type t0_;
+    time_type t1_;
+    time_type dt_;
+    size_type n_;
+
+public: // access
+    timestep operator[](size_type i) const noexcept {
+        arb_assert(i < n_);
+        return { t0_+ i*dt_, i+1 >= n_ ? t1_ : t0_ + (i+1)*dt_};
+    }
+
+public: // iterator
+    class const_iterator:
+        public util::generating_view_iterator_adaptor<const_iterator, timestep_range> {
+    private:
+        using base = util::generating_view_iterator_adaptor<const_iterator, timestep_range>;
         friend class timestep_range;
 
-    public: // member types
-        using value_type = timestep;
+        const timestep_range * r_ = nullptr;
 
     public: // ctor, assignment
         const_iterator() noexcept = default;
         const_iterator(const const_iterator&) noexcept = default;
         const_iterator& operator=(const const_iterator&) noexcept = default;
 
-    public: // access, increment, decrement and comparison.
-        timestep operator*() const noexcept {
+        const timestep_range& view() const noexcept {
             arb_assert(r_);
-            return r_->operator[](i_);
-        }
-
-        const_iterator& operator++() noexcept {
-            arb_assert(r_);
-            if ((i_+1) <= r_->size()) ++i_;
-            return *this;
-        }
-
-        const_iterator operator++(int) noexcept {
-            arb_assert(r_);
-            const_iterator tmp(*this);
-            this->operator++();
-            return tmp;
-        }
-
-        const_iterator& operator--() noexcept {
-            arb_assert(r_);
-            if (i_ > 0u) --i_;
-            return *this;
-        }
-
-        const_iterator operator--(int) noexcept {
-            arb_assert(r_);
-            const_iterator tmp(*this);
-            this->operator--();
-            return tmp;
-        }
-
-        friend bool operator==(const const_iterator& lhs, const const_iterator& rhs) noexcept {
-            arb_assert(lhs.r_ == rhs.r_);
-            return lhs.i_ == rhs.i_;
-        }
-
-        friend bool operator!=(const const_iterator& lhs, const const_iterator& rhs) noexcept {
-            arb_assert(lhs.r_ == rhs.r_);
-            return lhs.i_ != rhs.i_;
-        }
-
-        friend bool operator<(const const_iterator& lhs, const const_iterator& rhs) noexcept {
-            arb_assert(lhs.r_ == rhs.r_);
-            return lhs.i_ < rhs.i_;
-        }
-
-        friend bool operator<=(const const_iterator& lhs, const const_iterator& rhs) noexcept {
-            arb_assert(lhs.r_ == rhs.r_);
-            return lhs.i_ <= rhs.i_;
-        }
-
-        friend bool operator>(const const_iterator& lhs, const const_iterator& rhs) noexcept {
-            arb_assert(lhs.r_ == rhs.r_);
-            return lhs.i_ > rhs.i_;
-        }
-
-        friend bool operator>=(const const_iterator& lhs, const const_iterator& rhs) noexcept {
-            arb_assert(lhs.r_ == rhs.r_);
-            return lhs.i_ >= rhs.i_;
+            return *r_;
         }
 
     private:
-        const_iterator(const timestep_range* r, size_type i) noexcept: r_{r}, i_{i} {}
-
-    private:
-        const timestep_range * r_ = nullptr;
-        size_type i_ = 0u;
+        const_iterator(const timestep_range* r, std::size_t i) noexcept : base(i), r_{r} {}
     };
 
 public: // ctors, assignment, reset
@@ -146,9 +98,9 @@ public: // ctors, assignment, reset
         const size_type m = static_cast<size_type>(delta/dt_);
         // Allow slightly larger time steps at the end of the epoch in order to avoid tiny time
         // steps, if the the last time step m*dt_ is at most m floating point representations
-        // smaller than delta. The tolerable floating point range is approximated by the scaled
+        // smaller than t1_. The tolerable floating point range is approximated by the scaled
         // machine epsilon times m.
-        n_ = m*dt_ + std::numeric_limits<time_type>::epsilon()*delta*m >= delta ? m : m + 1;
+        n_ = m*dt_ + std::numeric_limits<time_type>::epsilon()*t1_*m >= delta ? m : m + 1;
         return *this;
     }
 
@@ -162,27 +114,25 @@ public: // access and queries
     const_iterator begin() const noexcept { return {this, 0u}; }
     const_iterator end() const noexcept { return {this, n_}; }
 
-    timestep operator[](size_type i) const noexcept {
-        arb_assert(i < n_);
-        return { t0_+ i*dt_, i+1 >= n_ ? t1_ : t0_ + (i+1)*dt_};
+    const_iterator find(time_type t) const noexcept {
+        if (!n_ || t < t0_ || t >= t1_) return end();
+        const auto n = std::min((size_type)((t-t0_)/dt_), n_-1);
+        const auto [t0,t1] = this->operator[](n);
+        if (t>=t0 && t<t1) return {this, n};
+        else if (t<t0) return {this, n-1};
+        else return {this, n+1};
     }
 
     template<class CharT, class Traits = std::char_traits<CharT>>
     friend std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& out,
         const timestep_range& r) {
         out << "{";
-        for (auto x : r) {
-            out << " [ " << x.t_begin() << ", " << x.t_end() << " ]";
+        for (const auto& x : r) {
+            out << " [ " << x.t_begin() << ", " << x.t_end() << " ),";
         }
         out << " }\n";
         return out;
     }
-
-private:
-    time_type t0_;
-    time_type t1_;
-    time_type dt_;
-    size_type n_;
 };
 
 } // namespace arb

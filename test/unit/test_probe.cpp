@@ -316,13 +316,14 @@ void run_expsyn_g_probe_test(context ctx) {
         // and another at 2ms to second, weight 1.
 
         arb_assert(targets[0].mech_id == targets[1].mech_id);
-        std::vector<std::vector<deliverable_event>> events(targets[0].mech_id+1);
-        events[targets[0].mech_id] = {
-            deliverable_event{1.0, targets[0], 0.5},
-            deliverable_event{2.0, targets[1], 1.0}};
+        std::vector<std::vector<std::vector<deliverable_event>>> events(targets[0].mech_id+1);
         const double tfinal = 3.0;
         const double dt = 0.001;
-        lcell.integrate({tfinal, dt}, events, {});
+        const timestep_range dts{tfinal, dt};
+        events[targets[0].mech_id].resize(dts.size());
+        events[targets[0].mech_id][dts.find(1.0)-dts.begin()].push_back(deliverable_event{1.0, targets[0], 0.5});
+        events[targets[0].mech_id][dts.find(2.0)-dts.begin()].push_back(deliverable_event{2.0, targets[1], 1.0});
+        lcell.integrate(dts, events, {});
 
         arb_value_type g0 = deref(p0);
         arb_value_type g1 = deref(p1);
@@ -403,7 +404,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
         // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
         // integrate for a tiny time step.
 
-        std::vector<std::vector<deliverable_event>> events(2);
+        std::vector<std::vector<std::vector<deliverable_event>>> events(2, std::vector<std::vector<deliverable_event>>(1));
         for (unsigned i: {0u, 1u}) {
             // Cells have the same number of targets, so the offset for cell 1 is exactly...
             cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
@@ -411,7 +412,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
             for (auto target_id: util::keys(expsyn_target_loc_map)) {
                 auto h = targets.at(target_id+cell_offset);
                 deliverable_event ev{0., h, float(target_id+100*i)};
-                events[h.mech_id].push_back(ev);
+                events[h.mech_id][0].push_back(ev);
             }
         }
         (void)lcell.integrate({1e-5, 1e-5}, events, {});

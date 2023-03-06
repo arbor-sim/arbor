@@ -181,10 +181,9 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
-        //resources.num_threads = 1;
         arb::partition_hint hint;
         hint.prefer_gpu = true;
-        //hint.cpu_group_size = 16;
+        //hint.cpu_group_size = 1000;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);

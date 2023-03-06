@@ -2,131 +2,86 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
-#include <iosfwd>
-#include <limits>
-#include <utility>
-
-#include <arbor/arbexcept.hpp>
-#include <arbor/fvm_types.hpp>
-#include <arbor/generic_event.hpp>
-
-#include "backends/event.hpp"
-#include "backends/event_stream_state.hpp"
+#include "backends/event_stream_base.hpp"
 #include "memory/memory.hpp"
-#include "timestep_range.hpp"
+#include "util/partition.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
+#include "util/transform.hpp"
 #include "threading/threading.hpp"
 
 namespace arb {
 namespace gpu {
 
 template <typename Event>
-class event_stream {
+class event_stream : public event_stream_base<Event, typename memory::device_vector<::arb::event_data_type<Event>>::view_type> {
 public:
-    using size_type = arb_size_type;
-    using event_type = Event;
-    using event_time_type = ::arb::event_time_type<Event>;
-    using event_data_type = ::arb::event_data_type<Event>;
+    using base = event_stream_base<Event, typename memory::device_vector<::arb::event_data_type<Event>>::view_type>;
+    using size_type = typename base::size_type;
+    using event_data_type = typename base::event_data_type;
+    using device_array = memory::device_vector<event_data_type>;
 
+private: // members
+    task_system_handle thread_pool_;
+    device_array device_ev_data_;
+    std::vector<size_type> offsets_;
+
+public:
     event_stream() = default;
-    event_stream(task_system_handle t): thread_pool_{t} {}
-
-    // returns true if the currently marked time step has no events
-    bool empty() const {
-        return ev_ranges_.empty() ||
-               ev_data_.empty() ||
-               !(index_) ||
-               index_ > ev_ranges_.size() ||
-               !(ev_ranges_[index_-1].second - ev_ranges_[index_-1].first);
-    }
+    event_stream(task_system_handle t): base(), thread_pool_{t} {}
 
     void clear() {
-        ev_data_.clear();
-        ev_ranges_.clear();
-        index_ = 0;
+        base::clear();
+        offsets_.clear();
     }
 
-    void init(const std::vector<Event>& staged, const timestep_range& dts) {
-        using ::arb::event_time;
-
-        if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw arbor_internal_error("multicore/event_stream: too many events for size type");
-        }
-
-        // reset the state
+    // Initialize event streams from a vector of vector of events
+    // Outer vector represents time step bins
+    void init(const std::vector<std::vector<Event>>& staged) {
+        // clear previous data
         clear();
 
-        // return if there are no time steps
-        if (dts.empty()) return;
+        // return if there are no timestep bins
+        if (!staged.size()) return;
 
-        // set up task group
+        // return if there are no events
+        const size_type num_events = util::sum_by(staged, [] (const auto& v) {return v.size();});
+        if (!num_events) return;
+
+        // allocate space for spans and data
+        base::ev_spans_.resize(staged.size());
+        base::ev_data_.resize(num_events);
+        offsets_.resize(staged.size()+1);
+        resize(device_ev_data_, num_events);
+
+        // compute offsets by exclusive scan over staged events
+        util::make_partition(offsets_,
+            util::transform_view(staged, [&](const auto& v) { return v.size(); }),
+            (size_type)0u);
+
+        // assign, copy to device (and potentially sort) the event data in parallel
         arb_assert(thread_pool_);
-        threading::task_group g(thread_pool_.get());
+        threading::parallel_for::apply(0, staged.size(), thread_pool_.get(),
+            [this,&staged](size_type i) {
+                const auto offset = offsets_[i];
+                const auto size = staged[i].size();
+                // add device range
+                base::ev_spans_[i] = device_ev_data_(offset, offset + size);
+                // host span
+                auto host_span = memory::make_view(base::ev_data_)(offset, offset + size);
+                // make event data and copy
+                std::copy_n(util::transform_view(staged[i], [](const auto& x) {
+                    return event_data(x);}).begin(), size, host_span.begin());
+                // sort if necessary
+                if constexpr (has_event_index<Event>::value) {
+                    util::stable_sort_by(host_span, [](const event_data_type& ed) {
+                        return event_index(ed); });
+                }
+                // copy to device
+                memory::copy_async(host_span, base::ev_spans_[i]);
+            });
 
-        // reserve space for events
-        ev_data_.reserve(staged.size());
-        ev_ranges_.reserve(dts.size());
-
-        // resize GPU data
-        resize(device_ev_data_, staged.size());
-
-        auto dt_first = dts.begin();
-        const auto dt_last = dts.end();
-        auto ev_first = staged.begin();
-        const auto ev_last = staged.end();
-        while(dt_first != dt_last) {
-            // dereference iterator to current time step
-            const auto dt = *dt_first;
-            // add empty range for current time step
-            ev_ranges_.emplace_back(ev_data_.size(), ev_data_.size());
-            // loop over events
-            for (; ev_first!=ev_last; ++ev_first) {
-                const auto& ev = *ev_first;
-                // check whether event falls within current timestep interval
-                if (event_time(ev) >= dt.t_end()) break;
-                // add event data and increase event range
-                ev_data_.push_back(event_data(ev));
-                ++ev_ranges_.back().second;
-            }
-            // if we use event indices: stable sort the range before copying to GPU
-            if constexpr (has_event_index<Event>::value) {
-                static_assert(std::is_same<Event, deliverable_event>::value);
-                g.run([this]() {
-                    const auto [first, last] = ev_ranges_.back();
-                    util::stable_sort_by(util::make_range(ev_data_.data() + first, ev_data_.data() + last),
-                            [](const event_data_type& ed) { return event_index(ed); });
-                    copy(ev_data_, device_ev_data_, first, last);
-                });
-
-            }
-            ++dt_first;
-        }
-
-        if constexpr (has_event_index<Event>::value) {
-            // wait for sorting and copying to be done
-            g.wait();
-        }
-        else {
-            // if we don't use event indices: copy to GPU in one go
-            static_assert(std::is_same<Event, sample_event>::value);
-            copy(ev_data_, device_ev_data_);
-        }
-        arb_assert(ev_data_.size() == staged.size());
-    }
-
-    void mark() {
-        index_ += (index_ <= ev_ranges_.size() ? 1 : 0);
-    }
-
-    auto marked_events() {
-        if (empty()) {
-            return make_event_stream_state((event_data_type*)nullptr, (event_data_type*)nullptr);
-        } else {
-            auto ptr = device_ev_data_.data();
-            const auto [first, last] = ev_ranges_[index_-1];
-            return make_event_stream_state(ptr + first, ptr + last);
-        }
+        arb_assert(num_events == base::ev_data_.size());
     }
 
 private:
@@ -137,23 +92,6 @@ private:
             d = D(size);
         }
     }
-
-    template<typename H, typename D>
-    static void copy(const H& h, D& d) {
-        memory::copy_async(h, memory::make_view(d)(0u, h.size()));
-    }
-
-    template<typename H, typename D>
-    static void copy(const H& h, D& d, size_type first, size_type last) {
-        memory::copy_async(memory::make_const_view(h)(first, last), memory::make_view(d)(first, last));
-    }
-
-private:
-    task_system_handle thread_pool_;
-    std::vector<event_data_type> ev_data_;
-    memory::device_vector<event_data_type> device_ev_data_;
-    std::vector<std::pair<size_type,size_type>> ev_ranges_;
-    size_type index_ = 0;
 };
 
 } // namespace gpu
