@@ -90,19 +90,6 @@ std::size_t label_resolution_map::count(const cell_gid_type& gid, const cell_tag
     return map.at(gid).count(tag);
 }
 
-const cell_tag_type& label_resolution_map::tag_at(const cell_gid_type& gid,
-    const cell_lid_type& lid) const {
-    for(const auto& [tag, r_set] : map.at(gid)) {
-	for(const auto& range: r_set.ranges) {
-	    if(lid>= range.begin && lid < range.end) {
-		return tag;
-	    }
-	}
-    }
-    throw arbor_internal_error("gid and lid mismatch");
-    return map.begin()->second.begin()->first;
-}
-
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     arb_assert(clg.label_range.check_invariant());
     const auto& gids = clg.gids;

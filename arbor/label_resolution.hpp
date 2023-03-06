@@ -83,8 +83,6 @@ public:
     const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const;
     std::size_t count(const cell_gid_type& gid, const cell_tag_type& tag) const;
 
-    const cell_tag_type& tag_at(const cell_gid_type& gid, const cell_lid_type& lid) const;
-
 private:
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
 };
