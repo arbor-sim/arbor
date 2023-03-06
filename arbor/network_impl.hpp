@@ -17,43 +17,18 @@
 
 namespace arb {
 
-
 struct network_selection_impl {
     virtual std::optional<double> max_distance() const { return std::nullopt; }
 
     virtual bool select_connection(const network_site_info& src,
         const network_site_info& dest) const = 0;
 
-    virtual bool select_source(cell_gid_type gid,
-        const cable_cell& cell,
+    virtual bool select_source(cell_kind kind,
+        cell_gid_type gid,
         const cell_tag_type& tag) const = 0;
 
-    virtual bool select_destination(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const = 0;
-
-    virtual bool select_source(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const = 0;
-
-    virtual bool select_destination(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const = 0;
-
-    virtual bool select_source(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const = 0;
-
-    virtual bool select_destination(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const = 0;
-
-    virtual bool select_source(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const = 0;
-
-    virtual bool select_destination(cell_gid_type gid,
-        const benchmark_cell& cell,
+    virtual bool select_destination(cell_kind kind,
+        cell_gid_type gid,
         const cell_tag_type& tag) const = 0;
 
     virtual ~network_selection_impl() = default;

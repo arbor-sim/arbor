@@ -6,8 +6,8 @@
 #include <Random123/uniform.hpp>
 
 #include <algorithm>
-#include <memory>
 #include <cmath>
+#include <memory>
 #include <type_traits>
 #include <vector>
 
@@ -21,7 +21,7 @@ namespace {
 // Different seed for each type to avoid unintentional correlation.
 enum class network_seed : unsigned {
     selection_bernoulli = 2058443,
-    spatial_selection_bernoulli = 839033,
+    selection_linear_bernoulli = 839033,
     value_uniform = 48202,
     value_normal = 8405,
     value_truncated_normal = 380237
@@ -42,223 +42,84 @@ double network_location_distance(const network_location& a, const network_locati
     return std::sqrt(a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
 }
 
-template <typename Derived>
-struct network_selection_crtp: public network_selection_impl {
-    bool select_source(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_source_impl(gid, cell, tag);
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_destination_impl(gid, cell, tag);
-    }
-
-    bool select_source(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_source_impl(gid, cell, tag);
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_destination_impl(gid, cell, tag);
-    }
-
-    bool select_source(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_source_impl(gid, cell, tag);
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_destination_impl(gid, cell, tag);
-    }
-
-    bool select_source(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_source_impl(gid, cell, tag);
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const override {
-        return static_cast<const Derived*>(this)->select_destination_impl(gid, cell, tag);
-    }
-};
-
-struct network_selection_all_impl: public network_selection_crtp<network_selection_all_impl> {
+struct network_selection_all_impl: public network_selection_impl {
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_none_impl:
-    public network_selection_crtp<network_selection_none_impl> {
+struct network_selection_none_impl: public network_selection_impl {
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
         return false;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return false;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return false;
     }
 };
 
 struct network_selection_source_cell_kind_impl: public network_selection_impl {
-    cell_kind kind;
+    cell_kind select_kind;
 
-    explicit network_selection_source_cell_kind_impl(cell_kind k): kind(k) {}
+    explicit network_selection_source_cell_kind_impl(cell_kind k): select_kind(k) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return src.kind == kind;
+        return src.kind == select_kind;
     }
 
-    bool select_source(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::cable;
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
+        return kind == select_kind;
     }
 
-    bool select_source(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::lif;
-    }
-
-    bool select_source(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::benchmark;
-    }
-
-    bool select_source(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::spike_source;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const override {
-        return true;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const override {
-        return true;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const override {
-        return true;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const spike_source_cell& cell,
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
         const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_destination_cell_kind_impl:
-    public network_selection_impl {
-    cell_kind kind;
+struct network_selection_destination_cell_kind_impl: public network_selection_impl {
+    cell_kind select_kind;
 
-    explicit network_selection_destination_cell_kind_impl(cell_kind k): kind(k) {}
+    explicit network_selection_destination_cell_kind_impl(cell_kind k): select_kind(k) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return src.kind == kind;
+        return src.kind == select_kind;
     }
 
-    bool select_source(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    bool select_source(cell_gid_type gid,
-        const lif_cell& cell,
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
         const cell_tag_type& tag) const override {
-        return true;
-    }
-
-    bool select_source(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const override {
-        return true;
-    }
-
-    bool select_source(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const override {
-        return true;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const cable_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::cable;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const lif_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::lif;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const benchmark_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::benchmark;
-    }
-
-    bool select_destination(cell_gid_type gid,
-        const spike_source_cell& cell,
-        const cell_tag_type& tag) const override {
-        return kind == cell_kind::spike_source;
+        return kind == select_kind;
     }
 };
 
-
-struct network_selection_source_label_impl:
-    public network_selection_crtp<network_selection_source_label_impl> {
+struct network_selection_source_label_impl: public network_selection_impl {
     std::vector<cell_tag_type> sorted_labels;
 
     explicit network_selection_source_label_impl(std::vector<cell_tag_type> labels):
@@ -271,23 +132,18 @@ struct network_selection_source_label_impl:
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), src.tag);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), tag);
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_destination_label_impl:
-    public network_selection_crtp<network_selection_destination_label_impl> {
+struct network_selection_destination_label_impl: public network_selection_impl {
     std::vector<cell_tag_type> sorted_labels;
 
     explicit network_selection_destination_label_impl(std::vector<cell_tag_type> labels):
@@ -300,23 +156,18 @@ struct network_selection_destination_label_impl:
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), dest.tag);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), tag);
     }
 };
 
-struct network_selection_source_gid_impl:
-    public network_selection_crtp<network_selection_source_gid_impl> {
+struct network_selection_source_gid_impl: public network_selection_impl {
     std::vector<cell_gid_type> sorted_gids;
 
     explicit network_selection_source_gid_impl(std::vector<cell_gid_type> gids):
@@ -329,23 +180,18 @@ struct network_selection_source_gid_impl:
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), src.gid);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_destination_gid_impl:
-    public network_selection_crtp<network_selection_destination_gid_impl> {
+struct network_selection_destination_gid_impl: public network_selection_impl {
     std::vector<cell_gid_type> sorted_gids;
 
     explicit network_selection_destination_gid_impl(std::vector<cell_gid_type> gids):
@@ -358,24 +204,18 @@ struct network_selection_destination_gid_impl:
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), dest.gid);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
     }
 };
 
-
-struct network_selection_invert_impl:
-    public network_selection_crtp<network_selection_invert_impl> {
+struct network_selection_invert_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> selection;
 
     explicit network_selection_invert_impl(std::shared_ptr<network_selection_impl> s):
@@ -386,96 +226,77 @@ struct network_selection_invert_impl:
         return !selection->select_connection(src, dest);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;  // cannot exclude any because source selection cannot be inverted without
                       // knowing selection criteria.
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;  // cannot exclude any because destination selection cannot be inverted without
                       // knowing selection criteria.
     }
 };
 
-
-struct network_selection_inter_cell_impl: public network_selection_crtp<network_selection_inter_cell_impl> {
+struct network_selection_inter_cell_impl: public network_selection_impl {
     bool select_connection(const network_site_info& src,
-        const network_site_info& dest) const {
+        const network_site_info& dest) const override {
         return src.gid != dest.gid;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_not_equal_impl: public network_selection_crtp<network_selection_not_equal_impl> {
+struct network_selection_not_equal_impl: public network_selection_impl {
     bool select_connection(const network_site_info& src,
-        const network_site_info& dest) const {
+        const network_site_info& dest) const override {
         return src.gid != dest.gid || src.tag != dest.tag || src.location != dest.location;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_custom_impl:
-    public network_selection_crtp<network_selection_custom_impl> {
-        std::function<bool(const network_site_info& src, const network_site_info& dest)> func;
+struct network_selection_custom_impl: public network_selection_impl {
+    std::function<bool(const network_site_info& src, const network_site_info& dest)> func;
 
-        explicit network_selection_custom_impl(
-            std::function<bool(const network_site_info& src, const network_site_info& dest)> f):
-            func(std::move(f)) {}
+    explicit network_selection_custom_impl(
+        std::function<bool(const network_site_info& src, const network_site_info& dest)> f):
+        func(std::move(f)) {}
 
-        bool select_connection(const network_site_info& src,
-            const network_site_info& dest) const override {
+    bool select_connection(const network_site_info& src,
+        const network_site_info& dest) const override {
         return func(src, dest);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-struct network_selection_within_distance_impl:
-    public network_selection_crtp<network_selection_within_distance_impl> {
+struct network_selection_within_distance_impl: public network_selection_impl {
     double distance;
 
     explicit network_selection_within_distance_impl(double distance): distance(distance) {}
@@ -485,26 +306,20 @@ struct network_selection_within_distance_impl:
         return network_location_distance(src.location, dest.location) <= distance;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 
     std::optional<double> max_distance() const override { return distance; }
 };
 
-
-struct network_selection_bernoulli_random_impl:
-    public network_selection_crtp<network_selection_bernoulli_random_impl> {
+struct network_selection_bernoulli_random_impl: public network_selection_impl {
     unsigned seed;
     double probability;
 
@@ -517,24 +332,18 @@ struct network_selection_bernoulli_random_impl:
                    dest.hash) < probability;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 };
 
-
-struct network_selection_linear_bernoulli_random_impl:
-    public network_selection_crtp<network_selection_linear_bernoulli_random_impl> {
+struct network_selection_linear_bernoulli_random_impl: public network_selection_impl {
     unsigned seed;
     double distance_begin;
     double p_begin;
@@ -561,36 +370,32 @@ struct network_selection_linear_bernoulli_random_impl:
         const network_site_info& dest) const override {
         const double distance = network_location_distance(src.location, dest.location);
 
-        if(distance < distance_begin || distance > distance_end) return false;
+        if (distance < distance_begin || distance > distance_end) return false;
 
         const double p =
             (p_begin * (distance_end - distance) + p_end * (distance - distance_begin)) /
             (distance_end - distance_begin);
 
         return uniform_rand_from_key_pair(
-                   {unsigned(network_seed::spatial_selection_bernoulli), seed},
+                   {unsigned(network_seed::selection_linear_bernoulli), seed},
                    src.hash,
                    dest.hash) < p;
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 
     std::optional<double> max_distance() const override { return distance_end; }
 };
 
-struct network_selection_and_impl: public network_selection_crtp<network_selection_and_impl> {
+struct network_selection_and_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
     network_selection_and_impl(std::shared_ptr<network_selection_impl> l,
@@ -603,19 +408,15 @@ struct network_selection_and_impl: public network_selection_crtp<network_selecti
         return left->select_connection(src, dest) && right->select_connection(src, dest);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
-        return left->select_source(gid, cell, tag) && right->select_source(gid, cell, tag);
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
+        return left->select_source(kind, gid, tag) && right->select_source(kind, gid, tag);
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
-        return left->select_destination(gid, cell, tag) &&
-               right->select_destination(gid, cell, tag);
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
+        return left->select_destination(kind, gid, tag) &&
+               right->select_destination(kind, gid, tag);
     }
 
     std::optional<double> max_distance() const override {
@@ -630,7 +431,7 @@ struct network_selection_and_impl: public network_selection_crtp<network_selecti
     }
 };
 
-struct network_selection_or_impl: public network_selection_crtp<network_selection_or_impl> {
+struct network_selection_or_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
     network_selection_or_impl(std::shared_ptr<network_selection_impl> l,
@@ -643,19 +444,15 @@ struct network_selection_or_impl: public network_selection_crtp<network_selectio
         return left->select_connection(src, dest) || right->select_connection(src, dest);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
-        return left->select_source(gid, cell, tag) || right->select_source(gid, cell, tag);
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
+        return left->select_source(kind, gid, tag) || right->select_source(kind, gid, tag);
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
-        return left->select_destination(gid, cell, tag) ||
-               right->select_destination(gid, cell, tag);
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
+        return left->select_destination(kind, gid, tag) ||
+               right->select_destination(kind, gid, tag);
     }
 
     std::optional<double> max_distance() const override {
@@ -668,7 +465,7 @@ struct network_selection_or_impl: public network_selection_crtp<network_selectio
     }
 };
 
-struct network_selection_xor_impl: public network_selection_crtp<network_selection_xor_impl> {
+struct network_selection_xor_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
     network_selection_xor_impl(std::shared_ptr<network_selection_impl> l,
@@ -681,17 +478,13 @@ struct network_selection_xor_impl: public network_selection_crtp<network_selecti
         return left->select_connection(src, dest) ^ right->select_connection(src, dest);
     }
 
-    template <typename CellType>
-    bool select_source_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_source(cell_kind kind, cell_gid_type gid, const cell_tag_type& tag) const override {
         return true;
     }
 
-    template <typename CellType>
-    bool select_destination_impl(cell_gid_type gid,
-        const CellType& cell,
-        const cell_tag_type& tag) const {
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const cell_tag_type& tag) const override {
         return true;
     }
 
@@ -705,6 +498,6 @@ struct network_selection_xor_impl: public network_selection_crtp<network_selecti
     }
 };
 
-}
+}  // namespace
 
 }  // namespace arb
