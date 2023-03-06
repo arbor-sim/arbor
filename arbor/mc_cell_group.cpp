@@ -401,8 +401,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PE(advance:eventsetup:push);
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
         auto lid = 0;
-        arb_size_type timestep_index = 0;
         for (auto& lane: event_lanes) {
+            arb_size_type timestep_index = 0;
             for (auto e: lane) {
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 const auto time = e.time;
