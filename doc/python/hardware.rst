@@ -117,6 +117,18 @@ The Python wrapper provides an API for:
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
 
+    .. attribute:: bind_procs
+
+        Try to generate a binding mask for all processes on a node.
+        Do not set to true if process binding is handled externally,
+        eg by SLURM or OpenMPI.
+
+    .. attribute:: bind_threads
+
+        Try to generate a binding mask for all threads on a process. If a
+        process binding mask is set -- either externally or by `bind_procs` --,
+        it will be respected
+
     .. method:: has_gpu()
 
         Indicates whether a GPU is selected (i.e., whether :attr:`gpu_id` is ``None``).
