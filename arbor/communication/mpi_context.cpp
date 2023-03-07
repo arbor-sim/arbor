@@ -31,12 +31,11 @@ struct mpi_context_impl {
         rank_ = mpi::rank(comm_);
         if (bind) {
             MPI_Comm local;
-            MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, rank_, MPI_INFO_NULL, &local);
+            MPI_OR_THROW(MPI_Comm_split_type, comm, MPI_COMM_TYPE_SHARED, rank_, MPI_INFO_NULL, &local);
             auto mpi_guard = util::on_scope_exit([&] { MPI_Comm_free(&local); });
-            int local_rank = -1, local_size = -1;
-            MPI_Comm_rank(local, &local_rank);
-            MPI_Comm_size(local, &local_size);
-            set_affinity(local_rank, local_size, affinity_kind::process);
+            set_affinity(mpi::rank(local),
+                         mpi::size(local),
+                         affinity_kind::process);
         }
     }
 

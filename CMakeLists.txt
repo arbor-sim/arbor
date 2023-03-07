@@ -34,6 +34,11 @@ set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
+# Support for Thread pinning
+
+option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
+mark_as_advanced(ARB_USE_HWLOC)
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -243,11 +248,14 @@ find_package(HWLOC QUIET)
 add_library(ext-hwloc INTERFACE)
 if(HWLOC_FOUND)
     target_include_directories(ext-hwloc INTERFACE ${HWLOC_INCLUDE_DIRS})
-    message("hwloc ${HWLOC_LIBRARY_DIRS} ${HWLOC_LIBRARIES}")
-    target_link_directories(ext-hwloc INTERFACE $<BUILD_INTERFACE:${HWLOC_LIB_DIR}>)
+    target_link_directories(ext-hwloc INTERFACE ${HWLOC_LIBRARY_DIRS})
     target_link_libraries(ext-hwloc INTERFACE ${HWLOC_LIBRARIES})
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_HWLOC)
     target_link_libraries(arbor-public-deps INTERFACE ext-hwloc)
+else()
+    if(ARB_USE_HWLOC)
+        message(SEND_ERROR, "Requested support for HWLOC, but CMake couldn't find it.")
+    endif()
 endif()
 
 add_subdirectory(ext)
