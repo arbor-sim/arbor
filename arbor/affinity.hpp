@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cerrno>
 
 #ifdef ARB_HAVE_HWLOC
 #include <hwloc.h>
@@ -18,11 +19,14 @@ enum class affinity_kind {
 #ifdef ARB_HAVE_HWLOC
 
 inline
-void hwloc(int exp, const std::string& msg) {
-    if (0 != exp) {
+void hwloc(int err, const std::string& msg) {
+    if (0 != err) {
         throw arbor_internal_error(std::string{"Arbor tried to use HWLOC and an operation failed with an error.\n"
                                                "Please disable `bind_procs`/`bind_threads` on the current `proc_allocation` and restart.\n"
-                                               "The problematic operation was: "} + msg);
+                                               "The problematic operation was: "}
+                                               + msg
+                                               + std::string{"\nIt returned this error:\n"}
+                                               + std::string{strerror(err)});
     }
 }
 
