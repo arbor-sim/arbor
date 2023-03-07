@@ -35,7 +35,6 @@ void assemble_matrix_fine(
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
         // See the model documentation in docs/model for more information.
-        //const auto p = dt > 0;
         const auto pid = perm[tid];
         const auto area_factor = T(1e-3)*area[tid];
         const auto gi = T(1e-3)*cv_capacitance[tid]/dt + area_factor*conductivity[tid];

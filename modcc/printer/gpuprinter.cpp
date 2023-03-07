@@ -317,9 +317,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
             out << fmt::format(FMT_COMPILE("\n"
                                            "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
                                            "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
-                                           "    const auto n = end - begin;\n"
-                                           "    if (!n) return;\n"
-                                           "    ::arb::gpu::launch_1d(n, 128, {}, *p, begin, end);\n"),
+                                           "    ::arb::gpu::launch_1d(end - begin, 128, {}, *p, begin, end);\n"),
                                api_name);
         }
         out << "}\n\n";

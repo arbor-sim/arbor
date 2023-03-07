@@ -53,7 +53,6 @@ void istim_add_current_impl(int n, istim_pp pp) {
 } // namespace kernel
 
 ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp) {
-    if (n==0) return;
     launch_1d(n, 128, kernel::istim_add_current_impl, n, pp);
 }
 
