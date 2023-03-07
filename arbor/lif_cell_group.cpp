@@ -130,8 +130,10 @@ void lif_cell_group::advance_cell(time_type tfinal,
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
-            // Construct sampling times
-            const auto& times = util::make_range(assoc.sched.events(last_time_sampled_[lid], tfinal));
+            // Construct sampling times, might give us the last time we sampled, so skip that.
+            auto tlast = last_time_sampled_[lid];
+            auto times = util::make_range(assoc.sched.events(tlast, tfinal));
+            if (!times.empty() && times.front() == tlast) times.left++;
             const auto n_times = times.size();
             // Count up the samplers touching _our_ gid
             int delta = 0;
@@ -144,11 +146,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
             if (delta == 0) continue;
             n_values += delta;
             // only exact sampling: ignore lax and never look at policy
-            for (auto t: times) {
-                if (t > last_time_sampled_[lid]) {
-                    samples.emplace_back(t, hdl);
-                }
-            }
+            for (auto t: times) samples.emplace_back(t, hdl);
         }
     }
     std::sort(samples.begin(), samples.end());
