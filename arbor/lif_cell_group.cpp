@@ -134,7 +134,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
             if (assoc.probeset_ids.empty()) continue;
             // Construct sampling times, might give us the last time we sampled, so skip that.
             auto times = util::make_range(assoc.sched.events(tlast, tfinal));
-            if (!times.empty() && times.front() == tlast) times.left++;
+            while (!times.empty() && times.front() == tlast) times.left++;
             if (times.empty()) continue;
             const auto n_times = times.size();
             // Count up the samplers touching _our_ gid
