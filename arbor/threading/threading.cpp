@@ -7,8 +7,6 @@
 
 #include "threading/threading.hpp"
 
-#include <iostream>
-
 #ifdef ARB_HAVE_HWLOC
 #include <hwloc.h>
 #endif
