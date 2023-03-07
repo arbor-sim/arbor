@@ -15,13 +15,14 @@ enum class affinity_kind {
   process
 };
 
-
 #ifdef ARB_HAVE_HWLOC
 
 inline
 void hwloc(int exp, const std::string& msg) {
-    if (-1 == exp) {
-        throw arbor_internal_error(std::string{"HWLOC Thread failed at: "} + msg);
+    if (0 != exp) {
+        throw arbor_internal_error(std::string{"Arbor tried to use HWLOC and an operation failed with an error.\n"
+                                               "Please disable `bind_procs`/`bind_threads` on the current `proc_allocation` and restart.\n"
+                                               "The problematic operation was: "} + msg);
     }
 }
 
@@ -34,8 +35,8 @@ void set_affinity(int index, int count, affinity_kind kind) {
     hwloc(hwloc_topology_load(topology), "Topo load");
     // Fetch our current restrictions and apply them to our topology
     hwloc_cpuset_t cpus{};
-    hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_PROCESS), "Getting our cpuset.");
-    hwloc(hwloc_topology_restrict(topology, cpus, 0), "Topo restriction.");
+    hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_PROCESS), "Get cpuset.");
+    hwloc(hwloc_topology_restrict(topology, cpus, 0), "Topo restrict.");
     // Extract the root object describing the full local node
     auto root = hwloc_get_root_obj(topology);
     // Allocate one set per item
@@ -50,14 +51,14 @@ void set_affinity(int index, int count, affinity_kind kind) {
           "Distribute");
     if (kind == affinity_kind::thread) {
         // Bind threads to a single PU.
-        hwloc(hwloc_bitmap_singlify(cpusets[index]), "Singlify");
+        hwloc(hwloc_bitmap_singlify(cpusets[index]), "cpuset singlify");
         // Now bind
         hwloc(hwloc_set_cpubind(topology, cpusets[index], HWLOC_CPUBIND_THREAD),
-              "Binding");
+              "Thread binding");
     }
     else if (kind == affinity_kind::process) {
         hwloc(hwloc_set_cpubind(topology, cpusets[index], HWLOC_CPUBIND_PROCESS),
-              "Binding");
+              "Process binding");
     }
     else {
         throw arbor_internal_error{"Unreachable!"};
