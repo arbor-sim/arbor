@@ -119,15 +119,21 @@ The Python wrapper provides an API for:
 
     .. attribute:: bind_procs
 
-        Try to generate a binding mask for all processes on a node.
-        Do not set to true if process binding is handled externally,
-        eg by SLURM or OpenMPI.
+        Try to generate a binding mask for all MPI processes on a node. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`. Do not enable if
+        process binding is handled externally, eg by SLURM or OpenMPI, or
+        disable it there first.
 
     .. attribute:: bind_threads
 
-        Try to generate a binding mask for all threads on a process. If a
-        process binding mask is set -- either externally or by `bind_procs` --,
-        it will be respected
+        Try to generate a binding mask for all threads on an MPI process. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`. If a process
+        binding mask is set -- either externally or by `bind_procs` --, it will
+        be respected.
 
     .. method:: has_gpu()
 
