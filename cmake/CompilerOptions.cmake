@@ -147,7 +147,6 @@ function(export_visibility target)
 
     # conditional on build type
     get_target_property(target_type ${target} TYPE)
-    message("TYPE=${target_type}")
     if (${target_type} STREQUAL STATIC_LIBRARY)
         # building static library
         string(CONCAT target_export_def ${target_name} "_EXPORTS_STATIC")

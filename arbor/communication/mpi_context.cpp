@@ -11,10 +11,12 @@
 #include <mpi.h>
 
 #include <arbor/spike.hpp>
+#include <arbor/util/scope_exit.hpp>
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
 #include "label_resolution.hpp"
+#include "affinity.hpp"
 
 namespace arb {
 
@@ -24,9 +26,17 @@ struct mpi_context_impl {
     int rank_;
     MPI_Comm comm_;
 
-    explicit mpi_context_impl(MPI_Comm comm): comm_(comm) {
+    explicit mpi_context_impl(MPI_Comm comm, bool bind=false): comm_(comm) {
         size_ = mpi::size(comm_);
         rank_ = mpi::rank(comm_);
+        if (bind) {
+            MPI_Comm local;
+            MPI_OR_THROW(MPI_Comm_split_type, comm, MPI_COMM_TYPE_SHARED, rank_, MPI_INFO_NULL, &local);
+            auto mpi_guard = util::on_scope_exit([&] { MPI_Comm_free(&local); });
+            set_affinity(mpi::rank(local),
+                         mpi::size(local),
+                         affinity_kind::process);
+        }
     }
 
     gathered_vector<arb::spike>
@@ -91,8 +101,8 @@ struct mpi_context_impl {
 };
 
 template <>
-std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm) {
-    return std::make_shared<distributed_context>(mpi_context_impl(comm));
+std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm, bool bind) {
+    return std::make_shared<distributed_context>(mpi_context_impl(comm, bind));
 }
 
 } // namespace arb
