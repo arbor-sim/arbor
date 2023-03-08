@@ -7,6 +7,7 @@
 #include <hwloc.h>
 #endif
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/util/scope_exit.hpp>
 
 namespace arb {
@@ -16,18 +17,22 @@ enum class affinity_kind {
   process
 };
 
+struct ARB_SYMBOL_VISIBLE arb_hwloc_error: arbor_exception {
+    arb_hwloc_error(const std::string& msg, const std::string& err):
+        arbor_exception(
+            std::string{"Arbor tried to use HWLOC and an operation failed with an error.\n"
+            "Please disable `bind_procs`/`bind_threads` on the current `proc_allocation` and restart.\n"
+            "The problematic operation was: "}
+            + msg
+            + std::string{"\nIt returned this error:\n"}
+            + err) {}
+};
+
 #ifdef ARB_HAVE_HWLOC
 
 inline
 void hwloc(int err, const std::string& msg) {
-    if (0 != err) {
-        throw arbor_internal_error(std::string{"Arbor tried to use HWLOC and an operation failed with an error.\n"
-                                               "Please disable `bind_procs`/`bind_threads` on the current `proc_allocation` and restart.\n"
-                                               "The problematic operation was: "}
-                                               + msg
-                                               + std::string{"\nIt returned this error:\n"}
-                                               + std::string{strerror(err)});
-    }
+    if (0 != err) throw arb_hwloc_error(msg, std::string{strerror(err)});
 }
 
 inline
@@ -55,7 +60,7 @@ void set_affinity(int index, int count, affinity_kind kind) {
           "Distribute");
     if (kind == affinity_kind::thread) {
         // Bind threads to a single PU.
-        hwloc(hwloc_bitmap_singlify(cpusets[index]), "cpuset singlify");
+        hwloc(hwloc_bitmap_singlify(cpusets[index]), "Singlify cpuset");
         // Now bind
         hwloc(hwloc_set_cpubind(topology, cpusets[index], HWLOC_CPUBIND_THREAD),
               "Thread binding");
@@ -71,7 +76,7 @@ void set_affinity(int index, int count, affinity_kind kind) {
 
 #else
 
-inline void set_affinity(int, int, affinity_kind) {}
+inline void set_affinity(int, int, affinity_kind) { throw arb_feature_disabled{"Binding."}; }
 
 #endif
 

@@ -3,7 +3,6 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
-#include <arbor/arbexcept.hpp>
 
 #include "threading/threading.hpp"
 #include "affinity.hpp"
