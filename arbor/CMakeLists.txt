@@ -134,7 +134,6 @@ endif()
 
 # Library target:
 add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
-
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
