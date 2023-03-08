@@ -97,7 +97,7 @@ The Python wrapper provides an API for:
     Enumerates the computational resources on a node to be used for a simulation,
     specifically the number of threads and identifier of a GPU if available.
 
-    .. method:: proc_allocation([threads=1, gpu_id=None])
+    .. method:: proc_allocation([threads=1, gpu_id=None, bind_procs=False, bind_threads=False])
 
         :param int threads: Number of threads.
         :param int gpu_id: Device ID.
