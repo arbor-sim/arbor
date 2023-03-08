@@ -6,10 +6,7 @@
 #include <arbor/arbexcept.hpp>
 
 #include "threading/threading.hpp"
-
-#ifdef ARB_HAVE_HWLOC
-#include <hwloc.h>
-#endif
+#include "affinity.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -92,46 +89,10 @@ void task_system::run(priority_task ptsk) {
     ptsk.run();
 }
 
-#define HWLOC(exp, msg) if (-1 == exp) throw arbor_internal_error(std::string{"HWLOC Thread failed at: "} + msg);
-
-// If we have found hwloc, pin our thread to a single physical core else noop
-void bind_my_thread(int index, int n_threads) {
-#ifdef ARB_HAVE_HWLOC
-    // Create the topology and ensure we don't leak it
-    auto topology = hwloc_topology_t{};
-    auto guard = util::on_scope_exit([&] { hwloc_topology_destroy(topology); });
-    HWLOC(hwloc_topology_init(&topology), "Topo init");
-    HWLOC(hwloc_topology_load(topology), "Topo load");
-    // Fetch our current restrictions and apply them to our topology
-    hwloc_cpuset_t thread_cpus{};
-    HWLOC(hwloc_get_cpubind(topology, thread_cpus, HWLOC_CPUBIND_PROCESS), "Getting our cpuset.");
-    HWLOC(hwloc_topology_restrict(topology, thread_cpus, 0), "Topo restriction.");
-    // Extract the root object describing the full local node
-    auto root = hwloc_get_root_obj(topology);
-    // Allocate one set per thread
-    auto cpusets = std::vector<hwloc_cpuset_t>(n_threads, {});
-    // Distribute threads over topology, giving each of them as much private
-    // cache as possible and keeping them locally in number order.
-    HWLOC(hwloc_distrib(topology,
-                        &root, 1,                        // single root for the full machine
-                        cpusets.data(), cpusets.size(),  // one cpuset for each thread
-                        INT_MAX,                         // maximum available level = Logical Cores
-                        0),                              // No flags
-          "Distribute");
-    // Bind threads to a single PU.
-    HWLOC(hwloc_bitmap_singlify(cpusets[index]), "Singlify");
-    // Now bind thread
-    HWLOC(hwloc_set_cpubind(topology, cpusets[index], HWLOC_CPUBIND_THREAD),
-          "Binding");
-#endif
-}
-
-#undef HWLOC
-
 void task_system::run_tasks_loop(int index) {
     auto guard = util::on_scope_exit([] { current_task_queue_ = -1; });
     current_task_queue_ = index;
-    if (bind_) bind_my_thread(index, count_);
+    if (bind_) set_affinity(index, count_, affinity_kind::thread);
     while (true) {
         priority_task ptsk;
         // Loop over the levels of priority starting from highest to lowest
@@ -190,7 +151,7 @@ task_system::task_system(int nthreads, bool bind):
     current_task_queue_ = 0;
 
     // Bind the master thread
-    if (bind_) bind_my_thread(0, count_);
+    if (bind_) set_affinity(0, count_, affinity_kind::thread);
 
     for (unsigned i = 1; i < count_; i++) {
         threads_.emplace_back([this, i]{run_tasks_loop(i);});
