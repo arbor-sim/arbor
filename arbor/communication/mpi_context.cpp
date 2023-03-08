@@ -5,6 +5,7 @@
 #error "build only if MPI is enabled"
 #endif
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -64,6 +65,58 @@ struct mpi_context_impl {
     template <typename T>
     std::vector<T> gather(T value, int root) const {
         return mpi::gather(value, root, comm_);
+    }
+
+    std::vector<std::size_t> gather_all(std::size_t value) const {
+        return mpi::gather_all(value, comm_);
+    }
+
+    distributed_request send_recv_nonblocking(std::size_t recv_count,
+        void* recv_data,
+        int source_id,
+        std::size_t send_count,
+        const void* send_data,
+        int dest_id,
+        int tag) const {
+
+        // Return dummy request of nothing to do
+        if (!recv_count && !send_count)
+            return distributed_request{
+                std::make_unique<distributed_request::distributed_request_interface>()};
+        if(recv_count && !recv_data)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: recv_data is null.");
+
+        if(send_count && !send_data)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: send_data is null.");
+
+        if (recv_data == send_data)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: recv_data and send_data must not be the same.");
+
+        auto recv_requests = mpi::irecv(recv_count, recv_data, source_id, tag, comm_);
+        auto send_requests = mpi::isend(send_count, send_data, dest_id, tag, comm_);
+
+        struct mpi_send_recv_request : public distributed_request::distributed_request_interface {
+            std::vector<MPI_Request> recv_requests, send_requests;
+
+            void finalize() override {
+                if (!recv_requests.empty()) {
+                    mpi::wait_all(std::move(recv_requests));
+                }
+
+                if (!send_requests.empty()) {
+                    mpi::wait_all(std::move(send_requests));
+                }
+            };
+
+            ~mpi_send_recv_request() override { this->finalize(); }
+        };
+
+        return distributed_request{
+            std::unique_ptr<distributed_request::distributed_request_interface>(
+                new mpi_send_recv_request{std::move(recv_requests), std::move(send_requests)})};
     }
 
     std::string name() const { return "MPI"; }

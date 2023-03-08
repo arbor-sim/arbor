@@ -5,7 +5,12 @@
 #include <arbor/common_types.hpp>
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/util/unique_any.hpp>
+
+#include <algorithm>
 #include <cstddef>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 namespace arb {
 
@@ -22,6 +27,130 @@ struct src_site_info {
     double x, y, z;
     network_hash_type hash;
 };
+
+
+struct site_info {
+    cell_gid_type gid;
+    cell_gid_type label_id;
+    cell_lid_type lid;
+    network_location location;
+};
+
+struct site_collection {
+    std::unordered_map<cell_tag_type, cell_gid_type> label_id_mapping;
+    std::vector<site_info> sites;
+
+    inline void add_site(cell_gid_type gid,
+        const cell_tag_type& label,
+        cell_lid_type lid,
+        network_location location) {
+
+        auto insert_it = label_id_mapping.insert({label, label_id_mapping.size()});
+
+        sites.emplace_back(site_info{gid, insert_it.first->second, lid, location});
+    }
+};
+
+struct site_mapping {
+    std::vector<site_info> sites;
+    std::string labels;
+
+    site_mapping() = default;
+
+    site_mapping(site_collection collection) {
+
+        std::size_t totalLabelLength = 0;
+        for (const auto& [label, _]: collection.label_id_mapping) {
+            totalLabelLength += label.size();
+        }
+
+        labels.reserve(totalLabelLength + collection.label_id_mapping.size());
+        std::vector<cell_gid_type> label_id_to_start_idx(collection.label_id_mapping.size());
+        for (const auto& [label, id]: collection.label_id_mapping) {
+            label_id_to_start_idx[id] = labels.size();
+            labels.append(label);
+            labels.push_back('\0');
+        }
+
+        for(auto& si : collection.sites) {
+            si.label_id = label_id_to_start_idx.at(si.label_id);
+        }
+
+        sites = std::move(collection.sites);
+    }
+
+    std::string_view label_at_site(const site_info& si) {
+        return labels.c_str() + si.label_id;
+    }
+};
+
+template <typename FUNC>
+void distributed_for_each_site(const distributed_context& distributed,
+    site_mapping mapping,
+    FUNC f) {
+    if(distributed.size() > 1) {
+        const auto my_rank = distributed.id();
+        const auto left_rank = my_rank == 0 ? distributed.size() - 1 : my_rank - 1;
+        const auto right_rank = my_rank == distributed.size() - 1 ? 0 : my_rank + 1;
+
+        const auto num_sites_per_rank = distributed.gather_all(mapping.sites.size());
+        const auto label_string_size_per_rank = distributed.gather_all(mapping.labels.size());
+
+        const auto max_num_sites =
+            *std::max_element(num_sites_per_rank.begin(), num_sites_per_rank.end());
+        const auto max_string_size =
+            *std::max_element(label_string_size_per_rank.begin(), label_string_size_per_rank.end());
+
+        mapping.sites.resize(max_num_sites);
+        mapping.labels.resize(max_string_size);
+
+        site_mapping recv_mapping;
+        recv_mapping.sites.resize(max_num_sites);
+        recv_mapping.labels.resize(max_string_size);
+
+        auto current_idx = my_rank;
+
+        for(std::size_t step = 0; step < distributed.size() - 1; ++step) {
+            const auto next_idx = (current_idx + 1) % distributed.size();
+            auto request_sites = distributed.send_recv_nonblocking(num_sites_per_rank[next_idx],
+                recv_mapping.sites.data(),
+                right_rank,
+                num_sites_per_rank[current_idx],
+                mapping.sites.data(),
+                left_rank,
+                0);
+
+            auto request_labels =
+                distributed.send_recv_nonblocking(label_string_size_per_rank[next_idx],
+                    recv_mapping.labels.data(),
+                    right_rank,
+                    label_string_size_per_rank[current_idx],
+                    mapping.labels.data(),
+                    left_rank,
+                    1);
+
+            for (std::size_t site_idx = 0; site_idx < num_sites_per_rank[current_idx]; ++site_idx) {
+                const auto& s = mapping.sites[site_idx];
+                f(s, mapping.label_at_site(s));
+            }
+
+            request_sites.finalize();
+            request_labels.finalize();
+
+            std::swap(mapping, recv_mapping);
+
+            current_idx = next_idx;
+        }
+
+        for (std::size_t site_idx = 0; site_idx < num_sites_per_rank[current_idx]; ++site_idx) {
+            const auto& s = mapping.sites[site_idx];
+            f(s, mapping.label_at_site(s));
+        }
+    } else {
+        for (const auto& s: mapping.sites) { f(s, mapping.label_at_site(s)); }
+    }
+}
+
 }  // namespace
 
 std::vector<connection> generate_network_connections(

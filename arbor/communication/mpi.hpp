@@ -4,6 +4,8 @@
 #include <iostream>
 #include <type_traits>
 #include <vector>
+#include <cstddef>
+#include <limits>
 
 #include <mpi.h>
 
@@ -317,6 +319,61 @@ T broadcast(int root, MPI_Comm comm) {
         &value, traits::count(), traits::mpi_type(), root, comm);
 
     return value;
+}
+
+std::vector<MPI_Request> isend(std::size_t num_bytes,
+    const void* data,
+    int dest,
+    int tag,
+    MPI_Comm comm) {
+    constexpr std::size_t max_msg_size = static_cast<std::size_t>(std::numeric_limits<int>::max());
+
+    std::vector<MPI_Request> requests;
+
+    for (std::size_t idx = 0; idx < num_bytes; idx += max_msg_size) {
+        requests.emplace_back();
+        MPI_OR_THROW(MPI_Isend,
+            reinterpret_cast<char*>(const_cast<void*>(data)) + idx,
+            static_cast<int>(std::min(max_msg_size, num_bytes - idx)),
+            MPI_BYTE,
+            dest,
+            tag,
+            comm,
+            &(requests.back()));
+    }
+
+    return requests;
+}
+
+std::vector<MPI_Request> irecv(std::size_t num_bytes,
+    void* data,
+    int source,
+    int tag,
+    MPI_Comm comm) {
+    constexpr std::size_t max_msg_size = static_cast<std::size_t>(std::numeric_limits<int>::max());
+
+    std::vector<MPI_Request> requests;
+
+    for (std::size_t idx = 0; idx < num_bytes; idx += max_msg_size) {
+        requests.emplace_back();
+        MPI_OR_THROW(MPI_Irecv,
+            reinterpret_cast<char*>(data) + idx,
+            static_cast<int>(std::min(max_msg_size, num_bytes - idx)),
+            MPI_BYTE,
+            source,
+            tag,
+            comm,
+            &(requests.back()));
+    }
+
+    return requests;
+}
+
+void wait_all(std::vector<MPI_Request> requests) {
+    if(!requests.empty()) {
+        MPI_OR_THROW(
+            MPI_Waitall, static_cast<int>(requests.size()), requests.data(), MPI_STATUSES_IGNORE);
+    }
 }
 
 } // namespace mpi

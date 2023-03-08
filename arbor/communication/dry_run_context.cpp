@@ -109,6 +109,23 @@ struct dry_run_context_impl {
         return std::vector<T>(num_ranks_, value);
     }
 
+    std::vector<std::size_t> gather_all(std::size_t value) const {
+        return std::vector<std::size_t>(num_ranks_, value);
+    }
+
+    distributed_request send_recv_nonblocking(std::size_t dest_count,
+        void* dest_data,
+        int dest,
+        std::size_t source_count,
+        const void* source_data,
+        int source,
+        int tag) const {
+        throw arbor_internal_error("send_recv_nonblocking: not implemented for dry run conext.");
+
+        return distributed_request{
+            std::make_unique<distributed_request::distributed_request_interface>()};
+    }
+
     int id() const { return 0; }
 
     int size() const { return num_ranks_; }
