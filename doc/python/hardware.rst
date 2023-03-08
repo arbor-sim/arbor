@@ -97,7 +97,7 @@ The Python wrapper provides an API for:
     Enumerates the computational resources on a node to be used for a simulation,
     specifically the number of threads and identifier of a GPU if available.
 
-    .. method:: proc_allocation([threads=1, gpu_id=None])
+    .. method:: proc_allocation([threads=1, gpu_id=None, bind_procs=False, bind_threads=False])
 
         :param int threads: Number of threads.
         :param int gpu_id: Device ID.
@@ -116,6 +116,24 @@ The Python wrapper provides an API for:
         Set to ``None`` to indicate that no GPU device is to be used.
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
+
+    .. attribute:: bind_procs
+
+        Try to generate a binding mask for all MPI processes on a node. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`. Do not enable if
+        process binding is handled externally, eg by SLURM or OpenMPI, or
+        disable it there first.
+
+    .. attribute:: bind_threads
+
+        Try to generate a binding mask for all threads on an MPI process. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`. If a process
+        binding mask is set -- either externally or by `bind_procs` --, it will
+        be respected.
 
     .. method:: has_gpu()
 
