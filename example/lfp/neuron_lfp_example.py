@@ -195,7 +195,6 @@ class Cell:
         self.diam = diamvec
 
     def simulate(self):
-
         neuron.h.finitialize(self.v_init)
         neuron.h.fcurrent()
 

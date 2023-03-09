@@ -79,6 +79,11 @@ enum class tok {
     step,        // heaviside step function (H(0) = 0.5)
     signum,      // sign function {-1, 0, +1}
 
+    // neural (the other neural) functions
+    tanh,
+    sigmoid,
+    relu,
+
     // logical keywords
     if_stmt, else_stmt, // add _stmt to avoid clash with c++ keywords
 

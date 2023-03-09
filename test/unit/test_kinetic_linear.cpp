@@ -45,8 +45,12 @@ void run_test(std::string mech_name,
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, test->data_alignment());
+    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncell,
+                                                                         cv_to_intdom, cv_to_intdom,
+                                                                         vinit, temp, diam,
+                                                                         src_to_spike,
+                                                                         fvm_detector_info{},
+                                                                         test->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;

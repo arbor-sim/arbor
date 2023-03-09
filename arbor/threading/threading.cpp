@@ -1,9 +1,11 @@
 #include <atomic>
+#include <stdexcept>
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
 
 #include "threading/threading.hpp"
+#include "affinity.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -86,23 +88,23 @@ void task_system::run(priority_task ptsk) {
     ptsk.run();
 }
 
-void task_system::run_tasks_loop(int i) {
+void task_system::run_tasks_loop(int index) {
     auto guard = util::on_scope_exit([] { current_task_queue_ = -1; });
-    current_task_queue_ = i;
-
+    current_task_queue_ = index;
+    if (bind_) set_affinity(index, count_, affinity_kind::thread);
     while (true) {
         priority_task ptsk;
         // Loop over the levels of priority starting from highest to lowest
         for (int pri = n_priority-1; pri>=0; --pri) {
             // Loop over the threads trying to pop a task of the requested priority.
             for (unsigned n = 0; n<count_; ++n) {
-                ptsk = q_[(i + n) % count_].try_pop(pri);
+                ptsk = q_[(index + n) % count_].try_pop(pri);
                 if (ptsk) break;
             }
             if (ptsk) break;
         }
         // If a task can not be acquired, force a pop from the queue. This is a blocking action.
-        if (!ptsk) ptsk = q_[i].pop();
+        if (!ptsk) ptsk = q_[index].pop();
         if (!ptsk) break;
 
         run(std::move(ptsk));
@@ -131,7 +133,10 @@ thread_local unsigned task_system::current_task_queue_ = -1;
 // Default construct with one thread.
 task_system::task_system(): task_system(1) {}
 
-task_system::task_system(int nthreads): count_(nthreads), q_(nthreads) {
+task_system::task_system(int nthreads, bool bind):
+    count_(nthreads),
+    bind_(bind),
+    q_(nthreads) {
     if (nthreads <= 0)
         throw std::runtime_error("Non-positive number of threads in thread pool");
 
@@ -143,6 +148,9 @@ task_system::task_system(int nthreads): count_(nthreads), q_(nthreads) {
     auto tid = std::this_thread::get_id();
     thread_ids_[tid] = 0;
     current_task_queue_ = 0;
+
+    // Bind the master thread
+    if (bind_) set_affinity(0, count_, affinity_kind::thread);
 
     for (unsigned i = 1; i < count_; i++) {
         threads_.emplace_back([this, i]{run_tasks_loop(i);});

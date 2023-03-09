@@ -49,23 +49,6 @@ struct backend {
     using shared_state             = arb::multicore::shared_state;
     using ion_state                = arb::multicore::ion_state;
 
-    static threshold_watcher voltage_watcher(
-        shared_state& state,
-        const std::vector<index_type>& detector_cv,
-        const std::vector<value_type>& thresholds,
-        const execution_context& context)
-    {
-        return threshold_watcher(
-            state.cv_to_intdom.data(),
-            state.src_to_spike.data(),
-            &state.time,
-            &state.time_to,
-            state.voltage.size(),
-            detector_cv,
-            thresholds,
-            context);
-    }
-
     static value_type* mechanism_field_data(arb::mechanism* mptr, const std::string& field);
 };
 

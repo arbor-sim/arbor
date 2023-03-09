@@ -44,7 +44,7 @@ You are now ready to use Arbor! You can continue reading these documentation pag
 
     * Ubuntu/Debian: ``git cmake gcc python3-dev python3-pip``
     * Fedora/CentOS/OpenSuse: ``git cmake gcc-c++ python3-devel python3-pip``
-    * MacOS: get ``brew`` `here <https://brew.sh>`_ and run ``brew install cmake clang python3``
+    * MacOS: get ``brew`` `at brew.sh <https://brew.sh>`_ and run ``brew install cmake clang python3``
     * Windows: the simplest way is to use `WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ and then follow the instructions for Ubuntu.
 
 .. _in_python_custom:
@@ -100,7 +100,7 @@ The following flags can be used to configure the installation:
   documented below, may also have to be set appropriately to generated
   vectorized code. See :ref:`install-architecture` for details.
 * ``ARB_ARCH=<native|*>``: CPU micro-architecture to target. The advised
-  default is ``native``. See `here
+  default is ``native``. See `the GNU GCC documentation
   <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_ for a full list of
   options.
 

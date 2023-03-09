@@ -742,6 +742,23 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         sqrt(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(sqrt_fp, r));
 
+        // Nonlinear 'AI' functions
+        fill_random(u, rng, 0., max_value);
+        fp sigmoid_fp[N];
+        for (unsigned i = 0; i<N; ++i) sigmoid_fp[i] = 1 / (1 + std::exp(-u[i]));
+        sigmoid(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(sigmoid_fp, r));
+        fill_random(u, rng, 0., max_value);
+        fp tanh_fp[N];
+        for (unsigned i = 0; i<N; ++i) tanh_fp[i] = std::tanh(u[i]);
+        tanh(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(tanh_fp, r));
+        fill_random(u, rng, 0., max_value);
+        fp relu_fp[N];
+        for (unsigned i = 0; i<N; ++i) relu_fp[i] = u[i] > 0 ? u[i] : 0;
+        relu(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(relu_fp, r));
+
         // Indicator functions:
         fill_random(u, rng, 0.01, 10.0);
         fill_random(v, rng, -10.0, -0.1);

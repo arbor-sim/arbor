@@ -23,6 +23,7 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
         // set up cell state
         cells_.push_back(cell);
         last_time_updated_.push_back(0.0);
+        last_time_sampled_.push_back(-1.0);
         // tell our caller about this cell's connections
         cg_sources.add_cell();
         cg_targets.add_cell();
@@ -64,7 +65,6 @@ void lif_cell_group::clear_spikes() {
     spikes_.clear();
 }
 
-// TODO: implement sampler
 void lif_cell_group::add_sampler(sampler_association_handle h,
                                  cell_member_predicate probeset_ids,
                                  schedule sched,
@@ -108,7 +108,10 @@ lif_decay(const lif_cell& cell, double t0, double t1) {
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lanes) {
+void lif_cell_group::advance_cell(time_type tfinal,
+                                  time_type dt,
+                                  cell_gid_type lid,
+                                  const event_lane_subrange& event_lanes) {
     const auto gid = gids_[lid];
     auto& cell = cells_[lid];
     // time of last update.
@@ -123,11 +126,16 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     // samples to process
     std::size_t n_values = 0;
     std::vector<std::pair<time_type, sampler_association_handle>> samples;
-    {
+    if (!samplers_.empty()) {
+        auto tlast = last_time_sampled_[lid];
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
-            // Construct sampling times
-            const auto& times = util::make_range(assoc.sched.events(t, tfinal));
+             // No need to generate events
+            if (assoc.probeset_ids.empty()) continue;
+            // Construct sampling times, might give us the last time we sampled, so skip that.
+            auto times = util::make_range(assoc.sched.events(tlast, tfinal));
+            while (!times.empty() && times.front() == tlast) times.left++;
+            if (times.empty()) continue;
             const auto n_times = times.size();
             // Count up the samplers touching _our_ gid
             int delta = 0;
@@ -219,21 +227,23 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
                     }
                 }
             }
+            last_time_sampled_[lid] = time;
         }
         if (!(do_sample || do_event)) {
             throw arbor_internal_error{"LIF cell group: Must select either sample or spike event; got neither."};
         }
         last_time_updated_[lid] = t;
     }
-    arb_assert (sampled_voltages.size() == n_values);
+    arb_assert (sampled_voltages.size() <= n_values);
     // Now we need to call all sampler callbacks with the data we have collected
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
-        for (const auto& [k, vs]: sampled) {
+        for (auto& [k, vs]: sampled) {
             const auto& fun = samplers_[k].sampler;
-            for (const auto& [id, us]: vs) {
+            for (auto& [id, us]: vs) {
                 auto meta = get_probe_metadata(id)[0];
                 fun(meta, us.size(), us.data());
+                us.clear();
             }
         }
     }

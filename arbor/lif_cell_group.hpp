@@ -66,6 +66,8 @@ private:
 
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;
+    // Time when the cell was last sampled.
+    std::vector<time_type> last_time_sampled_;
     // Time when the cell can _next_ be updated;
     std::vector<time_type> next_time_updatable_;
 
