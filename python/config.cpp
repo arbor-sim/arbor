@@ -55,6 +55,7 @@ pybind11::dict config() {
 
     dict[pybind11::str("version")]       = pybind11::str(ARB_VERSION);
     dict[pybind11::str("source")]        = pybind11::str(ARB_SOURCE_ID);
+    dict[pybind11::str("build_config")]  = pybind11::str(ARB_BUILD_CONFIG);
     dict[pybind11::str("arch")]          = pybind11::str(ARB_ARCH);
     dict[pybind11::str("prefix")]        = pybind11::str(ARB_PREFIX);
     dict[pybind11::str("binary_path")]   = pybind11::str(ARB_BINARY);
