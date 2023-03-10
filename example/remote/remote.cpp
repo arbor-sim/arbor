@@ -38,7 +38,6 @@ struct remote_recipe: public arb::recipe {
         }
         arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::lif; }
         std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::lif_probe_voltage{}}; }
-
 };
 
 struct mpi_handle {
@@ -70,6 +69,7 @@ int main() {
         sim.add_sampler(arb::all_probes,
                         arb::regular_schedule(0.05),
                         sampler);
+        sim.set_remote_filter([] () {});
         sim.run(T, dt);
         std::cout << std::fixed << std::setprecision(4);
         std::cerr << "[ARB] Trace\n";
@@ -77,7 +77,7 @@ int main() {
     }
     else if (mpi.group == 0) {
         // Simulate external spikes
-        // * We sent from a fictious cell with gid=local rank
+        // * We send from a fictious cell with gid=local rank
         // * The time is a function of rank and epoch.
         // * We never stop until the other group kills the process ;)
         for (int ep = 0;; ++ep) {
