@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string_view>
 
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
@@ -25,13 +26,27 @@ struct network_selection_impl {
 
     virtual bool select_source(cell_kind kind,
         cell_gid_type gid,
-        const cell_tag_type& tag) const = 0;
+        const std::string_view& tag) const = 0;
 
     virtual bool select_destination(cell_kind kind,
         cell_gid_type gid,
-        const cell_tag_type& tag) const = 0;
+        const std::string_view& tag) const = 0;
 
     virtual ~network_selection_impl() = default;
 };
+
+inline const network_selection_impl& get_network_selection_impl(const network_selection& s) {
+    return *(s.impl_);
+}
+
+struct network_value_impl {
+    virtual double get(const network_site_info& src, const network_site_info& dest) const = 0;
+
+    virtual ~network_value_impl() = default;
+};
+
+inline const network_value_impl& get_network_value_impl(const network_value& v) {
+    return *(v.impl_);
+}
 
 } // namespace arb

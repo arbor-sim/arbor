@@ -22,29 +22,35 @@ public:
     using value_type = T;
     using point_type = std::array<double, DIM>;
     using node_data = std::vector<spatial_tree>;
-    using leaf_data = std::vector<std::pair<point_type, T>>;
+    using leaf_data = std::vector<T>;
+    using location_func_type = point_type (*)(const T &);
 
     spatial_tree(): size_(0), data_(leaf_data()) {}
 
     // Create a tree of given maximum depth and target leaf size. If any leaf holds more than the
     // target size, it is recursively split into up to 2^DIM nodes until reaching the maximum depth.
-    spatial_tree(std::size_t max_depth, std::size_t leaf_size_target, leaf_data data):
+    spatial_tree(std::size_t max_depth,
+        std::size_t leaf_size_target,
+        leaf_data data,
+        location_func_type location):
         size_(data.size()),
-        data_(std::move(data)) {
+        data_(std::move(data)),
+        location_(location) {
         auto &leaf_d = std::get<leaf_data>(data_);
         if (leaf_d.empty()) return;
 
         min_.fill(std::numeric_limits<double>::max());
         max_.fill(-std::numeric_limits<double>::max());
 
-        for (const auto &[p, _]: leaf_d) {
+        for (const auto &d: leaf_d) {
+            const auto p = location(d);
             for (std::size_t i = 0; i < DIM; ++i) {
                 if (p[i] < min_[i]) min_[i] = p[i];
                 if (p[i] > max_[i]) max_[i] = p[i];
             }
         }
 
-        value_type mid;
+        point_type mid;
         for (std::size_t i = 0; i < DIM; ++i) { mid[i] = (max_[i] - min_[i]) / 2.0 + min_[i]; }
 
         if (max_depth > 1 && leaf_d.size() > leaf_size_target) {
@@ -62,14 +68,15 @@ public:
 
             // assign each point to sub-node
             std::array<leaf_data, divisor> new_leaf_data;
-            for (const auto &[p, d]: leaf_d) {
-                new_leaf_data[sub_node_index(p)].emplace_back(p, d);
+            for (const auto &d: leaf_d) {
+                const auto p = location(d);
+                new_leaf_data[sub_node_index(p)].emplace_back(d);
             }
 
             // move data into new sub-nodes if not empty
             for (auto &l_d: new_leaf_data) {
                 if (l_d.size())
-                    new_nodes.emplace_back(max_depth - 1, leaf_size_target, std::move(l_d));
+                    new_nodes.emplace_back(max_depth - 1, leaf_size_target, std::move(l_d), location);
             }
 
             // replace current data_ with new sub-nodes
@@ -98,7 +105,7 @@ public:
     }
 
     // Iterate over all points recursively.
-    // func must have signature `void func(const point_type&, const T&)`.
+    // func must have signature `void func(const T&)`.
     template <typename F>
     inline void for_each(const F &func) const {
         std::visit(
@@ -108,14 +115,14 @@ public:
                     for (const auto &node: arg) { node.for_each(func); }
                 }
                 if constexpr (std::is_same_v<arg_type, leaf_data>) {
-                    for (const auto &[p, d]: arg) { func(p, d); }
+                    for (const auto &d: arg) { func(d); }
                 }
             },
             data_);
     }
 
     // Iterate over all points within the given bounding box recursively.
-    // func must have signature `void func(const point_type&, const T&)`.
+    // func must have signature `void func(const T&)`.
     template <typename F>
     inline void bounding_box_for_each(const point_type &box_min,
         const point_type &box_max,
@@ -137,7 +144,7 @@ public:
                         for (const auto &node: arg) { node.template for_each<F>(func); }
                     }
                     if constexpr (std::is_same_v<arg_type, leaf_data>) {
-                        for (const auto &[p, d]: arg) { func(p, d); }
+                        for (const auto &d: arg) { func(d); }
                     }
                 }
                 else {
@@ -150,9 +157,10 @@ public:
                         }
                     }
                     if constexpr (std::is_same_v<arg_type, leaf_data>) {
-                        for (const auto &[p, d]: arg) {
+                        for (const auto &d: arg) {
+                            const auto p = location_(d);
                             if (all_smaller_eq(p, box_max) && all_smaller_eq(box_min, p)) {
-                                func(p, d);
+                                func(d);
                             }
                         }
                     }
@@ -169,6 +177,7 @@ private:
     std::size_t size_;
     point_type min_, max_;
     std::variant<node_data, leaf_data> data_;
+    location_func_type location_;
 };
 
 }  // namespace arb

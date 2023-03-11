@@ -113,7 +113,7 @@ public:
             "send_recv_nonblocking: Type T must be trivially copyable for memcpy or MPI send / "
             "recv using MPI_BYTE.");
 
-        impl_->send_recv_nonblocking(recv_count * sizeof(T),
+        return impl_->send_recv_nonblocking(recv_count * sizeof(T),
             recv_data,
             source_id,
             send_count * sizeof(T),

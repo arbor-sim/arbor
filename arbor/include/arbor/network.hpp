@@ -11,6 +11,7 @@
 #include <optional>
 #include <ostream>
 #include <stdexcept>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -22,15 +23,27 @@ using network_location = std::array<double, 3>;
 
 using network_hash_type = std::uint64_t;
 
-struct network_site_info {
+struct ARB_SYMBOL_VISIBLE network_site_info {
+    network_site_info(cell_gid_type gid,
+        cell_lid_type lid,
+        cell_kind kind,
+        std::string_view label,
+        mlocation location,
+        network_location global_location);
+
     cell_gid_type gid;
+    cell_lid_type lid;
     cell_kind kind;
-    const cell_tag_type& tag;
-    const network_location& location;
+    std::string_view label;
+    mlocation location;
+    network_location global_location;
     network_hash_type hash;
 };
 
 struct network_selection_impl;
+
+struct network_value_impl;
+
 
 class ARB_SYMBOL_VISIBLE network_selection {
 public:
@@ -93,6 +106,7 @@ public:
     network_selection operator^(network_selection right) const;
 
 private:
+    friend const network_selection_impl& get_network_selection_impl(const network_selection& s);
     std::shared_ptr<network_selection_impl> impl_;
 };
 
@@ -133,48 +147,9 @@ public:
             const network_location&,
             double)> func);
 
-    // inline double operator()(cell_gid_type src_gid,
-    //     const network_location& global_src_location,
-    //     network_hash_type src_hash,
-    //     cell_gid_type dest_gid,
-    //     const network_location& global_dest_location,
-    //     network_hash_type dest_hash) const {
-    //     return impl_->get(
-    //         src_gid, global_src_location, src_hash, dest_gid, global_dest_location, dest_hash);
-    // }
-
 private:
-
-    struct value_impl {
-        // virtual double get(cell_gid_type src_gid,
-        // const network_location& global_src_location,
-        // network_hash_type src_hash,
-        // cell_gid_type dest_gid,
-        // const network_location& global_dest_location,
-        // network_hash_type dest_hash) const = 0;
-
-        virtual ~value_impl() = default;
-    };
-
-    struct uniform_distribution_impl;
-    struct normal_distribution_impl;
-    struct truncated_normal_distribution_impl;
-    struct custom_impl;
-    struct uniform_impl;
-
-    network_value(std::shared_ptr<value_impl> impl);
-
-    // inline double get(cell_gid_type src_gid,
-    //     const network_location& global_src_location,
-    //     network_hash_type src_hash,
-    //     cell_gid_type dest_gid,
-    //     const network_location& global_dest_location,
-    //     network_hash_type dest_hash) const {
-    //     return impl_->get(
-    //         src_gid, global_src_location, src_hash, dest_gid, global_dest_location, dest_hash);
-    // }
-
-    std::shared_ptr<value_impl> impl_;
+    friend const network_value_impl& get_network_value_impl(const network_value& v);
+    std::shared_ptr<network_value_impl> impl_;
 };
 
 struct network_description {
