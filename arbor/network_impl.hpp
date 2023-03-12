@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 #include <string_view>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
@@ -32,21 +34,30 @@ struct network_selection_impl {
         cell_gid_type gid,
         const std::string_view& tag) const = 0;
 
+    virtual void initialize(const network_label_dict& dict) {};
+
     virtual ~network_selection_impl() = default;
 };
 
-inline const network_selection_impl& get_network_selection_impl(const network_selection& s) {
-    return *(s.impl_);
+inline std::shared_ptr<network_selection_impl> thingify(network_selection s,
+    const network_label_dict& dict) {
+    s.impl_->initialize(dict);
+    return s.impl_;
 }
+
 
 struct network_value_impl {
     virtual double get(const network_site_info& src, const network_site_info& dest) const = 0;
 
+    virtual void initialize(const network_label_dict& dict) {};
+
     virtual ~network_value_impl() = default;
 };
 
-inline const network_value_impl& get_network_value_impl(const network_value& v) {
-    return *(v.impl_);
+inline std::shared_ptr<network_value_impl> thingify(network_value v,
+    const network_label_dict& dict) {
+    v.impl_->initialize(dict);
+    return v.impl_;
 }
 
-} // namespace arb
+}  // namespace arb

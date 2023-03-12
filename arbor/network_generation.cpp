@@ -142,9 +142,13 @@ std::vector<connection> generate_network_connections(const network_description& 
 
     std::vector<network_site_info> src_sites, dest_sites;
 
-    const auto& selection = get_network_selection_impl(description.selection);
-    const auto& weight = get_network_value_impl(description.weight);
-    const auto& delay = get_network_value_impl(description.delay);
+    const auto& selection_ptr = thingify(description.selection, description.dict);
+    const auto& weight_ptr = thingify(description.weight, description.dict);
+    const auto& delay_ptr = thingify(description.delay, description.dict);
+
+    const auto& selection = *selection_ptr;
+    const auto& weight = *weight_ptr;
+    const auto& delay = *delay_ptr;
 
     // populate network sites for source and destination
     for (const auto& group: dom_dec.groups()) {

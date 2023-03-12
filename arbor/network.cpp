@@ -9,7 +9,9 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 #include "network_impl.hpp"
@@ -287,6 +289,52 @@ struct network_selection_invert_impl: public network_selection_impl {
         return true;  // cannot exclude any because destination selection cannot be inverted without
                       // knowing selection criteria.
     }
+
+    void initialize(const network_label_dict& dict) override {
+        selection->initialize(dict);
+    };
+};
+
+
+struct network_selection_named_impl: public network_selection_impl {
+    using impl_pointer_type =std::shared_ptr<network_selection_impl>;
+
+    std::variant<impl_pointer_type, std::string> selection;
+
+    explicit network_selection_named_impl(std::string name): selection(std::move(name)) {}
+
+    bool select_connection(const network_site_info& src,
+        const network_site_info& dest) const override {
+        if(!std::holds_alternative<impl_pointer_type>(selection))
+            throw arbor_internal_error("Trying to use unitialized named network selection.");
+        return std::get<impl_pointer_type>(selection)->select_connection(src, dest);
+    }
+
+    bool select_source(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        if(!std::holds_alternative<impl_pointer_type>(selection))
+            throw arbor_internal_error("Trying to use unitialized named network selection.");
+        return std::get<impl_pointer_type>(selection)->select_source(kind, gid, label);
+    }
+
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        if(!std::holds_alternative<impl_pointer_type>(selection))
+            throw arbor_internal_error("Trying to use unitialized named network selection.");
+        return std::get<impl_pointer_type>(selection)->select_destination(kind, gid, label);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        if(std::holds_alternative<std::string>(selection)) {
+            auto s = dict.selection(std::get<std::string>(selection));
+            if (!s.has_value())
+                throw arbor_exception(std::string("Network selection with label \"") +
+                                      std::get<std::string>(selection) + "\" not found.");
+            selection = thingify(s.value(), dict);
+        }
+    };
 };
 
 struct network_selection_inter_cell_impl: public network_selection_impl {
@@ -328,10 +376,9 @@ struct network_selection_not_equal_impl: public network_selection_impl {
 };
 
 struct network_selection_custom_impl: public network_selection_impl {
-    std::function<bool(const network_site_info& src, const network_site_info& dest)> func;
+    network_selection::custom_func_type func;
 
-    explicit network_selection_custom_impl(
-        std::function<bool(const network_site_info& src, const network_site_info& dest)> f):
+    explicit network_selection_custom_impl(network_selection::custom_func_type f):
         func(std::move(f)) {}
 
     bool select_connection(const network_site_info& src,
@@ -493,6 +540,11 @@ struct network_selection_and_impl: public network_selection_impl {
 
         return std::nullopt;
     }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
 };
 
 struct network_selection_or_impl: public network_selection_impl {
@@ -529,6 +581,11 @@ struct network_selection_or_impl: public network_selection_impl {
 
         return std::nullopt;
     }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
 };
 
 struct network_selection_xor_impl: public network_selection_impl {
@@ -564,6 +621,11 @@ struct network_selection_xor_impl: public network_selection_impl {
 
         return std::nullopt;
     }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
 };
 
 
@@ -655,15 +717,38 @@ struct network_value_truncated_normal_distribution_impl: public network_value_im
 };
 
 struct network_value_custom_impl: public network_value_impl {
-    std::function<double(const network_site_info& src, const network_site_info& dest)> func;
+    network_value::custom_func_type func;
 
-    network_value_custom_impl(
-        std::function<double(const network_site_info& src, const network_site_info& dest)> f):
-        func(std::move(f)) {}
+    network_value_custom_impl(network_value::custom_func_type f): func(std::move(f)) {}
 
-    inline double get(const network_site_info& src, const network_site_info& dest) const override {
+    double get(const network_site_info& src, const network_site_info& dest) const override {
         return func(src, dest);
     }
+};
+
+
+struct network_value_named_impl: public network_value_impl {
+    using impl_pointer_type =std::shared_ptr<network_value_impl>;
+
+    std::variant<impl_pointer_type, std::string> value;
+
+    explicit network_value_named_impl(std::string name): value(std::move(name)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        if(!std::holds_alternative<impl_pointer_type>(value))
+            throw arbor_internal_error("Trying to use unitialized named network value.");
+        return std::get<impl_pointer_type>(value)->get(src, dest);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        if(std::holds_alternative<std::string>(value)) {
+            auto s = dict.value(std::get<std::string>(value));
+            if (!s.has_value())
+                throw arbor_exception(std::string("Network value with label \"") +
+                                      std::get<std::string>(value) + "\" not found.");
+            value = thingify(s.value(), dict);
+        }
+    };
 };
 
 }  // namespace
@@ -721,6 +806,10 @@ network_selection network_selection::none() {
     return network_selection(std::make_shared<network_selection_none_impl>());
 }
 
+network_selection network_selection::named(std::string name) {
+    return network_selection(std::make_shared<network_selection_named_impl>(std::move(name)));
+}
+
 network_selection network_selection::source_cell_kind(cell_kind kind) {
     return network_selection(std::make_shared<network_selection_source_cell_kind_impl>(kind));
 }
@@ -761,8 +850,7 @@ network_selection network_selection::bernoulli_random(unsigned seed, double p) {
     return network_selection(std::make_shared<network_selection_bernoulli_random_impl>(seed, p));
 }
 
-network_selection network_selection::custom(
-    std::function<bool(const network_site_info& src, const network_site_info& dest)> func) {
+network_selection network_selection::custom(custom_func_type func) {
     return network_selection(std::make_shared<network_selection_custom_impl>(std::move(func)));
 }
 
@@ -803,9 +891,34 @@ network_value network_value::truncated_normal_distribution(unsigned seed,
         seed, mean, std_deviation, range));
 }
 
-network_value network_value::custom(
-    std::function<double(const network_site_info& src, const network_site_info& dest)> func) {
+network_value network_value::custom(custom_func_type func) {
     return network_value(std::make_shared<network_value_custom_impl>(std::move(func)));
+}
+
+network_value network_value::named(std::string name) {
+    return network_value(std::make_shared<network_value_named_impl>(std::move(name)));
+}
+
+network_label_dict& network_label_dict::set(const std::string& name, network_selection s) {
+    selections_.insert_or_assign(name, std::move(s));
+}
+
+network_label_dict& network_label_dict::set(const std::string& name, network_value v) {
+    values_.insert_or_assign(name, std::move(v));
+}
+
+std::optional<network_selection> network_label_dict::selection(const std::string& name) const {
+    auto it = selections_.find(name);
+    if(it != selections_.end()) return it->second;
+
+    return std::nullopt;
+}
+
+std::optional<network_value> network_label_dict::value(const std::string& name) const {
+    auto it = values_.find(name);
+    if(it != values_.end()) return it->second;
+
+    return std::nullopt;
 }
 
 }  // namespace arb

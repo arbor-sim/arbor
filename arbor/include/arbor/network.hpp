@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 namespace arb {
 
@@ -44,9 +45,13 @@ struct network_selection_impl;
 
 struct network_value_impl;
 
+class ARB_SYMBOL_VISIBLE network_label_dict;
 
 class ARB_SYMBOL_VISIBLE network_selection {
 public:
+    using custom_func_type =
+        std::function<bool(const network_site_info& src, const network_site_info& dest)>;
+
     network_selection() { *this = network_selection::all(); }
 
     // Select all
@@ -54,6 +59,8 @@ public:
 
     // Select none
     static network_selection none();
+
+    static network_selection named(std::string name);
 
     static network_selection source_cell_kind(cell_kind kind);
 
@@ -84,8 +91,7 @@ public:
     // Custom selection using the provided function "func". Repeated calls with the same arguments
     // to "func" must yield the same result. For gap junction selection,
     // "func" must be symmetric (func(a,b) = func(b,a)).
-    static network_selection custom(
-        std::function<bool(const network_site_info& src, const network_site_info& dest)> func);
+    static network_selection custom(custom_func_type func);
 
     // only select within given distance. This may enable more efficient sampling through an
     // internal spatial data structure.
@@ -108,17 +114,24 @@ public:
 private:
     network_selection(std::shared_ptr<network_selection_impl> impl);
 
-    friend const network_selection_impl& get_network_selection_impl(const network_selection& s);
+    friend std::shared_ptr<network_selection_impl> thingify(network_selection s,
+        const network_label_dict& dict);
+
     std::shared_ptr<network_selection_impl> impl_;
 };
 
 class ARB_SYMBOL_VISIBLE network_value {
 public:
+    using custom_func_type =
+        std::function<double(const network_site_info& src, const network_site_info& dest)>;
+
     // Uniform value with conversion from double
     network_value(double value) { *this = network_value::uniform(value); }
 
     // Uniform value. Will always return the same value given at construction.
     static network_value uniform(double value);
+
+    static network_value named(std::string name);
 
     // Uniform random value in (range[0], range[1]]. Always returns the same value for repeated
     // calls with the same arguments and calls are symmetric v(a, b) = v(b, a).
@@ -143,20 +156,45 @@ public:
     // Custom value using the provided function "func". Repeated calls with the same arguments
     // to "func" must yield the same result. For gap junction values,
     // "func" must be symmetric (func(a,b) = func(b,a)).
-    static network_value custom(
-        std::function<double(const network_site_info& src, const network_site_info& dest)> func);
+    static network_value custom(custom_func_type func);
 
 private:
     network_value(std::shared_ptr<network_value_impl> impl);
 
-    friend const network_value_impl& get_network_value_impl(const network_value& v);
+    friend std::shared_ptr<network_value_impl> thingify(network_value v,
+        const network_label_dict& dict);
+
     std::shared_ptr<network_value_impl> impl_;
 };
+
+class ARB_SYMBOL_VISIBLE network_label_dict {
+public:
+    using ns_map = std::unordered_map<std::string, network_selection>;
+    using nv_map = std::unordered_map<std::string, network_value>;
+
+    network_label_dict& set(const std::string& name, network_selection s);
+
+    network_label_dict& set(const std::string& name, network_value v);
+
+    std::optional<network_selection> selection(const std::string& name) const;
+
+    std::optional<network_value> value(const std::string& name) const;
+
+    inline const ns_map& selections() const { return selections_; }
+
+    inline const nv_map& values() const { return values_; }
+
+private:
+    ns_map selections_;
+    nv_map values_;
+};
+
 
 struct network_description {
     network_selection selection;
     network_value weight;
     network_value delay;
+    network_label_dict dict;
 };
 
 }  // namespace arb
