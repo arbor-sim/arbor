@@ -160,9 +160,9 @@ struct network_selection_destination_cell_kind_impl: public network_selection_im
 };
 
 struct network_selection_source_label_impl: public network_selection_impl {
-    std::vector<std::string_view> sorted_labels;
+    std::vector<cell_tag_type> sorted_labels;
 
-    explicit network_selection_source_label_impl(std::vector<std::string_view> labels):
+    explicit network_selection_source_label_impl(std::vector<cell_tag_type> labels):
         sorted_labels(std::move(labels)) {
         std::sort(sorted_labels.begin(), sorted_labels.end());
     }
@@ -186,9 +186,9 @@ struct network_selection_source_label_impl: public network_selection_impl {
 };
 
 struct network_selection_destination_label_impl: public network_selection_impl {
-    std::vector<std::string_view> sorted_labels;
+    std::vector<cell_tag_type> sorted_labels;
 
-    explicit network_selection_destination_label_impl(std::vector<std::string_view> labels):
+    explicit network_selection_destination_label_impl(std::vector<cell_tag_type> labels):
         sorted_labels(std::move(labels)) {
         std::sort(sorted_labels.begin(), sorted_labels.end());
     }
@@ -693,6 +693,119 @@ network_site_info::network_site_info(cell_gid_type gid,
 
     rand_type gen;
     hash = gen(seed_input, key)[0];
+}
+
+network_selection::network_selection(std::shared_ptr<network_selection_impl> impl):
+    impl_(std::move(impl)) {}
+
+network_selection network_selection::operator&(network_selection right) const {
+    return network_selection(
+        std::make_shared<network_selection_and_impl>(this->impl_, std::move(right.impl_)));
+}
+
+network_selection network_selection::operator|(network_selection right) const {
+    return network_selection(
+        std::make_shared<network_selection_or_impl>(this->impl_, std::move(right.impl_)));
+}
+
+network_selection network_selection::operator^(network_selection right) const {
+    return network_selection(
+        std::make_shared<network_selection_xor_impl>(this->impl_, std::move(right.impl_)));
+}
+
+network_selection network_selection::all() {
+    return network_selection(std::make_shared<network_selection_all_impl>());
+}
+
+network_selection network_selection::none() {
+    return network_selection(std::make_shared<network_selection_none_impl>());
+}
+
+network_selection network_selection::source_cell_kind(cell_kind kind) {
+    return network_selection(std::make_shared<network_selection_source_cell_kind_impl>(kind));
+}
+
+network_selection network_selection::destination_cell_kind(cell_kind kind) {
+    return network_selection(std::make_shared<network_selection_destination_cell_kind_impl>(kind));
+}
+
+network_selection network_selection::source_label(std::vector<cell_tag_type> labels) {
+    return network_selection(std::make_shared<network_selection_source_label_impl>(std::move(labels)));
+}
+
+network_selection network_selection::destination_label(std::vector<cell_tag_type> labels) {
+    return network_selection(std::make_shared<network_selection_destination_label_impl>(std::move(labels)));
+}
+
+network_selection network_selection::source_gid(std::vector<cell_gid_type> gids) {
+    return network_selection(std::make_shared<network_selection_source_gid_impl>(std::move(gids)));
+}
+
+network_selection network_selection::destination_gid(std::vector<cell_gid_type> gids) {
+    return network_selection(std::make_shared<network_selection_destination_gid_impl>(std::move(gids)));
+}
+
+network_selection network_selection::invert(network_selection s) {
+    return network_selection(std::make_shared<network_selection_invert_impl>(std::move(s.impl_)));
+}
+
+network_selection network_selection::inter_cell() {
+    return network_selection(std::make_shared<network_selection_inter_cell_impl>());
+}
+
+network_selection network_selection::not_equal() {
+    return network_selection(std::make_shared<network_selection_not_equal_impl>());
+}
+
+network_selection network_selection::bernoulli_random(unsigned seed, double p) {
+    return network_selection(std::make_shared<network_selection_bernoulli_random_impl>(seed, p));
+}
+
+network_selection network_selection::custom(
+    std::function<bool(const network_site_info& src, const network_site_info& dest)> func) {
+    return network_selection(std::make_shared<network_selection_custom_impl>(std::move(func)));
+}
+
+network_selection network_selection::within_distance(double distance) {
+    return network_selection(std::make_shared<network_selection_within_distance_impl>(distance));
+}
+
+network_selection network_selection::linear_bernoulli_random(unsigned seed,
+    double distance_begin,
+    double p_begin,
+    double distance_end,
+    double p_end) {
+    return network_selection(std::make_shared<network_selection_linear_bernoulli_random_impl>(
+        seed, distance_begin, p_begin, distance_end, p_end));
+}
+
+network_value::network_value(std::shared_ptr<network_value_impl> impl): impl_(std::move(impl)) {}
+
+network_value network_value::uniform(double value) {
+    return network_value(std::make_shared<network_value_uniform_impl>(value));
+}
+
+network_value network_value::uniform_distribution(unsigned seed,
+    const std::array<double, 2>& range) {
+    return network_value(std::make_shared<network_value_uniform_distribution_impl>(seed, range));
+}
+
+network_value network_value::normal_distribution(unsigned seed, double mean, double std_deviation) {
+    return network_value(
+        std::make_shared<network_value_normal_distribution_impl>(seed, mean, std_deviation));
+}
+
+network_value network_value::truncated_normal_distribution(unsigned seed,
+    double mean,
+    double std_deviation,
+    const std::array<double, 2>& range) {
+    return network_value(std::make_shared<network_value_truncated_normal_distribution_impl>(
+        seed, mean, std_deviation, range));
+}
+
+network_value network_value::custom(
+    std::function<double(const network_site_info& src, const network_site_info& dest)> func) {
+    return network_value(std::make_shared<network_value_custom_impl>(std::move(func)));
 }
 
 }  // namespace arb

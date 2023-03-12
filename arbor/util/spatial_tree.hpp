@@ -29,6 +29,7 @@ public:
 
     // Create a tree of given maximum depth and target leaf size. If any leaf holds more than the
     // target size, it is recursively split into up to 2^DIM nodes until reaching the maximum depth.
+    // The "location" function type must have signature (const T&) -> point_type.
     spatial_tree(std::size_t max_depth,
         std::size_t leaf_size_target,
         leaf_data data,

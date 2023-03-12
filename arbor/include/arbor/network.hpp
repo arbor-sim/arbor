@@ -106,14 +106,16 @@ public:
     network_selection operator^(network_selection right) const;
 
 private:
+    network_selection(std::shared_ptr<network_selection_impl> impl);
+
     friend const network_selection_impl& get_network_selection_impl(const network_selection& s);
     std::shared_ptr<network_selection_impl> impl_;
 };
 
 class ARB_SYMBOL_VISIBLE network_value {
 public:
-    // Uniform value
-    network_value(double value);
+    // Uniform value with conversion from double
+    network_value(double value) { *this = network_value::uniform(value); }
 
     // Uniform value. Will always return the same value given at construction.
     static network_value uniform(double value);
@@ -141,13 +143,12 @@ public:
     // Custom value using the provided function "func". Repeated calls with the same arguments
     // to "func" must yield the same result. For gap junction values,
     // "func" must be symmetric (func(a,b) = func(b,a)).
-    static network_value custom(std::function<double(const cell_global_label_type&,
-            const network_location&,
-            const cell_global_label_type&,
-            const network_location&,
-            double)> func);
+    static network_value custom(
+        std::function<double(const network_site_info& src, const network_site_info& dest)> func);
 
 private:
+    network_value(std::shared_ptr<network_value_impl> impl);
+
     friend const network_value_impl& get_network_value_impl(const network_value& v);
     std::shared_ptr<network_value_impl> impl_;
 };
