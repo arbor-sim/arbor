@@ -80,7 +80,7 @@ void communicator::update_connections(const connectivity& rec,
         util::append(gids, g.gids);
     }
 
-// For caching information about each cell
+    // For caching information about each cell
     struct gid_info {
         cell_gid_type gid;                          // global identifier of cell
         cell_size_type index_on_domain;             // index of cell in this domain
@@ -192,7 +192,11 @@ communicator::exchange(std::vector<spike> local_spikes) {
 
     // Get remote spikes
     PE(communication:exchange:gather:remote);
-
+    if (remote_spike_filter_) {
+    local_spikes.erase(std::remove_if(local_spikes.begin(),
+                                      local_spikes.end(),
+                                      [this] (const auto& s) { return !remote_spike_filter_(s); }));
+    }
     auto remote_spikes = distributed_->remote_gather_spikes(local_spikes);
     PL();
 
@@ -202,6 +206,7 @@ communicator::exchange(std::vector<spike> local_spikes) {
     return {global_spikes, remote_spikes};
 }
 
+void communicator::set_remote_spike_filter(const spike_predicate& p) { remote_spike_filter_ = p; }
 void communicator::remote_ctrl_send_continue() { distributed_->remote_ctrl_send_continue(); }
 void communicator::remote_ctrl_send_done() { distributed_->remote_ctrl_send_done(); }
 

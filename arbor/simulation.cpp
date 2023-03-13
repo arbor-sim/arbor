@@ -112,6 +112,8 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
+    void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
+
     void inject_events(const cse_vector& events);
 
     time_type min_delay() { return communicator_.min_delay(); }
@@ -121,6 +123,7 @@ public:
     epoch_function epoch_callback_;
     label_resolution_map source_resolution_map_;
     label_resolution_map target_resolution_map_;
+
 
 private:
     // Record last computed epoch (integration interval).
@@ -625,5 +628,8 @@ ARB_ARBOR_API epoch_function epoch_progress_bar() {
 
     return impl{};
 }
+
+// Propagate filters down the stack.
+void simulation::set_remote_spike_filter(const spike_predicate& p) { return impl_->set_remote_spike_filter(p); }
 
 } // namespace arb

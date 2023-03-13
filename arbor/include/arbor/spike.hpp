@@ -26,6 +26,8 @@ struct basic_spike {
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
 
+using spike_predicate = std::function<bool(const spike&)>;
+
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(spike, (a.source, a.time), (b.source, b.time));
 
 // Custom stream operator for printing arb::spike<> values.

@@ -91,6 +91,10 @@ public:
     // are to be delivered at or after the current simulation time.
     void inject_events(const cse_vector& events);
 
+    // If remote connections are present, export only the spikes for which this
+    // predicate returns true.
+    void set_remote_spike_filter(const spike_predicate&);
+
     ~simulation();
 
 private:

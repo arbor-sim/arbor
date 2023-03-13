@@ -79,6 +79,8 @@ public:
                             const label_resolution_map& source_resolution_map,
                             const label_resolution_map& target_resolution_map);
 
+    void set_remote_spike_filter(const spike_predicate&);
+
 private:
     cell_size_type num_total_cells_ = 0;
     cell_size_type num_local_cells_ = 0;
@@ -90,6 +92,8 @@ private:
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
+
+    spike_predicate remote_spike_filter_;
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
