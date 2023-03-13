@@ -293,11 +293,13 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
                                            "    ::arb::gpu::launch(grid_dim, block_dim, {1}, *p);\n"
-                                           "    if (!p->multiplicity) return;\n"
-                                           "    ::arb::gpu::launch({{grid_dim, {2}}}, block_dim, multiply, *p);\n"),
+                                           "    if (!p->multiplicity) return;\n"),
                                "width",
-                               api_name,
-                               n);
+                               api_name);
+            // only multiply if we actually have arrays
+            if (n) {
+                out << fmt::format(FMT_COMPILE("    ::arb::gpu::launch({{grid_dim, {}}}, block_dim, multiply, *p);\n"), n);
+            }
         }
         out << "}\n\n";
     }
