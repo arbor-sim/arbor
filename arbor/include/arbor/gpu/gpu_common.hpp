@@ -1,8 +1,5 @@
 #pragma once
 
-#include <sstream>
-#include <stdexcept>
-
 #include "gpu_api.hpp"
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -33,22 +30,7 @@ constexpr inline unsigned block_count(unsigned n, unsigned block_size) {
     return (n+block_size-1)/block_size;
 }
 
-inline void device_error(const api_error_type& api_error, const char func[], const char file[], int line) {
-    std::ostringstream o;
-    o << "device error: \"" << api_error.description() << "\" [" << api_error.name() << "]"
-      << " in function: " << func << ", location: " << file << ":" << line;
-    throw std::runtime_error(o.str());
-}
-
 } // namespace impl
-
-#define ARB_GPU_CHECK(api_error)                          \
-    do {                                                  \
-        if (!api_error) {                                 \
-            ::arb::gpu::impl::device_error(               \
-                api_error, __func__, __FILE__, __LINE__); \
-        }                                                 \
-    } while (false)
 
 template<typename Kernel, typename... Args>
 void launch(const dim3& blocks, const dim3& threads, Kernel kernel, Args&&... args) {

@@ -79,11 +79,7 @@ void gpu_context::set_gpu() const {
 }
 
 void gpu_context::synchronize() const {
-    auto status = gpu::device_synchronize();
-    if (!status) {
-        throw arbor_exception(
-            "Call to gpu_context::synchronize() failed.");
-    }
+    ARB_GPU_CHECK(gpu::device_synchronize());
 }
 
 #endif
