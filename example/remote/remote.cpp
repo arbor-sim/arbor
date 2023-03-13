@@ -69,7 +69,6 @@ int main() {
         sim.add_sampler(arb::all_probes,
                         arb::regular_schedule(0.05),
                         sampler);
-        sim.set_remote_filter([] () {});
         sim.run(T, dt);
         std::cout << std::fixed << std::setprecision(4);
         std::cerr << "[ARB] Trace\n";

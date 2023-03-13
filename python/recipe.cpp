@@ -197,6 +197,9 @@ void register_recipe(pybind11::module& m) {
         .def("connections_on", &py_recipe::connections_on,
             "gid"_a,
             "A list of all the incoming connections to gid, [] by default.")
+        .def("extternal_connections_on", &py_recipe::external_connections_on,
+            "gid"_a,
+            "A list of all the incoming connections from _remote_ locations to gid, [] by default.")
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
