@@ -193,8 +193,6 @@ int main(int argc, char** argv) {
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
 
-        arb::profile::profiler_initialize(context);
-
         std::cout << sup::mask_stream(root);
         banner(context);
 
