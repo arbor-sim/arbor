@@ -189,11 +189,15 @@ struct ARB_SYMBOL_VISIBLE unsupported_abi_error: arbor_exception {
     size_t version;
 };
 
-// MPI related errors
-
 struct ARB_SYMBOL_VISIBLE bad_connection_request: arbor_exception {
     bad_connection_request(): arbor_exception{"Illegal connection request. Is this an MPI context?"} {}
 };
 
+// General errors
+
+struct ARB_SYMBOL_VISIBLE arb_feature_disabled: arbor_exception {
+    arb_feature_disabled(const std::string& feature):
+        arbor_exception{"Tried to use a disabled feature: " + feature} {}
+};
 
 } // namespace arb

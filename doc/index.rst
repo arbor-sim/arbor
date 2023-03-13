@@ -125,6 +125,7 @@ A full list of our software attributions can be found `here <https://github.com/
    install/index
    tutorial/index
    ecosystem/index
+   contrib/index
 
 .. toctree::
    :caption: Concepts:
@@ -167,18 +168,6 @@ A full list of our software attributions can be found `here <https://github.com/
    cpp/index
    dev/index
 
-.. toctree::
-   :caption: Contributing:
-   :maxdepth: 1
-
-   contrib/index
-   contrib/pr
-   contrib/coding-style
-   contrib/doc
-   contrib/example
-   contrib/test
-   contrib/release
-   contrib/dependency-management
 
 .. meta::
    :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo

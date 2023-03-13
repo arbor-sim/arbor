@@ -34,6 +34,11 @@ set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
+# Support for Thread pinning
+
+option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
+mark_as_advanced(ARB_USE_HWLOC)
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -238,8 +243,25 @@ if(NOT ARB_USE_BUNDLED_RANDOM123)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
 
-add_subdirectory(ext)
+# in the event we can find hwloc, just add it
+find_package(hwloc QUIET)
+add_library(ext-hwloc INTERFACE)
+if(hwloc_FOUND)
+    # We'd like to use the package syntax, here, yet if we do, we'd need to
+    # provide the find script to the system.
+    target_link_directories(ext-hwloc INTERFACE ${hwloc_LIBRARY_DIRS})
+    target_link_libraries(ext-hwloc INTERFACE ${hwloc_LIBRARY})
+    target_include_directories(ext-hwloc INTERFACE ${hwloc_INCLUDE_DIR})
+    target_compile_definitions(ext-hwloc INTERFACE ARB_HAVE_HWLOC)
+    target_link_libraries(arbor-private-deps INTERFACE ext-hwloc)
+else()
+    if(ARB_USE_HWLOC)
+        message(SEND_ERROR "Requested support for hwloc, but CMake couldn't find it.")
+    endif()
+endif()
 
+add_subdirectory(ext)
+install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config

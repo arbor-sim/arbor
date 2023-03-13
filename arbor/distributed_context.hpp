@@ -267,7 +267,7 @@ ARB_ARBOR_API distributed_context_handle make_dry_run_context(unsigned num_ranks
 
 // MPI context creation functions only provided if built with MPI support.
 template <typename MPICommType>
-distributed_context_handle make_mpi_context(MPICommType);
+distributed_context_handle make_mpi_context(MPICommType, bool bind=false);
 
 template <typename MPICommType>
 distributed_context_handle make_remote_context(MPICommType, MPICommType);
