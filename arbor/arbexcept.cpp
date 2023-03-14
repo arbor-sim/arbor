@@ -47,9 +47,10 @@ bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid
     gid(gid), src_gid(src_gid), num_cells(num_cells)
 {}
 
-source_gid_exceeds_limit::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
-    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: gids may not exceed {}.", gid, src_gid, num_cells, 0, std::numeric_limits<cell_gid_type>::max()/2)),
-    gid(gid), src_gid(src_gid), num_cells(num_cells)
+source_gid_exceeds_limit::source_gid_exceeds_limit(cell_gid_type gid, cell_gid_type src_gid):
+    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: gids may not exceed {}.",
+                            gid, src_gid, std::numeric_limits<cell_gid_type>::max()/2)),
+    gid(gid), src_gid(src_gid)
 {}
 
 bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg):
