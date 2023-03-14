@@ -75,6 +75,7 @@ def _finalize_mpi():
     print("Context fixture finalizing mpi")
     if _mpi4py_enabled:
         from mpi4py import MPI
+
         MPI.Finalize()
     else:
         arbor.mpi_finalize()
@@ -88,6 +89,7 @@ def context():
     if _mpi_enabled:
         if _mpi4py_enabled:
             from mpi4py import MPI
+
             if not MPI.Is_initialized():
                 print("Context fixture initializing mpi4py", flush=True)
                 MPI.Initialize()
@@ -97,9 +99,8 @@ def context():
             print("Context fixture initializing mpi", flush=True)
             arbor.mpi_init()
             atexit.register(_finalize_mpi)
-        return arbor.context(arbor.proc_allocation(), mpi=mpi_comm())
+        return arbor.context(arbor.proc_allocation(), mpi=arbor.mpi_comm())
     return arbor.context(arbor.proc_allocation())
-
 
 
 class _BuildCatError(Exception):
