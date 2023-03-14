@@ -81,7 +81,7 @@ def context():
     """
     Fixture that produces an MPI sensitive `arbor.context`
     """
-    args = [arbor.proc_allocation()]
+    args = {'alloc': arbor.proc_allocation()}
     if _mpi_enabled:
         if not arbor.mpi_is_initialized():
             print("Context fixture initializing mpi", flush=True)
@@ -91,7 +91,7 @@ def context():
             from mpi4py.MPI import COMM_WORLD as comm
         else:
             comm = arbor.mpi_comm()
-        args.append(comm)
+        args['mpi'] = comm
     return arbor.context(**args)
 
 
