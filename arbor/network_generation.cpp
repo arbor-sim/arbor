@@ -135,16 +135,19 @@ void distributed_for_each_site(const distributed_context& distributed,
 
 }  // namespace
 
-std::vector<connection> generate_network_connections(const network_description& description,
-    const recipe& rec,
+std::vector<connection> generate_network_connections(const recipe& rec,
     const distributed_context& distributed,
     const domain_decomposition& dom_dec) {
+    const auto description_opt = rec.network_description();
+    if(!description_opt.has_value()) return {};
+
+    const auto& description = description_opt.value();
 
     std::vector<network_site_info> src_sites, dest_sites;
 
-    const auto& selection_ptr = thingify(description.selection, description.dict);
-    const auto& weight_ptr = thingify(description.weight, description.dict);
-    const auto& delay_ptr = thingify(description.delay, description.dict);
+    const auto selection_ptr = thingify(description.selection, description.dict);
+    const auto weight_ptr = thingify(description.weight, description.dict);
+    const auto delay_ptr = thingify(description.delay, description.dict);
 
     const auto& selection = *selection_ptr;
     const auto& weight = *weight_ptr;

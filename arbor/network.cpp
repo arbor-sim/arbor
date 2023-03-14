@@ -629,10 +629,10 @@ struct network_selection_xor_impl: public network_selection_impl {
 };
 
 
-struct network_value_uniform_impl : public network_value_impl{
+struct network_value_scalar_impl : public network_value_impl{
     double value;
 
-    network_value_uniform_impl(double v): value(v) {}
+    network_value_scalar_impl(double v): value(v) {}
 
     double get(const network_site_info& src, const network_site_info& dest) const override {
         return value;
@@ -869,8 +869,8 @@ network_selection network_selection::linear_bernoulli_random(unsigned seed,
 
 network_value::network_value(std::shared_ptr<network_value_impl> impl): impl_(std::move(impl)) {}
 
-network_value network_value::uniform(double value) {
-    return network_value(std::make_shared<network_value_uniform_impl>(value));
+network_value network_value::scalar(double value) {
+    return network_value(std::make_shared<network_value_scalar_impl>(value));
 }
 
 network_value network_value::uniform_distribution(unsigned seed,

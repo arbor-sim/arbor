@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -106,7 +107,9 @@ struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity 
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
     // Optional network descriptions for generating cell connections
-    virtual std::vector<network_description> network_descriptions() const { return {}; };
+    virtual std::optional<arb::network_description> network_description() const {
+        return std::nullopt;
+    };
 
     virtual ~recipe() {}
 };

@@ -52,7 +52,7 @@ public:
     using custom_func_type =
         std::function<bool(const network_site_info& src, const network_site_info& dest)>;
 
-    network_selection() { *this = network_selection::all(); }
+    network_selection() { *this = network_selection::none(); }
 
     // Select all
     static network_selection all();
@@ -125,11 +125,13 @@ public:
     using custom_func_type =
         std::function<double(const network_site_info& src, const network_site_info& dest)>;
 
-    // Uniform value with conversion from double
-    network_value(double value) { *this = network_value::uniform(value); }
+    network_value() { *this = network_value::scalar(0.0); }
 
-    // Uniform value. Will always return the same value given at construction.
-    static network_value uniform(double value);
+    // Scalar value with conversion from double
+    network_value(double value) { *this = network_value::scalar(value); }
+
+    // Scalar value. Will always return the same value given at construction.
+    static network_value scalar(double value);
 
     static network_value named(std::string name);
 

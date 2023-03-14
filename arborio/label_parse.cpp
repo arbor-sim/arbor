@@ -4,9 +4,10 @@
 #include <arborio/label_parse.hpp>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/iexpr.hpp>
+#include <arbor/network.hpp>
 
 #include <arbor/util/expected.hpp>
 
@@ -20,8 +21,9 @@ label_parse_error::label_parse_error(const std::string& msg, const arb::src_loca
 
 
 namespace {
+using eval_map_type= std::unordered_multimap<std::string, evaluator>;
 
-std::unordered_multimap<std::string, evaluator> eval_map {
+eval_map_type eval_map {
     // Functions that return regions
     {"region-nil", make_call<>(arb::reg::nil,
                 "'region-nil' with 0 arguments")},
@@ -184,13 +186,55 @@ std::unordered_multimap<std::string, evaluator> eval_map {
     {"div", make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::div, "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | double)])")},
 };
 
-parse_label_hopefully<std::any> eval(const s_expr& e);
+eval_map_type network_eval_map{
+    // network_selection
+    {"all", make_call<>(arb::network_selection::all, "network selection of all cells and labels")},
+    {"none", make_call<>(arb::network_selection::none, "network selection of no cells and labels")},
+    {"inter-cell",
+        make_call<>(arb::network_selection::inter_cell,
+            "network selection of inter-cell connections only")},
+    {"network-selection",
+        make_call<std::string>(arb::network_selection::named,
+            "network selection with 1 argument: (value:string)")},
+    {"and",
+        make_fold<arb::network_selection>(
+            [](arb::network_selection left, arb::network_selection right) {
+                return std::move(left) & std::move(right);
+            },
+            "logical \"and\" operation of network selections with at least 2 arguments: "
+            "(network_selection network_selection [...network_selection])")},
+    {"or",
+        make_fold<arb::network_selection>(
+            [](arb::network_selection left, arb::network_selection right) {
+                return std::move(left) | std::move(right);
+            },
+            "logical \"or\" operation of network selections with at least 2 arguments: "
+            "(network_selection network_selection [...network_selection])")},
+    {"xor",
+        make_fold<arb::network_selection>(
+            [](arb::network_selection left, arb::network_selection right) {
+                return std::move(left) ^ std::move(right);
+            },
+            "logical \"xor\" operation of network selections with at least 2 arguments: "
+            "(network_selection network_selection [...network_selection])")},
 
-parse_label_hopefully<std::vector<std::any>> eval_args(const s_expr& e) {
+    // network_value
+    {"scalar",
+        make_call<double>(arb::network_value::scalar,
+            "network value with 1 argument: (value:double)")},
+    {"network-value",
+        make_call<std::string>(arb::network_value::named,
+            "network value with 1 argument: (value:string)")},
+
+};
+
+parse_label_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map);
+
+parse_label_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map_type& map) {
     if (!e) return {std::vector<std::any>{}}; // empty argument list
     std::vector<std::any> args;
     for (auto& h: e) {
-        if (auto arg=eval(h)) {
+        if (auto arg=eval(h, map)) {
             args.push_back(std::move(*arg));
         }
         else {
@@ -242,7 +286,7 @@ std::string eval_description(const char* name, const std::vector<std::any>& args
 // a label_error_state with an error string and location.
 //
 // If there was an unexpected/fatal error, an exception will be thrown.
-parse_label_hopefully<std::any> eval(const s_expr& e) {
+parse_label_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map) {
     if (e.is_atom()) {
         return eval_atom<label_parse_error>(e);
     }
@@ -251,14 +295,14 @@ parse_label_hopefully<std::any> eval(const s_expr& e) {
         // tail is a list of arguments.
 
         // Evaluate the arguments, and return error state if an error occurred.
-        auto args = eval_args(e.tail());
+        auto args = eval_args(e.tail(), map);
         if (!args) {
             return util::unexpected(args.error());
         }
 
         // Find all candidate functions that match the name of the function.
         auto& name = e.head().atom().spelling;
-        auto matches = eval_map.equal_range(name);
+        auto matches = map.equal_range(name);
         // Search for a candidate that matches the argument list.
         for (auto i=matches.first; i!=matches.second; ++i) {
             if (i->second.match_args(*args)) { // found a match: evaluate and return.
@@ -284,14 +328,14 @@ parse_label_hopefully<std::any> eval(const s_expr& e) {
 } // namespace
 
 ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const std::string& e) {
-    return eval(parse_s_expr(e));
+    return eval(parse_s_expr(e), eval_map);
 }
 ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const s_expr& s) {
-    return eval(s);
+    return eval(s, eval_map);
 }
 
 ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const std::string& s) {
-    if (auto e = eval(parse_s_expr(s))) {
+    if (auto e = eval(parse_s_expr(s), eval_map)) {
         if (e->type() == typeid(region)) {
             return {std::move(std::any_cast<region&>(*e))};
         }
@@ -308,7 +352,7 @@ ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const
 }
 
 ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
-    if (auto e = eval(parse_s_expr(s))) {
+    if (auto e = eval(parse_s_expr(s), eval_map)) {
         if (e->type() == typeid(locset)) {
             return {std::move(std::any_cast<locset&>(*e))};
         }
@@ -325,9 +369,38 @@ ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const
 }
 
 parse_label_hopefully<arb::iexpr> parse_iexpr_expression(const std::string& s) {
-    if (auto e = eval(parse_s_expr(s))) {
+    if (auto e = eval(parse_s_expr(s), eval_map)) {
         if (e->type() == typeid(iexpr)) {
             return {std::move(std::any_cast<iexpr&>(*e))};
+        }
+        return util::unexpected(
+                label_parse_error(
+                    concat("Invalid iexpr description: '", s)));
+    }
+    else {
+        return util::unexpected(label_parse_error(std::string()+e.error().what()));
+    }
+}
+
+
+parse_label_hopefully<arb::network_selection> parse_network_selection_expression(const std::string& s) {
+    if (auto e = eval(parse_s_expr(s), network_eval_map)) {
+        if (e->type() == typeid(arb::network_selection)) {
+            return {std::move(std::any_cast<arb::network_selection&>(*e))};
+        }
+        return util::unexpected(
+                label_parse_error(
+                    concat("Invalid iexpr description: '", s)));
+    }
+    else {
+        return util::unexpected(label_parse_error(std::string()+e.error().what()));
+    }
+}
+
+parse_label_hopefully<arb::network_value> parse_network_value_expression(const std::string& s) {
+    if (auto e = eval(parse_s_expr(s), network_eval_map)) {
+        if (e->type() == typeid(arb::network_value)) {
+            return {std::move(std::any_cast<arb::network_value&>(*e))};
         }
         return util::unexpected(
                 label_parse_error(
