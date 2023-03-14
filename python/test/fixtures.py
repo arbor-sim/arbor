@@ -92,7 +92,7 @@ def context():
         else:
             comm = arbor.mpi_comm()
         args.append(comm)
-    return arbor.context(*args)
+    return arbor.context(**args)
 
 
 class _BuildCatError(Exception):
