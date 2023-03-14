@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <cstdint>
 #include <exception>
@@ -77,8 +78,7 @@ void mpi_checked(int rc, const std::string& where) {
 
 // Prepare byte buffer for sending.
 inline
-std::vector<char> make_send_buffer(const ctrl_message& msg) {
-    std::vector<char> send(ARB_REMOTE_MESSAGE_LENGTH, 0x0);
+std::vector<char> make_send_buffer(const ctrl_message& msg, std::vector<char>& send) {
     std::size_t ptr = 0;
     send[ptr++] = ARB_REMOTE_MAGIC;
     send[ptr++] = ARB_REMOTE_VERSION_MAJOR;
@@ -87,9 +87,7 @@ std::vector<char> make_send_buffer(const ctrl_message& msg) {
     auto visitor = [&send, &ptr] (auto&& m) {
         using T = std::decay_t<decltype(m)>;
         send[ptr++] = T::tag;
-        memcpy(send.data() + ptr, &m, sizeof(m
-
-));
+        memcpy(send.data() + ptr, &m, sizeof(m));
     };
     std::visit(visitor, msg);
     return send;
@@ -132,21 +130,23 @@ ctrl_message make_ctrl_message(const std::vector<char>& recv) {
     return result;
 }
 
-// Exchange control message.
+// Exchange control message. NOTE: This makes clever (?) use of MPI_Allreduce
+// to achieve simulatenous duplex mode broadcast by preparing zeroed buffers
+// on all ranks except the root and then adding up tons of zeros with a single
+// payload.
 inline
 ctrl_message exchange_ctrl(MPI_Comm comm, const ctrl_message& msg) {
-    ctrl_message result = msg_null{};
     int rank = -1;
-    mpi_checked(MPI_Comm_rank(comm, &rank), "echange ctrl block: comm rank");
-    if (rank != ARB_REMOTE_ROOT) return result;
-
-    auto send = make_send_buffer(msg);
-    auto recv = std::vector<char>(ARB_REMOTE_MESSAGE_LENGTH, 0x0);
-    MPI_Status ignored;
-    mpi_checked(MPI_Sendrecv((const void*) send.data(), ARB_REMOTE_MESSAGE_LENGTH, MPI_CHAR, ARB_REMOTE_ROOT, ARB_REMOTE_MAGIC,
-                             (void*)       recv.data(), ARB_REMOTE_MESSAGE_LENGTH, MPI_CHAR, MPI_ANY_SOURCE,  ARB_REMOTE_MAGIC,
-                             comm,
-                             &ignored), "exchange control block: Sendrecv");
+    mpi_checked(MPI_Comm_rank(comm, &rank), "exchange ctrl block: comm rank");
+    std::vector<char> send(ARB_REMOTE_MESSAGE_LENGTH, 0x0);
+    std::vector<char> recv(ARB_REMOTE_MESSAGE_LENGTH, 0x0);
+    if (rank == ARB_REMOTE_ROOT) make_send_buffer(msg, send);
+    mpi_checked(MPI_Allreduce((const void*) send.data(),
+                              (void*)       recv.data(),
+                              ARB_REMOTE_MESSAGE_LENGTH, MPI_CHAR,
+                              MPI_SUM,
+                              comm),
+                "exchange control block: Allreduce");
     return make_ctrl_message(recv);
 }
 

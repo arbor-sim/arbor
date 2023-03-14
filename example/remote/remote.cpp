@@ -65,6 +65,7 @@ int main() {
         auto rec = remote_recipe();
         auto sim = arb::simulation(rec, ctx);
         double mid = sim.min_delay();
+        std::cerr << "[ARB]" << mpi.rank << " " << mpi.local_rank << '\n';
         std::cerr << "[ARB] Got min delay=" << mid << '\n';
         sim.add_sampler(arb::all_probes,
                         arb::regular_schedule(0.05),
@@ -79,6 +80,7 @@ int main() {
         // * We send from a fictious cell with gid=local rank
         // * The time is a function of rank and epoch.
         // * We never stop until the other group kills the process ;)
+        std::cerr << "[EXT]" << mpi.rank << " " << mpi.local_rank << '\n';
         for (int ep = 0;; ++ep) {
             std::cerr << "[EXT] Epoch " << ep << '\n';
             arb::cell_gid_type src = mpi.local_rank;
@@ -101,12 +103,12 @@ int main() {
 
 // MPI Ceremonies
 mpi_handle setup_mpi() {
+    mpi_handle result;
     MPI_Init(nullptr, nullptr);
-    MPI_Comm comm; MPI_Comm_dup(MPI_COMM_WORLD, &comm);
-    int rank = -1, size = -1;
-    MPI_Comm_size(comm, &size);
-    MPI_Comm_rank(comm, &rank);
-    if (size < 2) {
+    MPI_Comm_dup(MPI_COMM_WORLD, &result.global);
+    MPI_Comm_size(result.global, &result.size);
+    MPI_Comm_rank(result.global, &result.rank);
+    if (result.size < 2) {
         std::cerr << "We need to split the communicator into two; thus please launch with >=2 tasks.\n";
         exit(-1);
     }
@@ -114,25 +116,23 @@ mpi_handle setup_mpi() {
     // - even ranks to group=0, which will fill for an external process
     // - thus root goes to group=0
     // - odd ranks will run Arbor
-    auto group = 0 == rank % 2;
+    result.group = 0 == result.rank % 2;
     // Set up and intra-comm splitting the root comm in two
-    MPI_Comm split; MPI_Comm_split(comm, group, rank, &split);
-    int lrank, lsize;
-    MPI_Comm_size(comm, &lsize);
-    MPI_Comm_rank(comm, &lrank);
+    MPI_Comm_split(result.global, result.group, result.rank, &result.local);
+    MPI_Comm_size(result.local, &result.local_size);
+    MPI_Comm_rank(result.local, &result.local_rank);
     // Figure out what our leader's rank is in WORLD
     // ideally one would elect this by checking `lrank == 0` and broadcasting
     // that task's `rank` over `split`. However, this is not an excercise in MPI
     // and we use this ceremony just to get an intercomm that will later be made
     // with MPI_Comm_connect/_accept.
-    int peer_lead = (group == 0) ? 0 : 1;
+    int peer_lead = (result.group == 0) ? 0 : 1;
     // Now make an inter comm between the two
-    MPI_Comm inter;
-    MPI_Intercomm_create(split, 0,        // local comm + local leader rank
-                         comm, peer_lead, // peer  comm + peer  leader rank
-                         42,              // tag, must match across call
-                         &inter);         // new intercomm
-    return {comm, rank, size, split, lrank, lsize, group, inter};
+    MPI_Intercomm_create(result.local, 0,          // local comm + local leader rank
+                         result.global, peer_lead, // peer  comm + peer  leader rank
+                         42,                       // tag, must match across call
+                         &result.inter);           // new intercomm
+    return result;
 }
 
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {

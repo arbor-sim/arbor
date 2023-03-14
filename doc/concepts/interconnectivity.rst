@@ -94,11 +94,24 @@ responsibility) connections are handled.
       }
     };
 
+similarly
+
+.. code-block:: python
+
+    class recipe(arb.recipe):
+        def external_connections_on(self, gid):
+
+            return [arb.connection((42,      # external GID
+                                    32),     # tag
+                                    "tgt",
+                                    weight,
+                                    delay)]]
+
 Note that Arbor now recognizes two sets of ``GID``: An external and an internal
 set. This allows both Arbor and the coupled simulation to keep their own
-numbering schemes. However, Arbor will tag external cells and spikes by setting
-their ``GID``s' most significant bit. This _halves_ the effecively available
-``GID``s.
+numbering schemes. However, internally Arbor will tag external cells and spikes
+by setting their ``GID``s' most significant bit. This _halves_ the effecively
+available ``GID``s.
 
 To consume external spike events, a specialised ``context`` must be created by
 calling
@@ -106,6 +119,12 @@ calling
 .. code-block:: c++
 
     auto ctx = arb::make_context({}, local, inter);
+
+or similarly in Python
+
+.. code-block:: python
+
+    ctx = arb.make_context(mpi=local, inter=inter)
 
 where ``local`` is an MPI intracommunicator and ``inter`` an MPI
 intercommunicator. ``inter`` is required to bridge the Arbor (``local``) and
