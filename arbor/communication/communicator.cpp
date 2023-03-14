@@ -126,18 +126,22 @@ void communicator::update_connections(const connectivity& rec,
     std::size_t ext = 0;
     for (const auto& cell: gid_infos) {
         auto index = cell.index_on_domain;
+        auto tgt_gid = cell.gid;
         auto source_resolver = resolver(&source_resolution_map);
         for (const auto& c: cell.conns) {
-            arb_assert(!is_external(c.source.gid));
             auto src_lid = source_resolver.resolve(c.source);
-            auto tgt_lid = target_resolver.resolve({cell.gid, c.target});
+            auto src_gid = c.source.gid;
+            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+            auto tgt_lid = target_resolver.resolve({tgt_gid, c.target});
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
-            connections_[offset] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, index};
+            connections_[offset] = {{src_gid, src_lid}, tgt_lid, c.weight, c.delay, index};
         }
         for (const auto& c: cell.ext_conns) {
             auto src = global_cell_of(c.source);
-            auto tgt_lid = target_resolver.resolve({cell.gid, c.target});
+            auto src_gid = c.source.rid;
+            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+            auto tgt_lid = target_resolver.resolve({tgt_gid, c.target});
             ext_connections_[ext] = {src, tgt_lid, c.weight, c.delay, index};
             ++ext;
         }

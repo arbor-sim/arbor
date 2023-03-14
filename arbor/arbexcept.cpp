@@ -43,7 +43,12 @@ invalid_mechanism_kind::invalid_mechanism_kind(arb_mechanism_kind kind):
 {}
 
 bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
-    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are only {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
+    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
+    gid(gid), src_gid(src_gid), num_cells(num_cells)
+{}
+
+source_gid_exceeds_limit::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
+    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: gids may not exceed {}.", gid, src_gid, num_cells, 0, std::numeric_limits<cell_gid_type>::max()/2)),
     gid(gid), src_gid(src_gid), num_cells(num_cells)
 {}
 

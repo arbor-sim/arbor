@@ -59,6 +59,12 @@ struct ARB_SYMBOL_VISIBLE bad_connection_source_gid: arbor_exception {
     cell_size_type num_cells;
 };
 
+struct ARB_SYMBOL_VISIBLE source_gid_exceeds_limit: arbor_exception {
+    source_gid_exceeds_limit(cell_gid_type gid, cell_gid_type src_gid);
+    cell_gid_type gid, src_gid;
+};
+
+
 struct ARB_SYMBOL_VISIBLE bad_connection_label: arbor_exception {
     bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg);
     cell_gid_type gid;
