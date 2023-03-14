@@ -130,6 +130,7 @@ void register_contexts(pybind11::module& m) {
         "Enumerates the computational resources on a node to be used for simulation.");
     proc_allocation
         .def(pybind11::init<unsigned, pybind11::object, bool, bool>(),
+             pybind11::kw_only(),
              "threads"_a=1,
              "gpu_id"_a=pybind11::none(),
              "bind_procs"_a=false,
@@ -208,6 +209,7 @@ void register_contexts(pybind11::module& m) {
                                            alloc.bind_procs, alloc.bind_threads);
                  }),
              "alloc"_a,
+             pybind11::kw_only(),
              "mpi"_a=pybind11::none(),
              "inter"_a=pybind11::none(),
              "Construct a distributed context with arguments:\n"
