@@ -77,6 +77,12 @@ full recipe.
 Cross-Simulator Interaction
 ===========================
 
+This section describes how external simulators communicating via spikes can be
+connected to Arbor. For other methods of communication, translation to spikes,
+e.g. from neural mass models, is needed. For coupling to microscopic
+simulations, e.g. of individual ion channels, a different API is required. The
+mechanism ABI might be a good fit there.
+
 The usual recipe can be used to declare connections to the world outside of
 Arbor similar to how internal (=both source and target are Arbor's
 responsibility) connections are handled.
@@ -99,8 +105,8 @@ similarly
 .. code-block:: python
 
     class recipe(arb.recipe):
+        # Rest as ever before
         def external_connections_on(self, gid):
-
             return [arb.connection((42,      # external GID
                                     32),     # tag
                                     "tgt",
@@ -110,7 +116,7 @@ similarly
 Note that Arbor now recognizes two sets of ``GID``: An external and an internal
 set. This allows both Arbor and the coupled simulation to keep their own
 numbering schemes. However, internally Arbor will tag external cells and spikes
-by setting their ``GID``s' most significant bit. This _halves_ the effecively
+by setting their ``GID``s'  most significant bit. This _halves_ the effecively
 available ``GID``s.
 
 To consume external spike events, a specialised ``context`` must be created by
