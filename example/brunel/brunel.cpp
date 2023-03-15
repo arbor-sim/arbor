@@ -328,6 +328,7 @@ void add_subset(cell_gid_type gid,
         cell_gid_type val = dis(gen);
         if (!seen.count(val)) {
             conns.push_back({{val, src}, {tgt}, weight, delay});
+            seen.insert(val);
             m--;
         }
     }
