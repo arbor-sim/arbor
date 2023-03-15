@@ -87,7 +87,7 @@ int main() {
             auto time = ep*2.0*dt + mpi.local_rank*dt + 0.05;
             std::vector<arb::remote::arb_spike> spikes(10, {{src, 0}, time});
             std::cerr << "[EXT] Waiting for control message from Arbor\n";
-            auto msg = arb::remote::exchange_ctrl(mpi.inter, arb::remote::msg_epoch{});
+            auto msg = arb::remote::exchange_ctrl(arb::remote::msg_epoch{}, mpi.inter);
             if(!std::holds_alternative<arb::remote::msg_epoch>(msg)) break;
             std::cerr << "[EXT] Waiting for spikes from Arbor\n";
             auto from_arbor = arb::remote::gather_spikes(spikes, mpi.inter);

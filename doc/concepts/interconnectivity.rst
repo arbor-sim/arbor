@@ -153,11 +153,16 @@ sending ``a0``, ``a1``, and ``a2`` respectively and the coupled package has two
 sending ``b0`` and ``b1``. After allgather, each rank of the three ranks of
 Arbor will have ``[b0, b1]`` and the other two ranks will have ``[a0, a1, a2]``.
 We package this in the suplemental header ``arbor/communication/remote.hpp`` as
-``gather_all``.
+``gather_spikes``. This function will accept a ``std::vector<arb_spike>`` where
+``arb_spike`` is a binary compatible version of Arbor's internal spike type that
+is to be sent from the local rank of the coupled packaged, eg ``b1`` from above.
+After the operation Arbor has received the concatenation of all such vectors and
+the routine will return the concatenation of all spikes produced and exported by
+Arbor on all ranks of the participating package.
 
-Please refer to our developer's documentation for the actual spike exchange
-process. Due to the way MPI define intercommunicators, the exchange is the same
-as with intracommunicators.
+Please refer to our developer's documentation for more details the actual spike
+exchange process. Due to the way MPI define intercommunicators, the exchange is
+the same as with intracommunicators.
 
 Control Plane and Epochs
 ------------------------
@@ -194,6 +199,12 @@ period. *May* cause the receiving side to quit.
 ``Null`` does nothing, but reserved for future use, will currently not be sent
 by Arbor.
 
+We package these messsage as a C++ ``std::variant`` called ``ctrl_message`` in
+``arbor/communication/remote.hpp`` alongside the ``exchange_ctrl`` method. This
+will handle setting up the buffers, performing the actual transfer, and returns
+the result as a ``ctrl_messge``. Handling the message is left to the
+participating package.
+
 **Important** This is a synchronous protocol which means an unannounced
  termination of either side of the coupled simulators can lead to the other
  getting stuck on a blocking call to MPI. This unlikely to cause issues in
@@ -203,9 +214,13 @@ by Arbor.
 Tying It All Together
 ---------------------
 
-We recommend to make use of the facilities offered in
-``arbor/communication/remote.hpp``, as does Arbor internally. Refer to the
-``remote.cpp`` example on how they are used.
+While there is no requirement on doing, we strongly recommend to make use of the
+facilities offered in ``arbor/communication/remote.hpp``, as does Arbor
+internally. It should also be possible to interact with this protocol via ``C``
+or other languages, if needed, as the infrastructure relies on byte-buffers and
+numeric tags; the use of C++ types and variants on top is just an attempt to
+make the interaction a bit safer and nicer. Refer to the ``remote.cpp`` example
+on how they are used and the inline comments in ``remote.hpp``.
 
 Terms and Definitions
 =====================

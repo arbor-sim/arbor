@@ -152,8 +152,8 @@ struct remote_context_impl {
     template <typename T> T max(T value) const { return mpi_.max(value); }
     template <typename T> T sum(T value) const { return mpi_.sum(value); }
     void barrier() const { mpi_.barrier(); }
-    void remote_ctrl_send_continue() const { remote::exchange_ctrl(portal_, remote::msg_epoch{}); }
-    void remote_ctrl_send_done() const { remote::exchange_ctrl(portal_, remote::msg_done{}); }
+    void remote_ctrl_send_continue() const { remote::exchange_ctrl(remote::msg_epoch{}, portal_); }
+    void remote_ctrl_send_done() const { remote::exchange_ctrl(remote::msg_done{}, portal_); }
 };
 
 template <>

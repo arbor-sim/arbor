@@ -54,6 +54,7 @@ struct msg_done {
     float time = 0.0f;
 };
 
+// Union of all message types.
 using ctrl_message = std::variant<msg_null,
                                   msg_abort,
                                   msg_epoch,
@@ -75,6 +76,13 @@ struct unexpected_version: remote_error {
 struct unexpected_message: remote_error {
     unexpected_message(): remote_error{"Arbor remote: Received unknown tag."} {}
 };
+
+// Message had a tag we do not know. Either the protocol is messed up or the message got
+// corrupted.
+struct illegal_communicator: remote_error {
+    illegal_communicator(): remote_error{"Arbor remote: Intercommunicator required."} {}
+};
+
 
 // One of the underlying MPI routines bailed.
 struct mpi_error: remote_error {
@@ -98,7 +106,9 @@ void mpi_checked(int rc, const std::string& where) {
 // on all ranks except the root and then adding up tons of zeros with a single
 // payload.
 inline
-ctrl_message exchange_ctrl(MPI_Comm comm, const ctrl_message& msg) {
+ctrl_message exchange_ctrl(const ctrl_message& msg, MPI_Comm comm) {
+    int is_inter = 0;
+    mpi_checked(MPI_Comm_test_inter(comm, &is_inter), "exchange ctrl block: comm type");
     int rank = -1;
     mpi_checked(MPI_Comm_rank(comm, &rank), "exchange ctrl block: comm rank");
     std::vector<char> send(ARB_REMOTE_MESSAGE_LENGTH, 0x0);
@@ -174,16 +184,21 @@ struct arb_spike {
 
 inline
 std::vector<arb_spike> gather_spikes(const std::vector<arb_spike>& send, MPI_Comm comm) {
-    int size = -1, rank = -1;
-    mpi_checked(MPI_Comm_size(comm, &size), "gather_all: comm size");
-    mpi_checked(MPI_Comm_rank(comm, &rank), "gather_all: comm rank");
+    // Setup and sanity check
+    int is_inter = 0;
+    mpi_checked(MPI_Comm_test_inter(comm, &is_inter), "gather spikes: comm type");
+    if (!is_inter) throw illegal_communicator{};
+    int size = -1;
+    mpi_checked(MPI_Comm_size(comm, &size), "gather spikes: comm size");
+    // Get the number of spikes per rank
     int send_count = send.size();
     std::vector<int> counts(size, 0);
-    std::vector<int> displs(size, 0);
     mpi_checked(MPI_Allgather(&send_count, 1, MPI_INT, counts.data(), 1, MPI_INT, comm),
-                "gather_all exchanging counts: Allgather");
+                "gather spikes: exchanging counts");
+    // Prepare offset buffer (displ) and scale by sizes in bytes.
     int recv_bytes = 0;
     int recv_count = 0;
+    std::vector<int> displs(size, 0);
     for (int ix = 0; ix < size; ++ix) {
         recv_count += counts[ix];         // Number of items to receive.
         counts[ix] *= sizeof(arb_spike);  // Number of Bytes for rank ``ix`
@@ -191,12 +206,12 @@ std::vector<arb_spike> gather_spikes(const std::vector<arb_spike>& send, MPI_Com
         recv_bytes += counts[ix];         // Total number of items so far
 
     }
+    // Transfer spikes.
     std::vector<arb_spike> recv(recv_count);
-    auto send_bytes = send_count*sizeof(arb_spike);
-    mpi_checked(MPI_Allgatherv(send.data(), send_bytes,                   MPI_BYTE, // send buffer
+    mpi_checked(MPI_Allgatherv(send.data(), send_count*sizeof(arb_spike), MPI_BYTE, // send buffer
                                recv.data(), counts.data(), displs.data(), MPI_BYTE, // recv buffer
                                comm),
-                "gather_all exchanging payload: Allgatherv");
+                "gather spikes: exchanging payload");
     return recv;
 }
 
