@@ -72,9 +72,15 @@ std::optional<cl_options> read_options(int argc, char** argv);
 
 void banner(context ctx);
 
-// Samples m unique values in interval [start, end) - gid.
-// We exclude gid because we don't want self-loops.
-std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start, cell_gid_type end,  unsigned m);
+// Add m unique connection from gids in interval [start, end) - gid.
+// We exclude gid because we don't want self-loops. Returns number of
+// actually _added_ connections.
+void add_subset(cell_gid_type gid,
+                cell_gid_type start, cell_gid_type end,
+                unsigned m,
+                const std::string& src, const std::string& tgt,
+                float weight, float delay,
+                std::vector<cell_connection>& conns);
 
 /*
    A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
@@ -117,15 +123,9 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<cell_connection> connections;
-        // Add incoming excitatory connections.
-        for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
-            connections.push_back({{cell_gid_type(i), "src"}, {"tgt"}, weight_exc_, delay_});
-        }
-
-        // Add incoming inhibitory connections.
-        for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
-            connections.push_back({{cell_gid_type(i), "src"}, {"tgt"}, weight_inh_, delay_});
-        }
+        // Add incoming excitatory and inhibitory connections.
+        add_subset(gid, 0,           ncells_exc_,               in_degree_exc_, "src", "tgt", weight_exc_, delay_, connections);
+        add_subset(gid, ncells_exc_, ncells_inh_ + ncells_exc_, in_degree_inh_, "src", "tgt", weight_inh_, delay_, connections);
         return connections;
     }
 
@@ -191,6 +191,11 @@ int main(int argc, char** argv) {
         root = arb::rank(context)==0;
 #else
         auto context = arb::make_context(arbenv::default_allocation());
+#endif
+
+#ifdef ARB_PROFILE_ENABLED
+        std::cout << "Generating Profile!\n";
+        arb::profile::profiler_initialize(context);
 #endif
 
         std::cout << sup::mask_stream(root);
@@ -305,18 +310,29 @@ void banner(context ctx) {
     std::cout << "==========================================\n";
 }
 
-std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start, cell_gid_type end,  unsigned m) {
-    std::set<cell_gid_type> s;
+void add_subset(cell_gid_type gid,
+                cell_gid_type start, cell_gid_type end,
+                unsigned m,
+                const std::string& src, const std::string& tgt,
+                float weight, float delay,
+                std::vector<cell_connection>& conns) {
+    // We can only add this many connections!
+    auto gid_in_range = int(gid >= start && gid < end); //
+    if (m + start + gid_in_range >= end) throw std::runtime_error("Requested too many connections from the given range of gids.");
+
+    std::set<cell_gid_type> seen{gid};
     std::mt19937 gen(gid + 42);
     std::uniform_int_distribution<cell_gid_type> dis(start, end - 1);
-    while (s.size() < m) {
-        auto val = dis(gen);
-        if (val != gid) {
-            s.insert(val);
+
+    while(m) {
+        cell_gid_type val = dis(gen);
+        if (!seen.count(val)) {
+            conns.push_back({{val, src}, {tgt}, weight, delay});
+            m--;
         }
     }
-    return {s.begin(), s.end()};
 }
+
 
 // Read options from (optional) json file and command line arguments.
 std::optional<cl_options> read_options(int argc, char** argv) {

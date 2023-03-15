@@ -96,7 +96,7 @@ void communicator::update_connections(const connectivity& rec,
         for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
             const auto& conn = gid_connections[cidx];
             auto src_lid = source_resolver.resolve(conn.source);
-            auto tgt_lid = target_resolver.resolve({gid, conn.dest});
+            auto tgt_lid = target_resolver.resolve(gid, conn.dest);
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
             connections_[offset] = {{conn.source.gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
