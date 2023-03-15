@@ -10,6 +10,25 @@
 
 #include <mpi.h>
 
+/* Remote Support Tooling for Arbor CoSimulation
+**
+** This is a stand-alone header to facilitate coupling Arbor to an external
+** simulator. The exchange protocol is based on spike data, see below for the
+** definition of the spike type, and an in-band control block. The latter is
+** handled using the `msg_*` types below.
+**
+** We package the spike and control message exchanges into two main methods
+**
+** 1. exchange_ctrl
+** 2. gather_spikes
+**
+** for more details see the Arbor documentation on interconnectivity and the
+** developer's documentation on spike exchange in general. See also the `remote`
+** example for a more practical introduction.
+**
+** This is distributed as part of Arbor and under its license.
+ */
+
 namespace arb {
 namespace remote {
 
