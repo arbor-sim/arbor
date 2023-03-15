@@ -85,12 +85,12 @@ int main() {
             std::cerr << "[EXT] Epoch " << ep << '\n';
             arb::cell_gid_type src = mpi.local_rank;
             auto time = ep*2.0*dt + mpi.local_rank*dt + 0.05;
-            std::vector<arb::spike> spikes(10, {{src, 0}, time});
+            std::vector<arb::remote::arb_spike> spikes(10, {{src, 0}, time});
             std::cerr << "[EXT] Waiting for control message from Arbor\n";
             auto msg = arb::remote::exchange_ctrl(mpi.inter, arb::remote::msg_epoch{});
             if(!std::holds_alternative<arb::remote::msg_epoch>(msg)) break;
             std::cerr << "[EXT] Waiting for spikes from Arbor\n";
-            auto from_arbor = arb::remote::gather_all(spikes, mpi.inter);
+            auto from_arbor = arb::remote::gather_spikes(spikes, mpi.inter);
             std::cerr << "[EXT] spikes from Arbor: " << from_arbor.size() << '\n';
         }
         std::cerr << "[EXT] Arbor asked to quit; EXIT\n";
