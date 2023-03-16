@@ -98,6 +98,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include "util/iterutil.hpp"
 #include "util/transform.hpp"
 #include "util/meta.hpp"
@@ -418,6 +420,8 @@ struct pw_elements {
         using std::begin;
         using std::end;
 
+        clear();
+
         auto vi = begin(vertices);
         auto ve = end(vertices);
 
@@ -425,34 +429,23 @@ struct pw_elements {
         auto ee = end(values);
 
         if (ei==ee) { // empty case
-            if (vi!=ve) {
-                throw std::runtime_error("vertex list too long");
-            }
-            clear();
+            arb_assert(vi==ve);
             return;
         }
 
-        if (vi==ve) {
-            throw std::runtime_error("vertex list too short");
-        }
-
-        clear();
+        arb_assert(vi!=ve);
+        reserve(vertices.size());
 
         double left = *vi++;
         double right = *vi++;
         push_back(left, right, *ei++);
 
         while (ei!=ee) {
-            if (vi==ve) {
-                throw std::runtime_error("vertex list too short");
-            }
+            arb_assert(vi!=ve);
             double right = *vi++;
             push_back(right, *ei++);
         }
-
-        if (vi!=ve) {
-            throw std::runtime_error("vertex list too long");
-        }
+        arb_assert(vi==ve);
     }
 
 private:
@@ -867,6 +860,8 @@ template <typename A, typename B, typename Fn = pw_pairify>
 auto pw_zip_with(const pw_elements<A>& a, const pw_elements<B>& b, Fn&& fn = Fn{}) {
     using Out = decltype(fn(std::pair<double, double>{}, a.front(), b.front()));
     pw_elements<Out> out;
+
+    out.reserve(a.size());
 
     for (auto elem: pw_zip_range(a, b)) {
         if constexpr (std::is_void_v<Out>) {

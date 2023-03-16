@@ -35,12 +35,9 @@ using util::assign_by;
 using util::count_along;
 using util::make_span;
 using util::pw_elements;
-using util::pw_element;
 using util::pw_over_cable;
 using util::sort;
 using util::sort_by;
-using util::stable_sort_by;
-using util::value_by_key;
 
 namespace {
 template <typename V>
@@ -315,11 +312,11 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             }
         }
         arb_value_type def = 0.0;
-        if (auto data = value_by_key(global_dflt.ion_data, ion);
+        if (auto data = util::value_by_key(global_dflt.ion_data, ion);
             data && data->diffusivity) {
             def = data->diffusivity.value();
         }
-        if (auto data = value_by_key(dflt.ion_data, ion);
+        if (auto data = util::value_by_key(dflt.ion_data, ion);
             data && data->diffusivity) {
             def = data->diffusivity.value();
         }
@@ -795,9 +792,22 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
     return gj_conns;
 }
 
+struct fvm_ion_build_data {
+    mcable_map<double> init_iconc_mask;
+    mcable_map<double> init_econc_mask;
+    bool write_xi = false;
+    bool write_xo = false;
+    std::vector<arb_index_type> support;
+
+    void add_to_support(const std::vector<arb_index_type>& cvs) {
+        arb_assert(util::is_sorted(cvs));
+        support = unique_union(support, cvs);
+    }
+};
+
 std::unordered_map<std::string, fvm_mechanism_config>
 make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
-                              const region_assignment<voltage_process> assignments,
+                              const region_assignment<voltage_process>& assignments,
                               const mechanism_catalogue& catalogue,
                               iexpr_ptr unit_scale,
                               unsigned cell_idx,
@@ -805,12 +815,32 @@ make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
                               const concrete_embedding& embedding,
                               const mprovider& provider);
 
-fvm_mechanism_data fvm_build_mechanism_data(
-    const cable_cell_global_properties& gprop,
-    const cable_cell& cell,
-    const std::vector<fvm_gap_junction>& gj_conns,
-    const fvm_cv_discretization& D,
-    arb_size_type cell_idx);
+std::unordered_map<std::string, fvm_mechanism_config>
+make_density_mechanism_config(const cable_cell_global_properties& gprop,
+                              const region_assignment<density>& assignments,
+                              const mechanism_catalogue& catalogue,
+                              iexpr_ptr unit_scale,
+                              unsigned cell_idx,
+                              const fvm_cv_discretization& D,
+                              const concrete_embedding& embedding,
+                              const mprovider& provider,
+                              std::unordered_map<std::string, fvm_ion_build_data>& ion_build_data);
+
+std::unordered_map<std::string, fvm_ion_config>
+make_ion_config(std::unordered_map<std::string, fvm_ion_build_data> build_data,
+                const std::unordered_map<std::string, cable_cell_ion_data>& global_dflt,
+                const std::unordered_map<std::string, cable_cell_ion_data>& dflt,
+                const region_assignment<init_int_concentration>&  initial_iconc_map,
+                const region_assignment<init_ext_concentration>&  initial_econc_map,
+                const region_assignment<init_reversal_potential>& initial_rvpot_map,
+                const fvm_cv_discretization& D,
+                const concrete_embedding& embedding);
+
+fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
+                                            const cable_cell& cell,
+                                            const std::vector<fvm_gap_junction>& gj_conns,
+                                            const fvm_cv_discretization& D,
+                                            arb_size_type cell_idx);
 
 ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
