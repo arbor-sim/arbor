@@ -194,7 +194,6 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
-        std::cout << "Generating Profile!\n";
         arb::profile::profiler_initialize(context);
 #endif
 

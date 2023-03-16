@@ -1,0 +1,25 @@
+{
+    "name": "run_#cells#_#depth#",
+    "num-cells": 256,
+    "synapses": 10,
+    "min-delay": 5,
+    "duration": 200,
+    "ring-size": 4,
+    "record": false,
+    "spikes": false,
+    "dt": 0.025,
+    "depth": 10,
+    "complex": true,
+    "branch-probs": [
+        1,
+        0.5
+    ],
+    "compartments": [
+        20,
+        2
+    ],
+    "lengths": [
+        200,
+        20
+    ]
+}
