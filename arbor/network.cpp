@@ -265,10 +265,10 @@ struct network_selection_destination_gid_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_invert_impl: public network_selection_impl {
+struct network_selection_complement_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> selection;
 
-    explicit network_selection_invert_impl(std::shared_ptr<network_selection_impl> s):
+    explicit network_selection_complement_impl(std::shared_ptr<network_selection_impl> s):
         selection(std::move(s)) {}
 
     bool select_connection(const network_site_info& src,
@@ -279,14 +279,14 @@ struct network_selection_invert_impl: public network_selection_impl {
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return true;  // cannot exclude any because source selection cannot be inverted without
+        return true;  // cannot exclude any because source selection cannot be complemented without
                       // knowing selection criteria.
     }
 
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return true;  // cannot exclude any because destination selection cannot be inverted without
+        return true;  // cannot exclude any because destination selection cannot be complemented without
                       // knowing selection criteria.
     }
 
@@ -504,10 +504,10 @@ struct network_selection_linear_bernoulli_random_impl: public network_selection_
     std::optional<double> max_distance() const override { return distance_end; }
 };
 
-struct network_selection_and_impl: public network_selection_impl {
+struct network_selection_intersect_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
-    network_selection_and_impl(std::shared_ptr<network_selection_impl> l,
+    network_selection_intersect_impl(std::shared_ptr<network_selection_impl> l,
         std::shared_ptr<network_selection_impl> r):
         left(std::move(l)),
         right(std::move(r)) {}
@@ -547,10 +547,10 @@ struct network_selection_and_impl: public network_selection_impl {
     };
 };
 
-struct network_selection_or_impl: public network_selection_impl {
+struct network_selection_join_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
-    network_selection_or_impl(std::shared_ptr<network_selection_impl> l,
+    network_selection_join_impl(std::shared_ptr<network_selection_impl> l,
         std::shared_ptr<network_selection_impl> r):
         left(std::move(l)),
         right(std::move(r)) {}
@@ -588,10 +588,10 @@ struct network_selection_or_impl: public network_selection_impl {
     };
 };
 
-struct network_selection_xor_impl: public network_selection_impl {
+struct network_selection_symmetric_difference_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
-    network_selection_xor_impl(std::shared_ptr<network_selection_impl> l,
+    network_selection_symmetric_difference_impl(std::shared_ptr<network_selection_impl> l,
         std::shared_ptr<network_selection_impl> r):
         left(std::move(l)),
         right(std::move(r)) {}
@@ -604,13 +604,14 @@ struct network_selection_xor_impl: public network_selection_impl {
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return true;
+        return left->select_source(kind, gid, label) || right->select_source(kind, gid, label);
     }
 
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return true;
+        return left->select_destination(kind, gid, label) ||
+               right->select_destination(kind, gid, label);
     }
 
     std::optional<double> max_distance() const override {
@@ -618,6 +619,46 @@ struct network_selection_xor_impl: public network_selection_impl {
         const auto d_right = right->max_distance();
 
         if (d_left && d_right) return std::max(d_left.value(), d_right.value());
+
+        return std::nullopt;
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+};
+
+
+struct network_selection_difference_impl: public network_selection_impl {
+    std::shared_ptr<network_selection_impl> left, right;
+
+    network_selection_difference_impl(std::shared_ptr<network_selection_impl> l,
+        std::shared_ptr<network_selection_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    bool select_connection(const network_site_info& src,
+        const network_site_info& dest) const override {
+        return left->select_connection(src, dest) && !(right->select_connection(src, dest));
+    }
+
+    bool select_source(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        return left->select_source(kind, gid, label);
+    }
+
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        return left->select_destination(kind, gid, label);
+    }
+
+    std::optional<double> max_distance() const override {
+        const auto d_left = left->max_distance();
+
+        if (d_left) return d_left.value();
 
         return std::nullopt;
     }
@@ -783,19 +824,24 @@ network_site_info::network_site_info(cell_gid_type gid,
 network_selection::network_selection(std::shared_ptr<network_selection_impl> impl):
     impl_(std::move(impl)) {}
 
-network_selection network_selection::operator&(network_selection right) const {
-    return network_selection(
-        std::make_shared<network_selection_and_impl>(this->impl_, std::move(right.impl_)));
+network_selection network_selection::intersect(network_selection left, network_selection right) {
+    return network_selection(std::make_shared<network_selection_intersect_impl>(
+        std::move(left.impl_), std::move(right.impl_)));
 }
 
-network_selection network_selection::operator|(network_selection right) const {
-    return network_selection(
-        std::make_shared<network_selection_or_impl>(this->impl_, std::move(right.impl_)));
+network_selection network_selection::join(network_selection left, network_selection right) {
+    return network_selection(std::make_shared<network_selection_join_impl>(
+        std::move(left.impl_), std::move(right.impl_)));
 }
 
-network_selection network_selection::operator^(network_selection right) const {
-    return network_selection(
-        std::make_shared<network_selection_xor_impl>(this->impl_, std::move(right.impl_)));
+network_selection network_selection::symmetric_difference(network_selection left, network_selection right) {
+    return network_selection(std::make_shared<network_selection_symmetric_difference_impl>(
+        std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_selection network_selection::difference(network_selection left, network_selection right) {
+    return network_selection(std::make_shared<network_selection_difference_impl>(
+        std::move(left.impl_), std::move(right.impl_)));
 }
 
 network_selection network_selection::all() {
@@ -834,8 +880,9 @@ network_selection network_selection::destination_gid(std::vector<cell_gid_type> 
     return network_selection(std::make_shared<network_selection_destination_gid_impl>(std::move(gids)));
 }
 
-network_selection network_selection::invert(network_selection s) {
-    return network_selection(std::make_shared<network_selection_invert_impl>(std::move(s.impl_)));
+network_selection network_selection::complement(network_selection s) {
+    return network_selection(
+        std::make_shared<network_selection_complement_impl>(std::move(s.impl_)));
 }
 
 network_selection network_selection::inter_cell() {
@@ -901,10 +948,12 @@ network_value network_value::named(std::string name) {
 
 network_label_dict& network_label_dict::set(const std::string& name, network_selection s) {
     selections_.insert_or_assign(name, std::move(s));
+    return *this;
 }
 
 network_label_dict& network_label_dict::set(const std::string& name, network_value v) {
     values_.insert_or_assign(name, std::move(v));
+    return *this;
 }
 
 std::optional<network_selection> network_label_dict::selection(const std::string& name) const {

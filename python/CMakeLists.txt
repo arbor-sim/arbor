@@ -34,6 +34,7 @@ set(pyarb_source
     mechanism.cpp
     morphology.cpp
     mpi.cpp
+    network.cpp
     profiler.cpp
     pyarb.cpp
     recipe.cpp

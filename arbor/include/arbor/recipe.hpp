@@ -67,6 +67,10 @@ struct ARB_ARBOR_API has_gap_junctions {
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
+    // Optional network descriptions for generating cell connections
+    virtual std::optional<arb::network_description> network_description() const {
+        return std::nullopt;
+    };
     virtual ~has_gap_junctions() {}
 };
 
@@ -106,10 +110,6 @@ struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity 
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
-    // Optional network descriptions for generating cell connections
-    virtual std::optional<arb::network_description> network_description() const {
-        return std::nullopt;
-    };
 
     virtual ~recipe() {}
 };

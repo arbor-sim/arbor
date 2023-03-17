@@ -35,7 +35,10 @@ namespace arb {
 
 struct distributed_request {
     inline void finalize() {
-        if (impl) impl->finalize();
+        if (impl) {
+            impl->finalize();
+            impl.reset();
+        }
     }
 
     struct distributed_request_interface {
@@ -43,6 +46,14 @@ struct distributed_request {
 
         virtual ~distributed_request_interface() = default;
     };
+
+    ~distributed_request() {
+        try {
+            finalize();
+        }
+        catch (...) {
+        }
+    }
 
     std::unique_ptr<distributed_request_interface> impl;
 };

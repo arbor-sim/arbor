@@ -25,6 +25,8 @@ using network_location = std::array<double, 3>;
 using network_hash_type = std::uint64_t;
 
 struct ARB_SYMBOL_VISIBLE network_site_info {
+    network_site_info() = default;
+
     network_site_info(cell_gid_type gid,
         cell_lid_type lid,
         cell_kind kind,
@@ -74,8 +76,16 @@ public:
 
     static network_selection destination_gid(std::vector<cell_gid_type> gids);
 
+    static network_selection intersect(network_selection left, network_selection right);
+
+    static network_selection join(network_selection left, network_selection right);
+
+    static network_selection symmetric_difference(network_selection left, network_selection right);
+
+    static network_selection difference(network_selection left, network_selection right);
+
     // Invert the selection
-    static network_selection invert(network_selection s);
+    static network_selection complement(network_selection s);
 
     // Only select connections between different cells
     static network_selection inter_cell();
@@ -104,12 +114,6 @@ public:
         double p_begin,
         double distance_end,
         double p_end);
-
-    network_selection operator&(network_selection right) const;
-
-    network_selection operator|(network_selection right) const;
-
-    network_selection operator^(network_selection right) const;
 
 private:
     network_selection(std::shared_ptr<network_selection_impl> impl);

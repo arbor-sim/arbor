@@ -1,13 +1,15 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-#include <arbor/event_generator.hpp>
 #include <arbor/cable_cell_param.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/network.hpp>
 #include <arbor/recipe.hpp>
 
 #include "error.hpp"
@@ -48,6 +50,9 @@ public:
     virtual pybind11::object global_properties(arb::cell_kind kind) const {
         return pybind11::none();
     };
+    virtual std::optional<arb::network_description> network_description() const {
+        return std::nullopt;
+    };
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -74,6 +79,10 @@ public:
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
         PYBIND11_OVERRIDE(std::vector<arb::gap_junction_connection>, py_recipe, gap_junctions_on, gid);
+    }
+
+    std::optional<arb::network_description> network_description() const override {
+        PYBIND11_OVERRIDE_PURE(arb::network_description, py_recipe, network_description);
     }
 
     std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const override {
@@ -129,6 +138,10 @@ public:
     }
 
     std::any get_global_properties(arb::cell_kind kind) const override;
+
+    std::optional<arb::network_description> network_description() const override {
+        return try_catch_pyexception([&]() { return impl_->network_description(); }, msg);
+    };
 };
 
 } // namespace pyarb
