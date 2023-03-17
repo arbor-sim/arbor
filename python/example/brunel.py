@@ -229,7 +229,8 @@ if __name__ == "__main__":
             print(f"{k} = {v}")
 
     context = arbor.context(threads=1)
-    arbor.profiler_initialize(context)
+    if arbor.config()['profiling']:
+        arbor.profiler_initialize(context)
     print(context)
 
     meters = arbor.meter_manager()
@@ -268,7 +269,8 @@ if __name__ == "__main__":
 
     # Print profiling information
     print(arbor.meter_report(meters, context))
-    print(arbor.profiler_summary())
+    if arbor.config()['profiling']:
+        print(arbor.profiler_summary())
 
     # Print spike times
     print(f"{len(sim.spikes())} spikes generated.")

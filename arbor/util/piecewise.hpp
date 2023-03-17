@@ -619,17 +619,15 @@ struct pw_elements<void> {
         auto vi = begin(vertices);
         auto ve = end(vertices);
 
-        if (vi==ve) {
-            clear();
-            return;
-        }
+        clear();
+        reserve(vertices.size());
+
+        if (vi==ve) return;
 
         double left = *vi++;
         if (vi==ve) {
             throw std::runtime_error("vertex list too short");
         }
-
-        clear();
 
         double right = *vi++;
         push_back(left, right);

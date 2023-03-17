@@ -23,7 +23,7 @@ util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt
     struct as_branch {
         msize_t value;
         as_branch(const value_type& x): value(x.first.branch) {}
-        as_branch(const msize_t& x): value(x) {}
+        as_branch(msize_t x): value(x) {}
     };
 
     auto map_on_branch = util::make_range(
