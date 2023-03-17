@@ -420,32 +420,30 @@ struct pw_elements {
         using std::begin;
         using std::end;
 
-        clear();
-
         auto vi = begin(vertices);
         auto ve = end(vertices);
-
         auto ei = begin(values);
         auto ee = end(values);
 
-        if (ei==ee) { // empty case
-            arb_assert(vi==ve);
+        if (ei == ee) { // empty case
+            if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
+            clear();
             return;
         }
+        clear();
+        if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
 
-        arb_assert(vi!=ve);
         reserve(vertices.size());
-
         double left = *vi++;
         double right = *vi++;
         push_back(left, right, *ei++);
 
-        while (ei!=ee) {
-            arb_assert(vi!=ve);
+        while (ei != ee) {
+            if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
             double right = *vi++;
             push_back(right, *ei++);
         }
-        arb_assert(vi==ve);
+        if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
     }
 
 private:
@@ -600,10 +598,7 @@ struct pw_elements<void> {
     }
 
     void push_back(double right) {
-        if (empty()) {
-            throw std::runtime_error("require initial left vertex for element");
-        }
-
+        if (empty()) throw std::runtime_error("require initial left vertex for element");
         push_back(vertex_.back(), right);
     }
 
@@ -619,16 +614,16 @@ struct pw_elements<void> {
         auto vi = begin(vertices);
         auto ve = end(vertices);
 
-        clear();
         reserve(vertices.size());
 
-        if (vi==ve) return;
-
-        double left = *vi++;
-        if (vi==ve) {
-            throw std::runtime_error("vertex list too short");
+        if (vi == ve) {
+            clear();
+            return;
         }
 
+        double left = *vi++;
+        if (vi == ve) throw std::runtime_error("vertex list too short");
+        clear();
         double right = *vi++;
         push_back(left, right);
 

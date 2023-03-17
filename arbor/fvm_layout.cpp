@@ -849,7 +849,6 @@ make_point_mechanism_config(const cable_cell_global_properties& gprop,
 // Consume ion_build_data and return all ion_configs
 std::unordered_map<std::string, fvm_ion_config>
 make_ion_config(std::unordered_map<std::string, fvm_ion_build_data> build_data,
-                const std::unordered_map<std::string, cable_cell_ion_data>& global_dflt,
                 const std::unordered_map<std::string, cable_cell_ion_data>& dflt,
                 const region_assignment<init_int_concentration>&  initial_iconc_map,
                 const region_assignment<init_ext_concentration>&  initial_econc_map,
@@ -881,8 +880,7 @@ std::tuple<std::unordered_map<std::string,
                               fvm_mechanism_config>,
            std::unordered_set<std::string>>
 make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
-                             const std::unordered_map<std::string, mechanism_desc>& global_dflt,
-                             const std::unordered_map<std::string, mechanism_desc>& dflt,
+                             const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const mechanism_catalogue& catalogue,
                              unsigned cell_idx,
@@ -1042,9 +1040,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     // Ions:
     {
+        auto ion_data = dflt.ion_data;
+        ion_data.insert(global_dflt.ion_data.begin(),
+                        global_dflt.ion_data.end());
         const auto& configs = make_ion_config(std::move(ion_build_data),
-                                              global_dflt.ion_data,
-                                              dflt.ion_data,
+                                              ion_data,
                                               assignments.get<init_int_concentration>(),
                                               assignments.get<init_ext_concentration>(),
                                               assignments.get<init_reversal_potential>(),
@@ -1054,10 +1054,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     }
     // Reversal potentials
     {
+        // merge methods, keeping specifics over globals.
+        auto method = dflt.reversal_potential_method;
+        method.insert(global_dflt.reversal_potential_method.begin(),
+                      global_dflt.reversal_potential_method.end());
         const auto& [configs,
                      written] = make_revpot_mechanism_config(gprop,
-                                                             global_dflt.reversal_potential_method,
-                                                             dflt.reversal_potential_method,
+                                                             method,
                                                              M.ions,
                                                              catalogue,
                                                              cell_idx,
@@ -1276,8 +1279,7 @@ make_density_mechanism_config(const cable_cell_global_properties& gprop,
 // Make fvm_ion_config s from intermediate products
 std::unordered_map<std::string, fvm_ion_config>
 make_ion_config(std::unordered_map<std::string, fvm_ion_build_data> build_data,
-                const std::unordered_map<std::string, cable_cell_ion_data>& global_dflt,
-                const std::unordered_map<std::string, cable_cell_ion_data>& dflt,
+                const std::unordered_map<std::string, cable_cell_ion_data>& ion_data,
                 const region_assignment<init_int_concentration>&  initial_iconc_map,
                 const region_assignment<init_ext_concentration>&  initial_econc_map,
                 const region_assignment<init_reversal_potential>& initial_rvpot_map,
@@ -1301,17 +1303,10 @@ make_ion_config(std::unordered_map<std::string, fvm_ion_build_data> build_data,
         config.reset_iconc.resize(n_cv);
         config.reset_econc.resize(n_cv);
 
-        auto global_ion_data = *util::value_by_key(global_dflt, ion);
-        auto dflt_iconc = global_ion_data.init_int_concentration.value();
-        auto dflt_econc = global_ion_data.init_ext_concentration.value();
-        auto dflt_rvpot = global_ion_data.init_reversal_potential.value();
-
-        if (auto ion_data = util::value_by_key(dflt, ion)) {
-            auto val = ion_data.value();
-            dflt_iconc = val.init_int_concentration.value_or(dflt_iconc);
-            dflt_econc = val.init_ext_concentration.value_or(dflt_econc);
-            dflt_rvpot = val.init_reversal_potential.value_or(dflt_rvpot);
-        }
+        const auto& global_ion_data = ion_data.at(ion);
+        auto dflt_iconc = *global_ion_data.init_int_concentration;
+        auto dflt_econc = *global_ion_data.init_ext_concentration;
+        auto dflt_rvpot = *global_ion_data.init_reversal_potential;
 
         const auto& iconc_on_cable = util::value_by_key_or(initial_iconc_map, ion, {});
         const auto& econc_on_cable = util::value_by_key_or(initial_econc_map, ion, {});
@@ -1690,8 +1685,7 @@ std::tuple<std::unordered_map<std::string,
                               fvm_mechanism_config>,
            std::unordered_set<std::string>>
 make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
-                             const std::unordered_map<std::string, mechanism_desc>& global_dflt,
-                             const std::unordered_map<std::string, mechanism_desc>& dflt,
+                             const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const mechanism_catalogue& catalogue,
                              unsigned cell_idx,
@@ -1701,10 +1695,8 @@ make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
     std::unordered_set<std::string> written;
 
     for (const auto& ion: util::keys(gprop.ion_species)) {
-        auto maybe_revpot = util::value_by_key(dflt, ion) | util::value_by_key(global_dflt, ion);
-        if (!maybe_revpot) continue;
-
-        const mechanism_desc& revpot = *maybe_revpot;
+        if (!method.count(ion)) continue;
+        const auto& revpot = method.at(ion);
         const auto& name = revpot.name();
         const auto& values = revpot.values();
 
