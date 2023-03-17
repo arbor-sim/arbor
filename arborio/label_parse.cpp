@@ -196,27 +196,22 @@ eval_map_type network_eval_map{
     {"network-selection",
         make_call<std::string>(arb::network_selection::named,
             "network selection with 1 argument: (value:string)")},
-    {"and",
-        make_fold<arb::network_selection>(
-            [](arb::network_selection left, arb::network_selection right) {
-                return std::move(left) & std::move(right);
-            },
-            "logical \"and\" operation of network selections with at least 2 arguments: "
+    {"intersect",
+        make_fold<arb::network_selection>(arb::network_selection::intersect,
+            "intersection of network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
-    {"or",
-        make_fold<arb::network_selection>(
-            [](arb::network_selection left, arb::network_selection right) {
-                return std::move(left) | std::move(right);
-            },
-            "logical \"or\" operation of network selections with at least 2 arguments: "
+    {"join",
+        make_fold<arb::network_selection>(arb::network_selection::join,
+            "join or union operation of network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
-    {"xor",
-        make_fold<arb::network_selection>(
-            [](arb::network_selection left, arb::network_selection right) {
-                return std::move(left) ^ std::move(right);
-            },
-            "logical \"xor\" operation of network selections with at least 2 arguments: "
+    {"symmetric_difference",
+        make_fold<arb::network_selection>(arb::network_selection::symmetric_difference,
+            "symmetric difference operation between network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
+    {"difference",
+        make_call<arb::network_selection, arb::network_selection>(arb::network_selection::difference,
+            "difference of first selection with the second one: "
+            "(network_selection network_selection)")},
 
     // network_value
     {"scalar",
