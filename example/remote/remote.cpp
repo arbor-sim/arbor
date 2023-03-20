@@ -89,7 +89,8 @@ int main() {
             std::cerr << "[EXT] Waiting for control message from Arbor\n";
             auto msg = arb::remote::exchange_ctrl(arb::remote::msg_epoch{}, mpi.inter);
             if(!std::holds_alternative<arb::remote::msg_epoch>(msg)) break;
-            std::cerr << "[EXT] Waiting for spikes from Arbor\n";
+            auto mep = std::get<arb::remote::msg_epoch>(msg);
+            std::cerr << "[EXT] Waiting for spikes from Arbor for epoch [" << mep.t_start << ", " << mep.t_end << ")\n";
             auto from_arbor = arb::remote::gather_spikes(spikes, mpi.inter);
             std::cerr << "[EXT] spikes from Arbor: " << from_arbor.size() << '\n';
         }

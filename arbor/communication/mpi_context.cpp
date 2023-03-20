@@ -104,7 +104,7 @@ struct mpi_context_impl {
     void barrier() const {
         mpi::barrier(comm_);
     }
-    void remote_ctrl_send_continue() const {}
+    void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}
 };
 
@@ -120,7 +120,7 @@ struct remote_context_impl {
     explicit remote_context_impl(MPI_Comm comm, MPI_Comm portal):
         mpi_{comm}, portal_{portal} {}
 
-    virtual std::vector<arb::spike>
+    std::vector<arb::spike>
     remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
         return mpi::gather_all(local_spikes, portal_);
     }
@@ -152,7 +152,7 @@ struct remote_context_impl {
     template <typename T> T max(T value) const { return mpi_.max(value); }
     template <typename T> T sum(T value) const { return mpi_.sum(value); }
     void barrier() const { mpi_.barrier(); }
-    void remote_ctrl_send_continue() const { remote::exchange_ctrl(remote::msg_epoch{}, portal_); }
+    void remote_ctrl_send_continue(const epoch& e) const { remote::exchange_ctrl(remote::msg_epoch{e.t0, e.t1}, portal_); }
     void remote_ctrl_send_done() const { remote::exchange_ctrl(remote::msg_done{}, portal_); }
 };
 

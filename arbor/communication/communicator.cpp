@@ -11,6 +11,7 @@
 #include "communication/gathered_vector.hpp"
 #include "connection.hpp"
 #include "distributed_context.hpp"
+#include "epoch.hpp"
 #include "execution_context.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
@@ -31,26 +32,26 @@ communicator::communicator(const recipe& rec,
                                                      distributed_{ctx.distributed},
                                                      thread_pool_{ctx.thread_pool} {}
 
-inline
+constexpr inline
 bool is_external(cell_gid_type c) {
     // index of the MSB of cell_gid_type in bits
-    auto msb = 1 << (sizeof(cell_gid_type)*8 - 1);
+    constexpr auto msb = 1 << (std::numeric_limits<cell_gid_type>::digits - 1);
     // If set, we are external
     return bool(c & msb);
 }
 
-inline
+constexpr inline
 cell_member_type global_cell_of(const cell_remote_label_type& c) {
-    auto msb = 1 << (sizeof(cell_gid_type)*8 - 1);
+    constexpr auto msb = 1 << (std::numeric_limits<cell_gid_type>::digits - 1);
     // set the MSB
-    return {(c.rid | msb) ^ msb, c.index};
+    return {c.rid | msb, c.index};
 }
 
-inline
+constexpr inline
 cell_member_type global_cell_of(const cell_member_type& c) {
-    auto msb = 1 << (sizeof(cell_gid_type)*8 - 1);
+    constexpr auto msb = 1 << (std::numeric_limits<cell_gid_type>::digits - 1);
     // set the MSB
-    return {(c.gid | msb) ^ msb, c.index};
+    return {c.gid | msb, c.index};
 }
 
 void communicator::update_connections(const connectivity& rec,
@@ -95,9 +96,9 @@ void communicator::update_connections(const connectivity& rec,
             gid_infos[i] = {gid, i, rec.connections_on(gid), rec.external_connections_on(gid)};
         });
 
-    cell_local_size_type
-        n_cons = util::sum_by(gid_infos, [](const auto& g){ return g.conns.size(); }),
-        n_ext_cons = util::sum_by(gid_infos, [](const auto& g){ return g.ext_conns.size(); });
+
+    auto n_cons = util::sum_by(gid_infos, [](const auto& g){ return g.conns.size(); });
+    auto n_ext_cons = util::sum_by(gid_infos, [](const auto& g){ return g.ext_conns.size(); });
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
@@ -180,8 +181,7 @@ time_type communicator::min_delay() {
     return res;
 }
 
-std::pair<gathered_vector<spike>,
-          std::vector<spike>>
+communicator::spikes
 communicator::exchange(std::vector<spike> local_spikes) {
     PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
@@ -204,14 +204,18 @@ communicator::exchange(std::vector<spike> local_spikes) {
     auto remote_spikes = distributed_->remote_gather_spikes(local_spikes);
     PL();
 
-    PE(communication:exchange:gather:remote:sort);
+    PE(communication:exchange:gather:remote:post_process);
+    // set the remote bit on all incoming spikes
+    std::for_each(remote_spikes.begin(), remote_spikes.end(),
+                  [](spike& s) { s.source = global_cell_of(s.source); });
+    // sort, since we cannot trust our peers
     std::sort(remote_spikes.begin(), remote_spikes.end());
     PL();
     return {global_spikes, remote_spikes};
 }
 
 void communicator::set_remote_spike_filter(const spike_predicate& p) { remote_spike_filter_ = p; }
-void communicator::remote_ctrl_send_continue() { distributed_->remote_ctrl_send_continue(); }
+void communicator::remote_ctrl_send_continue(const epoch& e) { distributed_->remote_ctrl_send_continue(e); }
 void communicator::remote_ctrl_send_done() { distributed_->remote_ctrl_send_done(); }
 
 // Internal helper to append to the event queues

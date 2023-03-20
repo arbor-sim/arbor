@@ -63,8 +63,8 @@ struct msg_abort {
 // Ready to begin next epoch in simulation period.
 struct msg_epoch {
     static constexpr std::uint8_t tag = 0x02;
-    float t_start;
-    float t_end;
+    double t_start;
+    double t_end;
 };
 
 // Reached end of simulation period.

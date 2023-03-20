@@ -378,7 +378,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PE(communication:exchange:gatherlocal);
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
-        communicator_.remote_ctrl_send_continue();
+        communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
         const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
 
