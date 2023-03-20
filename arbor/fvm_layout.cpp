@@ -811,7 +811,7 @@ struct fvm_ion_build_data {
 
 // Construct all voltage mechs; very similar to density yet with some extra constraints.
 std::unordered_map<std::string, fvm_mechanism_config>
-make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
+make_voltage_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                               const region_assignment<voltage_process>& assignments,
                               const mechanism_catalogue& catalogue,
                               iexpr_ptr unit_scale,
@@ -822,7 +822,7 @@ make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
 
 // Construct all density mechs
 std::unordered_map<std::string, fvm_mechanism_config>
-make_density_mechanism_config(const cable_cell_global_properties& gprop,
+make_density_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                               const region_assignment<density>& assignments,
                               const mechanism_catalogue& catalogue,
                               iexpr_ptr unit_scale,
@@ -840,12 +840,13 @@ std::tuple<std::unordered_map<std::string,
                               fvm_mechanism_config>,
            bool,
            std::size_t>
-make_point_mechanism_config(const cable_cell_global_properties& gprop,
+make_point_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                             const std::unordered_map<std::string, mlocation_map<synapse>>& synapses,
                             const mechanism_catalogue& catalogue,
                             unsigned cell_idx,
                             const fvm_cv_discretization& D,
-                            std::unordered_map<std::string, fvm_ion_build_data>& ion_build_data);
+                            std::unordered_map<std::string, fvm_ion_build_data>& ion_build_data,
+                            bool coalesce);
 
 // Consume ion_build_data and return all ion_configs
 std::unordered_map<std::string, fvm_ion_config>
@@ -866,7 +867,7 @@ make_stimulus_config(const mlocation_map<i_clamp>& stimuli,
 // Two-step builder for GJ connections; needs all junction mechanisms ('left'
 // and 'right' part) and their connections (gj_conns).
 std::unordered_map<std::string, fvm_mechanism_config>
-make_gj_mechanism_config(const cable_cell_global_properties& gprop,
+make_gj_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                          const std::unordered_map<std::string, mlocation_map<junction>>& junctions,
                          const std::vector<fvm_gap_junction>& gj_conns,
                          const mechanism_catalogue& catalogue,
@@ -880,7 +881,7 @@ make_gj_mechanism_config(const cable_cell_global_properties& gprop,
 std::tuple<std::unordered_map<std::string,
                               fvm_mechanism_config>,
            std::unordered_set<std::string>>
-make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
+make_revpot_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                              const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const mechanism_catalogue& catalogue,
@@ -915,12 +916,10 @@ ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
 
 
 // Verify mechanism ion usage, parameter values.
-void verify_mechanism(const cable_cell_global_properties& gprop,
+void verify_mechanism(const std::unordered_map<std::string, int>& global_ions,
                       const fvm_cv_discretization& D,
                       const mechanism_info& info,
                       const mechanism_desc& desc) {
-    const auto& global_ions = gprop.ion_species;
-
     for (const auto& pv: desc.values()) {
         if (!info.parameters.count(pv.first)) {
             throw no_such_parameter(desc.name(), pv.first);
@@ -984,7 +983,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     fvm_mechanism_data M;
     // Voltage mechanisms
     {
-        const auto& configs = make_voltage_mechanism_config(gprop,
+        const auto& configs = make_voltage_mechanism_config(gprop.ion_species,
                                                             assignments.get<voltage_process>(),
                                                             catalogue,
                                                             unit_scale,
@@ -996,7 +995,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     }
     // Density mechanisms
     {
-        const auto& configs = make_density_mechanism_config(gprop,
+        const auto& configs = make_density_mechanism_config(gprop.ion_species,
                                                             assignments.get<density>(),
                                                             catalogue,
                                                             unit_scale,
@@ -1011,19 +1010,20 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     {
         const auto& [configs,
                      post_events,
-                     n_targets] = make_point_mechanism_config(gprop,
+                     n_targets] = make_point_mechanism_config(gprop.ion_species,
                                                               cell.synapses(),
                                                               catalogue,
                                                               cell_idx,
                                                               D,
-                                                              ion_build_data);
+                                                              ion_build_data,
+                                                              gprop.coalesce_synapses);
         M.n_target += n_targets;
         M.mechanisms.insert(configs.begin(), configs.end());
         M.post_events = post_events;
     }
     // Gap junctions:
     {
-        const auto& configs = make_gj_mechanism_config(gprop,
+        const auto& configs = make_gj_mechanism_config(gprop.ion_species,
                                                        cell.junctions(),
                                                        gj_conns,
                                                        catalogue,
@@ -1060,7 +1060,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         method.insert(global_dflt.reversal_potential_method.begin(),
                       global_dflt.reversal_potential_method.end());
         const auto& [configs,
-                     written] = make_revpot_mechanism_config(gprop,
+                     written] = make_revpot_mechanism_config(gprop.ion_species,
                                                              method,
                                                              M.ions,
                                                              catalogue,
@@ -1075,7 +1075,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 }
 
 std::unordered_map<std::string, fvm_mechanism_config>
-make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
+make_voltage_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                               const region_assignment<voltage_process>& assignments,
                               const mechanism_catalogue& catalogue,
                               iexpr_ptr unit_scale,
@@ -1115,7 +1115,7 @@ make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
         for (const auto& [cable, density_iexpr]: cables) {
             const auto& mech = density_iexpr.mech;
 
-            verify_mechanism(gprop, D, info, mech);
+            verify_mechanism(ion_species, D, info, mech);
             const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
@@ -1168,7 +1168,7 @@ make_voltage_mechanism_config(const cable_cell_global_properties& gprop,
 }
 
 std::unordered_map<std::string, fvm_mechanism_config>
-make_density_mechanism_config(const cable_cell_global_properties& gprop,
+make_density_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                               const region_assignment<density>& assignments,
                               const mechanism_catalogue& catalogue,
                               iexpr_ptr unit_scale,
@@ -1178,6 +1178,7 @@ make_density_mechanism_config(const cable_cell_global_properties& gprop,
                               const mprovider& provider,
                               std::unordered_map<std::string, fvm_ion_build_data>& ion_build_data) {
     std::unordered_map<std::string, fvm_mechanism_config> result;
+
     for (const auto& [name, cables]: assignments) {
         const auto& info = catalogue[name];
 
@@ -1208,13 +1209,13 @@ make_density_mechanism_config(const cable_cell_global_properties& gprop,
             const auto& [density, scale_expr] = density_iexpr;
             const auto& mech = density.mech;
 
-            verify_mechanism(gprop, D, info, mech);
+            verify_mechanism(ion_species, D, info, mech);
             const auto& set_params = mech.values();
 
             support.insert(cable, 1.);
             for (std::size_t i = 0; i<n_param; ++i) {
                 const auto& param = param_names[i];
-                double value = util::value_by_key_or(set_params, param, param_dflt[i]);
+                auto value = util::value_by_key_or(set_params, param, param_dflt[i]);
                 auto scale = util::value_by_key_or(scale_expr, param, unit_scale);
                 param_maps[i].insert(cable, {value, scale});
             }
@@ -1225,10 +1226,10 @@ make_density_mechanism_config(const cable_cell_global_properties& gprop,
             double area = 0;
             util::fill(param_on_cv, 0.);
             for (const mcable& cable: D.geometry.cables(cv)) {
-                const auto branch = cable.branch;
                 double area_on_cable = embedding.integrate_area(cable, pw_over_cable(support, cable, 0.));
                 if (!area_on_cable) continue;
                 area += area_on_cable;
+                const auto branch = cable.branch;
                 for (std::size_t i = 0; i<n_param; ++i) {
                     auto pw = pw_over_cable(param_maps[i],
                                             cable,
@@ -1423,12 +1424,13 @@ std::tuple<std::unordered_map<std::string,
                              fvm_mechanism_config>,
           bool,
           std::size_t>
-make_point_mechanism_config(const cable_cell_global_properties& gprop,
+make_point_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                             const std::unordered_map<std::string, mlocation_map<synapse>>& synapses,
                             const mechanism_catalogue& catalogue,
                             unsigned cell_idx,
                             const fvm_cv_discretization& D,
-                            std::unordered_map<std::string, fvm_ion_build_data>& ion_build_data) {
+                            std::unordered_map<std::string, fvm_ion_build_data>& ion_build_data,
+                            bool coalesce) {
     struct synapse_instance {
         arb_size_type cv;
         std::size_t param_values_offset;
@@ -1482,7 +1484,7 @@ make_point_mechanism_config(const cable_cell_global_properties& gprop,
         std::size_t offset = 0;
         for (const auto& pm: data) {
             const auto& mech = pm.item.mech;
-            verify_mechanism(gprop, D, info, mech);
+            verify_mechanism(ion_species, D, info, mech);
 
             auto param_values_offset = offset;
             offset += n_param;
@@ -1533,7 +1535,7 @@ make_point_mechanism_config(const cable_cell_global_properties& gprop,
         config.kind = arb_mechanism_kind_point;
 
         // Do coalesce?
-        if (!info.random_variables.size() && info.linear && gprop.coalesce_synapses) {
+        if (!info.random_variables.size() && info.linear && coalesce) {
             for (auto& [k, _v]: info.parameters) {
                 config.param_values.emplace_back(k, std::vector<arb_value_type>{});
             }
@@ -1588,7 +1590,7 @@ make_point_mechanism_config(const cable_cell_global_properties& gprop,
 }
 
 std::unordered_map<std::string, fvm_mechanism_config>
-make_gj_mechanism_config(const cable_cell_global_properties& gprop,
+make_gj_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                          const std::unordered_map<std::string, mlocation_map<junction>>& junctions,
                          const std::vector<fvm_gap_junction>& gj_conns,
                          const mechanism_catalogue& catalogue,
@@ -1639,7 +1641,7 @@ make_gj_mechanism_config(const cable_cell_global_properties& gprop,
 
         for (const auto& pm: placements) {
             const auto& mech = pm.item.mech;
-            verify_mechanism(gprop, D, info, mech);
+            verify_mechanism(ion_species, D, info, mech);
             const auto& set_params = mech.values();
             std::vector<arb_value_type> params(n_param);
             for (std::size_t i = 0; i<n_param; ++i) {
@@ -1685,7 +1687,7 @@ make_gj_mechanism_config(const cable_cell_global_properties& gprop,
 std::tuple<std::unordered_map<std::string,
                               fvm_mechanism_config>,
            std::unordered_set<std::string>>
-make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
+make_revpot_mechanism_config(const std::unordered_map<std::string, int> ion_species,
                              const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const mechanism_catalogue& catalogue,
@@ -1695,7 +1697,7 @@ make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
     std::unordered_map<std::string, fvm_mechanism_config> result;
     std::unordered_set<std::string> written;
 
-    for (const auto& ion: util::keys(gprop.ion_species)) {
+    for (const auto& ion: util::keys(ion_species)) {
         if (!method.count(ion)) continue;
         const auto& revpot = method.at(ion);
         const auto& name = revpot.name();
@@ -1705,7 +1707,7 @@ make_revpot_mechanism_config(const cable_cell_global_properties& gprop,
         if (info.kind != arb_mechanism_kind_reversal_potential) {
             throw cable_cell_error("expected reversal potential mechanism for ion " +ion +", got "+ name +" which has " +arb_mechanism_kind_str(info.kind));
         }
-        verify_mechanism(gprop, D, info, revpot);
+        verify_mechanism(ion_species, D, info, revpot);
 
         bool writes_this_revpot = false;
         for (auto& [other_ion, other_info]: info.ions) {
