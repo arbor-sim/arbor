@@ -20,6 +20,9 @@ add_subdirectory(unit-modcc)
 # Builds: one executable per microbenchmark under ubench/.
 add_subdirectory(ubench)
 
-# 'check' target executes tests.
+# GNU Make expects 'check' target to execute tests:
+# https://www.gnu.org/software/make/manual/make.html#Standard-Targets
+# Spack's CMakePackage in turn relies on this:
+# https://spack.readthedocs.io/en/latest/packaging_guide.html#adding-installation-phase-tests
 add_custom_target(check COMMAND unit)
 add_dependencies(check tests)
