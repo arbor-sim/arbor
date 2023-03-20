@@ -7,7 +7,7 @@ labels:
 assignees: ''
 
 ---
-<!-- Please add relevant labels to categorize your bug. -->
+<!-- Please add relevant labels to categorize your bug. For instance, version of Arbor, output of `arbor.config()`, some details of the environment. -->
 
 **Describe the bug**
 <!-- A clear and concise description of what the bug is, steps to reproduce, expected behavior, etc. -->

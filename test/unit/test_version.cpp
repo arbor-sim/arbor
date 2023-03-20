@@ -49,7 +49,7 @@ TEST(version, libmatch) {
 }
 
 TEST(version, sane_config) {
-    EXPECT_TRUE(arb::build_config=="DEBUG"s || arb::build_config=="RELEASE"s);
+    EXPECT_TRUE(arb::build_config=="DEBUG"s || arb::build_config=="RELEASE"s || arb::build_config=="RELWITHDEBINFO"s || arb::build_config=="MINSIZEREL"s);
 }
 
 TEST(version, version_components) {
