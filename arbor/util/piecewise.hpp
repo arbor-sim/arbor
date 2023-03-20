@@ -113,10 +113,7 @@ constexpr pw_size_type pw_npos = -1;
 
 template <typename X = void>
 struct pw_element {
-    pw_element():
-        extent(NAN, NAN),
-        value()
-    {}
+    pw_element(): pw_element{{NAN, NAN}, {}} {}
 
     pw_element(std::pair<double, double> extent, X value):
         extent(std::move(extent)),
@@ -138,10 +135,7 @@ struct pw_element {
 
 template <>
 struct pw_element<void> {
-    pw_element():
-        extent(NAN, NAN)
-    {}
-
+    pw_element(): pw_element{{NAN, NAN}} {}
     pw_element(std::pair<double, double> extent):
         extent(std::move(extent))
     {}

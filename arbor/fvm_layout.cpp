@@ -7,6 +7,7 @@
 #include <vector>
 #include <utility>
 #include <memory>
+#include <string>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>

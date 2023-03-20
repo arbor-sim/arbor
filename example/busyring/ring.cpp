@@ -219,7 +219,6 @@ int main(int argc, char** argv) {
         ring_recipe recipe(params);
         cell_stats stats(recipe);
         if (root) std::cout << stats << "\n";
-
         // Construct the model.
         arb::simulation sim(recipe, context);
 
@@ -331,7 +330,6 @@ arb::cable_cell complex_cell (arb::cell_gid_type gid, const cell_parameters& par
     using arb::reg::all;
     using arb::ls::location;
     using arb::ls::uniform;
-    using mech = arb::mechanism_desc;
 
     arb::segment_tree tree;
 
