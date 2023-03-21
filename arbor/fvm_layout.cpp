@@ -1116,8 +1116,8 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
     }
 }
 
-fvm_mechanism_config make_mechanism_config(const mechanism_info& info,
-                                           arb_mechanism_kind expected) {
+auto make_mechanism_config(const mechanism_info& info,
+                           arb_mechanism_kind expected) {
     if (info.kind != expected) {
         throw make_cc_error("Expected {} mechanism, got {}.",
                             arb_mechanism_kind_str(expected),
@@ -1128,7 +1128,7 @@ fvm_mechanism_config make_mechanism_config(const mechanism_info& info,
     return result;
 }
 
-std::vector<std::pair<std::string, arb_value_type>> ordered_parameters(const mechanism_info& info) {
+auto ordered_parameters(const mechanism_info& info) {
     std::vector<std::pair<std::string, arb_value_type>> result;
     for (const auto& [name, val]: info.parameters) {
         result.emplace_back(name, val.default_value);
@@ -1424,7 +1424,6 @@ make_point_mechanism_config(const std::unordered_map<std::string, int> ion_speci
     };
 
     // Working vectors for synapse collation:
-    std::vector<double> default_param_value;
     std::vector<double> all_param_values;
     std::vector<synapse_instance> inst_list;
     std::vector<arb_size_type> cv_order;
@@ -1437,29 +1436,14 @@ make_point_mechanism_config(const std::unordered_map<std::string, int> ion_speci
 
         post_events |= info.post_events;
 
-        std::size_t n_param = info.parameters.size();
-        default_param_value.resize(n_param);
-
         std::size_t n_inst = data.size();
         inst_list.clear();
         inst_list.reserve(n_inst);
 
+        auto parameters = ordered_parameters(info);
+        std::size_t n_param = parameters.size();
+
         all_param_values.resize(n_param*n_inst);
-
-        // Vectors of parameter values are stored in the order of
-        // parameters given by info.parameters. param_index holds
-        // the mapping from parameter names to their index in this
-        // order.
-
-        std::unordered_map<std::string, unsigned> param_index;
-
-        unsigned ix=0;
-        for (const auto& [k, v]: info.parameters) {
-            param_index[k] = ix;
-            default_param_value[ix] = v.default_value;
-            ++ix;
-        }
-        arb_assert(ix==n_param);
 
         std::size_t offset = 0;
         for (const auto& pm: data) {
@@ -1470,12 +1454,12 @@ make_point_mechanism_config(const std::unordered_map<std::string, int> ion_speci
             offset += n_param;
             arb_assert(offset<=all_param_values.size());
 
-            // Copy in the defaults
+            // Copy in the defaults and overwrite where set;
+            const auto& set_params = mech.values();
             double* in_param = all_param_values.data() + param_values_offset;
-            std::copy(default_param_value.begin(), default_param_value.end(), in_param);
-            // Overwrite the set values.
-            for (const auto& [k, v]: mech.values()) {
-                in_param[param_index.at(k)] = v;
+            for (const auto& [name, def]: parameters) {
+                *in_param = set_params.count(name) ? set_params.at(name) : def;
+                ++in_param;
             }
             inst_list.emplace_back((arb_size_type) D.geometry.location_cv(cell_idx, pm.loc, cv_prefer::cv_nonempty),
                                    (std::size_t) param_values_offset,
@@ -1514,7 +1498,7 @@ make_point_mechanism_config(const std::unordered_map<std::string, int> ion_speci
         auto config = make_mechanism_config(info, arb_mechanism_kind_point);
         // Do coalesce?
         if (!info.random_variables.size() && info.linear && coalesce) {
-            for (auto& [k, _v]: info.parameters) {
+            for (auto& [k, _v]: parameters) {
                 config.param_values.emplace_back(k, std::vector<arb_value_type>{});
             }
 
@@ -1539,7 +1523,7 @@ make_point_mechanism_config(const std::unordered_map<std::string, int> ion_speci
             }
         }
         else {
-            for (auto& [k, _v]: info.parameters) {
+            for (auto& [k, _v]: parameters) {
                 config.param_values.emplace_back(k, std::vector<arb_value_type>{});
                 config.param_values.back().second.reserve(n_inst);
             }
@@ -1710,8 +1694,8 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, int> ion_spec
                 config.cv = unique_union(config.cv, ions.at(ion).cv);
                 config.norm_area.assign(config.cv.size(), 1.);
 
-                for (auto& pv: config.param_values) {
-                    pv.second.assign(config.cv.size(), pv.second.front());
+                for (auto& [_p, v]: config.param_values) {
+                    v.assign(config.cv.size(), v.front());
                 }
             }
             else {
@@ -1720,17 +1704,11 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, int> ion_spec
                 auto n_cv = config.cv.size();
                 config.norm_area.assign(n_cv, 1.);
 
-                std::map<std::string, double> param_value; // uses ordering of std::map
-                for (const auto& [k, v]: info.parameters) {
-                    param_value[k] = v.default_value;
-                }
+                auto parameters = ordered_parameters(info);
 
-                for (auto& [k, v]: values) {
-                    param_value[k] = v;
-                }
-
-                for (auto& [k, v]: param_value) {
-                    config.param_values.emplace_back(k, std::vector<arb_value_type>(n_cv, v));
+                for (auto& [param, def]: parameters) {
+                    auto val = values.count(param) ? values.at(param) : def;
+                    config.param_values.emplace_back(param, std::vector<arb_value_type>(n_cv, val));
                 }
 
                 if (!config.cv.empty()) result[name] = std::move(config);
