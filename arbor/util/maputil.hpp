@@ -78,7 +78,7 @@ namespace maputil_impl {
         typename Eq = std::equal_to<>,
         typename Ret = std::remove_reference_t<decltype(get<1>(*begin(std::declval<Seq&&>())))>
     >
-    Ret value_by_key_or(std::false_type, Seq&& seq, const Key& key, Ret def, Eq eq=Eq{}) {
+    Ret value_by_key_or(std::false_type, Seq&& seq, const Key& key, Ret&& def, Eq eq=Eq{}) {
         for (auto&& entry: seq) {
             if (eq(get<0>(entry), key)) {
                 return get<1>(entry);
@@ -123,7 +123,7 @@ namespace maputil_impl {
         typename FindRet = decltype(std::declval<Assoc&&>().find(std::declval<Key>())),
         typename Ret = std::remove_reference_t<decltype(get<1>(*std::declval<FindRet>()))>
     >
-    Ret value_by_key_or(std::true_type, Assoc&& map, const Key& key, Ret def) {
+    Ret value_by_key_or(std::true_type, Assoc&& map, const Key& key, Ret&& def) {
         auto it = map.find(key);
         if (it!=std::end(map)) {
             return get<1>(*it);
@@ -157,17 +157,17 @@ auto value_by_key(C&& c, const Key& k) {
         std::forward<C>(c), k);
 }
 
-// Return copy of value associated with key, wrapped in std::optional, or std::nullopt.
+// Return copy of value associated with key; if absent return default
 
 template <typename C, typename Key, typename Val, typename Eq>
-auto value_by_key_or(C&& c, const Key& k, Val v, Eq eq) {
+auto value_by_key_or(C&& c, const Key& k, Val&& v, Eq eq) {
     return maputil_impl::value_by_key_or(std::false_type{}, std::forward<C>(c), k, v, eq);
 }
 
 template <typename C,
           typename Key,
           typename Val = std::remove_reference_t<decltype(std::get<1>(*begin(std::declval<C&&>())))>>
-auto value_by_key_or(C&& c, const Key& k, Val v) {
+auto value_by_key_or(C&& c, const Key& k, Val&& v) {
     return maputil_impl::value_by_key_or(
         std::integral_constant<bool, is_associative_container<C>::value>{},
         std::forward<C>(c), k, v);
