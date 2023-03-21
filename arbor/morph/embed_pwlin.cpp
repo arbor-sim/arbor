@@ -97,6 +97,7 @@ struct embed_pwlin_data {
 // function is an interval [a, b] with 0 ≤ a ≤ pos ≤ b ≤ 1.
 
 template <unsigned p, unsigned q>
+inline constexpr
 double interpolate(double pos, const pw_ratpoly<p, q>& f) {
     auto [extent, poly] = f(pos);
     auto [left, right] = extent;
@@ -111,6 +112,7 @@ double interpolate(double pos, const pw_ratpoly<p, q>& f) {
 // an interval [r, s]: ∫[r,s] g(x) df(x) (where [r, s] is the domain of g).
 
 template <unsigned p, unsigned q>
+inline constexpr
 double integrate(const pw_constant_fn& g, const pw_ratpoly<p, q>& f) {
     double sum = 0;
     for (auto&& [extent, gval]: g) {

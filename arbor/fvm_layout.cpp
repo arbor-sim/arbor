@@ -1126,22 +1126,21 @@ make_voltage_mechanism_config(const std::unordered_map<std::string, int> ion_spe
         }
 
         std::vector<double> param_on_cv(n_param);
-
         for (auto cv: D.geometry.cell_cvs(cell_idx)) {
             double area = 0;
             util::fill(param_on_cv, 0.);
 
-            for (mcable c: D.geometry.cables(cv)) {
-                double area_on_cable = embedding.integrate_area(c.branch, pw_over_cable(support, c, 0.));
+            for (const auto& cable: D.geometry.cables(cv)) {
+                double area_on_cable = embedding.integrate_area(cable.branch, pw_over_cable(support, cable, 0.));
                 if (!area_on_cable) continue;
                 area += area_on_cable;
                 for (std::size_t i = 0; i<n_param; ++i) {
-                    auto map = param_maps[i];
+                    const auto& map = param_maps[i];
                     auto fun = [&](const auto& c, const auto& x) {
                         return x.first * x.second->eval(provider, c);
                     };
-                    auto pw = pw_over_cable(map, c, 0., fun);
-                    param_on_cv[i] += embedding.integrate_area(c.branch, pw);
+                    auto pw = pw_over_cable(map, cable, 0., fun);
+                    param_on_cv[i] += embedding.integrate_area(cable.branch, pw);
                 }
             }
 
