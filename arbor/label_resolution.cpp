@@ -81,11 +81,11 @@ lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
     return start + offset;
 }
 
-const label_resolution_map::range_set& label_resolution_map::at(const cell_gid_type& gid, const cell_tag_type& tag) const {
+const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, const cell_tag_type& tag) const {
     return map.at(gid).at(tag);
 }
 
-std::size_t label_resolution_map::count(const cell_gid_type& gid, const cell_tag_type& tag) const {
+std::size_t label_resolution_map::count(cell_gid_type gid, const cell_tag_type& tag) const {
     if (!map.count(gid)) return 0u;
     return map.at(gid).count(tag);
 }
@@ -130,8 +130,7 @@ cell_lid_type round_robin_state::get() {
 }
 
 lid_hopefully round_robin_halt_state::update(const label_resolution_map::range_set& range_set) {
-    auto lid = range_set.at(state);
-    return lid;
+    return range_set.at(state);
 }
 
 cell_lid_type round_robin_halt_state::get() {
@@ -175,31 +174,57 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol, cell
     }
 }
 
-cell_lid_type resolver::resolve(const cell_global_label_type& iden) {
-    if (!label_map_->count(iden.gid, iden.label.tag)) {
-        throw arb::bad_connection_label(iden.gid, iden.label.tag, "label does not exist");
+cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return resolve(iden.gid, iden.label); }
+
+cell_lid_type get_state(resolver::state_variant& v) {
+    if (std::holds_alternative<round_robin_state>(v)) {
+        return std::get<round_robin_state>(v).get();
     }
-    const auto& range_set = label_map_->at(iden.gid, iden.label.tag);
+    else if (std::holds_alternative<round_robin_halt_state>(v)) {
+        return std::get<round_robin_halt_state>(v).get();
+    }
+    else {
+        return std::get<assert_univalent_state>(v).get();
+    }
+}
 
-	// Policy round_robin_halt: use previous state of round_robin policy, if existent
-	if (iden.label.policy == lid_selection_policy::round_robin_halt
-	 && state_map_[iden.gid][iden.label.tag].count(lid_selection_policy::round_robin)) {
-		cell_lid_type prev_state_rr = std::visit([range_set](auto& state) { return state.get(); }, state_map_[iden.gid][iden.label.tag][lid_selection_policy::round_robin]);
-    	state_map_[iden.gid][iden.label.tag][lid_selection_policy::round_robin_halt] = construct_state(lid_selection_policy::round_robin_halt, prev_state_rr);
-	}
-	
-	// Construct state if it doesn't exist
-	if (!state_map_[iden.gid][iden.label.tag].count(iden.label.policy)) {
-	    	state_map_[iden.gid][iden.label.tag][iden.label.policy] = construct_state(iden.label.policy);
-	}
+lid_hopefully update_state(resolver::state_variant& v,
+                           const label_resolution_map::range_set& r) {
+    if (std::holds_alternative<round_robin_state>(v)) {
+        return std::get<round_robin_state>(v).update(r);
+    }
+    else if (std::holds_alternative<round_robin_halt_state>(v)) {
+        return std::get<round_robin_halt_state>(v).update(r);
+    }
+    else {
+        return std::get<assert_univalent_state>(v).update(r);
+    }
+}
 
-	// Update state
-    auto lid = std::visit([range_set](auto& state) { return state.update(range_set); }, state_map_[iden.gid][iden.label.tag][iden.label.policy]);
-    if (!lid) {
-        throw arb::bad_connection_label(iden.gid, iden.label.tag, lid.error());
+cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
+    const auto& [tag, pol] = label;
+
+    if (!label_map_->count(gid, tag)) throw arb::bad_connection_label(gid, tag, "label does not exist");
+    const auto& range_set = label_map_->at(gid, tag);
+
+    auto& state = state_map_[gid][tag];
+
+    // Policy round_robin_halt: use previous state of round_robin policy, if existent
+    if (pol == lid_selection_policy::round_robin_halt
+     && state.count(lid_selection_policy::round_robin)) {
+        auto prev_state_rr = get_state(state[lid_selection_policy::round_robin]);
+        state[lid_selection_policy::round_robin_halt] = construct_state(lid_selection_policy::round_robin_halt,
+                                                                        prev_state_rr);
     }
 
-    return lid.value();
+    // Construct state if it doesn't exist
+    if (!state.count(pol)) state[pol] = construct_state(pol);
+
+    // Update state
+    auto lid = update_state(state[pol], range_set);
+
+    if (!lid) throw arb::bad_connection_label(gid, tag, lid.error());
+    return *lid;
 }
 
 } // namespace arb

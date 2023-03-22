@@ -20,7 +20,6 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(std::move(s)), time(t)
     {}
-
 };
 
 /// Standard specialization:

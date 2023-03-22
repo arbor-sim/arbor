@@ -191,10 +191,12 @@ ctrl_message exchange_ctrl(const ctrl_message& msg, MPI_Comm comm) {
 
 // Replicate some types from Arbor so this becomes a stand-alone header.
 using arb_time_type = double;
+using arb_lid_type  = std::uint32_t;
+using arb_gid_type  = std::uint32_t;
 
 struct arb_cell_id {
-    std::uint32_t gid;
-    std::uint32_t lid;
+    arb_gid_type gid;
+    arb_lid_type lid;
 };
 
 struct arb_spike {

@@ -2,6 +2,7 @@
 # Example executable targets should be added to the 'examples' target as dependencies.
 add_custom_target(examples DEPENDS)
 
+add_subdirectory(busyring)
 add_subdirectory(drybench)
 add_subdirectory(dryrun)
 add_subdirectory(generators)

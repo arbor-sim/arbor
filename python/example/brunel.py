@@ -229,6 +229,8 @@ if __name__ == "__main__":
             print(f"{k} = {v}")
 
     context = arbor.context(threads="avail_threads")
+    if arbor.config()["profiling"]:
+        arbor.profiler_initialize(context)
     print(context)
 
     meters = arbor.meter_manager()
@@ -249,7 +251,7 @@ if __name__ == "__main__":
     meters.checkpoint("recipe-create", context)
 
     hint = arbor.partition_hint()
-    hint.cpu_group_size = opt.group_size
+    hint.cpu_group_size = 5000
     hints = {arbor.cell_kind.lif: hint}
     decomp = arbor.partition_load_balance(recipe, context, hints)
     print(decomp)
@@ -266,7 +268,9 @@ if __name__ == "__main__":
     meters.checkpoint("simulation-run", context)
 
     # Print profiling information
-    print(f"{arbor.meter_report(meters, context)}")
+    print(arbor.meter_report(meters, context))
+    if arbor.config()["profiling"]:
+        print(arbor.profiler_summary())
 
     # Print spike times
     print(f"{len(sim.spikes())} spikes generated.")

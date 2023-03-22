@@ -122,10 +122,22 @@ struct remote_context_impl {
 
     std::vector<arb::spike>
     remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+        // Static sanity checks to ensure we can bit-cast arb::spike <> arb::remote::spike
+        static_assert((sizeof(cell_member_type) == sizeof(remote::arb_cell_id))
+                   && (offsetof(cell_member_type, gid) == offsetof(remote::arb_cell_id, gid))
+                   && (offsetof(cell_member_type, index) == offsetof(remote::arb_cell_id, lid))
+                   && std::is_same_v<cell_gid_type, remote::arb_gid_type>
+                   && std::is_same_v<cell_lid_type, remote::arb_lid_type>,
+                      "Remote cell identifier has diverged from Arbor's internal type.");
+        static_assert((sizeof(spike) == sizeof(remote::arb_spike))
+                    && (offsetof(spike, source) == offsetof(remote::arb_spike, source))
+                    && (offsetof(spike, time) == offsetof(remote::arb_spike, time))
+                    && std::is_same_v<time_type, remote::arb_time_type>,
+                      "Remote spike type is diverged from Arbor's internal type.");
         return mpi::gather_all(local_spikes, portal_);
     }
 
-    gathered_vector<arb::spike>
+    gathered_vector<spike>
     gather_spikes(const std::vector<arb::spike>& local_spikes) const { return mpi_.gather_spikes(local_spikes); }
 
     gathered_vector<cell_gid_type>
