@@ -121,7 +121,7 @@ struct remote_context_impl {
         mpi_{comm}, portal_{portal} {}
 
     std::vector<arb::spike>
-    remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return mpi::gather_all(local_spikes, portal_);
     }
 
