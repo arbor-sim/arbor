@@ -200,7 +200,8 @@ last epoch to be shortened, ie when the total runtime is not a multiple of the
 epoch length.
 
 ``Done`` signals the sending side is finished with the current simulation
-period. *May* cause the receiving side to quit.
+period, i.e. the current call to ``simulation.run(T, dt)``. *May* cause the
+receiving side to quit.
 
 ``Null`` does nothing, but reserved for future use, will currently not be sent
 by Arbor.

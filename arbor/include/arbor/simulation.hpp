@@ -18,7 +18,6 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
-#include <arbor/util/unique_any.hpp>
 
 namespace arb {
 

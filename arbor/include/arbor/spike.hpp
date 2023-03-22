@@ -2,7 +2,7 @@
 
 #include <ostream>
 #include <type_traits>
-#include <vector>
+#include <functional>
 
 #include <arbor/common_types.hpp>
 

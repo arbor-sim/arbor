@@ -128,6 +128,7 @@ inline
 ctrl_message exchange_ctrl(const ctrl_message& msg, MPI_Comm comm) {
     int is_inter = 0;
     mpi_checked(MPI_Comm_test_inter(comm, &is_inter), "exchange ctrl block: comm type");
+    if (!is_inter) throw illegal_communicator{};
     int rank = -1;
     mpi_checked(MPI_Comm_rank(comm, &rank), "exchange ctrl block: comm rank");
     std::vector<char> send(ARB_REMOTE_MESSAGE_LENGTH, 0x0);
@@ -142,7 +143,7 @@ ctrl_message exchange_ctrl(const ctrl_message& msg, MPI_Comm comm) {
         auto visitor = [&send, &ptr] (auto&& m) {
             using T = std::decay_t<decltype(m)>;
             send[ptr++] = T::tag;
-            memcpy(send.data() + ptr, &m, sizeof(m));
+            std::memcpy(send.data() + ptr, &m, sizeof(m));
         };
         std::visit(visitor, msg);
     }
