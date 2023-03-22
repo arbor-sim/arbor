@@ -7,7 +7,6 @@
 #include <arbor/context.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/pp_util.hpp>
-#include <arbor/util/unique_any.hpp>
 
 #include "communication/gathered_vector.hpp"
 #include "epoch.hpp"
@@ -65,7 +64,7 @@ public:
         return impl_->remote_gather_spikes(local_spikes);
     }
 
-    gathered_vector<arb::spike> gather_spikes(const spike_vector& local_spikes) const {
+    gathered_vector<spike> gather_spikes(const spike_vector& local_spikes) const {
         return impl_->gather_spikes(local_spikes);
     }
 
@@ -112,7 +111,7 @@ public:
 
 private:
     struct interface {
-        virtual gathered_vector<arb::spike>
+        virtual gathered_vector<spike>
         gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual spike_vector
         remote_gather_spikes(const spike_vector& local_spikes) const = 0;
@@ -147,7 +146,7 @@ private:
         remote_gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.remote_gather_spikes(local_spikes);
         }
-        gathered_vector<arb::spike>
+        gathered_vector<spike>
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
         }
@@ -196,16 +195,16 @@ private:
 };
 
 struct local_context {
-    gathered_vector<arb::spike>
-    gather_spikes(const std::vector<arb::spike>& local_spikes) const {
-        using count_type = typename gathered_vector<arb::spike>::count_type;
-        return gathered_vector<arb::spike>(
-            std::vector<arb::spike>(local_spikes),
+    gathered_vector<spike>
+    gather_spikes(const std::vector<spike>& local_spikes) const {
+        using count_type = typename gathered_vector<spike>::count_type;
+        return gathered_vector<spike>(
+            std::vector<spike>(local_spikes),
             {0u, static_cast<count_type>(local_spikes.size())}
         );
     }
-    std::vector<arb::spike>
-    remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+    std::vector<spike>
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return {};
     }
     gathered_vector<cell_gid_type>

@@ -42,6 +42,11 @@ constexpr std::uint8_t ARB_REMOTE_VERSION_PATCH = 0x00;
 
 // Message buffer length
 constexpr std::size_t ARB_REMOTE_MESSAGE_LENGTH = 1024;
+ // Buffer size consumed by header:
+ // 1B Magic
+ // 3B Version
+ // 1B Message kind
+constexpr std::size_t ARB_REMOTE_HEADER_LENGTH  = 1 + 3 + 1;
 
 // Who sends the control message?
 constexpr int ARB_REMOTE_ROOT = 0;
@@ -126,6 +131,7 @@ void mpi_checked(int rc, const std::string& where) {
 // payload.
 inline
 ctrl_message exchange_ctrl(const ctrl_message& msg, MPI_Comm comm) {
+    static_assert(sizeof(ctrl_message) + ARB_REMOTE_HEADER_LENGTH <= ARB_REMOTE_MESSAGE_LENGTH, "Message payload is too large to send. Please adjust ARB_REMOTE_MESSAGE_LENGTH.");
     int is_inter = 0;
     mpi_checked(MPI_Comm_test_inter(comm, &is_inter), "exchange ctrl block: comm type");
     if (!is_inter) throw illegal_communicator{};

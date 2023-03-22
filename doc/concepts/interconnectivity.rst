@@ -156,18 +156,19 @@ intercommunicator, allgather will work slightly unintuitively by concatenating
 all results of a given 'side' of the intercommunicator and broadcasting that to
 the other 'side' and vice-versa. For example, assume Arbor has three MPI tasks,
 sending ``a0``, ``a1``, and ``a2`` respectively and the coupled package has two
-sending ``b0`` and ``b1``. After allgather, each rank of the three ranks of
-Arbor will have ``[b0, b1]`` and the other two ranks will have ``[a0, a1, a2]``.
-We package this in the suplemental header ``arbor/communication/remote.hpp`` as
-``gather_spikes``. This function will accept a ``std::vector<arb_spike>`` where
-``arb_spike`` is a binary compatible version of Arbor's internal spike type that
-is to be sent from the local rank of the coupled packaged, eg ``b1`` from above.
-After the operation Arbor has received the concatenation of all such vectors and
-the routine will return the concatenation of all spikes produced and exported by
-Arbor on all ranks of the participating package.
+tasks, sending ``b0`` and ``b1``. After allgather, each of the three Arbor ranks
+will have ``[b0, b1]`` and the two ranks of the other side will have ``[a0, a1,
+a2]`` each. We package this in the suplemental header
+``arbor/communication/remote.hpp`` as ``gather_spikes``. This function will
+accept a ``std::vector<arb_spike>`` where ``arb_spike`` is a binary compatible
+version of Arbor's internal spike type that is to be sent from the local rank of
+the coupled packaged, eg ``b1`` from above. After the operation Arbor has
+received the concatenation of all such vectors and the routine will return the
+concatenation of all spikes produced and exported by Arbor on all ranks of the
+participating package.
 
 Please refer to our developer's documentation for more details the actual spike
-exchange process. Due to the way MPI define intercommunicators, the exchange is
+exchange process. Due to the way MPI defines intercommunicators, the exchange is
 the same as with intracommunicators.
 
 Control Plane and Epochs
@@ -175,19 +176,30 @@ Control Plane and Epochs
 
 Before initiating the actual simulation, Arbor sets the ``epoch`` length to half
 the minimal delay in the global network. The minimal delay can be queried using
-``simulation::min_delay``.
+``simulation::min_delay`` and the epoch length is given by
+``simulation::max_epoch_length``. The final epoch is optionally shorter, if the
+call to ``simulation::run(T, dt)`` is given a value for ``T`` that is not an
+integer multiple of the epoch length.
 
 Before the start of each ``epoch``, a control message must be exchanged between
-the root -- ie rank 0 -- process of the Arbor process and that of coupled
-simulation. The control message is transferred by ``MPI_Sendrecv(12)`` of a byte
-buffer of length 1024. The payload comprises
+ Arbor and the coupled simulation. The control message is transferred by use
+ ``MPI_Allreduce(6)`` with operation ``MPI_SUMM`` on a byte buffer of length
+ ``ARB_REMOTE_MESSAGE_LENGTH``. All processes begin with a buffer of zeroes, the
+ process with ``rank`` equal to ``ARB_REMOTE_ROOT`` on both sides of the
+ intercommunicator writes a payload comprising
+
 1. A single byte magic number
 2. A three byte version number
 3. A single byte message tag
 4. A binary representation of a C ``struct`` message
 
-All constants and types are defined in ``arbor/communication/remote.hpp``;
-currently Arbor understands and utilises the following message types:
+to its buffer. Then, the exhange is performed. This peculiar protocol yields a
+simultaneous exchange in both directions across the intercommunicator without
+taking order into consideration.
+
+All constants and types -- including the messages -- are defined in
+``arbor/communication/remote.hpp``; currently Arbor understands and utilises the
+following message types:
 
 If ``abort`` is received or sent Arbor will shut down at the next possible
 moment without performing any further work and potentially terminating all

@@ -7,10 +7,8 @@
 
 #include <string>
 #include <vector>
-#include <typeinfo>
 
 #include <arbor/spike.hpp>
-#include <arbor/util/unique_any.hpp>
 #include <arbor/communication/remote.hpp>
 #include <arbor/util/scope_exit.hpp>
 
@@ -40,13 +38,13 @@ struct mpi_context_impl {
         }
     }
 
-    std::vector<arb::spike>
-    remote_gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+    std::vector<spike>
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return {};
     }
 
-    gathered_vector<arb::spike>
-    gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+    gathered_vector<spike>
+    gather_spikes(const std::vector<spike>& local_spikes) const {
         return mpi::gather_all_with_partition(local_spikes, comm_);
     }
 
@@ -120,9 +118,9 @@ struct remote_context_impl {
     explicit remote_context_impl(MPI_Comm comm, MPI_Comm portal):
         mpi_{comm}, portal_{portal} {}
 
-    std::vector<arb::spike>
+    std::vector<spike>
     remote_gather_spikes(const std::vector<spike>& local_spikes) const {
-        // Static sanity checks to ensure we can bit-cast arb::spike <> arb::remote::spike
+        // Static sanity checks to ensure we can bit-cast spike <> remote::spike
         static_assert((sizeof(cell_member_type) == sizeof(remote::arb_cell_id))
                    && (offsetof(cell_member_type, gid) == offsetof(remote::arb_cell_id, gid))
                    && (offsetof(cell_member_type, index) == offsetof(remote::arb_cell_id, lid))
@@ -138,7 +136,7 @@ struct remote_context_impl {
     }
 
     gathered_vector<spike>
-    gather_spikes(const std::vector<arb::spike>& local_spikes) const { return mpi_.gather_spikes(local_spikes); }
+    gather_spikes(const std::vector<spike>& local_spikes) const { return mpi_.gather_spikes(local_spikes); }
 
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const { return mpi_.gather_gids(local_gids); }
