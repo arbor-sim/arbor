@@ -202,25 +202,38 @@ simulation_state::simulation_state(
     std::vector<cell_labels_and_gids> cg_targets(num_groups);
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
+          PE(init:simulation:group:factory);
           const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
-
+          PL();
+          PE(init:simulation:group:targets_and_sources);
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
           cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
+          PL();
         });
 
+    PE(init:simulation:sources);
     cell_labels_and_gids local_sources, local_targets;
     for(const auto& i: util::make_span(num_groups)) {
         local_sources.append(cg_sources.at(i));
         local_targets.append(cg_targets.at(i));
     }
-    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+    PL();
 
+    PE(init:simulation:source:MPI);
+    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+    PL();
+
+    PE(init:simulation:resolvers);
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
+    PL();
+
+    PE(init:simulation:comm);
     communicator_ = communicator(rec, ddc_, *ctx_);
+    PL();
     update(rec);
     epoch_.reset();
 }
@@ -238,6 +251,7 @@ void simulation_state::update(const connectivity& rec) {
     event_generators_.resize(num_local_cells);
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
+    PE(init:simulation:update:generators);
     auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
     for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
@@ -258,6 +272,7 @@ void simulation_state::update(const connectivity& rec) {
         }
         ++grpidx;
     }
+    PL();
 
     // Create event lane buffers.
     // One buffer is consumed by cell group updates while the other is filled with events for

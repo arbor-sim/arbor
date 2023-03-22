@@ -55,22 +55,29 @@ public:
     ring_recipe(ring_params params):
         num_cells_(params.num_cells),
         min_delay_(params.min_delay),
+        event_weight_(params.event_weight),
+        event_freq_(params.event_freq),
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.catalogue.import(arb::global_allen_catalogue(), "");
 
-        gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
-        gprop.default_parameters.axial_resistivity = 100;
-        gprop.default_parameters.temperature_K = 34 + 273.15;
-        gprop.default_parameters.init_membrane_potential = -90;
+        if (params.cell.complex_cell) {
+            gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
+            gprop.default_parameters.axial_resistivity = 100;
+            gprop.default_parameters.temperature_K = 34 + 273.15;
+            gprop.default_parameters.init_membrane_potential = -90;
+        }
     }
 
     std::any get_global_properties(cell_kind kind) const override { return gprop; }
     cell_size_type num_cells() const override { return num_cells_; }
     cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return complex_cell(gid, params_.cell);
+        if (params_.cell.complex_cell) {
+            return complex_cell(gid, params_.cell);
+        }
+        return branch_cell(gid, params_.cell);
     }
 
     // Each cell has one incoming connection, from cell with gid-1,
@@ -85,7 +92,7 @@ public:
         const auto group_start = s*group;
         const auto group_end = std::min(group_start+s, num_cells_);
         cell_gid_type src = gid==group_start? group_end-1: gid-1;
-        cons.push_back(arb::cell_connection({src, "detector"}, {"p_syn"}, event_weight_, min_delay_));
+        cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_));
 
         // Used to pick source cell for a connection.
         std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
@@ -99,7 +106,7 @@ public:
             if (src==gid) ++src;
             const float delay = min_delay_+delay_dist(src_gen);
             cons.push_back(
-                arb::cell_connection({src, "detector"}, {"p_syn"}, 0.f, delay));
+                arb::cell_connection({src, "d"}, {"p"}, 0.f, delay));
         }
         return cons;
     }
@@ -108,7 +115,8 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            return {arb::explicit_generator({"p_syn"}, event_weight_, std::vector<float>{1.0f})};
+            //return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
+            return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
         } else {
             return {};
         }
@@ -123,8 +131,9 @@ public:
 private:
     cell_size_type num_cells_;
     double min_delay_;
+    float event_weight_;
+    float event_freq_;
     ring_params params_;
-    float event_weight_ = 0.5;
 
     arb::cable_cell_global_properties gprop;
 };
@@ -181,6 +190,7 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
+        resources.bind_threads = true;
         arb::partition_hint hint;
         hint.prefer_gpu = true;
         //hint.cpu_group_size = 1000;
@@ -210,13 +220,12 @@ int main(int argc, char** argv) {
         arb::profile::meter_manager meters;
         meters.start(context);
 
-        // Create an instance of the recipe.
+        // Create an instance of our recipe.
         ring_recipe recipe(params);
-        //cell_stats stats(recipe);
-        //if (root) std::cout << stats << "\n";
-
+        cell_stats stats(recipe);
+        if (root) std::cout << stats << "\n";
+        // Make decomposition
         auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, hint}});
-
         // Construct the model.
         arb::simulation sim(recipe, context, decomp);
 
@@ -236,7 +245,7 @@ int main(int argc, char** argv) {
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
-        if (root) {
+        if (root && params.record_spikes) {
             sim.set_global_spike_callback(
                 [&recorded_spikes](const std::vector<arb::spike>& spikes) {
                     recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
@@ -244,10 +253,6 @@ int main(int argc, char** argv) {
         }
 
         meters.checkpoint("model-init", context);
-
-        if (root) {
-            sim.set_epoch_callback(arb::epoch_progress_bar());
-        }
 
         // Run the simulation.
         if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
@@ -262,17 +267,19 @@ int main(int argc, char** argv) {
         if (root) {
             std::cout << "\n" << ns << " spikes generated at rate of "
                       << params.duration/ns << " ms between spikes\n";
-            std::ofstream fid(params.odir + "/" + params.name + "_spikes.gdf");
-            if (!fid.good()) {
-                std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
-            }
-            else {
-                char linebuf[45];
-                for (auto spike: recorded_spikes) {
-                    auto n = std::snprintf(
-                        linebuf, sizeof(linebuf), "%u %.4f\n",
-                        unsigned{spike.source.gid}, float(spike.time));
-                    fid.write(linebuf, n);
+            if (!recorded_spikes.empty()) {
+                std::ofstream fid(params.odir + "/" + params.name + "_spikes.gdf");
+                if (!fid.good()) {
+                    std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
+                }
+                else {
+                    char linebuf[45];
+                    for (auto spike: recorded_spikes) {
+                        auto n = std::snprintf(
+                            linebuf, sizeof(linebuf), "%u %.4f\n",
+                            unsigned{spike.source.gid}, float(spike.time));
+                        fid.write(linebuf, n);
+                    }
                 }
             }
         }
@@ -284,11 +291,10 @@ int main(int argc, char** argv) {
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
-        if (root) std::cout << report << "\n";
-
-        auto profile = arb::profile::profiler_summary();
-        if (root) std::cout << profile << "\n";
-
+        if (root) {
+            std::cout << report << '\n'
+                      << arb::profile::profiler_summary() << "\n";
+        }
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
@@ -379,26 +385,19 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
         dist_from_soma += l;
     }
 
-    arb::label_dict dict;
-
-    dict.set("soma", tagged(1));
-    dict.set("axon", tagged(2));
-    dict.set("dend", tagged(3));
-    dict.set("apic", tagged(4));
-    dict.set("center", location(0, 0.5));
-    if (params.synapses>1) {
-       dict.set("synapses",  arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid));
-    }
-
-    auto soma = "soma"_lab;
-    auto dend = "dend"_lab;
-    auto cntr = "center"_lab;
-    auto syns = "synapses"_lab;
+    using arb::reg::tagged;
+    auto rall  = arb::reg::all();
+    auto soma = tagged(1);
+    auto axon = tagged(2);
+    auto dend = tagged(3);
+    auto apic = tagged(4);
+    auto cntr = location(0, 0.5);
+    auto syns = arb::ls::uniform(rall, 0, params.synapses-2, gid);
 
     arb::decor decor;
 
-    decor.paint(all(), arb::init_reversal_potential{"k",  -107.0});
-    decor.paint(all(), arb::init_reversal_potential{"na", 53.0});
+    decor.paint(rall, arb::init_reversal_potential{"k",  -107.0});
+    decor.paint(rall, arb::init_reversal_potential{"na", 53.0});
 
     decor.paint(soma, arb::axial_resistivity{133.577});
     decor.paint(soma, arb::membrane_capacitance{4.21567e-2});
@@ -421,15 +420,91 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     decor.paint(dend, arb::density("Im_v2",          {{"gbar", 0.00132163}}));
     decor.paint(dend, arb::density("Ih",             {{"gbar", 9.18815e-06}}));
 
-    decor.place(cntr, arb::synapse("expsyn"), "p_syn");
+    decor.place(cntr, arb::synapse("expsyn"), "p");
     if (params.synapses>1) {
-        decor.place(syns, arb::synapse("expsyn"), "s_syn");
+        decor.place(syns, arb::synapse("expsyn"), "s");
     }
 
-    decor.place(cntr, arb::threshold_detector{-20.0}, "detector");
+    decor.place(cntr, arb::threshold_detector{-20.0}, "d");
 
     decor.set_default(arb::cv_policy_every_segment());
 
-    return {arb::morphology(tree), decor, dict};
+    return {arb::morphology(tree), decor};
 }
 
+arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+    arb::segment_tree tree;
+
+    // Add soma.
+    double soma_radius = 12.6157/2.0;
+    int soma_tag = 1;
+    tree.append(arb::mnpos, {0, 0,-soma_radius, soma_radius}, {0, 0, soma_radius, soma_radius}, soma_tag); // For area of 500 μm².
+
+    std::vector<std::vector<unsigned>> levels;
+    levels.push_back({0});
+
+    // Standard mersenne_twister_engine seeded with gid.
+    std::mt19937 gen(gid);
+    std::uniform_real_distribution<double> dis(0, 1);
+
+    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
+    int dend_tag = 3;
+
+    double dist_from_soma = soma_radius;
+    for (unsigned i=0; i<params.max_depth; ++i) {
+        // Branch prob at this level.
+        double bp = interp(params.branch_probs, i, params.max_depth);
+        // Length at this level.
+        double l = interp(params.lengths, i, params.max_depth);
+        // Number of compartments at this level.
+        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
+
+        std::vector<unsigned> sec_ids;
+        for (unsigned sec: levels[i]) {
+            for (unsigned j=0; j<2; ++j) {
+                if (dis(gen)<bp) {
+                    auto z = dist_from_soma;
+                    auto dz = l/nc;
+                    auto p = sec;
+                    for (unsigned k=1; k<nc; ++k) {
+                        p = tree.append(p, {0,0,z+(k+1)*dz, dend_radius}, dend_tag);
+                    }
+                    sec_ids.push_back(p);
+                }
+            }
+        }
+        if (sec_ids.empty()) {
+            break;
+        }
+        levels.push_back(sec_ids);
+
+        dist_from_soma += l;
+    }
+
+    using arb::reg::tagged;
+    auto soma = tagged(1);
+    auto dnds = join(tagged(3), tagged(4));
+    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid);
+
+    arb::decor decor;
+
+    decor.paint(soma, arb::density{"hh"});
+    decor.paint(dnds, arb::density{"pas"});
+    decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
+
+    // Add spike threshold detector at the soma.
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "d");
+
+    // Add a synapse to proximal end of first dendrite.
+    decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");
+
+    // Add additional synapses that will not be connected to anything.
+    if (params.synapses>1) {
+        decor.place(syns, arb::synapse{"expsyn"}, "s");
+    }
+
+    // Make a CV between every sample in the sample tree.
+    decor.set_default(arb::cv_policy_every_segment());
+
+    return {arb::morphology(tree), decor};
+}

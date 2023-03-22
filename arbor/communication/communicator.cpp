@@ -36,24 +36,15 @@ void communicator::update_connections(const connectivity& rec,
                                       const domain_decomposition& dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
+    PE(init:communicator:update:clear);
     // Forget all lingering information
     connections_.clear();
     connection_part_.clear();
     index_divisions_.clear();
+    PL();
 
-    // For caching information about each cell
-    struct gid_info {
-        using connection_list = decltype(std::declval<recipe>().connections_on(0));
-        cell_gid_type gid;              // global identifier of cell
-        cell_size_type index_on_domain; // index of cell in this domain
-        connection_list conns;          // list of connections terminating at this cell
-        gid_info() = default;           // so we can in a std::vector
-        gid_info(cell_gid_type g, cell_size_type di, connection_list c):
-            gid(g), index_on_domain(di), conns(std::move(c)) {}
-    };
-
-    // Make a list of local gid with their group index and connections
-    //   -> gid_infos
+    // Make a list of local cells' connections
+    //   -> gid_connections
     // Count the number of local connections (i.e. connections terminating on this domain)
     //   -> n_cons: scalar
     // Calculate and store domain id of the presynaptic cell on each local connection
@@ -62,65 +53,66 @@ void communicator::update_connections(const connectivity& rec,
     //   -> src_counts: array with one entry for each domain
 
     // Record all the gid in a flat vector.
-    // These are used to map from local index to gid in the parallel loop
-    // that populates gid_infos.
-    std::vector<cell_gid_type> gids;
-    gids.reserve(num_local_cells_);
-    for (auto g: dom_dec.groups()) {
-        util::append(gids, g.gids);
-    }
-    // Build the connection information for local cells in parallel.
-    std::vector<gid_info> gid_infos;
-    gid_infos.resize(num_local_cells_);
-    threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
-        [&](cell_size_type i) {
-            auto gid = gids[i];
-            gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
-        });
-    cell_local_size_type n_cons =
-        util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
-    std::vector<unsigned> src_domains;
-    src_domains.reserve(n_cons);
-    std::vector<cell_size_type> src_counts(num_domains_);
 
-    for (const auto& cell: gid_infos) {
-        for (auto c: cell.conns) {
-            auto sgid = c.source.gid;
-            if (sgid >= num_total_cells_) {
-                throw arb::bad_connection_source_gid(cell.gid, sgid, num_total_cells_);
-            }
+    PE(init:communicator:update:collect_gids);
+    std::vector<cell_gid_type> gids; gids.reserve(num_local_cells_);
+    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
+    PL();
+
+    // Build the connection information for local cells.
+    PE(init:communicator:update:gid_connections);
+    std::vector<cell_connection> gid_connections;
+    std::vector<size_t> part_connections; part_connections.reserve(num_local_cells_);
+    part_connections.push_back(0);
+    std::vector<unsigned> src_domains;
+    std::vector<cell_size_type> src_counts(num_domains_);
+    for (const auto gid: gids) {
+        const auto& conns = rec.connections_on(gid);
+        for (const auto& conn: conns) {
+            const auto sgid = conn.source.gid;
+            if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
             const auto src = dom_dec.gid_domain(sgid);
             src_domains.push_back(src);
             src_counts[src]++;
+            gid_connections.emplace_back(conn);
         }
+        part_connections.push_back(gid_connections.size());
     }
-
-    // Construct the connections.
-    // The loop above gave the information required to construct in place
-    // the connections as partitioned by the domain of their source gid.
-    connections_.resize(n_cons);
     util::make_partition(connection_part_, src_counts);
+    std::size_t n_cons = gid_connections.size();
+    PL();
+
+    // Construct the connections. The loop above gave us the information needed
+    // to do this in place.
+    // NOTE: The connections are partitioned by the domain of their source gid.
+    PE(init:communicator:update:connections);
+    connections_.resize(n_cons);
     auto offsets = connection_part_; // Copy, as we use this as the list of current target indices to write into
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
-    for (const auto& cell: gid_infos) {
-        auto index = cell.index_on_domain;
+    for (const auto index: util::make_span(num_local_cells_)) {
+        const auto gid = gids[index];
         auto source_resolver = resolver(&source_resolution_map);
-        for (const auto& c: cell.conns) {
-            auto src_lid = source_resolver.resolve(c.source);
-            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+        for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
+            const auto& conn = gid_connections[cidx];
+            auto src_lid = source_resolver.resolve(conn.source);
+            auto tgt_lid = target_resolver.resolve(gid, conn.dest);
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
-            connections_[offset] = {{c.source.gid, src_lid}, tgt_lid, c.weight, c.delay, index};
+            connections_[offset] = {{conn.source.gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
         }
     }
+    PL();
 
+    PE(init:communicator:update:index);
     // Build cell partition by group for passing events to cell groups
     index_part_ = util::make_partition(index_divisions_,
         util::transform_view(
             dom_dec.groups(),
-            [](const group_description& g){return g.gids.size();}));
+            [](const group_description& g){ return g.gids.size(); }));
+    PL();
 
+    PE(init:communicator:update:sort_connections);
     // Sort the connections for each domain.
     // This is num_domains_ independent sorts, so it can be parallelized trivially.
     const auto& cp = connection_part_;
@@ -128,6 +120,7 @@ void communicator::update_connections(const connectivity& rec,
                                    [&](cell_size_type i) {
                                        util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
                                    });
+    PL();
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {

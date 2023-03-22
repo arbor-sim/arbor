@@ -195,8 +195,9 @@ void register_recipe(pybind11::module& m) {
             "gid"_a,
             "A list of all the event generators that are attached to gid, [] by default.")
         .def("connections_on", &py_recipe::connections_on,
-            "gid"_a,
-            "A list of all the incoming connections to gid, [] by default.")
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             "gid"_a,
+             "A list of all the incoming connections to gid, [] by default.")
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")

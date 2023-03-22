@@ -11,25 +11,25 @@ using util::pw_element;
 using util::pw_npos;
 
 TEST(piecewise, eq) {
-    pw_elements<int> p1((double[3]){1., 1.5, 2.}, (int[2]){3, 4});
+    pw_elements<int> p1(std::array<double, 3>{1., 1.5, 2.}, (int[2]){3, 4});
     pw_elements<int> p2(p1);
     EXPECT_EQ(p2, p1);
 
-    pw_elements<int> p3((double[3]){1., 1.7, 2.}, (int[2]){3, 4});
+    pw_elements<int> p3(std::array<double, 3>{1., 1.7, 2.}, (int[2]){3, 4});
     EXPECT_NE(p3, p1);
 
-    pw_elements<int> p4((double[3]){1., 1.5, 2.}, (int[2]){3, 5});
+    pw_elements<int> p4(std::array<double, 3>{1., 1.5, 2.}, (int[2]){3, 5});
     EXPECT_NE(p4, p1);
 
     pw_elements<int> p5(p1);
     p5.push_back(2., 7);
     EXPECT_NE(p5, p1);
 
-    pw_elements<> v1((double[3]){1., 1.5, 2.});
+    pw_elements<> v1(std::array<double, 3>{1., 1.5, 2.});
     pw_elements<> v2(v1);
     EXPECT_EQ(v2, v1);
 
-    pw_elements<> v3((double[3]){1., 1.7, 2.});
+    pw_elements<> v3(std::array<double, 3>{1., 1.7, 2.});
     EXPECT_NE(v3, v1);
 
     pw_elements<> v5(v1);
@@ -76,7 +76,7 @@ TEST(piecewise, size) {
 TEST(piecewise, assign) {
     pw_elements<int> p;
 
-    double v[5] = {1., 1.5, 2., 2.5, 3.};
+    std::array<double, 5> v{1., 1.5, 2., 2.5, 3.};
     int x[4] = {10, 8, 9, 4};
     p.assign(v, x);
 
@@ -125,7 +125,7 @@ TEST(piecewise, assign) {
 TEST(piecewise, assign_void) {
     pw_elements<> p;
 
-    double v[5] = {1., 1.5, 2., 2.5, 3.};
+    std::array<double, 5> v{1., 1.5, 2., 2.5, 3.};
     p.assign(v);
 
     ASSERT_EQ(4u, p.size());
@@ -163,7 +163,7 @@ TEST(piecewise, assign_void) {
 TEST(piecewise, access) {
     pw_elements<int> p;
 
-    double v[5] = {1., 1.5, 2., 2.5, 3.};
+    std::array<double, 5> v{1., 1.5, 2., 2.5, 3.};
     int x[4] = {10, 8, 9, 4};
     p.assign(v, x);
 
@@ -367,7 +367,7 @@ TEST(piecewise, mutate) {
 }
 
 TEST(piecewise, map) {
-    double xx[5] = {1, 2.25, 3.25, 3.5, 4.};
+    std::array<double, 5> xx{1, 2.25, 3.25, 3.5, 4.};
     pw_elements<int> p(xx, (int [4]){3, 4, 5, 6});
 
     auto void_fn = [](auto) {};
@@ -381,10 +381,10 @@ TEST(piecewise, map) {
 
 TEST(piecewise, zip) {
     pw_elements<int> p03;
-    p03.assign((double [3]){0., 1.5, 3.}, (int [2]){10, 11});
+    p03.assign(std::array<double, 3>{0., 1.5, 3.}, (int [2]){10, 11});
 
     pw_elements<int> p14;
-    p14.assign((double [5]){1, 2.25, 3.25, 3.5, 4.}, (int [4]){3, 4, 5, 6});
+    p14.assign(std::array<double, 5>{1, 2.25, 3.25, 3.5, 4.}, (int [4]){3, 4, 5, 6});
 
     using ii = std::pair<int, int>;
     using pipi = std::pair<pw_element<int>, pw_element<int>>;
@@ -416,7 +416,7 @@ TEST(piecewise, zip) {
     EXPECT_EQ(p03_14.values(), flipped);
 
     pw_elements<> v03;
-    v03.assign((double [3]){0., 1.5, 3.});
+    v03.assign((std::array<double, 3>){0., 1.5, 3.});
 
     EXPECT_EQ((std::vector<int>{3, 3, 4}), pw_zip_with(v03, p14).values());
     EXPECT_EQ((std::vector<int>{3, 3, 4}), pw_zip_with(p14, v03).values());
@@ -431,7 +431,7 @@ TEST(piecewise, zip) {
     };
 
     pw_elements<void> vxx; // elements cover bounds of p14
-    vxx.assign((double [6]){0.2, 1.7, 1.95, 2.325, 2.45, 4.9});
+    vxx.assign(std::array<double, 6>{0.2, 1.7, 1.95, 2.325, 2.45, 4.9});
 
     pw_elements<double> pxx = pw_zip_with(vxx, p14, project);
 
@@ -442,16 +442,16 @@ TEST(piecewise, zip) {
 
 TEST(piecewise, zip_zero_length_elements) {
     pw_elements<int> p03a;
-    p03a.assign((double [5]){0, 0, 1.5, 3, 3}, (int [4]){10, 11, 12, 13});
+    p03a.assign(std::array<double, 5>{0, 0, 1.5, 3, 3}, (int [4]){10, 11, 12, 13});
 
     pw_elements<int> p03b;
-    p03b.assign((double [7]){0, 0, 0, 1, 3, 3, 3.}, (int [6]){20, 21, 22, 23, 24, 25});
+    p03b.assign(std::array<double, 7>{0, 0, 0, 1, 3, 3, 3.}, (int [6]){20, 21, 22, 23, 24, 25});
 
     pw_elements<int> p33;
-    p33.assign((double [3]){3, 3, 3}, (int [2]){30, 31});
+    p33.assign(std::array<double, 3>{3, 3, 3}, (int [2]){30, 31});
 
     pw_elements<int> p14;
-    p14.assign((double [3]){1, 2, 4}, (int [2]){40, 41});
+    p14.assign(std::array<double, 3>{1, 2, 4}, (int [2]){40, 41});
 
     auto flip = [](auto& pairs) { for (auto& [l, r]: pairs) std::swap(l, r); };
     using ii = std::pair<int, int>;
