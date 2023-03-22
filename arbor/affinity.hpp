@@ -39,11 +39,12 @@ inline
 void set_affinity(int index, int count, affinity_kind kind) {
     // Create the topology and ensure we don't leak it
     auto topology = hwloc_topology_t{};
-    auto guard = util::on_scope_exit([&] { hwloc_topology_destroy(topology); });
+    auto topology_guard = util::on_scope_exit([&] { hwloc_topology_destroy(topology); });
     hwloc(hwloc_topology_init(&topology), "Topo init");
     hwloc(hwloc_topology_load(topology), "Topo load");
     // Fetch our current restrictions and apply them to our topology
-    hwloc_cpuset_t cpus{};
+    hwloc_cpuset_t cpus = hwloc_bitmap_alloc();
+    auto bitmap_guard = util::on_scope_exit([&] { hwloc_bitmap_free(cpus); });
     hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_PROCESS), "Get cpuset.");
     hwloc(hwloc_topology_restrict(topology, cpus, 0), "Topo restrict.");
     // Extract the root object describing the full local node
