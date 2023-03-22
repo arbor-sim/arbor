@@ -98,6 +98,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include "util/iterutil.hpp"
 #include "util/transform.hpp"
 #include "util/meta.hpp"
@@ -111,10 +113,7 @@ constexpr pw_size_type pw_npos = -1;
 
 template <typename X = void>
 struct pw_element {
-    pw_element():
-        extent(NAN, NAN),
-        value()
-    {}
+    pw_element(): pw_element{{NAN, NAN}, {}} {}
 
     pw_element(std::pair<double, double> extent, X value):
         extent(std::move(extent)),
@@ -136,10 +135,7 @@ struct pw_element {
 
 template <>
 struct pw_element<void> {
-    pw_element():
-        extent(NAN, NAN)
-    {}
-
+    pw_element(): pw_element{{NAN, NAN}} {}
     pw_element(std::pair<double, double> extent):
         extent(std::move(extent))
     {}
@@ -420,39 +416,28 @@ struct pw_elements {
 
         auto vi = begin(vertices);
         auto ve = end(vertices);
-
         auto ei = begin(values);
         auto ee = end(values);
 
-        if (ei==ee) { // empty case
-            if (vi!=ve) {
-                throw std::runtime_error("vertex list too long");
-            }
+        if (ei == ee) { // empty case
+            if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
             clear();
             return;
         }
-
-        if (vi==ve) {
-            throw std::runtime_error("vertex list too short");
-        }
-
         clear();
+        if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
 
+        reserve(vertices.size());
         double left = *vi++;
         double right = *vi++;
         push_back(left, right, *ei++);
 
-        while (ei!=ee) {
-            if (vi==ve) {
-                throw std::runtime_error("vertex list too short");
-            }
+        while (ei != ee) {
+            if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
             double right = *vi++;
             push_back(right, *ei++);
         }
-
-        if (vi!=ve) {
-            throw std::runtime_error("vertex list too long");
-        }
+        if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
     }
 
 private:
@@ -607,10 +592,7 @@ struct pw_elements<void> {
     }
 
     void push_back(double right) {
-        if (empty()) {
-            throw std::runtime_error("require initial left vertex for element");
-        }
-
+        if (empty()) throw std::runtime_error("require initial left vertex for element");
         push_back(vertex_.back(), right);
     }
 
@@ -626,18 +608,16 @@ struct pw_elements<void> {
         auto vi = begin(vertices);
         auto ve = end(vertices);
 
-        if (vi==ve) {
+        reserve(vertices.size());
+
+        if (vi == ve) {
             clear();
             return;
         }
 
         double left = *vi++;
-        if (vi==ve) {
-            throw std::runtime_error("vertex list too short");
-        }
-
+        if (vi == ve) throw std::runtime_error("vertex list too short");
         clear();
-
         double right = *vi++;
         push_back(left, right);
 
@@ -867,6 +847,8 @@ template <typename A, typename B, typename Fn = pw_pairify>
 auto pw_zip_with(const pw_elements<A>& a, const pw_elements<B>& b, Fn&& fn = Fn{}) {
     using Out = decltype(fn(std::pair<double, double>{}, a.front(), b.front()));
     pw_elements<Out> out;
+
+    out.reserve(a.size());
 
     for (auto elem: pw_zip_range(a, b)) {
         if constexpr (std::is_void_v<Out>) {

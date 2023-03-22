@@ -23,7 +23,7 @@ util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt
     struct as_branch {
         msize_t value;
         as_branch(const value_type& x): value(x.first.branch) {}
-        as_branch(const msize_t& x): value(x) {}
+        as_branch(msize_t x): value(x) {}
     };
 
     auto map_on_branch = util::make_range(
@@ -34,17 +34,18 @@ util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt
     }
 
     util::pw_elements<U> pw;
-    for (const auto& el: map_on_branch) {
-        double pw_right = pw.empty()? 0: pw.bounds().second;
-        if (el.first.prox_pos>pw_right) {
-            pw.push_back(pw_right, el.first.prox_pos, dflt_value);
+    pw.reserve(2*map_on_branch.size());
+    double pw_right = 0.0;
+    for (const auto& [elf, els]: map_on_branch) {
+        if (elf.prox_pos > pw_right) {
+            pw.push_back(pw_right, elf.prox_pos, dflt_value);
         }
-        pw.push_back(el.first.prox_pos, el.first.dist_pos, projection(el.first, el.second));
+        pw.push_back(elf.prox_pos, elf.dist_pos, projection(elf, els));
+        pw_right = pw.upper_bound();
     }
 
-    double pw_right = pw.empty()? 0: pw.bounds().second;
-    if (pw_right<1.) {
-        pw.push_back(pw_right, 1., dflt_value);
+    if (pw_right < 1.0) {
+        pw.push_back(pw_right, 1.0, dflt_value);
     }
 
     if (cable.prox_pos!=0 || cable.dist_pos!=1) {
