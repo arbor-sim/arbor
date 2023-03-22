@@ -5,7 +5,7 @@
 #include <fstream>
 #include <random>
 
-#include "json_params.hpp"
+#include <sup/json_params.hpp>
 
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
@@ -37,6 +37,8 @@ struct ring_params {
     double min_delay = 10;
     double duration = 100;
     double dt = 0.025;
+    float event_weight = 0.025;
+    float event_freq = 1.0;
     bool record_voltage = false;
     bool record_spikes  = true;
     std::string odir = ".";
@@ -77,6 +79,8 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.duration, "duration", json);
     param_from_json(params.dt, "dt", json);
     param_from_json(params.min_delay, "min-delay", json);
+    param_from_json(params.event_weight, "event-weight", json);
+    param_from_json(params.event_freq, "event-freq", json);
     param_from_json(params.record_voltage, "record", json);
     param_from_json(params.record_spikes,  "spikes", json);
     param_from_json(params.cell.complex_cell, "complex", json);

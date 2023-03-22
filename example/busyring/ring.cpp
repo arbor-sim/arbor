@@ -55,6 +55,8 @@ public:
     ring_recipe(ring_params params):
         num_cells_(params.num_cells),
         min_delay_(params.min_delay),
+        event_weight_(params.event_weight),
+        event_freq_(params.event_freq),
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
@@ -65,8 +67,6 @@ public:
             gprop.default_parameters.axial_resistivity = 100;
             gprop.default_parameters.temperature_K = 34 + 273.15;
             gprop.default_parameters.init_membrane_potential = -90;
-            event_weight_ = 0.2;
-            event_freq_ = 0.2;
         }
     }
 
@@ -130,9 +130,9 @@ public:
 private:
     cell_size_type num_cells_;
     double min_delay_;
+    float event_weight_;
+    float event_freq_;
     ring_params params_;
-    float event_weight_ = 0.025;
-    float event_freq_ = 1.0;
 
     arb::cable_cell_global_properties gprop;
 };
@@ -189,6 +189,7 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
+        resources.bind_threads = true;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
