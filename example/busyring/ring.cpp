@@ -115,7 +115,6 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            //return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
             return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
         } else {
             return {};
