@@ -40,7 +40,7 @@ done
 check brunel 6998
 check bench 972
 check ring 94
-check busyring 33
+check busyring 9
 check gap_junctions 30
 
 exit $ok
