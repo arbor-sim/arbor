@@ -4,7 +4,6 @@
 
 #include <arbor/event_generator.hpp>
 #include <arbor/spike_event.hpp>
-
 #include "merge_events.hpp"
 #include "util/rangeutil.hpp"
 
@@ -209,7 +208,7 @@ TEST(merge_events, tourney_seq)
 
     std::vector<event_span> spans = {g1.events(0, terminal_time),
                                      g2.events(0, terminal_time)};
-    impl::tourney_tree tree(spans);
+    impl::tourney_tree tree(std::move(spans));
 
     pse_vector lf;
     while (!tree.empty()) {
@@ -265,7 +264,7 @@ TEST(merge_events, tourney_poisson)
     for (auto& gen: generators) {
         spans.emplace_back(gen.events(t0, tfinal));
     }
-    impl::tourney_tree tree(spans);
+    impl::tourney_tree tree(std::move(spans));
     pse_vector lf;
     while (!tree.empty()) {
         lf.push_back(tree.head());

@@ -104,9 +104,9 @@ public:
             // The source is randomly picked, with no self connections.
             src = dist(src_gen);
             if (src==gid) ++src;
-            const float delay = min_delay_+delay_dist(src_gen);
-            cons.push_back(
-                arb::cell_connection({src, "d"}, {"p"}, 0.f, delay));
+            const float delay = min_delay_ + delay_dist(src_gen);
+            cons.emplace_back(arb::cell_global_label_type{src, "d"},
+                              arb::cell_local_label_type{"s", arb::lid_selection_policy::round_robin}, 0.f, delay);
         }
         return cons;
     }
@@ -115,7 +115,7 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
+            return {arb::regular_generator({"p", arb::lid_selection_policy::round_robin}, event_weight_, 0.0, event_freq_)};
         } else {
             return {};
         }
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
-        resources.bind_threads = true;
+        resources.bind_threads = false;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
@@ -416,7 +416,7 @@ arb::cable_cell complex_cell (arb::cell_gid_type gid, const cell_parameters& par
 
     decor.place(cntr, arb::synapse("expsyn"), "p");
     if (params.synapses>1) {
-        // decor.place(syns, arb::synapse("expsyn"), "s");
+        decor.place(syns, arb::synapse("expsyn"), "s");
     }
 
     decor.place(cntr, arb::threshold_detector{-20.0}, "d");
@@ -467,35 +467,30 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
                 }
             }
         }
-        if (sec_ids.empty()) {
-            break;
-        }
-        levels.push_back(sec_ids);
-
+        if (sec_ids.empty()) break;
+        levels.emplace_back(std::move(sec_ids));
         dist_from_soma += l;
     }
 
-    using arb::reg::tagged;
-    auto soma = tagged(1);
-    auto dnds = join(tagged(3), tagged(4));
+    // Mark some locations/regions.
+    auto soma = arb::reg::tagged(1);
+    auto dnds = join(arb::reg::tagged(3), arb::reg::tagged(4));
     auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid);
+    auto cntr = arb::mlocation{0, 0.5};
 
+    // Build a decor
     arb::decor decor;
-
     decor.paint(soma, arb::density{"hh"});
-    decor.paint(dnds, arb::density{"pas"});
+    decor.paint(dnds, arb::density{"pas", {{"g", 0.05}}});
     decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "d");
-
-    // Add a synapse to proximal end of first dendrite.
-    decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");
+    decor.place(cntr, arb::threshold_detector{-20}, "d");
+    // Add a synapse to the soma.
+    decor.place(cntr, arb::synapse{"expsyn"}, "p");
 
     // Add additional synapses that will not be connected to anything.
-    if (params.synapses>1) {
-        decor.place(syns, arb::synapse{"expsyn"}, "s");
-    }
+    if (params.synapses>1) decor.place(syns, arb::synapse{"expsyn"}, "s");
 
     // Make a CV between every sample in the sample tree.
     decor.set_default(arb::cv_policy_every_segment());
