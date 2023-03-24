@@ -6,6 +6,7 @@
 #include <random>
 
 #include <sup/json_params.hpp>
+#include <arbor/load_balance.hpp>
 
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
@@ -42,6 +43,7 @@ struct ring_params {
     bool record_voltage = false;
     bool record_spikes  = true;
     std::string odir = ".";
+    arb::partition_hint hint;
     cell_parameters cell;
 };
 
@@ -89,6 +91,9 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
     param_from_json(params.cell.synapses, "synapses", json);
+    param_from_json(params.hint.cpu_group_size, "cpu-group-size", json);
+    param_from_json(params.hint.gpu_group_size, "gpu-group-size", json);
+    param_from_json(params.hint.prefer_gpu, "prefer-gpu", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {

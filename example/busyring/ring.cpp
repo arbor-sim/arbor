@@ -190,9 +190,6 @@ int main(int argc, char** argv) {
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
         resources.bind_threads = true;
-        arb::partition_hint hint;
-        hint.prefer_gpu = true;
-        //hint.cpu_group_size = 1000;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
@@ -224,7 +221,7 @@ int main(int argc, char** argv) {
         cell_stats stats(recipe);
         if (root) std::cout << stats << "\n";
         // Make decomposition
-        auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, hint}});
+        auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
         arb::simulation sim(recipe, context, decomp);
 
