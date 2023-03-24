@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
-        resources.bind_threads = true;
+        resources.bind_threads = params.bind_threads;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);

@@ -42,6 +42,7 @@ struct ring_params {
     float event_freq = 1.0;
     bool record_voltage = false;
     bool record_spikes  = true;
+    bool bind_threads = false;
     std::string odir = ".";
     arb::partition_hint hint;
     cell_parameters cell;
@@ -91,6 +92,7 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
     param_from_json(params.cell.synapses, "synapses", json);
+    param_from_json(params.bind_threads, "bind-threads", json);
     param_from_json(params.hint.cpu_group_size, "cpu-group-size", json);
     param_from_json(params.hint.gpu_group_size, "gpu-group-size", json);
     param_from_json(params.hint.prefer_gpu, "prefer-gpu", json);
