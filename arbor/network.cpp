@@ -71,7 +71,6 @@ double normal_rand_from_key_pair(std::array<unsigned, 2> seed,
     return r123::boxmuller(rand_num[0], rand_num[1]).x;
 }
 
-
 double network_location_distance(const network_location& a, const network_location& b) {
     return std::sqrt(a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
 }
@@ -286,18 +285,15 @@ struct network_selection_complement_impl: public network_selection_impl {
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return true;  // cannot exclude any because destination selection cannot be complemented without
-                      // knowing selection criteria.
+        return true;  // cannot exclude any because destination selection cannot be complemented
+                      // without knowing selection criteria.
     }
 
-    void initialize(const network_label_dict& dict) override {
-        selection->initialize(dict);
-    };
+    void initialize(const network_label_dict& dict) override { selection->initialize(dict); };
 };
 
-
 struct network_selection_named_impl: public network_selection_impl {
-    using impl_pointer_type =std::shared_ptr<network_selection_impl>;
+    using impl_pointer_type = std::shared_ptr<network_selection_impl>;
 
     std::variant<impl_pointer_type, std::string> selection;
 
@@ -305,7 +301,7 @@ struct network_selection_named_impl: public network_selection_impl {
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        if(!std::holds_alternative<impl_pointer_type>(selection))
+        if (!std::holds_alternative<impl_pointer_type>(selection))
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return std::get<impl_pointer_type>(selection)->select_connection(src, dest);
     }
@@ -313,7 +309,7 @@ struct network_selection_named_impl: public network_selection_impl {
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        if(!std::holds_alternative<impl_pointer_type>(selection))
+        if (!std::holds_alternative<impl_pointer_type>(selection))
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return std::get<impl_pointer_type>(selection)->select_source(kind, gid, label);
     }
@@ -321,13 +317,13 @@ struct network_selection_named_impl: public network_selection_impl {
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        if(!std::holds_alternative<impl_pointer_type>(selection))
+        if (!std::holds_alternative<impl_pointer_type>(selection))
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return std::get<impl_pointer_type>(selection)->select_destination(kind, gid, label);
     }
 
     void initialize(const network_label_dict& dict) override {
-        if(std::holds_alternative<std::string>(selection)) {
+        if (std::holds_alternative<std::string>(selection)) {
             auto s = dict.selection(std::get<std::string>(selection));
             if (!s.has_value())
                 throw arbor_exception(std::string("Network selection with label \"") +
@@ -399,14 +395,14 @@ struct network_selection_custom_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_within_distance_impl: public network_selection_impl {
+struct network_selection_distance_lt_impl: public network_selection_impl {
     double distance;
 
-    explicit network_selection_within_distance_impl(double distance): distance(distance) {}
+    explicit network_selection_distance_lt_impl(double distance): distance(distance) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return network_location_distance(src.global_location, dest.global_location) <= distance;
+        return network_location_distance(src.global_location, dest.global_location) < distance;
     }
 
     bool select_source(cell_kind kind,
@@ -422,6 +418,29 @@ struct network_selection_within_distance_impl: public network_selection_impl {
     }
 
     std::optional<double> max_distance() const override { return distance; }
+};
+
+struct network_selection_distance_gt_impl: public network_selection_impl {
+    double distance;
+
+    explicit network_selection_distance_gt_impl(double distance): distance(distance) {}
+
+    bool select_connection(const network_site_info& src,
+        const network_site_info& dest) const override {
+        return network_location_distance(src.global_location, dest.global_location) > distance;
+    }
+
+    bool select_source(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        return true;
+    }
+
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        return true;
+    }
 };
 
 struct network_selection_bernoulli_random_impl: public network_selection_impl {
@@ -475,7 +494,8 @@ struct network_selection_linear_bernoulli_random_impl: public network_selection_
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        const double distance = network_location_distance(src.global_location, dest.global_location);
+        const double distance =
+            network_location_distance(src.global_location, dest.global_location);
 
         if (distance < distance_begin || distance > distance_end) return false;
 
@@ -629,7 +649,6 @@ struct network_selection_symmetric_difference_impl: public network_selection_imp
     };
 };
 
-
 struct network_selection_difference_impl: public network_selection_impl {
     std::shared_ptr<network_selection_impl> left, right;
 
@@ -669,8 +688,7 @@ struct network_selection_difference_impl: public network_selection_impl {
     };
 };
 
-
-struct network_value_scalar_impl : public network_value_impl{
+struct network_value_scalar_impl: public network_value_impl {
     double value;
 
     network_value_scalar_impl(double v): value(v) {}
@@ -680,7 +698,7 @@ struct network_value_scalar_impl : public network_value_impl{
     }
 };
 
-struct network_value_uniform_distribution_impl : public network_value_impl{
+struct network_value_uniform_distribution_impl: public network_value_impl {
     unsigned seed = 0;
     std::array<double, 2> range;
 
@@ -767,22 +785,21 @@ struct network_value_custom_impl: public network_value_impl {
     }
 };
 
-
 struct network_value_named_impl: public network_value_impl {
-    using impl_pointer_type =std::shared_ptr<network_value_impl>;
+    using impl_pointer_type = std::shared_ptr<network_value_impl>;
 
     std::variant<impl_pointer_type, std::string> value;
 
     explicit network_value_named_impl(std::string name): value(std::move(name)) {}
 
     double get(const network_site_info& src, const network_site_info& dest) const override {
-        if(!std::holds_alternative<impl_pointer_type>(value))
+        if (!std::holds_alternative<impl_pointer_type>(value))
             throw arbor_internal_error("Trying to use unitialized named network value.");
         return std::get<impl_pointer_type>(value)->get(src, dest);
     }
 
     void initialize(const network_label_dict& dict) override {
-        if(std::holds_alternative<std::string>(value)) {
+        if (std::holds_alternative<std::string>(value)) {
             auto s = dict.value(std::get<std::string>(value));
             if (!s.has_value())
                 throw arbor_exception(std::string("Network value with label \"") +
@@ -834,7 +851,8 @@ network_selection network_selection::join(network_selection left, network_select
         std::move(left.impl_), std::move(right.impl_)));
 }
 
-network_selection network_selection::symmetric_difference(network_selection left, network_selection right) {
+network_selection network_selection::symmetric_difference(network_selection left,
+    network_selection right) {
     return network_selection(std::make_shared<network_selection_symmetric_difference_impl>(
         std::move(left.impl_), std::move(right.impl_)));
 }
@@ -865,11 +883,13 @@ network_selection network_selection::destination_cell_kind(cell_kind kind) {
 }
 
 network_selection network_selection::source_label(std::vector<cell_tag_type> labels) {
-    return network_selection(std::make_shared<network_selection_source_label_impl>(std::move(labels)));
+    return network_selection(
+        std::make_shared<network_selection_source_label_impl>(std::move(labels)));
 }
 
 network_selection network_selection::destination_label(std::vector<cell_tag_type> labels) {
-    return network_selection(std::make_shared<network_selection_destination_label_impl>(std::move(labels)));
+    return network_selection(
+        std::make_shared<network_selection_destination_label_impl>(std::move(labels)));
 }
 
 network_selection network_selection::source_gid(std::vector<cell_gid_type> gids) {
@@ -877,7 +897,8 @@ network_selection network_selection::source_gid(std::vector<cell_gid_type> gids)
 }
 
 network_selection network_selection::destination_gid(std::vector<cell_gid_type> gids) {
-    return network_selection(std::make_shared<network_selection_destination_gid_impl>(std::move(gids)));
+    return network_selection(
+        std::make_shared<network_selection_destination_gid_impl>(std::move(gids)));
 }
 
 network_selection network_selection::complement(network_selection s) {
@@ -901,8 +922,12 @@ network_selection network_selection::custom(custom_func_type func) {
     return network_selection(std::make_shared<network_selection_custom_impl>(std::move(func)));
 }
 
-network_selection network_selection::within_distance(double distance) {
-    return network_selection(std::make_shared<network_selection_within_distance_impl>(distance));
+network_selection network_selection::distance_lt(double distance) {
+    return network_selection(std::make_shared<network_selection_distance_lt_impl>(distance));
+}
+
+network_selection network_selection::distance_gt(double distance) {
+    return network_selection(std::make_shared<network_selection_distance_gt_impl>(distance));
 }
 
 network_selection network_selection::linear_bernoulli_random(unsigned seed,
@@ -958,14 +983,14 @@ network_label_dict& network_label_dict::set(const std::string& name, network_val
 
 std::optional<network_selection> network_label_dict::selection(const std::string& name) const {
     auto it = selections_.find(name);
-    if(it != selections_.end()) return it->second;
+    if (it != selections_.end()) return it->second;
 
     return std::nullopt;
 }
 
 std::optional<network_value> network_label_dict::value(const std::string& name) const {
     auto it = values_.find(name);
-    if(it != values_.end()) return it->second;
+    if (it != values_.end()) return it->second;
 
     return std::nullopt;
 }

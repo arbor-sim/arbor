@@ -209,9 +209,13 @@ eval_map_type network_eval_map{
             "symmetric difference operation between network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
     {"difference",
-        make_call<arb::network_selection, arb::network_selection>(arb::network_selection::difference,
+        make_call<arb::network_selection, arb::network_selection>(
+            arb::network_selection::difference,
             "difference of first selection with the second one: "
             "(network_selection network_selection)")},
+    {"complement",
+        make_call<arb::network_selection>(arb::network_selection::complement,
+            "complement of given selection: (network_selection)")},
 
     // network_value
     {"scalar",

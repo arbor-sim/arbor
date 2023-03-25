@@ -105,7 +105,11 @@ public:
 
     // only select within given distance. This may enable more efficient sampling through an
     // internal spatial data structure.
-    static network_selection within_distance(double distance);
+    static network_selection distance_lt(double distance);
+
+    // only select if distance greater then given distance. This may enable more efficient sampling
+    // through an internal spatial data structure.
+    static network_selection distance_gt(double distance);
 
     // random bernoulli sampling with a linear interpolated probabilty based on distance. Returns
     // "false" for any distance outside of the interval [distance_begin, distance_end].

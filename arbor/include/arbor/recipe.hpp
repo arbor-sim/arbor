@@ -8,6 +8,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/export.hpp>
+#include <arbor/morph/isometry.hpp>
 #include <arbor/network.hpp>
 #include <arbor/util/unique_any.hpp>
 
@@ -110,6 +111,8 @@ struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity 
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
+    // Global cell isometry describing rotation and translation of the cell
+    virtual isometry get_cell_isometry(cell_gid_type gid) const { return isometry(); };
 
     virtual ~recipe() {}
 };

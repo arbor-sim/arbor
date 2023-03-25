@@ -181,7 +181,7 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                     throw arbor_internal_error("unkown lid");
                 };
 
-                place_pwlin location_resolver(cell.morphology());
+                place_pwlin location_resolver(cell.morphology(), rec.get_cell_isometry(gid));
 
                 // check all synapses of cell for potential destination
 
@@ -191,7 +191,6 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                         const auto& label = lid_to_label(cell.synapse_ranges(), p_syn.lid);
 
                         if (selection.select_destination(cell_kind::cable, gid, label)) {
-                            // TODO: compute rotation and global offset
                             const mpoint point = location_resolver.at(p_syn.loc);
                             network_location global_location = {point.x, point.y, point.z};
                             dest_sites.insert({gid,
@@ -209,7 +208,6 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                     // TODO check if tag correct
                     const auto& label = lid_to_label(cell.detector_ranges(), p_det.lid);
                     if (selection.select_destination(cell_kind::cable, gid, label)) {
-                        // TODO: compute rotation and global offset
                         const mpoint point = location_resolver.at(p_det.loc);
                         network_location global_location = {point.x, point.y, point.z};
                         src_sites.insert(
