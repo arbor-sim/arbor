@@ -1,9 +1,11 @@
 #include <any>
 #include <limits>
+#include <vector>
 
 #include <arborio/label_parse.hpp>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/iexpr.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
@@ -21,6 +23,14 @@ label_parse_error::label_parse_error(const std::string& msg, const arb::src_loca
 
 
 namespace {
+struct gid_list {
+    gid_list() = default;
+
+    gid_list(cell_gid_type gid) : gids({gid}) {}
+
+    std::vector<cell_gid_type> gids;
+};
+
 using eval_map_type= std::unordered_multimap<std::string, evaluator>;
 
 eval_map_type eval_map {
@@ -187,6 +197,28 @@ eval_map_type eval_map {
 };
 
 eval_map_type network_eval_map{
+    // cell kind
+    {"cable-cell", make_call<>([]() { return arb::cell_kind::cable; }, "Cable cell kind")},
+    {"lif-cell", make_call<>([]() { return arb::cell_kind::lif; }, "Lif cell kind")},
+    {"benchmark-cell",
+        make_call<>([]() { return arb::cell_kind::benchmark; }, "Benchmark cell kind")},
+    {"spike-source-cell",
+        make_call<>([]() { return arb::cell_kind::benchmark; }, "Spike source cell kind")},
+
+    // gid list
+    {"gid-list",
+        make_call<cell_gid_type>([](cell_gid_type gid) { return gid_list(gid); },
+            "List of global indices")},
+    {"gid-list",
+        make_conversion_fold<gid_list, gid_list, cell_gid_type>(
+            [](gid_list a, gid_list b) {
+                a.gids.insert(a.gids.end(), b.gids.begin(), b.gids.end());
+                return a;
+            },
+            "List of global indices with at least 2 arguments: ((gid-list | integer) (gid-list | "
+            "integer) [...(gid-list | "
+            "integer)])")},
+
     // network_selection
     {"all", make_call<>(arb::network_selection::all, "network selection of all cells and labels")},
     {"none", make_call<>(arb::network_selection::none, "network selection of no cells and labels")},
@@ -215,7 +247,53 @@ eval_map_type network_eval_map{
             "(network_selection network_selection)")},
     {"complement",
         make_call<arb::network_selection>(arb::network_selection::complement,
-            "complement of given selection: (network_selection)")},
+            "complement of given selection argument: (network_selection)")},
+    {"source-cell-kind",
+        make_call<arb::cell_kind>(arb::network_selection::source_cell_kind,
+            "all sources of cells matching given cell kind argument: (kind:cell-kind)")},
+    {"destination-cell-kind",
+        make_call<arb::cell_kind>(arb::network_selection::destination_cell_kind,
+            "all destinations of cells matching given cell kind argument: (kind:cell-kind)")},
+    {"source-gid",
+        make_call<cell_gid_type>(
+            [](cell_gid_type gid) {
+                return arb::network_selection::source_gid(std::vector<cell_gid_type>({gid}));
+            },
+            "all sources in cell with given gid: (gid:integer)")},
+    {"source-gid",
+        make_call<gid_list>(
+            [](gid_list list) { return arb::network_selection::source_gid(std::move(list.gids)); },
+            "all sources of cells gid in list argument: (list: gid-list)")},
+    {"destination-gid",
+        make_call<cell_gid_type>(
+            [](cell_gid_type gid) {
+                return arb::network_selection::destination_gid(std::vector<cell_gid_type>({gid}));
+            },
+            "all destinations in cell with given gid: (gid:integer)")},
+    {"destination-gid",
+        make_call<gid_list>(
+            [](gid_list list) {
+                return arb::network_selection::destination_gid(std::move(list.gids));
+            },
+            "all destinations of cells gid in list argument: (list: gid-list)")},
+    {"random-bernoulli",
+        make_call<int, double>(arb::network_selection::random_bernoulli,
+            "randomly selected with given seed and probability. 2 arguments: (seed:integer, "
+            "p:real)")},
+    {"random-linear-distance",
+        make_call<int, double, double, double, double>(
+            arb::network_selection::random_linear_distance,
+            "randomly selected with a probability linearly interpolated between [p_begin, p_end] "
+            "based on the distance in the interval [distance_begin, distance_end]. 5 arguments: "
+            "(seed:integer, distance_begin:real, p_begin:real, distance_end:real, p_end:real)")},
+    {"distance-lt",
+        make_call<double>(arb::network_selection::distance_lt,
+            "Select if distance between source and destination is less than given distance in "
+            "micro meter: (distance:real)")},
+    {"distance-gt",
+        make_call<double>(arb::network_selection::distance_gt,
+            "Select if distance between source and destination is greater than given distance in "
+            "micro meter: (distance:real)")},
 
     // network_value
     {"scalar",

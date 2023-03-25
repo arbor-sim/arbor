@@ -352,25 +352,6 @@ struct network_selection_inter_cell_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_not_equal_impl: public network_selection_impl {
-    bool select_connection(const network_site_info& src,
-        const network_site_info& dest) const override {
-        return src.gid != dest.gid || src.label != dest.label || src.location != dest.location;
-    }
-
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
-        return true;
-    }
-
-    bool select_destination(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
-        return true;
-    }
-};
-
 struct network_selection_custom_impl: public network_selection_impl {
     network_selection::custom_func_type func;
 
@@ -443,11 +424,11 @@ struct network_selection_distance_gt_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_bernoulli_random_impl: public network_selection_impl {
+struct network_selection_random_bernoulli_impl: public network_selection_impl {
     unsigned seed;
     double probability;
 
-    network_selection_bernoulli_random_impl(unsigned seed, double p): seed(seed), probability(p) {}
+    network_selection_random_bernoulli_impl(unsigned seed, double p): seed(seed), probability(p) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
@@ -469,14 +450,14 @@ struct network_selection_bernoulli_random_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_linear_bernoulli_random_impl: public network_selection_impl {
+struct network_selection_random_linear_distance_impl: public network_selection_impl {
     unsigned seed;
     double distance_begin;
     double p_begin;
     double distance_end;
     double p_end;
 
-    network_selection_linear_bernoulli_random_impl(unsigned seed_,
+    network_selection_random_linear_distance_impl(unsigned seed_,
         double distance_begin_,
         double p_begin_,
         double distance_end_,
@@ -910,12 +891,8 @@ network_selection network_selection::inter_cell() {
     return network_selection(std::make_shared<network_selection_inter_cell_impl>());
 }
 
-network_selection network_selection::not_equal() {
-    return network_selection(std::make_shared<network_selection_not_equal_impl>());
-}
-
-network_selection network_selection::bernoulli_random(unsigned seed, double p) {
-    return network_selection(std::make_shared<network_selection_bernoulli_random_impl>(seed, p));
+network_selection network_selection::random_bernoulli(unsigned seed, double p) {
+    return network_selection(std::make_shared<network_selection_random_bernoulli_impl>(seed, p));
 }
 
 network_selection network_selection::custom(custom_func_type func) {
@@ -930,12 +907,12 @@ network_selection network_selection::distance_gt(double distance) {
     return network_selection(std::make_shared<network_selection_distance_gt_impl>(distance));
 }
 
-network_selection network_selection::linear_bernoulli_random(unsigned seed,
+network_selection network_selection::random_linear_distance(unsigned seed,
     double distance_begin,
     double p_begin,
     double distance_end,
     double p_end) {
-    return network_selection(std::make_shared<network_selection_linear_bernoulli_random_impl>(
+    return network_selection(std::make_shared<network_selection_random_linear_distance_impl>(
         seed, distance_begin, p_begin, distance_end, p_end));
 }
 

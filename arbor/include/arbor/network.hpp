@@ -89,13 +89,9 @@ public:
     // Only select connections between different cells
     static network_selection inter_cell();
 
-    // Only select connections when the global labels are not equal. May select intra-cell
-    // connections, if the local label is not equal.
-    static network_selection not_equal();
-
     // Random selection using the bernoulli random distribution with probability "p" between 0.0
     // and 1.0
-    static network_selection bernoulli_random(unsigned seed, double p);
+    static network_selection random_bernoulli(unsigned seed, double p);
 
     // Custom selection using the provided function "func". Repeated calls with the same arguments
     // to "func" must yield the same result. For gap junction selection,
@@ -110,9 +106,9 @@ public:
     // through an internal spatial data structure.
     static network_selection distance_gt(double distance);
 
-    // random bernoulli sampling with a linear interpolated probabilty based on distance. Returns
-    // "false" for any distance outside of the interval [distance_begin, distance_end].
-    static network_selection linear_bernoulli_random(unsigned seed,
+    // randomly selected with a probability linearly interpolated between [p_begin, p_end] based on
+    // the distance in the interval [distance_begin, distance_end].
+    static network_selection random_linear_distance(unsigned seed,
         double distance_begin,
         double p_begin,
         double distance_end,
