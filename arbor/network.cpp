@@ -71,8 +71,8 @@ double normal_rand_from_key_pair(std::array<unsigned, 2> seed,
     return r123::boxmuller(rand_num[0], rand_num[1]).x;
 }
 
-double network_location_distance(const network_location& a, const network_location& b) {
-    return std::sqrt(a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
+double network_location_distance(const mpoint& a, const mpoint& b) {
+    return std::sqrt(a.x * b.x + a.y * b.y + a.z * b.z);
 }
 
 struct network_selection_all_impl: public network_selection_impl {
@@ -816,7 +816,7 @@ network_site_info::network_site_info(cell_gid_type gid,
     cell_kind kind,
     std::string_view label,
     mlocation location,
-    network_location global_location):
+    mpoint global_location):
     gid(gid),
     lid(lid),
     kind(kind),

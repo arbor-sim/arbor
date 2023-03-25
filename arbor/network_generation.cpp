@@ -26,7 +26,7 @@ struct distributed_site_info {
     cell_kind kind = cell_kind::cable;
     cell_gid_type label_start_idx = 0;
     mlocation location = mlocation();
-    network_location global_location = network_location();
+    mpoint global_location = mpoint();
     network_hash_type hash = 0;
 };
 
@@ -192,13 +192,8 @@ std::vector<connection> generate_network_connections(const recipe& rec,
 
                         if (selection.select_destination(cell_kind::cable, gid, label)) {
                             const mpoint point = location_resolver.at(p_syn.loc);
-                            network_location global_location = {point.x, point.y, point.z};
-                            dest_sites.insert({gid,
-                                p_syn.lid,
-                                cell_kind::cable,
-                                label,
-                                p_syn.loc,
-                                global_location});
+                            dest_sites.insert(
+                                {gid, p_syn.lid, cell_kind::cable, label, p_syn.loc, point});
                         }
                     }
                 }
@@ -209,9 +204,8 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                     const auto& label = lid_to_label(cell.detector_ranges(), p_det.lid);
                     if (selection.select_destination(cell_kind::cable, gid, label)) {
                         const mpoint point = location_resolver.at(p_det.loc);
-                        network_location global_location = {point.x, point.y, point.z};
                         src_sites.insert(
-                            {gid, p_det.lid, cell_kind::cable, label, p_det.loc, global_location});
+                            {gid, p_det.lid, cell_kind::cable, label, p_det.loc, point});
                     }
                 }
             }
@@ -239,9 +233,11 @@ std::vector<connection> generate_network_connections(const recipe& rec,
     }
     const std::size_t max_depth = selection.max_distance().has_value() ? 10 : 1;
     const std::size_t max_leaf_size = 100;
-    spatial_tree<network_site_info, 3> local_dest_tree(
-        max_depth, max_leaf_size, std::move(network_dest_sites), [](const network_site_info& info) {
-            return info.global_location;
+    spatial_tree<network_site_info, 3> local_dest_tree(max_depth,
+        max_leaf_size,
+        std::move(network_dest_sites),
+        [](const network_site_info& info) -> spatial_tree<network_site_info, 3>::point_type {
+            return {info.global_location.x, info.global_location.y, info.global_location.z};
         });
 
     // select connections
@@ -259,12 +255,13 @@ std::vector<connection> generate_network_connections(const recipe& rec,
 
         if (selection.max_distance().has_value()) {
             const double d = selection.max_distance().value();
-            local_dest_tree.bounding_box_for_each(network_location{src.global_location[0] - d,
-                                                      src.global_location[1] - d,
-                                                      src.global_location[2] - d},
-                network_location{src.global_location[0] + d,
-                    src.global_location[1] + d,
-                    src.global_location[2] + d},
+            local_dest_tree.bounding_box_for_each(
+                decltype(local_dest_tree)::point_type{src.global_location.x - d,
+                    src.global_location.y - d,
+                    src.global_location.z - d},
+                decltype(local_dest_tree)::point_type{src.global_location.x + d,
+                    src.global_location.y + d,
+                    src.global_location.z + d},
                 sample);
         }
         else { local_dest_tree.for_each(sample); }

@@ -3,6 +3,7 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
+#include <arbor/morph/primitives.hpp>
 
 #include <array>
 #include <cstdint>
@@ -20,8 +21,6 @@
 
 namespace arb {
 
-using network_location = std::array<double, 3>;
-
 using network_hash_type = std::uint64_t;
 
 struct ARB_SYMBOL_VISIBLE network_site_info {
@@ -32,14 +31,14 @@ struct ARB_SYMBOL_VISIBLE network_site_info {
         cell_kind kind,
         std::string_view label,
         mlocation location,
-        network_location global_location);
+        mpoint global_location);
 
     cell_gid_type gid;
     cell_lid_type lid;
     cell_kind kind;
     std::string_view label;
     mlocation location;
-    network_location global_location;
+    mpoint global_location;
     network_hash_type hash;
 };
 
