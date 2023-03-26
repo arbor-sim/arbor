@@ -531,7 +531,7 @@ TEST(communicator, ring)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids(local_sources);
 
     // construct the communicator
-    auto C = communicator(R, D, *g_context);
+    auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets));
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
@@ -638,7 +638,7 @@ TEST(communicator, all2all)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
-    auto C = communicator(R, D, *g_context);
+    auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}));
     auto connections = C.connections();
 
@@ -648,7 +648,6 @@ TEST(communicator, all2all)
             EXPECT_EQ(i, c.source.gid);
             EXPECT_EQ(0u, c.source.index);
             EXPECT_EQ(i, c.destination);
-            EXPECT_LT(c.index_on_domain, n_local);
         }
     }
 
@@ -685,13 +684,13 @@ TEST(communicator, mini_network)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
-    auto C = communicator(R, D, *g_context);
+    auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
 
     // sort connections by source then target
     auto connections = C.connections();
     util::sort(connections, [](const connection& lhs, const connection& rhs) {
-      return std::forward_as_tuple(lhs.source, lhs.index_on_domain, lhs.destination) < std::forward_as_tuple(rhs.source, rhs.index_on_domain, rhs.destination);
+      return std::forward_as_tuple(lhs.source, lhs.destination) < std::forward_as_tuple(rhs.source, rhs.destination);
     });
 
     // Expect one set of 22 connections from every rank: these have been sorted.

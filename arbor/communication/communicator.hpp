@@ -32,9 +32,7 @@ class ARB_ARBOR_API communicator {
 public:
     communicator() = default;
 
-    explicit communicator(const recipe& rec,
-                          const domain_decomposition& dom_dec,
-                          execution_context& ctx);
+    explicit communicator(const recipe& rec, const domain_decomposition& dom_dec, context ctx);
 
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i);
@@ -70,7 +68,7 @@ public:
 
     void reset();
 
-    void update_connections(const connectivity& rec,
+    void update_connections(const recipe& rec,
                             const domain_decomposition& dom_dec,
                             const label_resolution_map& source_resolution_map,
                             const label_resolution_map& target_resolution_map);
@@ -86,6 +84,7 @@ private:
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
     std::unordered_map<cell_gid_type, cell_size_type> index_on_domain_;
 
+    context ctx_;
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;

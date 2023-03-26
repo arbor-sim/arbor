@@ -9,6 +9,7 @@
 
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/event_generator.hpp>
+#include <arbor/morph/isometry.hpp>
 #include <arbor/network.hpp>
 #include <arbor/recipe.hpp>
 
@@ -53,6 +54,9 @@ public:
     virtual std::optional<arb::network_description> network_description() const {
         return std::nullopt;
     };
+    virtual arb::isometry cell_isometry(arb::cell_gid_type gid) const {
+        return arb::isometry();
+    };
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -82,8 +86,12 @@ public:
     }
 
     std::optional<arb::network_description> network_description() const override {
-        PYBIND11_OVERRIDE_PURE(arb::network_description, py_recipe, network_description);
+        PYBIND11_OVERRIDE(std::optional<arb::network_description>, py_recipe, network_description);
     }
+
+    arb::isometry cell_isometry(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(arb::isometry, py_recipe, cell_isometry, gid);
+    };
 
     std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const override {
         PYBIND11_OVERRIDE(std::vector<arb::probe_info>, py_recipe, probes, gid);
@@ -141,6 +149,10 @@ public:
 
     std::optional<arb::network_description> network_description() const override {
         return try_catch_pyexception([&]() { return impl_->network_description(); }, msg);
+    };
+
+    arb::isometry get_cell_isometry(arb::cell_gid_type gid) const override {
+        return try_catch_pyexception([&]() { return impl_->cell_isometry(gid); }, msg);
     };
 };
 

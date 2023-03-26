@@ -18,21 +18,22 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "network_generation.hpp"
 
 #include "communication/communicator.hpp"
 
 namespace arb {
 
-communicator::communicator(const recipe& rec,
-                           const domain_decomposition& dom_dec,
-                           execution_context& ctx):  num_total_cells_{rec.num_cells()},
-                                                     num_local_cells_{dom_dec.num_local_cells()},
-                                                     num_local_groups_{dom_dec.num_groups()},
-                                                     num_domains_{(cell_size_type) ctx.distributed->size()},
-                                                     distributed_{ctx.distributed},
-                                                     thread_pool_{ctx.thread_pool} {}
+communicator::communicator(const recipe& rec, const domain_decomposition& dom_dec, context ctx):
+    num_total_cells_{rec.num_cells()},
+    num_local_cells_{dom_dec.num_local_cells()},
+    num_local_groups_{dom_dec.num_groups()},
+    num_domains_{(cell_size_type)ctx->distributed->size()},
+    ctx_(ctx),
+    distributed_{ctx->distributed},
+    thread_pool_{ctx->thread_pool} {}
 
-void communicator::update_connections(const connectivity& rec,
+void communicator::update_connections(const recipe& rec,
                                       const domain_decomposition& dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
@@ -41,6 +42,10 @@ void communicator::update_connections(const connectivity& rec,
     connection_part_.clear();
     index_divisions_.clear();
     index_on_domain_.clear();
+
+
+    // Construct connections from high-level specification
+    auto generated_connections = generate_network_connections(rec, ctx_, dom_dec);
 
     // For caching information about each cell
     struct gid_info {
@@ -76,6 +81,7 @@ void communicator::update_connections(const connectivity& rec,
     // Build the connection information for local cells in parallel.
     cell_local_size_type n_cons =
         util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
+    n_cons += generated_connections.size();
     std::vector<unsigned> src_domains;
     src_domains.reserve(n_cons);
     std::vector<cell_size_type> src_counts(num_domains_);
@@ -90,6 +96,15 @@ void communicator::update_connections(const connectivity& rec,
             src_domains.push_back(src);
             src_counts[src]++;
         }
+    }
+    for (const auto& c: generated_connections) {
+        auto sgid = c.source.gid;
+        if (sgid >= num_total_cells_) {
+            throw arb::bad_connection_source_gid(c.source.gid, sgid, num_total_cells_);
+        }
+        const auto src = dom_dec.gid_domain(sgid);
+        src_domains.push_back(src);
+        src_counts[src]++;
     }
 
     // Construct the connections.
@@ -111,6 +126,13 @@ void communicator::update_connections(const connectivity& rec,
                 {c.source.gid, src_lid}, {cell.gid, tgt_lid}, c.weight, c.delay};
         }
     }
+    for (const auto& c: generated_connections) {
+        auto offset = offsets[*src_domain]++;
+        ++src_domain;
+        connections_[offset] = c;
+    }
+
+
 
     // Build cell partition by group for passing events to cell groups
     index_part_ = util::make_partition(index_divisions_,

@@ -79,6 +79,10 @@ public:
 
     static network_selection destination_gid(cell_gid_type gid_begin, cell_gid_type gid_end);
 
+    static network_selection ring(std::vector<cell_gid_type> gids);
+
+    static network_selection ring(cell_gid_type gid_begin, cell_gid_type gid_end);
+
     static network_selection intersect(network_selection left, network_selection right);
 
     static network_selection join(network_selection left, network_selection right);

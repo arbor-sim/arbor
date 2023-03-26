@@ -95,7 +95,12 @@ void register_network(py::module& m) {
                             [&](const arb::network_value& val) { dict.set(dict_label, val); }),
                         v);
                 }
-                return arb::network_description();
+                auto desc =  arb::network_description{
+                    arborio::parse_network_selection_expression(selection).unwrap(),
+                    arborio::parse_network_value_expression(weight).unwrap(),
+                    arborio::parse_network_value_expression(delay).unwrap(),
+                    dict};
+                return desc;
             }),
         "selection"_a,
         "weight"_a,

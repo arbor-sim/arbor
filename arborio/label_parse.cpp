@@ -267,6 +267,7 @@ eval_map_type network_eval_map{
     {"destination-cell-kind",
         make_call<arb::cell_kind>(arb::network_selection::destination_cell_kind,
             "all destinations of cells matching given cell kind argument: (kind:cell-kind)")},
+        //TODO source / destination label
     {"source-gid",
         make_call<int>(
             [](int gid) {
@@ -304,7 +305,19 @@ eval_map_type network_eval_map{
             [](gid_range_label range) {
                 return arb::network_selection::destination_gid(range.gid_begin, range.gid_end);
             },
-            "All destinations of cells within gid range: (range: gid-range)")},
+            "all destinations of cells within gid range: (range: gid-range)")},
+    {"ring",
+        make_call<gid_list_label>(
+            [](gid_list_label list) { return arb::network_selection::ring(std::move(list.gids)); },
+            "Only select connections between neighboring gids in list or between first and last "
+            "entry: (gids: gid-list)")},
+    {"ring",
+        make_call<gid_range_label>(
+            [](gid_range_label range) {
+                return arb::network_selection::ring(range.gid_begin, range.gid_end);
+            },
+            "Only select connections between neighboring gids in range [begin, end) or between "
+            "first and last range member: (range: gid-range)")},
     {"random-bernoulli",
         make_call<int, double>(arb::network_selection::random_bernoulli,
             "randomly selected with given seed and probability. 2 arguments: (seed:integer, "

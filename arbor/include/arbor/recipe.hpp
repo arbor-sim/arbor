@@ -68,10 +68,6 @@ struct ARB_ARBOR_API has_gap_junctions {
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
-    // Optional network descriptions for generating cell connections
-    virtual std::optional<arb::network_description> network_description() const {
-        return std::nullopt;
-    };
     virtual ~has_gap_junctions() {}
 };
 
@@ -79,6 +75,10 @@ struct ARB_ARBOR_API has_synapses {
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
         return {};
     }
+    // Optional network descriptions for generating cell connections
+    virtual std::optional<arb::network_description> network_description() const {
+        return std::nullopt;
+    };
     virtual ~has_synapses() {}
 };
 

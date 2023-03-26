@@ -92,7 +92,7 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 
@@ -222,12 +222,12 @@ simulation_state::simulation_state(
 
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
-    communicator_ = communicator(rec, ddc_, *ctx_);
+    communicator_ = communicator(rec, ddc_, ctx_);
     update(rec);
     epoch_.reset();
 }
 
-void simulation_state::update(const connectivity& rec) {
+void simulation_state::update(const recipe& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = communicator_.min_delay()/2;
@@ -530,7 +530,7 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update(const connectivity& rec) { impl_->update(rec); }
+void simulation::update(const recipe& rec) { impl_->update(rec); }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
     if (dt <= 0.0) {
