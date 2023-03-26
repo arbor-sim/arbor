@@ -13,7 +13,7 @@
 namespace arb {
 
 std::vector<connection> generate_network_connections(const recipe& rec,
-    const distributed_context& distributed,
+    const context& ctx,
     const domain_decomposition& dom_dec);
 
 } // namespace arb

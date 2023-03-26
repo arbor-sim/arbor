@@ -1,19 +1,25 @@
 #include "network_generation.hpp"
+#include "cell_group_factory.hpp"
 #include "network_impl.hpp"
 #include "util/spatial_tree.hpp"
 
 #include <Random123/threefry.h>
 
+#include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/morph/place_pwlin.hpp>
+#include <arbor/spike_source_cell.hpp>
 #include <arbor/util/unique_any.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 
@@ -143,10 +149,12 @@ struct distributed_site_mapping {
 }  // namespace
 
 std::vector<connection> generate_network_connections(const recipe& rec,
-    const distributed_context& distributed,
+    const context& ctx,
     const domain_decomposition& dom_dec) {
     const auto description_opt = rec.network_description();
     if (!description_opt.has_value()) return {};
+
+    const distributed_context& distributed = *(ctx->distributed);
 
     const auto& description = description_opt.value();
 
@@ -164,6 +172,7 @@ std::vector<connection> generate_network_connections(const recipe& rec,
     for (const auto& group: dom_dec.groups()) {
         switch (group.kind) {
         case cell_kind::cable: {
+            // We need access to morphology, so the cell is create directly
             cable_cell cell;
             for (const auto& gid: group.gids) {
                 try {
@@ -202,7 +211,7 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                 for (const auto& p_det: cell.detectors()) {
                     // TODO check if tag correct
                     const auto& label = lid_to_label(cell.detector_ranges(), p_det.lid);
-                    if (selection.select_destination(cell_kind::cable, gid, label)) {
+                    if (selection.select_source(cell_kind::cable, gid, label)) {
                         const mpoint point = location_resolver.at(p_det.loc);
                         src_sites.insert(
                             {gid, p_det.lid, cell_kind::cable, label, p_det.loc, point});
@@ -210,17 +219,54 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                 }
             }
         } break;
-        case cell_kind::lif: {
-            // TODO
-            for (const auto& gid: group.gids) {}
-        } break;
-        case cell_kind::benchmark: {
-            // TODO
-            for (const auto& gid: group.gids) {}
-        } break;
-        case cell_kind::spike_source: {
-            // TODO
-            for (const auto& gid: group.gids) {}
+        default: {
+            // Assuming all other cell types do not have a morphology. We can use label resolution
+            // through factory and set local position to 0.
+            auto factory = cell_kind_implementation(group.kind, group.backend, *ctx, 0);
+
+            // We only need the label ranges
+            cell_label_range sources, destinations;
+            std::ignore = factory(group.gids, rec, sources, destinations);
+
+            std::size_t source_label_offset = 0;
+            std::size_t destination_label_offset = 0;
+            for (std::size_t i = 0; i < group.gids.size(); ++i) {
+                const auto gid = group.gids[i];
+                const auto iso = rec.get_cell_isometry(gid);
+                const auto point = iso.apply(mpoint{0.0, 0.0, 0.0, 0.0});
+                const auto num_source_labels = sources.sizes().at(i);
+                const auto num_destination_labels = destinations.sizes().at(i);
+
+                // Iterate over each source label for current gid
+                for (std::size_t j = source_label_offset;
+                     j < source_label_offset + num_source_labels;
+                     ++j) {
+                    const auto& label = sources.labels().at(j);
+                    const auto& range = sources.ranges().at(j);
+                    for (auto lid = range.begin; lid < range.end; ++lid) {
+                        if (selection.select_source(group.kind, gid, label)) {
+                            src_sites.insert({gid, lid, group.kind, label, {0, 0.0}, point});
+                        }
+                    }
+                }
+
+                // Iterate over each destination label for current gid
+                for (std::size_t j = destination_label_offset;
+                     j < destination_label_offset + num_destination_labels;
+                     ++j) {
+                    const auto& label = destinations.labels().at(j);
+                    const auto& range = destinations.ranges().at(j);
+                    for (auto lid = range.begin; lid < range.end; ++lid) {
+                        if (selection.select_destination(group.kind, gid, label)) {
+                            dest_sites.insert({gid, lid, group.kind, label, {0, 0.0}, point});
+                        }
+                    }
+                }
+
+                source_label_offset += num_source_labels;
+                destination_label_offset += num_destination_labels;
+            }
+
         } break;
         }
     }
