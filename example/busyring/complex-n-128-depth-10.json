@@ -5,6 +5,8 @@
     "min-delay": 5,
     "duration": 0.1,
     "ring-size": 4,
+    "event-weight": 0.2,
+    "event-freq": 0.2,
     "record": false,
     "spikes": false,
     "dt": 0.1,
