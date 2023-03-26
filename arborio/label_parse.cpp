@@ -21,14 +21,24 @@ label_parse_error::label_parse_error(const std::string& msg, const arb::src_loca
     arb::arbor_exception(concat("error in label description: ", msg," at :", loc.line, ":", loc.column))
 {}
 
-
 namespace {
-struct gid_list {
-    gid_list() = default;
+struct gid_list_label {
+    gid_list_label() = default;
 
-    gid_list(cell_gid_type gid) : gids({gid}) {}
+    gid_list_label(cell_gid_type gid): gids({gid}) {}
 
     std::vector<cell_gid_type> gids;
+};
+
+struct gid_range_label {
+    gid_range_label() = default;
+
+    gid_range_label(cell_gid_type gid_begin, cell_gid_type gid_end):
+        gid_begin(gid_begin),
+        gid_end(gid_end) {}
+
+    cell_gid_type gid_begin = 0;
+    cell_gid_type gid_end = 0;
 };
 
 using eval_map_type= std::unordered_multimap<std::string, evaluator>;
@@ -205,13 +215,16 @@ eval_map_type network_eval_map{
     {"spike-source-cell",
         make_call<>([]() { return arb::cell_kind::benchmark; }, "Spike source cell kind")},
 
-    // gid list
+    // gid structs
+    {"gid-range",
+        make_call<int, int>(
+            [](int gid_begin, int gid_end) { return gid_range_label(gid_begin, gid_end); },
+            "Range of gids in interval [begin, end): (begin, end)")},
     {"gid-list",
-        make_call<cell_gid_type>([](cell_gid_type gid) { return gid_list(gid); },
-            "List of global indices")},
+        make_call<int>([](int gid) { return gid_list_label(gid); }, "Single gid: (gid:integer)")},
     {"gid-list",
-        make_conversion_fold<gid_list, gid_list, cell_gid_type>(
-            [](gid_list a, gid_list b) {
+        make_conversion_fold<gid_list_label, gid_list_label, int>(
+            [](gid_list_label a, gid_list_label b) {
                 a.gids.insert(a.gids.end(), b.gids.begin(), b.gids.end());
                 return a;
             },
@@ -255,27 +268,43 @@ eval_map_type network_eval_map{
         make_call<arb::cell_kind>(arb::network_selection::destination_cell_kind,
             "all destinations of cells matching given cell kind argument: (kind:cell-kind)")},
     {"source-gid",
-        make_call<cell_gid_type>(
-            [](cell_gid_type gid) {
-                return arb::network_selection::source_gid(std::vector<cell_gid_type>({gid}));
+        make_call<int>(
+            [](int gid) {
+                return arb::network_selection::source_gid(
+                    std::vector<cell_gid_type>({static_cast<cell_gid_type>(gid)}));
             },
             "all sources in cell with given gid: (gid:integer)")},
     {"source-gid",
-        make_call<gid_list>(
-            [](gid_list list) { return arb::network_selection::source_gid(std::move(list.gids)); },
+        make_call<gid_list_label>(
+            [](gid_list_label list) {
+                return arb::network_selection::source_gid(std::move(list.gids));
+            },
             "all sources of cells gid in list argument: (list: gid-list)")},
+    {"source-gid",
+        make_call<gid_range_label>(
+            [](gid_range_label range) {
+                return arb::network_selection::source_gid(range.gid_begin, range.gid_end);
+            },
+            "All sources of cells within gid range: (range: gid-range)")},
     {"destination-gid",
-        make_call<cell_gid_type>(
-            [](cell_gid_type gid) {
-                return arb::network_selection::destination_gid(std::vector<cell_gid_type>({gid}));
+        make_call<int>(
+            [](int gid) {
+                return arb::network_selection::destination_gid(
+                    std::vector<cell_gid_type>({static_cast<cell_gid_type>(gid)}));
             },
             "all destinations in cell with given gid: (gid:integer)")},
     {"destination-gid",
-        make_call<gid_list>(
-            [](gid_list list) {
+        make_call<gid_list_label>(
+            [](gid_list_label list) {
                 return arb::network_selection::destination_gid(std::move(list.gids));
             },
             "all destinations of cells gid in list argument: (list: gid-list)")},
+    {"destination-gid",
+        make_call<gid_range_label>(
+            [](gid_range_label range) {
+                return arb::network_selection::destination_gid(range.gid_begin, range.gid_end);
+            },
+            "All destinations of cells within gid range: (range: gid-range)")},
     {"random-bernoulli",
         make_call<int, double>(arb::network_selection::random_bernoulli,
             "randomly selected with given seed and probability. 2 arguments: (seed:integer, "
@@ -298,10 +327,30 @@ eval_map_type network_eval_map{
     // network_value
     {"scalar",
         make_call<double>(arb::network_value::scalar,
-            "network value with 1 argument: (value:double)")},
+            "network value with 1 argument: (value:real)")},
     {"network-value",
         make_call<std::string>(arb::network_value::named,
             "network value with 1 argument: (value:string)")},
+    {"uniform_distribution",
+        make_call<int, double, double>(
+            [](unsigned seed, double begin, double end) {
+                return arb::network_value::uniform_distribution(seed, {begin, end});
+            },
+            "Uniform random distribution within interval [begin, end): (seed:integer, begin:real, "
+            "end:real)")},
+    {"normal_distribution",
+        make_call<int, double, double>(arb::network_value::normal_distribution,
+            "Normal random distribution with given mean and standard deviation: (seed:integer, "
+            "mean:real, std_deviation:real)")},
+    {"truncated_normal_distribution",
+        make_call<int, double, double, double, double>(
+            [](unsigned seed, double mean, double std_deviation, double begin, double end) {
+                return arb::network_value::truncated_normal_distribution(
+                    seed, mean, std_deviation, {begin, end});
+            },
+            "Truncated normal random distribution with given mean and standard deviation within "
+            "interval [begin, end]: (seed:integer, mean:real, std_deviation:real, begin:real, "
+            "end:real)")},
 
 };
 
@@ -402,7 +451,7 @@ parse_label_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map) 
                                 location(e)));
 }
 
-} // namespace
+}  // namespace
 
 ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const std::string& e) {
     return eval(parse_s_expr(e), eval_map);
