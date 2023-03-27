@@ -57,11 +57,11 @@ ARB_ARBOR_API void merge_cell_events(
         std::vector<event_span> spanbuf;
         spanbuf.reserve(2+generators.size());
 
-        auto old_split = split_sorted_range(old_events, t_to, event_time_less());
-        auto pending_split = split_sorted_range(pending, t_to, event_time_less());
+        const auto& [old_l, old_r] = split_sorted_range(old_events, t_to, event_time_less());
+        const auto& [pen_l, pen_r] = split_sorted_range(pending, t_to, event_time_less());
 
-        spanbuf.push_back(old_split.first);
-        spanbuf.push_back(pending_split.first);
+        if (!old_l.empty()) spanbuf.push_back(old_l);
+        if (!pen_l.empty()) spanbuf.push_back(pen_l);
 
         for (auto& g: generators) {
             event_span evs = g.events(t_from, t_to);
@@ -72,18 +72,18 @@ ARB_ARBOR_API void merge_cell_events(
         PL();
 
         PE(communication:enqueue:tree);
-        tree_merge_events(std::move(spanbuf), new_events);
+        merge_events(std::move(spanbuf), new_events);
         PL();
 
-        old_events = old_split.second;
-        pending = pending_split.second;
+        old_events = old_r;
+        pending = pen_r;
     }
 
     // Merge (remaining) old and pending events.
     PE(communication:enqueue:merge);
     auto n = new_events.size();
-    new_events.resize(n+pending.size()+old_events.size());
-    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin()+n);
+    new_events.resize(n + pending.size() + old_events.size());
+    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin() + n);
     PL();
 }
 
