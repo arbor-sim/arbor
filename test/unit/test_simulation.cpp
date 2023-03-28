@@ -85,7 +85,7 @@ TEST(simulation, spike_global_callback) {
 
     std::vector<schedule> spike_times;
     for (unsigned i = 0; i<n; ++i) {
-        spike_times.push_back(poisson_schedule(0., 20./t_max, std::minstd_rand(1000+i)));
+        spike_times.push_back(poisson_schedule(0., 20./t_max, 1000 + i));
     }
 
     std::vector<spike> expected_spikes;

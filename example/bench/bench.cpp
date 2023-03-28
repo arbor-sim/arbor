@@ -85,14 +85,12 @@ public:
     }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
-        std::mt19937_64 rng(gid);
-
         // The time_sequence of the cell produces the series of time points at
         // which it will spike. We use a poisson_schedule with a random sequence
         // seeded with the gid. In this way, a cell's random stream depends only
         // on its gid, and will hence give reproducable results when run with
         // different MPI ranks and threads.
-        auto sched = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, rng);
+        auto sched = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, gid);
 
         return arb::benchmark_cell("src", "tgt", sched, params_.cell.realtime_ratio);
     }

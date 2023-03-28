@@ -176,11 +176,10 @@ inline schedule explicit_schedule(const std::initializer_list<time_type>& seq) {
 
 // Schedule at Poisson point process with rate 1/mean_dt,
 // restricted to non-negative times.
-template <typename RandomNumberEngine>
-class poisson_schedule_impl {
-public:
-    poisson_schedule_impl(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop):
-        tstart_(tstart), exp_(rate_kHz), rng_(rng), reset_state_(rng), next_(tstart), tstop_(tstop)
+
+struct poisson_schedule_impl {
+    poisson_schedule_impl(time_type tstart, time_type rate_kHz, time_type tstop, cell_gid_type seed):
+        tstart_(tstart), next_(tstart), tstop_(tstop), oo_rate_(1.0/rate_kHz), seed_{seed}
     {
         arb_assert(tstart_>=0);
         arb_assert(tstart_ <= tstop_);
@@ -188,56 +187,33 @@ public:
     }
 
     void reset() {
-        rng_ = reset_state_;
         next_ = tstart_;
+        index_ = 0;
         step();
     }
 
-    time_event_span events(time_type t0, time_type t1) {
-        // if we start after the maximal allowed time, we have nothing to do
-        if (t0 >= tstop_) {
-            return {};
-        }
-
-        // restrict by maximal allowed time
-        t1 = std::min(t1, tstop_);
-
-        times_.clear();
-
-        while (next_<t0) {
-            step();
-        }
-
-        while (next_<t1) {
-            times_.push_back(next_);
-            step();
-        }
-
-        return as_time_event_span(times_);
-    }
+    time_event_span events(time_type t0, time_type t1);
 
 private:
-    void step() {
-        next_ += exp_(rng_);
-    }
+    void step();
 
     time_type tstart_;
-    std::exponential_distribution<time_type> exp_;
-    RandomNumberEngine rng_;
-    RandomNumberEngine reset_state_;
     time_type next_;
     std::vector<time_type> times_;
     time_type tstop_;
+
+    time_type oo_rate_;
+    std::array<time_type, 4> cache_;
+    std::size_t index_ = 4;
+    std::uint64_t seed_;
 };
 
-template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop=terminal_time) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., rate_kHz, rng, tstop));
+inline schedule poisson_schedule(time_type rate_kHz, cell_gid_type seed, time_type tstop=terminal_time) {
+    return schedule(poisson_schedule_impl(0., rate_kHz, tstop, seed));
 }
 
-template <typename RandomNumberEngine>
-inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const RandomNumberEngine& rng, time_type tstop=terminal_time) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, rate_kHz, rng, tstop));
+inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, cell_gid_type seed, time_type tstop=terminal_time) {
+    return schedule(poisson_schedule_impl(tstart, rate_kHz, tstop, seed));
 }
 
 } // namespace arb

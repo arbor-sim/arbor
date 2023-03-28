@@ -129,8 +129,8 @@ struct cable_recipe: public arb::recipe {
     }
 
     virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
-        return {arb::poisson_generator({"synapse1"}, .005, 0., 0.1, std::minstd_rand{}),
-                arb::poisson_generator({"synapse2"}, .1, 0., 0.1, std::minstd_rand{})};
+        return {arb::poisson_generator({"synapse1"}, .005, 0., 0.1, 0),
+                arb::poisson_generator({"synapse2"}, .1, 0., 0.1, 0)};
     }
 
 };

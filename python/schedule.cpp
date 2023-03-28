@@ -142,7 +142,7 @@ std::vector<arb::time_type> explicit_schedule_shim::events(arb::time_type t0, ar
 poisson_schedule_shim::poisson_schedule_shim(
         arb::time_type ts,
         arb::time_type f,
-        rng_type::result_type s,
+        arb::cell_gid_type s,
         py::object tstop)
 {
     set_tstart(ts);
@@ -185,7 +185,7 @@ poisson_schedule_shim::opt_time_type poisson_schedule_shim::get_tstop() const {
 }
 
 arb::schedule poisson_schedule_shim::schedule() const {
-    return arb::poisson_schedule(tstart, freq, rng_type(seed), tstop.value_or(arb::terminal_time));
+    return arb::poisson_schedule(tstart, freq, seed, tstop.value_or(arb::terminal_time));
 }
 
 std::vector<arb::time_type> poisson_schedule_shim::events(arb::time_type t0, arb::time_type t1) {
@@ -252,7 +252,7 @@ void register_schedules(py::module& m) {
         "Describes a schedule according to a Poisson process within the interval [tstart, tstop).");
 
     poisson_schedule
-        .def(py::init<time_type, time_type, std::mt19937_64::result_type, py::object>(),
+        .def(py::init<time_type, time_type, arb::cell_gid_type, py::object>(),
              "tstart"_a = 0., "freq"_a, "seed"_a = 0, "tstop"_a = py::none(),
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"

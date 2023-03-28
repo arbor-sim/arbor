@@ -84,8 +84,6 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         assert(gid==0); // There is only one cell in the model
 
-        using RNG = std::mt19937_64;
-
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
 
@@ -104,11 +102,11 @@ public:
                                    w_e,                   // Weight of events to deliver
                                    t0,                    // Events start being delivered from this time
                                    lambda_e,              // Expected frequency (kHz)
-                                   RNG(29562872)));       // Random number generator to use
+                                   29562872));
 
         // Add inhibitory generator
         gens.emplace_back(
-            arb::poisson_generator({"syn"}, w_i, t0, lambda_i,  RNG(86543891)));
+            arb::poisson_generator({"syn"}, w_i, t0, lambda_i, 86543891));
 
         return gens;
     }

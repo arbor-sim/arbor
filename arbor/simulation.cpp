@@ -37,46 +37,46 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
-ARB_ARBOR_API void merge_cell_events(
-    time_type t_from,
-    time_type t_to,
-    event_span old_events,
-    event_span pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events)
-{
+ARB_ARBOR_API void merge_cell_events(time_type t_from,
+                                     time_type t_to,
+                                     event_span old_events,
+                                     event_span pending,
+                                     std::vector<event_generator>& generators,
+                                     pse_vector& new_events) {
     PE(communication:enqueue:setup);
     new_events.clear();
     old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
     PL();
 
     if (!generators.empty()) {
-        PE(communication:enqueue:setup);
         // Tree-merge events in [t_from, t_to) from old, pending and generator events.
-
+        PE(communication:enqueue:setup);
         std::vector<event_span> spanbuf;
         spanbuf.reserve(2+generators.size());
+        PL();
 
+        PE(communication:enqueue:split_old);
         const auto& [old_l, old_r] = split_sorted_range(old_events, t_to, event_time_less());
+        if (!old_l.empty()) spanbuf.emplace_back(old_l);
+        old_events = old_r;
+        PL();
+
+        PE(communication:enqueue:split_pending);
         const auto& [pen_l, pen_r] = split_sorted_range(pending, t_to, event_time_less());
+        if (!pen_l.empty()) spanbuf.emplace_back(pen_l);
+        pending = pen_r;
+        PL();
 
-        if (!old_l.empty()) spanbuf.push_back(old_l);
-        if (!pen_l.empty()) spanbuf.push_back(pen_l);
-
+        PE(communication:enqueue:generators);
         for (auto& g: generators) {
-            event_span evs = g.events(t_from, t_to);
-            if (!evs.empty()) {
-                spanbuf.push_back(evs);
-            }
+            auto evs = g.events(t_from, t_to);
+            if (evs.first != evs.second) spanbuf.emplace_back(evs);
         }
         PL();
 
         PE(communication:enqueue:tree);
         merge_events(std::move(spanbuf), new_events);
         PL();
-
-        old_events = old_r;
-        pending = pen_r;
     }
 
     // Merge (remaining) old and pending events.

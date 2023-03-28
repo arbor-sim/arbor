@@ -187,7 +187,7 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # Interface library `arbor-private-deps` collects dependencies, options etc.
 # for the arbor library.
 add_library(arbor-private-deps INTERFACE)
-target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS})
+target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ${CMAKE_DL_LIBS})
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
@@ -242,6 +242,7 @@ if(NOT ARB_USE_BUNDLED_RANDOM123)
     find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
+target_link_libraries(arbor-public-deps INTERFACE ext-random123)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)

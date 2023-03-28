@@ -76,15 +76,14 @@ struct explicit_schedule_shim: schedule_shim_base {
 // Python are manipulating this type. This is converted to an
 // arb::poisson_schedule when a C++ recipe is created from a Python recipe.
 struct poisson_schedule_shim: schedule_shim_base {
-    using rng_type = std::mt19937_64;
     using opt_time_type = std::optional<arb::time_type>;
 
     arb::time_type tstart; // ms
     arb::time_type freq; // kHz
     opt_time_type  tstop; // ms
-    rng_type::result_type seed;
+    arb::cell_gid_type seed;
 
-    poisson_schedule_shim(arb::time_type ts, arb::time_type f, rng_type::result_type s, pybind11::object tstop);
+    poisson_schedule_shim(arb::time_type ts, arb::time_type f, arb::cell_gid_type seed, pybind11::object tstop);
     poisson_schedule_shim(arb::time_type f);
 
     void set_tstart(arb::time_type t);

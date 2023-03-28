@@ -119,16 +119,13 @@ inline event_generator regular_generator(
     return event_generator(std::move(target), weight, regular_schedule(tstart, dt, tstop));
 }
 
-template <typename RNG>
-inline event_generator poisson_generator(
-    cell_local_label_type target,
-    float weight,
-    time_type tstart,
-    time_type rate_kHz,
-    const RNG& rng,
-    time_type tstop=terminal_time)
-{
-    return event_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, rng, tstop));
+inline event_generator poisson_generator(cell_local_label_type target,
+                                         float weight,
+                                         time_type tstart,
+                                         time_type rate_kHz,
+                                         cell_gid_type seed,
+                                         time_type tstop=terminal_time) {
+    return event_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, seed, tstop));
 }
 
 

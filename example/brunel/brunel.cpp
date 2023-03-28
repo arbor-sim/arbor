@@ -30,6 +30,11 @@
 #include <sup/path.hpp>
 #include <sup/strsub.hpp>
 
+#include "../../arbor/util/cbrng.hpp"
+
+// #include <Random123/philox.hpp>
+// #include <Random123/conventional/Engine.hpp>
+
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
 #include <arborenv/with_mpi.hpp>
@@ -141,10 +146,7 @@ public:
     }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        std::mt19937_64 G;
-        G.seed(gid + seed_);
-        time_type t0 = 0;
-        return {poisson_generator({"tgt"}, weight_ext_, t0, lambda_, G)};
+        return {poisson_generator({"tgt"}, weight_ext_, 0, lambda_, gid + seed_)};
     }
 
 private:

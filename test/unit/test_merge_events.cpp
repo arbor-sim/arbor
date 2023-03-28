@@ -224,7 +224,6 @@ TEST(merge_events, tourney_seq)
 // Test the tournament tree on a large set of Poisson generators.
 TEST(merge_events, tourney_poisson)
 {
-    using rndgen = std::mt19937_64;
     // Number of poisson generators.
     // Not a power of 2, so that there will be "null" leaf nodes in the
     // tournament tree.
@@ -240,8 +239,7 @@ TEST(merge_events, tourney_poisson)
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.
-        rndgen G(i%(ngen-1));
-        auto gen = poisson_generator(label, weight, t0, lambda, G);
+        auto gen = poisson_generator(label, weight, t0, lambda, i%(ngen - 1));
         gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
         generators.push_back(std::move(gen));
     }

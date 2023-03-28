@@ -1,0 +1,27 @@
+{
+    "name": "run_n=128_d=10-complex=true",
+    "num-cells": 4096,
+    "synapses": 1000,
+    "min-delay": 0.025,
+    "duration": 80,
+    "ring-size": 4,
+    "event-weight": 0.01,
+    "event-freq": 0.025,
+    "record": false,
+    "spikes": false,
+    "dt": 0.05,
+    "depth": 1 ,
+    "complex": false,
+    "branch-probs": [
+        0.5,
+        0.5
+    ],
+    "compartments": [
+        2,
+        2
+    ],
+    "lengths": [
+        20,
+        20
+    ]
+}
