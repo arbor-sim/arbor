@@ -40,6 +40,13 @@ struct remote_recipe: public arb::recipe {
         std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::lif_probe_voltage{}}; }
 };
 
+/*
+**     |--------------- MPI_COMM_WORLD ---------------|
+**     |---- Group 0 ----|          |---- Group 1 ----|
+**               \                       /
+**                \                     /
+**                 ------- Inter -------
+ */
 struct mpi_handle {
     MPI_Comm global = MPI_COMM_NULL;      // Global communicator; all processes live here
     int rank = -1, size = -1;             // Global coordinates
