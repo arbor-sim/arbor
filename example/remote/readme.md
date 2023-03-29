@@ -6,3 +6,6 @@ This example shows
 3. use of the supplemental tools exposed by Arbor to handle these connections.
 
 Please run it with at least two MPI processes.
+
+Also included is a cross language client (Python)/ server (C++) example for
+demonstration. (Not yet tested due to OpenMPI fickleness)
