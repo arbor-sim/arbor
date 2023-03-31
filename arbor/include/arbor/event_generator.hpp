@@ -25,10 +25,6 @@ namespace arb {
 //
 // An `event_generator` supports three operations:
 //
-// `void event_generator::reset()`
-//
-//     Reset generator state.
-//
 // `event_seq event_generator::events(time_type to, time_type from)`
 //
 //     Provide a non-owning view on to the events in the time interval
@@ -40,18 +36,12 @@ namespace arb {
 //     a label and a selection policy. These labels need to be resolved to a
 //     specific cell_lid_type. This is done using a resolution_function.
 //
-// The `event_seq` type is a pair of `spike_event` pointers that
-// provide a view onto an internally-maintained contiguous sequence
-// of generated spike event objects. This view is valid only for
-// the lifetime of the generator, and is invalidated upon a call
-// to `reset` or another call to `events`.
+// The `event_seq` type is a pair of `spike_event` pointers that provide a view
+// onto an internally-maintained contiguous sequence of generated spike event
+// objects. This view is valid only for the lifetime of the generator, and is
+// invalidated upon a another call to `events`.
 //
-// Calls to the `events` method must be monotonic in time: without an
-// intervening call to `reset`, two successive calls `events(t0, t1)`
-// and `events(t2, t3)` to the same event generator must satisfy
-// 0 ≤ t0 ≤ t1 ≤ t2 ≤ t3.
-//
-// `event_generator` objects have value semantics.
+//`event_generator` objects have value semantics.
 
 using event_seq = std::pair<const spike_event*, const spike_event*>;
 using resolution_function = std::function<cell_lid_type(const cell_local_label_type&)>;
@@ -67,10 +57,6 @@ struct event_generator {
 
     void resolve_label(resolution_function label_resolver) {
         resolved_ = label_resolver(target_);
-    }
-
-    void reset() {
-        sched_.reset();
     }
 
     event_seq events(time_type t0, time_type t1) {

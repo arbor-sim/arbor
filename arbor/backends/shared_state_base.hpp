@@ -7,6 +7,8 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
+#include "profile/profiler_macro.hpp"
+
 #include "util/rangeutil.hpp"
 
 namespace arb {
@@ -23,22 +25,33 @@ struct shared_state_base {
         d->set_dt();
     }
 
-    void begin_epoch(std::vector<deliverable_event> deliverables,
-                     std::vector<sample_event> samples) {
+    void begin_epoch(const std::vector<deliverable_event>& deliverables,
+                     const std::vector<sample_event>& samples) {
         auto d = static_cast<D*>(this);
         // events
-        d->deliverable_events.init(std::move(deliverables));
-        // samples
-        auto n_samples = samples.size();
-        if (d->sample_time.size() < n_samples) {
-            d->sample_time = array(n_samples);
-            d->sample_value = array(n_samples);
+        if (!deliverables.empty()) {
+            PE(advance:integrate:setup:deliverable_events);
+            d->deliverable_events.init(deliverables);
+            PL();
         }
-        d->sample_events.init(std::move(samples));
+        // samples
+        if (!samples.empty()) {
+            PE(advance:integrate:setup:samples_alloc);
+            auto n_samples = samples.size();
+            if (d->sample_time.size() < n_samples) {
+                d->sample_time = array(n_samples);
+                d->sample_value = array(n_samples);
+            }
+            PL();
+            PE(advance:integrate:setup:sample_init);
+            d->sample_events.init(std::move(samples));
+            PL();
+        }
         // thresholds
+        PE(advance:integrate:setup:watcher);
         d->watcher.clear_crossings();
+        PL();
     }
-
 
     void add_ion(const std::string& ion_name,
                  int charge,

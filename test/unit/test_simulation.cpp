@@ -92,7 +92,6 @@ TEST(simulation, spike_global_callback) {
     for (unsigned i = 0; i<n; ++i) {
         util::append(expected_spikes, util::transform_view(util::make_range(spike_times.at(i).events(0, t_max)),
             [i](double time) { return spike({i, 0}, time); }));
-        spike_times.at(i).reset();
     }
 
     play_spikes rec(spike_times);

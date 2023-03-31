@@ -73,10 +73,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 void mc_cell_group::reset() {
     spikes_.clear();
 
-    for (auto &entry: sampler_map_) {
-        entry.second.sched.reset();
-    }
-
     for (auto& b: binners_) {
         b.reset();
     }
@@ -411,13 +407,14 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             auto lid = idx_sorted_by_intdom[i];
             auto& lane = event_lanes[lid];
             auto curr_intdom = cell_to_intdom_[lid];
+            auto& division = target_handle_divisions_[lid];
+            auto& binner = binners_[lid];
 
             for (auto e: lane) {
                 if (e.time>=ep.t1) break;
-                e.time = binners_[lid].bin(e.time, tstart);
-                auto h = target_handles_[target_handle_divisions_[lid]+e.target];
-                auto ev = deliverable_event(e.time, h, e.weight);
-                staged_events_.push_back(ev);
+                e.time = binner.bin(e.time, tstart);
+                auto h = target_handles_[division + e.target];
+                staged_events_.emplace_back(e.time, h, e.weight);
                 count_staged++;
             }
 
@@ -528,7 +525,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.t1, dt, staged_events_, std::move(sample_events));
+    auto result = lowered_->integrate(ep.t1, dt, staged_events_, sample_events);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

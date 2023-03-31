@@ -43,10 +43,6 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
 }
 
 void benchmark_cell_group::reset() {
-    for (auto& c: cells_) {
-        c.time_sequence.reset();
-    }
-
     clear_spikes();
 }
 

@@ -90,8 +90,8 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    util::fill(gX_, 0);
-    util::fill(iX_, 0);
+    std::memset(gX_.data(), 0x0, gX_.size()*sizeof(gX_[0]));
+    std::memset(iX_.data(), 0x0, gX_.size()*sizeof(gX_[0]));
 }
 
 void ion_state::reset() {
@@ -143,7 +143,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
 }
 
 void istim_state::zero_current() {
-    util::fill(accu_stim_, 0);
+    std::memset(accu_stim_.data(), 0x0, accu_stim_.size()*sizeof(accu_stim_[0]));
 }
 
 void istim_state::reset() {
@@ -270,7 +270,8 @@ void shared_state::reset() {
 
 void shared_state::zero_currents() {
     util::fill(current_density, 0);
-    util::fill(conductivity, 0);
+    std::memset(current_density.data(), 0x0, current_density.size()*sizeof(current_density[0]));
+    std::memset(conductivity.data(), 0x0, conductivity.size()*sizeof(conductivity[0]));
     for (auto& i: ion_data) {
         i.second.zero_current();
     }

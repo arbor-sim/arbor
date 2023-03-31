@@ -250,10 +250,6 @@ TEST(merge_events, tourney_poisson)
         // Push all events before tfinal in gen to the expected values.
         event_span evs = gen.events(t0, tfinal);
         util::append(expected, evs);
-
-        // Reset the generator so that it is ready to generate the same
-        // events again for the tournament tree test.
-        gen.reset();
     }
     // Manually sort the expected events.
     util::sort(expected);

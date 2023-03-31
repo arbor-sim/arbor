@@ -60,8 +60,8 @@ public:
     fvm_integration_result integrate(
         value_type tfinal,
         value_type max_dt,
-        std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples) override;
+        const std::vector<deliverable_event>& staged_events,
+        const std::vector<sample_event>& staged_samples) override;
 
     // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
     // Fills cell_to_intdom map; returns number of intdoms
@@ -193,18 +193,17 @@ template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tfinal,
     value_type dt_max,
-    std::vector<deliverable_event> staged_events,
-    std::vector<sample_event> staged_samples)
+    const std::vector<deliverable_event>& staged_events,
+    const std::vector<sample_event>& staged_samples)
 {
     set_gpu();
 
     // Integration setup
-    PE(advance:integrate:setup);
+
     // Push samples and events down to the state and reset the spike thresholds.
-    state_->begin_epoch(std::move(staged_events), std::move(staged_samples));
+    state_->begin_epoch(staged_events, staged_samples);
     arb_assert((assert_tmin(), true));
     unsigned remaining_steps = dt_steps(tmin_, tfinal, dt_max);
-    PL();
 
     while (remaining_steps) {
         // Update any required reversal potentials based on ionic concs.
@@ -221,6 +220,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PE(advance:integrate:events:mark);
         auto deliverable_events = state_->mark_deliverable_events();
         PL();
+
         for (auto& m: mechanisms_) {
             m->deliver_events(deliverable_events);
             m->update_current();

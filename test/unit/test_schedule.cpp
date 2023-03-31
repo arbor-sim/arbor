@@ -64,15 +64,14 @@ void run_reset_check(schedule S, time_type t0, time_type t1, unsigned n, int see
     util::sort(second_div);
 
     std::vector<time_type> first;
-    for (auto ival: util::partition_view(first_div)) {
-        time_range ts = S.events(ival.first, ival.second);
+    for (const auto& [t0, t1]: util::partition_view(first_div)) {
+        time_range ts = S.events(t0, t1);
         util::append(first, ts);
     }
 
-    S.reset();
     std::vector<time_type> second;
-    for (auto ival: util::partition_view(second_div)) {
-        time_range ts = S.events(ival.first, ival.second);
+    for (const auto& [t0, t1]: util::partition_view(second_div)) {
+        time_range ts = S.events(t0, t1);
         util::append(second, ts);
     }
 
@@ -90,10 +89,8 @@ TEST(schedule, regular) {
     schedule S = regular_schedule(0.25);
     EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
-    S.reset();
     EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
-    S.reset();
     expected = {0.25, 0.5, 0.75, 1.0};
     EXPECT_EQ(expected, as_vector(S.events(0.1, 1.01)));
 }
@@ -124,7 +121,6 @@ TEST(schedule, regular_rounding) {
     auto int_l = as_vector(S.events(t0, t1));
     auto int_r = as_vector(S.events(t1, t2));
 
-    S.reset();
     auto int_a = as_vector(S.events(t0, t2));
 
     EXPECT_GE(int_l.front(), t0);
@@ -150,10 +146,8 @@ TEST(schedule, explicit_schedule) {
     schedule S = explicit_schedule(times);
     EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
-    S.reset();
     EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
-    S.reset();
     expected = {0.3, 1.0, 1.25, 1.7};
     EXPECT_EQ(expected, as_vector(S.events(0.3, 1.71)));
 }
@@ -271,11 +265,6 @@ TEST(schedule, poisson_rate) {
 TEST(schedule, poisson_invariants) {
     SCOPED_TRACE("poisson_invariants");
     run_invariant_checks(poisson_schedule(0.81, 100), 5.1, 15.3, 7);
-}
-
-TEST(schedule, poisson_reset) {
-    SCOPED_TRACE("poisson_reset");
-    run_reset_check(poisson_schedule(.11, 200), 1, 10, 7);
 }
 
 TEST(schedule, poisson_tstop) {

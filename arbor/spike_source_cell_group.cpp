@@ -62,11 +62,6 @@ void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_s
 };
 
 void spike_source_cell_group::reset() {
-    for (auto& ss: time_sequences_) {
-        for(auto& s: ss) {
-            s.reset();
-        }
-    }
     clear_spikes();
 }
 

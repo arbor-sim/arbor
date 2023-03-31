@@ -52,7 +52,7 @@ public:
     }
 
     // Initialize event streams from a vector of events, sorted by time.
-    void init(std::vector<Event> staged) {
+    void init(const std::vector<Event>& staged) {
         using ::arb::event_time;
         using ::arb::event_index;
         using ::arb::event_data;

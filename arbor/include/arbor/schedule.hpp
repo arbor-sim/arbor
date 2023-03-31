@@ -55,12 +55,9 @@ public:
         return impl_->events(t0, t1);
     }
 
-    void reset() { impl_->reset(); }
-
 private:
     struct interface {
         virtual time_event_span events(time_type t0, time_type t1) = 0;
-        virtual void reset() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
     };
@@ -73,18 +70,8 @@ private:
     struct wrap: interface {
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
-
-        virtual time_event_span events(time_type t0, time_type t1) {
-            return wrapped.events(t0, t1);
-        }
-
-        virtual void reset() {
-            wrapped.reset();
-        }
-
-        virtual iface_ptr clone() {
-            return std::make_unique<wrap<Impl>>(wrapped);
-        }
+        virtual time_event_span events(time_type t0, time_type t1) { return wrapped.events(t0, t1); }
+        virtual iface_ptr clone() { return std::make_unique<wrap<Impl>>(wrapped); }
 
         Impl wrapped;
     };
@@ -94,7 +81,6 @@ private:
 
 class empty_schedule {
 public:
-    void reset() {}
     time_event_span events(time_type t0, time_type t1) {
         static time_type no_time;
         return {&no_time, &no_time};
@@ -109,12 +95,11 @@ inline schedule::schedule(): schedule(empty_schedule{}) {}
 class ARB_ARBOR_API regular_schedule_impl {
 public:
     explicit regular_schedule_impl(time_type t0, time_type dt, time_type t1):
-        t0_(t0), t1_(t1), dt_(dt), oodt_(1./dt)
-    {
-        if (t0_<0) t0_ = 0;
-    };
+      t0_(std::max(0.0, t0)),
+      t1_(t1),
+      dt_(dt),
+      oodt_(1./dt) {}
 
-    void reset() {}
     time_event_span events(time_type t0, time_type t1);
 
 private:
@@ -124,11 +109,9 @@ private:
     std::vector<time_type> times_;
 };
 
-inline schedule regular_schedule(
-    time_type t0,
-    time_type dt,
-    time_type t1 = std::numeric_limits<time_type>::max())
-{
+inline schedule regular_schedule(time_type t0,
+                                 time_type dt,
+                                 time_type t1 = terminal_time) {
     return schedule(regular_schedule_impl(t0, dt, t1));
 }
 
@@ -136,32 +119,20 @@ inline schedule regular_schedule(time_type dt) {
     return regular_schedule(0, dt);
 }
 
-
 // Schedule at times given explicitly via a provided sorted sequence.
-class ARB_ARBOR_API explicit_schedule_impl {
+struct ARB_ARBOR_API explicit_schedule_impl {
 public:
     explicit_schedule_impl(const explicit_schedule_impl&) = default;
     explicit_schedule_impl(explicit_schedule_impl&&) = default;
 
     template <typename Seq>
-    explicit explicit_schedule_impl(const Seq& seq):
-        start_index_(0)
-    {
-        using std::begin;
-        using std::end;
-
-        times_.assign(begin(seq), end(seq));
+    explicit explicit_schedule_impl(const Seq& seq) {
+        times_.assign(std::begin(seq), std::end(seq));
         arb_assert(std::is_sorted(times_.begin(), times_.end()));
-    }
-
-    void reset() {
-        start_index_ = 0;
     }
 
     time_event_span events(time_type t0, time_type t1);
 
-private:
-    std::ptrdiff_t start_index_;
     std::vector<time_type> times_;
 };
 
@@ -177,35 +148,25 @@ inline schedule explicit_schedule(const std::initializer_list<time_type>& seq) {
 // Schedule at Poisson point process with rate 1/mean_dt,
 // restricted to non-negative times.
 
-struct poisson_schedule_impl {
+struct ARB_ARBOR_API poisson_schedule_impl {
     poisson_schedule_impl(time_type tstart, time_type rate_kHz, time_type tstop, cell_gid_type seed):
-        tstart_(tstart), next_(tstart), tstop_(tstop), oo_rate_(1.0/rate_kHz), seed_{seed}
-    {
+        tstart_(tstart), tstop_(tstop), oo_rate_(1.0/rate_kHz), seed_{seed} {
         arb_assert(tstart_>=0);
         arb_assert(tstart_ <= tstop_);
-        step();
     }
-
-    void reset() {
-        next_ = tstart_;
-        index_ = 0;
-        step();
-    }
-
     time_event_span events(time_type t0, time_type t1);
 
 private:
-    void step();
+    time_type step(time_type);
 
     time_type tstart_;
-    time_type next_;
-    std::vector<time_type> times_;
     time_type tstop_;
 
     time_type oo_rate_;
-    std::array<time_type, 4> cache_;
     std::size_t index_ = 4;
     std::uint64_t seed_;
+    std::array<time_type, 4> cache_;
+    std::vector<time_type> times_;
 };
 
 inline schedule poisson_schedule(time_type rate_kHz, cell_gid_type seed, time_type tstop=terminal_time) {
