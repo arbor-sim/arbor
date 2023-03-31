@@ -82,6 +82,23 @@ void fill(Seq&& seq, const V& value) {
     std::fill(canon.begin(), canon.end(), value);
 }
 
+// Zero a container, specialised for contiguous sequences
+
+template <typename T, typename A> inline
+void zero(std::vector<T, A>& vs) {
+    std::memset(vs.data(), 0x0, vs.size()*sizeof(vs[0]));
+}
+
+template <typename T, int N> inline
+void zero(std::array<T, N>& vs) {
+    std::memset(vs.data(), 0x0, vs.size()*sizeof(vs[0]));
+}
+
+inline
+void zero(std::string& vs) {
+    std::memset(vs.data(), 0x0, vs.size()*sizeof(vs[0]));
+}
+
 // Append sequence to a container
 
 template <typename Container, typename Seq>

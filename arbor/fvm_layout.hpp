@@ -234,7 +234,8 @@ struct fvm_ion_config {
     using value_type = arb_value_type;
     using index_type = arb_index_type;
 
-    // Keep track whether eX, Xi, Xo are actually to be reset.
+    // Keep track whether iX, eX, Xi, Xo are actually to be reset.
+    bool current_written = false;
     bool revpot_written = false;
     bool iconc_written = false;
     bool econc_written = false;

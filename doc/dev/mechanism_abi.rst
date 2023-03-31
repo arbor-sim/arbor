@@ -122,6 +122,10 @@ kinds of tables: :c:struct:`arb_field_info` and :c:struct:`arb_ion_info`.
 
     Ion name, eg Ca, K, ...
 
+  .. c:member:: bool write_current
+
+    writes iX?
+
   .. c:member:: bool write_int_concentration
 
     writes Xi?

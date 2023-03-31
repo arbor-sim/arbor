@@ -96,8 +96,8 @@ void lif_cell_group::set_binning_policy(binning_kind policy, time_type bin_inter
 
 void lif_cell_group::reset() {
     spikes_.clear();
-    util::fill(last_time_updated_, 0.);
-    util::fill(next_time_updatable_, 0.);
+    util::zero(last_time_updated_);
+    util::zero(next_time_updatable_);
 }
 
 // produce voltage V_m at t1, given cell state at t0 and no spikes in [t0, t1)

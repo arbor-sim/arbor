@@ -54,15 +54,15 @@ inline unsigned min_alignment(unsigned align) {
 
 using pad = util::padded_allocator<>;
 
-ion_state::ion_state(
-    int charge,
-    const fvm_ion_config& ion_data,
-    unsigned align,
-    solver_ptr ptr):
+ion_state::ion_state(int charge,
+                     const fvm_ion_config& ion_data,
+                     unsigned align,
+                     solver_ptr ptr):
     alignment(min_alignment(align)),
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
+    write_iX_(ion_data.current_written),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
@@ -90,12 +90,15 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    std::memset(gX_.data(), 0x0, gX_.size()*sizeof(gX_[0]));
-    std::memset(iX_.data(), 0x0, gX_.size()*sizeof(gX_[0]));
+    if (write_iX_) {
+        util::zero(gX_);
+        util::zero(iX_);
+    }
 }
 
 void ion_state::reset() {
-    zero_current();
+    util::zero(gX_);
+    util::zero(iX_);
     std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
     if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
@@ -110,8 +113,6 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
     frequency_(stim.frequency.begin(), stim.frequency.end(), pad(alignment)),
     phase_(stim.phase.begin(), stim.phase.end(), pad(alignment))
 {
-    using util::assign;
-
     // Translate instance-to-CV index from stim to istim_state index vectors.
     assign(accu_index_, util::index_into(stim.cv, accu_to_cv_));
     accu_stim_.resize(accu_to_cv_.size());
@@ -136,14 +137,14 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
         edivs.push_back(arb_index_type(envl_t.size()));
     }
 
-    assign(envl_amplitudes_, envl_a);
-    assign(envl_times_, envl_t);
-    assign(envl_divs_, edivs);
+    util::assign(envl_amplitudes_, envl_a);
+    util::assign(envl_times_, envl_t);
+    util::assign(envl_divs_, edivs);
     envl_index_.assign(edivs.data(), edivs.data()+n);
 }
 
 void istim_state::zero_current() {
-    std::memset(accu_stim_.data(), 0x0, accu_stim_.size()*sizeof(accu_stim_[0]));
+    util::zero(accu_stim_);
 }
 
 void istim_state::reset() {
@@ -255,10 +256,10 @@ shared_state::shared_state(arb_size_type n_intdom,
 
 void shared_state::reset() {
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
-    util::fill(current_density, 0);
-    util::fill(conductivity, 0);
-    util::fill(time, 0);
-    util::fill(time_to, 0);
+    util::zero(current_density);
+    util::zero(conductivity);
+    util::zero(time);
+    util::zero(time_to);
     util::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
@@ -269,12 +270,9 @@ void shared_state::reset() {
 }
 
 void shared_state::zero_currents() {
-    util::fill(current_density, 0);
-    std::memset(current_density.data(), 0x0, current_density.size()*sizeof(current_density[0]));
-    std::memset(conductivity.data(), 0x0, conductivity.size()*sizeof(conductivity[0]));
-    for (auto& i: ion_data) {
-        i.second.zero_current();
-    }
+    util::zero(current_density);
+    util::zero(conductivity);
+    for (auto& [_ion, data]: ion_data) data.zero_current();
     stim_data.zero_current();
 }
 

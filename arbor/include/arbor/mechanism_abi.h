@@ -20,7 +20,7 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 4
+#define ARB_MECH_ABI_VERSION_MINOR 5
 #define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
@@ -195,6 +195,7 @@ typedef struct arb_field_info {
 // Ion dependency
 typedef struct arb_ion_info {
     const char* name;
+    bool write_current;
     bool write_int_concentration;
     bool write_ext_concentration;
     bool use_diff_concentration;

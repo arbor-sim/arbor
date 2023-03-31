@@ -26,13 +26,10 @@
 
 namespace arb {
 
-template <typename Seq, typename Value, typename Less = std::less<>>
-auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
-    auto canon = util::canonical_view(seq);
-    auto it = std::lower_bound(canon.begin(), canon.end(), v, cmp);
-    return std::make_pair(
-        util::make_range(seq.begin(), it),
-        util::make_range(it, seq.end()));
+std::pair<event_span, event_span> split_sorted_range(event_span seq, time_type v) {
+    auto [beg, end] = seq;
+    auto mid = std::lower_bound(beg, end, v, event_time_less());
+    return {{beg, mid}, {mid, end}};
 }
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,

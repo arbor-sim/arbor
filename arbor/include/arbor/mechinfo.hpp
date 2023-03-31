@@ -33,6 +33,7 @@ struct mechanism_field_spec {
 };
 
 struct ion_dependency {
+    bool write_current           = false;
     bool write_concentration_int = false;
     bool write_concentration_ext = false;
 

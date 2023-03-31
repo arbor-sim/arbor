@@ -46,9 +46,9 @@ public:
         ev_data_.clear();
         remaining_ = 0;
 
-        util::fill(span_begin_, 0);
-        util::fill(span_end_, 0);
-        util::fill(mark_, 0);
+        util::zero(span_begin_);
+        util::zero(span_end_);
+        util::zero(mark_);
     }
 
     // Initialize event streams from a vector of events, sorted by time.

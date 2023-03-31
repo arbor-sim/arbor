@@ -53,6 +53,7 @@ struct ARB_ARBOR_API ion_state {
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
     bool write_Xi_;          // is Xi written?
+    bool write_iX_;          // is iX written?
 
     iarray node_index_;     // Instance to CV map.
     array iX_;              // (A/m²)  current density
@@ -74,12 +75,10 @@ struct ARB_ARBOR_API ion_state {
 
     ion_state() = default;
 
-    ion_state(
-        int charge,
-        const fvm_ion_config& ion_data,
-        unsigned align,
-        solver_ptr ptr
-    );
+    ion_state(int charge,
+              const fvm_ion_config& ion_data,
+              unsigned align,
+              solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();

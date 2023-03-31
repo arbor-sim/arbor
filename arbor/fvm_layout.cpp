@@ -702,10 +702,11 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         append(L.reset_econc, R.reset_econc);
         append(L.init_revpot, R.init_revpot);
         append(L.face_diffusivity, R.face_diffusivity);
-        L.is_diffusive |= R.is_diffusive;
-        L.econc_written  |= R.econc_written;
-        L.iconc_written  |= R.iconc_written;
-        L.revpot_written |= R.revpot_written;
+        L.is_diffusive    |= R.is_diffusive;
+        L.current_written |= R.current_written;
+        L.econc_written   |= R.econc_written;
+        L.iconc_written   |= R.iconc_written;
+        L.revpot_written  |= R.revpot_written;
     }
 
     for (const auto& kv: right.mechanisms) {
@@ -806,8 +807,15 @@ struct fvm_ion_build_data {
     mcable_map<double> init_iconc_mask;
     mcable_map<double> init_econc_mask;
     bool write_xi = false;
+    bool write_ix = false;
     bool write_xo = false;
     std::vector<arb_index_type> support;
+
+    void add_dependency(const ion_dependency& dep) {
+        write_ix |= dep.write_current;
+        write_xi |= dep.write_concentration_int;
+        write_xo |= dep.write_concentration_ext;
+    }
 
     void add_to_support(const std::vector<arb_index_type>& cvs) {
         arb_assert(util::is_sorted(cvs));
@@ -1055,7 +1063,7 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
     const auto& geometry = data.D.geometry;
     for (auto cv: geometry.cell_cvs(data.cell_idx)) {
         double area = 0;
-        util::fill(param_on_cv, 0.);
+        util::zero(param_on_cv);
         for (const mcable& cable: geometry.cables(cv)) {
             double area_on_cable = data.embedding.integrate_area(cable, pw_over_cable(support, cable, 0.));
             if (!area_on_cable) continue;
@@ -1194,8 +1202,7 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
 
         for (const auto& [ion, dep]: info.ions) {
             auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
+            build_data.add_dependency(dep);
             build_data.add_to_support(config.cv);
 
             auto ok = true;
@@ -1298,6 +1305,7 @@ make_ion_config(fvm_ion_map build_data,
             config.face_diffusivity = di->second.face_diffusivity;
         }
 
+        config.current_written = build_data.write_ix;
         config.econc_written = build_data.write_xo;
         config.iconc_written = build_data.write_xi;
         if (!config.cv.empty()) result[ion] = std::move(config);
@@ -1489,8 +1497,7 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
         // If synapse uses an ion, add to ion support.
         for (const auto& [ion, dep]: info.ions) {
             auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
+            build_data.add_dependency(dep);
             build_data.add_to_support(config.cv);
         }
         n_target += config.target.size();
@@ -1554,9 +1561,7 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
         }
 
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
+            ion_build_data[ion].add_dependency(dep);
         }
 
         result[name] = std::move(config);

@@ -52,8 +52,9 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
                 id.unit_string(), val, lo, hi);
     };
     auto fmt_ion = [&](const auto& ion) {
-        return fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {}, {} }}"),
+        return fmt::format(FMT_COMPILE("{{ \"{}\", {}, {}, {}, {}, {}, {}, {}, {}, {} }}"),
            ion.name,
+           ion.writes_current(),
            ion.writes_concentration_int(), ion.writes_concentration_ext(),
            ion.uses_concentration_diff(),
            ion.writes_rev_potential(), ion.uses_rev_potential(),
