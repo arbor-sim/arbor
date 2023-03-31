@@ -42,24 +42,24 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                      pse_vector& new_events) {
     PE(communication:enqueue:setup);
     new_events.clear();
-    old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
+    old_events = split_sorted_range(old_events, t_from).second;
     PL();
 
     if (!generators.empty()) {
         // Tree-merge events in [t_from, t_to) from old, pending and generator events.
         PE(communication:enqueue:setup);
         std::vector<event_span> spanbuf;
-        spanbuf.reserve(2+generators.size());
+        spanbuf.reserve(2 + generators.size());
         PL();
 
         PE(communication:enqueue:split_old);
-        const auto& [old_l, old_r] = split_sorted_range(old_events, t_to, event_time_less());
+        const auto& [old_l, old_r] = split_sorted_range(old_events, t_to);
         if (!old_l.empty()) spanbuf.emplace_back(old_l);
         old_events = old_r;
         PL();
 
         PE(communication:enqueue:split_pending);
-        const auto& [pen_l, pen_r] = split_sorted_range(pending, t_to, event_time_less());
+        const auto& [pen_l, pen_r] = split_sorted_range(pending, t_to);
         if (!pen_l.empty()) spanbuf.emplace_back(pen_l);
         pending = pen_r;
         PL();
