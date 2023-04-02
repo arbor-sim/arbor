@@ -71,13 +71,13 @@ public:
 
     static network_selection destination_label(std::vector<cell_tag_type> labels);
 
-    static network_selection source_gid(std::vector<cell_gid_type> gids);
+    static network_selection source_cell(std::vector<cell_gid_type> gids);
 
-    static network_selection source_gid_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+    static network_selection source_cell_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
 
-    static network_selection destination_gid(std::vector<cell_gid_type> gids);
+    static network_selection destination_cell(std::vector<cell_gid_type> gids);
 
-    static network_selection destination_gid_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+    static network_selection destination_cell_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
 
     static network_selection chain(std::vector<cell_gid_type> gids);
 

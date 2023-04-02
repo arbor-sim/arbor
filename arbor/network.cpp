@@ -212,10 +212,10 @@ struct network_selection_destination_label_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_source_gid_impl: public network_selection_impl {
+struct network_selection_source_cell_impl: public network_selection_impl {
     std::vector<cell_gid_type> sorted_gids;
 
-    explicit network_selection_source_gid_impl(std::vector<cell_gid_type> gids):
+    explicit network_selection_source_cell_impl(std::vector<cell_gid_type> gids):
         sorted_gids(std::move(gids)) {
         std::sort(sorted_gids.begin(), sorted_gids.end());
     }
@@ -239,10 +239,10 @@ struct network_selection_source_gid_impl: public network_selection_impl {
 };
 
 
-struct network_selection_source_gid_range_impl: public network_selection_impl {
+struct network_selection_source_cell_range_impl: public network_selection_impl {
     cell_gid_type gid_begin, gid_end, step;
 
-    network_selection_source_gid_range_impl(cell_gid_type gid_begin,
+    network_selection_source_cell_range_impl(cell_gid_type gid_begin,
         cell_gid_type gid_end,
         cell_gid_type step):
         gid_begin(gid_begin),
@@ -267,10 +267,10 @@ struct network_selection_source_gid_range_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_destination_gid_impl: public network_selection_impl {
+struct network_selection_destination_cell_impl: public network_selection_impl {
     std::vector<cell_gid_type> sorted_gids;
 
-    network_selection_destination_gid_impl(std::vector<cell_gid_type> gids):
+    network_selection_destination_cell_impl(std::vector<cell_gid_type> gids):
         sorted_gids(std::move(gids)) {
         std::sort(sorted_gids.begin(), sorted_gids.end());
     }
@@ -293,10 +293,10 @@ struct network_selection_destination_gid_impl: public network_selection_impl {
     }
 };
 
-struct network_selection_destination_gid_range_impl: public network_selection_impl {
+struct network_selection_destination_cell_range_impl: public network_selection_impl {
     cell_gid_type gid_begin, gid_end, step;
 
-    network_selection_destination_gid_range_impl(cell_gid_type gid_begin,
+    network_selection_destination_cell_range_impl(cell_gid_type gid_begin,
         cell_gid_type gid_end,
         cell_gid_type step):
         gid_begin(gid_begin),
@@ -1039,24 +1039,24 @@ network_selection network_selection::destination_label(std::vector<cell_tag_type
         std::make_shared<network_selection_destination_label_impl>(std::move(labels)));
 }
 
-network_selection network_selection::source_gid(std::vector<cell_gid_type> gids) {
-    return network_selection(std::make_shared<network_selection_source_gid_impl>(std::move(gids)));
+network_selection network_selection::source_cell(std::vector<cell_gid_type> gids) {
+    return network_selection(std::make_shared<network_selection_source_cell_impl>(std::move(gids)));
 }
 
-network_selection network_selection::source_gid_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step) {
+network_selection network_selection::source_cell_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step) {
     return network_selection(
-        std::make_shared<network_selection_source_gid_range_impl>(gid_begin, gid_end, step));
+        std::make_shared<network_selection_source_cell_range_impl>(gid_begin, gid_end, step));
 }
 
-network_selection network_selection::destination_gid(std::vector<cell_gid_type> gids) {
+network_selection network_selection::destination_cell(std::vector<cell_gid_type> gids) {
     return network_selection(
-        std::make_shared<network_selection_destination_gid_impl>(std::move(gids)));
+        std::make_shared<network_selection_destination_cell_impl>(std::move(gids)));
 }
 
-network_selection network_selection::destination_gid_range(cell_gid_type gid_begin,
+network_selection network_selection::destination_cell_range(cell_gid_type gid_begin,
     cell_gid_type gid_end, cell_gid_type step) {
     return network_selection(
-        std::make_shared<network_selection_destination_gid_range_impl>(gid_begin, gid_end, step));
+        std::make_shared<network_selection_destination_cell_range_impl>(gid_begin, gid_end, step));
 }
 
 network_selection network_selection::chain(std::vector<cell_gid_type> gids) {

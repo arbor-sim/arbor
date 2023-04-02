@@ -231,7 +231,6 @@ eval_map_type network_eval_map{
     {"destination-cell-kind",
         make_call<arb::cell_kind>(arb::network_selection::destination_cell_kind,
             "all destinations of cells matching given cell kind argument: (kind:cell-kind)")},
-    // TODO source / destination label
     {"source-label",
         make_arg_vec_call<cell_tag_type>(
             [](const std::vector<std::variant<cell_tag_type>>& vec) {
@@ -254,32 +253,32 @@ eval_map_type network_eval_map{
                 return arb::network_selection::destination_label(std::move(labels));
             },
             "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"source-gid",
+    {"source-cell",
         make_arg_vec_call<int>(
             [](const std::vector<std::variant<int>>& vec) {
                 std::vector<cell_gid_type> gids;
                 std::transform(vec.begin(), vec.end(), std::back_inserter(gids), [](const auto& x) {
                     return std::get<int>(x);
                 });
-                return arb::network_selection::source_gid(std::move(gids));
+                return arb::network_selection::source_cell(std::move(gids));
             },
             "all sources in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"source-gid-range",
-        make_call<int, int, int>(arb::network_selection::source_gid_range,
+    {"source-cell-range",
+        make_call<int, int, int>(arb::network_selection::source_cell_range,
             "all sources in cell with gid range [begin, end) with given step size: (begin:integer) "
             "(end:integer) (step:integer)")},
-    {"destination-gid",
+    {"destination-cell",
         make_arg_vec_call<int>(
             [](const std::vector<std::variant<int>>& vec) {
                 std::vector<cell_gid_type> gids;
                 std::transform(vec.begin(), vec.end(), std::back_inserter(gids), [](const auto& x) {
                     return std::get<int>(x);
                 });
-                return arb::network_selection::destination_gid(std::move(gids));
+                return arb::network_selection::destination_cell(std::move(gids));
             },
             "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"destination-gid-range",
-        make_call<int, int, int>(arb::network_selection::destination_gid_range,
+    {"destination-cell-range",
+        make_call<int, int, int>(arb::network_selection::destination_cell_range,
             "all destinations in cell with gid range [begin, end) with given step size: "
             "(begin:integer) (end:integer) (step:integer)")},
     {"chain",

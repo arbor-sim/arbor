@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include <arbor/network.hpp>
 #include <arbor/util/any_visitor.hpp>
