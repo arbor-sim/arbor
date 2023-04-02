@@ -240,22 +240,24 @@ struct network_selection_source_gid_impl: public network_selection_impl {
 
 
 struct network_selection_source_gid_range_impl: public network_selection_impl {
-    cell_gid_type gid_begin, gid_end;
+    cell_gid_type gid_begin, gid_end, step;
 
     network_selection_source_gid_range_impl(cell_gid_type gid_begin,
-        cell_gid_type gid_end):
+        cell_gid_type gid_end,
+        cell_gid_type step):
         gid_begin(gid_begin),
-        gid_end(gid_end) {}
+        gid_end(gid_end),
+        step(step) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return src.gid >= gid_begin && src.gid < gid_end;
+        return src.gid >= gid_begin && src.gid < gid_end && !((src.gid - gid_begin) % step);
     }
 
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return gid >= gid_begin && gid < gid_end;
+        return gid >= gid_begin && gid < gid_end && !((gid - gid_begin) % step);
     }
 
     bool select_destination(cell_kind kind,
@@ -292,16 +294,18 @@ struct network_selection_destination_gid_impl: public network_selection_impl {
 };
 
 struct network_selection_destination_gid_range_impl: public network_selection_impl {
-    cell_gid_type gid_begin, gid_end;
+    cell_gid_type gid_begin, gid_end, step;
 
     network_selection_destination_gid_range_impl(cell_gid_type gid_begin,
-        cell_gid_type gid_end):
+        cell_gid_type gid_end,
+        cell_gid_type step):
         gid_begin(gid_begin),
-        gid_end(gid_end) {}
+        gid_end(gid_end),
+        step(step) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return dest.gid >= gid_begin && dest.gid < gid_end;
+        return dest.gid >= gid_begin && dest.gid < gid_end && !((dest.gid - gid_begin) % step);
     }
 
     bool select_source(cell_kind kind,
@@ -313,14 +317,14 @@ struct network_selection_destination_gid_range_impl: public network_selection_im
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return gid >= gid_begin && gid < gid_end;
+        return gid >= gid_begin && gid < gid_end && !((gid - gid_begin) % step);
     }
 };
 
-struct network_selection_ring_impl: public network_selection_impl {
+struct network_selection_chain_impl: public network_selection_impl {
     std::vector<cell_gid_type> gids; // preserved order of ring
     std::vector<cell_gid_type> sorted_gids;
-    network_selection_ring_impl(std::vector<cell_gid_type> gids): gids(std::move(gids)) {
+    network_selection_chain_impl(std::vector<cell_gid_type> gids): gids(std::move(gids)) {
         sorted_gids = this->gids; // copy
         std::sort(sorted_gids.begin(), sorted_gids.end());
     }
@@ -341,9 +345,6 @@ struct network_selection_ring_impl: public network_selection_impl {
             if ((src.gid == gids[i] && dest.gid == gids[i + 1])) return true;
         }
 
-        // return true if front and back gid to close ring
-        if ((dest.gid == gids.front() && src.gid == gids.back())) return true;
-
         return false;
     }
 
@@ -361,33 +362,71 @@ struct network_selection_ring_impl: public network_selection_impl {
 };
 
 
-struct network_selection_ring_range_impl: public network_selection_impl {
-    cell_gid_type gid_begin, gid_end;
+struct network_selection_chain_range_impl: public network_selection_impl {
+    cell_gid_type gid_begin, gid_end, step;
 
-    network_selection_ring_range_impl(cell_gid_type gid_begin, cell_gid_type gid_end):
+    network_selection_chain_range_impl(cell_gid_type gid_begin,
+        cell_gid_type gid_end,
+        cell_gid_type step):
         gid_begin(gid_begin),
-        gid_end(gid_end) {}
+        gid_end(gid_end),
+        step(step) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        if (src.gid < gid_begin || src.gid >= gid_end) return false;
-        if (dest.gid < gid_begin || dest.gid >= gid_end) return false;
+        if (src.gid < gid_begin || src.gid >= gid_end || dest.gid < gid_begin ||
+            dest.gid >= gid_end)
+            return false;
 
-        return src.gid + 1 == dest.gid || (dest.gid == gid_begin && src.gid == gid_end - 1);
+        return src.gid + step == dest.gid && !((src.gid - gid_begin) % step);
     }
 
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
         if (gid < gid_begin || gid >= gid_end) return false;
-        return true;
+        return !((gid - gid_begin) % step);
     }
 
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
         if (gid < gid_begin || gid >= gid_end) return false;
-        return true;
+        return !((gid - gid_begin) % step);
+    }
+};
+
+struct network_selection_reverse_chain_range_impl: public network_selection_impl {
+    cell_gid_type gid_begin, gid_end, step;
+
+    network_selection_reverse_chain_range_impl(cell_gid_type gid_begin,
+        cell_gid_type gid_end,
+        cell_gid_type step):
+        gid_begin(gid_begin),
+        gid_end(gid_end),
+        step(step) {}
+
+    bool select_connection(const network_site_info& src,
+        const network_site_info& dest) const override {
+        if (src.gid < gid_begin || src.gid >= gid_end || dest.gid < gid_begin ||
+            dest.gid >= gid_end)
+            return false;
+
+        return dest.gid + step == src.gid && !((src.gid - gid_begin) % step);
+    }
+
+    bool select_source(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        if (gid < gid_begin || gid >= gid_end) return false;
+        return !((gid - gid_begin) % step);
+    }
+
+    bool select_destination(cell_kind kind,
+        cell_gid_type gid,
+        const std::string_view& label) const override {
+        if (gid < gid_begin || gid >= gid_end) return false;
+        return !((gid - gid_begin) % step);
     }
 };
 
@@ -1004,8 +1043,9 @@ network_selection network_selection::source_gid(std::vector<cell_gid_type> gids)
     return network_selection(std::make_shared<network_selection_source_gid_impl>(std::move(gids)));
 }
 
-network_selection network_selection::source_gid(cell_gid_type gid_begin, cell_gid_type gid_end) {
-    return network_selection(std::make_shared<network_selection_source_gid_range_impl>(gid_begin, gid_end));
+network_selection network_selection::source_gid_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step) {
+    return network_selection(
+        std::make_shared<network_selection_source_gid_range_impl>(gid_begin, gid_end, step));
 }
 
 network_selection network_selection::destination_gid(std::vector<cell_gid_type> gids) {
@@ -1013,22 +1053,29 @@ network_selection network_selection::destination_gid(std::vector<cell_gid_type> 
         std::make_shared<network_selection_destination_gid_impl>(std::move(gids)));
 }
 
-network_selection network_selection::destination_gid(cell_gid_type gid_begin,
-    cell_gid_type gid_end) {
+network_selection network_selection::destination_gid_range(cell_gid_type gid_begin,
+    cell_gid_type gid_end, cell_gid_type step) {
     return network_selection(
-        std::make_shared<network_selection_destination_gid_range_impl>(gid_begin, gid_end));
+        std::make_shared<network_selection_destination_gid_range_impl>(gid_begin, gid_end, step));
 }
 
-
-network_selection network_selection::ring(std::vector<cell_gid_type> gids) {
+network_selection network_selection::chain(std::vector<cell_gid_type> gids) {
     return network_selection(
-        std::make_shared<network_selection_ring_impl>(std::move(gids)));
+        std::make_shared<network_selection_chain_impl>(std::move(gids)));
 }
 
-network_selection network_selection::ring(cell_gid_type gid_begin,
-    cell_gid_type gid_end) {
+network_selection network_selection::chain_range(cell_gid_type gid_begin,
+    cell_gid_type gid_end,
+    cell_gid_type step) {
     return network_selection(
-        std::make_shared<network_selection_ring_range_impl>(gid_begin, gid_end));
+        std::make_shared<network_selection_chain_range_impl>(gid_begin, gid_end, step));
+}
+
+network_selection network_selection::reverse_chain_range(cell_gid_type gid_begin,
+    cell_gid_type gid_end,
+    cell_gid_type step) {
+    return network_selection(
+        std::make_shared<network_selection_reverse_chain_range_impl>(gid_begin, gid_end, step));
 }
 
 network_selection network_selection::complement(network_selection s) {

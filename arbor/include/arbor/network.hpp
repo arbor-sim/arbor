@@ -73,15 +73,17 @@ public:
 
     static network_selection source_gid(std::vector<cell_gid_type> gids);
 
-    static network_selection source_gid(cell_gid_type gid_begin, cell_gid_type gid_end);
+    static network_selection source_gid_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
 
     static network_selection destination_gid(std::vector<cell_gid_type> gids);
 
-    static network_selection destination_gid(cell_gid_type gid_begin, cell_gid_type gid_end);
+    static network_selection destination_gid_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
 
-    static network_selection ring(std::vector<cell_gid_type> gids);
+    static network_selection chain(std::vector<cell_gid_type> gids);
 
-    static network_selection ring(cell_gid_type gid_begin, cell_gid_type gid_end);
+    static network_selection chain_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+
+    static network_selection reverse_chain_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
 
     static network_selection intersect(network_selection left, network_selection right);
 

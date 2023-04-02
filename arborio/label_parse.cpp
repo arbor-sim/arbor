@@ -22,25 +22,6 @@ label_parse_error::label_parse_error(const std::string& msg, const arb::src_loca
 {}
 
 namespace {
-struct gid_list_label {
-    gid_list_label() = default;
-
-    gid_list_label(cell_gid_type gid): gids({gid}) {}
-
-    std::vector<cell_gid_type> gids;
-};
-
-struct gid_range_label {
-    gid_range_label() = default;
-
-    gid_range_label(cell_gid_type gid_begin, cell_gid_type gid_end):
-        gid_begin(gid_begin),
-        gid_end(gid_end) {}
-
-    cell_gid_type gid_begin = 0;
-    cell_gid_type gid_end = 0;
-};
-
 using eval_map_type= std::unordered_multimap<std::string, evaluator>;
 
 eval_map_type eval_map {
@@ -215,23 +196,6 @@ eval_map_type network_eval_map{
     {"spike-source-cell",
         make_call<>([]() { return arb::cell_kind::benchmark; }, "Spike source cell kind")},
 
-    // gid structs
-    {"gid-range",
-        make_call<int, int>(
-            [](int gid_begin, int gid_end) { return gid_range_label(gid_begin, gid_end); },
-            "Range of gids in interval [begin, end): (begin, end)")},
-    {"gid-list",
-        make_call<int>([](int gid) { return gid_list_label(gid); }, "Single gid: (gid:integer)")},
-    {"gid-list",
-        make_conversion_fold<gid_list_label, gid_list_label, int>(
-            [](gid_list_label a, gid_list_label b) {
-                a.gids.insert(a.gids.end(), b.gids.begin(), b.gids.end());
-                return a;
-            },
-            "List of global indices with at least 2 arguments: ((gid-list | integer) (gid-list | "
-            "integer) [...(gid-list | "
-            "integer)])")},
-
     // network_selection
     {"all", make_call<>(arb::network_selection::all, "network selection of all cells and labels")},
     {"none", make_call<>(arb::network_selection::none, "network selection of no cells and labels")},
@@ -267,57 +231,80 @@ eval_map_type network_eval_map{
     {"destination-cell-kind",
         make_call<arb::cell_kind>(arb::network_selection::destination_cell_kind,
             "all destinations of cells matching given cell kind argument: (kind:cell-kind)")},
-        //TODO source / destination label
+    // TODO source / destination label
+    {"source-label",
+        make_arg_vec_call<cell_tag_type>(
+            [](const std::vector<std::variant<cell_tag_type>>& vec) {
+                std::vector<cell_tag_type> labels;
+                std::transform(vec.begin(), vec.end(), std::back_inserter(labels), [](const auto&
+                x) {
+                    return std::get<cell_tag_type>(x);
+                });
+                return arb::network_selection::source_label(std::move(labels));
+            },
+            "all sources in cell with gid in list: (gid:integer) [...(gid:integer)]")},
+    {"destination-label",
+        make_arg_vec_call<cell_tag_type>(
+            [](const std::vector<std::variant<cell_tag_type>>& vec) {
+                std::vector<cell_tag_type> labels;
+                std::transform(vec.begin(), vec.end(), std::back_inserter(labels), [](const auto&
+                x) {
+                    return std::get<cell_tag_type>(x);
+                });
+                return arb::network_selection::destination_label(std::move(labels));
+            },
+            "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
     {"source-gid",
-        make_call<int>(
-            [](int gid) {
-                return arb::network_selection::source_gid(
-                    std::vector<cell_gid_type>({static_cast<cell_gid_type>(gid)}));
+        make_arg_vec_call<int>(
+            [](const std::vector<std::variant<int>>& vec) {
+                std::vector<cell_gid_type> gids;
+                std::transform(vec.begin(), vec.end(), std::back_inserter(gids), [](const auto& x) {
+                    return std::get<int>(x);
+                });
+                return arb::network_selection::source_gid(std::move(gids));
             },
-            "all sources in cell with given gid: (gid:integer)")},
-    {"source-gid",
-        make_call<gid_list_label>(
-            [](gid_list_label list) {
-                return arb::network_selection::source_gid(std::move(list.gids));
-            },
-            "all sources of cells gid in list argument: (list: gid-list)")},
-    {"source-gid",
-        make_call<gid_range_label>(
-            [](gid_range_label range) {
-                return arb::network_selection::source_gid(range.gid_begin, range.gid_end);
-            },
-            "All sources of cells within gid range: (range: gid-range)")},
+            "all sources in cell with gid in list: (gid:integer) [...(gid:integer)]")},
+    {"source-gid-range",
+        make_call<int, int, int>(arb::network_selection::source_gid_range,
+            "all sources in cell with gid range [begin, end) with given step size: (begin:integer) "
+            "(end:integer) (step:integer)")},
     {"destination-gid",
-        make_call<int>(
-            [](int gid) {
-                return arb::network_selection::destination_gid(
-                    std::vector<cell_gid_type>({static_cast<cell_gid_type>(gid)}));
+        make_arg_vec_call<int>(
+            [](const std::vector<std::variant<int>>& vec) {
+                std::vector<cell_gid_type> gids;
+                std::transform(vec.begin(), vec.end(), std::back_inserter(gids), [](const auto& x) {
+                    return std::get<int>(x);
+                });
+                return arb::network_selection::destination_gid(std::move(gids));
             },
-            "all destinations in cell with given gid: (gid:integer)")},
-    {"destination-gid",
-        make_call<gid_list_label>(
-            [](gid_list_label list) {
-                return arb::network_selection::destination_gid(std::move(list.gids));
+            "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
+    {"destination-gid-range",
+        make_call<int, int, int>(arb::network_selection::destination_gid_range,
+            "all destinations in cell with gid range [begin, end) with given step size: "
+            "(begin:integer) (end:integer) (step:integer)")},
+    {"chain",
+        make_arg_vec_call<int>(
+            [](const std::vector<std::variant<int>>& vec) {
+                std::vector<cell_gid_type> gids;
+                std::transform(vec.begin(), vec.end(), std::back_inserter(gids), [](const auto& x) {
+                    return std::get<int>(x);
+                });
+                return arb::network_selection::chain(std::move(gids));
             },
-            "all destinations of cells gid in list argument: (list: gid-list)")},
-    {"destination-gid",
-        make_call<gid_range_label>(
-            [](gid_range_label range) {
-                return arb::network_selection::destination_gid(range.gid_begin, range.gid_end);
-            },
-            "all destinations of cells within gid range: (range: gid-range)")},
-    {"ring",
-        make_call<gid_list_label>(
-            [](gid_list_label list) { return arb::network_selection::ring(std::move(list.gids)); },
-            "Only select connections between neighboring gids in list or between first and last "
-            "entry: (gids: gid-list)")},
-    {"ring",
-        make_call<gid_range_label>(
-            [](gid_range_label range) {
-                return arb::network_selection::ring(range.gid_begin, range.gid_end);
-            },
-            "Only select connections between neighboring gids in range [begin, end) or between "
-            "first and last range member: (range: gid-range)")},
+            "A chain of connections in the given order of gids in list, such that entry \"i\" is "
+            "the source and entry \"i+1\" the destination: (gid:integer) [...(gid:integer)]")},
+    {"chain-range",
+        make_call<int, int, int>(arb::network_selection::chain_range,
+            "A chain of connections for all gids in range [begin, end) with given step size. Each "
+            "entry \"i\" is connected as source to the destination \"i+1\": (begin:integer) "
+            "(end:integer) (step:integer)")},
+    {"reverse-chain-range",
+        make_call<int, int, int>(arb::network_selection::reverse_chain_range,
+            "A chain of connections for all gids in range [begin, end) with given step size. Each "
+            "entry \"i+1\" is connected as source to the destination \"i\". This results in "
+            "connection directions in reverse compared to the (chain-range ...) selection: "
+            "(begin:integer) "
+            "(end:integer) (step:integer)")},
     {"random-bernoulli",
         make_call<int, double>(arb::network_selection::random_bernoulli,
             "randomly selected with given seed and probability. 2 arguments: (seed:integer, "
