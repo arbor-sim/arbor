@@ -5,4 +5,3 @@ add_dependencies(examples remote server client)
 
 target_link_libraries(remote PRIVATE arbor arborio arborenv arbor-sup ${json_library_name})
 target_link_libraries(server PRIVATE arbor arborio arborenv arbor-sup ${json_library_name})
-target_link_libraries(client PRIVATE arbor arborio arborenv arbor-sup ${json_library_name})
