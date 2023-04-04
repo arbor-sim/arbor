@@ -36,6 +36,20 @@ do
     cd -
 done
 
+# MPI only examples
+if [[ $PREFIX = mpirun* ]]
+then
+    for ex in remote
+    do
+        echo "   - $ex"
+        dir=`echo $ex | tr ' ' '_'`
+        mkdir -p $out/$dir
+        cd $out/$dir
+        $PREFIX/$ex > stdout.txt 2> stderr.txt
+        cd -
+    done
+fi
+
 # Do some sanity checks.
 check brunel 6998
 check bench 972

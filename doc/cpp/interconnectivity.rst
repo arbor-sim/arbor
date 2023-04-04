@@ -38,6 +38,40 @@ Interconnectivity
 
         Delay of the connection (milliseconds).
 
+.. cpp:class:: ext_cell_connection
+
+    Describes a connection between two cells: a pre-synaptic source and a
+    post-synaptic destination. The source is typically a threshold detector on
+    a cell or a spike source. The destination is a synapse on the post-synaptic cell.
+
+    The :cpp:member:`dest` does not include the gid of a cell, this is because a
+    :cpp:class:`ext_cell_connection` is bound to the destination cell which means that the gid
+    is implicitly known.
+
+    .. cpp:member:: cell_remote_label_type source
+
+        Source end point, represented by a :cpp:type:`cell_remote_label_type` which packages
+        a cell gid, integral tag of a group of sources on the cell, and source selection policy.
+
+    .. cpp:member:: cell_local_label_type dest
+
+        Destination end point on the cell, represented by a :cpp:type:`cell_local_label_type`
+        which packages a label of a group of targets on the cell and a selection policy.
+        The target cell's gid is implicitly known.
+
+    .. cpp:member:: float weight
+
+        The weight delivered to the target synapse.
+        The weight is dimensionless, and its interpretation is
+        specific to the synapse type of the target. For example,
+        the `expsyn` synapse interprets it as a conductance
+        with units μS (micro-Siemens).
+
+    .. cpp:member:: float delay
+
+        Delay of the connection (milliseconds).
+
+
 .. cpp:class:: gap_junction_connection
 
     Describes a gap junction connection between two gap junction sites. The :cpp:member:`local` site does
