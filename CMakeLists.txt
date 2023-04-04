@@ -4,6 +4,9 @@ include(CMakeDependentOption)
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
 
+# Have LTO where possible.
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version "${FULL_VERSION_STRING}")
@@ -242,7 +245,7 @@ if(NOT ARB_USE_BUNDLED_RANDOM123)
     find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
-target_link_libraries(arbor-public-deps INTERFACE ext-random123)
+target_link_libraries(arbor-private-deps INTERFACE ext-random123)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
