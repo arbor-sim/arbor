@@ -64,12 +64,27 @@ Recipe
 
     .. function:: connections_on(gid)
 
-        Returns a list of all the **incoming** connections to ``gid``.
-        Each connection should have a valid synapse label ``connection.dest`` on the post-synaptic target ``gid``,
-        and a valid source label ``connection.source.label`` on the pre-synaptic source ``connection.source.gid``.
-        See :class:`connection`.
+        Returns a list of all the **incoming** connections to ``gid``. Each
+        connection should have a valid synapse label ``connection.dest`` on the
+        post-synaptic target ``gid``, and a valid source label
+        ``connection.source.label`` on the pre-synaptic source
+        ``connection.source.gid``. See :class:`cell_connection`.
 
         By default returns an empty list.
+
+    .. function:: external_connections_on(gid)
+
+        Returns a list of all the **incoming** connections to ``gid`` from a
+        remote simulation. Each connection should have a valid synapse label
+        ``connection.dest`` on the post-synaptic target ``gid``, and a valid
+        source label ``connection.source.lid`` on the pre-synaptic source
+        ``connection.source.gid``. See :class:`connection`. Note that in
+        contrast to :class:`cell_connection`, this uses two numeric identifiers
+        for the source instead.
+
+        By default returns an empty list.
+
+
 
     .. function:: gap_junctions_on(gid)
 
