@@ -91,6 +91,20 @@ cells and members of cell-local collections.
 
       Identifier of a single item on the cell.
 
+.. cpp:class::  cell_remote_label_type
+
+   For global identification of an item on a cell.
+   This is used for selecting the source of a connection or the peer site of a gap junction
+   connection.
+
+   .. cpp:member:: cell_gid_type   gid
+
+      Global identifier of the cell associated with the item.
+
+   .. cpp:member:: cell_lid_type lid
+
+      Identifier of a single item on the cell.
+
 .. cpp:type::  cell_local_size_type
 
     An unsigned integer for for counts of cell-local data.

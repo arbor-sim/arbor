@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <any>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -51,6 +52,12 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
+    // Minimum delay in network τ
+    time_type min_delay();
+    // Maximal epoch length τ/2. Note that the last epoch can be shortened if
+    // the simulation length T is not an integer multiple of τ/2.
+    time_type max_epoch_length() { return min_delay()*0.5; }
+
     // Note: sampler functions may be invoked from a different thread than that
     // which called the `run` method.
 
@@ -86,6 +93,10 @@ public:
     // Must be called before calling simulation::run, and must contain events that
     // are to be delivered at or after the current simulation time.
     void inject_events(const cse_vector& events);
+
+    // If remote connections are present, export only the spikes for which this
+    // predicate returns true.
+    void set_remote_spike_filter(const spike_predicate&);
 
     ~simulation();
 

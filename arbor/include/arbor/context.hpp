@@ -56,6 +56,10 @@ struct execution_context;
 // in the public API, implemented as a shared pointer.
 using context = std::shared_ptr<execution_context>;
 
+// To connect to external simulations
+template<typename Comm>
+ARB_ARBOR_API void make_remote_connection(context, Comm);
+
 // Helpers for creating contexts. These are implemented in the back end.
 
 // Non-distributed context using the requested resources.
@@ -65,6 +69,9 @@ ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_alloc
 // described by resources. Or dry run context that uses dry_run_info.
 template <typename Comm>
 ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm);
+
+template <typename Comm>
+ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm, Comm remote);
 
 // Queries for properties of execution resources in a context.
 

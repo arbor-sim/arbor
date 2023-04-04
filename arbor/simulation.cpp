@@ -84,7 +84,6 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     PL();
 }
 
-
 class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
@@ -110,13 +109,18 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
+    void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
+
     void inject_events(const cse_vector& events);
+
+    time_type min_delay() { return communicator_.min_delay(); }
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
     label_resolution_map source_resolution_map_;
     label_resolution_map target_resolution_map_;
+
 
 private:
     // Record last computed epoch (integration interval).
@@ -240,7 +244,7 @@ simulation_state::simulation_state(
 void simulation_state::update(const connectivity& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
-    t_interval_ = communicator_.min_delay()/2;
+    t_interval_ = min_delay()/2;
 
     const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
@@ -379,8 +383,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PE(communication:exchange:gatherlocal);
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
+        communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
-        auto global_spikes = communicator_.exchange(all_local_spikes);
+        const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
         PE(communication:spikeio);
@@ -394,7 +399,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
         // Append events formed from global spikes to per-cell pending event queues.
         PE(communication:walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_);
+        communicator_.make_event_queues(global_spikes, pending_events_, remote_spikes);
         PL();
     };
 
@@ -457,6 +462,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Record current epoch for next run() invocation.
     epoch_ = current;
+    communicator_.remote_ctrl_send_done();
     return current.t1;
 }
 
@@ -593,6 +599,8 @@ simulation::simulation(simulation&&) = default;
 
 simulation::~simulation() = default;
 
+time_type simulation::min_delay() { return impl_->min_delay(); }
+
 ARB_ARBOR_API epoch_function epoch_progress_bar() {
     struct impl {
         double t0 = 0;
@@ -625,5 +633,8 @@ ARB_ARBOR_API epoch_function epoch_progress_bar() {
 
     return impl{};
 }
+
+// Propagate filters down the stack.
+void simulation::set_remote_spike_filter(const spike_predicate& p) { return impl_->set_remote_spike_filter(p); }
 
 } // namespace arb
