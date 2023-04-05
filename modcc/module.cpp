@@ -664,7 +664,8 @@ void Module::add_variables_to_symbols() {
     create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
     create_indexed_variable("v",      sourceKind::voltage, v_access,  "", Location());
     create_indexed_variable("v_peer", sourceKind::peer_voltage, accessKind::read,  "", Location());
-    create_indexed_variable("dt",     sourceKind::dt, accessKind::read,  "", Location());
+    create_variable(Token{tok::identifier, "dt", Location()},
+        accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -692,7 +693,8 @@ void Module::add_variables_to_symbols() {
             create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
         }
         else if (id.name() == "t") {
-            create_indexed_variable("t", sourceKind::time, accessKind::read, "", Location());
+            create_variable(Token{tok::identifier, "t", Location()},
+                accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
         }
         else {
             // Parameters are scalar by default, but may later be changed to range.

@@ -115,7 +115,12 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
+            if (event_freq_ > 0) {
+                return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
+            }
+            else {
+                return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
+            }
         } else {
             return {};
         }
@@ -189,7 +194,7 @@ int main(int argc, char** argv) {
 
         arb::proc_allocation resources;
         resources.num_threads = arbenv::default_concurrency();
-        resources.bind_threads = true;
+        resources.bind_threads = params.bind_threads;
 
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
@@ -220,8 +225,10 @@ int main(int argc, char** argv) {
         ring_recipe recipe(params);
         cell_stats stats(recipe);
         if (root) std::cout << stats << "\n";
+        // Make decomposition
+        auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
-        arb::simulation sim(recipe, context);
+        arb::simulation sim(recipe, context, decomp);
 
         // Set up the probe that will measure voltage in the cell.
 
@@ -249,8 +256,8 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init", context);
 
         // Run the simulation.
-        if (root) std::cout << "running simulation" << std::endl;
-        sim.set_binning_policy(arb::binning_kind::regular, params.dt);
+        if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
+        if (root) std::cout << "running simulation\n" << std::endl;
         sim.run(params.duration, params.dt);
 
         meters.checkpoint("model-run", context);
@@ -326,7 +333,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell complex_cell (arb::cell_gid_type gid, const cell_parameters& params) {
+arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     using arb::reg::tagged;
     using arb::reg::all;
     using arb::ls::location;
@@ -416,7 +423,7 @@ arb::cable_cell complex_cell (arb::cell_gid_type gid, const cell_parameters& par
 
     decor.place(cntr, arb::synapse("expsyn"), "p");
     if (params.synapses>1) {
-        // decor.place(syns, arb::synapse("expsyn"), "s");
+        decor.place(syns, arb::synapse("expsyn"), "s");
     }
 
     decor.place(cntr, arb::threshold_detector{-20.0}, "d");
