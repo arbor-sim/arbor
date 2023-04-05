@@ -27,7 +27,7 @@ static constexpr spike_event terminal_pse{0, terminal_time, 0};
 // will be needed.
 
 tourney_tree::tourney_tree(std::vector<event_span>&& input):
-    input_(std::move(input)),
+    input_(input),
     n_lanes_(input_.size()),
     leaves_{math::next_pow2(n_lanes_)},
     nodes_{2*leaves_ - 1} {

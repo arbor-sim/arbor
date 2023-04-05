@@ -26,10 +26,18 @@
 
 namespace arb {
 
-std::pair<event_span, event_span> split_sorted_range(event_span seq, time_type v) {
+// Split a sorted event range at a given time point.
+//
+// Returns a range of events _before_ the split and sets the input range to
+// terminate _at_ the split point. Example
+// a = [0, 1, 2, 4, 6, 8]
+// b = split_sorted_range(a, 3)
+// a == [0, 1, 2] && b == [4, 6, 8]
+event_span split_sorted_range(event_span& seq, time_type v) {
     auto [beg, end] = seq;
     auto mid = std::lower_bound(beg, end, v, event_time_less());
-    return {{beg, mid}, {mid, end}};
+    seq.left = mid;
+    return {beg, mid};
 }
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
@@ -39,48 +47,48 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                      event_span old_events,
                                      event_span pending,
                                      std::vector<event_generator>& generators,
-                                     pse_vector& new_events) {
+                                     pse_vector& new_events,
+                                     std::vector<event_span>& scratch) {
     PE(communication:enqueue:setup);
     new_events.clear();
-    old_events = split_sorted_range(old_events, t_from).second;
+    split_sorted_range(old_events, t_from);
     PL();
 
-    if (!generators.empty()) {
-        // Tree-merge events in [t_from, t_to) from old, pending and generator events.
-        PE(communication:enqueue:setup);
-        std::vector<event_span> spanbuf;
-        spanbuf.reserve(2 + generators.size());
-        PL();
+    size_t n = pending.size() + old_events.size();
 
+    if (!generators.empty()) {
+        // Merge events in [t_from, t_to) from old, pending and generator events.
         PE(communication:enqueue:split_old);
-        const auto& [old_l, old_r] = split_sorted_range(old_events, t_to);
-        if (!old_l.empty()) spanbuf.emplace_back(old_l);
-        old_events = old_r;
+        const auto& old = split_sorted_range(old_events, t_to);
+        if (!old.empty()) scratch.emplace_back(old);
         PL();
 
         PE(communication:enqueue:split_pending);
-        const auto& [pen_l, pen_r] = split_sorted_range(pending, t_to);
-        if (!pen_l.empty()) spanbuf.emplace_back(pen_l);
-        pending = pen_r;
+        const auto& pen = split_sorted_range(pending, t_to);
+        if (!pen.empty()) scratch.emplace_back(pen);
         PL();
 
         PE(communication:enqueue:generators);
         for (auto& g: generators) {
             auto evs = g.events(t_from, t_to);
-            if (evs.first != evs.second) spanbuf.emplace_back(evs);
+            n += std::distance(evs.first, evs.second);
+            if (evs.first != evs.second) scratch.emplace_back(evs);
         }
         PL();
 
         PE(communication:enqueue:tree);
-        merge_events(std::move(spanbuf), new_events);
+        new_events.reserve(n);
+        merge_events(scratch, new_events);
         PL();
     }
 
-    // Merge (remaining) old and pending events.
+    // Merge (remaining) old and pending events and put them to the end of new_events.
     PE(communication:enqueue:merge);
-    auto n = new_events.size();
-    new_events.resize(n + pending.size() + old_events.size());
-    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin() + n);
+    auto offset = new_events.size();
+    new_events.resize(n);
+    std::merge(pending.begin(), pending.end(),
+               old_events.begin(), old_events.end(),
+               new_events.begin() + offset);
     PL();
 }
 
@@ -131,6 +139,7 @@ private:
 
     // One set of event_generators for each local cell
     std::vector<std::vector<event_generator>> event_generators_;
+    std::vector<std::vector<event_span>> scratch_;
 
     // Hash table for looking up the the local index of a cell with a given gid
     struct gid_local_info {
@@ -250,6 +259,9 @@ void simulation_state::update(const connectivity& rec) {
     // Forget old generators, if present
     event_generators_.clear();
     event_generators_.resize(num_local_cells);
+    scratch_.clear();
+    scratch_.resize(num_local_cells);
+    // Setup generators
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
     PE(init:simulation:update:generators);
@@ -269,6 +281,8 @@ void simulation_state::update(const connectivity& rec) {
             }
             // Set up the event generators for cell gid.
             event_generators_[lidx] = event_gens;
+            scratch_[lidx].resize(event_generators_[lidx].size());
+            // step to next lid
             ++lidx;
         }
         ++grpidx;
@@ -413,7 +427,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                 event_span pending = util::range_pointer_view(pending_events_[i]);
                 event_span old_events = util::range_pointer_view(event_lanes(next.id-1)[i]);
 
-                merge_cell_events(next.t0, next.t1, old_events, pending, event_generators_[i], event_lanes(next.id)[i]);
+                merge_cell_events(next.t0, next.t1, old_events, pending, event_generators_[i], event_lanes(next.id)[i], scratch_[i]);
                 pending_events_[i].clear();
             });
     };

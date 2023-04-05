@@ -31,9 +31,9 @@ struct shared_state_base {
     void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
                      const std::vector<std::vector<sample_event>>& samples,
                      const timestep_range& dts) {
-
         auto d = static_cast<D*>(this);
         // events
+        PE(advance:integrate:setup:events);
         auto& storage = d->storage;
         for (auto& [mech_id, store] : storage) {
             if (mech_id < staged_events_per_mech_id.size() && staged_events_per_mech_id[mech_id].size())
@@ -41,7 +41,9 @@ struct shared_state_base {
                 store.deliverable_events_.init(staged_events_per_mech_id[mech_id]);
             }
         }
+        PL();
         // samples
+        PE(advance:integrate:setup:samples);
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
@@ -49,6 +51,7 @@ struct shared_state_base {
 
         }
         d->sample_events.init(samples);
+        PL();
         // thresholds
         PE(advance:integrate:setup:watcher);
         d->watcher.clear_crossings();

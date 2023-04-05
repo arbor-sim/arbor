@@ -15,7 +15,8 @@ void merge_cell_events(
     event_span old_events,
     event_span pending,
     std::vector<event_generator>& generators,
-    pse_vector& new_events);
+    pse_vector& new_events,
+    std::vector<event_span>& scratch);
 } // namespace arb
 
 using namespace arb;
@@ -30,7 +31,8 @@ static void merge_events(
     pse_vector& new_events)
 {
     util::sort(pending);
-    merge_cell_events(t_from, t_to, util::range_pointer_view(old_events), util::range_pointer_view(pending), generators, new_events);
+    std::vector<event_span> scratch;
+    merge_cell_events(t_from, t_to, util::range_pointer_view(old_events), util::range_pointer_view(pending), generators, new_events, scratch);
 }
 
 

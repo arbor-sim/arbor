@@ -14,26 +14,23 @@ namespace arb {
 // k-way linear merge:
 // Pick stream with the minimum element, pop that and push into output.
 // Repeat.
-void linear_merge_events(std::vector<event_span> sources, pse_vector& out) {
+void linear_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     // Consume all events.
     for (;;) {
-        // Discard empty streams and bail if none remain.
-        sources.erase(std::remove_if(sources.begin(),
-                                     sources.end(),
-                                     [](auto rng){ return rng.empty(); }),
-                      sources.end());
-        if (sources.empty()) break;
         // Now find the minimum
         auto mevt =  spike_event{0, terminal_time, 0};;
         auto midx = -1;
         for (auto idx = 0ull; idx < sources.size(); ++idx) {
-            // SAFETY: There are no empty streams, since we ditched those above.
-            auto& evt = sources[idx].front();
-            if (evt < mevt) {
-                mevt = evt;
-                midx = idx;
+            auto& source = sources[idx];
+            if (!source.empty()) {
+                auto& evt = source.front();
+                if (evt < mevt) {
+                    mevt = evt;
+                    midx = idx;
+                }
             }
         }
+        if (midx == -1) break;
         // Take event: bump chosen stream and stuff event into output.
         sources[midx].left++;
         out.emplace_back(mevt);
@@ -41,7 +38,7 @@ void linear_merge_events(std::vector<event_span> sources, pse_vector& out) {
 }
 
 // priority-queue based merge.
-void pqueue_merge_events(std::vector<event_span> sources, pse_vector& out) {
+void pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     // Min heap tracking the minimum element from each span
     using kv_type = std::pair<spike_event, int>;
     std::priority_queue<kv_type, std::vector<kv_type>, std::greater<>> heap;
@@ -49,8 +46,10 @@ void pqueue_merge_events(std::vector<event_span> sources, pse_vector& out) {
     // Add the first element from each sorted vector to the min heap
     for (std::size_t ix = 0; ix < sources.size(); ++ix) {
         auto& source = sources[ix];
-        heap.emplace(source.front(), ix);
-        source.left++;
+        if (!source.empty()) {
+            heap.emplace(source.front(), ix);
+            source.left++;
+        }
     }
 
     // Merge by continually popping the minimum element from the min heap
@@ -69,19 +68,18 @@ void pqueue_merge_events(std::vector<event_span> sources, pse_vector& out) {
     }
 }
 
-void merge_events(std::vector<event_span> sources, pse_vector &out) {
+void merge_events(std::vector<event_span>& sources, pse_vector &out) {
     // Count events, bail if none; else allocate enough space to store them.
     auto n_evts = std::accumulate(sources.begin(), sources.end(),
                                   0,
                                   [] (auto acc, const auto& rng) { return acc + rng.size(); });
-    if (n_evts == 0) return;
     out.reserve(out.size() + n_evts);
     auto n_queues = sources.size();
     if (n_queues < 20) { // NOTE: MAGIC NUMBER, found by ubench/merge
-        linear_merge_events(std::move(sources), out);
+        linear_merge_events(sources, out);
     }
     else {
-        pqueue_merge_events(std::move(sources), out);
+        pqueue_merge_events(sources, out);
     }
 }
 

@@ -165,7 +165,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
     // Push samples and events down to the state and reset the spike thresholds.
     state_->begin_epoch(staged_events_per_mech_id, staged_samples, dts);
-    PL();
 
     // loop over timesteps
     for (const auto& ts : dts) {
