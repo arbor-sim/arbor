@@ -26,4 +26,5 @@ add_executable(unit-modcc EXCLUDE_FROM_ALL ${unit-modcc_sources})
 add_dependencies(tests unit-modcc)
 
 target_link_libraries(unit-modcc PRIVATE libmodcc ext-gtest)
+target_link_libraries(unit-modcc PRIVATE modcc-private-deps)
 target_compile_definitions(unit-modcc PRIVATE "DATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
