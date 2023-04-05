@@ -1,3 +1,4 @@
+#include <numeric>
 #include <utility>
 #include <vector>
 #include <limits>
@@ -283,6 +284,7 @@ void communicator::make_event_queues(
                                   util::subrange_view(global_spikes.values(), sp[dom], sp[dom+1]),
                                   queues);
     }
+    num_local_events_ = util::sum_by(queues, [](const auto& q) {return q.size();}, num_local_events_);
     // Now that all local spikes have been processed; consume the remote events coming in.
     // - turn all gids into externals
     auto spikes = external_spikes;
@@ -310,6 +312,7 @@ const std::vector<connection>& communicator::connections() const {
 
 void communicator::reset() {
     num_spikes_ = 0;
+    num_local_events_ = 0;
 }
 
 } // namespace arb

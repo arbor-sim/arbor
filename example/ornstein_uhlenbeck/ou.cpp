@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
     std::vector<arb_value_type> data;
     sampler s{data, ncvs, nsteps};
     auto all_probes = [](arb::cell_member_type) { return true; };
-    sim.add_sampler(all_probes, arb::regular_schedule(dt), s, arb::sampling_policy::lax);
+    sim.add_sampler(all_probes, arb::regular_schedule(dt), s);
 
     // run the simulation
     sim.run(nsteps*dt, dt);

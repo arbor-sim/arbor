@@ -13,7 +13,6 @@
 
 #include "backends/event.hpp"
 #include "cell_group.hpp"
-#include "event_binner.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "mc_cell_group.hpp"
@@ -27,9 +26,6 @@
 
 namespace arb {
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index,a.intdom_index),(b.mech_id,b.mech_index,b.intdom_index))
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
-
 mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
                              cell_label_range& cg_sources,
@@ -37,9 +33,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
                              fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
-    // Default to no binning of events
-    mc_cell_group::set_binning_policy(binning_kind::none, 0);
-
     // Build lookup table for gid to local index.
     for (auto i: util::count_along(gids_)) {
         gid_index_map_[gids_[i]] = i;
@@ -48,13 +41,18 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
     // Construct cell implementation, retrieving handles and maps.
     auto fvm_info = lowered_->initialize(gids_, rec);
 
+    for (auto [mech_id, n_targets] : fvm_info.num_targets_per_mech_id) {
+        if (n_targets > 0u && mech_id >= staged_events_per_mech_id_.size()) {
+            staged_events_per_mech_id_.resize(mech_id+1);
+        }
+    }
+
     // Propagate source and target ranges to the simulator object
     cg_sources = std::move(fvm_info.source_data);
     cg_targets = std::move(fvm_info.target_data);
 
     // Store consistent data from fvm_lowered_cell
     target_handles_ = std::move(fvm_info.target_handles);
-    cell_to_intdom_ = std::move(fvm_info.cell_to_intdom);
     probe_map_ = std::move(fvm_info.probe_map);
 
     // Create lookup structure for target ids.
@@ -72,17 +70,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 
 void mc_cell_group::reset() {
     spikes_.clear();
-
-    for (auto& b: binners_) {
-        b.reset();
-    }
-
     lowered_->reset();
-}
-
-void mc_cell_group::set_binning_policy(binning_kind policy, time_type bin_interval) {
-    binners_.clear();
-    binners_.resize(gids_.size(), event_binner(policy, bin_interval));
 }
 
 // Probe-type specific sample data marshalling.
@@ -389,48 +377,40 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     // Bin and collate deliverable events from event lanes.
 
-    PE(advance:eventsetup);
-    staged_events_.clear();
+    PE(advance:eventsetup:clear);
+    // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
+    timesteps_.reset(ep, dt);
+    for (auto& vv : staged_events_per_mech_id_) {
+        vv.resize(timesteps_.size());
+        for (auto& v : vv) {
+            v.clear();
+        }
+    }
+    sample_events_.resize(timesteps_.size());
+    for (auto& v : sample_events_) {
+        v.clear();
+    }
+    PL();
 
     // Skip event handling if nothing to deliver.
-    if (event_lanes.size()) {
-        std::vector<cell_size_type> idx_sorted_by_intdom(cell_to_intdom_.size());
-        std::iota(idx_sorted_by_intdom.begin(), idx_sorted_by_intdom.end(), 0);
-        util::sort_by(idx_sorted_by_intdom, [&](cell_size_type i) { return cell_to_intdom_[i]; });
-
-        /// Event merging on integration domain could benefit from the use of the logic from `tree_merge_events`
-        arb_index_type ev_begin = 0, ev_mid = 0, ev_end = 0;
-        arb_index_type prev_intdom = -1;
-        for (auto i: util::count_along(gids_)) {
-            unsigned count_staged = 0;
-
-            auto lid = idx_sorted_by_intdom[i];
-            auto& lane = event_lanes[lid];
-            auto curr_intdom = cell_to_intdom_[lid];
-            auto& division = target_handle_divisions_[lid];
-            auto& binner = binners_[lid];
-
+    PE(advance:eventsetup:push);
+    if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
+        auto lid = 0;
+        for (auto& lane: event_lanes) {
+            arb_size_type timestep_index = 0;
             for (auto e: lane) {
-                if (e.time>=ep.t1) break;
-                e.time = binner.bin(e.time, tstart);
-                auto h = target_handles_[division + e.target];
-                staged_events_.emplace_back(e.time, h, e.weight);
-                count_staged++;
+                // Events coinciding with epoch's upper boundary belong to next epoch
+                const auto time = e.time;
+                if (time >= ep.t1) break;
+                while(time >= timesteps_[timestep_index].t_end()) {
+                    ++timestep_index;
+                }
+                arb_assert(timestep_index < timesteps_.size());
+                const auto offset = target_handle_divisions_[lid]+e.target;
+                const auto h = target_handles_[offset];
+                staged_events_per_mech_id_[h.mech_id][timestep_index].emplace_back(e.time, h, e.weight);
             }
-
-            ev_end += count_staged;
-
-            if (curr_intdom != prev_intdom) {
-                ev_begin = ev_end - count_staged;
-                prev_intdom = curr_intdom;
-            }
-            else {
-                std::inplace_merge(staged_events_.begin() + ev_begin,
-                                   staged_events_.begin() + ev_mid,
-                                   staged_events_.begin() + ev_end);
-            }
-
-            ev_mid = ev_end;
+            ++lid;
         }
     }
     PL();
@@ -451,11 +431,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PE(advance:samplesetup);
     std::vector<sampler_call_info> call_info;
 
-    std::vector<sample_event> sample_events;
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
-
-    std::vector<deliverable_event> exact_sampling_events;
 
     if (!sampler_map_.empty()) { // NOTE: We avoid the lock here as often as possible
         // SAFETY: We need the lock here, as _schedule_ is not reentrant.
@@ -467,11 +444,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             if (n_times == 0) continue;
             max_samples_per_call = std::max(max_samples_per_call, n_times);
             for (const cell_member_type& pid: sa.probeset_ids) {
-                cell_size_type cell_index = gid_index_map_.at(pid.gid);
-                cell_size_type intdom = cell_to_intdom_[cell_index];
                 probe_tag tag = probe_map_.tag.at(pid);
                 unsigned index = 0;
-                target_handle null_target{(cell_local_size_type)-1, 0, intdom};
                 for (const fvm_probe_data& pdata: probe_map_.data_on(pid)) {
                     call_info.push_back({sa.sampler,
                                          pid,
@@ -482,14 +456,12 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
                                          n_samples + n_times*pdata.n_raw()});
                     index++;
                     for (auto t: sample_times) {
+                        auto it = timesteps_.find(t);
+                        arb_assert(it != timesteps_.end());
+                        const auto timestep_index = it - timesteps_.begin();
                         for (probe_handle h: pdata.raw_handle_range()) {
-                            sample_events.push_back({t, intdom, raw_probe_info{h, n_samples}});
-                            n_samples++;
-                        }
-                        if (sa.policy == sampling_policy::exact) {
-                            exact_sampling_events.emplace_back(t,
-                                                               null_target,
-                                                               0.f);
+                            sample_event ev{t, {h, n_samples++}};
+                            sample_events_[timestep_index].push_back(ev);
                         }
                     }
                 }
@@ -497,35 +469,10 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             arb_assert(n_samples==call_info.back().end_offset);
         }
     }
-
-    // Sort exact sampling events into staged events for delivery.
-    if (!exact_sampling_events.empty()) {
-        auto event_less =
-            [](const auto& a, const auto& b) {
-                 auto ai = event_index(a);
-                 auto bi = event_index(b);
-                 return ai<bi || (ai==bi && event_time(a)<event_time(b));
-            };
-
-        util::sort(exact_sampling_events, event_less);
-
-        std::vector<deliverable_event> merged;
-        merged.reserve(staged_events_.size()+exact_sampling_events.size());
-
-        std::merge(staged_events_.begin(), staged_events_.end(),
-                   exact_sampling_events.begin(), exact_sampling_events.end(),
-                   std::back_inserter(merged), event_less);
-        std::swap(merged, staged_events_);
-    }
-
-    // Sample events must be ordered by time for the lowered cell.
-    util::sort_by(sample_events,
-                  [](const sample_event& ev) { return std::make_tuple(event_index(ev),
-                                                                      event_time(ev)); });
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.t1, dt, staged_events_, sample_events);
+    auto result = lowered_->integrate(timesteps_, staged_events_per_mech_id_, sample_events_);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values
@@ -554,7 +501,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 }
 
 void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                                schedule sched, sampler_function fn, sampling_policy policy)
+                                schedule sched, sampler_function fn)
 {
     std::lock_guard<std::mutex> guard(sampler_mex_);
 
@@ -562,7 +509,7 @@ void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predic
         util::assign_from(util::filter(util::keys(probe_map_.tag), probeset_ids));
 
     if (!probeset.empty()) {
-        auto result = sampler_map_.insert({h, sampler_association{std::move(sched), std::move(fn), std::move(probeset), policy}});
+        auto result = sampler_map_.insert({h, sampler_association{std::move(sched), std::move(fn), std::move(probeset)}});
         arb_assert(result.second);
     }
 }

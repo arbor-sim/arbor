@@ -20,6 +20,7 @@ public:
     // Calls set_device(id), so that GPU calls from the calling thread will
     // be executed on the GPU.
     void set_gpu() const;
+    void synchronize() const;
 };
 
 using gpu_context_handle = std::shared_ptr<gpu_context>;

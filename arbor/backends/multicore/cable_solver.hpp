@@ -19,7 +19,6 @@ struct cable_solver {
 
     iarray parent_index;
     iarray cell_cv_divs;
-    iarray cell_to_intdom;
 
     array d;              // [μS]
     array u;              // [μS]
@@ -38,11 +37,9 @@ struct cable_solver {
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area,
-                 const std::vector<index_type>& cell_to_intdom):
+                 const std::vector<value_type>& area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        cell_to_intdom(cell_to_intdom.begin(), cell_to_intdom.end()),
         d(size(), 0), u(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
         cv_area(area.begin(), area.end()),
@@ -70,7 +67,7 @@ struct cable_solver {
     // * expects the voltage from its first argument
     // * will likewise overwrite the first argument with the solction
     template<typename T>
-    void solve(T& rhs, const_view dt_intdom, const_view current, const_view conductivity) {
+    void solve(T& rhs, const value_type dt, const_view current, const_view conductivity) {
         value_type * const ARB_NO_ALIAS d_ = d.data();
         value_type * const ARB_NO_ALIAS r_ = rhs.data();
 
@@ -84,27 +81,18 @@ struct cable_solver {
         const index_type ncells = cell_cv_part.size();
         // Assemble; loop over submatrices
         // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-        //   dt_intdom       [ms]      (per integration domain)
+        //   dt              [ms]
         //   voltage         [mV]      (per control volume)
         //   current density [A.m^-2]  (per control volume)
         //   conductivity    [kS.m^-2] (per control volume)
         for (auto m: util::make_span(0, ncells)) {
-            const auto dt = dt_intdom[cell_to_intdom[m]];    // [ms]
-            if (dt > 0) {
-                const value_type oodt = 1e-3/dt;             // [1/µs]
-                const auto& [lo, hi] = cell_cv_part[m];
-                for(int i = lo; i < hi; ++i) {
-                    const auto area = 1e-3*a_[i];            // [1e-9·m²]
-                    const auto gi = oodt*c_[i] + area*g_[i]; // [μS]
-                    d_[i] = gi + inv_[i];                    // [μS]
-                    r_[i] = gi*r_[i] - area*i_[i];           // [nA]
-                }
-            }
-            else {
-                const auto& [lo, hi] = cell_cv_part[m];
-                for(int i = lo; i < hi; ++i) {
-                    d_[i] = 0.0;
-                }
+            const value_type oodt = 1e-3/dt;             // [1/µs]
+            const auto& [lo, hi] = cell_cv_part[m];
+            for(int i = lo; i < hi; ++i) {
+                const auto area = 1e-3*a_[i];            // [1e-9·m²]
+                const auto gi = oodt*c_[i] + area*g_[i]; // [μS]
+                d_[i] = gi + inv_[i];                    // [μS]
+                r_[i] = gi*r_[i] - area*i_[i];           // [nA]
             }
         }
         solve(rhs);

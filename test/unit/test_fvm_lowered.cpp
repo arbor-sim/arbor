@@ -207,7 +207,7 @@ TEST(fvm_lowered, matrix_init)
 
     // Test that the matrix is initialized with sensible values
 
-    fvcell.integrate(0.01, 0.01, {}, {});
+    fvcell.integrate({0.01, 0.01}, {}, {});
 
     auto n = J.size();
 
@@ -253,19 +253,15 @@ TEST(fvm_lowered, target_handles) {
 
         EXPECT_EQ(expsyn_id, targets[0].mech_id);
         EXPECT_EQ(1u, targets[0].mech_index);
-        EXPECT_EQ(0u, targets[0].intdom_index);
 
         EXPECT_EQ(expsyn_id, targets[1].mech_id);
         EXPECT_EQ(0u, targets[1].mech_index);
-        EXPECT_EQ(0u, targets[1].intdom_index);
 
         EXPECT_EQ(exp2syn_id, targets[2].mech_id);
         EXPECT_EQ(0u, targets[2].mech_index);
-        EXPECT_EQ(1u, targets[2].intdom_index);
 
         EXPECT_EQ(expsyn_id, targets[3].mech_id);
         EXPECT_EQ(2u, targets[3].mech_index);
-        EXPECT_EQ(1u, targets[3].intdom_index);
     };
 
     fvm_cell fvcell0(*context);
@@ -277,7 +273,6 @@ TEST(fvm_lowered, target_handles) {
     test_target_handles(fvcell1, fvm_info1.target_handles);
 
 }
-
 
 TEST(fvm_lowered, stimulus) {
     // Ball-and-stick with two stimuli:
@@ -317,11 +312,10 @@ TEST(fvm_lowered, stimulus) {
 
     auto& state = *(fvcell.*private_state_ptr).get();
     auto& J = state.current_density;
-    auto& T = state.time;
 
     // Test that no current is injected at t=0.
     memory::fill(J, 0.);
-    memory::fill(T, 0.);
+    state.time = 0;
     state.add_stimulus_current();
 
     for (auto j: J) {
@@ -333,19 +327,19 @@ TEST(fvm_lowered, stimulus) {
 
     // Test that 0.1 nA current is injected at soma at t=1.
     memory::fill(J, 0.);
-    memory::fill(T, 1.);
+    state.time = 1;
     state.add_stimulus_current();
     constexpr double unit_factor = 1e-3; // scale A/m²·µm² to nA
     EXPECT_TRUE(near_relative(-0.1, J[soma_cv]*A[soma_cv]*unit_factor, reltol));
 
     // Test that 0.1 nA is again injected at t=1.5, for a total of 0.2 nA.
-    memory::fill(T, 1.);
+    state.time = 1;
     state.add_stimulus_current();
     EXPECT_TRUE(near_relative(-0.2, J[soma_cv]*A[soma_cv]*unit_factor, reltol));
 
     // Test that at t=10, no more current is injected at soma, and that
     // that 0.3 nA is injected at dendrite tip.
-    memory::fill(T, 10.);
+    state.time = 10;
     state.add_stimulus_current();
     EXPECT_TRUE(near_relative(-0.2, J[soma_cv]*A[soma_cv]*unit_factor, reltol));
     EXPECT_TRUE(near_relative(-0.3, J[tip_cv]*A[tip_cv]*unit_factor, reltol));
@@ -379,8 +373,6 @@ TEST(fvm_lowered, ac_stimulus) {
     fvcell.initialize({0}, cable1d_recipe(cells));
 
     auto& state = *(fvcell.*private_state_ptr).get();
-    auto& J = state.current_density;
-    auto& T = state.time;
 
     // Current from t = 0 to max_time should be given by
     //     I = max_amplitude * t/max_time * sin(2π f t)
@@ -392,12 +384,12 @@ TEST(fvm_lowered, ac_stimulus) {
     for (double t: {0., 0.1*max_time, 0.7*max_time, 1.1*max_time}) {
         constexpr double unit_factor = 1e-3; // scale A/m²·µm² to nA
 
-        memory::fill(J, 0.);
-        memory::fill(T, t);
+        memory::fill(state.current_density, 0.);
+        state.time = t;
         state.add_stimulus_current();
 
         double expected_I = t<=max_time? max_amplitude*t/max_time*std::sin(2*math::pi<double>*t*freq+phase): 0;
-        EXPECT_TRUE(near_relative(-expected_I, J[0]*A[0]*unit_factor, reltol));
+        EXPECT_TRUE(near_relative(-expected_I, state.current_density[0]*A[0]*unit_factor, reltol));
     }
 }
 
@@ -569,12 +561,14 @@ TEST(fvm_lowered, read_valence) {
 
 // Test correct scaling of ionic currents in reading and writing
 TEST(fvm_lowered, ionic_concentrations) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     auto cat = make_unit_test_catalogue();
 
     // one cell, one CV:
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
@@ -604,8 +598,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto& read_cai_mech  = read_cai.mech;
     auto& write_cai_mech = write_cai.mech;
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncell,
-                                                                         cv_to_intdom, cv_to_intdom,
+    auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
                                                                          vinit, temp, diam,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
@@ -678,8 +671,8 @@ TEST(fvm_lowered, ionic_currents) {
     EXPECT_EQ(0, ion.Xi_[0]);
 
     // Integration should be (effectively) exact, so check for linear response.
-    const double time = 12; // [ms]
-    (void)fvcell.integrate(time, 0.1, {}, {});
+    const double time = 0.2; // [ms]
+    (void)fvcell.integrate({time, 0.1}, {}, {});
     double expected_Xi = -time*coeff*jca;
     EXPECT_NEAR(expected_Xi, ion.Xi_[0], 1e-6);
 }
@@ -706,7 +699,7 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Only one target, corresponding to our point process on soma.
     double ica_nA = 12.3;
-    deliverable_event ev = {0.04, target_handle{0, 0, 0}, (float)ica_nA};
+    deliverable_event ev = {0.04, target_handle{0, 0}, (float)ica_nA};
 
     auto& state = *(fvcell.*private_state_ptr).get();
     auto& ion = state.ion_data.at("ca"s);
@@ -716,7 +709,7 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Ionic current should be ica_nA/soma_area after integrating past event time.
     const double time = 0.5; // [ms]
-    (void)fvcell.integrate(time, 0.01, {ev}, {});
+    (void)fvcell.integrate({time, 0.01}, {{{},{},{},{},{ev}}}, {});
 
     double expected_iX = ica_nA*1e-9/soma_area_m2;
     EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);
@@ -807,48 +800,6 @@ TEST(fvm_lowered, weighted_write_ion) {
     test_ca->update_ions();
     std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
-}
-
-TEST(fvm_lowered, integration_domains) {
-    {
-        auto context = make_context();
-        fvm_cell fvcell(*context);
-
-        std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
-        std::vector<arb_index_type> cell_to_intdom;
-
-        auto num_dom = fvcell.fvm_intdom(gap_recipe_0(), gids, cell_to_intdom);
-        std::vector<arb_index_type> expected_doms= {0u, 1u, 2u, 2u, 1u, 3u, 2u};
-
-        EXPECT_EQ(4u, num_dom);
-        EXPECT_EQ(expected_doms, cell_to_intdom);
-    }
-    {
-        auto context = make_context();
-        fvm_cell fvcell(*context);
-
-        std::vector<cell_gid_type> gids = {11u, 5u, 2u, 3u, 0u, 8u, 7u};
-        std::vector<arb_index_type> cell_to_intdom;
-
-        auto num_dom = fvcell.fvm_intdom(gap_recipe_1(), gids, cell_to_intdom);
-        std::vector<arb_index_type> expected_doms= {0u, 1u, 2u, 3u, 4u, 5u, 6u};
-
-        EXPECT_EQ(7u, num_dom);
-        EXPECT_EQ(expected_doms, cell_to_intdom);
-    }
-    {
-        auto context = make_context();
-        fvm_cell fvcell(*context);
-
-        std::vector<cell_gid_type> gids = {5u, 2u, 3u, 0u};
-        std::vector<arb_index_type> cell_to_intdom;
-
-        auto num_dom = fvcell.fvm_intdom(gap_recipe_2(), gids, cell_to_intdom);
-        std::vector<arb_index_type> expected_doms= {0u, 0u, 0u, 0u};
-
-        EXPECT_EQ(1u, num_dom);
-        EXPECT_EQ(expected_doms, cell_to_intdom);
-    }
 }
 
 TEST(fvm_lowered, post_events_shared_state) {

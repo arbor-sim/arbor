@@ -103,7 +103,7 @@ namespace impl {
             pprintf_(o, t+2, std::forward<Tail>(tail)...);
         }
     }
-}
+} // namespace impl
 
 template <typename... Args>
 std::string pprintf(const char *s, Args&&... args) {

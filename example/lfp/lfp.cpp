@@ -206,16 +206,16 @@ int main(int argc, char** argv) {
     lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
 
     auto sample_schedule = arb::regular_schedule(sample_dt);
-    sim.add_sampler(arb::one_probe({0, 0}), sample_schedule, lfp.callback(), arb::sampling_policy::exact);
+    sim.add_sampler(arb::one_probe({0, 0}), sample_schedule, lfp.callback());
 
     arb::trace_vector<double, arb::mlocation> membrane_voltage;
-    sim.add_sampler(arb::one_probe({0, 1}), sample_schedule, make_simple_sampler(membrane_voltage), arb::sampling_policy::exact);
+    sim.add_sampler(arb::one_probe({0, 1}), sample_schedule, make_simple_sampler(membrane_voltage));
 
     arb::trace_vector<double> ionic_current_density;
-    sim.add_sampler(arb::one_probe({0, 2}), sample_schedule, make_simple_sampler(ionic_current_density), arb::sampling_policy::exact);
+    sim.add_sampler(arb::one_probe({0, 2}), sample_schedule, make_simple_sampler(ionic_current_density));
 
     arb::trace_vector<double> synapse_g;
-    sim.add_sampler(arb::one_probe({0, 3}), sample_schedule, make_simple_sampler(synapse_g), arb::sampling_policy::exact);
+    sim.add_sampler(arb::one_probe({0, 3}), sample_schedule, make_simple_sampler(synapse_g));
 
     sim.run(t_stop, dt);
 

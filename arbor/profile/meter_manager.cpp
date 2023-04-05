@@ -65,6 +65,8 @@ void meter_manager::start(context ctx) {
     }
 
     // Enforce a global barrier after taking the time stamp
+    ctx->gpu->synchronize();
+    arb::threading::task_group(ctx->thread_pool.get()).wait();
     ctx->distributed->barrier();
 
     start_time_ = timer_type::tic();
@@ -83,6 +85,8 @@ void meter_manager::checkpoint(std::string name, context ctx) {
     }
 
     // Synchronize all domains before setting start time for the next interval
+    ctx->gpu->synchronize();
+    arb::threading::task_group(ctx->thread_pool.get()).wait();
     ctx->distributed->barrier();
     start_time_ = timer<>::tic();
 }

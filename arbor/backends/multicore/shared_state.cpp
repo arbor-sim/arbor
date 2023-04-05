@@ -23,8 +23,8 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
+#include "util/strprintf.hpp"
 
-#include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
 
@@ -154,7 +154,7 @@ void istim_state::reset() {
     std::copy(envl_divs_.data(), envl_divs_.data()+n, envl_index_.begin());
 }
 
-void istim_state::add_current(const array& time, const iarray& cv_to_intdom, array& current_density) {
+void istim_state::add_current(const arb_value_type time, array& current_density) {
     constexpr double two_pi = 2*math::pi<double>;
 
     // Consider vectorizing...
@@ -168,24 +168,23 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
         arb_index_type ai = accu_index_[i];
         arb_index_type cv = accu_to_cv_[ai];
-        double t = time[cv_to_intdom[cv]];
 
-        if (ei_left==ei_right || t<envl_times_[ei_left]) continue;
+        if (ei_left==ei_right || time<envl_times_[ei_left]) continue;
 
         arb_index_type& ei = envl_index_[i];
-        while (ei+1<ei_right && envl_times_[ei+1]<=t) ++ei;
+        while (ei+1<ei_right && envl_times_[ei+1]<=time) ++ei;
 
         double J = envl_amplitudes_[ei]; // current density (A/m²)
         if (ei+1<ei_right) {
             // linearly interpolate:
-            arb_assert(envl_times_[ei]<=t && envl_times_[ei+1]>t);
+            arb_assert(envl_times_[ei]<=time && envl_times_[ei+1]>time);
             double J1 = envl_amplitudes_[ei+1];
-            double u = (t-envl_times_[ei])/(envl_times_[ei+1]-envl_times_[ei]);
+            double u = (time-envl_times_[ei])/(envl_times_[ei+1]-envl_times_[ei]);
             J = math::lerp(J, J1, u);
         }
 
         if (frequency_[i]) {
-            J *= std::sin(two_pi*frequency_[i]*t + phase_[i]);
+            J *= std::sin(two_pi*frequency_[i]*time + phase_[i]);
         }
 
         accu_stim_[ai] += J;
@@ -195,9 +194,9 @@ void istim_state::add_current(const array& time, const iarray& cv_to_intdom, arr
 
 // shared_state methods:
 
-shared_state::shared_state(arb_size_type n_intdom,
+shared_state::shared_state(task_system_handle,    // ignored in mc backend
                            arb_size_type n_cell,
-                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           arb_size_type n_cv_,
                            const std::vector<arb_index_type>& cv_to_cell_vec,
                            const std::vector<arb_value_type>& init_membrane_potential,
                            const std::vector<arb_value_type>& temperature_K,
@@ -208,40 +207,23 @@ shared_state::shared_state(arb_size_type n_intdom,
                            arb_seed_type cbprng_seed_):
     alignment(min_alignment(align)),
     alloc(alignment),
-    n_intdom(n_intdom),
     n_detector(detector.count),
-    n_cv(cv_to_intdom_vec.size()),
-    cv_to_intdom(math::round_up(n_cv, alignment), pad(alignment)),
+    n_cv(n_cv_),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
-    time(n_intdom, pad(alignment)),
-    time_to(n_intdom, pad(alignment)),
-    dt_intdom(n_intdom, pad(alignment)),
-    dt_cv(n_cv, pad(alignment)),
-    voltage(n_cv, pad(alignment)),
-    current_density(n_cv, pad(alignment)),
-    conductivity(n_cv, pad(alignment)),
+    voltage(n_cv_, pad(alignment)),
+    current_density(n_cv_, pad(alignment)),
+    conductivity(n_cv_, pad(alignment)),
     init_voltage(init_membrane_potential.begin(), init_membrane_potential.end(), pad(alignment)),
-    temperature_degC(n_cv, pad(alignment)),
+    temperature_degC(n_cv_, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    sample_events(n_intdom),
-    watcher{cv_to_intdom.data(),
+    watcher{n_cv_,
             src_to_spike.data(),
-            &time,
-            &time_to,
-            static_cast<arb_size_type>(voltage.size()),
             detector.cv,
             detector.threshold,
-            detector.ctx},
-    deliverable_events(n_intdom) {
-    // For indices in the padded tail of cv_to_intdom, set index to last valid intdom index.
-    if (n_cv>0) {
-        std::copy(cv_to_intdom_vec.begin(), cv_to_intdom_vec.end(), cv_to_intdom.begin());
-        std::fill(cv_to_intdom.begin() + n_cv, cv_to_intdom.end(), cv_to_intdom_vec.back());
-    }
-
+            detector.ctx} {
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
@@ -258,8 +240,7 @@ void shared_state::reset() {
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
     util::zero(current_density);
     util::zero(conductivity);
-    util::zero(time);
-    util::zero(time_to);
+    time = 0;
     util::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
@@ -276,76 +257,30 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
-    using simd::assign;
-    using simd::indirect;
-    using simd::add;
-    using simd::min;
-    for (arb_size_type i = 0; i<n_intdom; i+=simd_width) {
-        simd_value_type t;
-        assign(t, indirect(time.data()+i, simd_width));
-        t = min(add(t, dt_step), tmax);
-        indirect(time_to.data()+i, simd_width) = t;
-    }
-}
-
-void shared_state::set_dt() {
-    using simd::assign;
-    using simd::indirect;
-    using simd::sub;
-    for (arb_size_type j = 0; j<n_intdom; j+=simd_width) {
-        simd_value_type t, t_to;
-        assign(t, indirect(time.data()+j, simd_width));
-        assign(t_to, indirect(time_to.data()+j, simd_width));
-
-        auto dt = sub(t_to,t);
-        indirect(dt_intdom.data()+j, simd_width) = dt;
-    }
-
-    for (arb_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_index_type intdom_idx;
-        assign(intdom_idx, indirect(cv_to_intdom.data()+i, simd_width));
-
-        simd_value_type dt;
-        assign(dt, indirect(dt_intdom.data(), intdom_idx, simd_width));
-        indirect(dt_cv.data()+i, simd_width) = dt;
-    }
-}
-
-std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
-    return util::minmax_value(time);
-}
-
 std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return util::minmax_value(voltage);
 }
 
 void shared_state::take_samples() {
-    sample_events.mark_until(time_to);
-    const auto& state = sample_events.marked_events();
-    for (arb_size_type i = 0; i<state.n_streams(); ++i) {
-        auto begin = state.begin_marked(i);
-        auto end = state.end_marked(i);
+    sample_events.mark();
+    if (!sample_events.empty()) {
+        const auto [begin, end] = sample_events.marked_events();
         // Null handles are explicitly permitted, and always give a sample of zero.
         for (auto p = begin; p<end; ++p) {
-            sample_time[p->offset] = time[i];
+            sample_time[p->offset] = time;
             sample_value[p->offset] = p->handle? *p->handle: 0;
         }
     }
-    sample_events.drop_marked_events();
 }
 
 // (Debug interface only.)
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
 
-    out << "n_intdom     " << s.n_intdom << "\n";
     out << "n_cv         " << s.n_cv << "\n";
-    out << "cv_to_intdom " << csv(s.cv_to_intdom) << "\n";
-    out << "time         " << csv(s.time) << "\n";
-    out << "time_to      " << csv(s.time_to) << "\n";
-    out << "dt_intdom    " << csv(s.dt_intdom) << "\n";
-    out << "dt_cv        " << csv(s.dt_cv) << "\n";
+    out << "time         " << s.time << "\n";
+    out << "time_to      " << s.time_to << "\n";
+    out << "dt           " << s.dt << "\n";
     out << "voltage      " << csv(s.voltage) << "\n";
     out << "init_voltage " << csv(s.init_voltage) << "\n";
     out << "temperature  " << csv(s.temperature_degC) << "\n";
@@ -464,7 +399,7 @@ void shared_state::instantiate(arb::mechanism& m,
     m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    m.ppack_.vec_dt           = dt_cv.data();
+    m.ppack_.dt               = dt;
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
     m.ppack_.vec_g            = conductivity.data();

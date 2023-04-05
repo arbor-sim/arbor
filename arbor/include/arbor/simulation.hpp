@@ -61,7 +61,7 @@ public:
     // which called the `run` method.
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
+        schedule sched, sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 
@@ -72,9 +72,6 @@ public:
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const;
 
     std::size_t num_spikes() const;
-
-    // Set event binning policy on all our groups.
-    void set_binning_policy(binning_kind policy, time_type bin_interval);
 
     // Register a callback that will perform a export of the global
     // spike vector.

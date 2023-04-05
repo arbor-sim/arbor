@@ -26,14 +26,11 @@ void assemble_diffusion(
         const T q,
         const T* __restrict__ const conductivity,
         const T* __restrict__ const area,
-        const I* __restrict__ const cv_to_intdom,
-        const T* __restrict__ const dt_intdom,
+        const T dt,
         const I* __restrict__ const perm,
         unsigned n) {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < n) {
-        const auto dt = dt_intdom[cv_to_intdom[tid]];
-        const auto p = dt > 0;
         const auto pid = perm[tid];
         auto u = voltage[tid];        // mV
         auto g = conductivity[tid];   // µS
@@ -44,8 +41,8 @@ void assemble_diffusion(
         // using Faraday's constant
         auto F = A/(q*96.485332);
 
-        d[pid]   = p ? (1e-3/dt   + F*g + invariant_d[tid]) : 0;
-        rhs[pid] = p ? (1e-3/dt*X + F*(u*g - J))            : concentration[tid];
+        d[pid]   = 1e-3/dt   + F*g + invariant_d[tid];
+        rhs[pid] = 1e-3/dt*X + F*(u*g - J);
     }
 }
 
@@ -99,35 +96,25 @@ void solve_diffusion(
             const unsigned len = lvl_lengths[tid];
             unsigned pos = lvl_meta.matrix_data_index + tid;
 
-            // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
-            // alone in that case.
-
-            // Each cell has a different `dt`, because we choose time step size
-            // according to when the next event is arriving at a cell. So, some
-            // cells require more time steps than others, but we have to solve
-            // all the matrices at the same time. When a cell finishes, we put a
-            // `0` on the diagonal to mark that it should not be solved for.
-            if (d[pos]!=0) {
-                // each branch perform substitution
-                for (unsigned i=0; i<len-1; ++i) {
-                    const unsigned next_pos = pos + width;
-                    const auto d_next = d[next_pos];
-                    const auto rhs_next = rhs[next_pos];
-                    const T factor = -u[pos]/d[pos];
-                    d[next_pos] = fma(factor, u[pos], d_next);
-                    rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
-                    pos = next_pos;
-                }
-                // Update d and rhs at the parent node of this branch.
-                // A parent may have more than one contributing to it, so we use
-                // atomic updates to avoid races conditions.
-                const unsigned parent_index = next_lvl_meta.matrix_data_index;
-                const unsigned p = parent_index + lvl_parents[tid];
-
-                const T factor = -u[pos] / d[pos];
-                gpu_atomic_add(d + p, factor*u[pos]);
-                gpu_atomic_add(rhs + p, factor*rhs[pos]);
+            // each branch perform substitution
+            for (unsigned i=0; i<len-1; ++i) {
+                const unsigned next_pos = pos + width;
+                const auto d_next = d[next_pos];
+                const auto rhs_next = rhs[next_pos];
+                const T factor = -u[pos]/d[pos];
+                d[next_pos] = fma(factor, u[pos], d_next);
+                rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
+                pos = next_pos;
             }
+            // Update d and rhs at the parent node of this branch.
+            // A parent may have more than one contributing to it, so we use
+            // atomic updates to avoid races conditions.
+            const unsigned parent_index = next_lvl_meta.matrix_data_index;
+            const unsigned p = parent_index + lvl_parents[tid];
+
+            const T factor = -u[pos] / d[pos];
+            gpu_atomic_add(d + p, factor*u[pos]);
+            gpu_atomic_add(rhs + p, factor*rhs[pos]);
         }
         __syncthreads();
     }
@@ -144,29 +131,27 @@ void solve_diffusion(
             const unsigned len = lvl_lengths[tid];
             unsigned pos = last_lvl_meta.matrix_data_index + tid;
 
-            if (d[pos]!=0) {
-                // backward
-                for (unsigned i=0; i<len-1; ++i) {
-                    const unsigned next_pos = pos + width;
-                    const T factor = -u[pos] / d[pos];
-                    const auto rhs_next = rhs[next_pos];
-                    const auto d_next = d[next_pos];
-                    d[next_pos]   = fma(factor, u[pos], d_next);
-                    rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
-                    pos = next_pos;
-                }
+            // backward
+            for (unsigned i=0; i<len-1; ++i) {
+                const unsigned next_pos = pos + width;
+                const T factor = -u[pos] / d[pos];
+                const auto rhs_next = rhs[next_pos];
+                const auto d_next = d[next_pos];
+                d[next_pos]   = fma(factor, u[pos], d_next);
+                rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
+                pos = next_pos;
+            }
 
-                auto rhsp = rhs[pos] / d[pos];
+            auto rhsp = rhs[pos] / d[pos];
+            rhs[pos] = rhsp;
+            pos -= width;
+
+            // forward
+            for (unsigned i=0; i<len-1; ++i) {
+                rhsp = rhs[pos] - u[pos]*rhsp;
+                rhsp /= d[pos];
                 rhs[pos] = rhsp;
                 pos -= width;
-
-                // forward
-                for (unsigned i=0; i<len-1; ++i) {
-                    rhsp = rhs[pos] - u[pos]*rhsp;
-                    rhsp /= d[pos];
-                    rhs[pos] = rhsp;
-                    pos -= width;
-                }
             }
         }
     }
@@ -194,17 +179,15 @@ void solve_diffusion(
             const unsigned len = lvl_lengths[tid];
             unsigned pos = lvl_meta.matrix_data_index + (len-1)*width + tid;
 
-            if (d[pos]!=0) {
-                // Load the rhs value for the parent node of this branch.
-                const unsigned p = parent_index + lvl_parents[tid];
-                T rhsp = rhs[p];
-                // each branch perform substitution
-                for (unsigned i=0; i<len; ++i) {
-                    rhsp = rhs[pos] - u[pos]*rhsp;
-                    rhsp /= d[pos];
-                    rhs[pos] = rhsp;
-                    pos -= width;
-                }
+            // Load the rhs value for the parent node of this branch.
+            const unsigned p = parent_index + lvl_parents[tid];
+            T rhsp = rhs[p];
+            // each branch perform substitution
+            for (unsigned i=0; i<len; ++i) {
+                rhsp = rhs[pos] - u[pos]*rhsp;
+                rhsp /= d[pos];
+                rhs[pos] = rhsp;
+                pos -= width;
             }
         }
     }
@@ -222,17 +205,13 @@ ARB_ARBOR_API void assemble_diffusion(
     arb_value_type q,
     const arb_value_type* conductivity,
     const arb_value_type* area,
-    const arb_index_type* cv_to_intdom,
-    const arb_value_type* dt_intdom,
+    const arb_value_type dt,
     const arb_index_type* perm,
     unsigned n)
 {
-    const unsigned block_dim = 128;
-    const unsigned num_blocks = impl::block_count(n, block_dim);
-
-    kernels::assemble_diffusion<<<num_blocks, block_dim>>>(
+    launch_1d(n, 128, kernels::assemble_diffusion<arb_value_type, arb_index_type>,
         d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area,
-        cv_to_intdom, dt_intdom, perm, n);
+        dt, perm, n);
 }
 
 // Example:
@@ -265,7 +244,7 @@ ARB_ARBOR_API void solve_diffusion(
     unsigned num_blocks,                   // number of blocks
     unsigned blocksize)                    // size of each block
 {
-    kernels::solve_diffusion<<<num_blocks, blocksize>>>(
+    launch(num_blocks, blocksize, kernels::solve_diffusion<arb_value_type>,
         rhs, d, u, level_meta, level_lengths, level_parents, block_index,
         num_cells);
 }
