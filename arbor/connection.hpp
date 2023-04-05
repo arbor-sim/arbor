@@ -4,32 +4,22 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/spike_event.hpp>
 
 namespace arb {
 
-class connection {
-public:
-    connection() = default;
-    connection(cell_member_type src,
-               cell_lid_type dest,
-               float w,
-               float d,
-               cell_gid_type didx=cell_gid_type(-1)):
-        source(src),
-        destination(dest),
-        weight(w),
-        delay(d),
-        index_on_domain(didx)
-    {}
-
-    spike_event make_event(const spike& s) { return { destination, s.time + delay, weight}; }
-
-    cell_member_type source;
-    cell_lid_type destination;
-    float weight;
-    float delay;
-    cell_size_type index_on_domain;
+struct connection {
+    cell_member_type source = {0, 0};
+    cell_lid_type destination = 0;
+    float weight = 0.0f;
+    float delay = 0.0f;
+    cell_size_type index_on_domain = cell_gid_type(-1);
 };
+
+inline
+spike_event make_event(const connection& c, const spike& s) {
+    return {c.destination, s.time + c.delay, c.weight};
+}
 
 // connections are sorted by source id
 // these operators make for easy interopability with STL algorithms

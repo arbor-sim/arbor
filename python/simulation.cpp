@@ -77,6 +77,8 @@ public:
         }
     }
 
+    void set_remote_spike_filter(const arb::spike_predicate& p) { return sim_->set_remote_spike_filter(p); }
+
     void reset() {
         sim_->reset();
         spike_record_.clear();
@@ -227,6 +229,12 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              pybind11::arg_v("context", pybind11::none(), "Execution context"),
              pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"),
              pybind11::arg_v("seed", 0u, "Random number generator seed"))
+        .def("set_remote_spike_filter",
+                      &simulation_shim::set_remote_spike_filter,
+                      "pred"_a,
+                      "Add a callback to filter spikes going out over external connections. `pred` is"
+                      "a callable on the `spike` type. **Caution**: This will be extremely slow; use C++ "
+                      "if you want to make use of this.")
         .def("update", &simulation_shim::update,
              pybind11::call_guard<pybind11::gil_scoped_release>(),
              "Rebuild the connection table from recipe::connections_on and the event"

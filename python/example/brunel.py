@@ -228,7 +228,7 @@ if __name__ == "__main__":
         for k, v in vars(opt).items():
             print(f"{k} = {v}")
 
-    context = arbor.context(threads=1)
+    context = arbor.context(threads="avail_threads")
     if arbor.config()["profiling"]:
         arbor.profiler_initialize(context)
     print(context)

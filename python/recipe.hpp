@@ -39,6 +39,9 @@ public:
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const {
         return {};
     }
+    virtual std::vector<arb::cell_connection> external_connections_on(arb::cell_gid_type gid) const {
+        return {};
+    }
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
         return {};
     }
@@ -69,6 +72,10 @@ public:
     }
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
+    }
+
+    std::vector<arb::cell_connection> external_connections_on(arb::cell_gid_type gid) const override {
         PYBIND11_OVERRIDE(std::vector<arb::cell_connection>, py_recipe, connections_on, gid);
     }
 

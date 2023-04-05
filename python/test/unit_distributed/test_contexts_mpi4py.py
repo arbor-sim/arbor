@@ -44,7 +44,7 @@ class TestContexts_mpi4py(unittest.TestCase):
 
         # test context with alloc and mpi
         alloc = arb.proc_allocation()
-        ctx = arb.context(alloc, comm)
+        ctx = arb.context(alloc, mpi=comm)
 
         self.assertEqual(ctx.threads, alloc.threads)
         self.assertTrue(ctx.has_mpi)
