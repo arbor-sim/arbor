@@ -1,11 +1,9 @@
 cmake_minimum_required(VERSION 3.19)
 include(CMakeDependentOption)
+include(CheckIPOSupported)
 
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
-
-# Have LTO where possible.
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
@@ -19,6 +17,14 @@ include(GNUInstallDirs)
 # Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Have LTO where possible, ie add -flto
+check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
+if(HAVE_LTO)
+  message (STATUS "LTO support found, enabling")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+  message(STATUS "No LTO: ${ERR_LTO}")
+endif()
 
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).

@@ -9,6 +9,7 @@
 #include <iterator>
 #include <ostream>
 #include <numeric>
+#include <cstring>
 
 #include "util/meta.hpp"
 #include "util/range.hpp"
