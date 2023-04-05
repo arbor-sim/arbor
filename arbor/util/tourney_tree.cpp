@@ -27,7 +27,7 @@ static constexpr spike_event terminal_pse{0, terminal_time, 0};
 // will be needed.
 
 tourney_tree::tourney_tree(std::vector<event_span>&& input):
-    input_(input),
+    input_(std::move(input)),
     n_lanes_(input_.size()),
     leaves_{math::next_pow2(n_lanes_)},
     nodes_{2*leaves_ - 1} {
@@ -41,7 +41,7 @@ tourney_tree::tourney_tree(std::vector<event_span>&& input):
     // Set the leaf nodes
     for (auto i=0u; i<n_lanes_; ++i) {
         auto idx = leaf(i);
-        if (!input[i].empty()) heap_vals_[idx] = input[i].front();
+        if (!input_[i].empty()) heap_vals_[idx] = input_[i].front();
         heap_keys_[idx] = i;
     }
     // Walk the tree to initialize the non-leaf nodes
