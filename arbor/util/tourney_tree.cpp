@@ -26,23 +26,26 @@ static constexpr spike_event terminal_pse{0, terminal_time, 0};
 // event generators than can be counted using an unsigned a complete redesign
 // will be needed.
 
-tourney_tree::tourney_tree(std::vector<event_span>&& input):
+tourney_tree::tourney_tree(std::vector<event_span>& input):
     input_(input),
-    n_lanes_(input_.size()),
-    leaves_{math::next_pow2(n_lanes_)},
-    nodes_{2*leaves_ - 1} {
+    n_lanes_(input_.size())
+{
     // Must have at least 1 queue.
-    arb_assert(!input_.empty());
+    arb_assert(n_lanes_>=1u);
+
+    leaves_ = math::next_pow2(n_lanes_);
+
     // Must be able to fit leaves in unsigned count.
-    arb_assert(leaves_ >= n_lanes_);
+    arb_assert(leaves_>=n_lanes_);
+    nodes_ = 2*leaves_-1;
+
     // Allocate space for the tree nodes
-    heap_vals_.resize(nodes_, terminal_pse);
-    heap_keys_.resize(nodes_);
+    heap_.resize(nodes_);
     // Set the leaf nodes
-    for (auto i=0u; i<n_lanes_; ++i) {
-        auto idx = leaf(i);
-        if (!input_[i].empty()) heap_vals_[idx] = input_[i].front();
-        heap_keys_[idx] = i;
+    for (auto i=0u; i<leaves_; ++i) {
+        heap_[leaf(i)] = i<n_lanes_?
+            key_val(i, input[i].empty()? terminal_pse: input[i].front()):
+            key_val(i, terminal_pse); // null leaf node
     }
     // Walk the tree to initialize the non-leaf nodes
     setup(0);
@@ -55,33 +58,39 @@ std::ostream& operator<<(std::ostream& out, const tourney_tree& tt) {
             nxt*=2;
             out << "\n";
         }
-        out << "{" << tt.heap_keys_[i] << "," << tt.heap_vals_[i] << "}\n";
+        out << "{" << tt.heap_[i].first << "," << tt.heap_[i].second << "}\n";
     }
     return out;
 }
 
-bool tourney_tree::empty() const { return head().time == terminal_time; }
-spike_event tourney_tree::head() const { return event(0); }
+bool tourney_tree::empty() const {
+    return event(0).time == terminal_time;
+}
+
+spike_event tourney_tree::head() const {
+    return event(0);
+}
 
 // Remove the smallest (most recent) event from the tree, then update the
 // tree so that head() returns the next event.
-spike_event tourney_tree::pop() {
-    spike_event evt = heap_vals_[0];
-    auto lane = heap_keys_[0];
-    auto idx = leaf(lane);
+void tourney_tree::pop() {
+    unsigned lane = id(0);
+    unsigned i = leaf(lane);
 
     // draw the next event from the input lane
     auto& in = input_[lane];
 
-    if (!in.empty()) ++in.left;
+    if (!in.empty()) {
+        ++in.left;
+    }
 
-    heap_vals_[idx] = in.empty() ? terminal_pse : in.front();
+    event(i) = in.empty()? terminal_pse: in.front();
 
     // re-heapify the tree with a single walk from leaf to root
-    while ((idx = parent(idx))) merge_up(idx);
-    // handle the root
-    merge_up(0);
-    return evt;
+    while ((i=parent(i))) {
+        merge_up(i);
+    }
+    merge_up(0); // handle the root
 }
 
 void tourney_tree::setup(unsigned i) {
@@ -97,32 +106,41 @@ void tourney_tree::setup(unsigned i) {
 void tourney_tree::merge_up(unsigned i) {
     const auto l = left(i);
     const auto r = right(i);
-    if (event(l)<event(r)) {
-        heap_keys_[i] = heap_keys_[l];
-        heap_vals_[i] = heap_vals_[l];
-    }
-    else {
-        heap_keys_[i] = heap_keys_[r];
-        heap_vals_[i] = heap_vals_[r];
-    }
+    heap_[i] = event(l)<event(r)? heap_[l]: heap_[r];
 }
-
-std::size_t tourney_tree::size() const { return leaves_; }
 
 // The tree is stored using the standard heap indexing scheme.
 
-unsigned tourney_tree::parent(unsigned i) const { return (i-1)>>1; }
-unsigned tourney_tree::left(unsigned i) const { return (i<<1) + 1; }
-unsigned tourney_tree::right(unsigned i) const { return left(i)+1; }
-unsigned tourney_tree::leaf(unsigned i) const { return i+leaves_-1;}
-bool tourney_tree::is_leaf(unsigned i) const { return i>=leaves_-1; }
-const unsigned& tourney_tree::id(unsigned i) const { return heap_keys_[i] ;}
-spike_event& tourney_tree::event(unsigned i) { return heap_vals_[i]; }
-const spike_event& tourney_tree::event(unsigned i) const { return heap_vals_[i]; }
-
-void tree_merge_events(std::vector<event_span> sources, pse_vector& out) {
-    tourney_tree tree(std::move(sources));
-    while (!tree.empty()) out.emplace_back(tree.pop());
+unsigned tourney_tree::parent(unsigned i) const {
+    return (i-1)>>1;
+}
+unsigned tourney_tree::left(unsigned i) const {
+    return (i<<1) + 1;
+}
+unsigned tourney_tree::right(unsigned i) const {
+    return left(i)+1;
+}
+unsigned tourney_tree::leaf(unsigned i) const {
+    return i+leaves_-1;
+}
+bool tourney_tree::is_leaf(unsigned i) const {
+    return i>=leaves_-1;
+}
+const unsigned& tourney_tree::id(unsigned i) const {
+    return heap_[i].first;
+}
+spike_event& tourney_tree::event(unsigned i) {
+    return heap_[i].second;
+}
+const spike_event& tourney_tree::event(unsigned i) const {
+    return heap_[i].second;
 }
 
-} // arb
+void tree_merge_events(std::vector<event_span>& sources, pse_vector& out) {
+    tourney_tree tree(sources);
+    while (!tree.empty()) {
+        out.push_back(tree.head());
+        tree.pop();
+    }
+}
+}

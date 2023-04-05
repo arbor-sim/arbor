@@ -57,6 +57,7 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     size_t n = pending.size() + old_events.size();
 
     if (!generators.empty()) {
+        scratch.clear();
         // Merge events in [t_from, t_to) from old, pending and generator events.
         PE(communication:enqueue:split_old);
         const auto& old = split_sorted_range(old_events, t_to);
@@ -76,8 +77,11 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
         }
         PL();
 
-        PE(communication:enqueue:tree);
+        PE(communication:enqueue:alloc);
         new_events.reserve(n);
+        PL();
+
+        PE(communication:enqueue:tree);
         merge_events(scratch, new_events);
         PL();
     }

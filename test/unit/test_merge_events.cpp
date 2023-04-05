@@ -211,7 +211,7 @@ TEST(merge_events, tourney_seq)
 
     std::vector<event_span> spans = {g1.events(0, terminal_time),
                                      g2.events(0, terminal_time)};
-    tourney_tree tree(std::move(spans));
+    tourney_tree tree(spans);
 
     pse_vector lf;
     while (!tree.empty()) {
@@ -261,7 +261,7 @@ TEST(merge_events, tourney_poisson)
     for (auto& gen: generators) {
         spans.emplace_back(gen.events(t0, tfinal));
     }
-    tourney_tree tree(std::move(spans));
+    tourney_tree tree(spans);
     pse_vector lf;
     while (!tree.empty()) {
         lf.push_back(tree.head());
