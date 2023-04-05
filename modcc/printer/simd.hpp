@@ -25,6 +25,9 @@ struct simd_spec {
             case neon:
                 width = 2;
                 break;
+            case sve:
+                width = ARB_SVE_WIDTH;
+                break;
             default: ;
             }
         }

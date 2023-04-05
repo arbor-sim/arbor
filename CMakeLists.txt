@@ -33,6 +33,8 @@ set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 # Perform explicit vectorization?
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
+set(ARB_SVE_WIDTH "8" CACHE STRING "Default SVE vector length measured in doubles")
+mark_as_advanced(ARB_SVE_WIDTH)
 
 # Support for Thread pinning
 
@@ -188,6 +190,7 @@ install(TARGETS arbor-config-defs EXPORT arbor-targets)
 # for the arbor library.
 add_library(arbor-private-deps INTERFACE)
 target_link_libraries(arbor-private-deps INTERFACE arbor-config-defs ext-random123 ${CMAKE_DL_LIBS})
+target_compile_definitions(arbor-private-deps INTERFACE ARB_SVE_WIDTH=${ARB_SVE_WIDTH})
 install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
@@ -217,6 +220,12 @@ install(TARGETS arbor-public-deps EXPORT arbor-targets)
 
 add_library(arborio-public-deps INTERFACE)
 install(TARGETS arborio-public-deps EXPORT arborio-targets)
+
+# Interface library `modcc-private-deps` collects dependencies, options etc.
+# for the libmodcc library.
+
+add_library(modcc-private-deps INTERFACE)
+target_compile_definitions(modcc-private-deps INTERFACE ARB_SVE_WIDTH=${ARB_SVE_WIDTH})
 
 # Add scripts and supporting CMake for setting up external catalogues
 
