@@ -64,7 +64,8 @@ time_event_span poisson_schedule_impl::events(time_type t0, time_type t1) {
 time_type poisson_schedule_impl::step(time_type t) {
     using rng = r123::Threefry4x64;
     if (index_ >= 4) {
-        auto r4 = rng{}(rng::ctr_type{(std::uint64_t)t}, rng::key_type{seed_});
+        auto R = rng{};
+        auto r4 = R(rng::ctr_type{0, 0, 0, (std::uint64_t)t}, rng::key_type{0, 0, 0, seed_});
         cache_ = r123::u01all<double>(r4);
         index_ = 0;
     }

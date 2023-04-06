@@ -51,8 +51,8 @@ then
 fi
 
 # Do some sanity checks.
-check brunel 7016
-check bench 999
+check brunel 6983
+check bench 1029
 check ring 94
 check busyring 9
 check gap_junctions 30
