@@ -54,7 +54,7 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     split_sorted_range(old_events, t_from);
     PL();
 
-    size_t n = pending.size() + old_events.size();
+    auto n_event = pending.size() + old_events.size();
 
     if (!generators.empty()) {
         scratch.clear();
@@ -72,13 +72,13 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
         PE(communication:enqueue:generators);
         for (auto& g: generators) {
             auto evs = g.events(t_from, t_to);
-            n += std::distance(evs.first, evs.second);
+            n_event += std::distance(evs.first, evs.second);
             if (evs.first != evs.second) scratch.emplace_back(evs);
         }
         PL();
 
         PE(communication:enqueue:alloc);
-        new_events.reserve(n);
+        new_events.reserve(n_event);
         PL();
 
         PE(communication:enqueue:tree);
@@ -86,10 +86,13 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
         PL();
     }
 
-    // Merge (remaining) old and pending events and put them to the end of new_events.
     PE(communication:enqueue:merge);
+    // NOTE: this should only allocate if no generators are present, since we
+    // reserve enough space otherwise.
+    new_events.resize(n_event);
+    // Merge (remaining) old and pending events and put them to the end of
+    // new_events.
     auto offset = new_events.size();
-    new_events.resize(n);
     std::merge(pending.begin(), pending.end(),
                old_events.begin(), old_events.end(),
                new_events.begin() + offset);
@@ -263,7 +266,6 @@ void simulation_state::update(const connectivity& rec) {
     // Forget old generators, if present
     event_generators_.clear();
     event_generators_.resize(num_local_cells);
-    scratch_.clear();
     scratch_.resize(num_local_cells);
     // Setup generators
     cell_size_type lidx = 0;
@@ -283,9 +285,13 @@ void simulation_state::update(const connectivity& rec) {
                         return event_resolver.resolve({gid, label});
                     });
             }
-            // Set up the event generators for cell gid.
+            // Set up the event generators and scratch space for cells. Scratch
+            // needs one element for old events, one for pending, and one per
+            // generator. Clearing in the event we have something present
+            // already.
+            scratch_[lidx].clear();
+            scratch_[lidx].reserve(2 + event_gens.size());
             event_generators_[lidx] = event_gens;
-            scratch_[lidx].resize(event_generators_[lidx].size());
             // step to next lid
             ++lidx;
         }
