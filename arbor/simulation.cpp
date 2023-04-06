@@ -55,7 +55,6 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     PL();
 
     auto n_event = pending.size() + old_events.size();
-
     if (!generators.empty()) {
         scratch.clear();
         // Merge events in [t_from, t_to) from old, pending and generator events.
@@ -89,10 +88,10 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     PE(communication:enqueue:merge);
     // NOTE: this should only allocate if no generators are present, since we
     // reserve enough space otherwise.
+    auto offset = new_events.size();
     new_events.resize(n_event);
     // Merge (remaining) old and pending events and put them to the end of
     // new_events.
-    auto offset = new_events.size();
     std::merge(pending.begin(), pending.end(),
                old_events.begin(), old_events.end(),
                new_events.begin() + offset);
@@ -286,9 +285,9 @@ void simulation_state::update(const connectivity& rec) {
                     });
             }
             // Set up the event generators and scratch space for cells. Scratch
-            // needs one element for old events, one for pending, and one per
-            // generator. Clearing in the event we have something present
-            // already.
+            // needs (at most!) one element for old events, one for pending, and
+            // one per generator. Clearing in the event we have something
+            // present already.
             scratch_[lidx].clear();
             scratch_[lidx].reserve(2 + event_gens.size());
             event_generators_[lidx] = event_gens;
@@ -436,7 +435,6 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
                 event_span pending = util::range_pointer_view(pending_events_[i]);
                 event_span old_events = util::range_pointer_view(event_lanes(next.id-1)[i]);
-
                 merge_cell_events(next.t0, next.t1, old_events, pending, event_generators_[i], event_lanes(next.id)[i], scratch_[i]);
                 pending_events_[i].clear();
             });
