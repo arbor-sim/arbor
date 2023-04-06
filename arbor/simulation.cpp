@@ -318,6 +318,13 @@ void simulation_state::reset() {
         }
     }
 
+    // Reset all event generators.
+    for (auto& lane: event_generators_) {
+        for (auto& gen: lane) {
+            gen.reset();
+        }
+    }
+
     for (auto& lane: pending_events_) {
         lane.clear();
     }

@@ -255,6 +255,7 @@ TEST(merge_events, tourney_poisson)
         // Push all events before tfinal in gen to the expected values.
         event_span evs = gen.events(t0, tfinal);
         util::append(expected, evs);
+        gen.reset();
     }
     // Manually sort the expected events.
     util::sort(expected);
