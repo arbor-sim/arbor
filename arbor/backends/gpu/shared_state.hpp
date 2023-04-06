@@ -40,9 +40,11 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
+
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
     bool write_Xi_;          // is Xi written?
+    bool write_iX_;          // is iX written?
 
     iarray node_index_; // Instance to CV map.
     array iX_;          // (A/m²) current density
