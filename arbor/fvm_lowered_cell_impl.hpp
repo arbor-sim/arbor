@@ -191,10 +191,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         state_->zero_currents();
         PL();
 
-        // Mark events for delivery
-        PE(advance:integrate:events:mark);
+        // Mark events for delivery.
         state_->mark_events();
-        PL();
+
         // Deliver events and accumulate mechanism current contributions.
         for (auto& m: mechanisms_) {
             // apply the events and drop them afterwards
