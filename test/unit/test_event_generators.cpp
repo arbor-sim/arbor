@@ -28,6 +28,7 @@ TEST(event_generators, assign_and_copy) {
     };
 
     ASSERT_EQ(expected, first(gen.events(0., 1.)));
+    gen.reset();
 
     event_generator g1(gen);
     EXPECT_EQ(expected, first(g1.events(0., 1.)));
@@ -70,7 +71,8 @@ TEST(event_generators, regular) {
 
     EXPECT_EQ(expected({2.0, 2.5, 3.0, 3.5, 4.0, 4.5}), as_vector(gen.events(0, 5)));
 
-    // Test re-generate.
+    // Test reset and re-generate.
+    gen.reset();
     EXPECT_EQ(expected({2.0, 2.5, 3.0, 3.5, 4.0, 4.5}), as_vector(gen.events(0, 5)));
 
     // Test later intervals.
@@ -94,10 +96,10 @@ TEST(event_generators, seq) {
     event_generator gen = explicit_generator(l0, weight, times);
     gen.resolve_label([](const cell_local_label_type&) {return 0;});
 
-    EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
-    EXPECT_EQ(expected, as_vector(gen.events(0, 100.)));
+    EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
+    EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
 
-    auto draw = [](auto& gen, auto t0, auto t1) { return as_vector(gen.events(t0, t1)); };
+    auto draw = [](auto& gen, auto t0, auto t1) { gen.reset(); return as_vector(gen.events(t0, t1)); };
     auto events = [&expected] (int b, int e) { auto beg = expected.begin(); return pse_vector(beg+b, beg+e); };
 
     // a range that includes all the events
@@ -124,6 +126,8 @@ TEST(event_generators, seq) {
 }
 
 TEST(event_generators, poisson) {
+    std::mt19937_64 G;
+
     time_type t0 = 0;
     time_type t1 = 10;
     time_type lambda = 10; // expect 10 events per ms
@@ -131,14 +135,15 @@ TEST(event_generators, poisson) {
     cell_lid_type lid = 2;
     float weight = 42;
 
-    event_generator gen = poisson_generator(label, weight, t0, lambda, 23);
+    event_generator gen = poisson_generator(label, weight, t0, lambda, G);
     gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
 
     pse_vector int1 = as_vector(gen.events(0, t1));
     // Test that the output is sorted
     EXPECT_TRUE(std::is_sorted(int1.begin(), int1.end()));
 
-    // generate the same sequence of events
+    // Reset and generate the same sequence of events
+    gen.reset();
     pse_vector int2 = as_vector(gen.events(0, t1));
     EXPECT_EQ(int1, int2);
 }

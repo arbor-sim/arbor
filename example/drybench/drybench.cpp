@@ -100,7 +100,8 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto gen = arb::poisson_schedule(params_.cell.spike_freq_hz/1000, gid);
+        using RNG = std::mt19937_64;
+        auto gen = arb::poisson_schedule(params_.cell.spike_freq_hz/1000, RNG(gid));
         return arb::benchmark_cell("src", "tgt", std::move(gen), params_.cell.realtime_ratio);
     }
 

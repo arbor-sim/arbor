@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
     const double dt = 0.1;        // [ms]
 
     // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
-    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, 0);
+    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
     lfp_demo_recipe recipe(events);
     arb::simulation sim(recipe);
 

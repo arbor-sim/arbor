@@ -57,9 +57,10 @@ TEST(spike_source, matches_time_seq)
         EXPECT_EQ(spike_times(group.spikes()), as_vector(seq.events(10, 20)));
     };
 
+    std::mt19937_64 G;
     test_seq(regular_schedule(0, 1));
-    test_seq(poisson_schedule(10, 0));   // produce many spikes in each interval
-    test_seq(poisson_schedule(1e-6, 0)); // very unlikely to produce any spikes in either interval
+    test_seq(poisson_schedule(10, G));   // produce many spikes in each interval
+    test_seq(poisson_schedule(1e-6, G)); // very unlikely to produce any spikes in either interval
 }
 
 // Test that a spike_source_cell_group will produce the same sequence of spikes
@@ -86,9 +87,10 @@ TEST(spike_source, reset)
         EXPECT_EQ(spikes1, spikes2);
     };
 
+    std::mt19937_64 G;
     test_seq(regular_schedule(0, 1));
-    test_seq(poisson_schedule(10, 0));   // produce many spikes in each interval
-    test_seq(poisson_schedule(1e-6, 0)); // very unlikely to produce any spikes in either interval
+    test_seq(poisson_schedule(10, G));   // produce many spikes in each interval
+    test_seq(poisson_schedule(1e-6, G)); // very unlikely to produce any spikes in either interval
 }
 
 // Test that a spike_source_cell_group will produce the expected

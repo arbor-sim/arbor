@@ -85,13 +85,14 @@ TEST(simulation, spike_global_callback) {
 
     std::vector<schedule> spike_times;
     for (unsigned i = 0; i<n; ++i) {
-        spike_times.push_back(poisson_schedule(0., 20./t_max, 1000 + i));
+        spike_times.push_back(poisson_schedule(0., 20./t_max, std::minstd_rand(1000+i)));
     }
 
     std::vector<spike> expected_spikes;
     for (unsigned i = 0; i<n; ++i) {
         util::append(expected_spikes, util::transform_view(util::make_range(spike_times.at(i).events(0, t_max)),
             [i](double time) { return spike({i, 0}, time); }));
+        spike_times.at(i).reset();
     }
 
     play_spikes rec(spike_times);

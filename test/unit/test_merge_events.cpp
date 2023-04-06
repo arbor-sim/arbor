@@ -8,7 +8,10 @@
 #include "util/rangeutil.hpp"
 #include "util/tourney_tree.hpp"
 
+using rndgen = std::mt19937_64;
+
 namespace arb {
+
 void merge_cell_events(
     time_type t_from,
     time_type t_to,
@@ -241,7 +244,7 @@ TEST(merge_events, tourney_poisson)
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.
-        auto gen = poisson_generator(label, weight, t0, lambda, i%(ngen - 1));
+        auto gen = poisson_generator(label, weight, t0, lambda, rndgen{i%(ngen - 1)});
         gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
         generators.push_back(std::move(gen));
     }

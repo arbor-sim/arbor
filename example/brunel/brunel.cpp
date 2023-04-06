@@ -141,7 +141,10 @@ public:
     }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        return {poisson_generator({"tgt"}, weight_ext_, 0, lambda_, gid + seed_)};
+        std::mt19937_64 G;
+        G.seed(gid + seed_);
+        time_type t0 = 0;
+        return {poisson_generator({"tgt"}, weight_ext_, t0, lambda_, G)};
     }
 
 private:
