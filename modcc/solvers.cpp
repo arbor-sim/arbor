@@ -541,8 +541,8 @@ void EulerMaruyamaSolverVisitor::visit(AssignmentExpression *e) {
         // get the white noise coefficients
         auto r = linear_test(expanded_rhs, wvars_);
         if (!r.is_linear) {
-            // error({"System is not a valid SDE", e->location()});
-            // return;
+            error({"System is not a valid SDE", e->location()});
+            return;
         }
         for (unsigned k=0; k<wvars_.size(); ++k) {
             auto const & w = wvars_[k];

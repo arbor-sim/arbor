@@ -27,8 +27,6 @@ set(libmodcc_sources
     printer/printerutil.cpp
 )
 
-SET(CMAKE_CXX_FLAGS "-O2 -g")
-
 set(modcc_sources modcc.cpp)
 
 add_library(libmodcc STATIC ${libmodcc_sources})
