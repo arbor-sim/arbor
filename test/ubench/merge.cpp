@@ -12,11 +12,13 @@
 
 constexpr auto T = 1000.0; // ms
 
+using rndgen = std::mt19937_64;
+
 struct payload {
     payload(std::size_t ncells, std::size_t ev_per_cell) {
         auto dt = T/ev_per_cell;
         for(auto cell = 0ull; cell < ncells; ++cell) {
-            auto gen = arb::poisson_schedule(1/dt, cell);
+            auto gen = arb::poisson_schedule(1/dt, rndgen{cell});
             auto times = gen.events(0, T);
             evts.emplace_back();
             auto& evt = evts.back();
