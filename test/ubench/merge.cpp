@@ -16,7 +16,7 @@ struct payload {
     payload(std::size_t ncells, std::size_t ev_per_cell) {
         auto dt = T/ev_per_cell;
         for(auto cell = 0ull; cell < ncells; ++cell) {
-            auto gen = arb::poisson_schedule(1/dt, std::mt19937_64(cell));
+            auto gen = arb::poisson_schedule(1/dt, cell);
             auto times = gen.events(0, T);
             evts.emplace_back();
             auto& evt = evts.back();
@@ -58,7 +58,9 @@ static void BM_linear(benchmark::State& state) {
         arb::pse_vector out;
         // Need to do this here, normally the wrapper does this
         out.reserve(data.size);
-        arb::linear_merge_events(data.span, out);
+        // Clone the input, merge clobbers it.
+        auto tmp = data.span;
+        arb::linear_merge_events(tmp, out);
         benchmark::ClobberMemory();
     }
 }
@@ -73,7 +75,9 @@ static void BM_queue(benchmark::State& state) {
         arb::pse_vector out;
         // Need to do this here, normally the wrapper does this
         out.reserve(data.size);
-        arb::pqueue_merge_events(data.span, out);
+        // Clone the input, merge clobbers it.
+        auto tmp = data.span;
+        arb::pqueue_merge_events(tmp, out);
         benchmark::ClobberMemory();
     }
 }
@@ -87,7 +91,9 @@ static void BM_default(benchmark::State& state) {
     while (state.KeepRunning()) {
         arb::pse_vector out;
         // NOTE: This wrapper _does_ do the allocation.
-        arb::merge_events(data.span, out);
+        // Clone the input, merge clobbers it.
+        auto tmp = data.span;
+        arb::merge_events(tmp, out);
         benchmark::ClobberMemory();
     }
 }

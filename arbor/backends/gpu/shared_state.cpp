@@ -50,6 +50,7 @@ ion_state::ion_state(int charge,
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
+    write_iX_(ion_data.current_written),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
@@ -76,12 +77,15 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    memory::fill(gX_, 0);
-    memory::fill(iX_, 0);
+    if (write_iX_) {
+        memory::fill(gX_, 0);
+        memory::fill(iX_, 0);
+    }
 }
 
 void ion_state::reset() {
-    zero_current();
+    memory::fill(gX_, 0);
+    memory::fill(iX_, 0);
     memory::copy(reset_Xi_, Xd_);
     if (write_Xi_) memory::copy(reset_Xi_, Xi_);
     if (write_Xo_) memory::copy(reset_Xo_, Xo_);
