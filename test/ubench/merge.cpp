@@ -43,7 +43,8 @@ static void BM_tree(benchmark::State& state) {
         arb::pse_vector out;
         // Need to do this here, normally the wrapper does this
         out.reserve(data.size);
-        arb::tree_merge_events(data.span, out);
+        auto tmp = data.span;
+        arb::tree_merge_events(tmp, out);
         benchmark::ClobberMemory();
     }
 }
