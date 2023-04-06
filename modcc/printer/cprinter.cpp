@@ -214,7 +214,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
             "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"
             "using simd_index = S::simd<arb_index_type, vector_length_, " << abi << ">;\n"
             "using simd_mask  = S::simd_mask<arb_value_type, vector_length_, "<< abi << ">;\n"
-            "static unsigned min_align_ = std::max(S::min_align(simd_value{}), S::min_align(simd_index{}));\n"
+            "static constexpr unsigned min_align_ = std::max(S::min_align(simd_value{}), S::min_align(simd_index{}));\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
             "    simd_value ones = simd_cast<simd_value>(1.0);\n"

@@ -395,7 +395,7 @@ namespace detail {
         template <typename V>
         friend class indirect_expression;
 
-        simd_impl() = default;
+        constexpr simd_impl() = default;
 
         // Construct by filling with scalar value.
         simd_impl(const scalar_type& x) {
@@ -751,7 +751,7 @@ namespace detail {
         using base::width;
         using base::value_;
 
-        simd_mask_impl() = default;
+        constexpr simd_mask_impl() = default;
 
         // Construct by filling with scalar value.
         simd_mask_impl(bool b) {
