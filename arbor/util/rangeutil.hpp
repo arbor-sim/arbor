@@ -85,18 +85,9 @@ void fill(Seq&& seq, const V& value) {
 
 // Zero a container, specialised for contiguous sequences
 
-template <typename T, typename A> inline
-void zero(std::vector<T, A>& vs) {
-    std::memset(vs.data(), 0x0, vs.size()*sizeof(vs[0]));
-}
-
-template <typename T, int N> inline
-void zero(std::array<T, N>& vs) {
-    std::memset(vs.data(), 0x0, vs.size()*sizeof(vs[0]));
-}
-
-inline
-void zero(std::string& vs) {
+template <typename Seq, typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
+void zero(Seq& vs) {
+    // NOTE: All contiguous containers have a `data` method
     std::memset(vs.data(), 0x0, vs.size()*sizeof(vs[0]));
 }
 
