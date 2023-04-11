@@ -66,6 +66,19 @@ struct lid_range {
         begin(b), end(e) {}
 };
 
+// Global range of indices with given step size.
+
+struct gid_range {
+    cell_gid_type begin = 0;
+    cell_gid_type end = 0;
+    cell_gid_type step = 1;
+    gid_range() = default;
+    gid_range(cell_gid_type b, cell_gid_type e):
+        begin(b), end(e), step(1) {}
+    gid_range(cell_gid_type b, cell_gid_type e, cell_gid_type s):
+        begin(b), end(e), step(s) {}
+};
+
 // Policy for selecting a cell_lid_type from a range of possible values.
 
 enum class lid_selection_policy {
