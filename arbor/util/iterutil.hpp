@@ -218,5 +218,139 @@ public:
     }
 };
 
+/*
+ * Base class (using CRTP) for iterator adaptors that
+ * can represent iterators for generating views.
+ *
+ * Generating views do not point to elements which are
+ * residing in memory, but rather generate the elements
+ * on the fly when accessed.
+ *
+ * Supplies default implementations for iterator concepts
+ * in terms of the derived class' methods and the
+ * underlying view.
+ *
+ * Derived class must provide an implementation for:
+ *   view() -> const View&
+ * The view must provide implementations for:
+ *   operator[](std::size_t) -> value_type
+ *   size() -> std::size_t
+ */
+template <typename Derived, typename View>
+class generating_view_iterator_adaptor {
+protected:
+    Derived& derived() noexcept { return static_cast<Derived&>(*this); }
+    const Derived& derived() const noexcept { return static_cast<const Derived&>(*this); }
+
+private:
+    // Access to view provided by derived class.
+    const View& view() const noexcept { return derived().view(); }
+    std::size_t size() const noexcept { return view().size(); }
+
+public:
+    using value_type = decltype(std::declval<View>()[0u]);
+    using difference_type = std::make_signed_t<std::size_t>;
+    using iterator_category = std::random_access_iterator_tag;
+    struct pointer {
+        value_type v;
+        const value_type* operator->() const noexcept { return &v; }
+    };
+    using reference = value_type;
+
+private:
+    std::size_t index_ = 0u;
+
+public:
+    generating_view_iterator_adaptor() noexcept = default;
+    generating_view_iterator_adaptor(std::size_t i) noexcept: index_{i} {}
+
+public:
+    // forward and input iterator requirements
+
+    reference operator*() const noexcept { return view()[index_]; }
+
+    pointer operator->() const noexcept { return {view()[index_]}; }
+
+    Derived& operator++() noexcept {
+        if ((index_+1) <= size()) ++index_;
+        return derived();
+    }
+
+    Derived operator++(int) noexcept {
+        Derived c(derived());
+        ++derived();
+        return c;
+    }
+
+    bool operator==(const Derived& x) const noexcept {
+        return index_==x.index_;
+    }
+
+    bool operator!=(const Derived& x) const noexcept {
+        return !(derived()==x);
+    }
+
+    // bidirectional iterator requirements
+
+    Derived& operator--() noexcept {
+        if (index_ > 0u) --index_;
+        return derived();
+    }
+
+    Derived operator--(int) noexcept {
+        Derived c(derived());
+        --derived();
+        return c;
+    }
+
+    // random access iterator requirements
+
+    Derived& operator+=(difference_type n) noexcept {
+        index_ = (n >= 0 ? std::min(index_ + n, size()) :
+            ((std::size_t)(-n) > index_ ? 0u : index_ + n));
+        return derived();
+    }
+
+    Derived operator+(difference_type n) const noexcept {
+        Derived c(derived());
+        return c += n;
+    }
+
+    friend Derived operator+(difference_type n, const Derived& x) noexcept {
+        return x+n;
+    }
+
+    Derived& operator-=(difference_type n) noexcept {
+        if (n < 0) return derived()+=-n;
+        index_ = (std::size_t)n > index_ ? 0u : index_-n;
+        return derived();
+    }
+
+    Derived operator-(difference_type n) const noexcept {
+        Derived c(derived());
+        return c -= n;
+    }
+
+    difference_type operator-(const Derived& x) const noexcept {
+        return (difference_type)index_ - (difference_type)x.index_;
+    }
+
+    bool operator<(const Derived& x) const noexcept {
+        return index_ < x.index_;
+    }
+
+    bool operator<=(const Derived& x) const noexcept {
+        return derived()<x || derived()==x;
+    }
+
+    bool operator>=(const Derived& x) const noexcept {
+        return !(derived()<x);
+    }
+
+    bool operator>(const Derived& x) const noexcept {
+        return !(derived()<=x);
+    }
+};
+
 } // namespace util
 } // namespace arb

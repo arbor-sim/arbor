@@ -19,7 +19,6 @@ struct sampler_association {
     schedule sched;
     sampler_function sampler;
     std::vector<cell_member_type> probeset_ids;
-    sampling_policy policy;
 };
 
 using sampler_association_map = std::unordered_map<sampler_association_handle, sampler_association>;

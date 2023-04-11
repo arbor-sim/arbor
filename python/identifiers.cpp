@@ -149,15 +149,6 @@ void register_identifiers(py::module& m) {
             "Use GPU backend.")
         .value("multicore", arb::backend_kind::multicore,
             "Use multicore backend.");
-
-    py::enum_<arb::binning_kind>(m, "binning",
-        "Enumeration for event time binning policy.")
-        .value("none", arb::binning_kind::none,
-            "No binning policy.")
-        .value("regular", arb::binning_kind::regular,
-            "Round time down to multiple of binning interval.")
-        .value("following", arb::binning_kind::following,
-            "Round times down to previous event if within binning interval.");
 }
 
 } // namespace pyarb

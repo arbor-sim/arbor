@@ -17,6 +17,8 @@
 using namespace std::string_literals;
 
 TEST(abi, multicore_initialisation) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
                                            { "G1", "lb",  456.0,     0.0, 2000.0},
                                            { "G2", "gr",  789.0,     0.0, 2000.0}};
@@ -45,16 +47,15 @@ TEST(abi, multicore_initialisation) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell,
-                                              cv_to_intdom, cv_to_intdom,
+    arb::multicore::shared_state shared_state(thread_pool, ncell, ncv, cv_to_cell,
                                               vinit, temp, diam, src_to_spike,
-                                              arb::fvm_detector_info(),
+                                              arb::fvm_detector_info{},
                                               mech.data_alignment());
 
     arb::mechanism_layout layout;
@@ -96,6 +97,8 @@ TEST(abi, multicore_initialisation) {
 }
 
 TEST(abi, multicore_null) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
                                            { "G1", "lb",  456.0,     0.0, 2000.0},
                                            { "G2", "gr",  789.0,     0.0, 2000.0}};
@@ -123,15 +126,14 @@ TEST(abi, multicore_null) {
     auto mech = arb::mechanism(type, iface);
 
     arb_size_type ncell = 1;
-    arb_size_type ncv = 0;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    arb_size_type ncv = 5;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::multicore::shared_state shared_state(ncell, ncell,
-                                              cv_to_intdom, cv_to_intdom,
+    arb::multicore::shared_state shared_state(thread_pool, ncell, ncv, cv_to_cell,
                                               vinit, temp, diam, src_to_spike,
                                               arb::fvm_detector_info{},
                                               mech.data_alignment());
@@ -161,7 +163,11 @@ std::vector<T> vec_n(const T* device_ptr, std::size_t n) {
 }
 }
 
+#define ABI_PREABMLE /
+
 TEST(abi, gpu_initialisation) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
                                            { "G1", "lb",  456.0,     0.0, 2000.0},
                                            { "G2", "gr",  789.0,     0.0, 2000.0}};
@@ -189,15 +195,14 @@ TEST(abi, gpu_initialisation) {
     auto mech = arb::mechanism(type, iface);
 
     arb_size_type ncell = 1;
-    arb_size_type ncv = 1;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    arb_size_type ncv = 5;
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::gpu::shared_state shared_state(ncell, ncell,
-                                        cv_to_intdom, cv_to_intdom,
+    arb::gpu::shared_state shared_state(thread_pool, ncell, ncv, cv_to_cell,
                                         vinit, temp, diam, src_to_spike,
                                         arb::fvm_detector_info{},
                                         1);
@@ -240,6 +245,8 @@ TEST(abi, gpu_initialisation) {
 }
 
 TEST(abi, gpu_null) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     std::vector<arb_field_info> globals = {{ "G0", "kg",  123.0,     0.0, 2000.0},
                                            { "G1", "lb",  456.0,     0.0, 2000.0},
                                            { "G2", "gr",  789.0,     0.0, 2000.0}};
@@ -268,14 +275,13 @@ TEST(abi, gpu_null) {
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 0;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    arb::gpu::shared_state shared_state(ncell, ncell,
-                                        cv_to_intdom, cv_to_intdom,
+    arb::gpu::shared_state shared_state(thread_pool, ncell, ncv, cv_to_cell,
                                         vinit, temp, diam, src_to_spike,
                                         arb::fvm_detector_info{},
                                         1);

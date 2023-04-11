@@ -19,7 +19,6 @@ struct diffusion_solver {
 
     iarray parent_index;
     iarray cell_cv_divs;
-    iarray cell_to_intdom;
 
     array d;           // [μS]
     array u;           // [μS]
@@ -36,11 +35,9 @@ struct diffusion_solver {
     diffusion_solver(const std::vector<index_type>& p,
                      const std::vector<index_type>& cell_cv_divs,
                      const std::vector<value_type>& diff,
-                     const std::vector<value_type>& area,
-                     const std::vector<index_type>& cell_to_intdom):
+                     const std::vector<value_type>& area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        cell_to_intdom(cell_to_intdom.begin(), cell_to_intdom.end()),
         d(size(), 0), u(size(), 0),
         cv_area(area.begin(), area.end()),
         invariant_d(size(), 0)
@@ -64,7 +61,8 @@ struct diffusion_solver {
 
 
     // Assemble and solve the matrix
-    //   dt_intdom       [ms]      (per integration domain)
+    // Assemble the matrix
+    //   dt              [ms]      (scalar)
     //   internal conc   [mM]      (per control volume)
     //   voltage         [mV]      (per control volume)
     //   current density [A.m^-2]  (per control volume and species)
@@ -74,7 +72,7 @@ struct diffusion_solver {
     //    * will be overwritten by the solution
     template<typename T>
     void solve(T& concentration,
-               const_view dt_intdom,
+               value_type dt,
                const_view voltage,
                const_view current,
                const_view conductivity,
@@ -83,26 +81,18 @@ struct diffusion_solver {
         index_type ncells = cell_cv_part.size();
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
-            auto dt = dt_intdom[cell_to_intdom[m]];
-            if (dt>0) {
-                value_type _1_dt = 1e-3/dt;     // 1/µs
-                for (auto i: util::make_span(cell_cv_part[m])) {
-                    auto u = voltage[i];        // mV
-                    auto g = conductivity[i];   // µS
-                    auto J = current[i];        // A/m^2
-                    auto A = 1e-3*cv_area[i];   // 1e-9·m²
-                    auto X = concentration[i];  // mM
-                    // conversion from current density to concentration change
-                    // using Faraday's constant
-                    auto F = A/(q*96.485332);
-                    d[i]   = _1_dt   + F*g + invariant_d[i];
-                    concentration[i] = _1_dt*X + F*(u*g - J);
-                }
-            }
-            else {
-                for (auto i: util::make_span(cell_cv_part[m])) {
-                    d[i] = 0;
-                }
+            value_type _1_dt = 1e-3/dt;     // 1/µs
+            for (auto i: util::make_span(cell_cv_part[m])) {
+                auto u = voltage[i];        // mV
+                auto g = conductivity[i];   // µS
+                auto J = current[i];        // A/m^2
+                auto A = 1e-3*cv_area[i];   // 1e-9·m²
+                auto X = concentration[i];  // mM
+                // conversion from current density to concentration change
+                // using Faraday's constant
+                auto F = A/(q*96.485332);
+                d[i]   = _1_dt   + F*g + invariant_d[i];
+                concentration[i] = _1_dt*X + F*(u*g - J);
             }
         }
         solve(concentration);
@@ -114,20 +104,21 @@ struct diffusion_solver {
         // loop over submatrices
         for (const auto& [first, last]: util::partition_view(cell_cv_divs)) {
             if (first >= last) continue; // skip cell with no CVs
-            if (d[first]!=0) {
-                // backward sweep
-                for(auto i=last-1; i>first; --i) {
-                    auto pi  = parent_index[i];
-                    auto fac = -u[i] / d[i];
-                    d[pi]    = std::fma(fac, u[i],   d[pi]);
-                    rhs[pi]  = std::fma(fac, rhs[i], rhs[pi]);
-                }
-                // solve root
-                rhs[first] /= d[first];
-                // forward sweep
-                for(auto i=first+1; i<last; ++i) {
-                    rhs[i] = std::fma(-u[i], rhs[parent_index[i]], rhs[i])/d[i];
-                }
+
+            // backward sweep
+            for(auto i=last-1; i>first; --i) {
+                auto pi  = parent_index[i];
+                auto fac = -u[i] / d[i];
+                d[pi]    = std::fma(fac, u[i],   d[pi]);
+                rhs[pi]  = std::fma(fac, rhs[i], rhs[pi]);
+            }
+
+            // solve root
+            rhs[first] /= d[first];
+
+            // forward sweep
+            for(auto i=first+1; i<last; ++i) {
+                rhs[i] = std::fma(-u[i], rhs[parent_index[i]], rhs[i])/d[i];
             }
         }
     }

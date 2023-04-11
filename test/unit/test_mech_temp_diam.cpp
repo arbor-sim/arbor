@@ -17,13 +17,15 @@ using namespace arb;
 
 template <typename backend>
 void run_celsius_test() {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     auto cat = make_unit_test_catalogue();
 
     // one cell, three CVs:
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 3;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "celsius_test");
     auto& celsius_test = instance.mech;
@@ -36,8 +38,7 @@ void run_celsius_test() {
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncell,
-                                                                         cv_to_intdom, cv_to_intdom,
+    auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
                                                                          vinit, temp, diam,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
@@ -71,13 +72,15 @@ void run_celsius_test() {
 
 template <typename backend>
 void run_diam_test() {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     auto cat = make_unit_test_catalogue();
 
     // one cell, three CVs:
 
     arb_size_type ncell = 1;
     arb_size_type ncv = 3;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "diam_test");
     auto& celsius_test = instance.mech;
@@ -97,8 +100,7 @@ void run_diam_test() {
         layout.cv.push_back(i);
     }
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(ncell, ncell,
-                                                                         cv_to_intdom, cv_to_intdom,
+    auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
                                                                          vinit, temp, diam,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
