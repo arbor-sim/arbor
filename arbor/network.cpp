@@ -23,8 +23,7 @@ namespace {
 // Partial seed to use for network_value and network_selection generation.
 // Different seed for each type to avoid unintentional correlation.
 enum class network_seed : unsigned {
-    selection_bernoulli = 2058443,
-    selection_linear_bernoulli = 839033,
+    selection_random = 2058443,
     value_uniform = 48202,
     value_normal = 8405,
     value_truncated_normal = 380237,
@@ -665,17 +664,21 @@ struct network_selection_distance_gt_impl: public network_selection_impl {
     void print(std::ostream& os) const override { os << "(distance-gt " << d << ")"; }
 };
 
-struct network_selection_random_bernoulli_impl: public network_selection_impl {
+struct network_selection_random_impl: public network_selection_impl {
     unsigned seed;
-    double probability;
 
-    network_selection_random_bernoulli_impl(unsigned seed, double p): seed(seed), probability(p) {}
+    network_value p_value;
+    std::shared_ptr<network_value_impl> probability; // may be null if unitialize(...) not called
+
+    network_selection_random_impl(unsigned seed, network_value p): seed(seed), p_value(std::move(p)) {}
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return uniform_rand_from_key_pair({unsigned(network_seed::selection_bernoulli), seed},
+        if (!probability)
+            throw arbor_internal_error("Trying to use unitialized named network selection.");
+        return uniform_rand_from_key_pair({unsigned(network_seed::selection_random), seed},
                    src.hash,
-                   dest.hash) < probability;
+                   dest.hash) < probability->get(src, dest);
     }
 
     bool select_source(cell_kind kind,
@@ -690,66 +693,14 @@ struct network_selection_random_bernoulli_impl: public network_selection_impl {
         return true;
     }
 
-    void print(std::ostream& os) const override {
-        os << "(random-bernoulli " << seed << " " << probability << ")";
-    }
-};
-
-struct network_selection_random_linear_distance_impl: public network_selection_impl {
-    unsigned seed;
-    double distance_begin;
-    double p_begin;
-    double distance_end;
-    double p_end;
-
-    network_selection_random_linear_distance_impl(unsigned seed_,
-        double distance_begin_,
-        double p_begin_,
-        double distance_end_,
-        double p_end_):
-        seed(seed_),
-        distance_begin(distance_begin_),
-        p_begin(p_begin_),
-        distance_end(distance_end_),
-        p_end(p_end_) {
-        if (distance_begin > distance_end) {
-            std::swap(distance_begin, distance_end);
-            std::swap(p_begin, p_end);
-        }
-    }
-
-    bool select_connection(const network_site_info& src,
-        const network_site_info& dest) const override {
-        const double d = distance(src.global_location, dest.global_location);
-
-        if (d < distance_begin || d > distance_end) return false;
-
-        const double p = (p_begin * (distance_end - d) + p_end * (d - distance_begin)) /
-                         (distance_end - distance_begin);
-
-        return uniform_rand_from_key_pair(
-                   {unsigned(network_seed::selection_linear_bernoulli), seed},
-                   src.hash,
-                   dest.hash) < p;
-    }
-
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
-        return true;
-    }
-
-    bool select_destination(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
-        return true;
-    }
-
-    std::optional<double> max_distance() const override { return distance_end; }
+    void initialize(const network_label_dict& dict) override {
+        probability = thingify(p_value, dict);
+    };
 
     void print(std::ostream& os) const override {
-        os << "(random-linear-distance " << seed << " " << distance_begin << " " << p_begin << " "
-           << distance_end << " " << p_end << ")";
+        os << "(random " << seed << " ";
+        os << p_value;
+        os << ")";
     }
 };
 
@@ -961,6 +912,19 @@ struct network_value_scalar_impl: public network_value_impl {
     void print(std::ostream& os) const override { os << "(scalar " << value << ")"; }
 };
 
+
+struct network_value_distance_impl: public network_value_impl {
+    double scale;
+
+    network_value_distance_impl(double s): scale(s) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return scale * distance(src.global_location, dest.global_location);
+    }
+
+    void print(std::ostream& os) const override { os << "(distance " << scale << ")"; }
+};
+
 struct network_value_uniform_distribution_impl: public network_value_impl {
     unsigned seed = 0;
     std::array<double, 2> range;
@@ -1089,6 +1053,210 @@ struct network_value_named_impl: public network_value_impl {
     }
 };
 
+struct network_value_add_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> left, right;
+
+    network_value_add_impl(std::shared_ptr<network_value_impl> l,
+        std::shared_ptr<network_value_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return left->get(src, dest) + right->get(src, dest);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(add ";
+        left->print(os);
+        os << " ";
+        right->print(os);
+        os << ")";
+    }
+};
+
+
+struct network_value_mul_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> left, right;
+
+    network_value_mul_impl(std::shared_ptr<network_value_impl> l,
+        std::shared_ptr<network_value_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return left->get(src, dest) * right->get(src, dest);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(mul ";
+        left->print(os);
+        os << " ";
+        right->print(os);
+        os << ")";
+    }
+};
+
+
+struct network_value_sub_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> left, right;
+
+    network_value_sub_impl(std::shared_ptr<network_value_impl> l,
+        std::shared_ptr<network_value_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return left->get(src, dest) - right->get(src, dest);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(sub ";
+        left->print(os);
+        os << " ";
+        right->print(os);
+        os << ")";
+    }
+};
+
+struct network_value_div_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> left, right;
+
+    network_value_div_impl(std::shared_ptr<network_value_impl> l,
+        std::shared_ptr<network_value_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        const auto v_right = right ->get(src,dest);
+        if (!v_right) throw arbor_exception("network_value: division by 0.");
+        return left->get(src, dest) / right->get(src, dest);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(div ";
+        left->print(os);
+        os << " ";
+        right->print(os);
+        os << ")";
+    }
+};
+
+struct network_value_max_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> left, right;
+
+    network_value_max_impl(std::shared_ptr<network_value_impl> l,
+        std::shared_ptr<network_value_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return std::max(left->get(src, dest), right->get(src, dest));
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(max ";
+        left->print(os);
+        os << " ";
+        right->print(os);
+        os << ")";
+    }
+};
+
+struct network_value_min_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> left, right;
+
+    network_value_min_impl(std::shared_ptr<network_value_impl> l,
+        std::shared_ptr<network_value_impl> r):
+        left(std::move(l)),
+        right(std::move(r)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return std::min(left->get(src, dest), right->get(src, dest));
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        left->initialize(dict);
+        right->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(min ";
+        left->print(os);
+        os << " ";
+        right->print(os);
+        os << ")";
+    }
+};
+
+struct network_value_exp_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> value;
+
+    network_value_exp_impl(std::shared_ptr<network_value_impl> v):
+        value(std::move(v)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        return std::exp(value->get(src, dest));
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        value->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(exp ";
+        value->print(os);
+        os << ")";
+    }
+};
+
+struct network_value_log_impl: public network_value_impl {
+    std::shared_ptr<network_value_impl> value;
+
+    network_value_log_impl(std::shared_ptr<network_value_impl> v):
+        value(std::move(v)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        const auto v = value->get(src, dest);
+        if (v <= 0.0) throw arbor_exception("network_value: log of value <= 0.0.");
+        return std::log(value->get(src, dest));
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        value->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(log ";
+        value->print(os);
+        os << ")";
+    }
+};
+
 }  // namespace
 
 network_site_info::network_site_info(cell_gid_type gid,
@@ -1211,8 +1379,9 @@ network_selection network_selection::inter_cell() {
     return network_selection(std::make_shared<network_selection_inter_cell_impl>());
 }
 
-network_selection network_selection::random_bernoulli(unsigned seed, double p) {
-    return network_selection(std::make_shared<network_selection_random_bernoulli_impl>(seed, p));
+network_selection network_selection::random(unsigned seed, network_value p) {
+    return network_selection(
+        std::make_shared<network_selection_random_impl>(seed, std::move(p)));
 }
 
 network_selection network_selection::custom(custom_func_type func) {
@@ -1227,19 +1396,14 @@ network_selection network_selection::distance_gt(double d) {
     return network_selection(std::make_shared<network_selection_distance_gt_impl>(d));
 }
 
-network_selection network_selection::random_linear_distance(unsigned seed,
-    double distance_begin,
-    double p_begin,
-    double distance_end,
-    double p_end) {
-    return network_selection(std::make_shared<network_selection_random_linear_distance_impl>(
-        seed, distance_begin, p_begin, distance_end, p_end));
-}
-
 network_value::network_value(std::shared_ptr<network_value_impl> impl): impl_(std::move(impl)) {}
 
 network_value network_value::scalar(double value) {
     return network_value(std::make_shared<network_value_scalar_impl>(value));
+}
+
+network_value network_value::distance(double scale) {
+    return network_value(std::make_shared<network_value_distance_impl>(scale));
 }
 
 network_value network_value::uniform_distribution(unsigned seed,
@@ -1276,6 +1440,44 @@ network_label_dict& network_label_dict::set(const std::string& name, network_sel
 network_label_dict& network_label_dict::set(const std::string& name, network_value v) {
     values_.insert_or_assign(name, std::move(v));
     return *this;
+}
+
+network_value network_value::add(network_value left, network_value right) {
+    return network_value(
+        std::make_shared<network_value_add_impl>(std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_value network_value::sub(network_value left, network_value right) {
+    return network_value(
+        std::make_shared<network_value_sub_impl>(std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_value network_value::mul(network_value left, network_value right) {
+    return network_value(
+        std::make_shared<network_value_mul_impl>(std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_value network_value::div(network_value left, network_value right) {
+    return network_value(
+        std::make_shared<network_value_div_impl>(std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_value network_value::exp(network_value v) {
+    return network_value(std::make_shared<network_value_exp_impl>(std::move(v.impl_)));
+}
+
+network_value network_value::log(network_value v) {
+    return network_value(std::make_shared<network_value_log_impl>(std::move(v.impl_)));
+}
+
+network_value network_value::min(network_value left, network_value right) {
+    return network_value(
+        std::make_shared<network_value_min_impl>(std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_value network_value::max(network_value left, network_value right) {
+    return network_value(
+        std::make_shared<network_value_max_impl>(std::move(left.impl_), std::move(right.impl_)));
 }
 
 std::optional<network_selection> network_label_dict::selection(const std::string& name) const {

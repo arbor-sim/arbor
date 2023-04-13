@@ -387,8 +387,8 @@ TEST(network_selection, round_tripping) {
         "(chain 3 1 0 5 7 6)", // order should be preserved
         "(chain (gid-range 2 14 3))",
         "(chain-reverse (gid-range 2 14 3))",
-        "(random-bernoulli 42 0.1)",
-        "(random-linear-distance 42 2.5 0.2 5.2 0.9)",
+        "(random 42 (scalar 0.1))",
+        "(random 42 (normal-distribution 43 0.5 0.1))",
         "(distance-lt 0.5)",
         "(distance-gt 0.5)",
     };
@@ -407,20 +407,69 @@ TEST(network_selection, round_tripping) {
 TEST(network_value, round_tripping) {
     auto network_literals = {
         "(scalar 1.3)",
+        "(distance 1.3)",
         "(network-value \"abc\")",
         "(uniform-distribution 42 0 0.8)",
         "(normal-distribution 42 0.5 0.1)",
         "(truncated-normal-distribution 42 0.5 0.1 0.3 0.7)",
+        "(log (scalar 1.3))",
+        "(exp (scalar 1.3))",
     };
 
     for (auto l: network_literals) {
         EXPECT_EQ(l, round_trip_network_value(l));
     }
+
+    EXPECT_EQ("(log (scalar 1.3))", round_trip_network_value("(log 1.3)"));
+    EXPECT_EQ("(exp (scalar 1.3))", round_trip_network_value("(exp 1.3)"));
+
+    EXPECT_EQ(
+        "(add (scalar -2.1) (scalar 3.1))", round_trip_network_value("(add -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(add (add (add (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(add -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(sub (scalar -2.1) (scalar 3.1))", round_trip_network_value("(sub -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(sub (sub (sub (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(sub -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(mul (scalar -2.1) (scalar 3.1))", round_trip_network_value("(mul -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(mul (mul (mul (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(mul -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(div (scalar -2.1) (scalar 3.1))", round_trip_network_value("(div -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(div (div (div (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(div -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(min (scalar -2.1) (scalar 3.1))", round_trip_network_value("(min -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(min (min (min (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(min -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(max (scalar -2.1) (scalar 3.1))", round_trip_network_value("(max -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(max (max (max (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(max -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
 }
 
 TEST(regloc, round_tripping) {
     EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));
-    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))", round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
+    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))",
+        round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
     auto region_literals = {
         "(cable 2 0.1 0.4)",
         "(region \"foo\")",

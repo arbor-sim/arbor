@@ -387,16 +387,15 @@ eval_map_type network_eval_map{
             "connection directions in reverse compared to the (chain-range ...) selection: "
             "(begin:integer) "
             "(end:integer) (step:integer)")},
-    {"random-bernoulli",
-        make_call<int, double>(arb::network_selection::random_bernoulli,
+    {"random",
+        make_call<int, double>(arb::network_selection::random,
             "randomly selected with given seed and probability. 2 arguments: (seed:integer, "
             "p:real)")},
-    {"random-linear-distance",
-        make_call<int, double, double, double, double>(
-            arb::network_selection::random_linear_distance,
-            "randomly selected with a probability linearly interpolated between [p_begin, p_end] "
-            "based on the distance in the interval [distance_begin, distance_end]. 5 arguments: "
-            "(seed:integer, distance_begin:real, p_begin:real, distance_end:real, p_end:real)")},
+    {"random",
+        make_call<int, arb::network_value>(arb::network_selection::random,
+            "randomly selected with given seed and probability function. Any probability value is "
+            "clamped to [0.0, 1.0]. 2 arguments: (seed:integer, "
+            "p:network-value)")},
     {"distance-lt",
         make_call<double>(arb::network_selection::distance_lt,
             "Select if distance between source and destination is less than given distance in "
@@ -409,10 +408,17 @@ eval_map_type network_eval_map{
     // network_value
     {"scalar",
         make_call<double>(arb::network_value::scalar,
-            "network value with 1 argument: (value:real)")},
+            "A fixed scalar value. 1 argument: (value:real)")},
     {"network-value",
         make_call<std::string>(arb::network_value::named,
-            "network value with 1 argument: (value:string)")},
+            "A named network value with 1 argument: (value:string)")},
+    {"distance",
+        make_call<double>(arb::network_value::distance,
+            "Distance between source and destination scaled by given value with unit [1/um]. 1 "
+            "argument: (scale:real)")},
+    {"distance",
+        make_call<>([]() { return arb::network_value::distance(1.0); },
+            "Distance between source and destination scaled by 1.0 with unit [1/um].")},
     {"uniform-distribution",
         make_call<int, double, double>(
             [](unsigned seed, double begin, double end) {
@@ -433,7 +439,49 @@ eval_map_type network_eval_map{
             "Truncated normal random distribution with given mean and standard deviation within "
             "interval [begin, end]: (seed:integer, mean:real, std_deviation:real, begin:real, "
             "end:real)")},
-
+    {"add",
+        make_conversion_fold<arb::network_value, arb::network_value, double>(
+            arb::network_value::add,
+            "Sum of network values with at least 2 arguments: ((network-value | double) "
+            "(network-value | double) [...(network-value | double)])")},
+    {"sub",
+        make_conversion_fold<arb::network_value, arb::network_value, double>(
+            arb::network_value::sub,
+            "Subtraction of network values from the first argument with at least 2 arguments: "
+            "((network-value | double) (network-value | double) [...(network-value | double)])")},
+    {"mul",
+        make_conversion_fold<arb::network_value, arb::network_value, double>(
+            arb::network_value::mul,
+            "Multiplication of network values with at least 2 arguments: ((network-value | double) "
+            "(network-value | double) [...(network-value | double)])")},
+    {"div",
+        make_conversion_fold<arb::network_value, arb::network_value, double>(
+            arb::network_value::div,
+            "Division of the first argument by each following network value sequentially with at "
+            "least 2 arguments: ((network-value | double) "
+            "(network-value | double) [...(network-value | double)])")},
+    {"min",
+        make_conversion_fold<arb::network_value, arb::network_value, double>(
+            arb::network_value::min,
+            "Minimum of network values with at least 2 arguments: ((network-value | double) "
+            "(network-value | double) [...(network-value | double)])")},
+    {"max",
+        make_conversion_fold<arb::network_value, arb::network_value, double>(
+            arb::network_value::max,
+            "Minimum of network values with at least 2 arguments: ((network-value | double) "
+            "(network-value | double) [...(network-value | double)])")},
+    {"log",
+        make_call<double>(arb::network_value::log,
+            "Logarithm. 1 argument: (value:real)")},
+    {"log",
+        make_call<network_value>(arb::network_value::log,
+            "Logarithm. 1 argument: (value:real)")},
+    {"exp",
+        make_call<double>(arb::network_value::exp,
+            "Logarithm. 1 argument: (value:real)")},
+    {"exp",
+        make_call<network_value>(arb::network_value::exp,
+            "Logarithm. 1 argument: (value:real)")},
 };
 
 parse_label_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map);
