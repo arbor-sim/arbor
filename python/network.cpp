@@ -14,6 +14,8 @@
 #include <functional>
 
 #include "error.hpp"
+#include "util.hpp"
+#include "strprintf.hpp"
 
 namespace py = pybind11;
 
@@ -29,34 +31,57 @@ void register_network(py::module& m) {
         .def_readwrite("kind", &arb::network_site_info::kind)
         .def_readwrite("label", &arb::network_site_info::label)
         .def_readwrite("location", &arb::network_site_info::location)
-        .def_readwrite("global_location", &arb::network_site_info::global_location);
+        .def_readwrite("global_location", &arb::network_site_info::global_location)
+        .def("__repr__", [](const arb::network_site_info& s) {
+            return util::pprintf("<arbor.network_site_info: lid {}, kind {}, label \"{}\", "
+                                 "location {}, global_location {}>",
+                s.lid,
+                s.kind,
+                s.label,
+                s.location,
+                s.global_location);
+        });
 
     py::class_<arb::network_selection> network_selection(
         m, "network_selection", "Network selection.");
-    network_selection.def_static("custom", [](arb::network_selection::custom_func_type func) {
-        return arb::network_selection::custom(
-            [=](const arb::network_site_info& src, const arb::network_site_info& dest) {
-                return try_catch_pyexception(
-                    [&]() {
-                        pybind11::gil_scoped_acquire guard;
-                        return func(src, dest);
-                    },
-                    "Python error already thrown");
-            });
-    });
+    network_selection
+        .def_static("custom",
+            [](arb::network_selection::custom_func_type func) {
+                return arb::network_selection::custom(
+                    [=](const arb::network_site_info& src, const arb::network_site_info& dest) {
+                        return try_catch_pyexception(
+                            [&]() {
+                                pybind11::gil_scoped_acquire guard;
+                                return func(src, dest);
+                            },
+                            "Python error already thrown");
+                    });
+            })
+        .def("__str__",
+            [](const arb::network_selection& s) {
+                return util::pprintf("<arbor.network_selection: {}>", s);
+            })
+        .def("__repr__", [](const arb::network_selection& s) { return util::pprintf("{}", s); });
 
     py::class_<arb::network_value> network_value(m, "network_value", "Network value.");
-    network_value.def_static("custom", [](arb::network_value::custom_func_type func) {
-        return arb::network_value::custom(
-            [=](const arb::network_site_info& src, const arb::network_site_info& dest) {
-                return try_catch_pyexception(
-                    [&]() {
-                        pybind11::gil_scoped_acquire guard;
-                        return func(src, dest);
-                    },
-                    "Python error already thrown");
-            });
-    });
+    network_value
+        .def_static("custom",
+            [](arb::network_value::custom_func_type func) {
+                return arb::network_value::custom(
+                    [=](const arb::network_site_info& src, const arb::network_site_info& dest) {
+                        return try_catch_pyexception(
+                            [&]() {
+                                pybind11::gil_scoped_acquire guard;
+                                return func(src, dest);
+                            },
+                            "Python error already thrown");
+                    });
+            })
+        .def("__str__",
+            [](const arb::network_value& v) {
+                return util::pprintf("<arbor.network_value: {}>", v);
+            })
+        .def("__repr__", [](const arb::network_value& v) { return util::pprintf("{}", v); });
 
     py::class_<arb::network_description> network_description(
         m, "network_description", "Network description.");

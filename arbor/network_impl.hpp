@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string_view>
+#include <ostream>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
@@ -36,6 +37,8 @@ struct network_selection_impl {
 
     virtual void initialize(const network_label_dict& dict) {};
 
+    virtual void print(std::ostream& os) const = 0;
+
     virtual ~network_selection_impl() = default;
 };
 
@@ -50,6 +53,8 @@ struct network_value_impl {
     virtual double get(const network_site_info& src, const network_site_info& dest) const = 0;
 
     virtual void initialize(const network_label_dict& dict) {};
+
+    virtual void print(std::ostream& os) const = 0;
 
     virtual ~network_value_impl() = default;
 };

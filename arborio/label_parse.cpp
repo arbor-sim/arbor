@@ -18,105 +18,125 @@
 namespace arborio {
 
 label_parse_error::label_parse_error(const std::string& msg, const arb::src_location& loc):
-    arb::arbor_exception(concat("error in label description: ", msg," at :", loc.line, ":", loc.column))
-{}
+    arb::arbor_exception(
+        concat("error in label description: ", msg, " at :", loc.line, ":", loc.column)) {}
 
 namespace {
-using eval_map_type= std::unordered_multimap<std::string, evaluator>;
+using eval_map_type = std::unordered_multimap<std::string, evaluator>;
 
-eval_map_type eval_map {
+eval_map_type eval_map{
     // Functions that return regions
-    {"region-nil", make_call<>(arb::reg::nil,
-                "'region-nil' with 0 arguments")},
-    {"all", make_call<>(arb::reg::all,
-                "'all' with 0 arguments")},
-    {"tag", make_call<int>(arb::reg::tagged,
-                "'tag' with 1 argment: (tag_id:integer)")},
-    {"segment", make_call<int>(arb::reg::segment,
-                    "'segment' with 1 argment: (segment_id:integer)")},
-    {"branch", make_call<int>(arb::reg::branch,
-                   "'branch' with 1 argument: (branch_id:integer)")},
-    {"cable", make_call<int, double, double>(arb::reg::cable,
-                  "'cable' with 3 arguments: (branch_id:integer prox:real dist:real)")},
-    {"region", make_call<std::string>(arb::reg::named,
-                   "'region' with 1 argument: (name:string)")},
-    {"distal-interval", make_call<arb::locset, double>(arb::reg::distal_interval,
-                            "'distal-interval' with 2 arguments: (start:locset extent:real)")},
-    {"distal-interval", make_call<arb::locset>(
-                            [](arb::locset ls){return arb::reg::distal_interval(std::move(ls), std::numeric_limits<double>::max());},
-                            "'distal-interval' with 1 argument: (start:locset)")},
-    {"proximal-interval", make_call<arb::locset, double>(arb::reg::proximal_interval,
-                              "'proximal-interval' with 2 arguments: (start:locset extent:real)")},
-    {"proximal-interval", make_call<arb::locset>(
-                              [](arb::locset ls){return arb::reg::proximal_interval(std::move(ls), std::numeric_limits<double>::max());},
-                              "'proximal_interval' with 1 argument: (start:locset)")},
-    {"complete", make_call<arb::region>(arb::reg::complete,
-                     "'complete' with 1 argment: (reg:region)")},
-    {"radius-lt", make_call<arb::region, double>(arb::reg::radius_lt,
-                      "'radius-lt' with 2 arguments: (reg:region radius:real)")},
-    {"radius-le", make_call<arb::region, double>(arb::reg::radius_le,
-                      "'radius-le' with 2 arguments: (reg:region radius:real)")},
-    {"radius-gt", make_call<arb::region, double>(arb::reg::radius_gt,
-                      "'radius-gt' with 2 arguments: (reg:region radius:real)")},
-    {"radius-ge", make_call<arb::region, double>(arb::reg::radius_ge,
-                      "'radius-ge' with 2 arguments: (reg:region radius:real)")},
-    {"z-dist-from-root-lt", make_call<double>(arb::reg::z_dist_from_root_lt,
-                                "'z-dist-from-root-lt' with 1 arguments: (distance:real)")},
-    {"z-dist-from-root-le", make_call<double>(arb::reg::z_dist_from_root_le,
-                                "'z-dist-from-root-le' with 1 arguments: (distance:real)")},
-    {"z-dist-from-root-gt", make_call<double>(arb::reg::z_dist_from_root_gt,
-                                "'z-dist-from-root-gt' with 1 arguments: (distance:real)")},
-    {"z-dist-from-root-ge", make_call<double>(arb::reg::z_dist_from_root_ge,
-                                "'z-dist-from-root-ge' with 1 arguments: (distance:real)")},
-    {"complement", make_call<arb::region>(arb::complement,
-                       "'complement' with 1 argment: (reg:region)")},
-    {"difference", make_call<arb::region, arb::region>(arb::difference,
-                       "'difference' with 2 argments: (reg:region, reg:region)")},
-    {"join", make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::join),
-                 "'join' with at least 2 arguments: (region region [...region])")},
-    {"intersect", make_fold<arb::region>(static_cast<arb::region(*)(arb::region, arb::region)>(arb::intersect),
-                      "'intersect' with at least 2 arguments: (region region [...region])")},
+    {"region-nil", make_call<>(arb::reg::nil, "'region-nil' with 0 arguments")},
+    {"all", make_call<>(arb::reg::all, "'all' with 0 arguments")},
+    {"tag", make_call<int>(arb::reg::tagged, "'tag' with 1 argment: (tag_id:integer)")},
+    {"segment",
+        make_call<int>(arb::reg::segment, "'segment' with 1 argment: (segment_id:integer)")},
+    {"branch", make_call<int>(arb::reg::branch, "'branch' with 1 argument: (branch_id:integer)")},
+    {"cable",
+        make_call<int, double, double>(arb::reg::cable,
+            "'cable' with 3 arguments: (branch_id:integer prox:real dist:real)")},
+    {"region", make_call<std::string>(arb::reg::named, "'region' with 1 argument: (name:string)")},
+    {"distal-interval",
+        make_call<arb::locset, double>(arb::reg::distal_interval,
+            "'distal-interval' with 2 arguments: (start:locset extent:real)")},
+    {"distal-interval",
+        make_call<arb::locset>(
+            [](arb::locset ls) {
+                return arb::reg::distal_interval(std::move(ls), std::numeric_limits<double>::max());
+            },
+            "'distal-interval' with 1 argument: (start:locset)")},
+    {"proximal-interval",
+        make_call<arb::locset, double>(arb::reg::proximal_interval,
+            "'proximal-interval' with 2 arguments: (start:locset extent:real)")},
+    {"proximal-interval",
+        make_call<arb::locset>(
+            [](arb::locset ls) {
+                return arb::reg::proximal_interval(
+                    std::move(ls), std::numeric_limits<double>::max());
+            },
+            "'proximal_interval' with 1 argument: (start:locset)")},
+    {"complete",
+        make_call<arb::region>(arb::reg::complete, "'complete' with 1 argment: (reg:region)")},
+    {"radius-lt",
+        make_call<arb::region, double>(arb::reg::radius_lt,
+            "'radius-lt' with 2 arguments: (reg:region radius:real)")},
+    {"radius-le",
+        make_call<arb::region, double>(arb::reg::radius_le,
+            "'radius-le' with 2 arguments: (reg:region radius:real)")},
+    {"radius-gt",
+        make_call<arb::region, double>(arb::reg::radius_gt,
+            "'radius-gt' with 2 arguments: (reg:region radius:real)")},
+    {"radius-ge",
+        make_call<arb::region, double>(arb::reg::radius_ge,
+            "'radius-ge' with 2 arguments: (reg:region radius:real)")},
+    {"z-dist-from-root-lt",
+        make_call<double>(arb::reg::z_dist_from_root_lt,
+            "'z-dist-from-root-lt' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-le",
+        make_call<double>(arb::reg::z_dist_from_root_le,
+            "'z-dist-from-root-le' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-gt",
+        make_call<double>(arb::reg::z_dist_from_root_gt,
+            "'z-dist-from-root-gt' with 1 arguments: (distance:real)")},
+    {"z-dist-from-root-ge",
+        make_call<double>(arb::reg::z_dist_from_root_ge,
+            "'z-dist-from-root-ge' with 1 arguments: (distance:real)")},
+    {"complement",
+        make_call<arb::region>(arb::complement, "'complement' with 1 argment: (reg:region)")},
+    {"difference",
+        make_call<arb::region, arb::region>(arb::difference,
+            "'difference' with 2 argments: (reg:region, reg:region)")},
+    {"join",
+        make_fold<arb::region>(static_cast<arb::region (*)(arb::region, arb::region)>(arb::join),
+            "'join' with at least 2 arguments: (region region [...region])")},
+    {"intersect",
+        make_fold<arb::region>(
+            static_cast<arb::region (*)(arb::region, arb::region)>(arb::intersect),
+            "'intersect' with at least 2 arguments: (region region [...region])")},
 
     // Functions that return locsets
-    {"locset-nil", make_call<>(arb::ls::nil,
-                "'locset-nil' with 0 arguments")},
-    {"root", make_call<>(arb::ls::root,
-                 "'root' with 0 arguments")},
-    {"location", make_call<int, double>([](int bid, double pos){return arb::ls::location(arb::msize_t(bid), pos);},
-                     "'location' with 2 arguments: (branch_id:integer position:real)")},
-    {"terminal", make_call<>(arb::ls::terminal,
-                     "'terminal' with 0 arguments")},
-    {"distal", make_call<arb::region>(arb::ls::most_distal,
-                   "'distal' with 1 argument: (reg:region)")},
-    {"proximal", make_call<arb::region>(arb::ls::most_proximal,
-                     "'proximal' with 1 argument: (reg:region)")},
-    {"distal-translate", make_call<arb::locset, double>(arb::ls::distal_translate,
-                     "'distal-translate' with 2 arguments: (ls:locset distance:real)")},
-    {"proximal-translate", make_call<arb::locset, double>(arb::ls::proximal_translate,
-                     "'proximal-translate' with 2 arguments: (ls:locset distance:real)")},
-    {"uniform", make_call<arb::region, int, int, int>(arb::ls::uniform,
-                    "'uniform' with 4 arguments: (reg:region, first:int, last:int, seed:int)")},
-    {"on-branches", make_call<double>(arb::ls::on_branches,
-                        "'on-branches' with 1 argument: (pos:double)")},
-    {"on-components", make_call<double, arb::region>(arb::ls::on_components,
-                          "'on-components' with 2 arguments: (pos:double, reg:region)")},
-    {"boundary", make_call<arb::region>(arb::ls::boundary,
-                     "'boundary' with 1 argument: (reg:region)")},
-    {"cboundary", make_call<arb::region>(arb::ls::cboundary,
-                      "'cboundary' with 1 argument: (reg:region)")},
-    {"segment-boundaries", make_call<>(arb::ls::segment_boundaries,
-                               "'segment-boundaries' with 0 arguments")},
-    {"support", make_call<arb::locset>(arb::ls::support,
-                    "'support' with 1 argument (ls:locset)")},
-    {"locset", make_call<std::string>(arb::ls::named,
-                   "'locset' with 1 argument: (name:string)")},
-    {"restrict", make_call<arb::locset, arb::region>(arb::ls::restrict,
-                     "'restrict' with 2 arguments: (ls:locset, reg:region)")},
-    {"join", make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::join),
-                 "'join' with at least 2 arguments: (locset locset [...locset])")},
-    {"sum", make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::sum),
-                "'sum' with at least 2 arguments: (locset locset [...locset])")},
-
+    {"locset-nil", make_call<>(arb::ls::nil, "'locset-nil' with 0 arguments")},
+    {"root", make_call<>(arb::ls::root, "'root' with 0 arguments")},
+    {"location",
+        make_call<int, double>(
+            [](int bid, double pos) { return arb::ls::location(arb::msize_t(bid), pos); },
+            "'location' with 2 arguments: (branch_id:integer position:real)")},
+    {"terminal", make_call<>(arb::ls::terminal, "'terminal' with 0 arguments")},
+    {"distal",
+        make_call<arb::region>(arb::ls::most_distal, "'distal' with 1 argument: (reg:region)")},
+    {"proximal",
+        make_call<arb::region>(arb::ls::most_proximal, "'proximal' with 1 argument: (reg:region)")},
+    {"distal-translate",
+        make_call<arb::locset, double>(arb::ls::distal_translate,
+            "'distal-translate' with 2 arguments: (ls:locset distance:real)")},
+    {"proximal-translate",
+        make_call<arb::locset, double>(arb::ls::proximal_translate,
+            "'proximal-translate' with 2 arguments: (ls:locset distance:real)")},
+    {"uniform",
+        make_call<arb::region, int, int, int>(arb::ls::uniform,
+            "'uniform' with 4 arguments: (reg:region, first:int, last:int, seed:int)")},
+    {"on-branches",
+        make_call<double>(arb::ls::on_branches, "'on-branches' with 1 argument: (pos:double)")},
+    {"on-components",
+        make_call<double, arb::region>(arb::ls::on_components,
+            "'on-components' with 2 arguments: (pos:double, reg:region)")},
+    {"boundary",
+        make_call<arb::region>(arb::ls::boundary, "'boundary' with 1 argument: (reg:region)")},
+    {"cboundary",
+        make_call<arb::region>(arb::ls::cboundary, "'cboundary' with 1 argument: (reg:region)")},
+    {"segment-boundaries",
+        make_call<>(arb::ls::segment_boundaries, "'segment-boundaries' with 0 arguments")},
+    {"support", make_call<arb::locset>(arb::ls::support, "'support' with 1 argument (ls:locset)")},
+    {"locset", make_call<std::string>(arb::ls::named, "'locset' with 1 argument: (name:string)")},
+    {"restrict",
+        make_call<arb::locset, arb::region>(arb::ls::restrict,
+            "'restrict' with 2 arguments: (ls:locset, reg:region)")},
+    {"join",
+        make_fold<arb::locset>(static_cast<arb::locset (*)(arb::locset, arb::locset)>(arb::join),
+            "'join' with at least 2 arguments: (locset locset [...locset])")},
+    {"sum",
+        make_fold<arb::locset>(static_cast<arb::locset (*)(arb::locset, arb::locset)>(arb::sum),
+            "'sum' with at least 2 arguments: (locset locset [...locset])")},
 
     // iexpr
     {"iexpr", make_call<std::string>(arb::iexpr::named, "iexpr with 1 argument: (value:string)")},
@@ -125,52 +145,92 @@ eval_map_type eval_map {
 
     {"pi", make_call<>(arb::iexpr::pi, "iexpr with no argument")},
 
-    {"distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::distance),
+    {"distance",
+        make_call<double, arb::locset>(
+            static_cast<arb::iexpr (*)(double, arb::locset)>(arb::iexpr::distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
-    {"distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::distance),
+    {"distance",
+        make_call<arb::locset>(static_cast<arb::iexpr (*)(arb::locset)>(arb::iexpr::distance),
             "iexpr with 1 argument: (loc:locset)")},
-    {"distance", make_call<double, arb::region>(static_cast<arb::iexpr(*)(double, arb::region)>(arb::iexpr::distance),
+    {"distance",
+        make_call<double, arb::region>(
+            static_cast<arb::iexpr (*)(double, arb::region)>(arb::iexpr::distance),
             "iexpr with 2 arguments: (scale:double, reg:region)")},
-    {"distance", make_call<arb::region>(static_cast<arb::iexpr(*)(arb::region)>(arb::iexpr::distance),
+    {"distance",
+        make_call<arb::region>(static_cast<arb::iexpr (*)(arb::region)>(arb::iexpr::distance),
             "iexpr with 1 argument: (reg:region)")},
 
-    {"proximal-distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::proximal_distance),
+    {"proximal-distance",
+        make_call<double, arb::locset>(
+            static_cast<arb::iexpr (*)(double, arb::locset)>(arb::iexpr::proximal_distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
-    {"proximal-distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::proximal_distance),
+    {"proximal-distance",
+        make_call<arb::locset>(
+            static_cast<arb::iexpr (*)(arb::locset)>(arb::iexpr::proximal_distance),
             "iexpr with 1 argument: (loc:locset)")},
-    {"proximal-distance", make_call<double, arb::region>(static_cast<arb::iexpr(*)(double, arb::region)>(arb::iexpr::proximal_distance),
+    {"proximal-distance",
+        make_call<double, arb::region>(
+            static_cast<arb::iexpr (*)(double, arb::region)>(arb::iexpr::proximal_distance),
             "iexpr with 2 arguments: (scale:double, reg:region)")},
-    {"proximal-distance", make_call<arb::region>(static_cast<arb::iexpr(*)(arb::region)>(arb::iexpr::proximal_distance),
+    {"proximal-distance",
+        make_call<arb::region>(
+            static_cast<arb::iexpr (*)(arb::region)>(arb::iexpr::proximal_distance),
             "iexpr with 1 arguments: (reg:region)")},
 
-    {"distal-distance", make_call<double, arb::locset>(static_cast<arb::iexpr(*)(double, arb::locset)>(arb::iexpr::distal_distance),
+    {"distal-distance",
+        make_call<double, arb::locset>(
+            static_cast<arb::iexpr (*)(double, arb::locset)>(arb::iexpr::distal_distance),
             "iexpr with 2 arguments: (scale:double, loc:locset)")},
-    {"distal-distance", make_call<arb::locset>(static_cast<arb::iexpr(*)(arb::locset)>(arb::iexpr::distal_distance),
+    {"distal-distance",
+        make_call<arb::locset>(
+            static_cast<arb::iexpr (*)(arb::locset)>(arb::iexpr::distal_distance),
             "iexpr with 1 argument: (loc:locset)")},
-    {"distal-distance", make_call<double, arb::region>(static_cast<arb::iexpr(*)(double, arb::region)>(arb::iexpr::distal_distance),
+    {"distal-distance",
+        make_call<double, arb::region>(
+            static_cast<arb::iexpr (*)(double, arb::region)>(arb::iexpr::distal_distance),
             "iexpr with 2 arguments: (scale:double, reg:region)")},
-    {"distal-distance", make_call<arb::region>(static_cast<arb::iexpr(*)(arb::region)>(arb::iexpr::distal_distance),
+    {"distal-distance",
+        make_call<arb::region>(
+            static_cast<arb::iexpr (*)(arb::region)>(arb::iexpr::distal_distance),
             "iexpr with 1 argument: (reg:region)")},
 
-    {"interpolation", make_call<double, arb::locset, double, locset>(static_cast<arb::iexpr(*)(double, arb::locset, double, arb::locset)>(arb::iexpr::interpolation),
-            "iexpr with 4 arguments: (prox_value:double, prox_list:locset, dist_value:double, dist_list:locset)")},
-    {"interpolation", make_call<double, arb::region, double, region>(static_cast<arb::iexpr(*)(double, arb::region, double, arb::region)>(arb::iexpr::interpolation),
-            "iexpr with 4 arguments: (prox_value:double, prox_list:region, dist_value:double, dist_list:region)")},
+    {"interpolation",
+        make_call<double, arb::locset, double, locset>(
+            static_cast<arb::iexpr (*)(double, arb::locset, double, arb::locset)>(
+                arb::iexpr::interpolation),
+            "iexpr with 4 arguments: (prox_value:double, prox_list:locset, dist_value:double, "
+            "dist_list:locset)")},
+    {"interpolation",
+        make_call<double, arb::region, double, region>(
+            static_cast<arb::iexpr (*)(double, arb::region, double, arb::region)>(
+                arb::iexpr::interpolation),
+            "iexpr with 4 arguments: (prox_value:double, prox_list:region, dist_value:double, "
+            "dist_list:region)")},
 
-    {"radius", make_call<double>(static_cast<arb::iexpr(*)(double)>(arb::iexpr::radius), "iexpr with 1 argument: (value:double)")},
-    {"radius", make_call<>(static_cast<arb::iexpr(*)()>(arb::iexpr::radius), "iexpr with no argument")},
+    {"radius",
+        make_call<double>(static_cast<arb::iexpr (*)(double)>(arb::iexpr::radius),
+            "iexpr with 1 argument: (value:double)")},
+    {"radius",
+        make_call<>(static_cast<arb::iexpr (*)()>(arb::iexpr::radius), "iexpr with no argument")},
 
-    {"diameter", make_call<double>(static_cast<arb::iexpr(*)(double)>(arb::iexpr::diameter), "iexpr with 1 argument: (value:double)")},
-    {"diameter", make_call<>(static_cast<arb::iexpr(*)()>(arb::iexpr::diameter), "iexpr with no argument")},
+    {"diameter",
+        make_call<double>(static_cast<arb::iexpr (*)(double)>(arb::iexpr::diameter),
+            "iexpr with 1 argument: (value:double)")},
+    {"diameter",
+        make_call<>(static_cast<arb::iexpr (*)()>(arb::iexpr::diameter), "iexpr with no argument")},
 
     {"exp", make_call<arb::iexpr>(arb::iexpr::exp, "iexpr with 1 argument: (value:iexpr)")},
     {"exp", make_call<double>(arb::iexpr::exp, "iexpr with 1 argument: (value:double)")},
 
-    {"step_right", make_call<arb::iexpr>(arb::iexpr::step_right, "iexpr with 1 argument: (value:iexpr)")},
-    {"step_right", make_call<double>(arb::iexpr::step_right, "iexpr with 1 argument: (value:double)")},
+    {"step_right",
+        make_call<arb::iexpr>(arb::iexpr::step_right, "iexpr with 1 argument: (value:iexpr)")},
+    {"step_right",
+        make_call<double>(arb::iexpr::step_right, "iexpr with 1 argument: (value:double)")},
 
-    {"step_left", make_call<arb::iexpr>(arb::iexpr::step_left, "iexpr with 1 argument: (value:iexpr)")},
-    {"step_left", make_call<double>(arb::iexpr::step_left, "iexpr with 1 argument: (value:double)")},
+    {"step_left",
+        make_call<arb::iexpr>(arb::iexpr::step_left, "iexpr with 1 argument: (value:iexpr)")},
+    {"step_left",
+        make_call<double>(arb::iexpr::step_left, "iexpr with 1 argument: (value:double)")},
 
     {"step", make_call<arb::iexpr>(arb::iexpr::step, "iexpr with 1 argument: (value:iexpr)")},
     {"step", make_call<double>(arb::iexpr::step, "iexpr with 1 argument: (value:double)")},
@@ -178,23 +238,44 @@ eval_map_type eval_map {
     {"log", make_call<arb::iexpr>(arb::iexpr::log, "iexpr with 1 argument: (value:iexpr)")},
     {"log", make_call<double>(arb::iexpr::log, "iexpr with 1 argument: (value:double)")},
 
-    {"add", make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::add, "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | double)])")},
+    {"add",
+        make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::add,
+            "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | "
+            "double)])")},
 
-    {"sub", make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::sub, "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | double)])")},
+    {"sub",
+        make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::sub,
+            "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | "
+            "double)])")},
 
-    {"mul", make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::mul, "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | double)])")},
+    {"mul",
+        make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::mul,
+            "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | "
+            "double)])")},
 
-    {"div", make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::div, "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | double)])")},
+    {"div",
+        make_conversion_fold<arb::iexpr, arb::iexpr, double>(arb::iexpr::div,
+            "iexpr with at least 2 arguments: ((iexpr | double) (iexpr | double) [...(iexpr | "
+            "double)])")},
 };
 
 eval_map_type network_eval_map{
+    {"gid-range",
+        make_call<int, int>([](int begin, int end) { return arb::gid_range(begin, end); },
+            "Gid range [begin, end) with step size 1: ((begin:integer) (end:integer))")},
+    {"gid-range",
+        make_call<int, int, int>(
+            [](int begin, int end, int step) { return arb::gid_range(begin, end, step); },
+            "Gid range [begin, end) with step size: ((begin:integer) (end:integer) "
+            "(step:integer))")},
+
     // cell kind
     {"cable-cell", make_call<>([]() { return arb::cell_kind::cable; }, "Cable cell kind")},
     {"lif-cell", make_call<>([]() { return arb::cell_kind::lif; }, "Lif cell kind")},
     {"benchmark-cell",
         make_call<>([]() { return arb::cell_kind::benchmark; }, "Benchmark cell kind")},
     {"spike-source-cell",
-        make_call<>([]() { return arb::cell_kind::benchmark; }, "Spike source cell kind")},
+        make_call<>([]() { return arb::cell_kind::spike_source; }, "Spike source cell kind")},
 
     // network_selection
     {"all", make_call<>(arb::network_selection::all, "network selection of all cells and labels")},
@@ -206,15 +287,15 @@ eval_map_type network_eval_map{
         make_call<std::string>(arb::network_selection::named,
             "network selection with 1 argument: (value:string)")},
     {"intersect",
-        make_fold<arb::network_selection>(arb::network_selection::intersect,
+        make_conversion_fold<arb::network_selection>(arb::network_selection::intersect,
             "intersection of network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
     {"join",
-        make_fold<arb::network_selection>(arb::network_selection::join,
+        make_conversion_fold<arb::network_selection>(arb::network_selection::join,
             "join or union operation of network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
-    {"symmetric_difference",
-        make_fold<arb::network_selection>(arb::network_selection::symmetric_difference,
+    {"symmetric-difference",
+        make_conversion_fold<arb::network_selection>(arb::network_selection::symmetric_difference,
             "symmetric difference operation between network selections with at least 2 arguments: "
             "(network_selection network_selection [...network_selection])")},
     {"difference",
@@ -235,10 +316,10 @@ eval_map_type network_eval_map{
         make_arg_vec_call<cell_tag_type>(
             [](const std::vector<std::variant<cell_tag_type>>& vec) {
                 std::vector<cell_tag_type> labels;
-                std::transform(vec.begin(), vec.end(), std::back_inserter(labels), [](const auto&
-                x) {
-                    return std::get<cell_tag_type>(x);
-                });
+                std::transform(
+                    vec.begin(), vec.end(), std::back_inserter(labels), [](const auto& x) {
+                        return std::get<cell_tag_type>(x);
+                    });
                 return arb::network_selection::source_label(std::move(labels));
             },
             "all sources in cell with gid in list: (gid:integer) [...(gid:integer)]")},
@@ -246,10 +327,10 @@ eval_map_type network_eval_map{
         make_arg_vec_call<cell_tag_type>(
             [](const std::vector<std::variant<cell_tag_type>>& vec) {
                 std::vector<cell_tag_type> labels;
-                std::transform(vec.begin(), vec.end(), std::back_inserter(labels), [](const auto&
-                x) {
-                    return std::get<cell_tag_type>(x);
-                });
+                std::transform(
+                    vec.begin(), vec.end(), std::back_inserter(labels), [](const auto& x) {
+                        return std::get<cell_tag_type>(x);
+                    });
                 return arb::network_selection::destination_label(std::move(labels));
             },
             "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
@@ -263,10 +344,10 @@ eval_map_type network_eval_map{
                 return arb::network_selection::source_cell(std::move(gids));
             },
             "all sources in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"source-cell-range",
-        make_call<int, int, int>(arb::network_selection::source_cell_range,
-            "all sources in cell with gid range [begin, end) with given step size: (begin:integer) "
-            "(end:integer) (step:integer)")},
+    {"source-cell",
+        make_call<arb::gid_range>(static_cast<arb::network_selection (*)(arb::gid_range)>(
+                                      arb::network_selection::source_cell),
+            "all sources in cell with gid range: (range:gid-range)")},
     {"destination-cell",
         make_arg_vec_call<int>(
             [](const std::vector<std::variant<int>>& vec) {
@@ -277,10 +358,11 @@ eval_map_type network_eval_map{
                 return arb::network_selection::destination_cell(std::move(gids));
             },
             "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"destination-cell-range",
-        make_call<int, int, int>(arb::network_selection::destination_cell_range,
-            "all destinations in cell with gid range [begin, end) with given step size: "
-            "(begin:integer) (end:integer) (step:integer)")},
+    {"destination-cell",
+        make_call<gid_range>(static_cast<arb::network_selection (*)(arb::gid_range)>(
+                                 arb::network_selection::destination_cell),
+            "all destinations in cell with gid range: "
+            "(range:gid-range)")},
     {"chain",
         make_arg_vec_call<int>(
             [](const std::vector<std::variant<int>>& vec) {
@@ -292,13 +374,14 @@ eval_map_type network_eval_map{
             },
             "A chain of connections in the given order of gids in list, such that entry \"i\" is "
             "the source and entry \"i+1\" the destination: (gid:integer) [...(gid:integer)]")},
-    {"chain-range",
-        make_call<int, int, int>(arb::network_selection::chain_range,
+    {"chain",
+        make_call<arb::gid_range>(
+            static_cast<arb::network_selection (*)(arb::gid_range)>(arb::network_selection::chain),
             "A chain of connections for all gids in range [begin, end) with given step size. Each "
             "entry \"i\" is connected as source to the destination \"i+1\": (begin:integer) "
             "(end:integer) (step:integer)")},
-    {"reverse-chain-range",
-        make_call<int, int, int>(arb::network_selection::reverse_chain_range,
+    {"chain-reverse",
+        make_call<arb::gid_range>(arb::network_selection::chain_reverse,
             "A chain of connections for all gids in range [begin, end) with given step size. Each "
             "entry \"i+1\" is connected as source to the destination \"i\". This results in "
             "connection directions in reverse compared to the (chain-range ...) selection: "
@@ -330,18 +413,18 @@ eval_map_type network_eval_map{
     {"network-value",
         make_call<std::string>(arb::network_value::named,
             "network value with 1 argument: (value:string)")},
-    {"uniform_distribution",
+    {"uniform-distribution",
         make_call<int, double, double>(
             [](unsigned seed, double begin, double end) {
                 return arb::network_value::uniform_distribution(seed, {begin, end});
             },
             "Uniform random distribution within interval [begin, end): (seed:integer, begin:real, "
             "end:real)")},
-    {"normal_distribution",
+    {"normal-distribution",
         make_call<int, double, double>(arb::network_value::normal_distribution,
             "Normal random distribution with given mean and standard deviation: (seed:integer, "
             "mean:real, std_deviation:real)")},
-    {"truncated_normal_distribution",
+    {"truncated-normal-distribution",
         make_call<int, double, double, double, double>(
             [](unsigned seed, double mean, double std_deviation, double begin, double end) {
                 return arb::network_value::truncated_normal_distribution(
@@ -356,15 +439,11 @@ eval_map_type network_eval_map{
 parse_label_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map);
 
 parse_label_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const eval_map_type& map) {
-    if (!e) return {std::vector<std::any>{}}; // empty argument list
+    if (!e) return {std::vector<std::any>{}};  // empty argument list
     std::vector<std::any> args;
     for (auto& h: e) {
-        if (auto arg=eval(h, map)) {
-            args.push_back(std::move(*arg));
-        }
-        else {
-            return util::unexpected(std::move(arg.error()));
-        }
+        if (auto arg = eval(h, map)) { args.push_back(std::move(*arg)); }
+        else { return util::unexpected(std::move(arg.error())); }
     }
     return args;
 }
@@ -378,20 +457,20 @@ parse_label_hopefully<std::vector<std::any>> eval_args(const s_expr& e, const ev
 // types (integer, real, region, locset) are inferred from the arguments.
 std::string eval_description(const char* name, const std::vector<std::any>& args) {
     auto type_string = [](const std::type_info& t) -> const char* {
-        if (t==typeid(int))         return "integer";
-        if (t==typeid(double))      return "real";
-        if (t==typeid(arb::region)) return "region";
-        if (t==typeid(arb::locset)) return "locset";
+        if (t == typeid(int)) return "integer";
+        if (t == typeid(double)) return "real";
+        if (t == typeid(arb::region)) return "region";
+        if (t == typeid(arb::locset)) return "locset";
         return "unknown";
     };
 
     const auto nargs = args.size();
-    std::string msg = concat("'", name, "' with ", nargs, "argument", nargs!=1u?"s:" : ":");
+    std::string msg = concat("'", name, "' with ", nargs, "argument", nargs != 1u ? "s:" : ":");
     if (nargs) {
         msg += " (";
         bool first = true;
         for (auto& a: args) {
-            msg += concat(first?"":" ", type_string(a.type()));
+            msg += concat(first ? "" : " ", type_string(a.type()));
             first = false;
         }
         msg += ")";
@@ -412,42 +491,43 @@ std::string eval_description(const char* name, const std::vector<std::any>& args
 //
 // If there was an unexpected/fatal error, an exception will be thrown.
 parse_label_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map) {
-    if (e.is_atom()) {
-        return eval_atom<label_parse_error>(e);
-    }
+    if (e.is_atom()) { return eval_atom<label_parse_error>(e); }
     if (e.head().is_atom()) {
         // This must be a function evaluation, where head is the function name, and
         // tail is a list of arguments.
 
         // Evaluate the arguments, and return error state if an error occurred.
         auto args = eval_args(e.tail(), map);
-        if (!args) {
-            return util::unexpected(args.error());
-        }
+        if (!args) { return util::unexpected(args.error()); }
 
         // Find all candidate functions that match the name of the function.
         auto& name = e.head().atom().spelling;
         auto matches = map.equal_range(name);
         // Search for a candidate that matches the argument list.
-        for (auto i=matches.first; i!=matches.second; ++i) {
-            if (i->second.match_args(*args)) { // found a match: evaluate and return.
+        for (auto i = matches.first; i != matches.second; ++i) {
+            if (i->second.match_args(*args)) {  // found a match: evaluate and return.
                 return i->second.eval(*args);
             }
         }
 
         // Unable to find a match: try to return a helpful error message.
         const auto nc = std::distance(matches.first, matches.second);
-        auto msg = concat("No matches for ", eval_description(name.c_str(), *args), "\n  There are ", nc, " potential candidates", nc?":":".");
+        auto msg = concat("No matches for ",
+            eval_description(name.c_str(), *args),
+            "\n  There are ",
+            nc,
+            " potential candidates",
+            nc ? ":" : ".");
         int count = 0;
-        for (auto i=matches.first; i!=matches.second; ++i) {
+        for (auto i = matches.first; i != matches.second; ++i) {
             msg += concat("\n  Candidate ", ++count, "  ", i->second.message);
         }
         return util::unexpected(label_parse_error(msg, location(e)));
     }
 
     return util::unexpected(label_parse_error(
-                                concat("'", e, "' is not either integer, real expression of the form (op <args>)"),
-                                location(e)));
+        concat("'", e, "' is not either integer, real expression of the form (op <args>)"),
+        location(e)));
 }
 
 }  // namespace
@@ -461,65 +541,47 @@ ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const s_e
 
 ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const std::string& s) {
     if (auto e = eval(parse_s_expr(s), eval_map)) {
-        if (e->type() == typeid(region)) {
-            return {std::move(std::any_cast<region&>(*e))};
-        }
+        if (e->type() == typeid(region)) { return {std::move(std::any_cast<region&>(*e))}; }
         if (e->type() == typeid(std::string)) {
             return {reg::named(std::move(std::any_cast<std::string&>(*e)))};
         }
-        return util::unexpected(
-                label_parse_error(
-                    concat("Invalid region description: '", s ,"' is neither a valid region expression or region label string.")));
+        return util::unexpected(label_parse_error(concat("Invalid region description: '",
+            s,
+            "' is neither a valid region expression or region label string.")));
     }
-    else {
-        return util::unexpected(label_parse_error(std::string()+e.error().what()));
-    }
+    else { return util::unexpected(label_parse_error(std::string() + e.error().what())); }
 }
 
 ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s) {
     if (auto e = eval(parse_s_expr(s), eval_map)) {
-        if (e->type() == typeid(locset)) {
-            return {std::move(std::any_cast<locset&>(*e))};
-        }
+        if (e->type() == typeid(locset)) { return {std::move(std::any_cast<locset&>(*e))}; }
         if (e->type() == typeid(std::string)) {
             return {ls::named(std::move(std::any_cast<std::string&>(*e)))};
         }
-        return util::unexpected(
-            label_parse_error(
-                    concat("Invalid region description: '", s ,"' is neither a valid locset expression or locset label string.")));
+        return util::unexpected(label_parse_error(concat("Invalid region description: '",
+            s,
+            "' is neither a valid locset expression or locset label string.")));
     }
-    else {
-        return util::unexpected(label_parse_error(std::string()+e.error().what()));
-    }
+    else { return util::unexpected(label_parse_error(std::string() + e.error().what())); }
 }
 
 parse_label_hopefully<arb::iexpr> parse_iexpr_expression(const std::string& s) {
     if (auto e = eval(parse_s_expr(s), eval_map)) {
-        if (e->type() == typeid(iexpr)) {
-            return {std::move(std::any_cast<iexpr&>(*e))};
-        }
-        return util::unexpected(
-                label_parse_error(
-                    concat("Invalid iexpr description: '", s)));
+        if (e->type() == typeid(iexpr)) { return {std::move(std::any_cast<iexpr&>(*e))}; }
+        return util::unexpected(label_parse_error(concat("Invalid iexpr description: '", s)));
     }
-    else {
-        return util::unexpected(label_parse_error(std::string()+e.error().what()));
-    }
+    else { return util::unexpected(label_parse_error(std::string() + e.error().what())); }
 }
 
-
-parse_label_hopefully<arb::network_selection> parse_network_selection_expression(const std::string& s) {
+parse_label_hopefully<arb::network_selection> parse_network_selection_expression(
+    const std::string& s) {
     if (auto e = eval(parse_s_expr(s), network_eval_map)) {
         if (e->type() == typeid(arb::network_selection)) {
             return {std::move(std::any_cast<arb::network_selection&>(*e))};
         }
-        return util::unexpected(
-                label_parse_error(
-                    concat("Invalid iexpr description: '", s)));
+        return util::unexpected(label_parse_error(concat("Invalid iexpr description: '", s)));
     }
-    else {
-        return util::unexpected(label_parse_error(std::string()+e.error().what()));
-    }
+    else { return util::unexpected(label_parse_error(std::string() + e.error().what())); }
 }
 
 parse_label_hopefully<arb::network_value> parse_network_value_expression(const std::string& s) {
@@ -527,13 +589,9 @@ parse_label_hopefully<arb::network_value> parse_network_value_expression(const s
         if (e->type() == typeid(arb::network_value)) {
             return {std::move(std::any_cast<arb::network_value&>(*e))};
         }
-        return util::unexpected(
-                label_parse_error(
-                    concat("Invalid iexpr description: '", s)));
+        return util::unexpected(label_parse_error(concat("Invalid iexpr description: '", s)));
     }
-    else {
-        return util::unexpected(label_parse_error(std::string()+e.error().what()));
-    }
+    else { return util::unexpected(label_parse_error(std::string() + e.error().what())); }
 }
 
-} // namespace arborio
+}  // namespace arborio

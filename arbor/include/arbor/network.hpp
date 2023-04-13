@@ -12,12 +12,12 @@
 #include <optional>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <string>
-#include <unordered_map>
 
 namespace arb {
 
@@ -73,17 +73,17 @@ public:
 
     static network_selection source_cell(std::vector<cell_gid_type> gids);
 
-    static network_selection source_cell_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+    static network_selection source_cell(gid_range range);
 
     static network_selection destination_cell(std::vector<cell_gid_type> gids);
 
-    static network_selection destination_cell_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+    static network_selection destination_cell(gid_range range);
 
     static network_selection chain(std::vector<cell_gid_type> gids);
 
-    static network_selection chain_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+    static network_selection chain(gid_range range);
 
-    static network_selection reverse_chain_range(cell_gid_type gid_begin, cell_gid_type gid_end, cell_gid_type step);
+    static network_selection chain_reverse(gid_range range);
 
     static network_selection intersect(network_selection left, network_selection right);
 
@@ -110,11 +110,11 @@ public:
 
     // only select within given distance. This may enable more efficient sampling through an
     // internal spatial data structure.
-    static network_selection distance_lt(double distance);
+    static network_selection distance_lt(double d);
 
     // only select if distance greater then given distance. This may enable more efficient sampling
     // through an internal spatial data structure.
-    static network_selection distance_gt(double distance);
+    static network_selection distance_gt(double d);
 
     // randomly selected with a probability linearly interpolated between [p_begin, p_end] based on
     // the distance in the interval [distance_begin, distance_end].
@@ -123,6 +123,8 @@ public:
         double p_begin,
         double distance_end,
         double p_end);
+
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_selection& s);
 
 private:
     network_selection(std::shared_ptr<network_selection_impl> impl);
@@ -172,6 +174,8 @@ public:
     // to "func" must yield the same result. For gap junction values,
     // "func" must be symmetric (func(a,b) = func(b,a)).
     static network_value custom(custom_func_type func);
+
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_value& v);
 
 private:
     network_value(std::shared_ptr<network_value_impl> impl);

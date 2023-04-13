@@ -8,6 +8,7 @@
 #include <arbor/cv_policy.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/network.hpp>
 
 #include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
@@ -215,6 +216,24 @@ std::string round_trip_iexpr(const char* in) {
     }
 }
 
+std::string round_trip_network_selection(const char* in) {
+    if (auto x = parse_network_selection_expression(in)) {
+        return util::pprintf("{}", std::any_cast<arb::network_selection>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+std::string round_trip_network_value(const char* in) {
+    if (auto x = parse_network_value_expression(in)) {
+        return util::pprintf("{}", std::any_cast<arb::network_value>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
 
 TEST(cv_policies, round_tripping) {
     auto literals = {"(every-segment (tag 42))",
@@ -334,6 +353,69 @@ TEST(iexpr, round_tripping) {
         round_trip_label<arb::iexpr>("(diameter)"));
     EXPECT_EQ("(scalar 3.14159)",
         round_trip_label<arb::iexpr>("(pi)"));
+}
+
+TEST(network_selection, round_tripping) {
+    auto network_literals = {
+        "(all)",
+        "(none)",
+        "(inter-cell)",
+        "(network-selection \"abc\")",
+        "(intersect (all) (none))",
+        "(join (all) (none))",
+        "(symmetric-difference (all) (none))",
+        "(difference (all) (none))",
+        "(complement (all))",
+        "(source-cell-kind (cable-cell))",
+        "(source-cell-kind (lif-cell))",
+        "(source-cell-kind (benchmark-cell))",
+        "(source-cell-kind (spike-source-cell))",
+        "(destination-cell-kind (cable-cell))",
+        "(destination-cell-kind (lif-cell))",
+        "(destination-cell-kind (benchmark-cell))",
+        "(destination-cell-kind (spike-source-cell))",
+        "(source-label \"abc\")",
+        "(source-label \"abc\" \"def\")",
+        "(source-label \"abc\" \"def\" \"ghi\")",
+        "(destination-label \"abc\")",
+        "(destination-label \"abc\" \"def\")",
+        "(destination-label \"abc\" \"def\" \"ghi\")",
+        "(source-cell 0 1 3 15)",
+        "(source-cell (gid-range 4 8 2))",
+        "(destination-cell 0 1 3 15)",
+        "(destination-cell (gid-range 4 8 2))",
+        "(chain 3 1 0 5 7 6)", // order should be preserved
+        "(chain (gid-range 2 14 3))",
+        "(chain-reverse (gid-range 2 14 3))",
+        "(random-bernoulli 42 0.1)",
+        "(random-linear-distance 42 2.5 0.2 5.2 0.9)",
+        "(distance-lt 0.5)",
+        "(distance-gt 0.5)",
+    };
+    for (auto l: network_literals) {
+        EXPECT_EQ(l, round_trip_network_selection(l));
+    }
+
+    // test order for more than two arguments
+    EXPECT_EQ("(join (join (join (all) (none)) (inter-cell)) (source-cell 0))",
+        round_trip_network_selection("(join (all) (none) (inter-cell) (source-cell 0))"));
+    EXPECT_EQ("(intersect (intersect (intersect (all) (none)) (inter-cell)) (source-cell 0))",
+        round_trip_network_selection("(intersect (all) (none) (inter-cell) (source-cell 0))"));
+}
+
+
+TEST(network_value, round_tripping) {
+    auto network_literals = {
+        "(scalar 1.3)",
+        "(network-value \"abc\")",
+        "(uniform-distribution 42 0 0.8)",
+        "(normal-distribution 42 0.5 0.1)",
+        "(truncated-normal-distribution 42 0.5 0.1 0.3 0.7)",
+    };
+
+    for (auto l: network_literals) {
+        EXPECT_EQ(l, round_trip_network_value(l));
+    }
 }
 
 TEST(regloc, round_tripping) {
