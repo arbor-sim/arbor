@@ -236,17 +236,19 @@ void Parser::parse_neuron_block() {
 
         case tok::suffix:
         case tok::point_process:
+        case tok::voltage_process:
         case tok::junction_process:
             neuron_block.kind = (token_.type == tok::suffix) ? moduleKind::density :
+                                (token_.type == tok::voltage_process) ? moduleKind::voltage :
                                 (token_.type == tok::point_process) ? moduleKind::point : moduleKind::junction;
 
-            // set the modul kind
+            // set the module kind
             module_->kind(neuron_block.kind);
 
             get_token(); // consume SUFFIX / POINT_PROCESS
             // assert that a valid name for the Neuron has been specified
             if (token_.type != tok::identifier) {
-                error(pprintf("invalid name for SUFFIX, found '%'", token_.spelling));
+                error(pprintf("invalid name for mechanism, found '%'", token_.spelling));
                 return;
             }
             neuron_block.name = token_.spelling;
@@ -1446,6 +1448,14 @@ expression_ptr Parser::parse_unaryop() {
     case tok::abs:
     case tok::safeinv:
     case tok::exprelr:
+    case tok::sqrt:
+    case tok::step_right:
+    case tok::step_left:
+    case tok::step:
+    case tok::signum:
+    case tok::sigmoid:
+    case tok::tanh:
+    case tok::relu:
         get_token(); // consume operator (exp, sin, cos or log)
         if (token_.type != tok::lparen) {
             error("missing parenthesis after call to " + yellow(op.spelling));

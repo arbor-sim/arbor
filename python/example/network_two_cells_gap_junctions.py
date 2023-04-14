@@ -113,7 +113,6 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Two cells connected via a gap junction"
     )
@@ -183,7 +182,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     # plot the membrane potentials of the two cells as function of time
-    seaborn.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", ci=None)
+    seaborn.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 
     # area of cells
     area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6
@@ -197,7 +196,7 @@ if __name__ == "__main__":
     si_gj_R = 1 / si_gj_g
 
     # indicate the expected equilibrium potentials
-    for (i, j) in [[0, 1], [1, 0]]:
+    for i, j in [[0, 1], [1, 0]]:
         weighted_potential = args.Vms[i] + (
             (args.Vms[j] - args.Vms[i]) * (si_gj_R + cell_R)
         ) / (2 * cell_R + si_gj_R)

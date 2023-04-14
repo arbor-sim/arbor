@@ -79,7 +79,7 @@ The results
 
 Before we execute the simulation, we have to understand how Arbor distributes the computational load over the ranks.
 After executing ``mpirun``, all nodes will run the same script. In the domain decomposition step, the nodes will use
-the provided MPI communicator to divide the work. Once :py:func:`arbor.simulation.run` starts, each node wil work on
+the provided MPI communicator to divide the work. Once :py:func:`arbor.simulation.run` starts, each node will work on
 their allocated cell ``gid`` s.
 
 This is relevant for the collection of results: these are not gathered for you. Remember that in step **(15)** we

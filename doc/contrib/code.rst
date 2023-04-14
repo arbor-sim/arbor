@@ -1,7 +1,18 @@
-.. _contribcodingstyle:
+.. _contribcode:
 
-Coding Guidelines
-=================
+Code
+====
+
+Some general tips to keep in mind:
+
+- If you add functionality, please update the documentation
+  accordingly.
+- If you add functionality, add tests if applicable. This helps make
+  sure Arbor is stable and functionality does what it's supposed to
+  do.
+- If you work on the public C++ API, provide Python wrappings.
+- Make sure Arbor compiles and has no new warnings.
+- Consider the coding guidelines below.
 
 Python
 ------
@@ -14,8 +25,8 @@ run the following commands to apply it:
 
    # Install the formatter if not present
    pip install black
-   # Automatically apply style. If unsure what this does read on.
-   black . scripts/build-catalogue.in
+   # Automatically apply style to a certain file. If unsure what this does read on.
+   black . scripts/arbor/build-catalogue.in
 
 The formatter can also be run with ``--check`` to list offending files and
 ``--diff`` to preview changes. Most editors can `integrate with black

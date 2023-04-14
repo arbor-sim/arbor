@@ -16,9 +16,11 @@ struct FlopAccumulator {
     int cos=0;
     int log=0;
     int pow=0;
+    int sqrt=0;
+    int tanh=0;
 
     void reset() {
-        add = neg = mul = div = exp = sin = cos = log = 0;
+        add = neg = mul = div = exp = sin = cos = log = pow = sqrt = tanh = 0;
     }
 };
 
@@ -26,8 +28,8 @@ static std::ostream& operator << (std::ostream& os, FlopAccumulator const& f) {
     char buffer[512];
     snprintf(buffer,
              512,
-             "   add   neg   mul   div   exp   sin   cos   log   pow\n%6d%6d%6d%6d%6d%6d%6d%6d%6d",
-             f.add, f.neg, f.mul, f.div, f.exp, f.sin, f.cos, f.log, f.pow);
+             "   add   neg   mul   div   exp   sin   cos   log   pow  sqrt  tanh\n%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d%6d",
+             f.add, f.neg, f.mul, f.div, f.exp, f.sin, f.cos, f.log, f.pow, f.sqrt, f.tanh);
 
     os << buffer << std::endl << std::endl;
     os << " add+mul+neg  " << f.add + f.neg + f.mul << std::endl;
@@ -96,6 +98,34 @@ public:
     void visit(SinUnaryExpression *e) override {
         e->expression()->accept(this);
         flops.sin++;
+    }
+    void visit(SqrtUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.sqrt++;
+    }
+    void visit(StepUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.add+=2;
+        flops.mul++;
+    }
+    void visit(SignumUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.add++;
+    }
+    void visit(SigmoidUnaryExpression *e) override {
+        e->expression()->accept(this);
+        // 1 / ( 1 + exp(-x))
+        flops.exp++;
+        flops.neg++;
+        flops.div++;
+        flops.add++;
+    }
+    void visit(ReLuUnaryExpression *e) override {
+        e->expression()->accept(this);
+    }
+    void visit(TanHUnaryExpression *e) override {
+        e->expression()->accept(this);
+        flops.tanh++;
     }
 
     ////////////////////////////////////////////////////

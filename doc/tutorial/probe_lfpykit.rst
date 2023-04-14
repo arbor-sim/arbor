@@ -18,7 +18,7 @@ These are signals that mainly stem from transmembrane currents.
    1. Recording of transmembrane currents using :class:`arbor.cable_probe_total_current_cell`
    2. Recording of stimulus currents using :class:`arbor.cable_probe_stimulus_current_cell`
    3. Using the :class:`arbor.place_pwlin` API
-   4. Map recorded transmembrane currents to extracellular potentials by derivinging Arbor specific classes from LFPykit's :class:`lfpykit.LineSourcePotential` and :class:`lfpykit.CellGeometry`
+   4. Map recorded transmembrane currents to extracellular potentials by deriving Arbor specific classes from LFPykit's :class:`lfpykit.LineSourcePotential` and :class:`lfpykit.CellGeometry`
 
 .. _tutorial_lfpykit-linesource:
 
@@ -178,7 +178,7 @@ Other use cases may inherit from any other parent class defined in :mod:`lfpykit
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
    :language: python
-   :lines: 203-251
+   :lines: 202-251
 
 With these two classes one may then compute extracellular potentials from transmembrane
 currents in space with a few lines of code:

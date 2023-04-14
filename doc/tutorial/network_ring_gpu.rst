@@ -75,7 +75,7 @@ hardware Arbor will execute on.
 Step **(14)** creates a :class:`arbor.partition_hint`, and tells it to put 1000 cells in a groups allocated to GPUs, 
 and to prefer the utilisation of the GPU if present. In fact, the default distribution strategy of 
 :class:`arbor.partition_load_balance` already spreads out cells as evenly as possible over CPUs, and groups
-(up to 1000) on GPUs, so strictly speaking it was not necesary to give that part of the hint.
+(up to 1000) on GPUs, so strictly speaking it was not necessary to give that part of the hint.
 Lastly, a dictionary is created with which hints are assigned to a particular :class:`arbor.cell_kind`.
 Different kinds may favor different execution, hence the option.
 In this simulation, there are only :class:`arbor.cell_kind.cable`, so we assign the hint to that kind.

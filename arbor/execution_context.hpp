@@ -31,6 +31,10 @@ struct ARB_ARBOR_API execution_context {
     // Specialised implementations are implemented in execution_context.cpp.
     template <typename Comm>
     execution_context(const proc_allocation& resources, Comm comm);
+
+    template <typename Comm>
+    execution_context(const proc_allocation& resources, Comm comm, Comm remote);
+
 };
 
 } // namespace arb

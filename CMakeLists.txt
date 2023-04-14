@@ -26,13 +26,18 @@ option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Specify target archiecture.
+# Specify target architecture.
 
 set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
 # Perform explicit vectorization?
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
+
+# Support for Thread pinning
+
+option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
+mark_as_advanced(ARB_USE_HWLOC)
 
 # Use externally built modcc?
 
@@ -81,12 +86,6 @@ option(ARB_WITH_MPI "build with MPI support" OFF)
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
-
-#----------------------------------------------------------
-# NeuroML support library:
-#----------------------------------------------------------
-
-option(ARB_WITH_NEUROML "build NeuroML support library" OFF)
 
 #----------------------------------------------------------
 # Python front end for Arbor:
@@ -177,12 +176,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Data and internal scripts go here
 set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
-# Derived paths for arbor-build-catalogue
-get_filename_component(absolute_full_bindir ${CMAKE_INSTALL_BINDIR} REALPATH)
-get_filename_component(absolute_full_datarootdir ${CMAKE_INSTALL_DATAROOTDIR} REALPATH)
-get_filename_component(absolute_full_libdir ${CMAKE_INSTALL_LIBDIR} REALPATH)
-file(RELATIVE_PATH ARB_REL_DATADIR ${absolute_full_bindir} ${absolute_full_datarootdir}/arbor)
-file(RELATIVE_PATH ARB_REL_PACKAGEDIR ${absolute_full_bindir} ${absolute_full_libdir}/cmake/arbor)
 
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
@@ -227,13 +220,13 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
 
-configure_file(scripts/build-catalogue.in ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 # External libraries in `ext` sub-directory: json, tinyopt and randon123.
 # Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
@@ -250,8 +243,25 @@ if(NOT ARB_USE_BUNDLED_RANDOM123)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
 
-add_subdirectory(ext)
+# in the event we can find hwloc, just add it
+find_package(hwloc QUIET)
+add_library(ext-hwloc INTERFACE)
+if(hwloc_FOUND)
+    # We'd like to use the package syntax, here, yet if we do, we'd need to
+    # provide the find script to the system.
+    target_link_directories(ext-hwloc INTERFACE ${hwloc_LIBRARY_DIRS})
+    target_link_libraries(ext-hwloc INTERFACE ${hwloc_LIBRARY})
+    target_include_directories(ext-hwloc INTERFACE ${hwloc_INCLUDE_DIR})
+    target_compile_definitions(ext-hwloc INTERFACE ARB_HAVE_HWLOC)
+    target_link_libraries(arbor-private-deps INTERFACE ext-hwloc)
+else()
+    if(ARB_USE_HWLOC)
+        message(SEND_ERROR "Requested support for hwloc, but CMake couldn't find it.")
+    endif()
+endif()
 
+add_subdirectory(ext)
+install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
@@ -401,7 +411,16 @@ endif()
 # Build modcc flags
 #------------------------------------------------
 
-set(modcc $<TARGET_FILE:modcc>)
+if(ARB_MODCC)
+    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH REQUIRED)
+    if(NOT modcc)
+        message(FATAL_ERROR "Unable to find modcc executable.")
+    endif()
+    set(ARB_WITH_EXTERNAL_MODCC TRUE)
+else()
+    set(modcc $<TARGET_FILE:modcc>)
+    set(ARB_WITH_EXTERNAL_MODCC FALSE)
+endif()
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")

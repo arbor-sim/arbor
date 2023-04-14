@@ -88,15 +88,15 @@ TEST(synapses, syn_basic_state) {
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
     shared_state state(num_intdom,
-        num_intdom,
-        0,
-        std::vector<index_type>(num_comp, 0),
-        std::vector<index_type>(num_comp, 0),
-        std::vector<value_type>(num_comp, -65),
-        std::vector<value_type>(num_comp, temp_K),
-        std::vector<value_type>(num_comp, 1.),
-        std::vector<index_type>(0),
-        align);
+                       num_intdom,
+                       std::vector<index_type>(num_comp, 0),
+                       std::vector<index_type>(num_comp, 0),
+                       std::vector<value_type>(num_comp, -65),
+                       std::vector<value_type>(num_comp, temp_K),
+                       std::vector<value_type>(num_comp, 1.),
+                       std::vector<index_type>(0),
+                       fvm_detector_info{},
+                       align);
 
     state.reset();
     fill(state.current_density, 1.0);
@@ -107,8 +107,8 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    state.instantiate(*expsyn,  0, {}, {syn_cv, {}, syn_weight, syn_mult});
-    state.instantiate(*exp2syn, 1, {}, {syn_cv, {}, syn_weight, syn_mult});
+    state.instantiate(*expsyn,  0, {}, {syn_cv, {}, syn_weight, syn_mult}, {});
+    state.instantiate(*exp2syn, 1, {}, {syn_cv, {}, syn_weight, syn_mult}, {});
 
     // Parameters initialized to default values?
 

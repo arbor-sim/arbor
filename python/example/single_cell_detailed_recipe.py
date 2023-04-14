@@ -73,7 +73,6 @@ cell = arbor.cable_cell(morph, decor, labels)
 
 # (5) Create a class that inherits from arbor.recipe
 class single_recipe(arbor.recipe):
-
     # (5.1) Define the class constructor
     def __init__(self):
         # The base C++ class constructor must be called first, to ensure that
@@ -151,5 +150,11 @@ for i in range(len(data)):
     )
 df = pandas.concat(df_list, ignore_index=True)
 seaborn.relplot(
-    data=df, kind="line", x="t/ms", y="U/mV", hue="Location", col="Variable", ci=None
+    data=df,
+    kind="line",
+    x="t/ms",
+    y="U/mV",
+    hue="Location",
+    col="Variable",
+    errorbar=None,
 ).savefig("single_cell_recipe_result.svg")

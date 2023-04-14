@@ -5,7 +5,7 @@ from . import fixtures
 _mpi_enabled = arbor.__config__
 
 
-@fixtures.context
+@fixtures.context()
 def skipIfNotDistributed(context):
     skipSingleNode = unittest.skipIf(
         context.ranks < 2, "Skipping distributed test on single node."
@@ -20,7 +20,7 @@ def skipIfNotDistributed(context):
     return skipper
 
 
-@fixtures.context
+@fixtures.context()
 def skipIfDistributed(context):
     return unittest.skipIf(
         context.ranks > 1, "Skipping single node test on multiple nodes."

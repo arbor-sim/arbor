@@ -151,11 +151,12 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
     for (msize_t i: util::make_span(nb)) {
         for (const auto& seg: m.branch_segments(i)) {
             if (seg.tag==reg.tag) {
-                cables.push_back(e.segment(seg.id));
+                cables.emplace_back(e.segment(seg.id));
             }
         }
     }
-    util::sort(cables);
+    // NOTE: this should always be true since we traverse things in order.
+    arb_assert(util::is_sorted(cables));
     return mextent(cables);
 }
 

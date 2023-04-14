@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 enum class moduleKind {
-    point, density, junction, revpot
+    point, density, junction, revpot, voltage,
 };
 
 /// indicate how a variable is accessed

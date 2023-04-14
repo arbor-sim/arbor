@@ -9,14 +9,14 @@
 #include "threading/threading.hpp"
 
 #ifdef ARB_HAVE_MPI
-#include <mpi.h>
+#include "communication/mpi.hpp"
 #endif
 
 namespace arb {
 
 execution_context::execution_context(const proc_allocation& resources):
     distributed(make_local_context()),
-    thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
+    thread_pool(std::make_shared<threading::task_system>(resources.num_threads, resources.bind_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
 {}
@@ -26,9 +26,18 @@ ARB_ARBOR_API context make_context(const proc_allocation& p) {
 }
 
 #ifdef ARB_HAVE_MPI
+
 template <>
 execution_context::execution_context(const proc_allocation& resources, MPI_Comm comm):
-    distributed(make_mpi_context(comm)),
+    distributed(make_mpi_context(comm, resources.bind_procs)),
+    thread_pool(std::make_shared<threading::task_system>(resources.num_threads, resources.bind_threads)),
+    gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
+                           : std::make_shared<gpu_context>())
+{}
+
+template <>
+execution_context::execution_context(const proc_allocation& resources, MPI_Comm comm, MPI_Comm remote):
+    distributed(make_remote_context(comm, remote)),
     thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
@@ -38,13 +47,19 @@ template <>
 ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
     return std::make_shared<execution_context>(p, comm);
 }
+
+template <>
+ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm, MPI_Comm remote) {
+    return std::make_shared<execution_context>(p, comm, remote);
+}
+
 #endif
 template <>
 execution_context::execution_context(
         const proc_allocation& resources,
         dry_run_info d):
         distributed(make_dry_run_context(d.num_ranks, d.num_cells_per_rank)),
-        thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
+        thread_pool(std::make_shared<threading::task_system>(resources.num_threads, resources.bind_threads)),
         gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                                : std::make_shared<gpu_context>())
 {}

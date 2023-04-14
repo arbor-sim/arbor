@@ -73,7 +73,6 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
 void mc_cell_group::reset() {
     spikes_.clear();
 
-    sample_events_.clear();
     for (auto &entry: sampler_map_) {
         entry.second.sched.reset();
     }
@@ -461,38 +460,39 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 
     std::vector<deliverable_event> exact_sampling_events;
 
-    {
+    if (!sampler_map_.empty()) { // NOTE: We avoid the lock here as often as possible
+        // SAFETY: We need the lock here, as _schedule_ is not reentrant.
         std::lock_guard<std::mutex> guard(sampler_mex_);
-
-        for (auto& sm_entry: sampler_map_) {
-            // Ignore sampler_association_handle, just need the association itself.
-            sampler_association& sa = sm_entry.second;
-
+        for (auto& [sk, sa]: sampler_map_) {
+            if (sa.probeset_ids.empty()) continue; // No need to make any schedule
             auto sample_times = util::make_range(sa.sched.events(tstart, ep.t1));
-            if (sample_times.empty()) {
-                continue;
-            }
-
             sample_size_type n_times = sample_times.size();
+            if (n_times == 0) continue;
             max_samples_per_call = std::max(max_samples_per_call, n_times);
-
-            for (cell_member_type pid: sa.probeset_ids) {
-                auto cell_index = gid_index_map_.at(pid.gid);
-
+            for (const cell_member_type& pid: sa.probeset_ids) {
+                cell_size_type cell_index = gid_index_map_.at(pid.gid);
+                cell_size_type intdom = cell_to_intdom_[cell_index];
                 probe_tag tag = probe_map_.tag.at(pid);
                 unsigned index = 0;
+                target_handle null_target{(cell_local_size_type)-1, 0, intdom};
                 for (const fvm_probe_data& pdata: probe_map_.data_on(pid)) {
-                    call_info.push_back({sa.sampler, pid, tag, index++, &pdata, n_samples, n_samples + n_times*pdata.n_raw()});
-                    auto intdom = cell_to_intdom_[cell_index];
-
+                    call_info.push_back({sa.sampler,
+                                         pid,
+                                         tag,
+                                         index,
+                                         &pdata,
+                                         n_samples,
+                                         n_samples + n_times*pdata.n_raw()});
+                    index++;
                     for (auto t: sample_times) {
                         for (probe_handle h: pdata.raw_handle_range()) {
-                            sample_event ev{t, (cell_gid_type)intdom, {h, n_samples++}};
-                            sample_events.push_back(ev);
+                            sample_events.push_back({t, intdom, raw_probe_info{h, n_samples}});
+                            n_samples++;
                         }
-                        if (sa.policy==sampling_policy::exact) {
-                            target_handle h(-1, 0, intdom);
-                            exact_sampling_events.push_back({t, h, 0.f});
+                        if (sa.policy == sampling_policy::exact) {
+                            exact_sampling_events.emplace_back(t,
+                                                               null_target,
+                                                               0.f);
                         }
                     }
                 }
@@ -502,7 +502,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     }
 
     // Sort exact sampling events into staged events for delivery.
-    if (exact_sampling_events.size()) {
+    if (!exact_sampling_events.empty()) {
         auto event_less =
             [](const auto& a, const auto& b) {
                  auto ai = event_index(a);
@@ -522,8 +522,9 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     }
 
     // Sample events must be ordered by time for the lowered cell.
-    util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
-    util::stable_sort_by(sample_events, [](const sample_event& ev) { return event_index(ev); });
+    util::sort_by(sample_events,
+                  [](const sample_event& ev) { return std::make_tuple(event_index(ev),
+                                                                      event_time(ev)); });
     PL();
 
     // Run integration and collect samples, spikes.
@@ -551,7 +552,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     // global index for spike communication.
 
     for (auto c: result.crossings) {
-        spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
+        spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }
 }
 

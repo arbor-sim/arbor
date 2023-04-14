@@ -90,7 +90,7 @@ The header ``arborenv/concurrency.hpp`` supplies lower-level functions for query
    Returns the list of logical processor ids where the calling thread has affinity,
    or an empty vector if unable to determine.
 
-The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for queruing the GPU environment.
+The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for querying the GPU environment.
 
 .. cpp:function:: int find_private_gpu(MPI_Comm comm)
 
@@ -248,6 +248,24 @@ The core Arbor library *libarbor* provides an API for:
     .. cpp:member:: unsigned num_threads
 
         The number of CPU threads available.
+
+    .. cpp:member:: bool bind_procs
+
+        Try to generate a binding mask for all MPI processes on a node. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`. Do not enable if
+        process binding is handled externally, eg by SLURM or OpenMPI, or
+        disable it there first.
+
+    .. cpp:member:: bool bind_threads
+
+        Try to generate a binding mask for all threads on an MPI process. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`. If a process
+        binding mask is set -- either externally or by `bind_procs` --, it will
+        be respected.
 
     .. cpp:member:: int gpu_id
 
@@ -467,8 +485,11 @@ A distributed context can then be generated using helper functions :cpp:func:`ar
         auto dist_ctx  arb::make_local_context();
 
         // Create an MPI context that uses the standard MPI_COMM_WORLD communicator.
-        auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD);
-
+        auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD, bind);
+        // if `bind` is true, Arbor will attempt to generate a process binding mask
+        // such that the processes on each node receive maximal partitions of the
+        // available hardware. Do not use if your MPI (like eg OpenMPI) or cluster
+        // manager set this (eg SLURM).
 
 Class documentation
 ^^^^^^^^^^^^^^^^^^^

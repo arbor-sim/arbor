@@ -29,7 +29,7 @@ static std::string scaled(double coeff) {
 
 
 void emit_api_body_cu(std::ostream& out, APIMethod* method, const ApiFlags&);
-void emit_state_read_cu(std::ostream& out, LocalVariable* local);
+void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags&);
 void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, const ApiFlags&);
 
 const char* index_id(Symbol *s);
@@ -133,23 +133,21 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "auto  {0}width             __attribute__((unused)) = params_.width;\\\n"
                                    "auto  {0}n_detectors       __attribute__((unused)) = params_.n_detectors;\\\n"
-                                   "auto* {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
-                                   "auto* {0}vec_di            __attribute__((unused)) = params_.vec_di;\\\n"
-                                   "auto* {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
-                                   "auto* {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
-                                   "auto* {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"
-                                   "auto* {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
-                                   "auto* {0}temperature_degC  __attribute__((unused)) = params_.temperature_degC;\\\n"
-                                   "auto* {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
-                                   "auto* {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
-                                   "auto* {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
-                                   "auto* {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
-                                   "auto* {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
-                                   "auto* {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
-                                   "auto* {0}weight            __attribute__((unused)) = params_.weight;\\\n"
+                                   "arb_index_type * __restrict__ {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"
+                                   "arb_value_type * __restrict__ {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
+                                   "arb_value_type * __restrict__ {0}temperature_degC  __attribute__((unused)) = params_.temperature_degC;\\\n"
+                                   "arb_value_type * __restrict__ {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
+                                   "arb_value_type * __restrict__ {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
+                                   "arb_index_type * __restrict__ {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
+                                   "arb_index_type * __restrict__ {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
+                                   "arb_index_type * __restrict__ {0}multiplicity      __attribute__((unused)) = params_.multiplicity;\\\n"
+                                   "arb_value_type ** __restrict__ {0}state_vars        __attribute__((unused)) = params_.state_vars;\\\n"
+                                   "arb_value_type * __restrict__ {0}weight            __attribute__((unused)) = params_.weight;\\\n"
                                    "auto& {0}events            __attribute__((unused)) = params_.events;\\\n"
-                                   "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"
-                                   "auto& {0}index_constraints __attribute__((unused)) = params_.index_constraints;\\\n"),
+                                   "auto& {0}mechanism_id      __attribute__((unused)) = params_.mechanism_id;\\\n"),
                        pp_var_pfx);
 
     const auto& [state_ids, global_ids, param_ids, white_noise_ids] = public_variable_ids(module_);
@@ -163,21 +161,21 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     out << fmt::format("auto const * const * {}random_numbers  __attribute__((unused)) = params_.random_numbers;\\\n", pp_var_pfx);
     auto param = 0, state = 0;
     for (const auto& array: state_ids) {
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
         state++;
     }
     for (const auto& array: assigned_ids) {
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.state_vars[{}];\\\n", pp_var_pfx, array.name(), state);
         state++;
     }
     for (const auto& array: param_ids) {
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.parameters[{}];\\\n", pp_var_pfx, array.name(), param);
+        out << fmt::format("arb_value_type * __restrict__ {}{} __attribute__((unused)) = params_.parameters[{}];\\\n", pp_var_pfx, array.name(), param);
         param++;
     }
     auto idx = 0;
     for (const auto& ion: module_.ion_deps()) {
         out << fmt::format("auto& {}{} __attribute__((unused)) = params_.ion_states[{}];\\\n",       pp_var_pfx, ion_field(ion), idx);
-        out << fmt::format("auto* {}{} __attribute__((unused)) = params_.ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
+        out << fmt::format("arb_index_type * __restrict__ {}{} __attribute__((unused)) = params_.ion_states[{}].index;\\\n", pp_var_pfx, ion_index(ion), idx);
         idx++;
     }
     out << "//End of IFACEBLOCK\n\n";
@@ -200,7 +198,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive));
+            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()));
             out << popindent << "}\n\n";
         }
     };
@@ -234,7 +232,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "        for (auto p = begin; p<end; ++p) {{\n"
                                        "            if (p->mech_id=={1}mechanism_id) {{\n"
                                        "                auto tid_ = p->mech_index;\n"
-                                       "                auto {0} = p->weight;\n"),
+                                       "                [[maybe_unused]] auto {0} = p->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name(),
                            pp_var_pfx);
         out << indent << indent << indent << indent;
@@ -298,11 +296,13 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
                                            "    {1}<<<grid_dim, block_dim>>>(*p);\n"
-                                           "    if (!p->multiplicity) return;\n"
-                                           "    multiply<<<dim3{{grid_dim, {2}}}, block_dim>>>(*p);\n"),
+                                           "    if (!p->multiplicity) return;\n"),
                                "width",
-                               api_name,
-                               n);
+                               api_name);
+            // only multiply if we actually have arrays
+            if (n) {
+                out << fmt::format(FMT_COMPILE("    multiply<<<dim3{{grid_dim, {}}}, block_dim>>>(*p);\n"), n);
+            }
         }
         out << "}\n\n";
     }
@@ -411,7 +411,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
         }
 
         for (auto& sym: indexed_vars) {
-            emit_state_read_cu(out, sym);
+            emit_state_read_cu(out, sym, flags);
         }
 
         out << cuprint(body);
@@ -438,10 +438,12 @@ namespace {
     };
 }
 
-void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
+void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags& flags) {
+    auto write_voltage = local->external_variable()->data_source() == sourceKind::voltage
+                      && flags.can_write_voltage;
     out << "arb_value_type " << cuprint(local) << " = ";
     auto d = decode_indexed_variable(local->external_variable());
-    if (local->is_read() || (local->is_write() && d.additive)) {
+    if (local->is_read() || (local->is_write() && d.additive) || write_voltage) {
         if (d.scale != 1) {
             out << as_c_double(d.scale) << "*";
         }
@@ -453,10 +455,15 @@ void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
 }
 
 
-void emit_state_update_cu(std::ostream& out, Symbol* from,
-                          IndexedVariable* external, const ApiFlags& flags) {
+void emit_state_update_cu(std::ostream& out,
+                          Symbol* from,
+                          IndexedVariable* external,
+                          const ApiFlags& flags) {
     if (!external->is_write()) return;
     auto d = decode_indexed_variable(external);
+    auto write_voltage = external->data_source() == sourceKind::voltage
+                      && flags.can_write_voltage;
+    if (write_voltage) d.readonly = false;
     if (d.readonly) {
         throw compiler_exception("Cannot assign to read-only external state: "+external->to_string());
     }
@@ -466,8 +473,8 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     auto data   = pp_var_pfx + d.data_var;
     auto index  = index_i_name(d.outer_index_var());
     auto var    = deref(d);
-    std::string weight = (d.always_use_weight || !flags.is_point) ? pp_var_pfx + "weight[tid_]" : "1.0";
-    weight = scale + weight;
+    auto use_weight = d.always_use_weight || !flags.is_point;
+    std::string weight = scale + (use_weight ? pp_var_pfx + "weight[tid_]" : "1.0");
 
     if (d.additive && flags.use_additive) {
         out << name << " -= " << var << ";\n";
@@ -477,6 +484,15 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
         else {
             out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
         }
+    }
+    else if (write_voltage) {
+        /* SAFETY:
+        ** - Only one V-PROCESS per CV
+        ** - these can never be point mechs
+        ** - they run separatly from density/point mechs
+        */
+        out << name << " -= " << var << ";\n"
+            << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
     }
     else if (d.accumulate) {
         if (flags.is_point) {

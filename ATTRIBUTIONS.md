@@ -1,11 +1,41 @@
 Arbor includes code from the open source community. Thank you!
 
+## fmt
+
+{fmt} is an open-source formatting library providing a fast and safe alternative to C stdio and C++ iostreams.
+
+https://github.com/fmtlib/fmt
+
+## google-benchmark
+
+A library to benchmark code snippets, similar to unit tests.
+
+https://github.com/google/benchmark
+
+## GoogleTest
+
+GoogleTest is Google’s C++ testing and mocking framework.
+
+https://github.com/google/googletest
+
 ## JSON for Modern C++
 
 A header only C++11 json library, written by Niels Lohmann (GitHub user nlohmann).
 MIT license.
 
 https://github.com/nlohmann/json
+
+## pybind11
+
+pybind11 is a lightweight header-only library that exposes C++ types in Python and vice versa, mainly to create Python bindings of existing C++ code.
+
+https://github.com/pybind/pybind11
+
+## random123
+
+The Random123 library is a collection of counter-based random number generators ("CBRNGs") for CPUs (C and C++) and GPUs (CUDA and OpenCL).
+
+https://github.com/DEShawResearch/random123
 
 ## tinyopt
 
@@ -27,6 +57,13 @@ project.
 BSD License.
 
 http://llvm.org/
+
+# PugiXML 
+
+A simple and fast C++ XML processing library.
+MIT License.
+
+https://github.com/zeux/pugixml
 
 ## Transcendentals intrinsics
 

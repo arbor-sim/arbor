@@ -150,6 +150,9 @@ private:
         return s == symbols_.end() ? false : s->second->kind() == kind;
     }
 
+    // Check requirements for membrane potential manipulation.
+    void check_voltage_mechanism();
+
     // Check requirements for reversal potential setters.
     void check_revpot_mechanism();
 

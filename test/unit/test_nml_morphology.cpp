@@ -7,29 +7,18 @@
 #include <arbor/morph/primitives.hpp>
 
 #include <arborio/neuroml.hpp>
-#include <arborio/xml.hpp>
 
 #include <gtest/gtest.h>
 #include "morph_pred.hpp"
 
 using testing::region_eq;
 
-TEST(neuroml, with_xml) {
-    // This (hopefully) will not blow up.
-    {
-        arborio::with_xml scope;
-    }
-    {
-        arborio::with_xml scope;
-    }
-}
-
 // Tests for basic morphology scanning and collection from XML.
 
 TEST(neuroml, morph_badxml) {
     std::string illformed = "<wha?";
 
-    EXPECT_THROW(arborio::neuroml{illformed}, arborio::xml_error);
+    EXPECT_THROW(arborio::neuroml{illformed}, std::runtime_error);
 }
 
 TEST(neuroml, morph_none) {
@@ -176,7 +165,7 @@ R"~(
     arborio::neuroml N(doc);
 
     {
-        arborio::nml_morphology_data m1 = N.morphology("m1").value();
+        auto m1 = N.morphology("m1").value();
         label_dict labels;
         labels.import(m1.segments, "seg:");
         mprovider P(m1.morphology, labels);
@@ -275,6 +264,7 @@ R"~(
             EXPECT_EQ(p3, seg1_segments[0].dist);
         }
     }
+
 }
 
 TEST(neuroml, spherical_segments) {

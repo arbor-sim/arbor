@@ -1109,6 +1109,30 @@ void CosUnaryExpression::accept(Visitor *v) {
 void SinUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void SqrtUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepRightUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepLeftUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StepUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void ReLuUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void TanHUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void SigmoidUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void SignumUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void BinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -1183,6 +1207,22 @@ ARB_LIBMODCC_API expression_ptr unary_expression( Location loc,
             return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
         case tok::safeinv :
             return make_expression<SafeInvUnaryExpression>(loc, std::move(e));
+        case tok::sqrt :
+            return make_expression<SqrtUnaryExpression>(loc, std::move(e));
+        case tok::step_right :
+            return make_expression<StepRightUnaryExpression>(loc, std::move(e));
+        case tok::step_left :
+            return make_expression<StepLeftUnaryExpression>(loc, std::move(e));
+        case tok::step :
+            return make_expression<StepUnaryExpression>(loc, std::move(e));
+        case tok::signum :
+            return make_expression<SignumUnaryExpression>(loc, std::move(e));
+        case tok::sigmoid :
+            return make_expression<SigmoidUnaryExpression>(loc, std::move(e));
+        case tok::relu :
+            return make_expression<ReLuUnaryExpression>(loc, std::move(e));
+        case tok::tanh :
+            return make_expression<TanHUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"

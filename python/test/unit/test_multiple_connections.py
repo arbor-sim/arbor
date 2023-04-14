@@ -28,7 +28,6 @@ NOTE: In principle, a plasticity (STDP) mechanism is employed here to test if a
 
 
 class TestMultipleConnections(unittest.TestCase):
-
     # Constructor (overridden)
     def __init__(self, args):
         super(TestMultipleConnections, self).__init__(args)
@@ -154,10 +153,10 @@ class TestMultipleConnections(unittest.TestCase):
         return sim, handle_mem
 
     # Test #1 (for 'round_robin')
-    @fixtures.context
-    @fixtures.art_spiker_recipe
-    @fixtures.sum_weight_hh_spike
-    @fixtures.sum_weight_hh_spike_2
+    @fixtures.context()
+    @fixtures.art_spiker_recipe()
+    @fixtures.sum_weight_hh_spike()
+    @fixtures.sum_weight_hh_spike_2()
     def test_multiple_connections_rr_no_halt(
         self, context, art_spiker_recipe, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):
@@ -216,10 +215,10 @@ class TestMultipleConnections(unittest.TestCase):
         self.evaluate_additional_outcome_1(sim, handle_mem)
 
     # Test #2 (for the combination of 'round_robin_halt' and 'round_robin')
-    @fixtures.context
-    @fixtures.art_spiker_recipe
-    @fixtures.sum_weight_hh_spike
-    @fixtures.sum_weight_hh_spike_2
+    @fixtures.context()
+    @fixtures.art_spiker_recipe()
+    @fixtures.sum_weight_hh_spike()
+    @fixtures.sum_weight_hh_spike_2()
     def test_multiple_connections_rr_halt(
         self, context, art_spiker_recipe, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):
@@ -279,10 +278,10 @@ class TestMultipleConnections(unittest.TestCase):
         self.evaluate_additional_outcome_2_3(sim, handle_mem)
 
     # Test #3 (for 'univalent')
-    @fixtures.context
-    @fixtures.art_spiker_recipe
-    @fixtures.sum_weight_hh_spike
-    @fixtures.sum_weight_hh_spike_2
+    @fixtures.context()
+    @fixtures.art_spiker_recipe()
+    @fixtures.sum_weight_hh_spike()
+    @fixtures.sum_weight_hh_spike_2()
     def test_multiple_connections_uni(
         self, context, art_spiker_recipe, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):

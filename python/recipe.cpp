@@ -123,7 +123,7 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 
 std::string con_to_string(const arb::cell_connection& c) {
     return util::pprintf("<arbor.connection: source ({}, \"{}\", {}), destination (\"{}\", {}), delay {}, weight {}>",
-         c.source.gid, c.source.label.tag, c.source.label.policy, c.dest.tag, c.dest.policy, c.delay, c.weight);
+         c.source.gid, c.source.label.tag, c.source.label.policy, c.target.tag, c.target.policy, c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
@@ -148,7 +148,7 @@ void register_recipe(pybind11::module& m) {
             "  delay:       The delay of the connection [ms].")
         .def_readwrite("source", &arb::cell_connection::source,
             "The source gid and label of the connection.")
-        .def_readwrite("dest", &arb::cell_connection::dest,
+        .def_readwrite("dest", &arb::cell_connection::target,
             "The destination label of the connection.")
         .def_readwrite("weight", &arb::cell_connection::weight,
             "The weight of the connection.")
@@ -195,8 +195,12 @@ void register_recipe(pybind11::module& m) {
             "gid"_a,
             "A list of all the event generators that are attached to gid, [] by default.")
         .def("connections_on", &py_recipe::connections_on,
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "gid"_a,
             "A list of all the incoming connections to gid, [] by default.")
+        .def("external_connections_on", &py_recipe::external_connections_on,
+            "gid"_a,
+            "A list of all the incoming connections from _remote_ locations to gid, [] by default.")
         .def("gap_junctions_on", &py_recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")

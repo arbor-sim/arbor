@@ -55,6 +55,9 @@ std::string show(const paintable& item) {
             else if constexpr (std::is_same_v<density, T>) {
                 os << "density:" << p.mech.name();
             }
+            else if constexpr (std::is_same_v<voltage_process, T>) {
+                os << "voltage-process:" << p.mech.name();
+            }
         },
         item);
     return os.str();
@@ -136,6 +139,10 @@ struct cable_cell_impl {
         return region_map.get<T>();
     }
 
+    mcable_map<voltage_process>& get_region_map(const voltage_process& v) {
+        return region_map.get<voltage_process>()[v.mech.name()];
+    }
+
     mcable_map<std::pair<density, iexpr_map>> &
     get_region_map(const density &desc) {
       return region_map.get<density>()[desc.mech.name()];
@@ -162,14 +169,13 @@ struct cable_cell_impl {
     }
 
     void paint(const region& reg, const scaled_mechanism<density>& prop) {
-        mextent cables = thingify(reg, provider);
-        auto& mm = get_region_map(prop.t_mech);
-
         std::unordered_map<std::string, iexpr_ptr> im;
         for (const auto& [fst, snd]: prop.scale_expr) {
             im.insert_or_assign(fst, thingify(snd, provider));
         }
 
+        auto& mm = get_region_map(prop.t_mech);
+        const auto& cables = thingify(reg, provider);
         for (const auto& c: cables) {
             // Skip zero-length cables in extent:
             if (c.prox_pos == c.dist_pos) continue;

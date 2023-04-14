@@ -25,10 +25,10 @@ NSuite
     A framework for maintaining and running benchmarks and validation tests for multi-compartment neural network simulations on HPC systems. `NSuite documentation <https://nsuite.readthedocs.io>`_
 
 Arbor GUI
-    The Arbor GUI visualizes cable cells and can be used to decorate morphologies. Single cell simulations can be ran (using the Arbor simulator) and output plotted right from the GUI. `Code repository and Readme <https://github.com/arbor-sim/gui>`_
+    The Arbor GUI visualizes cable cells and can be used to decorate morphologies. Single cell simulations can be ran (using the Arbor simulator) and output plotted right from the GUI. `Arbor GUI code repository and readme <https://github.com/arbor-sim/gui>`_
 
 nmlcc
-    Arbor has built-in read support for NeuroML morphologies, but not yet for other NeuroML components (mechanisms, networks). `nmlcc` is compiler/translator that aims to generate complete Arbor inputs for any NeuroML file. `Code repository and Readme <https://github.com/thorstenhater/nmlcc/>`_
+    Arbor has built-in read support for NeuroML morphologies, but not yet for other NeuroML components (mechanisms, networks). `nmlcc` is compiler/translator that aims to generate complete Arbor inputs for any NeuroML file. `nmlcc code repository and readme <https://github.com/thorstenhater/nmlcc/>`_
 
 .. figure:: arbor.png
    :align: center

@@ -15,14 +15,17 @@ struct dry_run_context_impl {
 
     explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
         num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
-
-    gathered_vector<arb::spike>
-    gather_spikes(const std::vector<arb::spike>& local_spikes) const {
-        using count_type = typename gathered_vector<arb::spike>::count_type;
+    std::vector<spike>
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+        return {};
+    }
+    gathered_vector<spike>
+    gather_spikes(const std::vector<spike>& local_spikes) const {
+        using count_type = typename gathered_vector<spike>::count_type;
 
         count_type local_size = local_spikes.size();
 
-        std::vector<arb::spike> gathered_spikes;
+        std::vector<spike> gathered_spikes;
         gathered_spikes.reserve(local_size*num_ranks_);
 
         for (count_type i = 0; i < num_ranks_; i++) {
@@ -40,9 +43,10 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<arb::spike>(std::move(gathered_spikes), std::move(partition));
+        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
     }
-
+    void remote_ctrl_send_continue(const epoch&) const {}
+    void remote_ctrl_send_done() const {}
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;

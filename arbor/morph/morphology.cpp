@@ -173,6 +173,29 @@ msize_t morphology::num_branches() const {
     return impl_->branches_.size();
 }
 
+ARB_ARBOR_API segment_tree morphology::to_segment_tree() const {
+    segment_tree st;
+    const auto& branches = impl_->branches_;
+
+    for (auto bi: make_span(branches.size()) ) {
+        const auto& branch = branches[bi];
+        for (auto si: make_span(branch.size())) {
+            const auto& seg = branch[si];
+            auto p = mnpos;
+            if (si == 0) {
+                auto bp = impl_->branch_parents_[bi];
+                p = bp == mnpos ? mnpos : branches[bp].back().id;
+            } else {
+                p = branch[si-1].id;
+            }
+            st.append(p, seg.prox, seg.dist, seg.tag);
+        }
+    }
+
+    return st;
+}
+
+
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const morphology& m) {
     return o << *m.impl_;
 }
@@ -256,19 +279,24 @@ ARB_ARBOR_API mlocation canonical(const morphology& m, mlocation loc) {
 // Used by the mextent constructor.
 mcable_list build_mextent_cables(const mcable_list& cables) {
     arb_assert(arb::test_invariants(cables));
-
     mcable_list cs;
-    for (auto& c: cables) {
-        mcable* prev = cs.empty()? nullptr: &cs.back();
-
-        if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
-            prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
+    if (cables.empty()) return cs;
+    cs.reserve(cables.size());
+    cs.push_back(cables[0]);
+    for (std::size_t ix = 1; ix < cables.size(); ++ix) {
+        const auto& cable = cables[ix];
+        // Extend the last entry, if overlapping and same branch
+        if (cs.back().branch == cable.branch
+         && cs.back().dist_pos >= cable.prox_pos) {
+            if (cs.back().dist_pos < cable.dist_pos) {
+                cs.back().dist_pos = cable.dist_pos;
+            }
         }
         else {
-            cs.push_back(c);
+            cs.emplace_back(cable);
         }
     }
-
+    cs.shrink_to_fit();
     return cs;
 }
 

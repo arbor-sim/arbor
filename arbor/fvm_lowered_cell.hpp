@@ -17,6 +17,7 @@
 #include <arbor/util/any_ptr.hpp>
 
 #include "backends/event.hpp"
+#include "backends/common_types.hpp"
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
@@ -25,12 +26,6 @@
 #include "util/transform.hpp"
 
 namespace arb {
-
-struct fvm_integration_result {
-    util::range<const threshold_crossing*> crossings;
-    util::range<const arb_value_type*> sample_time;
-    util::range<const arb_value_type*> sample_value;
-};
 
 // A sample for a probe may be derived from multiple 'raw' sampled
 // values from the backend.

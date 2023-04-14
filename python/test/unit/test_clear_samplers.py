@@ -17,7 +17,7 @@ all tests for the simulator wrapper
 @cases.skipIfDistributed()
 class TestClearSamplers(unittest.TestCase):
     # test that all spikes are sorted by time then by gid
-    @fixtures.art_spiking_sim
+    @fixtures.art_spiking_sim()
     def test_spike_clearing(self, art_spiking_sim):
         sim = art_spiking_sim
         sim.record(A.spike_recording.all)

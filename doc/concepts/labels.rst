@@ -300,7 +300,7 @@ Locset expressions
 .. label:: (proximal-translate ls:locset distance:real)
 
     The set of locations that correspond to moving each location in the ``ls`` in the proximal direction
-    ``distance`` μm. The locations in the output have a one to one correspondance with those in ``ls``.
+    ``distance`` μm. The locations in the output have a one to one correspondence with those in ``ls``.
 
     .. figure:: ../gen-images/proximal_translate_label.svg
       :width: 600
@@ -316,7 +316,7 @@ Locset expressions
 
     An input location will generate multiple output locations when it is translated
     past a fork point, with a new location for each child branch (see the example
-    below). For this reason there is not a one-to-one correspondance between locations
+    below). For this reason there is not a one-to-one correspondence between locations
     in the input and output sets, so the results are sorted and duplicates are removed.
 
 
@@ -762,6 +762,14 @@ Inhomogeneous Expressions
 
     The exponential function of the inhomogeneous expression or real ``value``.
 
+.. label:: (step_right value:(iexpr | real))
+
+    The Heaviside step function of the inhomogeneous expression or real ``value``, with `(step 0.0)` evaluating to 1.
+
+.. label:: (step_left value:(iexpr | real))
+
+    The Heaviside step function of the inhomogeneous expression or real ``value``, with `(step 0.0)` evaluating to 0.
+
 .. label:: (step value:(iexpr | real))
 
     The Heaviside step function of the inhomogeneous expression or real ``value``, with `(step 0.0)` evaluating to 0.5.
@@ -862,7 +870,7 @@ the regions, locsets or iexpr defined in the label dictionary by referring to th
       'root': '(root)',   # typically the start of the soma is at the root of the cell.
       'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
       'axon_end': '(restrict (terminal) (region "axon"))',  # end of the axon.
-      'rad_expr': '(radius 0.5)'}  # iexpr evaluating the radius scaled by 0.5
+      'rad_expr': '(radius 0.5)'  # iexpr evaluating the radius scaled by 0.5
     })
 
 

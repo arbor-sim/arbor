@@ -18,12 +18,10 @@ extern "C" {
 #define ARB_NO_ALIAS restrict
 #endif
 
-
-
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 3
-#define ARB_MECH_ABI_VERSION_PATCH 1
+#define ARB_MECH_ABI_VERSION_MINOR 4
+#define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
@@ -35,6 +33,7 @@ typedef uint32_t arb_mechanism_kind;
 #define arb_mechanism_kind_density 2
 #define arb_mechanism_kind_reversal_potential 3
 #define arb_mechanism_kind_gap_junction 4
+#define arb_mechanism_kind_voltage 5
 
 typedef uint32_t arb_backend_kind;
 #define arb_backend_kind_nil 0
@@ -46,6 +45,8 @@ inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
         case arb_mechanism_kind_density: return "density mechanism kind";
         case arb_mechanism_kind_point:   return "point mechanism kind";
         case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
+        case arb_mechanism_kind_gap_junction: return "gap junction mechanism kind";
+        case arb_mechanism_kind_voltage: return "voltage mechanism kind";
         default: return "unknown mechanism kind";
     }
 }
@@ -97,7 +98,6 @@ typedef struct arb_mechanism_ppack {
     arb_size_type   width;                       // Number of CVs.
     arb_index_type  n_detectors;                 // Number of spike detectors.
     arb_index_type* vec_ci;
-    arb_index_type* vec_di;
     arb_value_type* vec_dt;
     arb_value_type* vec_v;
     arb_value_type* vec_i;

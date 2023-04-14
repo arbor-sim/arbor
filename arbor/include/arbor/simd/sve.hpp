@@ -576,6 +576,17 @@ struct sve_double {
         return copy_from(r);
     }
 
+    static svfloat64_t sqrt(const svfloat64_t& x) {
+        auto len = svlen_f64(x);
+        double a[len], r[len];
+        copy_to(x, a);
+
+        for (unsigned i = 0; i<len; ++i) {
+            r[i] = std::sqrt(a[i]);
+        }
+        return copy_from(r);
+    }
+
     static svfloat64_t cos(const svfloat64_t& x) {
         auto len = svlen_f64(x);
         double a[len], r[len];
@@ -594,6 +605,56 @@ struct sve_double {
 
         for (unsigned i = 0; i<len; ++i) {
             r[i] = std::sin(a[i]);
+        }
+        return copy_from(r);
+    }
+
+    static svfloat64_t step_right(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto ones = broadcast(1);
+        return ifelse(cmp_geq(x, zeros), ones, zeros);
+    }
+
+    static svfloat64_t step_left(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto ones = broadcast(1);
+        return ifelse(cmp_gt(x, zeros), ones, zeros);
+    }
+
+    static svfloat64_t step(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto halfs = broadcast(0.5);
+        return add(
+            sub(
+                ifelse(cmp_gt(x, zeros), halfs, zeros),
+                ifelse(cmp_gt(zeros, x), halfs, zeros)),
+            halfs);
+    }
+
+    static svfloat64_t signum(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto ones = broadcast(1);
+        return sub(ifelse(cmp_gt(x, zeros), ones, zeros),
+                   ifelse(cmp_gt(zeros, x), ones, zeros));
+    }
+
+    static svfloat64_t relu(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        return ifelse(cmp_gt(x, zeros), x, zeros);
+    }
+
+    static svfloat64_t sigmoid(const svfloat64_t& x) {
+        auto ones = broadcast(1);
+        return div(ones, add(ones, exp(neg(x))));
+    }
+
+    static svfloat64_t tanh(const svfloat64_t& x) {
+        auto len = svlen_f64(x);
+        double a[len], r[len];
+        copy_to(x, a);
+
+        for (unsigned i = 0; i<len; ++i) {
+            r[i] = std::tanh(a[i]);
         }
         return copy_from(r);
     }
@@ -693,7 +754,7 @@ auto name(const typename detail::simd_traits<typename detail::sve_type_to_impl<T
 
 ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
 ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt, logical_and, logical_or)
-ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr, cos, sin)
+ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr, cos, sin, sqrt, step_right, step_left, step, signum, sigmoid, relu, tanh)
 
 #undef ARB_SVE_UNARY_ARITHMETIC_
 #undef ARB_SVE_BINARY_ARITHMETIC_

@@ -87,7 +87,6 @@ ARB_ARBOR_API void merge_cell_events(
     PL();
 }
 
-
 class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
@@ -113,13 +112,18 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
+    void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
+
     void inject_events(const cse_vector& events);
+
+    time_type min_delay() { return communicator_.min_delay(); }
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
     label_resolution_map source_resolution_map_;
     label_resolution_map target_resolution_map_;
+
 
 private:
     // Record last computed epoch (integration interval).
@@ -204,25 +208,38 @@ simulation_state::simulation_state(
     std::vector<cell_labels_and_gids> cg_targets(num_groups);
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
+          PE(init:simulation:group:factory);
           const auto& group_info = decomp.group(i);
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
-
+          PL();
+          PE(init:simulation:group:targets_and_sources);
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
           cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
+          PL();
         });
 
+    PE(init:simulation:sources);
     cell_labels_and_gids local_sources, local_targets;
     for(const auto& i: util::make_span(num_groups)) {
         local_sources.append(cg_sources.at(i));
         local_targets.append(cg_targets.at(i));
     }
-    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+    PL();
 
+    PE(init:simulation:source:MPI);
+    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+    PL();
+
+    PE(init:simulation:resolvers);
     source_resolution_map_ = label_resolution_map(std::move(global_sources));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
+    PL();
+
+    PE(init:simulation:comm);
     communicator_ = communicator(rec, ddc_, *ctx_);
+    PL();
     update(rec);
     epoch_.reset();
 }
@@ -230,7 +247,7 @@ simulation_state::simulation_state(
 void simulation_state::update(const connectivity& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
-    t_interval_ = communicator_.min_delay()/2;
+    t_interval_ = min_delay()/2;
 
     const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
@@ -240,6 +257,7 @@ void simulation_state::update(const connectivity& rec) {
     event_generators_.resize(num_local_cells);
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
+    PE(init:simulation:update:generators);
     auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
     for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
@@ -260,6 +278,7 @@ void simulation_state::update(const connectivity& rec) {
         }
         ++grpidx;
     }
+    PL();
 
     // Create event lane buffers.
     // One buffer is consumed by cell group updates while the other is filled with events for
@@ -374,8 +393,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PE(communication:exchange:gatherlocal);
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
+        communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
-        auto global_spikes = communicator_.exchange(all_local_spikes);
+        const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
         PE(communication:spikeio);
@@ -389,7 +409,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
         // Append events formed from global spikes to per-cell pending event queues.
         PE(communication:walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_);
+        communicator_.make_event_queues(global_spikes, pending_events_, remote_spikes);
         PL();
     };
 
@@ -452,6 +472,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Record current epoch for next run() invocation.
     epoch_ = current;
+    communicator_.remote_ctrl_send_done();
     return current.t1;
 }
 
@@ -588,6 +609,8 @@ simulation::simulation(simulation&&) = default;
 
 simulation::~simulation() = default;
 
+time_type simulation::min_delay() { return impl_->min_delay(); }
+
 ARB_ARBOR_API epoch_function epoch_progress_bar() {
     struct impl {
         double t0 = 0;
@@ -620,5 +643,8 @@ ARB_ARBOR_API epoch_function epoch_progress_bar() {
 
     return impl{};
 }
+
+// Propagate filters down the stack.
+void simulation::set_remote_spike_filter(const spike_predicate& p) { return impl_->set_remote_spike_filter(p); }
 
 } // namespace arb

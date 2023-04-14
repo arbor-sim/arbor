@@ -45,7 +45,6 @@ class brunel_recipe(arbor.recipe):
         poiss_lambda,
         seed=42,
     ):
-
         arbor.recipe.__init__(self)
 
         # Make sure that in_degree_prop in the interval (0, 1]
@@ -105,7 +104,6 @@ class brunel_recipe(arbor.recipe):
         cell.C_m = 20
         cell.E_L = 0
         cell.V_m = 0
-        cell.V_reset = 0
         cell.t_ref = 2
         return cell
 
@@ -116,7 +114,6 @@ class brunel_recipe(arbor.recipe):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Brunel model miniapp.")
     parser.add_argument(
         "-n",
@@ -232,6 +229,8 @@ if __name__ == "__main__":
             print(f"{k} = {v}")
 
     context = arbor.context()
+    if arbor.config()["profiling"]:
+        arbor.profiler_initialize(context)
     print(context)
 
     meters = arbor.meter_manager()
@@ -252,7 +251,7 @@ if __name__ == "__main__":
     meters.checkpoint("recipe-create", context)
 
     hint = arbor.partition_hint()
-    hint.cpu_group_size = opt.group_size
+    hint.cpu_group_size = 5000
     hints = {arbor.cell_kind.lif: hint}
     decomp = arbor.partition_load_balance(recipe, context, hints)
     print(decomp)
@@ -269,7 +268,9 @@ if __name__ == "__main__":
     meters.checkpoint("simulation-run", context)
 
     # Print profiling information
-    print(f"{arbor.meter_report(meters, context)}")
+    print(arbor.meter_report(meters, context))
+    if arbor.config()["profiling"]:
+        print(arbor.profiler_summary())
 
     # Print spike times
     print(f"{len(sim.spikes())} spikes generated.")
