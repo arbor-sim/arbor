@@ -87,6 +87,23 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
 
    Returns the number of locally available CPU cores. Returns 1 if unable to detect the number of cores. Use with caution in combination with MPI.
 
+.. function:: env.get_env_num_threads
+            
+    Retrieve user-specified number of threads to use from the environment variable ARBENV_NUM_THREADS.
+
+.. function:: env.default_concurrency
+
+    Returns number of threads to use from get_env_num_threads(), or else from thread_concurrency() if get_env_num_threads() returns zero.
+
+.. function:: env.default_gpu
+
+    Determine GPU id to use from the ARBENV_GPU_ID environment variable, or from the first available GPU id of those detected.
+
+.. function:: env.default_allocation
+
+    Returns a :func:`~arbor.proc_allocation` with the number of threads intitalized with :func:`~arbor.env.default_concurrency` and gpu set to :func:`~arbor.env.default_gpu`. Use with caution in combination with MPI.
+
+
 Prescribed resources
 ---------------------
 
