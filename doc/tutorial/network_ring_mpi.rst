@@ -21,7 +21,7 @@ Step **(11)** is changed to generate a network with five hundred cells.
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 124-126
+   :lines: 122-124
 
 The hardware context
 ********************
