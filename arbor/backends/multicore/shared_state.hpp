@@ -212,9 +212,9 @@ struct ARB_ARBOR_API shared_state:
                  const std::vector<arb_value_type>& temperature_K,
                  const std::vector<arb_value_type>& diam,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector,
+                 const fvm_detector_info& detector_info,
                  unsigned align,
-                 arb_seed_type cbprng_seed_=0);
+                 arb_seed_type cbprng_seed_=0u);
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(mechanism&,

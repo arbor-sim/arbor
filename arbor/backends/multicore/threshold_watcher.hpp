@@ -4,6 +4,7 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/math.hpp>
 
+#include "backends/common_types.hpp"
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "multicore_common.hpp"
@@ -15,6 +16,12 @@ class threshold_watcher {
 public:
     threshold_watcher() = default;
     threshold_watcher(const execution_context& ctx) {}
+
+    threshold_watcher(const arb_size_type num_cv,
+                      const arb_index_type* src_to_spike,
+                      const fvm_detector_info& info):
+        threshold_watcher{num_cv, src_to_spike, info.cv, info.threshold, info.ctx}
+    {}
 
     threshold_watcher(const arb_size_type num_cv,
                       const arb_index_type* src_to_spike,

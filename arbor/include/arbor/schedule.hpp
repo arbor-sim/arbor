@@ -254,7 +254,7 @@ private:
     };
 };
 
-// Costructors
+// Constructors
 inline schedule::schedule(): schedule(empty_schedule{}) {}
 
 inline schedule regular_schedule(time_type t0,

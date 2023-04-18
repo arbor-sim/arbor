@@ -222,8 +222,9 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
-# External libraries in `ext` sub-directory: json, tinyopt and randon123.
-# Creates interface libraries ext-tinyopt` and `ext-random123`
+
+# External libraries in `ext` sub-directory: json, tinyopt and random123.
+# Creates interface libraries `ext-tinyopt` and `ext-random123`
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)

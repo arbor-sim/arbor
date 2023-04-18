@@ -175,7 +175,7 @@ shared_state::shared_state(task_system_handle tp,
                            const std::vector<arb_value_type>& temperature_K,
                            const std::vector<arb_value_type>& diam,
                            const std::vector<arb_index_type>& src_to_spike_,
-                           const fvm_detector_info& detector,
+                           const fvm_detector_info& detector_info,
                            unsigned, // align parameter ignored
                            arb_seed_type cbprng_seed_):
     thread_pool(tp),
@@ -192,11 +192,7 @@ shared_state::shared_state(task_system_handle tp,
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
     sample_events(thread_pool),
-    watcher{n_cv_,
-            src_to_spike.data(),
-            detector.cv,
-            detector.threshold,
-            detector.ctx}
+    watcher{n_cv_, src_to_spike.data(), detector}
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);

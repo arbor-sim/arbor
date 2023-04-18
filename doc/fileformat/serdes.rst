@@ -1,25 +1,47 @@
 .. _formatserdes:
 
-Serialization/Deserialization (SerDes)
-======================================
+Checkpointing
+=============
 
-While not a fileformat on its own SerDes allows users to dump a snapshot of the
-simulation state for a later time. This is **not** intended for data extraction,
-but instead a reset the simulation state to this point in time. The saved data
-is not a complete image of the state, but strives to be a minimal subset from
-which to restore.
+While not a fileformat on its own, checkpoints allow users to dump a snapshot of
+the simulation state for a later time. This is **not** intended for data
+extraction (see :ref:`probesample` for this functionality), but instead a reset
+the simulation state to this point in time. The saved data is not a complete
+image of the state, but strives to be a minimal subset from which to restore
+(see :ref:`below <impl guide>`).
+
+Checkpoints are currently _not_ portable; i.e. the following constraints apply:
+
+1. The recipe class must be the same across ``serialize`` / ``deserialize``
+   Unfortunately, we cannot enforce this at runtime, since we lack the
+   appropriate introspection capabilities in C++/Python.
+2. Likewise, ``context`` and ``domain_decomposition`` must be identical. Again
+   we cannot validate this, since we'd either stop migration between ranks or
+   would have to instantiate and sort every local domain decomposition across
+   all ranks.
+3. The hardware configuration must be identical: SIMD, GPU, and Scalar CPU code
+   have different binary layouts which makes serializing across hardware settings
+   invalid.
+
+Thus, the recommended approach is to treat a simulation 'script' (``.cxx`` /
+``.py``), the parallel-runtime parameters (think ``mpirun``) and the associated
+snapshots as a single unit.
+
+.. note:: While this functionality can quite obviously be abused to mutate certain
+          variable out-of-band, we strongly advise against it.
 
 Usage
 -----
 
-SerDes in itself is independent of the file format used, it allows for multiple
+Checkpoints are independent of the storage engine used, it allows for multiple
 backends. The general usage is show in the examples below; we assume familiarity
 with the C++ and Python recipe interfaces:
 
   .. code:: c++
 
-    // Storage
+    // Storage engine, pluggable. See below.
     auto writer = io{};
+    // Serializer object using the engine.
     auto serializer = arb::serializer{writer};
 
     // Construct a simulation.
@@ -43,28 +65,12 @@ with the C++ and Python recipe interfaces:
     // [T, 2T) should be identical.
 
 Note that we left the definition of ``io`` open, as ``serializer`` uses it
-through a well-defined interface. Thus, one can simply add new implementations.
-Arbor ships with ``arborio::json_serdes`` that produces JSON output.
+through a well-defined interface (see next section). Thus, one can simply add
+new implementations. Arbor currently ships with ``arborio::json_serdes`` that
+produces JSON output, more might be added over time.
 
-SerDes is currently not suitable to provide portable snapshots, and consequently
-the following constraints apply:
-
-1. The recipe class must be the same across serialize/deserialize
-   Unfortunately, we cannot enforce this at runtime, since we lack the
-   appropriate introspection capabilities in C++/Python.
-2. Likewise, ``context`` and ``domain_decomposition`` must be identical. Again
-   we cannot validate this, since we'd either stop migration between ranks or
-   would have to instantiate and sort every local domain decomposition across
-   all ranks.
-3. The hardware configuration must be identical: SIMD, GPU, and Scalar CPU code
-   have different binary layouts which makes serializing across hardware settings
-   invalid.
-
-Thus, the recommended approach is to treat a simulation 'script' (``.cxx`` /
-``.py``), the parallel-runtime parameters (think ``mpirun``) and the associated
-snapshots as a single unit.
-
-In Python, currently only support for (de)serialization from/to JSON strings is offered.
+In Python, currently only support for (de)serialization from/to JSON strings is
+offered.
 
   .. code:: python
 
@@ -76,8 +82,8 @@ In Python, currently only support for (de)serialization from/to JSON strings is 
     sim.deserialize(jsn)
 
 
-Intermediate: Writing your own Storage Engine in C++
-----------------------------------------------------
+Writing your own Storage Engine (C++ only)
+------------------------------------------
 
 A storage engine is used to construct the serializer and is responsible for
 writing out the data to whatever format and location required. Currently Arbor
@@ -124,11 +130,11 @@ key can be used to retrieve the associated value. See examples below and the JSO
 interface in ``arborio``.
 
 
-Advanced: Writing your own (De)Serializers in C++
--------------------------------------------------
+Adding Snapshotting to new Objects (C++ only)
+---------------------------------------------
 
-This is not available at the Python interface level, due to a mismatch in
-features at the level of languages and binings generation.
+This is not available at the Python interface, due to a mismatch in features at
+the level of languages and binings generation.
 
 All that is needed is to implement new overloads of the functions ``read`` and
 ``write``. For many C++ native types these exist, but some might be missing.
@@ -146,7 +152,7 @@ and the key type ``K`` must be converted to the internal key type
 ``arb::key_type``. A convenience function ``key_type to_key(const K&)`` is
 offered which works for integral and string types.
 
-Array like value -- eg vectors and similar -- are stored like this
+Array-like values -- eg vectors and similar -- are stored like this
 
   .. code:: c++
 
@@ -186,12 +192,12 @@ when overwriting values. The sotrage is polled for the next key using
     void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
         ser.begin_read_array(to_key(k));
         for (std::size_t ix = 0;; ++ix) {
-            auto q = ser.next_key();   // Poll next key
-            if (!q) break;             // if nil, there's no more data in store.
-            if (ix < vs.size()) {      // if the index is already present
-                deserialize(ser, ix, vs[ix]); // hand the value to `read` to be modified
+            auto q = ser.next_key();           // Poll next key
+            if (!q) break;                     // if nil, there's no more data in store.
+            if (ix < vs.size()) {              // if the index is already present
+                deserialize(ser, ix, vs[ix]);  // hand the value to `read` to be modified
             }
-            else {                     // else create a new one.
+            else {                             // else create a new one.
                 V val;
                 deserialize(ser, ix, val);
                 vs.emplace_back(std::move(val));
@@ -219,11 +225,24 @@ which will define the required functions. Likewise ``enum (class)`` is treated w
 Guidelines
 ^^^^^^^^^^
 
-- Only store what is required. If values are constructed (correctly!)
-  externally, don't store them, this will avoid problems and save space.
-- Do no store data that might be required to change, example: anything related
-  to data acquisition.
-- When dealing with polymorphisim, add a trampoline like this
+.. _impl guide:
+
+Only store mutable state required to reset to a given point. If values are
+constructed externally, don't store them.
+
+**Do not** store immutable or externally set items, that is
+
+- global constants
+- anything that will be constructed from the recipe: connections, cells, ...
+- anything set by the user: samples, time step width, ...
+
+**Do** store mutable state, like
+
+- voltages, ion concentrations, current time, ... (``backends/*/shared_state.hpp``)
+- mechanism state
+- events in flight
+
+When dealing with polymorphism, add a trampoline like this
 
     .. code:: c++
 
