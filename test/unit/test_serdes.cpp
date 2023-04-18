@@ -203,8 +203,7 @@ TEST(serdes, single_cell) {
     auto simulation = arb::simulation{model};
     simulation.add_sampler(arb::all_probes,
                            arb::regular_schedule(dt),
-                           sampler,
-                           arb::sampling_policy::lax);
+                           sampler);
 
     // Run simulation forward && snapshot
     output = &result_pre;
@@ -245,8 +244,7 @@ TEST(serdes, network) {
     auto simulation = arb::simulation{model};
     simulation.add_sampler(arb::all_probes,
                            arb::regular_schedule(dt),
-                           sampler,
-                           arb::sampling_policy::lax);
+                           sampler);
 
     // Run simulation forward && snapshot
     output = &result_pre;
@@ -288,8 +286,7 @@ TEST(serdes, single_cell_gpu) {
     auto simulation = arb::simulation{model, ctx};
     simulation.add_sampler(arb::all_probes,
                            arb::regular_schedule(dt),
-                           sampler,
-                           arb::sampling_policy::lax);
+                           sampler);
 
     // Run simulation forward && snapshot
     output = &result_pre;
@@ -331,8 +328,7 @@ TEST(serdes, network_gpu) {
     auto simulation = arb::simulation{model, ctx};
     simulation.add_sampler(arb::all_probes,
                            arb::regular_schedule(dt),
-                           sampler,
-                           arb::sampling_policy::lax);
+                           sampler);
 
     // Run simulation forward && snapshot
     output = &result_pre;

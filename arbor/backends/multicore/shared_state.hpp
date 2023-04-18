@@ -15,16 +15,18 @@
 #include <arbor/simd/simd.hpp>
 
 #include "fvm_layout.hpp"
+#include "timestep_range.hpp"
 
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
+
+#include "threading/threading.hpp"
 
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 #include "backends/shared_state_base.hpp"
 
-#include "backends/multicore/multi_event_stream.hpp"
 #include "backends/multicore/threshold_watcher.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
@@ -49,15 +51,7 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    // ARB_SERDES_ENABLE(ion_state,
-                      // node_index_,
-                      // write_Xi_, write_eX_, write_Xo_,
-                      // iX_, eX_, Xi_, Xd_, Xo_, gX_,
-                      // init_Xi_, init_Xo_, init_eX_,
-                      // reset_Xi_, reset_Xo_,
-                      // charge);
-
-    // Xd and gX are the only things that persists
+    // Xd and gX are the only things that persist
     ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
 
     unsigned alignment = 1; // Alignment and padding multiple.
@@ -127,7 +121,7 @@ struct ARB_ARBOR_API istim_state {
     void reset();
 
     // Contribute to current density:
-    void add_current(const array& time, const iarray& cv_to_intdom, array& current_density);
+    void add_current(const arb_value_type t, array& current_density);
 
     // Construct state from i_clamp data:
     istim_state(const fvm_stimulus_config& stim_data, unsigned align);
@@ -150,25 +144,13 @@ struct mech_storage {
     std::vector<arb_size_type> idx_;
     cbprng::counter_type random_number_update_counter_ = 0u;
 
+    deliverable_event_stream deliverable_events_;
+
     ARB_SERDES_ENABLE(mech_storage, data_, indices_, random_numbers_, random_number_update_counter_);
 };
 
 struct ARB_ARBOR_API shared_state:
         public shared_state_base<shared_state, array, ion_state> {
-    // ARB_SERDES_ENABLE(shared_state,
-                      // cbprng_seed,
-                      // ion_data,
-                      // storage,
-                      // voltage,
-                      // current_density,
-                      // conductivity,
-                      // diam_um,
-                      // time_since_spike,
-                      // time, time_to,
-                      // dt_intdom,
-                      // dt_cv,
-                      // temperature_degC,
-                      // deliverable_events);
 
     // A bit more light-weight
     ARB_SERDES_ENABLE(shared_state,
@@ -179,37 +161,33 @@ struct ARB_ARBOR_API shared_state:
                       conductivity,
                       time_since_spike,
                       time, time_to,
-                      dt_intdom,
-                      dt_cv,
-                      deliverable_events);
+                      dt);
 
     cable_solver solver;
 
-    unsigned alignment = 1;   // Alignment and padding multiple.
-    util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
+    unsigned alignment = 1;         // Alignment and padding multiple.
+    util::padded_allocator<> alloc; // Allocator with corresponging alignment/padding.
 
-    arb_size_type n_intdom = 0; // Number of integration domains.
-    arb_size_type n_detector = 0; // Max number of detectors on all cells.
-    arb_size_type n_cv = 0;   // Total number of CVs.
+    arb_size_type n_intdom = 0;     // Number of integration domains.
+    arb_size_type n_detector = 0;   // Max number of detectors on all cells.
+    arb_size_type n_cv = 0;         // Total number of CVs.
 
-    iarray cv_to_intdom;      // Maps CV index to integration domain index.
-    iarray cv_to_cell;        // Maps CV index to the first spike
-    array time;               // Maps intdom index to integration start time [ms].
-    array time_to;            // Maps intdom index to integration stop time [ms].
-    array dt_intdom;          // Maps  index to (stop time) - (start time) [ms].
-    array dt_cv;              // Maps CV index to dt [ms].
-    array voltage;            // Maps CV index to membrane voltage [mV].
-    array current_density;    // Maps CV index to membrane current density contributions [A/m²].
-    array conductivity;       // Maps CV index to membrane conductivity [kS/m²].
+    iarray cv_to_cell;              // Maps CV index to GID
+    arb_value_type time;            // integration start time [ms].
+    arb_value_type time_to;         // integration end time [ms]
+    arb_value_type dt;              // dt [ms].
+    array voltage;                  // Maps CV index to membrane voltage [mV].
+    array current_density;          // Maps CV index to membrane current density contributions [A/m²].
+    array conductivity;             // Maps CV index to membrane conductivity [kS/m²].
 
-    array init_voltage;       // Maps CV index to initial membrane voltage [mV].
-    array temperature_degC;   // Maps CV to local temperature (read only) [°C].
-    array diam_um;            // Maps CV to local diameter (read only) [µm].
+    array init_voltage;             // Maps CV index to initial membrane voltage [mV].
+    array temperature_degC;         // Maps CV to local temperature (read only) [°C].
+    array diam_um;                  // Maps CV to local diameter (read only) [µm].
 
-    array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
-    iarray src_to_spike;      // Maps spike source index to spike index
+    array time_since_spike;         // Stores time since last spike on any detector, organized by cell.
+    iarray src_to_spike;            // Maps spike source index to spike index
 
-    arb_seed_type cbprng_seed; // random number generator seed
+    arb_seed_type cbprng_seed;      // random number generator seed
 
     sample_event_stream sample_events;
     array sample_time;
@@ -222,23 +200,23 @@ struct ARB_ARBOR_API shared_state:
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-    deliverable_event_stream deliverable_events;
     std::unordered_map<unsigned, mech_storage> storage;
 
     shared_state() = default;
 
-    shared_state(arb_size_type n_intdom,
+    shared_state(task_system_handle tp,
                  arb_size_type n_cell,
-                 const std::vector<arb_index_type>& cv_to_intdom_vec,
+                 arb_size_type n_cv,
                  const std::vector<arb_index_type>& cv_to_cell_vec,
                  const std::vector<arb_value_type>& init_membrane_potential,
                  const std::vector<arb_value_type>& temperature_K,
                  const std::vector<arb_value_type>& diam,
-                 const std::vector<arb_index_type>& src_to_spike_,
+                 const std::vector<arb_index_type>& src_to_spike,
                  const fvm_detector_info& detector,
                  unsigned align,
                  arb_seed_type cbprng_seed_=0);
 
+    // Setup a mechanism and tie its backing store to this object
     void instantiate(mechanism&,
                      unsigned,
                      const mechanism_overrides&,
@@ -248,17 +226,6 @@ struct ARB_ARBOR_API shared_state:
     void update_prng_state(mechanism&);
 
     void zero_currents();
-
-    void ions_nernst_reversal_potential(arb_value_type temperature_K);
-
-    // Set time_to to earliest of time+dt_step and tmax.
-    void update_time_to(arb_value_type dt_step, arb_value_type tmax);
-
-    // Set the per-integration domain and per-compartment dt from time_to - time.
-    void set_dt();
-
-    // Return minimum and maximum time value [ms] across cells.
-    std::pair<arb_value_type, arb_value_type> time_bounds() const;
 
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)

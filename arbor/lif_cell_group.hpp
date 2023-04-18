@@ -27,7 +27,6 @@ public:
 
     virtual cell_kind get_cell_kind() const override;
     virtual void reset() override;
-    virtual void set_binning_policy(binning_kind policy, time_type bin_interval) override;
     virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events) override;
 
     virtual const std::vector<spike>& spikes() const override;
@@ -35,7 +34,7 @@ public:
 
     // Sampler association methods below should be thread-safe, as they might be invoked
     // from a sampler call back called from a different cell group running on a different thread.
-    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) override;
+    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) override;
     virtual void remove_sampler(sampler_association_handle) override;
     virtual void remove_all_samplers() override;
 
@@ -71,6 +70,8 @@ private:
 
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;
+    // Time when the cell was last sampled.
+    std::vector<time_type> last_time_sampled_;
     // Time when the cell can _next_ be updated;
     std::vector<time_type> next_time_updatable_;
 

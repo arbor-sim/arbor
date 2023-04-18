@@ -22,13 +22,11 @@ public:
 
     void reset() override;
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
-
     const std::vector<spike>& spikes() const override;
 
     void clear_spikes() override;
 
-    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
+    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, schedule sched, sampler_function fn) override;
 
     void remove_sampler(sampler_association_handle h) override {}
 

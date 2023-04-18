@@ -40,6 +40,9 @@ gpu_context::gpu_context(int) {
     throw arbor_exception("Arbor must be compiled with CUDA/HIP support to select a GPU.");
 }
 
+void gpu_context::synchronize() const {
+}
+
 #else
 
 gpu_context::gpu_context(int gpu_id) {
@@ -73,6 +76,10 @@ void gpu_context::set_gpu() const {
         throw arbor_exception(
             "Unable to select GPU id " + std::to_string(id_));
     }
+}
+
+void gpu_context::synchronize() const {
+    ARB_GPU_CHECK(gpu::device_synchronize());
 }
 
 #endif

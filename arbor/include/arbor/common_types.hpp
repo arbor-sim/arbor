@@ -106,6 +106,12 @@ struct cell_global_label_type {
     ARB_SERDES_ENABLE(cell_global_label_type, gid, label);
 };
 
+struct cell_remote_label_type {
+    cell_gid_type rid;     // remote id
+    cell_lid_type index = 0; // index on remote id
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_remote_label_type,(a.rid,a.index),(b.rid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
 
@@ -135,21 +141,13 @@ ARB_SERDES_ENABLE_ENUM(backend_kind)
 // group equal kinds in the same cell group.
 
 enum class ARB_SYMBOL_VISIBLE cell_kind {
-    cable,   // Our own special mc neuron.
-    lif,       // Leaky-integrate and fire neuron.
-    spike_source,     // Cell that generates spikes at a user-supplied sequence of time points.
-    benchmark,        // Proxy cell used for benchmarking.
+    cable,        // Our own special mc neuron.
+    lif,          // Leaky-integrate and fire neuron.
+    spike_source, // Cell that generates spikes at a user-supplied sequence of time points.
+    benchmark,    // Proxy cell used for benchmarking.
 };
 
 ARB_SERDES_ENABLE_ENUM(cell_kind)
-
-// Enumeration for event time binning policy.
-
-enum class binning_kind {
-    none,
-    regular,   // => round time down to multiple of binning interval.
-    following, // => round times down to previous event if within binning interval.
-};
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, cell_member_type m);

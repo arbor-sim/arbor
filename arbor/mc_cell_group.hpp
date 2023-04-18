@@ -13,14 +13,12 @@
 #include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
 
-#include "backends/event.hpp"
 #include "cell_group.hpp"
 #include "epoch.hpp"
-#include "event_binner.hpp"
-#include "event_queue.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "sampler_map.hpp"
+#include "timestep_range.hpp"
 
 namespace arb {
 
@@ -40,8 +38,6 @@ public:
 
     void reset() override;
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override;
-
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override;
 
     const std::vector<spike>& spikes() const override {
@@ -53,7 +49,7 @@ public:
     }
 
     void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                     schedule sched, sampler_function fn, sampling_policy policy) override;
+                     schedule sched, sampler_function fn) override;
 
     void remove_sampler(sampler_association_handle h) override;
 
@@ -61,16 +57,13 @@ public:
 
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const override;
 
-    ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, staged_events_, target_handles_, lowered_);
+    ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, lowered_);
 
     virtual void t_serialize(serializer& ser, const std::string& k) const override;
     virtual void t_deserialize(serializer& ser, const std::string& k) override;
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
-
-    // Map from gid to integration domain id
-    std::vector<arb_index_type> cell_to_intdom_;
 
     // Hash table for converting gid to local index
     std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
@@ -84,11 +77,14 @@ private:
     // Spikes that are generated.
     std::vector<spike> spikes_;
 
-    // Event time binning manager.
-    std::vector<event_binner> binners_;
+    // Range of timesteps within current epoch
+    timestep_range timesteps_;
 
-    // List of events to deliver
-    std::vector<deliverable_event> staged_events_;
+    // List of events to deliver per mechanism id
+    std::vector<std::vector<std::vector<deliverable_event>>> staged_events_per_mech_id_;
+
+    // List of samples to be taken
+    std::vector<std::vector<sample_event>> sample_events_;
 
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles_;

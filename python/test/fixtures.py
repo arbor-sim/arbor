@@ -73,7 +73,12 @@ def repo_path():
 
 def _finalize_mpi():
     print("Context fixture finalizing mpi")
-    arbor.mpi_finalize()
+    if _mpi4py_enabled:
+        from mpi4py import MPI
+
+        MPI.Finalize()
+    else:
+        arbor.mpi_finalize()
 
 
 @_fixture
@@ -81,18 +86,21 @@ def context():
     """
     Fixture that produces an MPI sensitive `arbor.context`
     """
-    args = [arbor.proc_allocation()]
     if _mpi_enabled:
-        if not arbor.mpi_is_initialized():
+        if _mpi4py_enabled:
+            from mpi4py import MPI
+
+            if not MPI.Is_initialized():
+                print("Context fixture initializing mpi4py", flush=True)
+                MPI.Initialize()
+                atexit.register(_finalize_mpi)
+            return arbor.context(arbor.proc_allocation(), mpi=MPI.COMM_WORLD)
+        elif not arbor.mpi_is_initialized():
             print("Context fixture initializing mpi", flush=True)
             arbor.mpi_init()
             atexit.register(_finalize_mpi)
-        if _mpi4py_enabled:
-            from mpi4py.MPI import COMM_WORLD as comm
-        else:
-            comm = arbor.mpi_comm()
-        args.append(comm)
-    return arbor.context(*args)
+        return arbor.context(arbor.proc_allocation(), mpi=arbor.mpi_comm())
+    return arbor.context(arbor.proc_allocation())
 
 
 class _BuildCatError(Exception):

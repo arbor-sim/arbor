@@ -12,7 +12,6 @@
 #include <arbor/serdes.hpp>
 
 #include "epoch.hpp"
-#include "event_binner.hpp"
 #include "util/rangeutil.hpp"
 
 // The specialized cell_group constructors are expected to accept at least:
@@ -32,7 +31,6 @@ public:
     virtual cell_kind get_cell_kind() const = 0;
 
     virtual void reset() = 0;
-    virtual void set_binning_policy(binning_kind policy, time_type bin_interval) = 0;
     virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events) = 0;
 
     virtual const std::vector<spike>& spikes() const = 0;
@@ -41,7 +39,7 @@ public:
     // Sampler association methods below should be thread-safe, as they might be invoked
     // from a sampler call back called from a different cell group running on a different thread.
 
-    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) = 0;
+    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) = 0;
     virtual void remove_sampler(sampler_association_handle) = 0;
     virtual void remove_all_samplers() = 0;
 

@@ -76,7 +76,7 @@ Organising regions
 The profiler allows the user to build a hierarchy of regions by grouping related regions together.
 
 For example, network simulations have two main regions of code to profile: those associated with `communication` and `updating cell state`. These regions each have further subdivisions.
-We would like to break these regions down further, e.g. break the `communication` time into time spent performing `spike exchange` and `event binning`.
+We would like to break these regions down further, e.g. break the `communication` time into time spent performing `spike exchange`.
 
 The subdivision of profiling regions is encoded in the region names.
 For example, ``PE(communication:exchange)`` indicates that we are profiling the ``exchange`` sub-region of the top level ``communication`` region.

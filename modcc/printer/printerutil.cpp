@@ -190,10 +190,6 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.data_var = "vec_g";
         v.readonly = false;
         break;
-    case sourceKind::dt:
-        v.data_var = "vec_dt";
-        v.readonly = true;
-        break;
     case sourceKind::ion_current_density:
         v.data_var = ion_pfx+".current_density";
         v.scale = 0.1;

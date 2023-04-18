@@ -17,7 +17,6 @@ set(arbor_sources
     domain_decomposition.cpp
     execution_context.cpp
     gpu_context.cpp
-    event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
@@ -76,8 +75,6 @@ if(ARB_WITH_GPU)
         backends/gpu/diffusion.cu
         backends/gpu/fine.cu
         backends/gpu/matrix_solve.cu
-        backends/gpu/multi_event_stream.cpp
-        backends/gpu/multi_event_stream.cu
         backends/gpu/shared_state.cu
         backends/gpu/forest.cpp
         backends/gpu/stimulus.cu
@@ -150,4 +147,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-

@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <limits>
 #include <vector>
 
 #include <arbor/constants.hpp>
@@ -6,9 +7,10 @@
 #include <arbor/math.hpp>
 
 #include "backends/event.hpp"
+#include "io/sepval.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
-#include "backends/multi_event_stream_state.hpp"
+#include "backends/event_stream_state.hpp"
 #include "backends/gpu/chunk_writer.hpp"
 #include "memory/copy.hpp"
 #include "memory/gpu_wrappers.hpp"
@@ -27,21 +29,9 @@ namespace gpu {
 
 // CUDA implementation entry points:
 
-void update_time_to_impl(
-    std::size_t n, arb_value_type* time_to, const arb_value_type* time,
-    arb_value_type dt, arb_value_type tmax);
-
-void update_time_to_impl(
-    std::size_t n, arb_value_type* time_to, const arb_value_type* time,
-    arb_value_type dt, arb_value_type tmax);
-
-void set_dt_impl(
-    arb_size_type nintdom, arb_size_type ncomp, arb_value_type* dt_intdom, arb_value_type* dt_comp,
-    const arb_value_type* time_to, const arb_value_type* time, const arb_index_type* cv_to_intdom);
-
 void take_samples_impl(
-    const multi_event_stream_state<raw_probe_info>& s,
-    const arb_value_type* time, arb_value_type* sample_time, arb_value_type* sample_value);
+    const event_stream_state<raw_probe_info>& s,
+    const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value);
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
@@ -150,9 +140,9 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned) {
     ppack_.envl_divs = envl_divs_.data();
     ppack_.accu_stim = accu_stim_.data();
     ppack_.envl_index = envl_index_.data();
+
     // The following ppack fields must be set in add_current() before queuing kernel.
-    ppack_.time = nullptr;
-    ppack_.cv_to_intdom = nullptr;
+    ppack_.time = std::numeric_limits<arb_value_type>::quiet_NaN();
     ppack_.current_density = nullptr;
 }
 
@@ -169,54 +159,44 @@ void istim_state::reset() {
     memory::copy(envl_divs_, envl_index_);
 }
 
-void istim_state::add_current(const array& time, const iarray& cv_to_intdom, array& current_density) {
-    ppack_.time = time.data();
-    ppack_.cv_to_intdom = cv_to_intdom.data();
+void istim_state::add_current(const arb_value_type time, array& current_density) {
+    ppack_.time = time;
     ppack_.current_density = current_density.data();
     istim_add_current_impl((int)size(), ppack_);
 }
 
 // Shared state methods:
 
-shared_state::shared_state(arb_size_type n_intdom,
+shared_state::shared_state(task_system_handle tp,
                            arb_size_type n_cell,
-                           const std::vector<arb_index_type>& cv_to_intdom_vec,
+                           arb_size_type n_cv_,
                            const std::vector<arb_index_type>& cv_to_cell_vec,
                            const std::vector<arb_value_type>& init_membrane_potential,
                            const std::vector<arb_value_type>& temperature_K,
                            const std::vector<arb_value_type>& diam,
-                           const std::vector<arb_index_type>& src_to_spike,
+                           const std::vector<arb_index_type>& src_to_spike_,
                            const fvm_detector_info& detector,
-                           unsigned, // alignment parameter ignored.
+                           unsigned, // align parameter ignored
                            arb_seed_type cbprng_seed_):
-    n_intdom(n_intdom),
+    thread_pool(tp),
     n_detector(detector.count),
-    n_cv(cv_to_intdom_vec.size()),
-    cv_to_intdom(make_const_view(cv_to_intdom_vec)),
+    n_cv(n_cv_),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
-    time(n_intdom),
-    time_to(n_intdom),
-    dt_intdom(n_intdom),
-    dt_cv(n_cv),
-    voltage(n_cv),
-    current_density(n_cv),
-    conductivity(n_cv),
+    voltage(n_cv_),
+    current_density(n_cv_),
+    conductivity(n_cv_),
     init_voltage(make_const_view(init_membrane_potential)),
     temperature_degC(make_const_view(temperature_K)),
     diam_um(make_const_view(diam)),
     time_since_spike(n_cell*n_detector),
-    src_to_spike(make_const_view(src_to_spike)),
+    src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
-    sample_events(n_intdom),
-    watcher{cv_to_intdom.data(),
+    sample_events(thread_pool),
+    watcher{n_cv_,
             src_to_spike.data(),
-            &time,
-            &time_to,
-            static_cast<arb_size_type>(voltage.size()),
             detector.cv,
             detector.threshold,
-            detector.ctx},
-    deliverable_events(n_intdom)
+            detector.ctx}
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
@@ -251,7 +231,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.width            = width;
     m.ppack_.mechanism_id     = id;
     m.ppack_.vec_ci           = cv_to_cell.data();
-    m.ppack_.vec_dt           = dt_cv.data();
+    m.ppack_.dt               = dt;
     m.ppack_.vec_v            = voltage.data();
     m.ppack_.vec_i            = current_density.data();
     m.ppack_.vec_g            = conductivity.data();
@@ -261,7 +241,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.n_detectors      = n_detector;
 
     if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage[id];
+    auto& store = storage.emplace(id, thread_pool).first->second;
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -378,8 +358,8 @@ void shared_state::reset() {
     memory::copy(init_voltage, voltage);
     memory::fill(current_density, 0);
     memory::fill(conductivity, 0);
-    memory::fill(time, 0);
-    memory::fill(time_to, 0);
+    time = 0;
+    time_to = 0;
     memory::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
@@ -397,35 +377,25 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-void shared_state::update_time_to(arb_value_type dt_step, arb_value_type tmax) {
-    update_time_to_impl(n_intdom, time_to.data(), time.data(), dt_step, tmax);
-}
-
-void shared_state::set_dt() {
-    set_dt_impl(n_intdom, n_cv, dt_intdom.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_intdom.data());
-}
-
-std::pair<arb_value_type, arb_value_type> shared_state::time_bounds() const {
-    return minmax_value_impl(n_intdom, time.data());
-}
-
 std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 
 void shared_state::take_samples() {
-   sample_events.mark_until(time_to);
-   take_samples_impl(sample_events.marked_events(), time.data(), sample_time.data(), sample_value.data());
-   sample_events.drop_marked_events();
+    sample_events.mark();
+    if (!sample_events.empty()) {
+        const auto state = sample_events.marked_events();
+        take_samples_impl(state, time, sample_time.data(), sample_value.data());
+    }
 }
 
 // Debug interface
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
-    o << " cv_to_intdom " << s.cv_to_intdom << "\n";
+    using io::csv;
+
+    o << " n_cv         " << s.n_cv << "\n";
     o << " time         " << s.time << "\n";
     o << " time_to      " << s.time_to << "\n";
-    o << " dt_intdom    " << s.dt_intdom << "\n";
-    o << " dt_cv        " << s.dt_cv << "\n";
     o << " voltage      " << s.voltage << "\n";
     o << " init_voltage " << s.init_voltage << "\n";
     o << " temperature  " << s.temperature_degC << "\n";
@@ -435,14 +405,14 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
     for (auto& ki: s.ion_data) {
         auto& kn = ki.first;
         auto& i = ki.second;
-        o << " " << kn << "/current_density        " << i.iX_ << "\n";
-        o << " " << kn << "/reversal_potential     " << i.eX_ << "\n";
-        o << " " << kn << "/internal_concentration " << i.Xi_ << "\n";
-        o << " " << kn << "/external_concentration " << i.Xo_ << "\n";
-        o << " " << kn << "/intconc_initial        " << i.init_Xi_ << "\n";
-        o << " " << kn << "/extconc_initial        " << i.init_Xo_ << "\n";
-        o << " " << kn << "/revpot_initial         " << i.init_eX_ << "\n";
-        o << " " << kn << "/node_index             " << i.node_index_ << "\n";
+        o << " " << kn << "/current_density        " << csv(i.iX_) << "\n";
+        o << " " << kn << "/reversal_potential     " << csv(i.eX_) << "\n";
+        o << " " << kn << "/internal_concentration " << csv(i.Xi_) << "\n";
+        o << " " << kn << "/external_concentration " << csv(i.Xo_) << "\n";
+        o << " " << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n";
+        o << " " << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n";
+        o << " " << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n";
+        o << " " << kn << "/node_index             " << csv(i.node_index_) << "\n";
     }
     return o;
 }

@@ -488,7 +488,7 @@ may differ in type from probe to probe.
 Model and cell group interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Polling rates, policies and sampler functions are set through the
+Polling rates and sampler functions are set through the
 ``simulation`` interface, after construction from a recipe.
 
 .. container:: api-code
@@ -501,8 +501,7 @@ Polling rates, policies and sampler functions are set through the
             sampler_association_handle simulation::add_sampler(
                 cell_member_predicate probeset_ids,
                 schedule sched,
-                sampler_function fn,
-                sampling_policy policy = sampling_policy::lax);
+                sampler_function fn)
 
             void simulation::remove_sampler(sampler_association_handle);
 
@@ -528,14 +527,6 @@ Two helper functions are provided for making ``cell_member_predicate`` objects:
            }
 
 
-The ``sampling_policy`` policy is used to modify sampling behaviour: by
-default, the ``lax`` policy is to perform a best-effort sampling that
-minimizes sampling overhead and which will not change the numerical
-behaviour of the simulation. The ``exact`` policy requests that samples
-are provided for the exact time specified in the schedule, even if this
-means disrupting the course of the simulation. Other policies may be
-implemented in the future, but cell groups are in general not required
-to support any policy other than ``lax``.
 
 The simulation object will pass on the sampler setting request to the cell
 group that owns the given probeset id. The ``cell_group`` interface will be
@@ -545,7 +536,7 @@ correspondingly extended:
 
    .. code-block:: cpp
 
-           void cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, sample_schedule sched, sampler_function fn, sampling_policy policy);
+           void cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, sample_schedule sched, sampler_function fn);
 
            void cell_group::remove_sampler(sampler_association_handle);
 
@@ -560,10 +551,6 @@ sampler will typically precede the time corresponding to the current
 state of the cell group. It should be expected that this difference in
 time should be no greater the the duration of the integration period
 (i.e. ``mindelay/2``).
-
-If a cell group does not support a given ``sampling_policy``, it should
-raise an exception. All cell groups should support the ``lax`` policy,
-if they support probes at all.
 
 
 Schedules
@@ -633,7 +620,7 @@ The ``simulation`` and ``mc_cell_group`` classes use classes defined in
 and probe metadata.
 
 ``sampler_association_map`` wraps an ``unordered_map`` between sampler association
-handles and tuples (*schedule*, *sampler*, *probe set*, *policy*), with thread-safe
+handles and tuples (*schedule*, *sampler*, *probe set*), with thread-safe
 accessors.
 
 
@@ -643,7 +630,7 @@ Batched sampling in ``mc_cell_group``
 The ``fvm_multicell`` implementations for CPU and GPU simulation of multi-compartment
 cable neurons perform sampling in a batched manner: when their integration is
 initialized, they take a sequence of ``sample_event`` objects which are used to
-populate an implementation-specific ``multi_event_stream`` that describes for each
+populate an implementation-specific ``event_stream`` that describes for each
 cell the sample times and what to sample over the integration interval.
 
 When an integration step for a cell covers a sample event on that cell, the sample
@@ -653,13 +640,18 @@ after any postsynaptic spike events have been delivered.
 It is the responsibility of the ``mc_cell_group::advance()`` method to create the sample
 events from the entries of its ``sampler_association_map``, and to dispatch the
 sampled values to the sampler callbacks after the integration is complete.
-Given an association tuple (*schedule*, *sampler*, *probe set*, *policy*) where the *schedule*
+Given an association tuple (*schedule*, *sampler*, *probe set*) where the *schedule*
 has (non-zero) *n* sample times in the current integration interval, the ``mc_cell_group`` will
 call the *sampler* callback once for probe in *probe set*, with *n* sample values.
 
-In addition to the ``lax`` sampling policy, ``mc_cell_group`` supports the ``exact``
-policy. Integration steps will be shortened such that any sample times associated
-with an ``exact`` policy can be satisfied precisely.
+.. note::
+
+   When the time values returned by a call to a schedule's ``events(t0, t1)`` method do not
+   perfectly coincide with the boundaries of the numerical time step grid, :math:`[t_0, t_0 + dt,
+   t_0 + 2\, dt, \, \cdots \, , t_1)`, the samples will be taken at the closest possible point in
+   time. In particular, any sample times :math:`t_s \in \left( t_i - dt/2,~ t_i + dt/2\right]` are
+   attributed to simulation time step :math:`t_i = t_0 + i\,dt`.
+
 
 LIF cell probing and sampling
 ===============================
