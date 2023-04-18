@@ -66,6 +66,17 @@ std::optional<T> py2optional(pybind11::object o, const char* msg) {
     return o.is_none()? std::nullopt: std::optional<T>(std::move(value));
 }
 
+template <typename T, typename F>
+std::optional<T> T2optional(T o, F&& pred) {
+    std::optional<T> value = o;
+
+    if (!pred(value)) {
+        value.reset();
+    }
+
+    return value;
+}
+
 // Attempt to cast a Python object to a C++ type T.
 // Returns an optional that is set if o could be cast
 // to T, otherwise it is empty. Hence not being able
