@@ -208,15 +208,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      # - name: Update pip
-      #   run: python -m pip install --upgrade pip
+      - name: Update pip
+        run: python -m pip install --upgrade pip
       - name: Debug info Python
         run: |
           which python
           python --version
           pip --version
       - name: Build and install Arbor using pip + build flags
-        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python -m pip install .
+        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python -m pip install . --user
       - name: Check that build flags match
         run: |
           python -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
