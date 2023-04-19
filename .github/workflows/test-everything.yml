@@ -208,15 +208,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Update pip
-        run: python -m pip install --upgrade pip
+      - name: Update pip and setup venv
+        run: python -m pip install --upgrade pip && python -m venv ~/env && . ~/env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
       - name: Debug info Python
         run: |
           which python
           python --version
           pip --version
       - name: Build and install Arbor using pip + build flags
-        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python -m pip install .
+        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip install . --user
       - name: Check that build flags match
         run: |
           python -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
@@ -240,14 +240,14 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Update pip
-        run: python -m pip install --upgrade pip
+      - name: Update pip and setup venv
+        run: python -m pip install --upgrade pip && python -m venv ~/env && . ~/env/bin/activate && echo "PATH=$PATH" >> $GITHUB_ENV
       - name: Clone w/ submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install Python packages
-        run: python3 -m pip install -r doc/requirements.txt -U
+        run: python -m pip install -r doc/requirements.txt -U
       - name: Build Arbor Docs
         run: |
           mkdir build
