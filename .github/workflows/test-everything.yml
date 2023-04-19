@@ -111,7 +111,7 @@ jobs:
         with:
           python-version: ${{ matrix.config.py }}
       - name: Update pip and setup venv
-        run: python -m pip install --upgrade pip && python -m venv env && . env/bin/activate
+        run: python -m pip install --upgrade pip
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules
@@ -209,21 +209,29 @@ jobs:
         with:
           submodules: recursive
       - name: Update pip and setup venv
-        run: python -m pip install --upgrade pip && python -m venv env && . env/bin/activate
+        run: python -m pip install --upgrade pip && python -m venv env
       - name: Debug info Python
         run: |
+          . env/bin/activate
           which python
           python --version
           pip --version
       - name: Build and install Arbor using pip + build flags
-        run: . env/bin/activate && CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip install .
+        run: |
+          . env/bin/activate
+          CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip install .
       - name: Check that build flags match
         run: |
+          . env/bin/activate
           python -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
       - name: Run Python tests
-        run: python -m unittest discover -v -s python
+        run: |
+          . env/bin/activate
+          python -m unittest discover -v -s python
       - name: Run Python examples
-        run: scripts/run_python_examples.sh
+        run: |
+          . env/bin/activate
+          scripts/run_python_examples.sh
   testdocs:
     name: "Docs build test"
     runs-on: ${{ matrix.os }}
@@ -241,15 +249,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Update pip and setup venv
-        run: python -m pip install --upgrade pip && python -m venv env && . env/bin/activate
+        run: python -m pip install --upgrade pip && python -m venv env
       - name: Clone w/ submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install Python packages
-        run: python3 -m pip install -r doc/requirements.txt -U
+        run: |
+          . env/bin/activate
+          pip install -r doc/requirements.txt -U
       - name: Build Arbor Docs
         run: |
+          . env/bin/activate
           mkdir build
           cd build
           cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_USE_BUNDLED_LIBS=ON
