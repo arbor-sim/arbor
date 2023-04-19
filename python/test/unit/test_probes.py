@@ -199,7 +199,7 @@ class lif_recipe(A.recipe):
 class TestLifProbes(unittest.TestCase):
     def test_probe_addr_metadata(self):
         rec = lif_recipe()
-        sim = A.simulation(rec, context=A.context(threads=1))
+        sim = A.simulation(rec)
 
         m = sim.probe_metadata((0, 0))
         self.assertEqual(1, len(m))
