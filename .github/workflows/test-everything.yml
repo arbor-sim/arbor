@@ -216,7 +216,7 @@ jobs:
           python --version
           pip --version
       - name: Build and install Arbor using pip + build flags
-        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" python -m pip install .
+        run: CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip install .
       - name: Check that build flags match
         run: |
           python -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
