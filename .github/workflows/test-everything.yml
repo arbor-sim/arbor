@@ -193,6 +193,7 @@ jobs:
         run: |
           arbor-build-catalogue -v default mechanisms/default
           ./scripts/test-catalogue.py ./default-catalogue.so
+
   testpip:
     name: "Pip build test + Python examples test"
     runs-on: ${{ matrix.os }}
@@ -209,29 +210,30 @@ jobs:
         with:
           submodules: recursive
       - name: Update pip and setup venv
-        run: python -m pip install --upgrade pip && python -m venv env
+        run: python -m pip install --upgrade pip && python -m venv ~/env
       - name: Debug info Python
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           which python
           python --version
           pip --version
       - name: Build and install Arbor using pip + build flags
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip install .
       - name: Check that build flags match
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           python -c "import arbor; print(arbor.config())" | grep -q "'arch': 'native'"
       - name: Run Python tests
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           python -m unittest discover -v -s python
       - name: Run Python examples
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           scripts/run_python_examples.sh
+
   testdocs:
     name: "Docs build test"
     runs-on: ${{ matrix.os }}
@@ -249,18 +251,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Update pip and setup venv
-        run: python -m pip install --upgrade pip && python -m venv env
+        run: python -m pip install --upgrade pip && python -m venv ~/env
       - name: Clone w/ submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install Python packages
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           pip install -r doc/requirements.txt -U
       - name: Build Arbor Docs
         run: |
-          . env/bin/activate
+          . ~/env/bin/activate
           mkdir build
           cd build
           cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_USE_BUNDLED_LIBS=ON
