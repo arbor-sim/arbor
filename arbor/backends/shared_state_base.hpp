@@ -49,14 +49,31 @@ struct shared_state_base {
         d->watcher.clear_crossings();
     }
 
+    void configure_solver(const fvm_cv_discretization& disc) {
+        auto d = static_cast<D*>(this);
+        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
+    }
+
     void add_ion(const std::string& ion_name,
-                 int charge,
                  const fvm_ion_config& ion_info,
                  typename ion_state::solver_ptr ptr=nullptr) {
         auto d = static_cast<D*>(this);
         d->ion_data.emplace(std::piecewise_construct,
                             std::forward_as_tuple(ion_name),
-                            std::forward_as_tuple(charge, ion_info, d->alignment, std::move(ptr)));
+                            std::forward_as_tuple(ion_info, d->alignment, std::move(ptr)));
+    }
+
+    void add_ions(const fvm_cv_discretization& disc,
+                  const std::unordered_map<std::string, fvm_ion_config>& ions) {
+        auto d = static_cast<D*>(this);
+        for (const auto& [ion, data]: ions) {
+            std::unique_ptr<typename ion_state::solver_type> solver = nullptr;
+            if (data.is_diffusive) solver = std::make_unique<typename ion_state::solver_type>(disc.geometry.cv_parent,
+                                                                                              disc.geometry.cell_cv_divs,
+                                                                                              data.face_diffusivity,
+                                                                                              disc.cv_area);
+            d->add_ion(ion, data, std::move(solver));
+        }
     }
 
     arb_value_type* mechanism_state_data(const mechanism& m,
@@ -103,8 +120,10 @@ struct shared_state_base {
     }
 
     void configure_stimulus(const fvm_stimulus_config& stims) {
-        auto d = static_cast<D*>(this);
-        d->stim_data = {stims, d->alignment};
+        if (!stims.cv.empty()) {
+            auto d = static_cast<D*>(this);
+            d->stim_data = {stims, d->alignment};
+        }
     }
 
     void add_stimulus_current() {

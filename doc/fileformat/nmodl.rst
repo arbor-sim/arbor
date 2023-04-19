@@ -41,6 +41,7 @@ quantity                                         identifier                     
 voltage                                          v / v_peer                                           mV
 temperature                                      celsius                                              °C
 diameter (cross-sectional)                       diam                                                 µm
+area (lateral)                                   area                                                 µm²
 
 current_density (density mechanisms)             identifier defined using ``NONSPECIFIC_CURRENT``     mA/cm²
 conductivity (density mechanisms)                identifier inferred from current_density equation    S/cm²
@@ -93,14 +94,18 @@ Special variables
 -----------------
 
 * Arbor exposes some parameters from the simulation to the NMODL mechanisms.
-  These include ``v``, ``diam``, and ``celsius`` in addition to the previously
-  mentioned ion parameters.
+  These include
+
+  - ``v`` membrane voltage on current CV in mV,
+  - ``diam`` CV diameter (cross-section) in µm,
+  - ``area`` CV lateral (ie cylindrical mantle) surface area in µm²,
+  - ``celsius`` CV temperature in Celsius
 * These special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
   ``PARAMETER``. This is different from NEURON where a built-in variable is
   declared ``ASSIGNED`` to make it accessible.
 * ``diam`` and ``celsius`` are set from the simulation side.
 * ``v`` is a reserved variable name and can be read but not written in NMODL.
-* ``dt``, ``time``, and ``area`` are not exposed to NMODL mechanisms.
+* ``dt`` and ``time`` are not exposed to NMODL mechanisms.
 * ``NONSPECIFIC_CURRENTS`` should not be ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
   They just need to be declared in the NEURON block.
 

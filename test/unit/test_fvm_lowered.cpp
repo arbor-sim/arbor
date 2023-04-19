@@ -569,9 +569,10 @@ TEST(fvm_lowered, ionic_concentrations) {
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
-    std::vector<arb_value_type> temp(ncv, 23);
-    std::vector<arb_value_type> diam(ncv, 1.);
-    std::vector<arb_value_type> vinit(ncv, -65);
+    std::vector<arb_value_type> temp(ncv, 23.0);
+    std::vector<arb_value_type> diam(ncv, 1.0);
+    std::vector<arb_value_type> area(ncv, 10.0);
+    std::vector<arb_value_type> vinit(ncv, -65.0);
     std::vector<arb_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
@@ -591,6 +592,7 @@ TEST(fvm_lowered, ionic_concentrations) {
     ion_config.init_iconc.assign(ncv, 0.);
     ion_config.reset_econc.assign(ncv, 0.);
     ion_config.reset_iconc.assign(ncv, 2.3e-4);
+    ion_config.charge = 2;
 
     auto read_cai  = cat.instance(backend::kind, "read_cai_init");
     auto write_cai = cat.instance(backend::kind, "write_cai_breakpoint");
@@ -599,11 +601,11 @@ TEST(fvm_lowered, ionic_concentrations) {
     auto& write_cai_mech = write_cai.mech;
 
     auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
-                                                                         vinit, temp, diam,
+                                                                         vinit, temp, diam, area,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
                                                                          read_cai_mech->data_alignment());
-    shared_state->add_ion("ca", 2, ion_config);
+    shared_state->add_ion("ca", ion_config);
 
     shared_state->instantiate(*read_cai_mech, 0, overrides, layout, {});
     shared_state->instantiate(*write_cai_mech, 1, overrides, layout, {});

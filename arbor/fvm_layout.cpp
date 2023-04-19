@@ -914,6 +914,14 @@ ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_globa
     for (auto cell_idx: count_along(cells)) {
         append(combined, cell_mech[cell_idx]);
     }
+    for (auto& [ion, data]: combined.ions) {
+        if (auto charge = util::value_by_key(gprop.ion_species, ion)) {
+            data.charge = *charge;
+        }
+        else {
+            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism.");
+        }
+    }
     return combined;
 }
 
@@ -986,12 +994,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     // Voltage mechanisms
     if (!voltage_processes.empty())
     {
-        const auto& configs = make_voltage_mechanism_config(voltage_processes, data);
+        auto configs = make_voltage_mechanism_config(voltage_processes, data);
         M.mechanisms.insert(configs.begin(), configs.end());
     }
     // Density mechanisms
     if (!density_mechanisms.empty()) {
-        const auto& configs = make_density_mechanism_config(density_mechanisms, data, ion_build_data);
+        auto configs = make_density_mechanism_config(density_mechanisms, data, ion_build_data);
         M.mechanisms.insert(configs.begin(), configs.end());
     }
     // Synapses:
@@ -1005,9 +1013,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     }
     // Gap junctions
     if (!junction_processes.empty()) {
-        const auto& configs = make_gj_mechanism_config(junction_processes,
-                                                       gj_conns,
-                                                       data,
+        auto configs = make_gj_mechanism_config(junction_processes,
+                                                gj_conns,
+                                                data,
                                                        ion_build_data);
         M.mechanisms.insert(configs.begin(), configs.end());
     }
@@ -1022,12 +1030,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto ion_data = dflt.ion_data;
         ion_data.insert(global_dflt.ion_data.begin(),
                         global_dflt.ion_data.end());
-        const auto& configs = make_ion_config(std::move(ion_build_data),
-                                              ion_data,
-                                              int_concentration,
-                                              ext_concentration,
-                                              rev_potential,
-                                              data);
+        auto configs = make_ion_config(std::move(ion_build_data),
+                                       ion_data,
+                                       int_concentration,
+                                       ext_concentration,
+                                       rev_potential,
+                                       data);
         M.ions.insert(configs.begin(), configs.end());
     }
     // Reversal potentials
