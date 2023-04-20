@@ -1,4 +1,4 @@
-#include <arbor/gpu/gpu_api.hpp>
+#include <arbor/gpu/gpu_common.hpp>
 
 #include <cstdint>
 
@@ -15,28 +15,20 @@ void fill_kernel(T* __restrict__ const v, T value, I n) {
     }
 }
 
-inline unsigned grid_dim(std::size_t n, unsigned block_dim) {
-    return (n+block_dim-1)/block_dim;
-}
-
 void fill8(uint8_t* v, uint8_t value, std::size_t n) {
-    unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    launch_1d(n, 192, fill_kernel<uint8_t, std::size_t>, v, value, n);
 };
 
 void fill16(uint16_t* v, uint16_t value, std::size_t n) {
-    unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    launch_1d(n, 192, fill_kernel<uint16_t, std::size_t>, v, value, n);
 };
 
 void fill32(uint32_t* v, uint32_t value, std::size_t n) {
-    unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    launch_1d(n, 192, fill_kernel<uint32_t, std::size_t>, v, value, n);
 };
 
 void fill64(uint64_t* v, uint64_t value, std::size_t n) {
-    unsigned block_dim = 192;
-    fill_kernel<<<grid_dim(n, block_dim), block_dim>>>(v, value, n);
+    launch_1d(n, 192, fill_kernel<uint64_t, std::size_t>, v, value, n);
 };
 
 } // namespace gpu

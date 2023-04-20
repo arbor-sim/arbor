@@ -4,7 +4,7 @@
 #include <type_traits>
 
 // Generic accessors for event types used in `event_queue` and
-// `multi_event_stream`.
+// `event_stream`.
 //
 // 1. event_time(const Event&):
 //
@@ -15,17 +15,17 @@
 // 2. event_index(const Event&):
 //
 //    Returns the stream index associated with the event (an
-//    unsigned index type), for use with `multi_event_stream`.
+//    unsigned index type), for use with `event_stream`.
 //    Default implementation returns `e.index` for an event `e`.
 //
 // 3. event_data(const Event&):
 //
 //    Returns the event _payload_, viz. the event data that
 //    does not include (necessarily) the time or index. This
-//    is used with `multi_event_stream`.
+//    is used with `event_stream`.
 //    Default implementation returns `e.data` for an event `e`.
 //
-// The type aliases event_time_type<Event> and event_index_type<Event>
+// The type aliases event_time_type<Event>, event_index_type<Event> and event_data_type<Event>
 // give the corresponding return types.
 //
 // The accessors act as customization points, in that they can be
@@ -48,16 +48,6 @@ auto event_time(const Event& ev) {
     return ev.time;
 }
 
-template <typename Event>
-auto event_index(const Event& ev) {
-    return ev.index;
-}
-
-template <typename Event>
-auto event_data(const Event& ev) {
-    return ev.data;
-}
-
 struct event_time_less {
     template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (T l, const Event& r) {
@@ -74,17 +64,15 @@ namespace impl {
     // Wrap in `impl::` namespace to obtain correct ADL for return type.
 
     using ::arb::event_time;
-    using ::arb::event_index;
-    using ::arb::event_data;
 
     template <typename Event>
     using event_time_type = decltype(event_time(std::declval<Event>()));
 
     template <typename Event>
-    using event_index_type = decltype(event_index(std::declval<Event>()));
+    using event_data_type = decltype(event_data(std::declval<Event>()));
 
     template <typename Event>
-    using event_data_type = decltype(event_data(std::declval<Event>()));
+    using event_index_type = decltype(event_index(std::declval<event_data_type<Event>>()));
 }
 
 template <typename Event>
@@ -95,6 +83,9 @@ using event_index_type = impl::event_index_type<Event>;
 
 template <typename Event>
 using event_data_type = impl::event_data_type<Event>;
+
+template<typename Event>
+struct has_event_index : public std::false_type {};
 
 } // namespace arb
 

@@ -20,7 +20,7 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 4
+#define ARB_MECH_ABI_VERSION_MINOR 5
 #define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
@@ -65,21 +65,16 @@ typedef struct arb_ion_state {
 
 // Event; consumed by `apply_event`
 typedef struct arb_deliverable_event_data {
-    arb_size_type   mech_id;       // Mechanism type identifier (per cell group).
-    arb_size_type   mech_index;    // Instance of the mechanism.
+    arb_size_type mech_index;
     arb_weight_type weight;
 } arb_deliverable_event_data;
 
-/* A set of `n` streams of events, where those in the
- * ranges (events + begin[i], events + end[i]) i = 0..n-1
- * are meant to be consumed
- */
+// A stream of events
 typedef struct arb_deliverable_event_stream {
-    arb_size_type                     n_streams; // Number of streams.
-    const arb_deliverable_event_data* events;    // Array of event data items.
-    const arb_index_type*             begin;     // Array of offsets to beginning of marked events.
-    const arb_index_type*             end;       // Array of offsets to end of marked events.
+    const arb_deliverable_event_data* begin;
+    const arb_deliverable_event_data* end;
 }  arb_deliverable_event_stream;
+
 
 // Constraints for use in SIMD implementations, see there.
 typedef struct arb_constraint_partition {
@@ -98,7 +93,7 @@ typedef struct arb_mechanism_ppack {
     arb_size_type   width;                       // Number of CVs.
     arb_index_type  n_detectors;                 // Number of spike detectors.
     arb_index_type* vec_ci;
-    arb_value_type* vec_dt;
+    arb_value_type  dt;
     arb_value_type* vec_v;
     arb_value_type* vec_i;
     arb_value_type* vec_g;
