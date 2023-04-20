@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include "conversion.hpp"
 
 #include <arborenv/gpu_env.hpp>
 #include <arborenv/concurrency.hpp>
@@ -40,7 +41,7 @@ namespace pyarb {
             "Retrieve user-specified number of threads to use from the environment variable ARBENV_NUM_THREADS.")
         .def("default_concurrency", []() -> unsigned {return arbenv::default_concurrency();},
             "Returns number of threads to use from get_env_num_threads(), or else from thread_concurrency() if get_env_num_threads() returns zero.")
-        .def("default_gpu", []() -> int {return arbenv::default_gpu();},
+        .def("default_gpu", []() -> std::optional<int> {return T2optional(arbenv::default_gpu(), is_nonneg());},
             "Determine GPU id to use from the ARBENV_GPU_ID environment variable, or from the first available GPU id of those detected.")
         .def("default_allocation", []() -> proc_allocation_shim {return proc_allocation_shim{arbenv::default_allocation()};},
             "Attempts to detect the number of locally available CPU cores. Returns 1 if unable to detect the number of cores. Use with caution in combination with MPI.");
