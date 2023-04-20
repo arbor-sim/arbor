@@ -154,7 +154,7 @@ struct network_selection_destination_cell_kind_impl: public network_selection_im
 
     bool select_connection(const network_site_info& src,
         const network_site_info& dest) const override {
-        return src.kind == select_kind;
+        return dest.kind == select_kind;
     }
 
     bool select_source(cell_kind kind,
@@ -399,13 +399,15 @@ struct network_selection_chain_impl: public network_selection_impl {
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
+        return !sorted_gids.empty() &&
+               std::binary_search(sorted_gids.begin(), sorted_gids.end() - 1, gid);
     }
 
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
+        return !sorted_gids.empty() &&
+               std::binary_search(sorted_gids.begin() + 1, sorted_gids.end(), gid);
     }
 
     void print(std::ostream& os) const override {
@@ -435,14 +437,16 @@ struct network_selection_chain_range_impl: public network_selection_impl {
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        if (gid < gid_begin || gid >= gid_end) return false;
+        // Return false if outside range or if equal to last element, which cannot be a source
+        if (gid < gid_begin || gid >= gid_end - 1) return false;
         return !((gid - gid_begin) % step);
     }
 
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        if (gid < gid_begin || gid >= gid_end) return false;
+        // Return false if outside range or if equal to first element, which cannot be a destination
+        if (gid <= gid_begin || gid >= gid_end) return false;
         return !((gid - gid_begin) % step);
     }
 
@@ -471,14 +475,16 @@ struct network_selection_reverse_chain_range_impl: public network_selection_impl
     bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        if (gid < gid_begin || gid >= gid_end) return false;
+        // Return false if outside range or if equal to first element, which cannot be a source
+        if (gid <= gid_begin || gid >= gid_end) return false;
         return !((gid - gid_begin) % step);
     }
 
     bool select_destination(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& label) const override {
-        if (gid < gid_begin || gid >= gid_end) return false;
+        // Return false if outside range or if equal to last element, which cannot be a destination
+        if (gid < gid_begin || gid >= gid_end - 1) return false;
         return !((gid - gid_begin) % step);
     }
 
@@ -676,9 +682,10 @@ struct network_selection_random_impl: public network_selection_impl {
         const network_site_info& dest) const override {
         if (!probability)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
-        return uniform_rand_from_key_pair({unsigned(network_seed::selection_random), seed},
-                   src.hash,
-                   dest.hash) < probability->get(src, dest);
+        const auto r = uniform_rand_from_key_pair(
+            {unsigned(network_seed::selection_random), seed}, src.hash, dest.hash);
+        const auto p = (probability->get(src, dest));
+        return r < p;
     }
 
     bool select_source(cell_kind kind,

@@ -132,6 +132,9 @@ public:
 
     static network_selection named(std::string name);
 
+    // Only select connections between different cells
+    static network_selection inter_cell();
+
     static network_selection source_cell_kind(cell_kind kind);
 
     static network_selection destination_cell_kind(cell_kind kind);
@@ -158,15 +161,12 @@ public:
 
     static network_selection join(network_selection left, network_selection right);
 
-    static network_selection symmetric_difference(network_selection left, network_selection right);
-
     static network_selection difference(network_selection left, network_selection right);
+
+    static network_selection symmetric_difference(network_selection left, network_selection right);
 
     // Invert the selection
     static network_selection complement(network_selection s);
-
-    // Only select connections between different cells
-    static network_selection inter_cell();
 
     // Random selection using the bernoulli random distribution with probability "p" between 0.0
     // and 1.0
