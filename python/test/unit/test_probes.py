@@ -207,7 +207,7 @@ class TestLifProbes(unittest.TestCase):
 
     def test_probe_result(self):
         rec = lif_recipe()
-        sim = A.simulation(rec)
+        sim = A.simulation(rec, A.context(threads=1))
         hdl = sim.sample((0, 0), A.regular_schedule(0.1))
         sim.run(1.0, 0.05)
         smp = sim.samples(hdl)
