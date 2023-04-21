@@ -7,6 +7,7 @@
 #include <arbor/network.hpp>
 #include <arbor/util/any_visitor.hpp>
 #include <arborio/label_parse.hpp>
+#include <arborio/networkio.hpp>
 
 #include <unordered_map>
 #include <string>

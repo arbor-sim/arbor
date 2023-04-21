@@ -10,9 +10,10 @@
 #include <arbor/util/any_visitor.hpp>
 #include <arbor/network.hpp>
 
-#include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/cv_policy_parse.hpp>
 #include <arborio/label_parse.hpp>
+#include <arborio/networkio.hpp>
 
 #include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"

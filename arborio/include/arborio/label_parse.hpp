@@ -4,11 +4,10 @@
 #include <string>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/iexpr.hpp>
-#include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
-#include <arbor/network.hpp>
+#include <arbor/morph/locset.hpp>
 #include <arbor/util/expected.hpp>
+#include <arbor/iexpr.hpp>
 
 #include <arbor/s_expr.hpp>
 #include <arborio/export.hpp>
@@ -29,11 +28,6 @@ ARB_ARBORIO_API parse_label_hopefully<std::any> parse_label_expression(const arb
 ARB_ARBORIO_API parse_label_hopefully<arb::region> parse_region_expression(const std::string& s);
 ARB_ARBORIO_API parse_label_hopefully<arb::locset> parse_locset_expression(const std::string& s);
 ARB_ARBORIO_API parse_label_hopefully<arb::iexpr> parse_iexpr_expression(const std::string& s);
-ARB_ARBORIO_API parse_label_hopefully<arb::network_selection> parse_network_selection_expression(const std::string& s);
-ARB_ARBORIO_API parse_label_hopefully<arb::network_value> parse_network_value_expression(const std::string& s);
-ARB_ARBORIO_API parse_label_hopefully<arb::network_selection> parse_network_selection_expression(const std::string& s);
-ARB_ARBORIO_API parse_label_hopefully<arb::network_value> parse_network_value_expression(
-    const std::string& s);
 
 namespace literals {
 
@@ -76,22 +70,7 @@ arb::region operator "" _reg(const char* s, std::size_t) {
     else throw r.error();
 }
 
-inline morph_from_string operator"" _morph(const char* s, std::size_t) { return {s}; }
-inline morph_from_label operator"" _lab(const char* s, std::size_t) { return {s}; }
-
-inline arb::network_selection operator"" _ns(const char* s, std::size_t) {
-    if (auto r = parse_network_selection_expression(s))
-        return *r;
-    else
-        throw r.error();
-}
-
-inline arb::network_value operator"" _nv(const char* s, std::size_t) {
-    if (auto r = parse_network_value_expression(s))
-        return *r;
-    else
-        throw r.error();
-}
-
+inline morph_from_string operator "" _morph(const char* s, std::size_t) { return {s}; }
+inline morph_from_label operator "" _lab(const char* s, std::size_t) { return {s}; }
 } // namespace literals
 } // namespace arborio
