@@ -86,7 +86,9 @@ void fill(Seq&& seq, const V& value) {
 // Zero a container, specialised for contiguous sequences
 // i.e.: Array, Vector, String.
 
-template <typename Seq, typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
+template <typename Seq,
+          typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>,
+          typename = std::is_trivially_copyable<typename sequence_traits<Seq&&>::value_type>>
 void zero(Seq& vs) {
     // NOTE: All contiguous containers have `data` and `size` methods.
     using T = typename sequence_traits<Seq&&>::value_type;
