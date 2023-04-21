@@ -1,7 +1,7 @@
 Arbor
 =====
 
-|ci| |pythonwheels| |zlatest| |gitter|
+|ci| |pythonwheels| |zlatest| |gitter| |matrix|
 
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
@@ -11,6 +11,9 @@ Arbor
 
 .. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
     :target: https://gitter.im/arbor-sim/community
+
+.. |matrix| image:: https://matrix.to/img/matrix-badge.svg
+    :target: https://matrix.to/#/#arbor-sim_community:gitter.im
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
