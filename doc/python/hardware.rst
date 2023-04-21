@@ -89,15 +89,15 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
 
 .. function:: env.get_env_num_threads
             
-    Retrieve user-specified number of threads to use from the environment variable ARBENV_NUM_THREADS.
+    Retrieve user-specified number of threads to use from the environment variable ``ARBENV_NUM_THREADS``.
 
 .. function:: env.default_concurrency
 
-    Returns number of threads to use from get_env_num_threads(), or else from thread_concurrency() if get_env_num_threads() returns zero.
+    Returns number of threads to use from :py:func:`~arbor.env.get_env_num_threads()`, or else from :py:func:`~arbor.env.thread_concurrency()` if :py:func:`~arbor.env.get_env_num_threads()` returns zero.
 
 .. function:: env.default_gpu
 
-    Determine GPU id to use from the ARBENV_GPU_ID environment variable, or from the first available GPU id of those detected.
+    Determine GPU id to use from the ``ARBENV_GPU_ID`` environment variable, or from the first available GPU id of those detected.
 
 .. function:: env.default_allocation
 
@@ -144,7 +144,7 @@ The Python wrapper provides an API for:
         Try to generate a binding mask for all MPI processes on a node. This can
         help with performance by suppressing unneeded task migrations from the
         OS. See also `affinity
-        <https://en.wikipedia.org/wiki/Processor_affinity>`. Do not enable if
+        <https://en.wikipedia.org/wiki/Processor_affinity>`_. Do not enable if
         process binding is handled externally, eg by SLURM or OpenMPI, or
         disable it there first.
 
@@ -153,7 +153,7 @@ The Python wrapper provides an API for:
         Try to generate a binding mask for all threads on an MPI process. This can
         help with performance by suppressing unneeded task migrations from the
         OS. See also `affinity
-        <https://en.wikipedia.org/wiki/Processor_affinity>`. If a process
+        <https://en.wikipedia.org/wiki/Processor_affinity>`_. If a process
         binding mask is set -- either externally or by `bind_procs` --, it will
         be respected.
 
@@ -187,9 +187,14 @@ The Python wrapper provides an API for:
     provided by :class:`context`, instead they configure contexts, which are passed to
     Arbor interfaces for domain decomposition and simulation.
 
-    .. method:: context(threads, gpu_id, mpi)
+    .. method:: context()
+
+        When constructed without arguments, an undistributed context is automatically created
+        using :py:func:`~arbor.env.default_allocation()`.
+
+    .. method:: context(threads=threads, gpu_id=gpu_id, mpi=mpi_comm, inter=mpi_comm)
         
-        Create a distributed context.
+        Create a context.
 
         :param int threads:
             The number of threads available locally for execution.
@@ -200,20 +205,31 @@ The Python wrapper provides an API for:
             Can only be set when Arbor was built with GPU support.
         :type gpu_id: int or None
         :param mpi:
-            The MPI communicator, ``None`` by default for distributed calculation.
+            The MPI communicator for distributed calculation, ``None`` by default.
+            Can only be set when Arbor was built with MPI support.
+        :type mpi: :py:class:`arbor.mpi_comm` or None.
+        :param inter:
+            The MPI communicator for external coupling to Arbor, e.g. another simulator.
+            ``None`` by default.
             Can only be set when Arbor was built with MPI support.
         :type mpi: :py:class:`arbor.mpi_comm` or None.
 
-    .. function:: context(alloc, mpi)
+    .. function:: context(alloc, mpi=mpi_comm, inter=mpi_comm)
         :noindex:
 
-        Create a distributed context.
+        Create a context.
 
         :param alloc:
-            The computational resources, one thread and no GPU by default.
+            The computational resources. It is advised to explicitly provide one
+            if you are providing an MPI communicator for distributed calculation.
         :type alloc: :py:class:`proc_allocation`
         :param mpi:
-            The MPI communicator, ``None`` by default for distributed calculation.
+            The MPI communicator for distributed calculation, ``None`` by default.
+            Can only be set when Arbor was built with MPI support.
+        :type mpi: :py:class:`arbor.mpi_comm` or None.
+        :param inter:
+            The MPI communicator for external coupling to Arbor, e.g. another simulator.
+            ``None`` by default.
             Can only be set when Arbor was built with MPI support.
         :type mpi: :py:class:`arbor.mpi_comm` or None.
 
