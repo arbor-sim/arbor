@@ -4,13 +4,13 @@ Checkpointing
 =============
 
 While not a fileformat on its own, checkpoints allow users to dump a snapshot of
-the simulation state for a later time. This is **not** intended for data
+the simulation state for a later time. This is *not* intended for data
 extraction (see :ref:`probesample` for this functionality), but instead a reset
 the simulation state to this point in time. The saved data is not a complete
 image of the state, but strives to be a minimal subset from which to restore
 (see :ref:`below <impl guide>`).
 
-Checkpoints are currently _not_ portable; i.e. the following constraints apply:
+Checkpoints are currently *not* portable; i.e. the following constraints apply:
 
 1. The recipe class must be the same across ``serialize`` / ``deserialize``
    Unfortunately, we cannot enforce this at runtime, since we lack the
@@ -121,7 +121,7 @@ require to implement the following interface.
 
 The ``read`` and ``write`` methods are responsible for inserting and extracting
 the relevant items. The ``begin_write_array`` and ``end_write_array`` methods
-bracket a write of an array value and announce that the following keyes are to
+bracket a write of an array value and announce that the following keys are to
 be interpreted as integer indices. Analogous for the ``map`` counterparts and
 the associated ``begin_read`` and ``end_read`` methods. Finally, ``next_key`` is
 used during reading of containers to retrieve an optional next key and advanced
@@ -180,7 +180,7 @@ and similar for map-like types
 
 Reading data is a bit more involved, as writing data might be partial and work
 only in conjunction with proper setup beforehand. Thus, one needs to take care
-when overwriting values. The sotrage is polled for the next key using
+when overwriting values. The storage is polled for the next key using
 ``std::optional<key_type> next_key`` and the keys are converted using
 ``from_key`` to the native key type. Example
 
