@@ -33,54 +33,55 @@ snapshots as a single unit.
 Usage
 -----
 
-Checkpoints are independent of the storage engine used, it allows for multiple
-backends. The general usage is show in the examples below; we assume familiarity
-with the C++ and Python recipe interfaces:
+In Python serialization is performed by calling the ``serialize`` method on a
+``simulation`` object. Currently only support for (de)serialization from/to JSON
+strings is offered. The general usage is show in the examples below; we assume
+some familiarity with the recipe interface:
 
-  .. code:: c++
+.. code:: python
 
-    // Storage engine, pluggable. See below.
-    auto writer = io{};
-    // Serializer object using the engine.
-    auto serializer = arb::serializer{writer};
+  import arbor as A
 
-    // Construct a simulation.
-    auto model = recipe{};
-    auto ctx = arb::make_context();
-    auto ddc = arb::partition_load_balance(model, ctx);
-    auto simulation = arb::simulation{model, ddc, ctx};
+  rec = my_recipe()
+  sim = A.simulation(rec)
+  jsn = sim.serialize()
+  sim.deserialize(jsn)
 
-    // Run forwards, snapshot state.
-    simulation.run(T, dt);
-    serialize(serializer, simulation);
-    // Then run some more, ...
-    simulation.run(2*T, dt);
+In C++, the interface is a bit more flexible. Checkpoints are independent of the
+storage engine used, which allows for multiple backends. Also, (de)serialization
+is done via freestanding methods. Example:
 
-    // ... rewind to time T...
-    deserialize(serializer, simulation);
-    // ... and run the same segment again.
-    simulation.run(2*T, dt);
+.. code:: c++
 
-    // At this point the results obtained in the two time segments
-    // [T, 2T) should be identical.
+  // Storage engine, pluggable. See below.
+  auto writer = io{};
+  // Serializer object using the engine.
+  auto serializer = arb::serializer{writer};
+
+  // Construct a simulation.
+  auto model = recipe{};
+  auto ctx = arb::make_context();
+  auto ddc = arb::partition_load_balance(model, ctx);
+  auto simulation = arb::simulation{model, ddc, ctx};
+
+  // Run forwards, snapshot state.
+  simulation.run(T, dt);
+  serialize(serializer, simulation);
+  // Then run some more, ...
+  simulation.run(2*T, dt);
+
+  // ... rewind to time T...
+  deserialize(serializer, simulation);
+  // ... and run the same segment again.
+  simulation.run(2*T, dt);
+
+  // At this point the results obtained in the two time segments
+  // [T, 2T) should be identical.
 
 Note that we left the definition of ``io`` open, as ``serializer`` uses it
 through a well-defined interface (see next section). Thus, one can simply add
 new implementations. Arbor currently ships with ``arborio::json_serdes`` that
 produces JSON output, more might be added over time.
-
-In Python, currently only support for (de)serialization from/to JSON strings is
-offered.
-
-  .. code:: python
-
-    import arbor as A
-
-    rec = my_recipe()
-    sim = A.simulation(rec)
-    jsn = sim.serialize()
-    sim.deserialize(jsn)
-
 
 Writing your own Storage Engine (C++ only)
 ------------------------------------------
@@ -91,33 +92,33 @@ offers a JSON engine in ``arborio/json_serdes.hpp`` which produces a JSON value
 in memory. The serializer is polymorphic in the actual engine, which is only
 require to implement the following interface.
 
-   .. code:: c++
+.. code:: c++
 
-         struct interface {
-             virtual void write(const key_type&, std::string) = 0;
-             virtual void write(const key_type&, double) = 0;
-             virtual void write(const key_type&, long long) = 0;
-             virtual void write(const key_type&, unsigned long long) = 0;
+      struct interface {
+          virtual void write(const key_type&, std::string) = 0;
+          virtual void write(const key_type&, double) = 0;
+          virtual void write(const key_type&, long long) = 0;
+          virtual void write(const key_type&, unsigned long long) = 0;
 
-             virtual void read(const key_type&, std::string&) = 0;
-             virtual void read(const key_type&, double&) = 0;
-             virtual void read(const key_type&, long long&) = 0;
-             virtual void read(const key_type&, unsigned long long&) = 0;
+          virtual void read(const key_type&, std::string&) = 0;
+          virtual void read(const key_type&, double&) = 0;
+          virtual void read(const key_type&, long long&) = 0;
+          virtual void read(const key_type&, unsigned long long&) = 0;
 
-             virtual std::optional<key_type> next_key() = 0;
+          virtual std::optional<key_type> next_key() = 0;
 
-             virtual void begin_write_map(const key_type&) = 0;
-             virtual void end_write_map() = 0;
-             virtual void begin_write_array(const key_type&) = 0;
-             virtual void end_write_array() = 0;
+          virtual void begin_write_map(const key_type&) = 0;
+          virtual void end_write_map() = 0;
+          virtual void begin_write_array(const key_type&) = 0;
+          virtual void end_write_array() = 0;
 
-             virtual void begin_read_map(const key_type&) = 0;
-             virtual void end_read_map() = 0;
-             virtual void begin_read_array(const key_type&) = 0;
-             virtual void end_read_array() = 0;
+          virtual void begin_read_map(const key_type&) = 0;
+          virtual void end_read_map() = 0;
+          virtual void begin_read_array(const key_type&) = 0;
+          virtual void end_read_array() = 0;
 
-             virtual ~interface() = default;
-         };
+          virtual ~interface() = default;
+      };
 
 The ``read`` and ``write`` methods are responsible for inserting and extracting
 the relevant items. The ``begin_write_array`` and ``end_write_array`` methods
@@ -141,12 +142,12 @@ All that is needed is to implement new overloads of the functions ``read`` and
 Likewise, your own class hierarchy might need serialization. For a given type
 ``T`` the signatures are
 
-  .. code:: c++
+.. code:: c++
 
-    template<typename K>
-    void serialize(serializer& ser, const K& k, const T& t);
-    template<typename K>
-    void deserialize(serializer& ser, const K& k, const T& t);
+  template<typename K>
+  void serialize(serializer& ser, const K& k, const T& t);
+  template<typename K>
+  void deserialize(serializer& ser, const K& k, const T& t);
 
 and the key type ``K`` must be converted to the internal key type
 ``arb::key_type``. A convenience function ``key_type to_key(const K&)`` is
@@ -154,29 +155,29 @@ offered which works for integral and string types.
 
 Array-like values -- eg vectors and similar -- are stored like this
 
-  .. code:: c++
+.. code:: c++
 
-    template <typename K,
-              typename V,
-              typename A>
-    void serialize(serializer& ser, const K& k, const std::vector<V, A>& vs) {
-        ser.begin_write_array(to_key(k));
-        for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
-        ser.end_write_array();
-    }
+  template <typename K,
+            typename V,
+            typename A>
+  void serialize(serializer& ser, const K& k, const std::vector<V, A>& vs) {
+      ser.begin_write_array(to_key(k));
+      for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
+      ser.end_write_array();
+  }
 
 and similar for map-like types
 
-  .. code:: c++
+.. code:: c++
 
-    template <typename K,
-              typename Q,
-              typename V>
-    void serialize(serializer& ser, const K& k, const std::map<Q, V>& v) {
-        ser.begin_write_map(to_key(k));
-        for (const auto& [q, w]: v) serialize(ser, q, w);
-        ser.end_write_map();
-    }
+  template <typename K,
+            typename Q,
+            typename V>
+  void serialize(serializer& ser, const K& k, const std::map<Q, V>& v) {
+      ser.begin_write_map(to_key(k));
+      for (const auto& [q, w]: v) serialize(ser, q, w);
+      ser.end_write_map();
+  }
 
 Reading data is a bit more involved, as writing data might be partial and work
 only in conjunction with proper setup beforehand. Thus, one needs to take care
@@ -184,40 +185,40 @@ when overwriting values. The storage is polled for the next key using
 ``std::optional<key_type> next_key`` and the keys are converted using
 ``from_key`` to the native key type. Example
 
-  .. code:: c++
+.. code:: c++
 
-    template <typename K,
-              typename V,
-              typename A>
-    void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
-        ser.begin_read_array(to_key(k));
-        for (std::size_t ix = 0;; ++ix) {
-            auto q = ser.next_key();           // Poll next key
-            if (!q) break;                     // if nil, there's no more data in store.
-            if (ix < vs.size()) {              // if the index is already present
-                deserialize(ser, ix, vs[ix]);  // hand the value to `read` to be modified
-            }
-            else {                             // else create a new one.
-                V val;
-                deserialize(ser, ix, val);
-                vs.emplace_back(std::move(val));
-            }
-        }
-        ser.end_read_array();
-    }
+  template <typename K,
+            typename V,
+            typename A>
+  void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
+      ser.begin_read_array(to_key(k));
+      for (std::size_t ix = 0;; ++ix) {
+          auto q = ser.next_key();           // Poll next key
+          if (!q) break;                     // if nil, there's no more data in store.
+          if (ix < vs.size()) {              // if the index is already present
+              deserialize(ser, ix, vs[ix]);  // hand the value to `read` to be modified
+          }
+          else {                             // else create a new one.
+              V val;
+              deserialize(ser, ix, val);
+              vs.emplace_back(std::move(val));
+          }
+      }
+      ser.end_read_array();
+  }
 
 For structures, use -- where possible -- the macro ``ARB_SERDES_ENABLE(type, field*)``
 like this
 
-   .. code:: c++
+.. code:: c++
 
-             struct T {
-                std::string a;
-                double b;
-                std::vector<float> vs{1.0, 2.0, 3.0};
+          struct T {
+             std::string a;
+             double b;
+             std::vector<float> vs{1.0, 2.0, 3.0};
 
-                ARB_SERDES_ENABLE(T, a, b, vs);
-             };
+             ARB_SERDES_ENABLE(T, a, b, vs);
+          };
 
 which will define the required functions. Likewise ``enum (class)`` is treated with
 ``ARB_SERDES_ENABLE_ENUM``.
@@ -244,19 +245,19 @@ constructed externally, don't store them.
 
 When dealing with polymorphism, add a trampoline like this
 
-    .. code:: c++
+.. code:: c++
 
-        struct B {
-            virtual void serialize(serializer& s, const std::string&) const = 0;
-            virtual void deserialize(serializer& s, const std::string&) = 0;
-        };
+    struct B {
+        virtual void serialize(serializer& s, const std::string&) const = 0;
+        virtual void deserialize(serializer& s, const std::string&) = 0;
+    };
 
-        void serialize(serializer& s, const std::string& k, const B& v) { v.serialize(s, k); }
-        void deserialize(serializer& s, const std::string& k, B& v) { v.deserialize(s, k); }
+    void serialize(serializer& s, const std::string& k, const B& v) { v.serialize(s, k); }
+    void deserialize(serializer& s, const std::string& k, B& v) { v.deserialize(s, k); }
 
-        struct D: B {
-            ARB_SERDES_ENABLE(D, ...);
+    struct D: B {
+        ARB_SERDES_ENABLE(D, ...);
 
-            virtual void serialize(serializer& s, const std::string&) const override { serialize(s, k, *this); };
-            virtual void deserialize(serializer& s, const std::string&) override { deserialize(s, k, *this); };
-        };
+        virtual void serialize(serializer& s, const std::string&) const override { serialize(s, k, *this); };
+        virtual void deserialize(serializer& s, const std::string&) override { deserialize(s, k, *this); };
+    };

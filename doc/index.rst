@@ -159,6 +159,7 @@ A full list of our software attributions can be found `here <https://github.com/
    fileformat/asc
    fileformat/nmodl
    fileformat/cable_cell
+   fileformat/serdes
 
 .. toctree::
    :caption: API reference:
