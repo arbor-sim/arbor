@@ -188,3 +188,21 @@ TEST(Module, stochastic_density) {
     EXPECT_EQ(wnb.parameters.size(), 2u);
     EXPECT_EQ(wnb.used.size(), 2u);
 }
+
+TEST(Module, stochastic_conditional) {
+    Module m(io::read_all(DATADIR "/mod_files/white_noise_under_conditional.mod"), "wn_else.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    auto const & wnb = m.white_noise_block();
+
+    EXPECT_EQ(wnb.parameters.size(), 1u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+
+    EXPECT_TRUE(m.semantic());
+
+    EXPECT_EQ(wnb.parameters.size(), 1u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+}
