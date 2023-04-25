@@ -90,8 +90,8 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    util::fill(gX_, 0);
-    util::fill(iX_, 0);
+    util::zero(gX_);
+    util::zero(iX_);
 }
 
 void ion_state::reset() {
@@ -143,7 +143,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
 }
 
 void istim_state::zero_current() {
-    util::fill(accu_stim_, 0);
+    util::zero(accu_stim_);
 }
 
 void istim_state::reset() {
@@ -237,8 +237,8 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
 
 void shared_state::reset() {
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
-    util::fill(current_density, 0);
-    util::fill(conductivity, 0);
+    util::zero(current_density);
+    util::zero(conductivity);
     time = 0;
     util::fill(time_since_spike, -1.0);
 
@@ -250,11 +250,9 @@ void shared_state::reset() {
 }
 
 void shared_state::zero_currents() {
-    util::fill(current_density, 0);
-    util::fill(conductivity, 0);
-    for (auto& i: ion_data) {
-        i.second.zero_current();
-    }
+    util::zero(current_density);
+    util::zero(conductivity);
+    for (auto& [i_, d]: ion_data) d.zero_current();
     stim_data.zero_current();
 }
 
