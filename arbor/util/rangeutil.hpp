@@ -10,6 +10,7 @@
 #include <ostream>
 #include <numeric>
 #include <cstring>
+#include <type_traits>
 
 #include "util/meta.hpp"
 #include "util/range.hpp"
