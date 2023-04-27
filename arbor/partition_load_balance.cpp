@@ -7,7 +7,6 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/symmetric_recipe.hpp>
 #include <arbor/context.hpp>
 
 #include "cell_group_factory.hpp"

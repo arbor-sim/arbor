@@ -339,7 +339,7 @@ morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) 
     for (const auto& [seg, s_pid]: segs) {
         tree.append(s_pid, seg.prox, seg.dist, seg.tag);
     }
-    return morphology(tree);
+    return {tree};
 }
 
 // Define cable-cell maker
@@ -355,7 +355,7 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
             [&](const decor & p){ dec = p; });
         std::visit(cable_cell_visitor, a);
     }
-    return cable_cell(morpho, dec, dict);
+    return {morpho, dec, dict};
 }
 version_tuple make_version(const std::string& v) {
     return version_tuple{v};

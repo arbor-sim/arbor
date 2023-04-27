@@ -88,15 +88,15 @@ static std::unordered_map<std::string, tok> keyword_to_tok = {
 };
 
 class lexer {
-    const char* line_start_;
-    const char* stream_;
-    unsigned line_;
+    const char* line_start_ = nullptr;
+    const char* stream_ = nullptr;
+    unsigned line_{0};
     token token_;
 
 public:
 
     lexer(const char* begin):
-        line_start_(begin), stream_(begin), line_(0)
+        line_start_(begin), stream_(begin)
     {
         // Prime the first token.
         parse();
@@ -115,7 +115,7 @@ public:
 private:
 
     src_location loc() const {
-        return src_location(line_+1, stream_-line_start_+1);
+        return {line_+1, static_cast<unsigned>(stream_-line_start_+1)};
     }
 
     bool empty() const {
@@ -268,7 +268,7 @@ private:
 
         symbol += c;
         ++stream_;
-        while(1) {
+        for(;;) {
             c = *stream_;
 
             if(is_valid_symbol_char(c)) {
@@ -321,7 +321,7 @@ private:
 
         str += c;
         ++stream_;
-        while(1) {
+        for(;;) {
             c = *stream_;
             if (std::isdigit(c)) {
                 str += c;

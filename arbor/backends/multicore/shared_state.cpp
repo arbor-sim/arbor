@@ -262,13 +262,14 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples() {
     sample_events.mark();
-    if (!sample_events.empty()) {
-        const auto [begin, end] = sample_events.marked_events();
-        // Null handles are explicitly permitted, and always give a sample of zero.
-        for (auto p = begin; p<end; ++p) {
-            sample_time[p->offset] = time;
-            sample_value[p->offset] = p->handle? *p->handle: 0;
-        }
+    const auto& [begin, end] = sample_events.marked_events();
+    if (begin == end) return;
+    if (begin == nullptr || end == nullptr) throw arbor_internal_error{"Invalid sample stream state."};
+    // Null handles are explicitly permitted, and always give a sample of zero.
+    for (auto p = begin; p < end; ++p) {
+        auto off = p->offset;
+        sample_time[off] = time;
+        sample_value[off] = p->handle ? *p->handle : 0;
     }
 }
 

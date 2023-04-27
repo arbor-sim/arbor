@@ -153,7 +153,7 @@ private:
     }
 
     simulation build(context ctx, domain_decomposition const& decomp) const {
-        return simulation(rec_, ctx, decomp, seed_);
+        return {rec_, ctx, decomp, seed_};
     }
 
 private:

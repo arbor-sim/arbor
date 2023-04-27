@@ -208,13 +208,13 @@ struct ARB_ARBOR_API s_expr {
     using pair_type = s_pair<value_wrapper<s_expr>>;
     std::variant<token, pair_type> state = token{{0,0}, tok::nil, "()"};
 
-    s_expr(const s_expr& s): state(s.state) {}
+    s_expr(const s_expr& s) = default;
     s_expr() = default;
     s_expr(token t): state(std::move(t)) {}
     s_expr(s_expr l, s_expr r):
         state(pair_type(std::move(l), std::move(r)))
     {}
-    s_expr& operator=(const s_expr& s) { state = s.state; return *this; }
+    s_expr& operator=(const s_expr& s) = default;
 
     explicit s_expr(std::string s):
         s_expr(token{{0,0}, tok::string, std::move(s)}) {}

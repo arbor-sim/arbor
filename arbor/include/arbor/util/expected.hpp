@@ -45,7 +45,7 @@ struct bad_expected_access;
 template <>
 struct bad_expected_access<void>: std::exception {
     bad_expected_access() = default;
-    virtual const char* what() const noexcept override { return "bad expected access"; }
+     const char* what() const noexcept override { return "bad expected access"; }
 };
 
 template <typename E>

@@ -82,8 +82,10 @@ ARB_ARBOR_API void merge_cell_events(
     // Merge (remaining) old and pending events.
     PE(communication:enqueue:merge);
     auto n = new_events.size();
-    new_events.resize(n+pending.size()+old_events.size());
-    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin()+n);
+    new_events.resize(n + pending.size() + old_events.size());
+    std::merge(pending.begin(), pending.end(),
+               old_events.begin(), old_events.end(),
+               new_events.begin() + (long)n);
     PL();
 }
 
@@ -530,13 +532,11 @@ void simulation_state::inject_events(const cse_vector& events) {
 
 simulation_builder simulation::create(recipe const & rec) { return {rec}; };
 
-simulation::simulation(
-    const recipe& rec,
-    context ctx,
-    const domain_decomposition& decomp,
-    arb_seed_type seed)
-{
-    impl_.reset(new simulation_state(rec, decomp, ctx, seed));
+simulation::simulation(const recipe& rec,
+                       context ctx,
+                       const domain_decomposition& decomp,
+                       arb_seed_type seed) {
+    impl_ = std::make_unique<simulation_state>(rec, decomp, ctx, seed);
 }
 
 void simulation::reset() {
@@ -555,8 +555,7 @@ time_type simulation::run(time_type tfinal, time_type dt) {
 sampler_association_handle simulation::add_sampler(
     cell_member_predicate probeset_ids,
     schedule sched,
-    sampler_function f)
-{
+    sampler_function f) {
     return impl_->add_sampler(std::move(probeset_ids), std::move(sched), std::move(f));
 }
 
@@ -612,10 +611,10 @@ ARB_ARBOR_API epoch_function epoch_progress_bar() {
                 t0 = t;
             }
 
-            double percentage = (tfinal==t0)? 1: (t-t0)/(tfinal-t0);
-            int val = percentage * 100;
-            int lpad = percentage * bar_width;
-            int rpad = bar_width - lpad;
+            auto percentage = static_cast<unsigned>((tfinal==t0)? 1: (t-t0)/(tfinal-t0));
+            auto val  = percentage * 100;
+            auto lpad = percentage * bar_width;
+            auto rpad = bar_width - lpad;
             printf("\r%3d%% |%.*s%*s|  %12ums", val, lpad, bar_buffer.c_str(), rpad, "", (unsigned)t);
 
             if (t==tfinal) {

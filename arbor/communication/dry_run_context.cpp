@@ -43,7 +43,7 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
+        return {std::move(gathered_spikes), std::move(partition)};
     }
     void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}
@@ -71,7 +71,7 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
+        return {std::move(gathered_gids), std::move(partition)};
     }
 
     std::vector<std::vector<cell_gid_type>>
@@ -105,7 +105,7 @@ struct dry_run_context_impl {
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
         auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
         auto gids = gather_gids(local_labels_and_gids.gids);
-        return cell_labels_and_gids(global_ranges, gids.values());
+        return {global_ranges, gids.values()};
     }
 
     template <typename T>

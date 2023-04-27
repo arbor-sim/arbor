@@ -2,6 +2,7 @@
 
 #include <arbor/export.hpp>
 #include <arbor/schedule.hpp>
+#include <utility>
 
 namespace arb {
 
@@ -21,7 +22,7 @@ struct ARB_SYMBOL_VISIBLE benchmark_cell {
 
     benchmark_cell() = delete;
     benchmark_cell(cell_tag_type source, cell_tag_type target, schedule seq, double ratio):
-        source(source), target(target), time_sequence(seq), realtime_ratio(ratio) {};
+        source(std::move(source)), target(std::move(target)), time_sequence(std::move(seq)), realtime_ratio(ratio) {};
 };
 
 } // namespace arb

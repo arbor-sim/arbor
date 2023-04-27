@@ -16,7 +16,7 @@
 
 namespace arb {
 
-class ARB_ARBOR_API lif_cell_group: public cell_group {
+class ARB_ARBOR_API lif_cell_group final: public cell_group {
 public:
     using value_type = double;
 
@@ -25,20 +25,20 @@ public:
     // Constructor containing gid of first cell in a group and a container of all cells.
     lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
-    virtual cell_kind get_cell_kind() const override;
-    virtual void reset() override;
-    virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events) override;
+    cell_kind get_cell_kind() const override;
+    void reset() override;
+    void advance(epoch epoch, time_type dt, const event_lane_subrange& events) override;
 
-    virtual const std::vector<spike>& spikes() const override;
-    virtual void clear_spikes() override;
+    const std::vector<spike>& spikes() const override;
+    void clear_spikes() override;
 
     // Sampler association methods below should be thread-safe, as they might be invoked
     // from a sampler call back called from a different cell group running on a different thread.
-    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) override;
-    virtual void remove_sampler(sampler_association_handle) override;
-    virtual void remove_all_samplers() override;
+    void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) override;
+    void remove_sampler(sampler_association_handle) override;
+    void remove_all_samplers() override;
 
-    virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const override;
+    std::vector<probe_metadata> get_probe_metadata(cell_member_type) const override;
 
 private:
     enum class lif_probe_kind { voltage };

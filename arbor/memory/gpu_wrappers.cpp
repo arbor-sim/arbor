@@ -105,7 +105,7 @@ void gpu_memcpy_h2d_async(void* dest, const void* src, std::size_t n) {
 
 void* gpu_host_register(void* ptr, std::size_t size) {
     NOGPU;
-    return 0;
+    return nullptr;
 }
 
 void gpu_host_unregister(void* ptr) {
@@ -114,7 +114,7 @@ void gpu_host_unregister(void* ptr) {
 
 void* gpu_malloc(std::size_t n) {
     NOGPU;
-    return 0;
+    return nullptr;
 }
 
 void gpu_free(void* ptr) {

@@ -2,6 +2,7 @@
 #include <stack>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <arbor/morph/locset.hpp>
@@ -97,7 +98,7 @@ mextent thingify_(const cable_list_& reg, const mprovider& p) {
     if (last_branch>=p.morphology().num_branches()) {
         throw no_such_branch(last_branch);
     }
-    return mextent(reg.cables);
+    return {reg.cables};
 }
 
 std::ostream& operator<<(std::ostream& o, const cable_list_& x) {
@@ -157,7 +158,7 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
     }
     // NOTE: this should always be true since we traverse things in order.
     arb_assert(util::is_sorted(cables));
-    return mextent(cables);
+    return {cables};
 }
 
 std::ostream& operator<<(std::ostream& o, const tagged_& t) {
@@ -184,7 +185,7 @@ mextent thingify_(const segment_& reg, const mprovider& p) {
     }
 
     mcable_list cables = {e.segment(id)};
-    return mextent(cables);
+    return {cables};
 }
 
 std::ostream& operator<<(std::ostream& o, const segment_& reg) {
@@ -204,9 +205,9 @@ mextent thingify_(const all_&, const mprovider& p) {
     mcable_list branches;
     branches.reserve(nb);
     for (auto i: util::make_span(nb)) {
-        branches.push_back({i,0,1});
+        branches.emplace_back(mcable{i, 0, 1});
     }
-    return mextent(branches);
+    return {branches};
 }
 
 std::ostream& operator<<(std::ostream& o, const all_& t) {
@@ -279,7 +280,7 @@ mextent thingify_(const distal_interval_& reg, const mprovider& p) {
     }
 
     util::sort(L);
-    return mextent(L);
+    return {L};
 }
 
 std::ostream& operator<<(std::ostream& o, const distal_interval_& d) {
@@ -336,7 +337,7 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
     }
 
     util::sort(L);
-    return mextent(L);
+    return {L};
 }
 
 std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
@@ -444,7 +445,7 @@ mextent projection_cmp(const mprovider& p, double v, comp_op op) {
     for (auto i: util::make_span(m.num_branches())) {
         util::append(L, e.projection_cmp(i, val, op));
     }
-    return mextent(L);
+    return {L};
 }
 
 // Region with all segments with projection less than val
@@ -567,7 +568,7 @@ std::ostream& operator<<(std::ostream& o, const named_& x) {
 // Adds all cover points to a region.
 // Ensures that all valid representations of all fork points in the region are included.
 struct super_: region_tag {
-    explicit super_(const region& rg): reg{rg} {}
+    explicit super_(region rg): reg{std::move(rg)} {}
     region reg;
 };
 
@@ -701,7 +702,7 @@ mextent thingify_(const reg_not& P, const mprovider& p) {
         }
     }
 
-    return mextent(result);
+    return {result};
 }
 
 std::ostream& operator<<(std::ostream& o, const reg_not& x) {

@@ -42,9 +42,9 @@ struct ARB_ARBORIO_API neuroml_impl {
     xml_doc doc;
     std::string raw;
 
-    neuroml_impl() {}
+    neuroml_impl() = default;
 
-    explicit neuroml_impl(std::string text): raw{text} {
+    explicit neuroml_impl(std::string text): raw{std::move(text)} {
         auto res = doc.load_buffer_inplace(raw.data(), raw.size()+1);
         if (res.status) throw nml_parse_error{res.description()};
     }
@@ -63,7 +63,7 @@ std::vector<std::string> neuroml::cell_ids() const {
     std::vector<std::string> result;
     result.reserve(matches.size());
     for (const auto& it: matches) {
-        result.push_back(it.attribute().as_string());
+        result.emplace_back(it.attribute().as_string());
     }
     return result;
 }
@@ -73,7 +73,7 @@ std::vector<std::string> neuroml::morphology_ids() const {
     std::vector<std::string> result;
     result.reserve(matches.size());
     for (const auto& it: matches) {
-        result.push_back(it.attribute().as_string());
+        result.emplace_back(it.attribute().as_string());
     }
     return result;
 }

@@ -180,8 +180,8 @@ void run_samples(
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
-    const sample_size_type n_raw_per_sample = p.raw_handles.size();
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    auto n_raw_per_sample = p.raw_handles.size();
+    auto n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
 
     auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
@@ -190,7 +190,7 @@ void run_samples(
 
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_ranges.push_back({raw_samples+offset, raw_samples+offset+n_raw_per_sample});
+        sample_ranges.emplace_back(raw_samples+offset, raw_samples+offset+n_raw_per_sample);
     }
 
     const auto& csample_ranges = sample_ranges;
@@ -210,8 +210,8 @@ void run_samples(
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
-    const sample_size_type n_raw_per_sample = p.raw_handles.size();
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    auto n_raw_per_sample = p.raw_handles.size();
+    auto n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
     arb_assert((unsigned)n_raw_per_sample==p.weight.size());
 
@@ -232,7 +232,7 @@ void run_samples(
 
     const double* tmp_ptr = tmp.data();
     for (sample_size_type j = 0; j<n_sample; ++j) {
-        sample_ranges.push_back({tmp_ptr, tmp_ptr+n_raw_per_sample});
+        sample_ranges.emplace_back(tmp_ptr, tmp_ptr+n_raw_per_sample);
         tmp_ptr += n_raw_per_sample;
     }
 
@@ -253,9 +253,9 @@ void run_samples(
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
-    const sample_size_type n_raw_per_sample = p.raw_handles.size();
-    const sample_size_type n_interp_per_sample = n_raw_per_sample/2;
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    auto n_raw_per_sample = p.raw_handles.size();
+    auto n_interp_per_sample = n_raw_per_sample/2;
+    auto n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
     arb_assert((unsigned)n_interp_per_sample==p.coef[0].size());
     arb_assert((unsigned)n_interp_per_sample==p.coef[1].size());
@@ -279,7 +279,7 @@ void run_samples(
 
     const double* tmp_ptr = tmp.data();
     for (sample_size_type j = 0; j<n_sample; ++j) {
-        sample_ranges.push_back({tmp_ptr, tmp_ptr+n_interp_per_sample});
+        sample_ranges.emplace_back(tmp_ptr, tmp_ptr+n_interp_per_sample);
         tmp_ptr += n_interp_per_sample;
     }
 
@@ -300,8 +300,8 @@ void run_samples(
     std::vector<sample_record>& sample_records,
     fvm_probe_scratch& scratch)
 {
-    const sample_size_type n_raw_per_sample = p.raw_handles.size();
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    auto n_raw_per_sample = p.raw_handles.size();
+    auto n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
 
     const auto n_cable = p.metadata.size();
@@ -327,7 +327,7 @@ void run_samples(
 
         const double* v = raw_samples+offset;
         for (auto cv: util::make_span(n_cv)) {
-            arb_index_type parent_cv = p.cv_parent[cv];
+            auto parent_cv = p.cv_parent[cv];
             if (parent_cv+1==0) continue;
 
             double cond = p.cv_parent_cond[cv];
@@ -354,7 +354,7 @@ void run_samples(
                 tmp_base[cable_i] -= cv_stim_I*p.weight[cable_i];
             }
         }
-        sample_ranges.push_back({tmp_base, tmp_base+n_cable});
+        sample_ranges.emplace_back(tmp_base, tmp_base+n_cable);
     }
 
     const auto& csample_ranges = sample_ranges;
@@ -367,13 +367,11 @@ void run_samples(
 }
 
 // Generic run_samples dispatches on probe info variant type.
-void run_samples(
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
@@ -445,7 +443,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
         for (auto& [sk, sa]: sampler_map_) {
             if (sa.probeset_ids.empty()) continue; // No need to make any schedule
             auto sample_times = util::make_range(sa.sched.events(tstart, ep.t1));
-            sample_size_type n_times = sample_times.size();
+            auto n_times = static_cast<sample_size_type>(sample_times.size());
             if (n_times == 0) continue;
             max_samples_per_call = std::max(max_samples_per_call, n_times);
             for (const cell_member_type& pid: sa.probeset_ids) {

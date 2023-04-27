@@ -284,7 +284,7 @@ struct catalogue_state {
 
         mechanism_info_ptr new_info;
         if (auto parent_info = info(parent)) {
-            new_info.reset(new mechanism_info(parent_info.value()));
+            new_info = std::make_unique<mechanism_info>(parent_info.value());
         }
         else {
             return unexpected(parent_info.error());
@@ -396,15 +396,15 @@ struct catalogue_state {
             }
 
             if (is_ion(k)) {
-                ion_remap.push_back({k, v});
+                ion_remap.emplace_back(k, v);
             }
             else {
-                char* end = 0;
-                double v_value = std::strtod(v.c_str(), &end);
+                char* end = nullptr;
+                auto v_value = std::strtod(v.c_str(), &end);
                 if (!end || *end) {
                     return unexpected_exception_ptr(invalid_parameter_value(name, k, v));
                 }
-                global_params.push_back({k, v_value});
+                global_params.emplace_back(k, v_value);
             }
         }
 
@@ -535,7 +535,7 @@ mechanism_catalogue::mechanism_catalogue(const mechanism_catalogue& other):
 
 mechanism_catalogue& mechanism_catalogue::operator=(const mechanism_catalogue& other) {
     if (this != &other) {
-        state_.reset(new catalogue_state(*other.state_));
+        state_ = std::make_unique<catalogue_state>(*other.state_);
     }
     return *this;
 }

@@ -134,7 +134,7 @@ private:
 
         ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
 
-        virtual ~interface() {}
+        virtual ~interface() = default;
     };
 
     template <typename Impl>

@@ -19,10 +19,11 @@
 #include "nml_parse_morphology.hpp"
 #include "xml.hpp"
 
-using std::optional;
 using arb::region;
+using arb::stitched_morphology;
 using arb::util::expected;
 using arb::util::unexpected;
+using std::optional;
 
 using namespace std::literals;
 
@@ -395,7 +396,7 @@ static arb::stitched_morphology construct_morphology(const neuroml_segment_tree&
         }
     }
 
-    return arb::stitched_morphology(std::move(builder));
+    return {std::move(builder)};
 }
 
 nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
@@ -424,10 +425,10 @@ nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
 
             auto prox = n.select_node(q_proximal).node();
             if (!prox.empty()) {
-                double x = get_attr<double>(prox, "x");
-                double y = get_attr<double>(prox, "y");
-                double z = get_attr<double>(prox, "z");
-                double diameter = get_attr<double>(prox, "diameter");
+                auto x = get_attr<double>(prox, "x");
+                auto y = get_attr<double>(prox, "y");
+                auto z = get_attr<double>(prox, "z");
+                auto diameter = get_attr<double>(prox, "diameter");
                 if (diameter<0) throw nml_bad_segment(seg.id);
                 seg.proximal = arb::mpoint{x, y, z, diameter/2};
             }
@@ -436,10 +437,10 @@ nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
 
             auto dist = n.select_node(q_distal).node();
             if (!dist.empty()) {
-                double x = get_attr<double>(dist, "x");
-                double y = get_attr<double>(dist, "y");
-                double z = get_attr<double>(dist, "z");
-                double diameter = get_attr<double>(dist, "diameter");
+                auto x = get_attr<double>(dist, "x");
+                auto y = get_attr<double>(dist, "y");
+                auto z = get_attr<double>(dist, "z");
+                auto diameter = get_attr<double>(dist, "diameter");
                 if (diameter<0) throw nml_bad_segment(seg.id);
                 seg.distal = arb::mpoint{x, y, z, diameter/2};
 

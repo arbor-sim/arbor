@@ -23,8 +23,8 @@ static auto unique_sum = [](auto&&... lss) {
 // cv_policy_bar_ represents the result of operator|.
 
 struct cv_policy_plus_: cv_policy_base {
-    cv_policy_plus_(const cv_policy& lhs, const cv_policy& rhs):
-        lhs_(lhs), rhs_(rhs) {}
+    cv_policy_plus_(cv_policy lhs, cv_policy rhs):
+        lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
 
     cv_policy_base_ptr clone() const override {
         return cv_policy_base_ptr(new cv_policy_plus_(*this));
@@ -49,8 +49,8 @@ ARB_ARBOR_API cv_policy operator+(const cv_policy& lhs, const cv_policy& rhs) {
 }
 
 struct cv_policy_bar_: cv_policy_base {
-    cv_policy_bar_(const cv_policy& lhs, const cv_policy& rhs):
-        lhs_(lhs), rhs_(rhs) {}
+    cv_policy_bar_(cv_policy lhs, cv_policy rhs):
+        lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
 
     cv_policy_base_ptr clone() const override {
         return cv_policy_base_ptr(new cv_policy_bar_(*this));

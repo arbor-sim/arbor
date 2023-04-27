@@ -106,7 +106,7 @@ private:
 
     template <typename T>
     struct model: public interface {
-        ~model() = default;
+        ~model() override = default;
         model(const T& other): value(other) {}
         model(T&& other): value(std::move(other)) {}
 

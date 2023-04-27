@@ -15,7 +15,7 @@ struct ARB_ARBOR_API isometry {
     // as applied to absolute coordinates (composed by addition).
 
     friend isometry operator*(const isometry& a, const isometry& b) {
-        return isometry(b.q_*a.q_, a.tx_+b.tx_, a.ty_+b.ty_, a.tz_+b.tz_);
+        return {b.q_*a.q_, a.tx_+b.tx_, a.ty_+b.ty_, a.tz_+b.tz_};
     }
 
     template <typename PointLike>
@@ -37,7 +37,7 @@ private:
 
 public:
     static isometry translate(double x, double y, double z) {
-        return isometry(quaternion{1, 0, 0, 0}, x, y, z);
+        return {quaternion{1, 0, 0, 0}, x, y, z};
     }
 
     template <typename PointLike>
@@ -50,7 +50,7 @@ public:
         double norm = std::sqrt(ax*ax+ay*ay+az*az);
         double vscale = std::sin(theta/2)/norm;
 
-        return isometry(quaternion{std::cos(theta/2), ax*vscale, ay*vscale, az*vscale}, 0, 0, 0);
+        return {quaternion{std::cos(theta/2), ax*vscale, ay*vscale, az*vscale}, 0, 0, 0};
     }
 
     template <typename PointLike>

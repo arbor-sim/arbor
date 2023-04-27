@@ -10,6 +10,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
+#include <utility>
 
 #include "util/cbrng.hpp"
 #include "util/partition.hpp"
@@ -663,7 +664,7 @@ std::ostream& operator<<(std::ostream& o, const lsup_& x) {
 // are also in the region.
 
 struct lrestrict_: locset_tag {
-    explicit lrestrict_(const locset& l, const region& r): ls{l}, reg{r} {}
+    explicit lrestrict_(locset l, region r): ls{std::move(l)}, reg{std::move(r)} {}
     locset ls;
     region reg;
 };

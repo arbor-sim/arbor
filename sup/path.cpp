@@ -16,7 +16,7 @@ namespace impl {
         if (!r) {
             // Success:
             ec.clear();
-            perms p = static_cast<perms>(st.st_mode&07777);
+            auto p = static_cast<perms>(st.st_mode&07777);
             switch (st.st_mode&S_IFMT) {
             case S_IFSOCK:
                 return file_status{file_type::socket, p};

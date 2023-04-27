@@ -22,7 +22,8 @@ struct probe_info {
     probe_info(probe_info&&) = default;
 
     // Implicit ctor uses tag of zero.
-    template <typename X>
+    template <typename X,
+              typename = std::enable_if<!std::is_same_v<X, probe_tag>>> // otherwise, we'd hide ctors above
     probe_info(X&& x, probe_tag tag = 0):
         tag(tag), address(std::forward<X>(x)) {}
 };
@@ -68,14 +69,14 @@ struct ARB_ARBOR_API has_gap_junctions {
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
-    virtual ~has_gap_junctions() {}
+    virtual ~has_gap_junctions() = default;
 };
 
 struct ARB_ARBOR_API has_synapses {
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
         return {};
     }
-    virtual ~has_synapses() {}
+    virtual ~has_synapses() = default;
 };
 
 struct ARB_ARBOR_API has_external_synapses {
@@ -88,14 +89,14 @@ struct ARB_ARBOR_API has_probes {
     virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
         return {};
     }
-    virtual ~has_probes() {}
+    virtual ~has_probes() = default;
 };
 
 struct ARB_ARBOR_API has_generators {
     virtual std::vector<event_generator> event_generators(cell_gid_type) const {
         return {};
     }
-    virtual ~has_generators() {}
+    virtual ~has_generators() = default;
 };
 
 // Toppings allow updating a simulation
@@ -103,7 +104,7 @@ struct ARB_ARBOR_API connectivity:
         public has_synapses,
                has_external_synapses,
                has_generators {
-    virtual ~connectivity() {}
+    ~connectivity() override = default;
 };
 
 // Recipes allow building a simulation by lazy queries
@@ -117,7 +118,7 @@ struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity 
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
 
-    virtual ~recipe() {}
+    ~recipe() override = default;
 };
 
 } // namespace arb

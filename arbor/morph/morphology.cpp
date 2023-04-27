@@ -428,7 +428,7 @@ ARB_ARBOR_API std::vector<mextent> components(const morphology& m, const mextent
         }
         else {
             index = component_cables.size();
-            component_cables.push_back({});
+            component_cables.emplace_back();
         }
 
         component_cables[index].push_back(c);

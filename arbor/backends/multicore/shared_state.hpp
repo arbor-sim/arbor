@@ -153,13 +153,13 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     arb_size_type n_detector = 0; // Max number of detectors on all cells.
     arb_size_type n_cv = 0;   // Total number of CVs.
 
-    iarray cv_to_cell;        // Maps CV index to the first spike
-    arb_value_type time;      // integration start time [ms].
-    arb_value_type time_to;   // integration end time [ms]
-    arb_value_type dt;        // dt [ms].
-    array voltage;            // Maps CV index to membrane voltage [mV].
-    array current_density;    // Maps CV index to membrane current density contributions [A/m²].
-    array conductivity;       // Maps CV index to membrane conductivity [kS/m²].
+    iarray cv_to_cell;          // Maps CV index to the first spike
+    arb_value_type time = 0;    // integration start time [ms].
+    arb_value_type time_to = 0; // integration end time [ms]
+    arb_value_type dt = 0;      // dt [ms].
+    array voltage;              // Maps CV index to membrane voltage [mV].
+    array current_density;      // Maps CV index to membrane current density contributions [A/m²].
+    array conductivity;         // Maps CV index to membrane conductivity [kS/m²].
 
     array init_voltage;       // Maps CV index to initial membrane voltage [mV].
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].

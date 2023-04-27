@@ -157,8 +157,8 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol) {
 	case lid_selection_policy::round_robin_halt:
         return round_robin_halt_state();
     case lid_selection_policy::assert_univalent:
-       return assert_univalent_state();
-    default: return assert_univalent_state();
+    default:
+        return assert_univalent_state();
     }
 }
 
@@ -169,8 +169,8 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol, cell
 	case lid_selection_policy::round_robin_halt:
         return round_robin_halt_state(state);
     case lid_selection_policy::assert_univalent:
-       return assert_univalent_state();
-    default: return assert_univalent_state();
+    default:
+        return assert_univalent_state();
     }
 }
 

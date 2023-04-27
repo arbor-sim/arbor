@@ -47,7 +47,7 @@ void benchmark_cell_group::reset() {
         c.time_sequence.reset();
     }
 
-    clear_spikes();
+    benchmark_cell_group::clear_spikes();
 }
 
 cell_kind benchmark_cell_group::get_cell_kind() const {
