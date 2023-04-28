@@ -79,7 +79,7 @@ public:
     void visit(IfExpression* e) override {
         if (!found()) e->condition()->accept(this);
         if (!found()) e->true_branch()->accept(this);
-        if (!found()) e->false_branch()->accept(this);
+        if (!found() && e->false_branch()) e->false_branch()->accept(this);
     }
 
 private:
