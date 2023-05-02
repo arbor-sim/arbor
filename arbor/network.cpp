@@ -1511,4 +1511,12 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& os, const network_value& v)
     return os;
 }
 
+ARB_ARBOR_API network_selection join(network_selection left, network_selection right) {
+    return network_selection::join(std::move(left), std::move(right));
+}
+
+ARB_ARBOR_API network_selection intersect(network_selection left, network_selection right) {
+    return network_selection::intersect(std::move(left), std::move(right));
+}
+
 }  // namespace arb
