@@ -117,6 +117,28 @@ private:
     std::shared_ptr<network_value_impl> impl_;
 };
 
+ARB_ARBOR_API inline network_value operator+(network_value a, network_value b) {
+    return network_value::add(std::move(a), std::move(b));
+}
+
+ARB_ARBOR_API inline network_value operator-(network_value a, network_value b) {
+    return network_value::sub(std::move(a), std::move(b));
+}
+
+ARB_ARBOR_API inline network_value operator*(network_value a, network_value b) {
+    return network_value::mul(std::move(a), std::move(b));
+}
+
+ARB_ARBOR_API inline network_value operator/(network_value a, network_value b) {
+    return network_value::div(std::move(a), std::move(b));
+}
+
+ARB_ARBOR_API inline network_value operator+(network_value a) { return a; }
+
+ARB_ARBOR_API inline network_value operator-(network_value a) {
+    return network_value::mul(-1.0, std::move(a));
+}
+
 class ARB_SYMBOL_VISIBLE network_selection {
 public:
     using custom_func_type =
@@ -225,5 +247,19 @@ struct network_description {
     network_value delay;
     network_label_dict dict;
 };
+
+ARB_ARBOR_API network_selection join(network_selection left, network_selection right);
+
+template <typename... Args>
+network_selection join(network_selection l, network_selection r, Args... args) {
+    return join(join(std::move(l), std::move(r)), std::move(args)...);
+}
+
+ARB_ARBOR_API network_selection intersect(network_selection left, network_selection right);
+
+template <typename... Args>
+network_selection intersect(network_selection l, network_selection r, Args... args) {
+    return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
+}
 
 }  // namespace arb
