@@ -12,6 +12,7 @@
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/iexpr.hpp>
+#include <arbor/s_expr.hpp>
 
 namespace arborio {
 using namespace arb;
@@ -71,7 +72,7 @@ struct call_match {
     }
 
     template <std::size_t I>
-    bool match_args_impl(const std::vector<std::any>& args) const {
+    bool match_args_impl(const std::vector<std::any>&) const {
         return true;
     }
 
@@ -197,6 +198,9 @@ template <typename... Args>
 struct make_call {
     evaluator state;
 
+    make_call(make_call&&) = delete;
+    make_call(const make_call&) = delete;
+
     template <typename F>
     make_call(F&& f, const char* msg="call"):
         state(call_eval<Args...>(std::forward<F>(f)), call_match<Args...>(), msg)
@@ -210,6 +214,9 @@ struct make_call {
 template <typename T>
 struct make_fold {
     evaluator state;
+
+    make_fold(make_fold&&) = delete;
+    make_fold(const make_fold&) = delete;
 
     template <typename F>
     make_fold(F&& f, const char* msg="fold"):
@@ -225,6 +232,8 @@ struct make_fold {
 template <typename T, typename... Types>
 struct make_conversion_fold {
     evaluator state;
+
+    make_conversion_fold(make_conversion_fold&&) = delete;
 
     template <typename F>
     make_conversion_fold(F&& f, const char* msg = "fold_conversion"):
@@ -294,6 +303,9 @@ struct arg_vec_eval {
 template <typename... Args>
 struct make_arg_vec_call {
     evaluator state;
+
+    make_arg_vec_call(make_arg_vec_call&&) = delete;
+    make_arg_vec_call(const make_arg_vec_call&) = delete;
 
     template <typename F>
     make_arg_vec_call(F&& f, const char* msg="argument vector"):
