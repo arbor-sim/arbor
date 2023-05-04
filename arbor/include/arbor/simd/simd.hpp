@@ -151,17 +151,17 @@ namespace detail {
     };
 
     template <typename Impl, typename V>
-    static void indirect_copy_to(const simd_mask_impl<Impl>& s, V* p, unsigned width) {
+    static void indirect_copy_to(const simd_mask_impl<Impl>& s, V* p, unsigned) {
         Impl::mask_copy_to(s.value_, p);
     }
 
     template <typename Impl, typename V>
-    static void indirect_copy_to(const simd_impl<Impl>& s, V* p, unsigned width) {
+    static void indirect_copy_to(const simd_impl<Impl>& s, V* p, unsigned) {
         Impl::copy_to(s.value_, p);
     }
 
     template <typename Impl, typename ImplMask, typename V>
-    static void indirect_copy_to(const simd_impl<Impl>& data, const simd_mask_impl<ImplMask>& mask, V* p, unsigned width) {
+    static void indirect_copy_to(const simd_impl<Impl>& data, const simd_mask_impl<ImplMask>& mask, V* p, unsigned) {
         Impl::copy_to_masked(data.value_, p, mask.value_);
     }
 
@@ -230,12 +230,12 @@ namespace detail {
     };
 
     template <typename Impl, typename ImplIndex, typename V>
-    static void indirect_indexed_copy_to(const simd_impl<Impl>& s, V* p, const simd_impl<ImplIndex>& index, unsigned width) {
+    static void indirect_indexed_copy_to(const simd_impl<Impl>& s, V* p, const simd_impl<ImplIndex>& index, unsigned) {
         Impl::scatter(tag<ImplIndex>{}, s.value_, p, index.value_);
     }
 
     template <typename Impl, typename ImplIndex, typename ImplMask, typename V>
-    static void indirect_indexed_copy_to(const simd_impl<Impl>& data, const simd_mask_impl<ImplMask>& mask, V* p, const simd_impl<ImplIndex>& index, unsigned width) {
+    static void indirect_indexed_copy_to(const simd_impl<Impl>& data, const simd_mask_impl<ImplMask>& mask, V* p, const simd_impl<ImplIndex>& index, unsigned) {
         Impl::scatter(tag<ImplIndex>{}, data.value_, p, index.value_, mask.value_);
     }
 
@@ -334,12 +334,12 @@ namespace detail {
     }
 
     template <typename Impl, typename ImplMask, typename V>
-    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const V* t, unsigned width) {
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f, const V* t, unsigned) {
         f.value_ = Impl::ifelse(mask.value_, Impl::copy_from_masked(t, mask.value_), f.value_);
     }
 
     template <typename Impl, typename ImplIndex, typename ImplMask, typename V>
-    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const V* p, const simd_impl<ImplIndex>& index, unsigned width) {
+    static void where_copy_to(const simd_mask_impl<ImplMask>& mask, simd_impl<Impl>& f,  const V* p, const simd_impl<ImplIndex>& index, unsigned) {
         simd_impl<Impl> temp = Impl::broadcast(0);
         temp.value_ = Impl::gather(tag<ImplIndex>{}, temp.value_, p, index.value_, mask.value_);
         f.value_ = Impl::ifelse(mask.value_, temp.value_, f.value_);
@@ -984,12 +984,12 @@ To simd_cast(const From& s) {
 }
 
 template <typename S, std::enable_if_t<is_simd<S>::value, int> = 0>
-inline constexpr int width(const S a = S{}) {
+inline constexpr int width(const S = S{}) {
     return S::width;
 };
 
 template <typename S, std::enable_if_t<is_simd<S>::value, int> = 0>
-inline constexpr unsigned min_align(const S a = S{}) {
+inline constexpr unsigned min_align(const S = S{}) {
     return S::min_align;
 };
 

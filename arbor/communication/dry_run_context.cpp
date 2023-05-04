@@ -16,14 +16,14 @@ struct dry_run_context_impl {
     explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
         num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
     std::vector<spike>
-    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+    remote_gather_spikes(const std::vector<spike>& /*local_spikes*/) const {
         return {};
     }
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
         using count_type = typename gathered_vector<spike>::count_type;
 
-        count_type local_size = local_spikes.size();
+        auto local_size = local_spikes.size();
 
         std::vector<spike> gathered_spikes;
         gathered_spikes.reserve(local_size*num_ranks_);
@@ -51,7 +51,7 @@ struct dry_run_context_impl {
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;
 
-        count_type local_size = local_gids.size();
+        auto local_size = local_gids.size();
 
         std::vector<cell_gid_type> gathered_gids;
         gathered_gids.reserve(local_size*num_ranks_);

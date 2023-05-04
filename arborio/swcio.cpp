@@ -82,8 +82,8 @@ ARB_ARBORIO_API std::istream& operator>>(std::istream& in, swc_record& record) {
 }
 
 // Parse SWC format data (comments and sequence of SWC records).
-
-static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records) {
+namespace {
+std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records) {
     if (records.empty()) return {};
 
     std::unordered_set<int> seen;
@@ -111,6 +111,7 @@ static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> rec
     }
 
     return records;
+}
 }
 
 // swc_data

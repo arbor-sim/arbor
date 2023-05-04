@@ -19,8 +19,6 @@
 #include "nml_parse_morphology.hpp"
 #include "xml.hpp"
 
-using arb::region;
-using arb::stitched_morphology;
 using arb::util::expected;
 using arb::util::unexpected;
 using std::optional;
@@ -251,10 +249,10 @@ private:
     std::unordered_map<non_negative, std::vector<non_negative>> children_;
 };
 
-static std::unordered_map<std::string, std::vector<non_negative>> evaluate_segment_groups(
-    std::vector<neuroml_segment_group_info> groups,
-    const neuroml_segment_tree& segtree)
-{
+namespace {
+std::unordered_map<std::string, std::vector<non_negative>>
+evaluate_segment_groups(std::vector<neuroml_segment_group_info> groups,
+                        const neuroml_segment_tree& segtree) {
     const std::size_t n_group = groups.size();
 
     // Expand subTree/path specifications:
@@ -360,7 +358,7 @@ static std::unordered_map<std::string, std::vector<non_negative>> evaluate_segme
     return group_seg_map;
 }
 
-static arb::stitched_morphology construct_morphology(const neuroml_segment_tree& segtree) {
+arb::stitched_morphology construct_morphology(const neuroml_segment_tree& segtree) {
     arb::stitch_builder builder;
     if (segtree.empty()) return arb::stitched_morphology{builder};
 
@@ -397,6 +395,7 @@ static arb::stitched_morphology construct_morphology(const neuroml_segment_tree&
     }
 
     return {std::move(builder)};
+}
 }
 
 nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
@@ -461,7 +460,7 @@ nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
     if (segments.empty()) return M;
 
     // Compute tree now to save further parsing if something goes wrong.
-    neuroml_segment_tree segtree(std::move(segments));
+    neuroml_segment_tree segtree(segments);
 
     const char* q_member = "./member";
     const char* q_include = "./include";

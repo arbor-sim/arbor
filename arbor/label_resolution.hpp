@@ -88,7 +88,7 @@ private:
 
 struct ARB_ARBOR_API round_robin_state {
     cell_lid_type state = 0;
-    round_robin_state() : state(0) {};
+    round_robin_state() = default;
     round_robin_state(cell_lid_type state) : state(state) {};
     cell_lid_type get();
     lid_hopefully update(const label_resolution_map::range_set& range);
@@ -96,7 +96,7 @@ struct ARB_ARBOR_API round_robin_state {
 
 struct ARB_ARBOR_API round_robin_halt_state {
     cell_lid_type state = 0;
-    round_robin_halt_state() : state(0) {};
+    round_robin_halt_state() = default;
     round_robin_halt_state(cell_lid_type state) : state(state) {};
     cell_lid_type get();
     lid_hopefully update(const label_resolution_map::range_set& range);

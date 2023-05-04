@@ -13,7 +13,7 @@ struct locked_ostream: std::ostream {
     locked_ostream(std::streambuf *b);
     locked_ostream(locked_ostream&& other);
 
-    ~locked_ostream();
+    ~locked_ostream() override;
 
     std::unique_lock<std::mutex> guard();
 

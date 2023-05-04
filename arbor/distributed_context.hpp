@@ -52,7 +52,7 @@ public:
     // default constructor uses a local context: see below.
     distributed_context();
 
-    template <typename Impl>
+    template <typename Impl, typename = std::enable_if<!std::is_same_v<Impl, distributed_context>>>
     distributed_context(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
@@ -204,7 +204,7 @@ struct local_context {
         );
     }
     std::vector<spike>
-    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+    remote_gather_spikes(const std::vector<spike>& /*local_spikes*/) const {
         return {};
     }
     gathered_vector<cell_gid_type>

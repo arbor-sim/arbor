@@ -86,7 +86,7 @@ struct ARB_ARBOR_API has_external_synapses {
 };
 
 struct ARB_ARBOR_API has_probes {
-    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
+    virtual std::vector<probe_info> get_probes(cell_gid_type) const {
         return {};
     }
     virtual ~has_probes() = default;

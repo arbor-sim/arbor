@@ -224,7 +224,7 @@ struct fvm_lowered_cell {
 
     virtual arb_value_type time() const = 0;
 
-    virtual ~fvm_lowered_cell() {}
+    virtual ~fvm_lowered_cell() = default;
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;

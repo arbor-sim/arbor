@@ -285,7 +285,7 @@ parse_hopefully<zsmear> parse_zsmear(asc::lexer& L) {
     return s;
 }
 
-#define PARSE_ZSMEAR(L, X) if (auto rval__ = parse_zsmear(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());
+#define PARSE_ZSMEAR(L, X) 
 
 parse_hopefully<arb::mpoint> parse_point(asc::lexer& L) {
     // check and consume opening paren
@@ -562,7 +562,12 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
             }
             // Ignore zSmear.
             else if (symbol_matches("zSmear", t)) {
-                PARSE_ZSMEAR(L, __attribute__((unused)) auto _);
+                if (auto rval = parse_zsmear(L)) {
+                    __attribute__((unused)) auto _ =*rval;
+                }
+                else {
+                    return FORWARD_PARSE_ERROR(rval.error());
+                }
             }
             else if (t.kind==tok::integer || t.kind==tok::real) {
                 // Assume that this is the first sample.

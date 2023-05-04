@@ -145,7 +145,7 @@ public:
     array(const array& other) :
         base(coordinator_type().allocate(other.size()))
     {
-        static_assert(impl::is_array_t<array>::value, "");
+        static_assert(impl::is_array_t<array>::value);
 #ifdef VERBOSE
         std::cerr << util::green("array(array&)")
                   << " " << util::type_printer<array>::print()

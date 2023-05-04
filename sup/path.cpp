@@ -85,7 +85,8 @@ posix_directory_iterator::posix_directory_iterator(const path& p, directory_opti
     state_(new posix_directory_state())
 {
     ec.clear();
-    if ((state_->dir = opendir(p.c_str()))) {
+    state_->dir = opendir(p.c_str());
+    if (state_->dir) {
         state_->dir_path = p;
         increment(ec);
         return;
@@ -95,8 +96,10 @@ posix_directory_iterator::posix_directory_iterator(const path& p, directory_opti
     ec = std::error_code(errno, std::generic_category());
 }
 
-static inline bool is_dot_or_dotdot(const char* s) {
+namespace {
+inline bool is_dot_or_dotdot(const char* s) {
     return *s=='.' && (!s[1] || (s[1]=='.' && !s[2]));
+}
 }
 
 posix_directory_iterator& posix_directory_iterator::increment(std::error_code &ec) {

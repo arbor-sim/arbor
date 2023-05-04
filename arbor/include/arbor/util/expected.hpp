@@ -14,6 +14,7 @@
 #include <utility>
 #include <variant>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/util/extra_traits.hpp>
 
 namespace arb {
@@ -50,7 +51,7 @@ struct bad_expected_access<void>: std::exception {
 
 template <typename E>
 struct bad_expected_access: public bad_expected_access<void> {
-    explicit bad_expected_access(E error): error_(error) {}
+    explicit bad_expected_access(E error): error_(std::move(error)) {}
 
     E& error() & { return error_; }
     const E& error() const& { return error_; }
@@ -106,15 +107,15 @@ struct unexpected {
 
     // Assignment operators.
 
-    unexpected& operator=(const unexpected& u) { return value_ = u.value_, *this; }
+    unexpected& operator=(const unexpected& u) { value_ = u.value_; return *this; }
 
-    unexpected& operator=(unexpected&& u) { return value_ = std::move(u.value_), *this; }
-
-    template <typename F>
-    unexpected& operator=(const unexpected<F>& u) { return value_ = u.value_, *this; }
+    unexpected& operator=(unexpected&& u) { value_ = std::move(u.value_); return *this; }
 
     template <typename F>
-    unexpected& operator=(unexpected<F>&& u) { return value_ = std::move(u.value_), *this; }
+    unexpected& operator=(const unexpected<F>& u) { value_ = u.value_; return *this; }
+
+    template <typename F>
+    unexpected& operator=(unexpected<F>&& u) { value_ = std::move(u.value_); return *this; }
 
     // Access.
 
@@ -498,11 +499,24 @@ struct expected<void, E> {
         if (!has_value()) throw bad_expected_access<E>(error());
     }
 
-    const E& error() const& { return data_->value(); }
-    E& error() & { return data_->value(); }
+    const E& error() const& {
+        if (!data_.has_value()) throw arbor_internal_error("Invalid state of expected: neither error nor value");
+        return data_->value();
+    }
+    E& error() & {
+        if (!data_.has_value()) throw arbor_internal_error("Invalid state of expected: neither error nor value");
+        return data_->value();
+    }
 
-    const E&& error() const&& { return std::move(data_->value()); }
-    E&& error() && { return std::move(data_->value()); }
+    const E&& error() const&& {
+        if (!data_.has_value()) throw arbor_internal_error("Invalid state of expected: neither error nor value");
+        return std::move(data_->value());
+    }
+
+    E&& error() && {
+        if (!data_.has_value()) throw arbor_internal_error("Invalid state of expected: neither error nor value");
+        return std::move(data_->value());
+    }
 
 private:
     data_type data_;

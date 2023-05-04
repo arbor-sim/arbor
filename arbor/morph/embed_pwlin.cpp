@@ -189,9 +189,10 @@ double embed_pwlin::integrate_ixa(const mcable& c) const {
 }
 
 // Integrate piecewise function over a cable:
-
-static pw_constant_fn restrict(const pw_constant_fn& g, double left, double right) {
+namespace {
+pw_constant_fn restrict(const pw_constant_fn& g, double left, double right) {
     return pw_zip_with(g, pw_elements<void>{{left, right}});
+}
 }
 
 double embed_pwlin::integrate_length(const mcable& c, const pw_constant_fn& g) const {

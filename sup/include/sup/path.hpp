@@ -59,7 +59,7 @@ public:
     posix_path(Iter b, Iter e) { assign(b, e); }
 
     template <typename Source>
-    posix_path& operator=(Source&& source) { return assign(std::forward<Source>(source)); }
+    posix_path& operator=(Source&& source) { assign(std::forward<Source>(source)); return *this; }
 
     posix_path& assign(const posix_path& other) {
         p_ = other.p_;
@@ -177,19 +177,19 @@ public:
     }
 
     posix_path filename() const {
-        auto i = p_.rfind('/');
+        auto i = p_.rfind(preferred_separator);
         return i==std::string::npos? *this: posix_path(p_.substr(i+1));
     }
 
     bool has_filename() const {
         if (p_.empty()) return false;
 
-        auto i = p_.rfind('/');
+        auto i = p_.rfind(preferred_separator);
         return i==std::string::npos || i+1<p_.length();
     }
 
     posix_path parent_path() const {
-        auto i = p_.rfind('/');
+        auto i = p_.rfind(preferred_separator);
 
         if (i==0) return {"/"};
         else if (i==std::string::npos) return {};
@@ -197,7 +197,7 @@ public:
     }
 
     bool has_parent_path() const {
-        return p_.rfind('/')!=std::string::npos;
+        return p_.rfind(preferred_separator)!=std::string::npos;
     }
 
     // Non-member functions
@@ -253,7 +253,7 @@ public:
 
 protected:
     static bool is_separator(value_type c) {
-        return c=='/' || c==preferred_separator;
+        return c == preferred_separator;
     }
 
     std::string canonical() const {
@@ -262,7 +262,7 @@ protected:
         for (value_type c: p_) {
             if (is_separator(c)) {
                 if (!is_separator(prev)) {
-                    n += '/';
+                    n += preferred_separator;
                 }
             }
             else {
@@ -639,7 +639,7 @@ private:
 
 using directory_iterator = posix_directory_iterator;
 inline directory_iterator begin(directory_iterator i) noexcept { return i; }
-inline directory_iterator end(const directory_iterator& i) noexcept { return directory_iterator{}; }
+inline directory_iterator end(const directory_iterator&) noexcept { return directory_iterator{}; }
 
 } // namespace sup
 

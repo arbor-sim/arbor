@@ -68,7 +68,7 @@ struct padded_allocator {
         return static_cast<pointer>(mem);
     }
 
-    void deallocate(pointer p, std::size_t n) {
+    void deallocate(pointer p, std::size_t) {
         std::free(p);
     }
 

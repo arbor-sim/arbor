@@ -15,26 +15,35 @@
 namespace arb {
 namespace util {
 
-backtrace::backtrace() {
 #ifdef WITH_BACKTRACE
+backtrace::backtrace() {
     auto bt = boost::stacktrace::basic_stacktrace{};
     for (const auto& f: bt) {
         frames_.push_back(source_location{f.name(), f.source_file(), f.source_line()});
     }
-#endif
+
 }
 
 std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
-#ifdef WITH_BACKTRACE
     out << "Backtrace:\n";
     int ix = 0;
     for (const auto& f: trace.frames_) {
         out << std::setw(8) << ix << " " << f.func << " (" << f.file << ":" << f.line << ")\n";
         ix++;
     }
-#endif
     return out;
 }
+
+#else
+
+backtrace::backtrace() = default;
+
+std::ostream& operator<<(std::ostream& out, const backtrace&) {
+    out << "Backtrace disabled\n";
+    return out;
+}
+
+#endif
 
 backtrace& backtrace::pop(std::size_t n) {
     frames_.erase(frames_.begin(),

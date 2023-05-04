@@ -204,7 +204,7 @@ public:
         typename Other,
         typename = std::enable_if_t< impl::is_array<Other>::value >
     >
-    array_view operator=(Other&& other) {
+    array_view& operator=(Other&& other) {
         #if VERBOSE
         std::cerr << util::pretty_printer<array_view>::print(*this)
                   << "::" << util::blue("operator=") << "("
@@ -278,6 +278,9 @@ public:
         return coordinator_type::alignment();
     }
 
+    // disallow constructors that imply allocation of memory
+    array_view(std::size_t n) = delete;
+
 protected :
     template < typename U, typename C>
     friend void impl::reset(array_view<U, C>&, U*, std::size_t);
@@ -301,9 +304,6 @@ protected :
         pointer_ = ptr;
         size_ = n;
     }
-
-    // disallow constructors that imply allocation of memory
-    array_view(std::size_t n) = delete;
 
     coordinator_type coordinator_;
     pointer          pointer_;
@@ -387,7 +387,7 @@ public:
         typename Other,
         typename = std::enable_if_t< impl::is_array<Other>::value >
     >
-    const_array_view operator=(Other&& other) {
+    const_array_view& operator=(Other&& other) {
 #if VERBOSE
         std::cerr << util::pretty_printer<const_array_view>::print(*this)
                   << "::" << util::blue("operator=") << "("

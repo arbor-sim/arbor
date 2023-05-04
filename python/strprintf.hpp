@@ -97,7 +97,7 @@ std::string strprintf(const char* fmt, Args&&... args) {
         else if ((unsigned)n<buffer.size()) {
             return {buffer.data(), static_cast<std::size_t>(n)};
         }
-        buffer.resize(2*n);
+        buffer.resize(2ull*n);
     }
 }
 

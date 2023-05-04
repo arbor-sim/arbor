@@ -14,7 +14,6 @@ namespace arb {
 namespace profile {
 
 using timer_type = timer<>;
-using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
 namespace {
@@ -421,10 +420,10 @@ ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limi
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
 ARB_ARBOR_API profile profiler_summary();
-ARB_ARBOR_API profile profiler_summary() {return profile();}
+ARB_ARBOR_API profile profiler_summary() {return {};}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
-ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
+ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double) { return os; }
 
 
 #endif // ARB_HAVE_PROFILING

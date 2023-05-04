@@ -38,7 +38,7 @@ public:
                std::function<domain_decomposition(const recipe&, context)> balancer = 
                    [](auto& r, auto c) { return partition_load_balance(r, c); },
                arb_seed_type seed = 0):
-        simulation(rec, ctx, balancer(rec, ctx)) {}
+        simulation(rec, ctx, balancer(rec, ctx), seed) {}
 
     simulation(simulation const&) = delete;
     simulation(simulation&&);

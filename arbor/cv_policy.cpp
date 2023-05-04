@@ -14,9 +14,11 @@
 
 namespace arb {
 
-static auto unique_sum = [](auto&&... lss) {
+namespace {
+auto unique_sum = [](auto&&... lss) {
     return ls::support(sum(std::forward<decltype(lss)>(lss)...));
 };
+}
 
 // Combinators:
 // cv_policy_plus_ represents the result of operator+,

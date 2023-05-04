@@ -209,7 +209,8 @@ communicator::exchange(std::vector<spike> local_spikes) {
     if (remote_spike_filter_) {
         local_spikes.erase(std::remove_if(local_spikes.begin(),
                                           local_spikes.end(),
-                                          [this] (const auto& s) { return !remote_spike_filter_(s); }));
+                                          [this] (const auto& s) { return !remote_spike_filter_(s); }),
+                           local_spikes.end());
     }
     auto remote_spikes = distributed_->remote_gather_spikes(local_spikes);
     PL();

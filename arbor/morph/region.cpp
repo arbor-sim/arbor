@@ -37,11 +37,11 @@ ARB_ARBOR_API region nil() {
     return region{nil_{}};
 }
 
-mextent thingify_(const nil_& x, const mprovider&) {
+mextent thingify_(const nil_&, const mprovider&) {
     return mextent{};
 }
 
-std::ostream& operator<<(std::ostream& o, const nil_& x) {
+std::ostream& operator<<(std::ostream& o, const nil_&) {
     return o << "(region-nil)";
 }
 
@@ -210,7 +210,7 @@ mextent thingify_(const all_&, const mprovider& p) {
     return {branches};
 }
 
-std::ostream& operator<<(std::ostream& o, const all_& t) {
+std::ostream& operator<<(std::ostream& o, const all_&) {
     return o << "(all)";
 }
 

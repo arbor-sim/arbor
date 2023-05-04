@@ -226,7 +226,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
     // global all-to-all to gather a local copy of the global gid list on each node.
     auto global_gids = dist->gather_gids(local_gids);
 
-    return domain_decomposition(rec, ctx, groups);
+    return {rec, ctx, groups};
 }
 
 } // namespace arb

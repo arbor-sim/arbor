@@ -172,6 +172,7 @@ struct pw_element_proxy {
 // Compute indices into vertex set corresponding to elements that cover a point x:
 
 namespace {
+inline
 std::pair<std::ptrdiff_t, std::ptrdiff_t> equal_range_indices(const std::vector<double>& vertices, double x) {
     if (vertices.empty()) return {0, 0};
 

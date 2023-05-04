@@ -163,8 +163,8 @@ bad_catalogue_error::bad_catalogue_error(const std::string& msg)
     : arbor_exception(pprintf("Error while opening catalogue '{}'", msg))
 {}
 
-bad_catalogue_error::bad_catalogue_error(const std::string& msg, const std::any& pe)
-    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(pe)
+bad_catalogue_error::bad_catalogue_error(const std::string& msg, std::any pe)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(std::move(pe))
 {}
 
 unsupported_abi_error::unsupported_abi_error(size_t v):

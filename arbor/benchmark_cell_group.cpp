@@ -55,8 +55,8 @@ cell_kind benchmark_cell_group::get_cell_kind() const {
 }
 
 void benchmark_cell_group::advance(epoch ep,
-                                   time_type dt,
-                                   const event_lane_subrange& event_lanes)
+                                   time_type /*dt*/,
+                                   const event_lane_subrange& /*event_lanes*/)
 {
     using std::chrono::high_resolution_clock;
     using duration_type = std::chrono::duration<double, std::micro>;

@@ -55,7 +55,7 @@ struct symbol {
     operator std::string() const { return str; }
 };
 
-inline symbol operator"" _symbol(const char* chars, size_t size) {
+inline symbol operator"" _symbol(const char* chars, size_t /*size*/) {
     return {chars};
 }
 
@@ -131,7 +131,7 @@ struct ARB_ARBOR_API s_expr {
             if (finished()) inner_ = nullptr;
         }
 
-        s_expr_iterator_impl(const sentinel& e):
+        s_expr_iterator_impl(const sentinel& /*e*/):
             inner_(nullptr)
         {}
 
@@ -167,7 +167,7 @@ struct ARB_ARBOR_API s_expr {
         bool operator!=(const s_expr_iterator_impl& other) const {
             return !(*this==other);
         }
-        bool operator==(const sentinel& other) const {
+        bool operator==(const sentinel& /*other*/) const {
             return !inner_;
         }
         bool operator!=(const sentinel& other) const {

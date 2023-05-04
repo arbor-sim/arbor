@@ -38,7 +38,7 @@ public:
 
     template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(Impl&& impl):
-        impl_(new wrap<Impl>(std::move(impl))) {}
+        impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
     schedule(schedule&& other) = default;
     schedule& operator=(schedule&& other) = default;
@@ -62,7 +62,7 @@ private:
         virtual time_event_span events(time_type t0, time_type t1) = 0;
         virtual void reset() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
-        virtual ~interface() {}
+        virtual ~interface() = default;
     };
 
     using iface_ptr = std::unique_ptr<interface> ;
@@ -74,19 +74,19 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        virtual time_event_span events(time_type t0, time_type t1) {
+         time_event_span events(time_type t0, time_type t1) override {
             return wrapped.events(t0, t1);
         }
 
-        virtual void reset() {
+         void reset() override {
             wrapped.reset();
         }
 
-        virtual iface_ptr clone() {
+         iface_ptr clone() override {
             return std::make_unique<wrap<Impl>>(wrapped);
         }
-
-        Impl wrapped;
+        private:
+            Impl wrapped;
     };
 };
 
@@ -95,7 +95,7 @@ private:
 class empty_schedule {
 public:
     void reset() {}
-    time_event_span events(time_type t0, time_type t1) {
+    time_event_span events(time_type, time_type) {
         static time_type no_time;
         return {&no_time, &no_time};
     }
@@ -144,9 +144,7 @@ public:
     explicit_schedule_impl(explicit_schedule_impl&&) = default;
 
     template <typename Seq>
-    explicit explicit_schedule_impl(const Seq& seq):
-        start_index_(0)
-    {
+    explicit explicit_schedule_impl(const Seq& seq) {
         using std::begin;
         using std::end;
 
@@ -154,14 +152,12 @@ public:
         arb_assert(std::is_sorted(times_.begin(), times_.end()));
     }
 
-    void reset() {
-        start_index_ = 0;
-    }
+    void reset() { start_index_ = 0; }
 
     time_event_span events(time_type t0, time_type t1);
 
 private:
-    std::ptrdiff_t start_index_;
+    std::ptrdiff_t start_index_= 0;
     std::vector<time_type> times_;
 };
 

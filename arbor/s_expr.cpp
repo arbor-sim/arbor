@@ -79,13 +79,10 @@ struct s_expr_lexer_error: public arb::arbor_internal_error {
     {}
 };
 
-static std::unordered_map<tok, const char*> tok_to_keyword = {
-    {tok::nil,    "nil"},
-};
-
-static std::unordered_map<std::string, tok> keyword_to_tok = {
-    {"nil",    tok::nil},
-};
+namespace {
+std::unordered_map<tok, const char*> tok_to_keyword = {{tok::nil,    "nil"}};
+std::unordered_map<std::string, tok> keyword_to_tok = {{"nil",    tok::nil}};
+}
 
 class lexer {
     const char* line_start_ = nullptr;

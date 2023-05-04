@@ -538,6 +538,10 @@ template <typename... Args>
 struct make_unordered_call {
     evaluator state;
 
+    make_unordered_call() = delete;
+    make_unordered_call(const make_unordered_call&) = delete;
+    make_unordered_call(make_unordered_call&&) = delete;
+
     template <typename F>
     make_unordered_call(F&& f, const char* msg="call"):
         state(arg_vec_eval<Args...>(std::forward<F>(f)), unordered_match<Args...>(), msg)

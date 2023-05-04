@@ -87,7 +87,7 @@ public:
 
 private:
     struct interface {
-        virtual ~interface() {}
+        virtual ~interface() = default;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
         virtual mextent thingify(const mprovider&) = 0;
@@ -100,15 +100,15 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        virtual std::unique_ptr<interface> clone() override {
+         std::unique_ptr<interface> clone() override {
             return std::make_unique<wrap<Impl>>(wrapped);
         }
 
-        virtual mextent thingify(const mprovider& m) override {
+         mextent thingify(const mprovider& m) override {
             return thingify_(wrapped, m);
         }
 
-        virtual std::ostream& print(std::ostream& o) override {
+         std::ostream& print(std::ostream& o) override {
             return o << wrapped;
         }
 

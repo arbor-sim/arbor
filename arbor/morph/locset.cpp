@@ -38,11 +38,11 @@ ARB_ARBOR_API locset nil() {
     return locset{nil_{}};
 }
 
-mlocation_list thingify_(const nil_& x, const mprovider&) {
+mlocation_list thingify_(const nil_&, const mprovider&) {
     return {};
 }
 
-std::ostream& operator<<(std::ostream& o, const nil_& x) {
+std::ostream& operator<<(std::ostream& o, const nil_&) {
     return o << "(locset-nil)";
 }
 
@@ -114,7 +114,7 @@ mlocation_list thingify_(const terminal_&, const mprovider& p) {
     return locs;
 }
 
-std::ostream& operator<<(std::ostream& o, const terminal_& x) {
+std::ostream& operator<<(std::ostream& o, const terminal_&) {
     return o << "(terminal)";
 }
 
@@ -258,11 +258,11 @@ ARB_ARBOR_API locset root() {
     return locset{root_{}};
 }
 
-mlocation_list thingify_(const root_&, const mprovider& p) {
+mlocation_list thingify_(const root_&, const mprovider&) {
     return {mlocation{0, 0.}};
 }
 
-std::ostream& operator<<(std::ostream& o, const root_& x) {
+std::ostream& operator<<(std::ostream& o, const root_&) {
     return o << "(root)";
 }
 
@@ -278,7 +278,7 @@ mlocation_list thingify_(const segments_&, const mprovider& p) {
     return p.embedding().segment_ends();
 }
 
-std::ostream& operator<<(std::ostream& o, const segments_& x) {
+std::ostream& operator<<(std::ostream& o, const segments_&) {
     return o << "(segment-boundaries)";
 }
 

@@ -30,7 +30,7 @@ struct ARB_ARBOR_API mprovider {
 
 private:
     mprovider(arb::morphology m, const label_dict* ldptr):
-        morphology_(m), embedding_(m), label_dict_ptr(ldptr) { init(); }
+        morphology_(std::move(m)), embedding_(morphology_), label_dict_ptr(ldptr) { init(); }
 
     arb::morphology morphology_;
     concrete_embedding embedding_;

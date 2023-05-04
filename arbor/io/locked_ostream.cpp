@@ -1,3 +1,4 @@
+#include <memory>
 #include <ostream>
 #include <vector>
 #include <unordered_map>
@@ -11,34 +12,36 @@ namespace io {
 
 using tbl_type = std::unordered_map<std::streambuf*, std::weak_ptr<std::mutex>>;
 
-static tbl_type& g_mex_tbl() {
+namespace {
+
+tbl_type& g_mex_tbl() {
     static tbl_type tbl;
     return tbl;
 }
 
-static std::mutex& g_mex_tbl_mex() {
+std::mutex& g_mex_tbl_mex() {
     static std::mutex mex;
     return mex;
 }
 
-static std::shared_ptr<std::mutex> register_sbuf(std::streambuf* b) {
+std::shared_ptr<std::mutex> register_sbuf(std::streambuf* b) {
     if (b) {
         std::lock_guard<std::mutex> lock(g_mex_tbl_mex());
 
         auto& wptr = g_mex_tbl()[b];
         auto mex = wptr.lock();
         if (!mex) {
-            mex = std::shared_ptr<std::mutex>(new std::mutex);
+            mex = std::make_shared<std::mutex>();
             wptr = mex;
         }
         return mex;
     }
     else {
-        return std::shared_ptr<std::mutex>();
+        return std::make_shared<std::mutex>();
     }
 }
 
-static void deregister_sbuf(std::streambuf* b) {
+void deregister_sbuf(std::streambuf* b) {
     if (b) {
         std::lock_guard<std::mutex> lock(g_mex_tbl_mex());
 
@@ -48,6 +51,7 @@ static void deregister_sbuf(std::streambuf* b) {
         }
     }
 }
+}
 
 locked_ostream::locked_ostream(std::streambuf *b):
     std::ostream(b),
@@ -56,10 +60,10 @@ locked_ostream::locked_ostream(std::streambuf *b):
 
 
 locked_ostream::locked_ostream(locked_ostream&& other):
-    std::ostream(std::move(other)),
+    std::ostream(std::move(other)), // This moves other
     mex(std::move(other.mex))
 {
-    set_rdbuf(other.rdbuf());
+    set_rdbuf(other.rdbuf());       // ... and here we use it ... oh-oh
     other.set_rdbuf(nullptr);
 }
 

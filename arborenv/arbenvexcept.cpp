@@ -8,7 +8,7 @@ using namespace std::literals;
 namespace arbenv {
 
 invalid_env_value::invalid_env_value(const std::string& variable, const std::string& value):
-    arborenv_exception("environment variable \""s+variable+"\" has invalid value \""s+value+"\""s),
+    arborenv_exception("environment variable \""s + variable + R"(" has invalid value ")" + value + "\""s),
     env_variable(variable),
     env_value(value)
 {}

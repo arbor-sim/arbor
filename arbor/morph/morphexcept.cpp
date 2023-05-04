@@ -10,8 +10,10 @@ namespace arb {
 
 using arb::util::pprintf;
 
-static std::string msize_string(msize_t x) {
+namespace {
+std::string msize_string(msize_t x) {
     return x==mnpos? "mnpos": pprintf("{}", x);
+}
 }
 
 invalid_mlocation::invalid_mlocation(mlocation loc):

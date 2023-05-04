@@ -179,7 +179,7 @@ struct ARB_SYMBOL_VISIBLE file_not_found_error: arbor_exception {
 //
 struct ARB_SYMBOL_VISIBLE bad_catalogue_error: arbor_exception {
     bad_catalogue_error(const std::string&);
-    bad_catalogue_error(const std::string&, const std::any&);
+    bad_catalogue_error(const std::string&, std::any);
     std::any platform_error;
 };
 

@@ -178,12 +178,12 @@ using sentinel_iterator_t =
     std::conditional_t<std::is_same<I, S>::value, I, sentinel_iterator<I, S>>;
 
 template <typename I, typename S>
-sentinel_iterator_t<I, S> make_sentinel_iterator(const I& i, const S& s) {
+sentinel_iterator_t<I, S> make_sentinel_iterator(const I& i, const S&) {
     return sentinel_iterator_t<I, S>(i);
 }
 
 template <typename I, typename S>
-sentinel_iterator_t<I, S> make_sentinel_end(const I& i, const S& s) {
+sentinel_iterator_t<I, S> make_sentinel_end(const I&, const S& s) {
     return sentinel_iterator_t<I, S>(s);
 }
 

@@ -82,13 +82,13 @@ inline bool is_valid_symbol_char(char c) {
 class lexer_impl {
     const char* line_start_;
     const char* stream_;
-    unsigned line_;
+    unsigned line_ = 0;
     token token_;
 
 public:
 
     lexer_impl(const char* begin):
-        line_start_(begin), stream_(begin), line_(0)
+        line_start_(begin), stream_(begin)
     {
         // Prime the first token.
         parse();
@@ -125,9 +125,7 @@ public:
 
 private:
 
-    src_location loc() const {
-        return src_location(line_+1, stream_-line_start_+1);
-    }
+    src_location loc() const { return {line_ + 1, static_cast<unsigned>(stream_ - line_start_ + 1)}; }
 
     bool empty() const {
         return *stream_ == '\0';
@@ -294,7 +292,7 @@ private:
 
         symbol += c;
         ++stream_;
-        while(1) {
+        for (;;) {
             c = *stream_;
 
             if(is_valid_symbol_char(c)) {
@@ -341,7 +339,7 @@ private:
 
         str += c;
         ++stream_;
-        while(1) {
+        for (;;) {
             c = *stream_;
             if (std::isdigit(c)) {
                 str += c;
