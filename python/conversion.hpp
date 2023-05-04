@@ -67,14 +67,12 @@ std::optional<T> py2optional(pybind11::object o, const char* msg) {
 }
 
 template <typename T, typename F>
-std::optional<T> T2optional(T o, F&& pred) {
-    std::optional<T> value = o;
-
-    if (!pred(value)) {
-        value.reset();
+std::optional<T> optional_when(T&& o, F&& pred) {
+    if (pred(std::forward(T)) {
+      return {std::forward(T)};
+    } else {
+      return {};
     }
-
-    return value;
 }
 
 // Attempt to cast a Python object to a C++ type T.
