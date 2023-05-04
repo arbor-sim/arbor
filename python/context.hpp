@@ -19,7 +19,7 @@ struct proc_allocation_shim {
     void set_bind_procs(bool bp) { proc_allocation.bind_threads = bp; };
     void set_bind_threads(bool bt) { proc_allocation.bind_threads = bt; };
 
-    std::optional<int> get_gpu_id() const { return T2optional(proc_allocation.gpu_id, is_nonneg()); };
+    std::optional<int> get_gpu_id() const { return optional_when(proc_allocation.gpu_id, is_nonneg()); };
     unsigned get_num_threads() const { return proc_allocation.num_threads; };
     bool has_gpu() const { return proc_allocation.has_gpu(); };
     bool get_bind_threads() const { return proc_allocation.bind_threads; };
