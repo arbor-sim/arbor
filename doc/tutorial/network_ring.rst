@@ -140,7 +140,7 @@ Step **(15)** executes the simulation for a duration of 100 ms.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 124-135
+   :lines: 124-140
 
 The results
 ***********
@@ -149,7 +149,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 137-140
+   :lines: 142-145
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -161,7 +161,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 142-
+   :lines: 147-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 
