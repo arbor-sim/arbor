@@ -72,7 +72,7 @@ struct unexpected {
 
     unexpected() = default;
     unexpected(const unexpected&) = default;
-    unexpected(unexpected&&) = default;
+    unexpected(unexpected&&) noexcept  = default;
 
     // Emplace-style ctors.
 
@@ -109,7 +109,7 @@ struct unexpected {
 
     unexpected& operator=(const unexpected& u) { value_ = u.value_; return *this; }
 
-    unexpected& operator=(unexpected&& u) { value_ = std::move(u.value_); return *this; }
+    unexpected& operator=(unexpected&& u) noexcept { value_ = std::move(u.value_); return *this; }
 
     template <typename F>
     unexpected& operator=(const unexpected<F>& u) { value_ = u.value_; return *this; }
@@ -157,7 +157,7 @@ struct expected {
 
     expected() = default;
     expected(const expected&) = default;
-    expected(expected&&) = default;
+    expected(expected&&) noexcept  = default;
 
     // Emplace-style ctors.
 
@@ -424,7 +424,7 @@ struct expected<void, E> {
 
     expected() = default;
     expected(const expected&) = default;
-    expected(expected&&) = default;
+    expected(expected&&) noexcept = default;
 
     // Emplace-style ctors.
 

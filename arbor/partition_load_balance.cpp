@@ -172,6 +172,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
     };
 
     std::vector<cell_kind> kinds;
+    kinds.reserve(kind_lists.size());
     for (auto l: kind_lists) {
         kinds.push_back(cell_kind(l.first));
     }

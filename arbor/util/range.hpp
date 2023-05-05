@@ -52,7 +52,7 @@ struct range {
 
     range() = default;
     range(const range&) = default;
-    range(range&&) = default;
+    range(range&&) noexcept = default;
 
     template <typename U1, typename U2>
     range(U1&& l, U2&& r):
@@ -76,7 +76,7 @@ struct range {
     {}
 
     range& operator=(const range&) = default;
-    range& operator=(range&&) = default;
+    range& operator=(range&&) noexcept = default;
 
     template <typename U1, typename U2>
     range& operator=(const range<U1, U2>& other) {

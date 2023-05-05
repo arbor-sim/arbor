@@ -121,7 +121,7 @@ struct pw_element {
     {}
 
     pw_element(const pw_element&) = default;
-    pw_element(pw_element&&) = default;
+    pw_element(pw_element&&) noexcept = default;
 
     operator X() const { return value; }
     pw_element& operator=(X x) { value = std::move(x); return *this; };
@@ -268,7 +268,7 @@ struct pw_elements {
         assign(vs, es);
     }
 
-    pw_elements(pw_elements&&) = default;
+    pw_elements(pw_elements&&) noexcept = default;
     pw_elements(const pw_elements&) = default;
 
     template <typename Y>
@@ -276,7 +276,7 @@ struct pw_elements {
         vertex_(from.vertex_), value_(from.value_.begin(), from.value_.end())
     {}
 
-    pw_elements& operator=(pw_elements&&) = default;
+    pw_elements& operator=(pw_elements&&) noexcept = default;
     pw_elements& operator=(const pw_elements&) = default;
 
     // Access:

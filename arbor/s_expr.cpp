@@ -483,7 +483,7 @@ s_expr parse(lexer& L) {
             else if (t.kind == tok::lparen) {
                 auto e = parse(L);
                 if (e.is_atom() && e.atom().kind==tok::error) return e;
-                *n = {std::move(e), {}};
+                *n = {e, {}};
                 t = L.current();
             }
             else {

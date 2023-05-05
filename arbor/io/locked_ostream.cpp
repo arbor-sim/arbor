@@ -59,11 +59,11 @@ locked_ostream::locked_ostream(std::streambuf *b):
 {}
 
 
-locked_ostream::locked_ostream(locked_ostream&& other):
-    std::ostream(std::move(other)), // This moves other
+locked_ostream::locked_ostream(locked_ostream&& other) noexcept:
+    std::ostream(std::move(other)),
     mex(std::move(other.mex))
 {
-    set_rdbuf(other.rdbuf());       // ... and here we use it ... oh-oh
+    set_rdbuf(rdbuf());
     other.set_rdbuf(nullptr);
 }
 

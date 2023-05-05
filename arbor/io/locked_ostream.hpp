@@ -11,7 +11,7 @@ namespace io {
 
 struct locked_ostream: std::ostream {
     locked_ostream(std::streambuf *b);
-    locked_ostream(locked_ostream&& other);
+    locked_ostream(locked_ostream&& other) noexcept;
 
     ~locked_ostream() override;
 

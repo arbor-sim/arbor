@@ -30,7 +30,7 @@ void cell_label_range::add_label(cell_tag_type label, lid_range range) {
     if (sizes_.empty()) throw arbor_internal_error("adding label to cell_label_range without cell");
     ++sizes_.back();
     labels_.push_back(std::move(label));
-    ranges_.push_back(std::move(range));
+    ranges_.push_back(range);
 }
 
 void cell_label_range::append(cell_label_range other) {

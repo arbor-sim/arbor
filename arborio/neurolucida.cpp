@@ -786,7 +786,7 @@ ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input) {
 }
 
 
-inline std::string read_file(std::string filename) {
+inline std::string read_file(const std::string& filename) {
     std::ifstream fid(filename);
 
     if (!fid.good()) {
@@ -805,13 +805,13 @@ inline std::string read_file(std::string filename) {
 }
 
 
-ARB_ARBORIO_API asc_morphology load_asc(std::string filename) {
+ARB_ARBORIO_API asc_morphology load_asc(const std::string& filename) {
     std::string fstr = read_file(filename);
     return parse_asc_string(fstr.c_str());
 }
 
 
-ARB_ARBORIO_API arb::segment_tree load_asc_raw(std::string filename) {
+ARB_ARBORIO_API arb::segment_tree load_asc_raw(const std::string& filename) {
     std::string fstr = read_file(filename);
     return parse_asc_string_raw(fstr.c_str());
 }

@@ -98,7 +98,7 @@ public:
         f_.construct(other.f_.cref());
     }
 
-    filter_iterator(filter_iterator&& other):
+    filter_iterator(filter_iterator&& other) noexcept:
         inner_(std::move(other.inner_)),
         end_(std::move(other.end_)),
         ok_{other.ok_}
@@ -106,7 +106,7 @@ public:
         f_.construct(std::move(other.f_.ref()));
     }
 
-    filter_iterator& operator=(filter_iterator&& other) {
+    filter_iterator& operator=(filter_iterator&& other) noexcept {
         if (this!=&other) {
             inner_ = std::move(other.inner_);
             end_ = std::move(other.end_);

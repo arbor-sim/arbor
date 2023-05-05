@@ -527,8 +527,8 @@ std::vector<std::string> mechanism_catalogue::mechanism_names() const {
     return state_->mechanism_names();
 }
 
-mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) = default;
-mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) = default;
+mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) noexcept = default;
+mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) noexcept = default;
 
 mechanism_catalogue::mechanism_catalogue(const mechanism_catalogue& other):
     state_(new catalogue_state(*other.state_))

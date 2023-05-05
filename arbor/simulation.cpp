@@ -91,7 +91,7 @@ ARB_ARBOR_API void merge_cell_events(
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, const context& ctx, arb_seed_type seed);
 
     void update(const connectivity& rec);
 
@@ -193,7 +193,7 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        context ctx,
+        const context& ctx,
         arb_seed_type seed
     ):
     ctx_{ctx},
@@ -233,8 +233,8 @@ simulation_state::simulation_state(
     PL();
 
     PE(init:simulation:resolvers);
-    source_resolution_map_ = label_resolution_map(std::move(global_sources));
-    target_resolution_map_ = label_resolution_map(std::move(local_targets));
+    source_resolution_map_ = label_resolution_map(global_sources);
+    target_resolution_map_ = label_resolution_map(local_targets);
     PL();
 
     PE(init:simulation:comm);
@@ -591,7 +591,7 @@ void simulation::inject_events(const cse_vector& events) {
     impl_->inject_events(events);
 }
 
-simulation::simulation(simulation&&) = default;
+simulation::simulation(simulation&&) noexcept = default;
 
 simulation::~simulation() = default;
 

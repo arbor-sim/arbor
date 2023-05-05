@@ -148,15 +148,15 @@ s_expr mksexp(const label_dict& dict) {
     };
     auto defs = slist();
     for (auto& r: dict.locsets()) {
-        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), defs);
     }
     for (auto& r: dict.regions()) {
-        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), defs);
     }
     for (auto& r: dict.iexpressions()) {
-        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), defs);
     }
-    return {"label-dict"_symbol, std::move(defs)};
+    return {"label-dict"_symbol, defs};
 }
 s_expr mksexp(const morphology& morph) {
     // s-expression representation of branch i in the morphology

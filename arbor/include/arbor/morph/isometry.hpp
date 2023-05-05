@@ -33,7 +33,7 @@ private:
     double tx_ = 0, ty_ = 0, tz_ = 0;
 
     isometry(quaternion q, double tx, double ty, double tz):
-        q_(std::move(q)), tx_(tx), ty_(ty), tz_(tz) {}
+        q_(q), tx_(tx), ty_(ty), tz_(tz) {}
 
 public:
     static isometry translate(double x, double y, double z) {

@@ -133,8 +133,8 @@ struct missing_probe_info {
 
 struct fvm_probe_data {
     fvm_probe_data() = default;
-    fvm_probe_data(fvm_probe_scalar p): info(std::move(p)) {}
-    fvm_probe_data(fvm_probe_interpolated p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_scalar p): info(p) {}
+    fvm_probe_data(fvm_probe_interpolated p): info(p) {}
     fvm_probe_data(fvm_probe_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}

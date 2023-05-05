@@ -69,7 +69,7 @@ struct ARB_ARBOR_API s_expr {
 
     // This value_wrapper is used to wrap the shared pointer
     template <typename T>
-    struct value_wrapper{
+    struct value_wrapper {
         using state_t = std::unique_ptr<T>;
         state_t state;
 
@@ -89,7 +89,7 @@ struct ARB_ARBOR_API s_expr {
             return *this;
         }
 
-        value_wrapper(value_wrapper&& other) = default;
+        value_wrapper(value_wrapper&& other) noexcept = default;
 
         friend std::ostream& operator<<(std::ostream& o, const value_wrapper& w) {
             return o << *w.state;
@@ -210,21 +210,21 @@ struct ARB_ARBOR_API s_expr {
 
     s_expr(const s_expr& s) = default;
     s_expr() = default;
-    s_expr(token t): state(std::move(t)) {}
+    s_expr(const token& t): state(t) {}
     s_expr(s_expr l, s_expr r):
         state(pair_type(std::move(l), std::move(r)))
     {}
     s_expr& operator=(const s_expr& s) = default;
 
-    explicit s_expr(std::string s):
-        s_expr(token{{0,0}, tok::string, std::move(s)}) {}
+    explicit s_expr(const std::string& s):
+        s_expr(token{{0,0}, tok::string, s}) {}
     explicit s_expr(const char* s):
         s_expr(token{{0,0}, tok::string, s}) {}
     s_expr(double x):
         s_expr(token{{0,0}, tok::real, std::to_string(x)}) {}
     s_expr(int x):
         s_expr(token{{0,0}, tok::integer, std::to_string(x)}) {}
-    s_expr(symbol s):
+    s_expr(const symbol& s):
         s_expr(token{{0,0}, tok::symbol, s}) {}
 
     bool is_atom() const;

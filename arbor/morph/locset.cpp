@@ -548,7 +548,6 @@ ARB_ARBOR_API locset uniform(arb::region reg, unsigned left, unsigned right, uin
 
 mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     mlocation_list L;
-    auto morpho = p.morphology();
     auto embed = p.embedding();
 
     // Thingify the region and store relevant data

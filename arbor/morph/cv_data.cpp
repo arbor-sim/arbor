@@ -88,7 +88,7 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
         }
 
         util::sort(cables);
-        util::append(cv_cables, std::move(cables));
+        util::append(cv_cables, cables);
         cv_cables_divs.push_back(cv_cables.size());
         ++cv_index;
     }

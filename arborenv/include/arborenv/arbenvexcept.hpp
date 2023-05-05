@@ -33,7 +33,7 @@ struct ARB_SYMBOL_VISIBLE no_such_gpu: arborenv_exception {
 };
 
 struct ARB_SYMBOL_VISIBLE gpu_uuid_error: arborenv_exception {
-    gpu_uuid_error(std::string what);
+    gpu_uuid_error(const std::string& what);
 };
 
 } // namespace arbenv

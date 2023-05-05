@@ -64,10 +64,10 @@ public:
 
     sentinel_iterator() = default;
     sentinel_iterator(const sentinel_iterator&) = default;
-    sentinel_iterator(sentinel_iterator&&) = default;
+    sentinel_iterator(sentinel_iterator&&) noexcept = default;
 
     sentinel_iterator& operator=(const sentinel_iterator&) = default;
-    sentinel_iterator& operator=(sentinel_iterator&&) = default;
+    sentinel_iterator& operator=(sentinel_iterator&&) noexcept = default;
 
     // forward and input iterator requirements
 

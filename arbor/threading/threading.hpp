@@ -246,14 +246,14 @@ private:
         void set(std::exception_ptr ex) {
             error_.store(true, std::memory_order_relaxed);
             lock ex_lock{mutex_};
-            exception_ = std::move(ex);
+            exception_ = ex;
         }
 
         // Clear exception state but return old state.
         // For consistency, this must only be called when there
         // are no tasks in flight that reference this exception state.
         std::exception_ptr reset() {
-            auto ex = std::move(exception_);
+            auto ex = exception_;
             error_.store(false, std::memory_order_relaxed);
             exception_ = nullptr;
             return ex;
@@ -294,7 +294,7 @@ public:
                 exception_status_(ex)
         {}
 
-        wrap(wrap&& other):
+        wrap(wrap&& other) noexcept:
                 f_(std::move(other.f_)),
                 counter_(other.counter_),
                 exception_status_(other.exception_status_)

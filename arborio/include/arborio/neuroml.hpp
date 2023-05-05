@@ -112,10 +112,10 @@ struct ARB_ARBORIO_API neuroml {
     neuroml();
     explicit neuroml(std::string nml_document);
 
-    neuroml(neuroml&&);
+    neuroml(neuroml&&) noexcept;
     neuroml(const neuroml&) = delete;
 
-    neuroml& operator=(neuroml&&);
+    neuroml& operator=(neuroml&&) noexcept;
     neuroml& operator=(const neuroml&) = delete;
 
     // Query top-level cells and (standalone) morphologies.

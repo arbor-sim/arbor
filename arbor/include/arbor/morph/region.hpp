@@ -29,7 +29,8 @@ public:
     explicit region(const Impl& impl):
         impl_(new wrap<Impl>(impl)) {}
 
-    region(region&& other) = default;
+    region(region&& other) noexcept = default;
+    region& operator=(region&& other) noexcept = default;
 
     // The default constructor creates an empty "nil" region.
     region();
@@ -81,8 +82,8 @@ public:
     friend region intersect(region, region);
 
     template <typename ...Args>
-    friend region intersect(region l, region r, Args... args) {
-        return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
+    friend region intersect(const region& l, const region& r, Args... args) {
+        return intersect(intersect(l, r), std::move(args)...);
     }
 
 private:

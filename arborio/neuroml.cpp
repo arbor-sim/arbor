@@ -1,6 +1,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <arborio/neuroml.hpp>
@@ -51,10 +52,10 @@ struct ARB_ARBORIO_API neuroml_impl {
 };
 
 neuroml::neuroml(): impl_(new neuroml_impl) {}
-neuroml::neuroml(std::string nml_document): impl_(new neuroml_impl{nml_document}) {}
+neuroml::neuroml(std::string nml_document): impl_(new neuroml_impl{std::move(nml_document)}) {}
 
-neuroml::neuroml(neuroml&&) = default;
-neuroml& neuroml::operator=(neuroml&&) = default;
+neuroml::neuroml(neuroml&&) noexcept = default;
+neuroml& neuroml::operator=(neuroml&&) noexcept = default;
 
 neuroml::~neuroml() = default;
 

@@ -139,8 +139,8 @@ std::ostream& operator<<(std::ostream& o, const morphology_impl& m) {
 // morphology implementation
 //
 
-morphology::morphology(segment_tree m):
-    impl_(std::make_shared<const morphology_impl>(std::move(m)))
+morphology::morphology(const segment_tree& m):
+    impl_(std::make_shared<const morphology_impl>(m))
 {}
 
 morphology::morphology():
@@ -436,6 +436,7 @@ ARB_ARBOR_API std::vector<mextent> components(const morphology& m, const mextent
     }
 
     std::vector<mextent> components;
+    components.reserve(component_cables.size());
     for (auto& cl: component_cables) {
         components.emplace_back(std::move(cl));
     }

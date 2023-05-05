@@ -84,7 +84,7 @@ public:
         return impl_->gather_cell_labels_and_gids(local_labels_and_gids);
     }
 
-    std::vector<std::string> gather(std::string value, int root) const {
+    std::vector<std::string> gather(const std::string& value, int root) const {
         return impl_->gather(value, root);
     }
 

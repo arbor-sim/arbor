@@ -49,7 +49,7 @@ std::ostream& operator<<(std::ostream& o, const nil_&) {
 // Explicit cable section.
 
 struct cable_: region_tag {
-    explicit cable_(mcable c): cable(std::move(c)) {}
+    explicit cable_(mcable c): cable(c) {}
     mcable cable;
 };
 
@@ -346,7 +346,7 @@ std::ostream& operator<<(std::ostream& o, const proximal_interval_& d) {
         o << "(proximal-interval " << d.end << " " << d.distance << ")";
 }
 
-mextent radius_cmp(const mprovider& p, region r, double val, comp_op op) {
+mextent radius_cmp(const mprovider& p, const region& r, double val, comp_op op) {
     const auto& e = p.embedding();
     auto reg_extent = thingify(r, p);
     msize_t bid = mnpos;

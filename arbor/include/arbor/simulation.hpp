@@ -35,13 +35,13 @@ public:
 
     simulation(const recipe& rec,
                context ctx = make_context(),
-               std::function<domain_decomposition(const recipe&, context)> balancer = 
+               const std::function<domain_decomposition(const recipe&, context)>& balancer =
                    [](auto& r, auto c) { return partition_load_balance(r, c); },
                arb_seed_type seed = 0):
         simulation(rec, ctx, balancer(rec, ctx), seed) {}
 
     simulation(simulation const&) = delete;
-    simulation(simulation&&);
+    simulation(simulation&&) noexcept;
 
     static simulation_builder create(recipe const &);
 
@@ -117,8 +117,8 @@ public:
         return *this;
     }
 
-    simulation_builder& set_decomposition(domain_decomposition decomp) noexcept {
-        balancer_ = [decomp = std::move(decomp)](const recipe&, context) {return decomp; };
+    simulation_builder& set_decomposition(const domain_decomposition& decomp) noexcept {
+        balancer_ = [decomp = decomp](const recipe&, context) {return decomp; };
         return *this;
     }
 

@@ -87,7 +87,7 @@ struct ARB_SYMBOL_VISIBLE gj_kind_mismatch: arbor_exception {
 };
 
 struct ARB_SYMBOL_VISIBLE gj_unsupported_lid_selection_policy: arbor_exception {
-    gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label);
+    gj_unsupported_lid_selection_policy(cell_gid_type gid, const cell_tag_type& label);
     cell_gid_type gid;
     cell_tag_type label;
 };

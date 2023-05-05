@@ -8,6 +8,7 @@
 #include <arbor/morph/region.hpp>
 
 namespace arb {
+using arb::locset;
 
 label_dict& label_dict::add_swc_tags() {
     set("soma", reg::tagged(1));
@@ -21,7 +22,7 @@ size_t label_dict::size() const {
     return locsets_.size() + regions_.size();
 }
 
-label_dict& label_dict::set(const std::string& name, arb::locset ls) {
+label_dict &label_dict::set(const std::string &name, arb::locset ls) {
     if (regions_.count(name) || iexpressions_.count(name)) {
         throw label_type_mismatch(name);
     }

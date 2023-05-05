@@ -16,8 +16,8 @@ namespace arb {
 using concrete_embedding = embed_pwlin;
 
 struct ARB_ARBOR_API mprovider {
-    mprovider(arb::morphology m, const label_dict& dict): mprovider(m, &dict) {}
-    explicit mprovider(arb::morphology m): mprovider(m, nullptr) {}
+    mprovider(arb::morphology m, const label_dict& dict): mprovider(std::move(m), &dict) {}
+    explicit mprovider(arb::morphology m): mprovider(std::move(m), nullptr) {}
 
     // Throw exception on missing or recursive definition.
     const mextent& region(const std::string& name) const;

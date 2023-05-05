@@ -156,7 +156,7 @@ public:
     }
 
     // move constructor
-    array(array&& other) {
+    array(array&& other) noexcept {
 #ifdef VERBOSE
         std::cerr << util::green("array(array&&)")
                   << " " << util::type_printer<array>::print()
@@ -195,7 +195,7 @@ public:
         return *this;
     }
 
-    array& operator = (array&& other) {
+    array& operator=(array&& other) noexcept {
 #ifdef VERBOSE
         std::cerr << util::green("array operator=(array&&)")
                   << "\n  this  "  << util::pretty_printer<array>::print(*this)

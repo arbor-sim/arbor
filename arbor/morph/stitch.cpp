@@ -115,8 +115,8 @@ struct stitch_builder_impl {
 
 stitch_builder::stitch_builder(): impl_(new stitch_builder_impl) {}
 
-stitch_builder::stitch_builder(stitch_builder&&) = default;
-stitch_builder& stitch_builder::operator=(stitch_builder&&) = default;
+stitch_builder::stitch_builder(stitch_builder&&) noexcept = default;
+stitch_builder& stitch_builder::operator=(stitch_builder&&) noexcept = default;
 
 stitch_builder& stitch_builder::add(mstitch f, const std::string& parent_id, double along) {
     impl_->add(std::move(f), parent_id, along);
@@ -166,7 +166,7 @@ stitched_morphology::stitched_morphology(const stitch_builder& builder):
     impl_(new stitched_morphology_impl(*builder.impl_))
 {}
 
-stitched_morphology::stitched_morphology(stitched_morphology&& other) = default;
+stitched_morphology::stitched_morphology(stitched_morphology&& other) noexcept = default;
 
 arb::morphology stitched_morphology::morphology() const {
     return {impl_->stree};
