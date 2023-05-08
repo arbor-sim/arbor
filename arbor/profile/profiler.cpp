@@ -239,7 +239,7 @@ profile profiler::results() const {
     p.counts = std::vector<region_id_type>(nregions);
     for (auto& r: recorders_) {
         auto& accumulators = r.accumulators();
-        for (auto i: make_span(0, accumulators.size())) {
+        for (auto i: util::make_span(0, accumulators.size())) {
             p.times[i]  += accumulators[i].time;
             p.counts[i] += accumulators[i].count;
         }

@@ -178,8 +178,7 @@ void run_samples(
     const arb_value_type* raw_times,
     const arb_value_type* raw_samples,
     std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+    fvm_probe_scratch& scratch) {
     auto n_raw_per_sample = p.raw_handles.size();
     auto n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
