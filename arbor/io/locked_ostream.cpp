@@ -58,7 +58,6 @@ locked_ostream::locked_ostream(std::streambuf *b):
     mex(register_sbuf(b))
 {}
 
-
 locked_ostream::locked_ostream(locked_ostream&& other) noexcept:
     std::ostream(std::move(other)),
     mex(std::move(other.mex))
