@@ -72,8 +72,8 @@ MACOSX_DEPLOYMENT_TARGET = "10.15"
 archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux2014"
 # repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
-repair-wheel-command = repairwheel -o {dest_dir} {wheel}
+repair-wheel-command = "repairwheel -o {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-repair-wheel-command = repairwheel -o {dest_dir} {wheel}
+repair-wheel-command = "repairwheel -o {dest_dir} {wheel}"
