@@ -405,9 +405,9 @@ TEST(path, posix_directory_iterators) {
 
     bool found_dev_null = false;
     for (; it!=directory_iterator(); ++it) {
-        if (it->path()=="/dev/null") found_dev_null = true;
+        if (it->to_path()=="/dev/null") found_dev_null = true;
 
-        file_status st = symlink_status(it->path());
+        file_status st = symlink_status(it->to_path());
 
         // Check file type tests match up.
         EXPECT_EQ(it->is_block_file(), is_block_file(st));

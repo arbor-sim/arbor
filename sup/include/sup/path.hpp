@@ -350,10 +350,10 @@ public:
     filesystem_error(const std::string& what_arg, std::error_code ec):
         std::system_error(ec, what_arg) {}
 
-    filesystem_error(const std::string& what_arg, path  p1, std::error_code ec):
+    filesystem_error(const std::string& what_arg, path p1, std::error_code ec):
         std::system_error(ec, what_arg), p1_(std::move(p1)) {}
 
-    filesystem_error(const std::string& what_arg, path  p1, path  p2, std::error_code ec):
+    filesystem_error(const std::string& what_arg, path p1, path p2, std::error_code ec):
         std::system_error(ec, what_arg), p1_(std::move(p1)), p2_(std::move(p2)) {}
 
     const path& path1() const { return p1_; }
@@ -507,7 +507,7 @@ struct directory_entry {
     directory_entry(const path& p, std::error_code& ec) { assign(p, ec); }
 
     // Set file type explicity: interface for directory_iterator.
-    directory_entry(path  p, file_type type, std::error_code& ec):
+    directory_entry(path p, file_type type, std::error_code& ec):
         path_(std::move(p)), status_(type)
     {
         if (type==file_type::unknown) { // no information from readdir()
@@ -533,7 +533,7 @@ struct directory_entry {
         refresh(ec);
     }
 
-    const sup::path& path() const noexcept { return path_; }
+    const sup::path& to_path() const noexcept { return path_; }
     operator const sup::path&() const noexcept { return path_; }
 
     bool is_block_file() const     { return sup::is_block_file(status_); }

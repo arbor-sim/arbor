@@ -151,20 +151,20 @@ void run_samples(
     fvm_probe_scratch& scratch)
 {
     constexpr sample_size_type n_raw_per_sample = 2;
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
+    auto n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
 
     auto& tmp = std::get<std::vector<double>>(scratch);
     tmp.clear();
     sample_records.clear();
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         tmp.push_back(p.coef[0]*raw_samples[offset] + p.coef[1]*raw_samples[offset+1]);
     }
 
     const auto& ctmp = tmp;
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &ctmp[j]});
     }
@@ -188,13 +188,13 @@ void run_samples(
     sample_ranges.clear();
     sample_records.clear();
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         sample_ranges.emplace_back(raw_samples+offset, raw_samples+offset+n_raw_per_sample);
     }
 
     const auto& csample_ranges = sample_ranges;
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
@@ -223,21 +223,21 @@ void run_samples(
     tmp.clear();
     tmp.reserve(n_raw_per_sample*n_sample);
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        for (sample_size_type i = 0; i<n_raw_per_sample; ++i) {
+        for (auto i = 0ul; i<n_raw_per_sample; ++i) {
             tmp.push_back(raw_samples[offset+i]*p.weight[i]);
         }
     }
 
     const double* tmp_ptr = tmp.data();
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         sample_ranges.emplace_back(tmp_ptr, tmp_ptr+n_raw_per_sample);
         tmp_ptr += n_raw_per_sample;
     }
 
     const auto& csample_ranges = sample_ranges;
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
@@ -268,23 +268,23 @@ void run_samples(
     tmp.clear();
     tmp.reserve(n_interp_per_sample*n_sample);
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         const auto* raw_a = raw_samples + offset;
         const auto* raw_b = raw_a + n_interp_per_sample;
-        for (sample_size_type i = 0; i<n_interp_per_sample; ++i) {
+        for (auto i = 0ul; i<n_interp_per_sample; ++i) {
             tmp.push_back(raw_a[i]*p.coef[0][i]+raw_b[i]*p.coef[1][i]);
         }
     }
 
     const double* tmp_ptr = tmp.data();
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         sample_ranges.emplace_back(tmp_ptr, tmp_ptr+n_interp_per_sample);
         tmp_ptr += n_interp_per_sample;
     }
 
     const auto& csample_ranges = sample_ranges;
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_interp_per_sample+sc.begin_offset;
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
@@ -318,7 +318,7 @@ void run_samples(
 
     sample_records.clear();
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         auto tmp_base = tmp.data()+j*n_cable;
 
@@ -358,7 +358,7 @@ void run_samples(
     }
 
     const auto& csample_ranges = sample_ranges;
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }

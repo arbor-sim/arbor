@@ -1,5 +1,6 @@
 // POSIX headers
 extern "C" {
+/* Needed for gettimeofday on Linux */
 #define _DEFAULT_SOURCE
 #include <sys/stat.h>
 #include <dirent.h>
