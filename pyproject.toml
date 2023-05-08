@@ -53,6 +53,7 @@ requires = [
     "scikit-build",
     "cmake>=3.19",
     "ninja",
+    "repairwheel",
 ]
 build-backend = "setuptools.build_meta"
 
