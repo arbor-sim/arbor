@@ -275,10 +275,10 @@ profile_node make_profile_tree(const profile& p) {
 
     // Build a tree description of the regions and sub-regions in the profile.
     profile_node tree("root");
-    for (auto idx: make_span(0, p.names.size())) {
+    for (auto idx: util::make_span(0, p.names.size())) {
         profile_node* node = &tree;
         const auto depth  = names[idx].size();
-        for (auto i: make_span(0, depth-1)) {
+        for (auto i: util::make_span(0, depth-1)) {
             auto& node_name = names[idx][i];
             auto& kids = node->children;
 
