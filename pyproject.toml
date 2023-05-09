@@ -65,6 +65,7 @@ test-command = "python3 -m unittest discover -v -s {project}/python"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
+repair-wheel-command = ""
 
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.15"
@@ -72,7 +73,8 @@ MACOSX_DEPLOYMENT_TARGET = "10.15"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux2014"
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
+# repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python3 /project/scripts/patchwheel.py {dest_dir}"
+repair-wheel-command = ""
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
