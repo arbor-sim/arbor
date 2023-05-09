@@ -61,6 +61,7 @@ build-backend = "setuptools.build_meta"
 build-frontend = "build"
 build = ["cp3*-manylinux_x86_64","cp3*-macosx_universal2"]#,"cp3*-musllinux_x86_64","cp3*-musllinux_aarch64"]
 skip = "cp36-*"
+test-requires = "numpy"
 test-command = "python3 -m unittest discover -v -s {project}/python"
 
 [tool.cibuildwheel.macos]
@@ -78,3 +79,4 @@ repair-wheel-command = ""
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
+# do sth TBD
