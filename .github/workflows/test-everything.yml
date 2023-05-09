@@ -75,7 +75,7 @@ jobs:
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-12",
+            os:    "macos-13",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.10",
