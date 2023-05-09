@@ -53,7 +53,6 @@ requires = [
     "scikit-build",
     "cmake>=3.19",
     "ninja",
-    "repairwheel",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -79,4 +78,4 @@ repair-wheel-command = ""
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-# do sth TBD
+# TBD
