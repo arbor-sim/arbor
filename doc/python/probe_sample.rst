@@ -298,6 +298,22 @@ Ionic external concentration
 
    Kind: :term:`vector probe`.
 
+Ionic diffusion concrentration
+   .. py:function:: cable_probe_ion_diff_concentration_cell(ion)
+
+   Diffusive ionic concentration of the given ``ion`` for each cable in each CV.
+
+   Metadata: the explicit :class:`location` of the sample site.
+
+   .. py:function:: cable_probe_ion_diff_concentration(where, ion)
+
+   Diffusive ionic concentration of the given ``ion`` at the
+   sites specified by the location expression string ``where``.
+
+   Metadata: the list of corresponding :class:`cable` objects.
+
+   Kind: :term:`vector probe`.
+
 LIF Cell probing
 ================
 
