@@ -305,14 +305,14 @@ Ionic diffusion concrentration
 
    Metadata: the explicit :class:`location` of the sample site.
 
+   Kind: :term:`vector probe`.
+
    .. py:function:: cable_probe_ion_diff_concentration(where, ion)
 
    Diffusive ionic concentration of the given ``ion`` at the
    sites specified by the location expression string ``where``.
 
    Metadata: the list of corresponding :class:`cable` objects.
-
-   Kind: :term:`vector probe`.
 
 LIF Cell probing
 ================
