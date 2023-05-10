@@ -74,8 +74,10 @@ full recipe.
    connectivity where the temptation to store all connections is even larger and
    each call to ``update`` will re-evaluate the corresponding callbacks.
 
+.. _interconnectivitycross:
+
 Cross-Simulator Interaction
-===========================
+---------------------------
 
 This section describes how external simulators communicating via spikes can be
 connected to Arbor. For other methods of communication, translation to spikes,
@@ -147,7 +149,7 @@ communicate over the generated intercommunicator. Please consult the MPI
 documentation for more details on these methods.
 
 Data Plane and Spike Exchange
------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The actual communication is performed in two steps, one to collect the number
 spikes from each participating task via ``MPI_Allgather(7)`` and the second to
@@ -172,7 +174,7 @@ exchange process. Due to the way MPI defines intercommunicators, the exchange is
 the same as with intracommunicators.
 
 Control Plane and Epochs
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before initiating the actual simulation, Arbor sets the ``epoch`` length to half
 the minimal delay in the global network. The minimal delay can be queried using
@@ -231,7 +233,7 @@ participating package.
  might do so where unrelated jobs are used.
 
 Tying It All Together
----------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While there is no requirement on doing, we strongly recommend to make use of the
 facilities offered in ``arbor/communication/remote.hpp``, as does Arbor
@@ -242,7 +244,7 @@ make the interaction a bit safer and nicer. Refer to the ``remote.cpp`` example
 on how they are used and the inline comments in ``remote.hpp``.
 
 Terms and Definitions
-=====================
+---------------------
 
 .. _modelconnections:
 
