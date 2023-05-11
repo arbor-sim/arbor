@@ -105,12 +105,12 @@ set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for inst
 message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
 
 if(DEFINED SKBUILD_PROJECT_NAME)
-  set(_python_module_install_path ${SKBUILD_PROJECT_NAME})
+  # Building wheel through scitkit-build-core
+  set(_python_module_install_path .)
 else()
   set(_python_module_install_path ${ARB_PYTHON_LIB_PATH}/arbor)
 endif()
 
 install(TARGETS pyarb DESTINATION ${_python_module_install_path})
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
-install(FILES ${PROJECT_SOURCE_DIR}/VERSION DESTINATION ${_python_module_install_path})
-install(FILES ${PROJECT_SOURCE_DIR}/README.md DESTINATION ${_python_module_install_path})
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py ${CMAKE_CURRENT_SOURCE_DIR}/__main__.py DESTINATION ${_python_module_install_path})
+install(FILES ${PROJECT_SOURCE_DIR}/VERSION ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${_python_module_install_path})
