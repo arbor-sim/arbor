@@ -106,7 +106,7 @@ public:
             arb::intersect(arb::network_selection::source_cell({num_cells_ - 1}),
                 arb::network_selection::destination_cell({0})));
 
-        // Create random connections with probability proportional to the inverse distance within a
+        // Create random connections with probability inversely proportional to the distance within a
         // radius
         const double max_dist = 400.0;
         auto probability = (max_dist - arb::network_value::distance()) / max_dist;

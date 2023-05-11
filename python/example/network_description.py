@@ -109,7 +109,7 @@ class random_ring_recipe(arbor.recipe):
         # connect front and back of chain to form ring
         ring = f"(join {ring} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
 
-        # Create random connections with probability proportional to the inverse distance within a
+        # Create random connections with probability inversely proportional to the distance within a
         # radius
         max_dist = 400.0 # μm
         probability = f"(div (sub {max_dist} (distance)) {max_dist})"

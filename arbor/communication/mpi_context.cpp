@@ -101,6 +101,11 @@ struct mpi_context_impl {
         struct mpi_send_recv_request : public distributed_request::distributed_request_interface {
             std::vector<MPI_Request> recv_requests, send_requests;
 
+            mpi_send_recv_request(std::vector<MPI_Request> recv_requests,
+                std::vector<MPI_Request> send_requests):
+                recv_requests(std::move(recv_requests)),
+                send_requests(std::move(send_requests)) {}
+
             void finalize() override {
                 if (!recv_requests.empty()) {
                     mpi::wait_all(std::move(recv_requests));

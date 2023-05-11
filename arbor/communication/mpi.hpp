@@ -321,7 +321,7 @@ T broadcast(int root, MPI_Comm comm) {
     return value;
 }
 
-std::vector<MPI_Request> isend(std::size_t num_bytes,
+inline std::vector<MPI_Request> isend(std::size_t num_bytes,
     const void* data,
     int dest,
     int tag,
@@ -345,7 +345,7 @@ std::vector<MPI_Request> isend(std::size_t num_bytes,
     return requests;
 }
 
-std::vector<MPI_Request> irecv(std::size_t num_bytes,
+inline std::vector<MPI_Request> irecv(std::size_t num_bytes,
     void* data,
     int source,
     int tag,
@@ -369,7 +369,7 @@ std::vector<MPI_Request> irecv(std::size_t num_bytes,
     return requests;
 }
 
-void wait_all(std::vector<MPI_Request> requests) {
+inline void wait_all(std::vector<MPI_Request> requests) {
     if(!requests.empty()) {
         MPI_OR_THROW(
             MPI_Waitall, static_cast<int>(requests.size()), requests.data(), MPI_STATUSES_IGNORE);
