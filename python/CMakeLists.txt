@@ -104,4 +104,13 @@ execute_process(
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
 message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
 
-install(DIRECTORY ${python_mod_path} DESTINATION ${ARB_PYTHON_LIB_PATH})
+if(DEFINED SKBUILD_PROJECT_NAME)
+  set(_python_module_install_path ${SKBUILD_PROJECT_NAME})
+else()
+  set(_python_module_install_path ${ARB_PYTHON_LIB_PATH}/arbor)
+endif()
+
+install(TARGETS pyarb DESTINATION ${_python_module_install_path})
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
+install(FILES ${PROJECT_SOURCE_DIR}/VERSION DESTINATION ${_python_module_install_path})
+install(FILES ${PROJECT_SOURCE_DIR}/README.md DESTINATION ${_python_module_install_path})

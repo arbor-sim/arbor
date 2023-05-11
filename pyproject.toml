@@ -1,6 +1,7 @@
 [project]
 name = "arbor"
-dynamic = ["version", "readme"]
+version = "0.0.1" # TODO: make dependent on VERSION file
+dynamic = ["readme"]
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
 requires-python = ">=3.7"
@@ -27,18 +28,25 @@ dependencies = [
     "numpy"
 ]
 
+[tool.scikit-build]
+cmake.args = [
+        "-DARB_WITH_PYTHON=ON",
+        "-DARB_USE_BUNDLED_LIBS=ON",
+]
+
+
 [tool.black]
 line-length = 88
 target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
 include = '\.pyi?$'
 extend-exclude='^/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
 
-[tool.setuptools]
-py-modules = ["arbor"]
+# [tool.setuptools]
+# py-modules = ["arbor"]
 
-[tool.setuptools.dynamic]
-version = {file = ["VERSION"]}
-readme = {file = ["python/readme.rst"]}
+# [tool.setuptools.dynamic]
+# version = {file = ["VERSION"]}
+# readme = {file = ["python/readme.rst"]}
 
 [project.urls]
 homepage = "https://arbor-sim.org"
@@ -48,13 +56,16 @@ changelog = "https://github.com/arbor-sim/arbor/releases"
 
 [build-system]
 requires = [
-    "setuptools",
-    "wheel",
-    "scikit-build",
-    "cmake>=3.19",
-    "ninja",
+    "scikit-build-core",
+    # "setuptools",
+    # "wheel",
+    # "scikit-build",
+    # "cmake>=3.19",
+    # "ninja",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
+# build-backend = "setuptools.build_meta"
+
 
 [tool.cibuildwheel]
 build-frontend = "build"
