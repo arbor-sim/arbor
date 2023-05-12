@@ -17,7 +17,9 @@ def get_version():
 
 
 def modcc():
-    import os, sys, subprocess
+    import os
+    import sys
+    import subprocess
 
     sys.exit(
         subprocess.call(
@@ -27,7 +29,9 @@ def modcc():
 
 
 def build_catalogue():
-    import os, sys, subprocess
+    import os
+    import sys
+    import subprocess
 
     sys.exit(
         subprocess.call(
