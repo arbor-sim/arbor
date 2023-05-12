@@ -14,21 +14,6 @@ import re
 config = A.config()
 prefix = Path(config["prefix"])
 CXX = Path(config["CXX"])
-if not prefix.exists():
-    try:
-        # Example <>/lib/python3.10/site-packages/arbor
-        altern = Path(A.__path__[0]).parent.parent.parent.parent
-        print(
-            f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.",
-            file=sys.stderr,
-        )
-        prefix = altern
-    except:
-        print(
-            f"Error: Neither prefix '{prefix}' nor fallback '{altern}' exist. Please specify the prefix where you keep your Python libraries with --prefix.",
-            file=sys.stderr,
-        )
-        exit(-1)
 if not CXX.exists():
     try:
         # Example <>/lib/python3.10/site-packages/arbor
@@ -195,18 +180,39 @@ else:
     print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
     exit(-1)
 
-bindir = Path(args["prefix"]) / args["bin"]
-datdir = Path(args["prefix"]) / args["data"] / "arbor"
-pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
+def check_dirs(dirry):
+    bindir = Path(dirry) / args["bin"]
+    datdir = Path(dirry) / args["data"] / "arbor"
+    pakdir = Path(dirry) / args["lib"] / "cmake" / "arbor"
 
-for path in [
-    bindir / "modcc",
-    datdir / "BuildModules.cmake",
-    pakdir / "arbor-config.cmake",
-]:
-    if not path.exists():
-        print(f"Could not find required tool: {path}. Please check your installation.")
-        exit(-1)
+    for path in [
+        bindir / "modcc",
+        datdir / "BuildModules.cmake",
+        pakdir / "arbor-config.cmake",
+    ]:
+        if not path.exists():
+            raise FileNotFoundError(f"Could not find required tool: {path}. Please check your installation.")
+    return bindir,datdir,pakdir
+
+paths=[
+    args["prefix"],
+    Path(A.__path__[0]).parent.parent.parent.parent,
+    Path(A.__path__[0]),
+]
+
+for path in paths:
+    try:
+        bindir,datdir,pakdir = check_dirs(path)
+    except:
+        pass
+try:
+    bindir
+except NameError:
+    print(
+        f"Could not find required tool: {paths}. Please check your installation.",
+        file=sys.stderr,
+    )
+    exit(-1)
 
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
