@@ -1,6 +1,6 @@
 [project]
 name = "arbor"
-version = "0.8.0" # TODO: make dependent on VERSION file
+version = "0.9.0-dev" # TODO: make dependent on VERSION file
 dynamic = ["readme"]
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
@@ -27,6 +27,10 @@ classifiers = [
 dependencies = [
     "numpy"
 ]
+
+[project.scripts]
+modcc = "arbor:modcc"
+arbor-build-catalogue = "arbor:build_catalogue"
 
 [tool.scikit-build]
 cmake.args = [
