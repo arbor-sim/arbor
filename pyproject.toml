@@ -1,6 +1,6 @@
 [project]
 name = "arbor"
-version = "0.9.0-dev" # TODO: make dependent on VERSION file
+version = "0.8.2-dev" # TODO: make dependent on VERSION file
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
