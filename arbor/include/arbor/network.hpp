@@ -48,6 +48,8 @@ struct network_value_impl;
 
 class ARB_SYMBOL_VISIBLE network_label_dict;
 
+class ARB_SYMBOL_VISIBLE network_selection;
+
 class ARB_SYMBOL_VISIBLE network_value {
 public:
     using custom_func_type =
@@ -105,6 +107,10 @@ public:
     static network_value min(network_value left, network_value right);
 
     static network_value max(network_value left, network_value right);
+
+    static network_value if_else(network_selection cond,
+        network_value true_value,
+        network_value false_value);
 
     ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_value& v);
 
@@ -214,6 +220,8 @@ private:
 
     friend std::shared_ptr<network_selection_impl> thingify(network_selection s,
         const network_label_dict& dict);
+
+    friend class network_value;
 
     std::shared_ptr<network_selection_impl> impl_;
 };

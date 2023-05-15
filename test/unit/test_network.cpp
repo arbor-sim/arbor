@@ -803,3 +803,18 @@ TEST(network_value, max) {
         }
     }
 }
+
+TEST(network_value, if_else) {
+    const auto v1 = network_value::scalar(2.0);
+    const auto v2 = network_value::scalar(3.0);
+
+    const auto s = network_selection::inter_cell();
+
+    const auto v = thingify(network_value::if_else(s, v1, v2), network_label_dict());
+
+    for (const auto& src: test_sites) {
+        for (const auto& dest: test_sites) {
+            EXPECT_DOUBLE_EQ(v->get(src, dest), src.gid != dest.gid ? 2.0 : 3.0);
+        }
+    }
+}

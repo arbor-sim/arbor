@@ -415,6 +415,7 @@ TEST(network_value, round_tripping) {
         "(truncated-normal-distribution 42 0.5 0.1 0.3 0.7)",
         "(log (scalar 1.3))",
         "(exp (scalar 1.3))",
+        "(if-else (inter-cell) (scalar 5.1) (log (scalar 1.3)))",
     };
 
     for (auto l: network_literals) {

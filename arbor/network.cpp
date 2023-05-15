@@ -1264,6 +1264,40 @@ struct network_value_log_impl: public network_value_impl {
     }
 };
 
+struct network_value_if_else_impl: public network_value_impl {
+    std::shared_ptr<network_selection_impl> cond;
+    std::shared_ptr<network_value_impl> true_value;
+    std::shared_ptr<network_value_impl> false_value;
+
+    network_value_if_else_impl(std::shared_ptr<network_selection_impl> cond,
+        std::shared_ptr<network_value_impl> true_value,
+        std::shared_ptr<network_value_impl> false_value):
+        cond(std::move(cond)),
+        true_value(std::move(true_value)),
+        false_value(std::move(false_value)) {}
+
+    double get(const network_site_info& src, const network_site_info& dest) const override {
+        if (cond->select_connection(src, dest)) return true_value->get(src, dest);
+        return false_value->get(src, dest);
+    }
+
+    void initialize(const network_label_dict& dict) override {
+        cond->initialize(dict);
+        true_value->initialize(dict);
+        false_value->initialize(dict);
+    };
+
+    void print(std::ostream& os) const override {
+        os << "(if-else ";
+        cond->print(os);
+        os << " ";
+        true_value->print(os);
+        os << " ";
+        false_value->print(os);
+        os << ")";
+    }
+};
+
 }  // namespace
 
 network_site_info::network_site_info(cell_gid_type gid,
@@ -1485,6 +1519,13 @@ network_value network_value::min(network_value left, network_value right) {
 network_value network_value::max(network_value left, network_value right) {
     return network_value(
         std::make_shared<network_value_max_impl>(std::move(left.impl_), std::move(right.impl_)));
+}
+
+network_value network_value::if_else(network_selection cond,
+    network_value true_value,
+    network_value false_value) {
+    return network_value(std::make_shared<network_value_if_else_impl>(
+        std::move(cond.impl_), std::move(true_value.impl_), std::move(false_value.impl_)));
 }
 
 std::optional<network_selection> network_label_dict::selection(const std::string& name) const {

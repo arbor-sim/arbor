@@ -199,6 +199,11 @@ eval_map_type network_eval_map{
             "Truncated normal random distribution with given mean and standard deviation within "
             "interval [begin, end]: (seed:integer, mean:real, std_deviation:real, begin:real, "
             "end:real)")},
+    {"if-else",
+        make_call<network_selection, network_value, network_value>(arb::network_value::if_else,
+            "Returns the first network-value if a connection is the given network-selection and "
+            "the second network-value otherwise. 3 arguments: (sel:network-selection, "
+            "true_value:network-value, false_value:network_value)")},
     {"add",
         make_conversion_fold<arb::network_value, arb::network_value, double>(
             arb::network_value::add,
