@@ -1,6 +1,8 @@
 #include "network_generation.hpp"
 #include "cell_group_factory.hpp"
+#include "communication/distributed_for_each.hpp"
 #include "network_impl.hpp"
+#include "util/range.hpp"
 #include "util/spatial_tree.hpp"
 
 #include <Random123/threefry.h>
@@ -39,18 +41,18 @@ struct distributed_site_info {
 
 struct site_mapping {
     std::vector<distributed_site_info> sites;
-    std::string labels;
-    std::unordered_map<std::string_view, cell_gid_type> label_map;
+    std::vector<char> labels;
+    std::unordered_map<std::string, cell_gid_type> label_map;
 
     site_mapping() = default;
 
     inline std::size_t size() const { return sites.size(); }
 
     void insert(const network_site_info& s) {
-        const auto insert_pair = label_map.insert({s.label, labels.size()});
+        const auto insert_pair = label_map.insert({std::string(s.label), labels.size()});
         // append label if not contained in labels
         if (insert_pair.second) {
-            labels.append(s.label);
+            labels.insert(labels.end(), s.label.begin(), s.label.end());
             labels.push_back('\0');
         }
         sites.emplace_back(distributed_site_info{s.gid,
@@ -69,80 +71,12 @@ struct site_mapping {
         info.gid = s.gid;
         info.lid = s.lid;
         info.kind = s.kind;
-        info.label = labels.c_str() + s.label_start_idx;
+        info.label = labels.data() + s.label_start_idx;
         info.location = s.location;
         info.global_location = s.global_location;
         info.hash = s.hash;
 
         return info;
-    }
-};
-
-struct distributed_site_mapping {
-    const distributed_context& distributed;
-    std::vector<std::size_t> num_sites_per_rank, label_string_size_per_rank;
-    site_mapping mapping, recv_mapping;
-
-    explicit distributed_site_mapping(const distributed_context& distributed, site_mapping m):
-        distributed(distributed),
-        mapping(std::move(m)) {
-        mapping.label_map.clear();  // no longer valid after first exchange
-
-        num_sites_per_rank = distributed.gather_all(mapping.sites.size());
-        label_string_size_per_rank = distributed.gather_all(mapping.labels.size());
-
-        const auto max_num_sites =
-            *std::max_element(num_sites_per_rank.begin(), num_sites_per_rank.end());
-        const auto max_string_size =
-            *std::max_element(label_string_size_per_rank.begin(), label_string_size_per_rank.end());
-
-        mapping.sites.resize(max_num_sites);
-        mapping.labels.resize(max_string_size);
-        recv_mapping.sites.resize(max_num_sites);
-        recv_mapping.labels.resize(max_string_size);
-    }
-
-    template <typename FUNC>
-    void for_each_site(const FUNC& f) {
-        const auto my_rank = distributed.id();
-        const auto left_rank = my_rank == 0 ? distributed.size() - 1 : my_rank - 1;
-        const auto right_rank = my_rank == distributed.size() - 1 ? 0 : my_rank + 1;
-
-        auto current_idx = my_rank;
-        for (std::size_t step = 0; step < distributed.size() - 1; ++step) {
-            const auto next_idx = (current_idx + 1) % distributed.size();
-            auto request_sites = distributed.send_recv_nonblocking(num_sites_per_rank[next_idx],
-                recv_mapping.sites.data(),
-                right_rank,
-                num_sites_per_rank[current_idx],
-                mapping.sites.data(),
-                left_rank,
-                0);
-
-            auto request_labels =
-                distributed.send_recv_nonblocking(label_string_size_per_rank[next_idx],
-                    recv_mapping.labels.data(),
-                    right_rank,
-                    label_string_size_per_rank[current_idx],
-                    mapping.labels.data(),
-                    left_rank,
-                    1);
-
-            for (std::size_t site_idx = 0; site_idx < num_sites_per_rank[current_idx]; ++site_idx) {
-                f(mapping.get_site(site_idx));
-            }
-
-            request_sites.finalize();
-            request_labels.finalize();
-
-            std::swap(mapping, recv_mapping);
-
-            current_idx = next_idx;
-        }
-
-        for (std::size_t site_idx = 0; site_idx < num_sites_per_rank[current_idx]; ++site_idx) {
-            f(mapping.get_site(site_idx));
-        }
     }
 };
 
@@ -289,33 +223,43 @@ std::vector<connection> generate_network_connections(const recipe& rec,
     // select connections
     std::vector<connection> connections;
 
-    auto sample_destinations = [&](const network_site_info& src) {
-        auto sample = [&](const network_site_info& dest) {
-            if (selection.select_connection(src, dest)) {
-                connections.emplace_back(connection({src.gid, src.lid},
-                    {dest.gid, dest.lid},
-                    weight.get(src, dest),
-                    delay.get(src, dest)));
-            }
-        };
+    auto sample_sources = [&](const util::range<distributed_site_info*>& source_range,
+                              const util::range<char*>& label_range) {
+        for (const auto& s: source_range) {
+            network_site_info src;
+            src.gid = s.gid;
+            src.lid = s.lid;
+            src.kind = s.kind;
+            src.label = label_range.data() + s.label_start_idx;
+            src.location = s.location;
+            src.global_location = s.global_location;
+            src.hash = s.hash;
 
-        if (selection.max_distance().has_value()) {
-            const double d = selection.max_distance().value();
-            local_dest_tree.bounding_box_for_each(
-                decltype(local_dest_tree)::point_type{src.global_location.x - d,
-                    src.global_location.y - d,
-                    src.global_location.z - d},
-                decltype(local_dest_tree)::point_type{src.global_location.x + d,
-                    src.global_location.y + d,
-                    src.global_location.z + d},
-                sample);
+            auto sample = [&](const network_site_info& dest) {
+                if (selection.select_connection(src, dest)) {
+                    connections.emplace_back(connection({src.gid, src.lid},
+                        {dest.gid, dest.lid},
+                        weight.get(src, dest),
+                        delay.get(src, dest)));
+                }
+            };
+
+            if (selection.max_distance().has_value()) {
+                const double d = selection.max_distance().value();
+                local_dest_tree.bounding_box_for_each(
+                    decltype(local_dest_tree)::point_type{src.global_location.x - d,
+                        src.global_location.y - d,
+                        src.global_location.z - d},
+                    decltype(local_dest_tree)::point_type{src.global_location.x + d,
+                        src.global_location.y + d,
+                        src.global_location.z + d},
+                    sample);
+            }
+            else { local_dest_tree.for_each(sample); }
         }
-        else { local_dest_tree.for_each(sample); }
     };
 
-    distributed_site_mapping distributed_src_sites(distributed, std::move(src_sites));
-
-    distributed_src_sites.for_each_site(sample_destinations);
+    distributed_for_each(sample_sources, distributed, src_sites.sites, src_sites.labels);
 
     return connections;
 }
