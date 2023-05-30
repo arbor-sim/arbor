@@ -173,8 +173,6 @@ Take for example the built-in mechanism for passive leaky dynamics:
     decor.paint('"soma"', arbor.density(m3)) # error: can't have overlap between two instances of a mechanism
                                              #        with different values for a global parameter.
 
-.. _cablecell-ions:
-
 .. _cablecell-scaled-mechs:
 
 4. Scaled mechanisms
@@ -447,6 +445,36 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 ~~~~~~~~~
 
 See :ref:`probesample`.
+
+
+Predefined parameter sets
+-------------------------
+
+For convenience, Arbor provides predefined sets of parameters to use. Please
+refer to the API sections on how to enable these
+
+NEURON
+~~~~~~
+
+.. csv-table:: Parameter presets.
+   :widths: 30, 10, 10
+
+    **Parameter**,              **unit**, **NEURON**
+
+    initial membrane potential, [mV],     -65
+    temperature,                [K],      279.45
+    axial resistivity,          [Ω·cm],   35.4
+    membrane capacitance,       [F/m²],   0.01
+
+.. csv-table:: Ion presets.
+   :widths: 25, 10, 10, 10, 10
+
+    **Parameter**,          **unit**, **Na**, **K**, **Ca**
+
+    internal concentration, [mM],      10,    54.4,  0.00005
+    external concentration, [mM],     140,     2.5,  2
+    reversal potential,     [mV],      50,   -77,    132.458
+    diffusivity,            [m²/s],     0,     0,    0
 
 API
 ---
