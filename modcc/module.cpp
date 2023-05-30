@@ -573,7 +573,7 @@ bool Module::semantic() {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
         // handle Arbor specifics
         if (net_rec_api.second->args().size() > 1) {
-            error(pprintf("NET_RECEIVE does take at most one argument (Arbor limitation!)"));
+            error(pprintf("NET_RECEIVE does take at most one argument (Arbor limitation!)"), net_rec_api.first->location());
         }
         net_rec_api.first->body(net_rec_api.second->body()->clone());
         if (net_rec_api.second) {

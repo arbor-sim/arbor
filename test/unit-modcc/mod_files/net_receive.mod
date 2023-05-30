@@ -13,7 +13,6 @@ BREAKPOINT {
   i = g*(v - e)
 }
 
-
 NET_RECEIVE(w, foo) {
      g = g + foo
 }
