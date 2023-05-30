@@ -42,7 +42,7 @@ Single cell model
 
    .. attribute:: properties
 
-      The :class:`cable_global_properties` of the model, including the :class:`catalogue`.
+      The :class:`~arbor.cable_global_properties` of the model, including the :class:`~arbor.catalogue`.
 
 .. class:: trace
 
