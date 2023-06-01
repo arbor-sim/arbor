@@ -56,7 +56,11 @@ the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/b
 Built-in Catalogues
 '''''''''''''''''''
 
-Arbor provides the ``default_catalogue`` with the following mechanisms:
+Arbor comes with a number of built-in catalogues. The sources (in :ref:`formatnmodl` format)
+are located in the ``mechanisms`` `subdirectory of the Arbor source <https://github.com/arbor-sim/arbor/tree/master/mechanisms>`_.
+You may need to consult these source files to learn about the parameters and features of the mechanism.
+
+The ``default_catalogue`` comes with the following mechanisms:
 
 * *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
 * *hh*: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
@@ -67,7 +71,7 @@ Arbor provides the ``default_catalogue`` with the following mechanisms:
   rise and decay (:ref:`point mechanism <mechanisms-point>`).
 * *gj*: Linear gap-junction mechanism with constant conductance (:ref:`junction mechanism <mechanisms-junction>`).
 
-These mechanisms are the same as those available in NEURON. Arbor-specific default mechanisms are:
+These mechanisms are the same as those available in NEURON. Arbor-specific mechanisms in the default catalogue are:
 
 * *nernst*: Calculate reversal potential for an ionic species using the Nernst
   equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
