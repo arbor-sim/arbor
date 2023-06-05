@@ -105,7 +105,7 @@ set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for inst
 message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
 
 if(DEFINED SKBUILD_PROJECT_NAME)
-  # Building wheel through scitkit-build-core
+  # Building wheel through scikit-build-core
   set(_python_module_install_path .)
 else()
   set(_python_module_install_path ${ARB_PYTHON_LIB_PATH}/arbor)
