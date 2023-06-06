@@ -206,3 +206,13 @@ TEST(Module, stochastic_conditional) {
     EXPECT_EQ(wnb.parameters.size(), 1u);
     EXPECT_EQ(wnb.used.size(), 0u);
 }
+
+TEST(Module, net_receive) {
+    Module m(io::read_all(DATADIR "/mod_files/net_receive.mod"), "net_receive.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
