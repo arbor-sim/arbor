@@ -184,11 +184,11 @@ call to ``simulation::run(T, dt)`` is given a value for ``T`` that is not an
 integer multiple of the epoch length.
 
 Before the start of each ``epoch``, a control message must be exchanged between
- Arbor and the coupled simulation. The control message is transferred by use
- ``MPI_Allreduce(6)`` with operation ``MPI_SUMM`` on a byte buffer of length
- ``ARB_REMOTE_MESSAGE_LENGTH``. All processes begin with a buffer of zeroes, the
- process with ``rank`` equal to ``ARB_REMOTE_ROOT`` on both sides of the
- intercommunicator writes a payload comprising
+Arbor and the coupled simulation. The control message is transferred by use
+``MPI_Allreduce(6)`` with operation ``MPI_SUMM`` on a byte buffer of length
+``ARB_REMOTE_MESSAGE_LENGTH``. All processes begin with a buffer of zeroes, the
+process with ``rank`` equal to ``ARB_REMOTE_ROOT`` on both sides of the
+intercommunicator writes a payload comprising
 
 1. A single byte magic number
 2. A three byte version number
@@ -227,10 +227,10 @@ the result as a ``ctrl_messge``. Handling the message is left to the
 participating package.
 
 **Important** This is a synchronous protocol which means an unannounced
- termination of either side of the coupled simulators can lead to the other
- getting stuck on a blocking call to MPI. This unlikely to cause issues in
- scenarios where both sides are launched as a single job (eg via ``SLURM``), but
- might do so where unrelated jobs are used.
+termination of either side of the coupled simulators can lead to the other
+getting stuck on a blocking call to MPI. This unlikely to cause issues in
+scenarios where both sides are launched as a single job (eg via ``SLURM``), but
+might do so where unrelated jobs are used.
 
 Tying It All Together
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

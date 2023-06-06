@@ -178,6 +178,8 @@ Arbor-specific features
   tanh(x)             hyperbolic tangent                        :math:`tanh(x)`
   ==================  ========================================  =========
 
+.. _formatnmodl_voltageproc:
+
 Voltage Processes
 -----------------
 

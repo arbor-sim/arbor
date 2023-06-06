@@ -56,21 +56,44 @@ the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/b
 Built-in Catalogues
 '''''''''''''''''''
 
-Arbor provides the ``default_catalogue`` with the following mechanisms:
+Arbor comes with a number of built-in catalogues. The sources (in :ref:`formatnmodl` format)
+are located in the ``mechanisms`` `subdirectory of the Arbor source <https://github.com/arbor-sim/arbor/tree/master/mechanisms>`_.
+You may need to consult these source files to learn about the parameters and features of the mechanism.
+
+The ``default_catalogue`` comes with the following mechanisms:
 
 * *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
 * *hh*: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
   <mechanisms-density>`).
-* *nernst*: Calculate reversal potential for an ionic species using the Nernst
-  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
-  This is not meant to be used directly
 * *expsyn*: Synapse with discontinuous change in conductance at an event
   followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
 * *exp2syn*: Bi-exponential conductance synapse described by two time constants:
   rise and decay (:ref:`point mechanism <mechanisms-point>`).
 * *gj*: Linear gap-junction mechanism with constant conductance (:ref:`junction mechanism <mechanisms-junction>`).
 
-With the exception of *nernst*, these mechanisms are the same as those available in NEURON.
+These mechanisms are the same as those available in NEURON. Arbor-specific mechanisms in the default catalogue are:
+
+* *nernst*: Calculate reversal potential for an ionic species using the Nernst
+  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
+  This is not meant to be used directly
+* *inject*: Inject (signalling) ions, e.g. Ca++ (:ref:`point mechanism
+  <mechanisms-point>`).
+* *decay*: Exponential decay of ions (:ref:`density mechanism
+  <mechanisms-density>`).
+* *expsyn_cur*: Exponential current-based synapse (:ref:`point mechanism
+  <mechanisms-point>`).
+* *expsyn_stdp*: Exponential synapse with online STDP (:ref:`point mechanism
+  <mechanisms-point>`).
+* *kamt*: K-A current for Mitral Cells (Wang et al 1996) (:ref:`density mechanism
+  <mechanisms-density>`).
+* *kdrmt*: K-DR current for Mitral Cells (Wang et al 1996) (:ref:`density mechanism
+  <mechanisms-density>`).
+* *nax*: Na current for axon. No slow inact. (M.Migliore Jul. 1997) (:ref:`density mechanism
+  <mechanisms-density>`).
+* *v_clamp*: Writing directly to the membrane voltage. Breaks the cable model, so use with caution 
+  (:ref:`See NMODL documentation <formatnmodl_voltageproc>`).
+* *v_limit*: Limit directly the membrane voltage. Breaks the cable model, so use with caution 
+  (:ref:`See NMODL documentation <formatnmodl_voltageproc>`).
 
 Two catalogues are provided that collect mechanisms associated with specific projects and model databases:
 

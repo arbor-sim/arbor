@@ -258,6 +258,26 @@ Ionic external concentration of ion across components of the cell.
    the unbranched component for the corresponding sample value.
 
 
+Ionic diffusion concrentration.
+
+.. code::
+
+    struct cable_probe_ion_diff_concentration {
+        locset locations;
+        std::string ion;
+    };
+
+Diffusive ionic concentration of the given ``ion`` at the
+sites specified by ``locations``.
+
+.. code::
+
+    struct cable_probe_ion_diff_concentration_cell {
+        std::string ion;
+    };
+
+Ionic diffusion concrentration attributed to a particular ``ion`` across CVs of the cell.
+
 
 Mechanism state
 ^^^^^^^^^^^^^^^
